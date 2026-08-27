@@ -53,8 +53,8 @@
 + cms|handler|POST|/cms/api/workspace|exact|true
 + cms|handler|PUT|/cms/api/entities|exact|true
 + dashboard|handler|GET|/api/console/jump|exact|true
-+ dashboard|handler|GET|/dashboard/assets/dashboard.a6e736cb3c69cd9c56e9046bd2ecfe23a65cc7d54b83e597d829562e91b8f2ab.js|exact|true
-+ dashboard|handler|GET|/dashboard/assets/dashboard.d8ef5e693e4d53c845d782b35751be0d5373c5fb5af8bfcbcbb36599dfe1a559.css|exact|true
++ dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].css|exact|true
++ dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].js|exact|true
 + dashboard|handler|GET|/dashboard|exact|true
 + mcp|handler|DELETE|/mcp|exact|true
 + mcp|handler|GET|/mcp|exact|true

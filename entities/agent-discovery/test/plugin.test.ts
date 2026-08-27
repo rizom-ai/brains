@@ -24,7 +24,7 @@ import {
   getActiveAuthService,
 } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
-import type { Plugin } from "@brains/plugins";
+import type { DashboardWidgetRegistration, Plugin } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
@@ -1303,6 +1303,74 @@ describe("AgentDiscoveryPlugin", () => {
         rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
         drawsItself: true,
       },
+    ]);
+
+    harness.reset();
+  });
+
+  it("provides a valid Agent Network view for every normalized skill tag", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    let networkWidget: DashboardWidgetRegistration | undefined;
+
+    harness.subscribe("dashboard:register-widget", async (message) => {
+      const registration = message.payload as DashboardWidgetRegistration;
+      if (registration.id === "agent-network") networkWidget = registration;
+      return { success: true };
+    });
+
+    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        skills: [
+          {
+            name: "Systems identity",
+            description: "Maps identity across organizations and AI systems.",
+            tags: ["identity", "organization", "systems", "ai-systems"],
+          },
+        ],
+      }),
+    });
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
+
+    if (!networkWidget) throw new Error("Agent Network widget not registered");
+    const data = await networkWidget.dataProvider({
+      caller: null,
+      signal: new AbortController().signal,
+    });
+    const viewData = data as {
+      view: {
+        blocks: Array<{
+          type: string;
+          tabs?: Array<{
+            id: string;
+            blocks: Array<{
+              type: string;
+              filter?: { options: Array<{ value: string }> };
+              items?: Array<{ filterValues?: string[] }>;
+            }>;
+          }>;
+        }>;
+      };
+    };
+    const tabs = viewData.view.blocks.find(
+      (block) => block.type === "tabs",
+    )?.tabs;
+    const skills = tabs
+      ?.find((tab) => tab.id === "skills")
+      ?.blocks.find((block) => block.type === "list");
+
+    expect(skills?.filter?.options.map(({ value }) => value)).toEqual([
+      "all",
+      "ai-systems",
+      "identity",
+      "organization",
+      "systems",
+    ]);
+    expect(skills?.items?.[0]?.filterValues).toEqual([
+      "identity",
+      "organization",
+      "systems",
+      "ai-systems",
     ]);
 
     harness.reset();

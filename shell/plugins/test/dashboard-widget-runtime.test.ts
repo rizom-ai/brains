@@ -515,6 +515,63 @@ describe("declarative dashboard widget runtime", () => {
     });
   });
 
+  it("accepts complete list facets beyond the legacy 50-option boundary", () => {
+    const tags = Array.from(
+      { length: 60 },
+      (_, index) => `tag-${String(index + 1).padStart(2, "0")}`,
+    );
+    const parsed = safeParseRuntimeDashboardOperatorView({
+      blocks: [
+        {
+          type: "list",
+          id: "skills",
+          empty: "No skills.",
+          filter: {
+            label: "Filter skills by tag",
+            defaultValue: "all",
+            allValue: "all",
+            options: [
+              { value: "all", label: "all" },
+              ...tags.map((tag) => ({ value: tag, label: tag })),
+            ],
+          },
+          items: [
+            {
+              id: "skill-1",
+              title: "Skill",
+              filterValues: tags.slice(0, 30),
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed).toMatchObject({ success: true });
+  });
+
+  it("keeps complete list facets bounded by the list membership space", () => {
+    const parsed = safeParseRuntimeDashboardOperatorView({
+      blocks: [
+        {
+          type: "list",
+          id: "skills",
+          empty: "No skills.",
+          filter: {
+            label: "Filter skills by tag",
+            defaultValue: "tag-0",
+            options: Array.from({ length: 10_002 }, (_, index) => ({
+              value: `tag-${index}`,
+              label: `Tag ${index}`,
+            })),
+          },
+          items: [],
+        },
+      ],
+    });
+
+    expect(parsed).toMatchObject({ success: false });
+  });
+
   it("rejects duplicate local widget IDs before host registration", async () => {
     const widget = defineDashboardWidget({
       id: "duplicate",

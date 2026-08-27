@@ -24,6 +24,15 @@ function click(selector: string): void {
   );
 }
 
+function input(selector: string, value: string): void {
+  const match = element(selector);
+  if (!(match instanceof window.HTMLInputElement)) {
+    throw new Error(`Not an input: ${selector}`);
+  }
+  match.value = value;
+  match.dispatchEvent(new window.Event("input", { bubbles: true }));
+}
+
 function keydown(selector: string, key: string): void {
   element(selector).dispatchEvent(
     new window.KeyboardEvent("keydown", {
@@ -279,6 +288,63 @@ describe("dashboard filter behavior", () => {
     expect(
       element('[data-ui-filter-value="missing"]').getAttribute("aria-pressed"),
     ).toBe("true");
+  });
+
+  it("searches complete option sets while initially collapsing overflow", () => {
+    const tagControls = Array.from({ length: 14 }, (_, index) => {
+      const number = index + 1;
+      return `<button data-ui-filter-value="tag-${number}" data-ui-filter-option-label="tag ${number}">Tag ${number}</button>`;
+    }).join("");
+    window.document.body.innerHTML = `
+      <div data-ui-filter data-ui-filter-default="all" data-ui-filter-all="all" data-ui-filter-visible-options="12">
+        <div data-ui-filter-tools>
+          <input type="search" data-ui-filter-search aria-label="Search filters">
+          <button type="button" data-ui-filter-toggle aria-expanded="false"><span data-ui-filter-toggle-label>Show all</span></button>
+        </div>
+        <button data-ui-filter-value="all" data-ui-filter-option-label="all">All</button>
+        ${tagControls}
+      </div>`;
+
+    runScript();
+
+    expect(
+      element('[data-ui-filter-value="tag-11"]').hasAttribute("hidden"),
+    ).toBe(false);
+    expect(
+      element('[data-ui-filter-value="tag-12"]').hasAttribute("hidden"),
+    ).toBe(true);
+    expect(element("[data-ui-filter-toggle]").hasAttribute("hidden")).toBe(
+      false,
+    );
+
+    input("[data-ui-filter-search]", "tag 14");
+    expect(
+      element('[data-ui-filter-value="tag-1"]').hasAttribute("hidden"),
+    ).toBe(true);
+    expect(
+      element('[data-ui-filter-value="tag-14"]').hasAttribute("hidden"),
+    ).toBe(false);
+    expect(element("[data-ui-filter-toggle]").hasAttribute("hidden")).toBe(
+      true,
+    );
+
+    click('[data-ui-filter-value="tag-14"]');
+    input("[data-ui-filter-search]", "tag 2");
+    expect(
+      element('[data-ui-filter-value="tag-14"]').hasAttribute("hidden"),
+    ).toBe(false);
+    input("[data-ui-filter-search]", "");
+    expect(
+      element('[data-ui-filter-value="tag-14"]').hasAttribute("hidden"),
+    ).toBe(false);
+
+    click("[data-ui-filter-toggle]");
+    expect(
+      element("[data-ui-filter-toggle]").getAttribute("aria-expanded"),
+    ).toBe("true");
+    expect(
+      element('[data-ui-filter-value="tag-12"]').hasAttribute("hidden"),
+    ).toBe(false);
   });
 
   it("keeps nested filters isolated and treats malformed row values as empty", () => {

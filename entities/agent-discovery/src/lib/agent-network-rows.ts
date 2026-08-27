@@ -149,29 +149,19 @@ export function buildSkillFilters(
     }
   }
 
-  const sorted = Array.from(stats.entries())
+  return Array.from(stats.entries())
     .map(([tag, info]) => ({ tag, ...info }))
     .sort((a, b) => {
+      const priority = (entry: typeof a): number =>
+        entry.sources.size > 1 ? 0 : entry.hasBrain ? 1 : 2;
+      const priorityDiff = priority(a) - priority(b);
+      if (priorityDiff !== 0) return priorityDiff;
       if (b.count !== a.count) return b.count - a.count;
       return a.tag.localeCompare(b.tag);
-    });
-
-  const filters: AgentNetworkTagFilter[] = [];
-  const seen = new Set<string>();
-
-  for (const entry of sorted
-    .filter((entry) => entry.sources.size > 1)
-    .slice(0, 5)) {
-    filters.push({ tag: entry.tag, count: entry.count });
-    seen.add(entry.tag);
-  }
-
-  for (const entry of sorted.filter(
-    (entry) => entry.hasBrain && entry.sources.size === 1,
-  )) {
-    if (seen.has(entry.tag)) continue;
-    filters.push({ tag: entry.tag, count: entry.count, variant: "gap" });
-  }
-
-  return filters;
+    })
+    .map((entry): AgentNetworkTagFilter => ({
+      tag: entry.tag,
+      count: entry.count,
+      ...(entry.hasBrain && entry.sources.size === 1 ? { variant: "gap" } : {}),
+    }));
 }

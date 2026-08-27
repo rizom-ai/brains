@@ -333,4 +333,30 @@ describe("widget UI primitives", () => {
     expect(html).toContain('data-ui-filter-empty="true" hidden');
     expect(html).toContain("No matching examples.");
   });
+
+  it("renders searchable overflow controls without truncating filter options", () => {
+    const options = [
+      { value: "all", label: "All" },
+      ...Array.from({ length: 60 }, (_, index) => ({
+        value: `tag-${String(index + 1).padStart(2, "0")}`,
+        label: `Tag ${index + 1}`,
+      })),
+    ];
+
+    const html = render(
+      <WidgetFilter
+        label="Filter skills by tag"
+        defaultValue="all"
+        options={options}
+      >
+        <WidgetList />
+      </WidgetFilter>,
+    );
+
+    expect(html).toContain('data-ui-filter-visible-options="12"');
+    expect(html).toContain('data-ui-filter-search="true"');
+    expect(html).toContain('data-ui-filter-toggle="true"');
+    expect(html).toContain('data-ui-filter-option-label="tag 60"');
+    expect(html).toContain('data-ui-filter-value="tag-60"');
+  });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import { agentSkillSchema } from "../src/schemas/agent";
 import {
   skillFrontmatterSchema,
   skillMetadataSchema,
@@ -43,6 +44,57 @@ describe("Skill schemas", () => {
         examples: [],
       });
       expect(result.success).toBe(true);
+    });
+
+    it("bounds tag count and tag length at ingestion", () => {
+      const base = {
+        name: "Bounded skill",
+        description: "A bounded skill",
+        examples: [],
+      };
+
+      expect(
+        skillFrontmatterSchema.safeParse({
+          ...base,
+          tags: Array.from({ length: 30 }, (_, index) =>
+            index === 0 ? "t".repeat(120) : `tag-${index}`,
+          ),
+        }).success,
+      ).toBe(true);
+      expect(
+        skillFrontmatterSchema.safeParse({
+          ...base,
+          tags: Array.from({ length: 31 }, (_, index) => `tag-${index}`),
+        }).success,
+      ).toBe(false);
+      expect(
+        skillFrontmatterSchema.safeParse({
+          ...base,
+          tags: ["t".repeat(121)],
+        }).success,
+      ).toBe(false);
+      expect(
+        skillFrontmatterSchema.safeParse({ ...base, tags: ["   "] }).success,
+      ).toBe(false);
+    });
+  });
+
+  describe("agentSkillSchema", () => {
+    it("uses the same ingestion bounds for remote agent skills", () => {
+      const base = { name: "Remote skill", description: "A remote skill" };
+
+      expect(
+        agentSkillSchema.safeParse({
+          ...base,
+          tags: Array.from({ length: 31 }, (_, index) => `tag-${index}`),
+        }).success,
+      ).toBe(false);
+      expect(
+        agentSkillSchema.safeParse({
+          ...base,
+          tags: ["t".repeat(121)],
+        }).success,
+      ).toBe(false);
     });
   });
 

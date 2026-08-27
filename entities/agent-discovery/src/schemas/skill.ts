@@ -1,6 +1,19 @@
 import { baseEntitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { SKILL_ENTITY_TYPE } from "../lib/constants";
+import {
+  MAX_SKILL_TAG_LENGTH,
+  MAX_SKILL_TAGS,
+  SKILL_ENTITY_TYPE,
+} from "../lib/constants";
+
+export const skillTagSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_SKILL_TAG_LENGTH);
+export const skillTagsSchema: z.ZodArray<z.ZodString> = z
+  .array(skillTagSchema)
+  .max(MAX_SKILL_TAGS);
 
 type SkillFrontmatterSchema = z.ZodObject<{
   name: z.ZodString;
@@ -17,7 +30,7 @@ type SkillFrontmatterSchema = z.ZodObject<{
 export const skillFrontmatterSchema: SkillFrontmatterSchema = z.object({
   name: z.string(),
   description: z.string(),
-  tags: z.array(z.string()),
+  tags: skillTagsSchema,
   examples: z.array(z.string()),
 });
 
