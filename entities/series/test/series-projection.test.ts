@@ -41,6 +41,10 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
   });
   return {
     entities: service,
+    conversations: {
+      get: async () => null,
+      getMessages: async () => [],
+    },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async (): Promise<never> => {
       throw new Error("not used");

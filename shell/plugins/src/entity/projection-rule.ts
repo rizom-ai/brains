@@ -15,6 +15,7 @@ import { z } from "@brains/utils/zod";
 import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
 import type { IEntityAINamespace } from "./ai-types";
 import { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
+import type { EntityConversationReader } from "../job/job-context-contract";
 
 export {
   ProjectionJsonObjectSchema,
@@ -106,6 +107,14 @@ export interface ProjectionEntityReader {
 
 export interface ProjectionInputContext {
   readonly entities: ProjectionEntityReader;
+  /**
+   * What was said, for a rule that derives from it.
+   *
+   * A conversation source tells a rule *that* a conversation changed; this
+   * is how it reads one. Narrow on purpose: a derivation needs the
+   * conversation and its messages, not the ability to write either.
+   */
+  readonly conversations: EntityConversationReader;
   readonly resolvePrompt: (
     reference: string,
     fallback: string,

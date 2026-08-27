@@ -23,6 +23,12 @@ import type {
   ProjectionRule,
   ProjectionWriteIntent,
 } from "@brains/plugins";
+import {
+  toPublicConversation,
+  toPublicMessage,
+  type Conversation,
+  type Message,
+} from "@brains/plugins";
 import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 
 // Plugin manager
@@ -743,8 +749,25 @@ export class Shell implements IShell {
   }
 
   private createProjectionInputContext(): ProjectionInputContext {
+    const conversationService = this.services.conversationService;
     return {
       entities: this.services.entityService,
+      conversations: {
+        get: async (conversationId): Promise<Conversation | null> => {
+          const conversation =
+            await conversationService.getConversation(conversationId);
+          return conversation ? toPublicConversation(conversation) : null;
+        },
+        getMessages: async (conversationId, options): Promise<Message[]> =>
+          (
+            await conversationService.getMessages(
+              conversationId,
+              options?.limit === undefined
+                ? undefined
+                : { limit: options.limit },
+            )
+          ).map(toPublicMessage),
+      },
       resolvePrompt: (reference, fallback): Promise<string> =>
         resolvePrompt(this.services.entityService, reference, fallback),
       appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),

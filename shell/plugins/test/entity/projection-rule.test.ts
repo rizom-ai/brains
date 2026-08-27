@@ -9,6 +9,10 @@ import {
 } from "../../src";
 
 const inputContext: ProjectionInputContext = {
+  conversations: {
+    get: async () => null,
+    getMessages: async () => [],
+  },
   entities: {
     getEntity: async () => null,
     listEntities: async () => [],
