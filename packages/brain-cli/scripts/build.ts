@@ -174,12 +174,6 @@ const sharedExternals = [
   "@modelcontextprotocol/server",
   // MCP client for --remote mode (lazy imported)
   "@modelcontextprotocol/client",
-  // Playwright is lazy-loaded by @brains/media-renderer via variable-
-  // indirected dynamic import, but Bun's bundler still traces it and then
-  // chokes on optional transitive requires (chromium-bidi) inside
-  // playwright-core. Keep it as a runtime require so installs that don't
-  // need PDF/media generation can skip the chromium browser payload.
-  "playwright-core",
   // Preact and its subpaths MUST be externalized so brain.js, the
   // library exports and consumer site code all share a
   // single preact instance. Bundling preact into brain.js creates a

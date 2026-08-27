@@ -6,13 +6,32 @@ import type {
   ViewportOptions,
   WaitUntilState,
 } from "./browser-types";
-import { MediaRenderError } from "./renderer";
+import { MediaRenderError } from "./media-render-error";
 
 const NETWORK_IDLE_MS = 500;
 const NETWORK_POLL_MS = 10;
 const CSS_PIXELS_PER_INCH = 96;
+const PDF_FORMAT_DIMENSIONS: Readonly<
+  Record<string, { paperWidth: number; paperHeight: number }>
+> = {
+  a0: { paperWidth: 33.1, paperHeight: 46.8 },
+  a1: { paperWidth: 23.4, paperHeight: 33.1 },
+  a2: { paperWidth: 16.54, paperHeight: 23.4 },
+  a3: { paperWidth: 11.7, paperHeight: 16.5 },
+  a4: { paperWidth: 8.2677, paperHeight: 11.6929 },
+  a5: { paperWidth: 5.83, paperHeight: 8.27 },
+  a6: { paperWidth: 4.13, paperHeight: 5.83 },
+  legal: { paperWidth: 8.5, paperHeight: 14 },
+  ledger: { paperWidth: 17, paperHeight: 11 },
+  letter: { paperWidth: 8.5, paperHeight: 11 },
+  tabloid: { paperWidth: 11, paperHeight: 17 },
+};
 
-export interface WebViewBrowserLaunchOptions {
+let activeBrowserLeases = 0;
+let scheduledBrowserShutdown: ReturnType<typeof setTimeout> | undefined;
+let browserShutdown: Promise<void> | undefined;
+
+export interface BrowserLaunchOptions {
   executablePath?: string;
   args?: string[];
 }
@@ -25,17 +44,22 @@ interface CaptureScreenshotResult {
   data: string;
 }
 
+interface LayoutMetricsResult {
+  cssContentSize?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
 interface NetworkRequestEvent {
   requestId: string;
 }
 
-/**
- * Bun 1.4 WebView adapter for the renderer's existing browser seam.
- *
- * The factory remains opt-in while the experimental WebView API is evaluated.
- */
-export function createWebViewBrowserFactory(
-  options: WebViewBrowserLaunchOptions = {},
+/** Bun 1.4 WebView adapter for the renderer's browser seam. */
+export function createChromiumBrowserFactory(
+  options: BrowserLaunchOptions = {},
 ): BrowserFactory {
   return {
     async launch(): Promise<MediaBrowser> {
@@ -54,16 +78,44 @@ export function createWebViewBrowserFactory(
   };
 }
 
+async function acquireBrowserLease(): Promise<void> {
+  if (scheduledBrowserShutdown !== undefined) {
+    clearTimeout(scheduledBrowserShutdown);
+    scheduledBrowserShutdown = undefined;
+  }
+  if (browserShutdown) await browserShutdown;
+  activeBrowserLeases++;
+}
+
+function scheduleBrowserShutdown(): void {
+  if (scheduledBrowserShutdown !== undefined || browserShutdown) return;
+  // Let a back-to-back render reuse Chrome. If the event loop reaches the
+  // timer with no new lease, every media-owned view has closed and WebView's
+  // process-global browser can be reclaimed without disrupting concurrency.
+  scheduledBrowserShutdown = setTimeout(() => {
+    scheduledBrowserShutdown = undefined;
+    Bun.WebView.closeAll();
+    const shutdown = new Promise<void>((resolve) => setTimeout(resolve, 0));
+    browserShutdown = shutdown;
+    void shutdown.then(() => {
+      if (browserShutdown === shutdown) browserShutdown = undefined;
+    });
+  }, 0);
+}
+
 class WebViewMediaBrowser implements MediaBrowser {
-  private readonly options: WebViewBrowserLaunchOptions;
+  private readonly options: BrowserLaunchOptions;
   private readonly pages = new Set<WebViewMediaPage>();
   private initialView: Bun.WebView | undefined;
+  private leased = false;
 
-  constructor(options: WebViewBrowserLaunchOptions) {
+  constructor(options: BrowserLaunchOptions) {
     this.options = options;
   }
 
   public async initialize(): Promise<void> {
+    await acquireBrowserLease();
+    this.leased = true;
     const view = this.createView({ width: 800, height: 600 });
     this.initialView = view;
     await view.navigate("about:blank");
@@ -84,27 +136,42 @@ class WebViewMediaBrowser implements MediaBrowser {
   }
 
   public async close(): Promise<void> {
-    this.initialView?.close();
-    this.initialView = undefined;
-    const pages = [...this.pages];
-    this.pages.clear();
-    await Promise.all(pages.map((page) => page.close()));
+    try {
+      this.initialView?.close();
+      this.initialView = undefined;
+      const pages = [...this.pages];
+      this.pages.clear();
+      await Promise.all(pages.map((page) => page.close()));
+    } finally {
+      this.releaseLease();
+    }
   }
 
   private createView(viewport: ViewportOptions): Bun.WebView {
+    const args = [...(this.options.args ?? [])];
+    if (process.getuid?.() === 0 && !args.includes("--no-sandbox")) {
+      args.push("--no-sandbox");
+    }
     const backend: Bun.WebView.Backend = {
       type: "chrome",
       url: false,
       ...(this.options.executablePath
         ? { path: this.options.executablePath }
         : {}),
-      ...(this.options.args ? { argv: this.options.args } : {}),
+      ...(args.length > 0 ? { argv: args } : {}),
     };
     return new Bun.WebView({
       width: viewport.width,
       height: viewport.height,
       backend,
     });
+  }
+
+  private releaseLease(): void {
+    if (!this.leased) return;
+    this.leased = false;
+    activeBrowserLeases--;
+    if (activeBrowserLeases === 0) scheduleBrowserShutdown();
   }
 }
 
@@ -166,18 +233,20 @@ class WebViewMediaPage implements MediaPage {
       });
     }
     try {
+      const clip = options.fullPage ? await this.fullPageClip() : undefined;
       const result = await this.view.cdp<CaptureScreenshotResult>(
         "Page.captureScreenshot",
         {
           format: "png",
           fromSurface: true,
           captureBeyondViewport: options.fullPage ?? false,
+          ...(clip ? { clip } : {}),
         },
       );
       return Buffer.from(result.data, "base64");
     } finally {
       if (options.omitBackground) {
-        await this.view.cdp("Emulation.setDefaultBackgroundColorOverride");
+        await this.view.cdp("Emulation.setDefaultBackgroundColorOverride", {});
       }
     }
   }
@@ -232,6 +301,8 @@ class WebViewMediaPage implements MediaPage {
   }
 
   private async waitForNetworkIdle(): Promise<void> {
+    if (this.closed)
+      throw new Error("WebView closed while waiting for network idle");
     if (
       this.activeRequests.size === 0 &&
       performance.now() - this.lastNetworkActivity >= NETWORK_IDLE_MS
@@ -240,6 +311,28 @@ class WebViewMediaPage implements MediaPage {
     }
     await Bun.sleep(NETWORK_POLL_MS);
     return this.waitForNetworkIdle();
+  }
+
+  private async fullPageClip(): Promise<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+  }> {
+    const metrics = await this.view.cdp<LayoutMetricsResult>(
+      "Page.getLayoutMetrics",
+    );
+    const content = metrics.cssContentSize;
+    if (!content)
+      throw new Error("Chromium did not return CSS content metrics");
+    return {
+      x: 0,
+      y: 0,
+      width: Math.max(this.viewport.width, Math.ceil(content.width)),
+      height: Math.max(this.viewport.height, Math.ceil(content.height)),
+      scale: 1,
+    };
   }
 }
 
@@ -273,11 +366,10 @@ function pdfDimensions(
     };
   }
 
-  const format = options.format?.toLowerCase();
-  if (format === "a4") return { paperWidth: 8.2677, paperHeight: 11.6929 };
-  if (format === "letter") return { paperWidth: 8.5, paperHeight: 11 };
-  if (format === "legal") return { paperWidth: 8.5, paperHeight: 14 };
-  return {};
+  if (!options.format) return {};
+  const dimensions = PDF_FORMAT_DIMENSIONS[options.format.toLowerCase()];
+  if (!dimensions) throw new Error(`Unsupported PDF format: ${options.format}`);
+  return dimensions;
 }
 
 function toInches(value: string | number): number {

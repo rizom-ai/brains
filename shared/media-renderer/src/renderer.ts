@@ -1,18 +1,12 @@
 import { withBrowser } from "./browser-lifecycle";
-import { getErrorMessage } from "@brains/utils/error";
 import type {
   BrowserFactory,
-  MediaBrowser,
   MediaPage,
   ViewportOptions,
   WaitUntilState,
 } from "./browser-types";
-
-export interface BrowserLaunchOptions {
-  executablePath?: string;
-  args?: string[];
-  env?: Record<string, string | number | boolean>;
-}
+import { MediaRenderError } from "./media-render-error";
+import { createChromiumBrowserFactory } from "./webview-browser";
 
 export interface ScreenshotPngOptions {
   timeoutMs?: number;
@@ -42,62 +36,7 @@ export interface PdfRenderOptions {
   browserFactory?: BrowserFactory;
 }
 
-interface PlaywrightModule {
-  chromium: {
-    launch(options: {
-      headless: boolean;
-      executablePath?: string;
-      args?: string[];
-      env?: Record<string, string | number | boolean>;
-    }): Promise<MediaBrowser>;
-  };
-}
-
 const DEFAULT_TIMEOUT_MS = 30_000;
-
-export class MediaRenderError extends Error {
-  public readonly code:
-    | "browser-launch-failed"
-    | "render-timeout"
-    | "output-too-large"
-    | "invalid-output";
-  constructor(
-    message: string,
-    code:
-      | "browser-launch-failed"
-      | "render-timeout"
-      | "output-too-large"
-      | "invalid-output",
-  ) {
-    super(message);
-    this.code = code;
-    this.name = "MediaRenderError";
-  }
-}
-
-export function createChromiumBrowserFactory(
-  options: BrowserLaunchOptions = {},
-): BrowserFactory {
-  return {
-    async launch(): Promise<MediaBrowser> {
-      try {
-        // Keep this dynamic and non-literal so packages that do not import this
-        // module do not require Playwright types/browsers at boot or compile time.
-        const moduleName = "playwright-core";
-        const playwright = (await import(moduleName)) as PlaywrightModule;
-        return await playwright.chromium.launch({
-          headless: true,
-          ...options,
-        });
-      } catch (error) {
-        throw new MediaRenderError(
-          `Failed to launch Chromium for media rendering: ${getErrorMessage(error)}`,
-          "browser-launch-failed",
-        );
-      }
-    },
-  };
-}
 
 export async function screenshotPng(
   url: string,

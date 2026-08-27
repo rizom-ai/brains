@@ -3,8 +3,7 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.328",
   "dependencies": {
-    "@brains/utils": "workspace:*",
-    "playwright-core": "^1.61.0"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",

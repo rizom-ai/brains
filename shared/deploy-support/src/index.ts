@@ -158,6 +158,7 @@ export function isStaleDeployDockerfile(content: string): boolean {
     content.includes('LABEL ai.rizom.brain.watchdog="true"') &&
     content.includes("http://127.0.0.1:8080/health/live") &&
     content.includes('ENTRYPOINT ["/usr/bin/tini", "--"]') &&
+    content.includes("BUN_CHROME_PATH=/usr/bin/chromium-headless-shell") &&
     content.includes(
       'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
@@ -168,14 +169,15 @@ export function isStaleDeployDockerfile(content: string): boolean {
     content.includes(
       'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
+  const hasGeneratedBrowser = content.includes("chromium-headless-shell");
   return (
     hasGeneratedCommand &&
+    hasGeneratedBrowser &&
     [
       "ARG BUN_VERSION=",
       "FROM oven/bun:${BUN_VERSION}-slim AS runtime",
       "FROM runtime AS standalone",
       "FROM runtime AS fleet",
-      "bunx playwright-core install --with-deps chromium-headless-shell",
     ].every((marker) => content.includes(marker))
   );
 }

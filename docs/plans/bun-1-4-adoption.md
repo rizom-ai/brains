@@ -2,14 +2,14 @@
 
 ## Status
 
-**Partial — reopened after review.** Phases 1–4 and 6 are complete and
-green under Bun 1.4. Phase 5's successful WebView spike is being completed as
-a full Playwright removal rather than leaving two browser implementations in
-the codebase. Frozen install, full lint, typecheck, test, architecture, and all
-six packed compatibility contracts passed before this final migration. The
-console visual runner completes in the available Chromium container; its
-committed baselines differ in that environment, while Sharp and `pngjs`
-produce identical pixel-difference ratios for the same captures.
+**Implemented; pending review.** Phases 1–6 are complete and green under Bun
+1.4, including the review-requested completion of Phase 5 as a full Playwright
+removal rather than two maintained browser implementations. Frozen install,
+full lint, typecheck, test, architecture, and all six packed compatibility
+contracts pass. The console visual runner completes all 54 captures in the
+available Chromium container; its committed baselines differ in that
+environment, while decoder cross-checks and state inspection confirm the
+migration is rendering the intended surfaces.
 
 ## Goal
 
@@ -215,10 +215,14 @@ only by dropping fonts and is explicitly rejected.
 
 Exploration benchmarks favor the migration: five PNG plus five PDF renders took
 7.1s with WebView and explicit last-lease shutdown versus 8.8s with Playwright;
-12 concurrent renders took 1.15s versus 1.33s. Exit gate: no non-historical
-`playwright` reference remains, frozen install and package checks pass, the
-runtime image renders through its provisioned headless shell, console captures
-complete, and the full Bun 1.4 plus packed-compatibility gate remains green.
+12 concurrent renders took 1.15s versus 1.33s. The completed migration removes
+Playwright from manifests, the lockfile, runtime code, build externals,
+deployment provisioning, and the visual harness. The canonical runtime image
+renders concurrent PNG/PDF output through its provisioned headless shell,
+recovers after a deliberately gated timeout, validates full-page dimensions,
+and leaves zero Chromium processes after the final lease. All 54 console
+captures complete, and frozen install, full repository checks, and all six
+packed compatibility contracts remain green.
 
 ## Phase 6 — targeted `retry` on timing-sensitive integration tests
 

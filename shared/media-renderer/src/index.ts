@@ -1,9 +1,7 @@
-export {
-  createChromiumBrowserFactory,
-  renderPdf,
-  screenshotPng,
-  MediaRenderError,
-} from "./renderer";
+export { renderPdf, screenshotPng } from "./renderer";
+export { MediaRenderError } from "./media-render-error";
+export { createChromiumBrowserFactory } from "./webview-browser";
+export type { BrowserLaunchOptions } from "./webview-browser";
 export type {
   BrowserFactory,
   BrowserProcess,
@@ -12,10 +10,4 @@ export type {
   ViewportOptions,
   WaitUntilState,
 } from "./browser-types";
-export type {
-  BrowserLaunchOptions,
-  PdfRenderOptions,
-  ScreenshotPngOptions,
-} from "./renderer";
-export { createWebViewBrowserFactory } from "./webview-browser";
-export type { WebViewBrowserLaunchOptions } from "./webview-browser";
+export type { PdfRenderOptions, ScreenshotPngOptions } from "./renderer";

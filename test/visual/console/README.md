@@ -3,7 +3,7 @@
 The committed baselines cover Dashboard, Chat (plain conversation and the card-states session), the CMS library, and the CMS editor at
 1440×1000, 768×1024, and 390×844 in both console climates.
 
-Build the two client assets, provide a Chromium executable, then run the comparison:
+The harness drives Chromium through `Bun.WebView`. Build the two client assets, provide a Chromium executable, then run the comparison:
 
 ```bash
 (cd interfaces/web-chat && bun run build:ui)

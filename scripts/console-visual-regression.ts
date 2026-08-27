@@ -1,7 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
-import { chromium, type Page } from "playwright-core";
 import { PNG } from "pngjs";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/cms";
@@ -373,14 +372,292 @@ function json(value: unknown): Response {
   return Response.json(value);
 }
 
+interface BrowserNetworkEvent {
+  requestId: string;
+}
+
+async function evaluatePage<T>(
+  page: Bun.WebView,
+  operation: () => T | Promise<T>,
+): Promise<Awaited<T>> {
+  return page.evaluate<Awaited<T>>(`(${operation.toString()})()`);
+}
+
+async function evaluatePageWith<TArg, TResult>(
+  page: Bun.WebView,
+  operation: (arg: TArg) => TResult | Promise<TResult>,
+  arg: TArg,
+): Promise<Awaited<TResult>> {
+  const serialized = JSON.stringify(arg);
+  return page.evaluate<Awaited<TResult>>(
+    `(${operation.toString()})(${serialized})`,
+  );
+}
+
+async function waitForPage(
+  description: string,
+  probe: () => Promise<boolean>,
+  timeoutMs = 30_000,
+): Promise<void> {
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() < deadline) {
+    if (await probe()) return;
+    await Bun.sleep(20);
+  }
+  throw new Error(`Timed out waiting for ${description}`);
+}
+
+async function waitForSelector(
+  page: Bun.WebView,
+  selector: string,
+): Promise<void> {
+  await waitForPage(selector, () =>
+    page.evaluate<boolean>(
+      `document.querySelector(${JSON.stringify(selector)}) !== null`,
+    ),
+  );
+}
+
+async function waitForText(page: Bun.WebView, text: string): Promise<void> {
+  await waitForPage(`text ${JSON.stringify(text)}`, () =>
+    page.evaluate<boolean>(
+      `document.body?.textContent?.includes(${JSON.stringify(text)}) ?? false`,
+    ),
+  );
+}
+
+async function clickSelector(
+  page: Bun.WebView,
+  selector: string,
+): Promise<void> {
+  await waitForSelector(page, selector);
+  const clicked = await evaluatePageWith(
+    page,
+    (candidateSelector) => {
+      const candidate = document.querySelector(candidateSelector);
+      if (!(candidate instanceof HTMLElement)) return false;
+      candidate.click();
+      return true;
+    },
+    selector,
+  );
+  if (!clicked) throw new Error(`Could not click ${selector}`);
+}
+
+async function clickText(
+  page: Bun.WebView,
+  selector: string,
+  text: string,
+): Promise<void> {
+  const clicked = await evaluatePageWith(
+    page,
+    ({ selector: candidateSelector, text: candidateText }) => {
+      const candidate = Array.from(
+        document.querySelectorAll<HTMLElement>(candidateSelector),
+      ).find((element) => element.textContent.trim().includes(candidateText));
+      candidate?.click();
+      return candidate !== undefined;
+    },
+    { selector, text },
+  );
+  if (!clicked)
+    throw new Error(`Could not find ${selector} containing ${text}`);
+}
+
+async function fillLabel(
+  page: Bun.WebView,
+  labelText: string,
+  value: string,
+): Promise<void> {
+  const filled = await evaluatePageWith(
+    page,
+    ({ labelText: text, value: nextValue }) => {
+      const label = Array.from(document.querySelectorAll("label")).find(
+        (candidate) => candidate.textContent.includes(text),
+      );
+      const input = label?.htmlFor
+        ? document.getElementById(label.htmlFor)
+        : label?.querySelector("input, textarea");
+      if (!(
+        input instanceof HTMLInputElement ||
+        input instanceof HTMLTextAreaElement
+      )) {
+        return false;
+      }
+      const prototype =
+        input instanceof HTMLInputElement
+          ? HTMLInputElement.prototype
+          : HTMLTextAreaElement.prototype;
+      Object.getOwnPropertyDescriptor(prototype, "value")?.set?.call(
+        input,
+        nextValue,
+      );
+      input.dispatchEvent(new InputEvent("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    },
+    { labelText, value },
+  );
+  if (!filled) throw new Error(`Could not fill field labelled ${labelText}`);
+}
+
+async function blurLabel(page: Bun.WebView, labelText: string): Promise<void> {
+  const blurred = await evaluatePageWith(
+    page,
+    (text) => {
+      const label = Array.from(document.querySelectorAll("label")).find(
+        (candidate) => candidate.textContent.includes(text),
+      );
+      const input = label?.htmlFor
+        ? document.getElementById(label.htmlFor)
+        : label?.querySelector("input, textarea");
+      if (!(input instanceof HTMLElement)) return false;
+      input.blur();
+      return true;
+    },
+    labelText,
+  );
+  if (!blurred) throw new Error(`Could not blur field labelled ${labelText}`);
+}
+
+async function elementDisplay(
+  page: Bun.WebView,
+  selector: string,
+): Promise<string> {
+  return page.evaluate<string>(
+    `getComputedStyle(document.querySelector(${JSON.stringify(selector)})).display`,
+  );
+}
+
+async function elementBounds(
+  page: Bun.WebView,
+  selector: string,
+): Promise<
+  { x: number; y: number; width: number; height: number } | undefined
+> {
+  return evaluatePageWith(
+    page,
+    (candidateSelector) => {
+      const element = document.querySelector(candidateSelector);
+      if (!(element instanceof HTMLElement)) return undefined;
+      const bounds = element.getBoundingClientRect();
+      return {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+      };
+    },
+    selector,
+  );
+}
+
+function networkRequestFromEvent(
+  event: Event,
+): BrowserNetworkEvent | undefined {
+  if (!("data" in event)) return undefined;
+  const data = event.data;
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("requestId" in data) ||
+    typeof data.requestId !== "string"
+  ) {
+    return undefined;
+  }
+  return { requestId: data.requestId };
+}
+
+async function navigateToNetworkIdle(
+  page: Bun.WebView,
+  url: string,
+): Promise<void> {
+  const activeRequests = new Set<string>();
+  let lastActivity = performance.now();
+  await page.cdp("Network.enable");
+  page.addEventListener("Network.requestWillBeSent", (event: Event) => {
+    const request = networkRequestFromEvent(event);
+    if (!request) return;
+    activeRequests.add(request.requestId);
+    lastActivity = performance.now();
+  });
+  const finish = (event: Event): void => {
+    const request = networkRequestFromEvent(event);
+    if (!request) return;
+    activeRequests.delete(request.requestId);
+    lastActivity = performance.now();
+  };
+  page.addEventListener("Network.loadingFinished", finish);
+  page.addEventListener("Network.loadingFailed", finish);
+  await page.navigate(url);
+  await waitForPage(`network idle for ${url}`, () =>
+    Promise.resolve(
+      activeRequests.size === 0 && performance.now() - lastActivity >= 500,
+    ),
+  );
+}
+
+async function waitForVisualStability(page: Bun.WebView): Promise<void> {
+  await evaluatePage(
+    page,
+    () =>
+      new Promise<void>((resolve) => {
+        let previous = "";
+        let stableFrames = 0;
+        let sampledFrames = 0;
+        const sample = (): void => {
+          const positions = [
+            window.scrollX,
+            window.scrollY,
+            ...Array.from(document.querySelectorAll<HTMLElement>("*"))
+              .filter(
+                (element) =>
+                  element.scrollHeight > element.clientHeight + 1 ||
+                  element.scrollWidth > element.clientWidth + 1,
+              )
+              .flatMap((element) => [element.scrollLeft, element.scrollTop]),
+          ];
+          const current = JSON.stringify(positions);
+          stableFrames = current === previous ? stableFrames + 1 : 0;
+          previous = current;
+          sampledFrames++;
+          if (stableFrames >= 4 || sampledFrames >= 180) {
+            resolve();
+            return;
+          }
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+      }),
+  );
+}
+
+async function addVisualInitScript(
+  page: Bun.WebView,
+  conversation: string,
+): Promise<void> {
+  await page.cdp("Page.addScriptToEvaluateOnNewDocument", {
+    source: `(() => {
+      Date.now = () => ${FIXED_NOW};
+      localStorage.setItem(
+        "console.climate",
+        new URL(location.href).searchParams.get("climate") ?? "instrument",
+      );
+      localStorage.setItem(
+        "brain:web-chat:conversation-id",
+        ${JSON.stringify(conversation)},
+      );
+    })()`,
+  });
+}
+
 async function checkLayout(
-  page: Page,
+  page: Bun.WebView,
   surface: string,
   width: number,
+  viewportHeight: number,
 ): Promise<void> {
-  const viewport = page.viewportSize();
-  if (!viewport) throw new Error(`No viewport configured for ${surface}`);
-  const dimensions = await page.evaluate(() => ({
+  const dimensions = await evaluatePage(page, () => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
@@ -391,24 +668,23 @@ async function checkLayout(
   }
 
   if (surface.startsWith("chat")) {
-    const mobileTrigger = await page
-      .locator(".web-chat-mobile-trigger")
-      .evaluate((node) => getComputedStyle(node).display);
+    const mobileTrigger = await elementDisplay(
+      page,
+      ".web-chat-mobile-trigger",
+    );
     if (width <= 640 !== (mobileTrigger !== "none"))
       throw new Error(`chat responsive mode mismatch at ${width}px`);
-    const composer = await page.locator(".web-chat-prompt-input").boundingBox();
-    if (!composer || composer.y + composer.height > viewport.height + 1)
+    const composer = await elementBounds(page, ".web-chat-prompt-input");
+    if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
   if (surface.startsWith("cms-") && surface !== "cms-library") {
-    const modes = await page
-      .locator(".cms-mobile-modes")
-      .evaluate((node) => getComputedStyle(node).display);
+    const modes = await elementDisplay(page, ".cms-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`CMS responsive mode mismatch at ${width}px`);
     if (width <= 900) {
-      const pipeline = await page.locator(".pipeline").boundingBox();
-      if (!pipeline || pipeline.y + pipeline.height > viewport.height + 1)
+      const pipeline = await elementBounds(page, ".pipeline");
+      if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
         throw new Error(`CMS save bar escaped the viewport at ${width}px`);
     }
   }
@@ -464,6 +740,7 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
 }
 const fixtureImage = PNG.sync.write(fixturePng);
 
+const pendingUploadResponses = new Set<() => void>();
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -600,16 +877,18 @@ const server = Bun.serve({
         { status: 409 },
       );
     }
-    if (url.pathname === "/cms/api/upload")
-      // Slow enough that the cms-upload capture always lands while the
-      // widget shows "Uploading…", but finite — a never-resolving request
-      // can wedge browser teardown at the end of the run.
-      return new Promise<Response>((resolve) =>
-        setTimeout(
-          () => resolve(json({ entityId: "image/verdigris-board" })),
-          30_000,
-        ),
-      );
+    if (url.pathname === "/cms/api/upload") {
+      // Hold the fixture at an observable in-flight boundary until its page
+      // closes; teardown releases any request the browser did not abort.
+      return new Promise<Response>((resolve) => {
+        const release = (): void => {
+          pendingUploadResponses.delete(release);
+          resolve(json({ entityId: "image/verdigris-board" }));
+        };
+        pendingUploadResponses.add(release);
+        request.signal.addEventListener("abort", release, { once: true });
+      });
+    }
     if (url.pathname === "/cms/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/cms/api/entities") return json({ entities });
@@ -635,7 +914,13 @@ if (!executablePath) {
   await server.stop(true);
   throw new Error("Set CONSOLE_CHROMIUM_PATH to a Chromium executable.");
 }
-const browser = await chromium.launch({ executablePath, headless: true });
+const browserArgs = process.getuid?.() === 0 ? ["--no-sandbox"] : [];
+const browserBackend: Bun.WebView.Backend = {
+  type: "chrome",
+  url: false,
+  path: executablePath,
+  ...(browserArgs.length > 0 ? { argv: browserArgs } : {}),
+};
 const failures: string[] = [];
 try {
   for (const climate of CLIMATES) {
@@ -673,26 +958,14 @@ try {
             : surface === "chat-empty"
               ? "empty"
               : "responsive";
-        const page = await browser.newPage({
-          viewport,
-          locale: "en-GB",
-          deviceScaleFactor: 1,
+        const page = new Bun.WebView({
+          width: viewport.width,
+          height: viewport.height,
+          backend: browserBackend,
         });
-        await page.addInitScript(
-          ({ now, conversation }): void => {
-            Date.now = (): number => now;
-            localStorage.setItem(
-              "console.climate",
-              new URL(location.href).searchParams.get("climate") ??
-                "instrument",
-            );
-            localStorage.setItem(
-              "brain:web-chat:conversation-id",
-              conversation,
-            );
-          },
-          { now: FIXED_NOW, conversation: conversationId },
-        );
+        await page.navigate("about:blank");
+        await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
+        await addVisualInitScript(page, conversationId);
         const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
         const route =
           surface === "dashboard"
@@ -703,22 +976,27 @@ try {
                 ? "/cms/entities/posts/field-notes"
                 : "/cms";
         const hash = isChat ? `#s/${conversationId}` : "";
-        await page.goto(
+        await navigateToNetworkIdle(
+          page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
-          { waitUntil: "networkidle" },
         );
         if (surface === "chat" || surface === "chat-drawer") {
-          await page.getByText("And the CMS?").waitFor();
+          await waitForText(page, "And the CMS?");
         }
         if (surface === "chat-empty") {
-          await page.getByText("Begin a field note.").waitFor();
+          await waitForText(page, "Begin a field note.");
         }
         if (surface === "chat-drawer") {
-          await page.locator(".web-chat-mobile-trigger").click();
+          await clickSelector(page, ".web-chat-mobile-trigger");
           // The drawer slides in over 0.3s; wait for the transform to land.
-          await page.locator(".web-chat-sessions").evaluate(
-            (node) =>
+          await evaluatePageWith(
+            page,
+            (selector) =>
               new Promise<void>((resolve) => {
+                const node = document.querySelector(selector);
+                if (!(node instanceof HTMLElement)) {
+                  throw new Error(`Missing drawer ${selector}`);
+                }
                 const check = (): void => {
                   const { left } = node.getBoundingClientRect();
                   if (Math.abs(left) < 0.5) resolve();
@@ -726,19 +1004,20 @@ try {
                 };
                 check();
               }),
+            ".web-chat-sessions",
           );
         }
         if (surface === "chat-cards") {
-          await page.getByText("Queued for the trust series.").waitFor();
+          await waitForText(page, "Queued for the trust series.");
           // Cards ship collapsed; the baselines pin their expanded bodies.
-          await page.evaluate(() => {
+          await evaluatePage(page, () => {
             for (const details of Array.from(
               document.querySelectorAll("details"),
             )) {
               details.open = true;
             }
           });
-          await page.evaluate(() =>
+          await evaluatePage(page, () =>
             Promise.all(
               Array.from(document.images)
                 .filter((image) => !image.complete)
@@ -753,7 +1032,7 @@ try {
           );
           // Fonts must settle before pinning scroll — a late swap reflows
           // the thread and shifts the captured scroll position.
-          await page.evaluate(() => document.fonts.ready);
+          await evaluatePage(page, () => document.fonts.ready);
           // Pin the end of the exchange: scroll every scrollable ancestor
           // of the final message to its bottom, and repeat until the
           // positions survive a frame — the thread's stick-to-bottom
@@ -778,11 +1057,19 @@ try {
           let previousTops = "";
           for (let attempt = 0; attempt < 10; attempt += 1) {
             const tops = JSON.stringify(
-              await page.evaluate(pinConversationEnd),
+              await evaluatePage(page, pinConversationEnd),
             );
-            await page.waitForTimeout(150);
+            await evaluatePage(
+              page,
+              () =>
+                new Promise<void>((resolve) =>
+                  requestAnimationFrame(() =>
+                    requestAnimationFrame(() => resolve()),
+                  ),
+                ),
+            );
             const settled = JSON.stringify(
-              await page.evaluate(pinConversationEnd),
+              await evaluatePage(page, pinConversationEnd),
             );
             if (settled === tops && settled === previousTops) break;
             previousTops = settled;
@@ -792,48 +1079,84 @@ try {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await page.locator(".cms-mobile-more summary").click();
-            await page.getByRole("button", { name: "Delete entry" }).click();
+            await clickSelector(page, ".cms-mobile-more summary");
+            await clickText(page, "button", "Delete entry");
           } else {
-            await page.locator(".pipeline .btn.danger").click();
+            await clickSelector(page, ".pipeline .btn.danger");
           }
-          await page.locator(".delete-modal").waitFor();
+          await waitForSelector(page, ".delete-modal");
         }
         if (surface === "cms-conflict") {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
-          await page.locator(".save-btn").click();
-          await page.locator(".conflict").waitFor();
+          await clickSelector(page, ".save-btn");
+          await waitForSelector(page, ".conflict");
         }
         if (surface === "cms-invalid") {
           // Two validation aspects in one frame: a server-rejected save
           // (the fixture 400s on "!!") pins the pipeline error line, then
           // an emptied required title pins the :user-invalid outline.
-          await page.getByLabel("Title").fill("Notes from the rhizome!!");
-          await page.locator(".save-btn").click();
-          await page.locator(".status-error").waitFor();
-          await page.getByLabel("Title").fill("");
-          await page.getByLabel("Title").blur();
-          await page.waitForFunction(() =>
-            document.querySelector(".field input:user-invalid"),
+          await fillLabel(page, "Title", "Notes from the rhizome!!");
+          await clickSelector(page, ".save-btn");
+          await waitForSelector(page, ".status-error");
+          await fillLabel(page, "Title", "");
+          await blurLabel(page, "Title");
+          await waitForPage("invalid title field", () =>
+            page.evaluate<boolean>(
+              'document.querySelector(".field input:user-invalid") !== null',
+            ),
           );
         }
         if (surface === "cms-upload") {
           // Start a cover-image upload the fixture never completes, so the
           // widget's in-flight state stays up for the capture.
-          await page.locator('.upload-zone input[type="file"]').setInputFiles({
-            name: "verdigris-board.png",
-            mimeType: "image/png",
-            buffer: fixtureImage,
+          const selected = await evaluatePageWith(
+            page,
+            async ({ selector, url, name, mediaType }) => {
+              const input = document.querySelector(selector);
+              if (!(input instanceof HTMLInputElement)) return false;
+              const response = await fetch(url);
+              const file = new File([await response.arrayBuffer()], name, {
+                type: mediaType,
+              });
+              const transfer = new DataTransfer();
+              transfer.items.add(file);
+              input.files = transfer.files;
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+              return true;
+            },
+            {
+              selector: '.upload-zone input[type="file"]',
+              url: "/fixture/verdigris.png",
+              name: "verdigris-board.png",
+              mediaType: "image/png",
+            },
+          );
+          if (!selected) throw new Error("Could not select CMS upload input");
+          await waitForText(page, "Uploading…");
+          await evaluatePage(page, () => {
+            const text = Array.from(
+              document.querySelectorAll<HTMLElement>("*"),
+            ).find((element) => element.textContent.trim() === "Uploading…");
+            text?.scrollIntoView({ block: "nearest" });
           });
-          await page.getByText("Uploading…").waitFor();
-          await page.getByText("Uploading…").scrollIntoViewIfNeeded();
         }
-        await page.evaluate(() => document.fonts.ready);
-        await checkLayout(page, surface, viewport.width);
+        await evaluatePage(page, () => document.fonts.ready);
+        await waitForVisualStability(page);
+        await checkLayout(page, surface, viewport.width, viewport.height);
+        await evaluatePage(page, () => {
+          const style = document.createElement("style");
+          style.textContent =
+            "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important}";
+          document.head.append(style);
+          return new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          );
+        });
         const image = await page.screenshot({
-          animations: "disabled",
-          type: "png",
+          encoding: "buffer",
+          format: "png",
         });
         const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
         const baselinePath = path.join(BASELINE_DIR, name);
@@ -856,12 +1179,13 @@ try {
             failures.push(`${name}: ${getErrorMessage(error)}`);
           }
         }
-        await page.close();
+        page.close();
       }
     }
   }
 } finally {
-  await browser.close();
+  Bun.WebView.closeAll();
+  for (const release of pendingUploadResponses) release();
   await server.stop(true);
 }
 
