@@ -1,5 +1,6 @@
 import { parseMarkdown } from "@brains/sdk/entities";
 import type { SummaryBody, SummaryEntry } from "../schemas/summary";
+import { stripMemoryProjectionEnvelope } from "./memory-projection-envelope";
 
 /**
  * A summary's body is its own format — headed sections, each with a time
@@ -32,9 +33,10 @@ export function composeSummaryBody(entries: SummaryEntry[]): string {
  * reported as summary the brain never wrote.
  */
 export function parseSummaryBody(content: string): SummaryBody {
-  const body = content.startsWith("---")
-    ? parseMarkdown(content).content
-    : content;
+  const narrative = stripMemoryProjectionEnvelope(content);
+  const body = narrative.startsWith("---")
+    ? parseMarkdown(narrative).content
+    : narrative;
   return {
     entries: body
       .split(/^##\s+/m)

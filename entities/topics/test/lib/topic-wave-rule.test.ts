@@ -38,6 +38,7 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
       entities.filter((candidate) => candidate.entityType === entityType),
   });
   return {
+    spaces: [],
     conversations: {
       get: async () => null,
       getMessages: async () => [],

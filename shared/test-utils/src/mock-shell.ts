@@ -224,6 +224,7 @@ function createDefaultMockConversationService(): IConversationService {
     getConversation: async () => null,
     listConversations: async () => [],
     listConversationsUpdatedSince: async () => [],
+    getConversationChangeHead: async () => null,
     searchConversations: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
@@ -1347,6 +1348,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         { waveId: "eval", inputs: options.inputs ?? [] },
         {
           entities: entityService,
+          spaces: [],
           conversations: {
             get: async () => null,
             getMessages: async () => [],

@@ -10,7 +10,7 @@ The package owns three conversation-derived entity types:
 - `decision` — first-class decisions with provenance and status
 - `action-item` — first-class follow-up work with provenance and lifecycle status
 
-Automatic conversation-to-entity projection is disabled. Conversation messages live outside the entity database, and no second projection ingress or cross-database bridge is provided. Existing memory entities remain available to retrieval, agent context, dashboards, templates, datasources, and evaluation utilities.
+Automatic projection is scheduler-owned and uses three rules: changed conversations derive additive summaries, then parse-only managed rules reconcile that summary's decisions and action items. Only configured conversation spaces are eligible. A fresh runtime records the current conversation change head without historical model work; administrators can start an explicit, confirmed historical run with `system_backfill_conversation_projections`.
 
 ## Summary schema
 
@@ -22,7 +22,7 @@ Each summary entry contains:
 - `sourceMessageCount`
 - `keyPoints`
 
-Decisions and action items are extracted from the same conversation pass but stored as separate entities, not embedded in summary entries.
+Decisions and action items are extracted from the same conversation pass but stored as separate entities, not embedded in summary entries. The narrative markdown remains human-readable; a hidden, versioned envelope carries the lossless desired downstream state.
 
 ## Memory retrieval
 

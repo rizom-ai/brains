@@ -305,6 +305,14 @@
           <div class="card-desc">keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the <code>0.2.0</code> fixtures for later patch-candidate compatibility.</div>
           <div class="card-file">packed-compatibility-test-tiering.md</div>
         </div>
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Conversation Memory Restart</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">in progress: the lossless conversation bridge, three-rule memory graph, safe live baseline, and confirmed durable backfill are implemented. The remaining gate is running all 26 model eval cases with provider credentials before retiring the legacy projector comparison class.</div>
+          <div class="card-file">conversation-memory-restart.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
@@ -352,14 +360,6 @@
           </div>
           <div class="card-desc">make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Conversation Memory Restart</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">turn conversation memory back on now that the cross-database bridge <code>173b53092</code> declined to build exists: chain summary, decision and action item as projection rules, get the 26 summarization eval cases green against them, run the watermark poller, put the first full pass behind an operator action, and retire the 776-line projector class.</div>
-          <div class="card-file">conversation-memory-restart.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

@@ -15,6 +15,7 @@ export type {
   ConversationMessageActor,
   ConversationMessageSource,
   ConversationMessageMetadata,
+  ConversationChangeCursor,
   ConversationDbConfig,
 } from "./types";
 export {
@@ -25,6 +26,7 @@ export {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,
+  conversationChangeCursorSchema,
   isSavableAssistantMessage,
   parseConversationMessageMetadata,
 } from "./types";

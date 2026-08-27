@@ -1,21 +1,22 @@
 import { CONVERSATION_SOURCE_TYPE } from "@brains/plugins";
 
-/** One conversation the poller has to tell the projection runtime about. */
-export interface ChangedConversation {
-  readonly id: string;
+/** Stable position in the conversation database's ascending change stream. */
+export interface ConversationChangeCursor {
   readonly updated: string;
+  readonly id: string;
 }
 
-/**
- * An ascending scan, which is the only shape a watermark can follow.
- *
- * `listConversations` orders by recency and takes a limit, so a scan built on
- * it returns the newest page and strands everything older that also changed —
- * permanently, since the watermark would move past them.
- */
+/** One conversation the poller has to tell the projection runtime about. */
+export type ChangedConversation = ConversationChangeCursor;
+
+export interface ConversationPollerState {
+  readonly cursor: ConversationChangeCursor | null;
+}
+
 export interface ConversationChangeReader {
+  getConversationChangeHead(): Promise<ConversationChangeCursor | null>;
   listConversationsUpdatedSince(input: {
-    readonly since: string | null;
+    readonly after: ConversationChangeCursor | null;
     readonly limit: number;
   }): Promise<readonly ChangedConversation[]>;
 }
@@ -29,27 +30,20 @@ export interface ConversationSourcePollerOptions {
     readonly operation: "upsert";
     readonly markedAt: number;
   }) => Promise<number>;
-  readonly readWatermark: () => Promise<string | null>;
-  readonly writeWatermark: (value: string) => Promise<void>;
+  readonly readState: () => Promise<ConversationPollerState | null>;
+  readonly writeState: (state: ConversationPollerState) => Promise<void>;
   readonly now: () => number;
   readonly batchSize?: number;
 }
 
-const DEFAULT_BATCH_SIZE = 200;
+const DEFAULT_BATCH_SIZE = 50;
 
 /**
- * Tell the projection runtime which conversations changed.
+ * Mark one bounded page of changed conversations.
  *
- * An entity marks itself dirty inside the transaction that changed it, so the
- * two either both happen or neither does. Conversations are in their own
- * database and cannot join that transaction, so this polls instead: a missed
- * tick is picked up by the next one, where a best-effort cross-database write
- * would lose the trigger with nothing to notice it had.
- *
- * The watermark advances only after the marks it covers have landed. Failing
- * mid-batch re-marks a few conversations next tick, which is harmless — a
- * dirty input is deduplicated by the wave, and re-deriving is idempotent.
- * Advancing first would lose them.
+ * The first call records the current head and intentionally marks nothing:
+ * historical model work is an operator action. The state wrapper distinguishes
+ * an initialized empty database (`{ cursor: null }`) from no baseline yet.
  */
 export function createConversationSourcePoller(
   options: ConversationSourcePollerOptions,
@@ -57,9 +51,16 @@ export function createConversationSourcePoller(
   const batchSize = options.batchSize ?? DEFAULT_BATCH_SIZE;
 
   return async (): Promise<void> => {
-    const since = await options.readWatermark();
+    const state = await options.readState();
+    if (state === null) {
+      await options.writeState({
+        cursor: await options.conversations.getConversationChangeHead(),
+      });
+      return;
+    }
+
     const changed = await options.conversations.listConversationsUpdatedSince({
-      since,
+      after: state.cursor,
       limit: batchSize,
     });
     if (changed.length === 0) return;
@@ -68,18 +69,16 @@ export function createConversationSourcePoller(
       await options.markDirty({
         sourceType: CONVERSATION_SOURCE_TYPE,
         sourceId: conversation.id,
-        // The revision a derivation is fingerprinted against. `updated`
-        // changes whenever the conversation does, which is what makes a
-        // repeated wave a memo hit rather than a second model call.
         revision: conversation.updated,
         operation: "upsert",
         markedAt: options.now(),
       });
     }
 
-    const highest = changed
-      .map(({ updated }) => updated)
-      .reduce((left, right) => (right > left ? right : left));
-    await options.writeWatermark(highest);
+    const last = changed.at(-1);
+    if (!last) return;
+    await options.writeState({
+      cursor: { updated: last.updated, id: last.id },
+    });
   };
 }

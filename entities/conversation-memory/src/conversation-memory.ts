@@ -6,6 +6,11 @@ import { summaryConfigSchema } from "./schemas/summary-config";
 import { summary } from "./summary-entity";
 import { actionItem, decision } from "./memory-entities";
 import { summaryEvalHandlers } from "./lib/eval-handlers";
+import { createSummaryProjectionRule } from "./lib/summary-rule";
+import {
+  createActionItemProjectionRule,
+  createDecisionProjectionRule,
+} from "./lib/memory-projection-rules";
 
 /**
  * Conversation memory: three derived entity types and everything that reads
@@ -16,8 +21,8 @@ import { summaryEvalHandlers } from "./lib/eval-handlers";
  * which spaces count, how far back to read, what visibility derived memory
  * carries.
  *
- * Automatic conversation-to-entity projection is disabled (see the README).
- * What exists is what was derived before that, and everything here reads it.
+ * Conversation changes feed one model-backed summary rule; two parse-only
+ * rules project its structured memory into decisions and action items.
  */
 export const conversationMemory: ServicePackageDefinition<
   typeof summaryConfigSchema
@@ -25,6 +30,11 @@ export const conversationMemory: ServicePackageDefinition<
   id: "conversation-memory",
   config: summaryConfigSchema,
   entities: [summary, decision, actionItem],
+  projectionRules: ({ config }) => [
+    createSummaryProjectionRule(config),
+    createDecisionProjectionRule(config),
+    createActionItemProjectionRule(config),
+  ],
   evals: ({ config }) => summaryEvalHandlers(config),
 });
 

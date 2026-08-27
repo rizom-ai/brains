@@ -28,6 +28,7 @@ import {
 } from "../src/projection-rule-job-handler";
 
 const inputContext: ProjectionInputContext = {
+  spaces: [],
   conversations: {
     get: async () => null,
     getMessages: async () => [],
@@ -211,7 +212,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
-      targets: { authority: "additive" },
+      targets: { authority: "managed" },
       inputSchema: z.object({ sourceCount: z.number().int() }),
       selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
       derive,
@@ -372,7 +373,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
-      targets: { authority: "additive" },
+      targets: { authority: "managed" },
       inputSchema: z.object({ sourceCount: z.number() }),
       selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
       derive,

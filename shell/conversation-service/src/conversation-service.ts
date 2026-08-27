@@ -14,6 +14,7 @@ import type {
   StartConversationRequest,
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
+  ConversationChangeCursor,
 } from "./types";
 import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
@@ -30,7 +31,15 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
 import type { MessageBus } from "@brains/messaging-service";
-import { and, eq, desc, asc, sql, count, gt } from "drizzle-orm";
+import { and, eq, desc, asc, sql, count, gt, or } from "drizzle-orm";
+
+function nextConversationTimestamp(previous?: string): string {
+  const now = Date.now();
+  const previousTime = previous ? Date.parse(previous) : Number.NaN;
+  return new Date(
+    Number.isFinite(previousTime) ? Math.max(now, previousTime + 1) : now,
+  ).toISOString();
+}
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -130,68 +139,64 @@ export class ConversationService implements IConversationService {
    */
   async startConversation(request: StartConversationRequest): Promise<string> {
     const { sessionId, interfaceType, channelId, personId, metadata } = request;
-    const now = new Date().toISOString();
+    const outcome = await this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(conversations)
+        .where(eq(conversations.id, sessionId))
+        .limit(1);
+      const timestamp = nextConversationTimestamp(existing?.updated);
 
-    // Check if conversation already exists for this sessionId
-    const existing = await this.getConversation(sessionId);
+      if (existing) {
+        await tx
+          .update(conversations)
+          .set({ lastActive: timestamp, updated: timestamp })
+          .where(eq(conversations.id, sessionId));
+        return { created: false, timestamp };
+      }
 
-    if (existing) {
-      // Update last active time and return existing sessionId
-      await this.db
-        .update(conversations)
-        .set({ lastActive: now, updated: now })
-        .where(eq(conversations.id, sessionId));
-
-      this.logger.debug("Resumed existing conversation", {
-        conversationId: sessionId,
-        interfaceType,
-      });
-
-      return sessionId;
-    }
-
-    // Create new conversation using sessionId as the ID
-    const newConversation: NewConversation = {
-      id: sessionId, // Use sessionId as the conversation ID
-      sessionId,
-      interfaceType,
-      channelId,
-      personId: personId ?? null,
-      started: now,
-      lastActive: now,
-      created: now,
-      updated: now,
-      metadata: JSON.stringify(metadata),
-    };
-
-    await this.db.insert(conversations).values(newConversation);
-
-    // Initialize summary tracking
-    const tracking: NewSummaryTracking = {
-      conversationId: sessionId,
-      messagesSinceSummary: 0,
-      updated: now,
-    };
-    await this.db.insert(summaryTracking).values(tracking);
-
-    this.logger.debug("Started new conversation", {
-      conversationId: sessionId,
-      sessionId,
-      interfaceType,
-    });
-
-    // Emit event for plugins
-    await this.messageBus.send({
-      type: CONVERSATION_STARTED_CHANNEL,
-      payload: {
-        conversationId: sessionId,
+      const newConversation: NewConversation = {
+        id: sessionId,
         sessionId,
         interfaceType,
-        timestamp: now,
-      },
-      sender: "conversation-service",
-      broadcast: true,
+        channelId,
+        personId: personId ?? null,
+        started: timestamp,
+        lastActive: timestamp,
+        created: timestamp,
+        updated: timestamp,
+        metadata: JSON.stringify(metadata),
+      };
+      const tracking: NewSummaryTracking = {
+        conversationId: sessionId,
+        messagesSinceSummary: 0,
+        updated: timestamp,
+      };
+      await tx.insert(conversations).values(newConversation);
+      await tx.insert(summaryTracking).values(tracking);
+      return { created: true, timestamp };
     });
+
+    this.logger.debug(
+      outcome.created
+        ? "Started new conversation"
+        : "Resumed existing conversation",
+      { conversationId: sessionId, sessionId, interfaceType },
+    );
+
+    if (outcome.created) {
+      await this.messageBus.send({
+        type: CONVERSATION_STARTED_CHANNEL,
+        payload: {
+          conversationId: sessionId,
+          sessionId,
+          interfaceType,
+          timestamp: outcome.timestamp,
+        },
+        sender: "conversation-service",
+        broadcast: true,
+      });
+    }
 
     return sessionId;
   }
@@ -201,35 +206,42 @@ export class ConversationService implements IConversationService {
    */
   async addMessage(request: AddConversationMessageRequest): Promise<void> {
     const { conversationId, role, content, metadata } = request;
-    const now = new Date().toISOString();
     const messageId = createId(12);
+    const timestamp = await this.db.transaction(async (tx) => {
+      const [conversation] = await tx
+        .select({ updated: conversations.updated })
+        .from(conversations)
+        .where(eq(conversations.id, conversationId))
+        .limit(1);
+      if (!conversation) {
+        throw new Error(`Conversation not found: ${conversationId}`);
+      }
 
-    const newMessage: NewMessage = {
-      id: messageId,
-      conversationId,
-      role,
-      content,
-      timestamp: now,
-      metadata: metadata ? JSON.stringify(metadata) : null,
-    };
+      const nextTimestamp = nextConversationTimestamp(conversation.updated);
+      const newMessage: NewMessage = {
+        id: messageId,
+        conversationId,
+        role,
+        content,
+        timestamp: nextTimestamp,
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      };
 
-    await this.db.insert(messages).values(newMessage);
-
-    // Update conversation last active time
-    await this.db
-      .update(conversations)
-      .set({ lastActive: now, updated: now })
-      .where(eq(conversations.id, conversationId));
-
-    // Update summary tracking
-    await this.db
-      .update(summaryTracking)
-      .set({
-        messagesSinceSummary: sql`${summaryTracking.messagesSinceSummary} + 1`,
-        lastMessageId: messageId,
-        updated: now,
-      })
-      .where(eq(summaryTracking.conversationId, conversationId));
+      await tx.insert(messages).values(newMessage);
+      await tx
+        .update(conversations)
+        .set({ lastActive: nextTimestamp, updated: nextTimestamp })
+        .where(eq(conversations.id, conversationId));
+      await tx
+        .update(summaryTracking)
+        .set({
+          messagesSinceSummary: sql`${summaryTracking.messagesSinceSummary} + 1`,
+          lastMessageId: messageId,
+          updated: nextTimestamp,
+        })
+        .where(eq(summaryTracking.conversationId, conversationId));
+      return nextTimestamp;
+    });
 
     this.logger.debug("Added message to conversation", {
       conversationId,
@@ -237,7 +249,6 @@ export class ConversationService implements IConversationService {
       messageId,
     });
 
-    // Emit event for plugins (non-blocking)
     await this.messageBus.send({
       type: CONVERSATION_MESSAGE_ADDED_CHANNEL,
       payload: {
@@ -246,14 +257,13 @@ export class ConversationService implements IConversationService {
         role,
         content,
         metadata,
-        timestamp: now,
+        timestamp,
       },
       sender: "conversation-service",
       broadcast: true,
     });
 
-    // Check if digest should be broadcast
-    await this.checkAndBroadcastDigest(conversationId, now);
+    await this.checkAndBroadcastDigest(conversationId, timestamp);
   }
 
   /**
@@ -341,19 +351,34 @@ export class ConversationService implements IConversationService {
   }
 
   async listConversationsUpdatedSince(input: {
-    since: string | null;
+    after: ConversationChangeCursor | null;
     limit: number;
   }): Promise<Conversation[]> {
     const query = this.db
       .select()
       .from(conversations)
-      // Ascending, unlike `listConversations`: a watermark scan has to see
-      // the oldest unseen change first or a bounded page strands the rest.
-      .orderBy(asc(conversations.updated))
+      .orderBy(asc(conversations.updated), asc(conversations.id))
       .limit(input.limit);
-    return input.since === null
-      ? query
-      : query.where(gt(conversations.updated, input.since));
+    if (input.after === null) return query;
+
+    return query.where(
+      or(
+        gt(conversations.updated, input.after.updated),
+        and(
+          eq(conversations.updated, input.after.updated),
+          gt(conversations.id, input.after.id),
+        ),
+      ),
+    );
+  }
+
+  async getConversationChangeHead(): Promise<ConversationChangeCursor | null> {
+    const [head] = await this.db
+      .select({ updated: conversations.updated, id: conversations.id })
+      .from(conversations)
+      .orderBy(desc(conversations.updated), desc(conversations.id))
+      .limit(1);
+    return head ?? null;
   }
 
   /**
@@ -391,19 +416,26 @@ export class ConversationService implements IConversationService {
   async updateConversationMetadata(
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean> {
-    const existing = await this.getConversation(request.conversationId);
-    if (!existing) return false;
+    const updated = await this.db.transaction(async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(conversations)
+        .where(eq(conversations.id, request.conversationId))
+        .limit(1);
+      if (!existing) return false;
 
-    const now = new Date().toISOString();
-    const metadata = {
-      ...coerceConversationMetadata(existing.metadata),
-      ...request.metadata,
-    };
-
-    await this.db
-      .update(conversations)
-      .set({ metadata: JSON.stringify(metadata), updated: now })
-      .where(eq(conversations.id, request.conversationId));
+      const timestamp = nextConversationTimestamp(existing.updated);
+      const metadata = {
+        ...coerceConversationMetadata(existing.metadata),
+        ...request.metadata,
+      };
+      await tx
+        .update(conversations)
+        .set({ metadata: JSON.stringify(metadata), updated: timestamp })
+        .where(eq(conversations.id, request.conversationId));
+      return true;
+    });
+    if (!updated) return false;
 
     this.logger.debug("Updated conversation metadata", {
       conversationId: request.conversationId,

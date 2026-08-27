@@ -216,6 +216,18 @@ export interface ListConversationsOptions {
   personId?: string;
 }
 
+/** Stable position in the ascending conversation change stream. */
+export interface ConversationChangeCursor {
+  updated: string;
+  id: string;
+}
+
+export const conversationChangeCursorSchema: z.ZodType<ConversationChangeCursor> =
+  z.object({
+    updated: z.string().datetime(),
+    id: z.string().min(1),
+  });
+
 export interface IConversationService {
   /** Settle non-fatal database readiness work (connection pragmas). */
   initialize?(): Promise<void>;
@@ -232,17 +244,18 @@ export interface IConversationService {
     options?: ListConversationsOptions,
   ): Promise<Conversation[]>;
   /**
-   * Conversations changed since a point, oldest first.
+   * Conversations after a stable change cursor, oldest first.
    *
-   * `listConversations` orders by recency and takes a limit, which cannot
-   * carry a watermark: it returns the newest page, so advancing past it
-   * strands everything older that also changed. This exists so the projection
-   * runtime can scan forward without losing anything.
+   * Timestamp plus id is required: a bounded page can end in the middle of a
+   * timestamp shared by several rows, and a timestamp-only watermark would
+   * strand the rows after that boundary.
    */
   listConversationsUpdatedSince(input: {
-    since: string | null;
+    after: ConversationChangeCursor | null;
     limit: number;
   }): Promise<Conversation[]>;
+  /** Current end of the change stream, used to baseline without backfilling. */
+  getConversationChangeHead(): Promise<ConversationChangeCursor | null>;
   updateConversationMetadata(
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean>;

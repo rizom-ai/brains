@@ -5,178 +5,392 @@ import {
   computeContentHash,
   defineProjectionRule,
   z,
+  type BaseEntity,
+  type Conversation,
+  type EntityInput,
+  type EntityMutationResult,
+  type JobEntityAccess,
+  type Message,
   type ProjectionAbstention,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
+  type ProjectionJsonObject,
   type ProjectionRule,
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
-import { SUMMARY_ENTITY_TYPE } from "./constants";
-import { composeSummaryBody } from "./summary-body";
-import { memoryMarkdown } from "./memory-markdown";
-import { SummaryExtractor } from "./summary-extractor";
+import {
+  ACTION_ITEM_ENTITY_TYPE,
+  DECISION_ENTITY_TYPE,
+  SUMMARY_ENTITY_TYPE,
+} from "./constants";
+import {
+  appendMemoryProjectionEnvelope,
+  mergeProjectedMemoryEntities,
+  parseMemoryProjectionEnvelope,
+  type MemoryProjectionEnvelope,
+  type ProjectedMemoryWrite,
+} from "./memory-projection-envelope";
+import { SummaryProjector } from "./summary-projector";
+import { SummarySourceReader } from "./summary-source-reader";
 import { evaluateSummaryEligibility } from "./summary-space-eligibility";
 import type { SummaryConfig } from "../schemas/summary-config";
-import type { SummaryEntity, SummaryMetadata } from "../schemas/summary";
+import { summaryMetadataSchema, type SummaryEntity } from "../schemas/summary";
 
 export const SUMMARY_PROJECTION_ID = "summary-derivation";
 
-const messageSchema = z.object({
+interface SelectedMessage extends ProjectionJsonObject {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+  metadata: ProjectionJsonObject;
+}
+
+interface SelectedSummary extends ProjectionJsonObject {
+  content: string;
+  visibility: "public" | "shared" | "restricted";
+  created: string;
+  updated: string;
+  metadata: ProjectionJsonObject;
+}
+
+interface SelectedConversation extends ProjectionJsonObject {
+  id: string;
+  sessionId: string;
+  channelId: string;
+  channelName: string | null;
+  interfaceType: string;
+  personId: string | null;
+  startedAt: string;
+  lastActiveAt: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata: ProjectionJsonObject;
+  messages: SelectedMessage[];
+  sourceHash: string;
+  existing: SelectedSummary | null;
+}
+
+export interface SummaryProjectionInput extends ProjectionJsonObject {
+  conversations: SelectedConversation[];
+  memoryVisibility: "public" | "shared" | "restricted";
+  model: string;
+}
+
+const messageSchema: z.ZodType<SelectedMessage> = z.object({
   id: z.string(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   timestamp: z.string(),
+  metadata: ProjectionJsonObjectSchema,
 });
 
-const conversationSchema = z.object({
+const existingSummarySchema: z.ZodType<SelectedSummary> = z.object({
+  content: z.string(),
+  visibility: z.enum(["public", "shared", "restricted"]),
+  created: z.string(),
+  updated: z.string(),
+  metadata: ProjectionJsonObjectSchema,
+});
+
+const conversationSchema: z.ZodType<SelectedConversation> = z.object({
   id: z.string(),
+  sessionId: z.string(),
   channelId: z.string(),
   channelName: z.string().nullable(),
   interfaceType: z.string(),
+  personId: z.string().nullable(),
+  startedAt: z.string(),
+  lastActiveAt: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  metadata: ProjectionJsonObjectSchema,
   messages: z.array(messageSchema),
   sourceHash: z.string(),
+  existing: existingSummarySchema.nullable(),
 });
 
-const summaryInputSchema = z.object({
-  conversations: z.array(conversationSchema),
-  memoryVisibility: z.enum(["public", "shared", "restricted"]),
-  model: z.string(),
-});
+const summaryProjectionInputSchema: z.ZodType<SummaryProjectionInput> =
+  z.object({
+    conversations: z.array(conversationSchema),
+    memoryVisibility: z.enum(["public", "shared", "restricted"]),
+    model: z.string(),
+  });
 
-type SummaryInput = z.output<typeof summaryInputSchema>;
-
-/**
- * What the derivation is fingerprinted against.
- *
- * The model is in here because a model change should re-derive: the same
- * messages summarized by a different model is a different summary, and
- * without it the memo would serve the old one forever.
- */
-function sourceHash(input: {
-  readonly conversation: { readonly id: string; readonly updatedAt: string };
-  readonly messages: readonly {
-    readonly id: string;
-    readonly content: string;
-  }[];
-  readonly projectionVersion: number;
-}): string {
-  return computeContentHash(
-    JSON.stringify({
-      projectionVersion: input.projectionVersion,
-      conversationId: input.conversation.id,
-      updatedAt: input.conversation.updatedAt,
-      messages: input.messages.map(({ id, content }) => ({ id, content })),
-    }),
-  );
+function toSelectedMessage(message: Message): SelectedMessage {
+  return {
+    id: message.id,
+    role: message.role === "assistant" ? "assistant" : "user",
+    content: message.content,
+    timestamp: message.timestamp,
+    metadata: ProjectionJsonObjectSchema.parse(message.metadata),
+  };
 }
 
-async function selectSummaryInput(
+function toSelectedConversation(
+  conversation: Conversation,
+  messages: Message[],
+  sourceHash: string,
+  existing: SummaryEntity | null,
+): SelectedConversation {
+  return {
+    id: conversation.id,
+    sessionId: conversation.sessionId,
+    channelId: conversation.channelId,
+    channelName: conversation.channelName ?? null,
+    interfaceType: conversation.interfaceType,
+    personId: conversation.personId ?? null,
+    startedAt: conversation.startedAt,
+    lastActiveAt: conversation.lastActiveAt,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    metadata: ProjectionJsonObjectSchema.parse(conversation.metadata),
+    messages: messages.map(toSelectedMessage),
+    sourceHash,
+    existing: existing
+      ? {
+          content: existing.content,
+          visibility: existing.visibility,
+          created: existing.created,
+          updated: existing.updated,
+          metadata: ProjectionJsonObjectSchema.parse(existing.metadata),
+        }
+      : null,
+  };
+}
+
+export async function selectSummaryProjectionInput(
   trigger: Parameters<ProjectionRule["selectInput"]>[0],
   context: ProjectionInputContext,
   config: SummaryConfig,
-  spaces: readonly string[],
-): Promise<SummaryInput> {
-  // Only what this wave was woken about. A summary rule that read every
-  // conversation would re-derive the corpus on each message.
+): Promise<SummaryProjectionInput> {
   const changed = trigger.inputs.filter(
     (input) =>
       input.sourceType === CONVERSATION_SOURCE_TYPE &&
       input.operation === "upsert",
   );
+  const sourceReader = new SummarySourceReader(context.conversations, config);
 
-  const [appInfo, ...conversations] = await Promise.all([
+  const [appInfo, ...selected] = await Promise.all([
     context.appInfo(),
-    ...changed.map(async (input) => {
+    ...changed.map(async (input): Promise<SelectedConversation | null> => {
       const conversation = await context.conversations.get(input.sourceId);
       if (!conversation) return null;
-      if (!evaluateSummaryEligibility({ conversation, spaces }).eligible) {
+      if (
+        !evaluateSummaryEligibility({
+          conversation,
+          spaces: context.spaces,
+        }).eligible
+      ) {
         return null;
       }
-      const messages = await context.conversations.getMessages(input.sourceId, {
-        limit: config.maxSourceMessages,
-      });
-      if (messages.length === 0) return null;
-      return {
+
+      const source = await sourceReader.readKnownConversation(conversation);
+      if (source.messages.length === 0) return null;
+      const candidate = await context.entities.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
         id: conversation.id,
-        channelId: conversation.channelId,
-        channelName: conversation.channelName ?? null,
-        interfaceType: conversation.interfaceType,
-        messages: messages.map((message) => ({
-          id: message.id,
-          role:
-            message.role === "assistant"
-              ? ("assistant" as const)
-              : ("user" as const),
-          content: message.content,
-          timestamp: message.timestamp,
-        })),
-        sourceHash: sourceHash({
-          conversation,
-          messages,
-          projectionVersion: config.projectionVersion,
-        }),
-      };
+        visibilityScope: config.memoryVisibility,
+      });
+      const existing =
+        candidate?.visibility === config.memoryVisibility ? candidate : null;
+      return toSelectedConversation(
+        source.conversation,
+        source.messages,
+        source.sourceHash,
+        existing,
+      );
     }),
   ]);
 
   return {
-    conversations: conversations.filter((entry) => entry !== null),
+    conversations: selected.filter(
+      (conversation): conversation is SelectedConversation =>
+        conversation !== null,
+    ),
     memoryVisibility: config.memoryVisibility,
     model: appInfo.ai.model,
   };
 }
 
-async function deriveSummaries(
-  input: SummaryInput,
+function toConversation(source: SelectedConversation): Conversation {
+  return {
+    id: source.id,
+    sessionId: source.sessionId,
+    interfaceType: source.interfaceType,
+    channelId: source.channelId,
+    ...(source.personId ? { personId: source.personId } : {}),
+    ...(source.channelName ? { channelName: source.channelName } : {}),
+    startedAt: source.startedAt,
+    lastActiveAt: source.lastActiveAt,
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+    metadata: source.metadata,
+  };
+}
+
+function toMessages(source: SelectedConversation): Message[] {
+  return source.messages.map((message) => ({
+    ...message,
+    conversationId: source.id,
+  }));
+}
+
+function toSummaryEntity(source: SelectedConversation): SummaryEntity | null {
+  const existing = source.existing;
+  if (!existing) return null;
+  return {
+    id: source.id,
+    entityType: SUMMARY_ENTITY_TYPE,
+    content: existing.content,
+    contentHash: computeContentHash(existing.content),
+    visibility: existing.visibility,
+    created: existing.created,
+    updated: existing.updated,
+    metadata: summaryMetadataSchema.parse(existing.metadata),
+  };
+}
+
+function toProjectionWrite(entity: BaseEntity): ProjectedMemoryWrite {
+  return {
+    id: entity.id,
+    entityType: entity.entityType,
+    content: entity.content,
+    metadata: ProjectionJsonObjectSchema.parse(entity.metadata),
+    visibility: entity.visibility,
+  };
+}
+
+function createCaptureEntityAccess(input: {
+  existing: SummaryEntity | null;
+  captured: BaseEntity[];
+}): JobEntityAccess {
+  const written = (
+    entity: BaseEntity,
+  ): { entityId: string; jobId: string; skipped: boolean } => {
+    input.captured.push(entity);
+    return { entityId: entity.id, jobId: "summary-rule", skipped: false };
+  };
+  return {
+    getEntity: async <T>({ entityType }: { entityType: string }) =>
+      (entityType === SUMMARY_ENTITY_TYPE ? input.existing : null) as T | null,
+    listEntities: async <T>() => [] as T[],
+    find: async () => null,
+    getEntityTypes: () => [
+      SUMMARY_ENTITY_TYPE,
+      DECISION_ENTITY_TYPE,
+      ACTION_ITEM_ENTITY_TYPE,
+    ],
+    search: async () => [],
+    get: async () => null,
+    delete: async () => true,
+    create: async <T extends BaseEntity>(
+      entity: EntityInput<T>,
+    ): Promise<EntityMutationResult> =>
+      written(entity as unknown as BaseEntity),
+    update: async <T extends BaseEntity>(
+      entity: T,
+    ): Promise<EntityMutationResult> => written(entity),
+    createPending: async <T extends BaseEntity>(
+      entity: EntityInput<T> & { readonly id: string },
+    ): Promise<{ entityId: string; created: boolean }> => {
+      written(entity as unknown as BaseEntity);
+      return { entityId: entity.id, created: true };
+    },
+    saveProcessed: async <T extends BaseEntity>(
+      entity: EntityInput<T> & { readonly id: string },
+    ) => written(entity as unknown as BaseEntity),
+  };
+}
+
+function mergeEnvelope(
+  previous: MemoryProjectionEnvelope | null,
+  projected: MemoryProjectionEnvelope,
+  decision: "update" | "append",
+): MemoryProjectionEnvelope {
+  if (decision !== "append" || !previous) return projected;
+  return {
+    version: 1,
+    decisions: mergeProjectedMemoryEntities(
+      previous.decisions,
+      projected.decisions,
+    ),
+    actionItems: mergeProjectedMemoryEntities(
+      previous.actionItems,
+      projected.actionItems,
+    ),
+  };
+}
+
+export async function deriveSummaryProjection(
+  input: SummaryProjectionInput,
   context: ProjectionExecutionContext,
   signal: AbortSignal,
   config: SummaryConfig,
 ): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> {
-  // Woken by a conversation this rule does not summarize — a channel outside
-  // the configured spaces, or one with nothing said in it yet. That is not a
-  // claim that no summary should exist.
   if (input.conversations.length === 0) return PROJECTION_ABSTAINED;
 
-  const extractor = new SummaryExtractor(context.ai, context.logger, config);
   const intents: ProjectionWriteIntent[] = [];
-
-  for (const conversation of input.conversations) {
+  for (const source of input.conversations) {
     if (signal.aborted) throw signal.reason;
 
-    const extracted = await extractor.extract(
-      conversation.messages.map((message) => ({
-        ...message,
-        conversationId: conversation.id,
-        metadata: {},
-      })),
+    const conversation = toConversation(source);
+    const messages = toMessages(source);
+    const storedExisting = toSummaryEntity(source);
+    const previousEnvelope = storedExisting
+      ? parseMemoryProjectionEnvelope(storedExisting.content)
+      : null;
+    // A pre-envelope summary cannot supply a complete downstream desired set.
+    // Treat its first post-upgrade change as a full update rather than appending a
+    // partial envelope that would make old memory look authoritative.
+    const projectorExisting = previousEnvelope ? storedExisting : null;
+    const captured: BaseEntity[] = [];
+    const projector = new SummaryProjector(
+      {
+        ai: context.ai,
+        entities: createCaptureEntityAccess({
+          existing: projectorExisting,
+          captured,
+        }),
+        conversations: {
+          get: async (): Promise<Conversation> => conversation,
+          getMessages: async (): Promise<Message[]> => messages,
+        },
+        spaces: [`${conversation.interfaceType}:${conversation.channelId}`],
+      },
+      context.logger,
+      config,
     );
-    // Nothing worth remembering was said. Leaving any prior summary in place
-    // rather than writing an empty one over it.
-    if (extracted.entries.length === 0) continue;
+    const result = await projector.projectConversation(source.id);
+    if (result.skipped) continue;
 
-    const metadata: SummaryMetadata = {
-      conversationId: conversation.id,
-      channelId: conversation.channelId,
-      ...(conversation.channelName
-        ? { channelName: conversation.channelName }
-        : {}),
-      interfaceType: conversation.interfaceType,
-      messageCount: conversation.messages.length,
-      entryCount: extracted.entries.length,
-      sourceHash: conversation.sourceHash,
-      projectionVersion: config.projectionVersion,
+    const summaryEntity = captured.find(
+      (entity) => entity.entityType === SUMMARY_ENTITY_TYPE,
+    );
+    if (!summaryEntity || !result.projectionDecision) continue;
+    const projectedEnvelope: MemoryProjectionEnvelope = {
+      version: 1,
+      decisions: captured
+        .filter((entity) => entity.entityType === DECISION_ENTITY_TYPE)
+        .map(toProjectionWrite),
+      actionItems: captured
+        .filter((entity) => entity.entityType === ACTION_ITEM_ENTITY_TYPE)
+        .map(toProjectionWrite),
     };
+    const envelope = mergeEnvelope(
+      previousEnvelope,
+      projectedEnvelope,
+      result.projectionDecision,
+    );
 
     intents.push({
       operation: "upsert",
       entity: {
-        id: conversation.id,
-        entityType: SUMMARY_ENTITY_TYPE,
-        content: memoryMarkdown.encode({
-          content: composeSummaryBody(extracted.entries),
-          metadata,
-        }).content,
-        metadata: ProjectionJsonObjectSchema.parse(metadata),
+        ...toProjectionWrite(summaryEntity),
+        content: appendMemoryProjectionEnvelope(
+          summaryEntity.content,
+          envelope,
+        ),
         visibility: input.memoryVisibility,
       },
     });
@@ -185,16 +399,9 @@ async function deriveSummaries(
   return intents;
 }
 
-/**
- * Conversation memory: a summary of what was said, per conversation.
- *
- * Additive, not exclusive. A wave derives only the conversations it was
- * woken about, so "every summary this run did not mention" is every summary
- * for every other conversation — which is almost all of them.
- */
+/** Conversation memory: one additive narrative summary per conversation. */
 export function createSummaryProjectionRule(
   config: SummaryConfig,
-  spaces: readonly string[],
 ): ProjectionRule {
   return defineProjectionRule({
     id: SUMMARY_PROJECTION_ID,
@@ -202,11 +409,11 @@ export function createSummaryProjectionRule(
     sources: [{ kind: "conversation" }],
     targetType: SUMMARY_ENTITY_TYPE,
     targets: { authority: "additive" },
-    inputSchema: summaryInputSchema,
+    inputSchema: summaryProjectionInputSchema,
     selectInput: async (trigger, context) =>
-      selectSummaryInput(trigger, context, config, spaces),
+      selectSummaryProjectionInput(trigger, context, config),
     derive: async (input, context, signal) =>
-      deriveSummaries(input, context, signal, config),
+      deriveSummaryProjection(input, context, signal, config),
   });
 }
 

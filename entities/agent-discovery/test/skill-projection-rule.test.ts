@@ -55,6 +55,7 @@ function inputContext(
   }): Promise<boolean> => entityType === "skill" && projectionOwnedIds.has(id);
   return {
     entities: service,
+    spaces: [],
     conversations: {
       get: async () => null,
       getMessages: async () => [],

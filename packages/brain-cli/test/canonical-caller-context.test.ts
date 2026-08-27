@@ -81,6 +81,7 @@ function createMemoryConversationService(): IConversationService {
     listConversationsUpdatedSince: async (): Promise<
       StoredConversation[]
     > => [],
+    getConversationChangeHead: async () => null,
     listConversations: async (): Promise<StoredConversation[]> =>
       Array.from(conversations.values()),
     searchConversations: async (): Promise<StoredConversation[]> => [],

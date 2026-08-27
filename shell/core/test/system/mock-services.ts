@@ -436,6 +436,7 @@ export function createMockSystemServices(
     getConversation: async () => null,
     listConversations: async () => [],
     listConversationsUpdatedSince: async () => [],
+    getConversationChangeHead: async () => null,
     searchConversations: async () => [],
     getMessages: async () => [],
     startConversation: unreached("startConversation"),

@@ -41,6 +41,7 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
   });
   return {
     entities: service,
+    spaces: [],
     conversations: {
       get: async () => null,
       getMessages: async () => [],

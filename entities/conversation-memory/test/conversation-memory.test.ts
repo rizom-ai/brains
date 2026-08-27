@@ -27,15 +27,35 @@ async function install(
 }
 
 describe("conversation memory package", () => {
-  it("registers three readable memory types and no producer", async () => {
-    const harness = await install();
+  it("registers three readable memory types and the producer graph", async () => {
+    const harness = createPluginHarness({
+      logger: createSilentLogger("conversation-memory-rules"),
+      dataDir: "/tmp/test-datadir",
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      conversationMemory,
+      {},
+      PACKAGE_METADATA,
+    );
+    const ruleIds: string[] = [];
+    for (const plugin of plugins as Plugin[]) {
+      const capabilities = await harness.installPlugin(plugin);
+      ruleIds.push(
+        ...(capabilities.projectionRules?.map((rule) => rule.id) ?? []),
+      );
+    }
 
     const types = harness.getEntityService().getEntityTypes();
     expect(types).toContain("summary");
     expect(types).toContain("decision");
     expect(types).toContain("action-item");
-    // Automatic conversation-to-entity projection is disabled: the package
-    // reads memory derived before that, and derives none itself.
+    expect(ruleIds).toEqual([
+      "summary-derivation",
+      "summary-decision-derivation",
+      "summary-action-item-derivation",
+    ]);
+    // The summary stays excluded from generic source discovery; its two
+    // package-owned downstream rules name it explicitly.
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("summary"),
     ).toMatchObject({
@@ -81,8 +101,6 @@ describe("conversation memory package", () => {
   });
 
   it("takes projection settings from config", async () => {
-    // The projector is dormant, but what it would derive with is still
-    // configured — and the coverage widget reports against the same numbers.
     const harness = await install({ maxEntries: 10, projectionVersion: 3 });
 
     expect(harness.getEntityService().getEntityTypes()).toContain("summary");

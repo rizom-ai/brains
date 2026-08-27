@@ -19,8 +19,8 @@ import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
  * messages.
  *
  * Read-only in the strict sense: nobody creates, edits or deletes one by
- * hand. Automatic projection from conversations is currently disabled, so
- * what exists is what was derived before that was turned off.
+ * hand. The scheduler maintains it from changed conversations in configured
+ * spaces.
  */
 export const summary: EntityDefinition<
   typeof SUMMARY_ENTITY_TYPE,

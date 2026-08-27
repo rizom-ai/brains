@@ -9,6 +9,7 @@ import {
 } from "../../src";
 
 const inputContext: ProjectionInputContext = {
+  spaces: [],
   conversations: {
     get: async () => null,
     getMessages: async () => [],
@@ -174,6 +175,40 @@ describe("ProjectionRule", () => {
     void expect(
       rule.derive({}, executionContext, new AbortController().signal),
     ).rejects.toThrow('cannot write entity type "skill"');
+  });
+
+  it("reserves explicit deletes for managed rules", async () => {
+    const additive = defineProjectionRule({
+      id: "additive-topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      targets: { authority: "additive" },
+      inputSchema: emptyInputSchema,
+      selectInput: async () => ({}),
+      derive: async () => [
+        { operation: "delete" as const, entityType: "topic", id: "topic-1" },
+      ],
+    });
+    const managed = defineProjectionRule({
+      id: "managed-topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      targets: { authority: "managed" },
+      inputSchema: emptyInputSchema,
+      selectInput: async () => ({}),
+      derive: async () => [
+        { operation: "delete" as const, entityType: "topic", id: "topic-1" },
+      ],
+    });
+
+    void expect(
+      additive.derive({}, executionContext, new AbortController().signal),
+    ).rejects.toThrow("cannot delete targets");
+    expect(
+      await managed.derive({}, executionContext, new AbortController().signal),
+    ).toEqual([{ operation: "delete", entityType: "topic", id: "topic-1" }]);
   });
 
   it("accepts canonical upsert and delete intents", () => {

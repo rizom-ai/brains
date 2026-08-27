@@ -31,6 +31,7 @@ export {
   type ProjectionRule,
   type ProjectionRuleDefinition,
   type ProjectionRuleEntitySource,
+  type ProjectionTargetAuthority,
   type ProjectionWaveInput,
   type ProjectionWaveTrigger,
   type ProjectionWriteIntent,

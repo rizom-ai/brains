@@ -64,6 +64,7 @@ export interface ProjectionRuntimeOptions {
   scheduleWakeup?: ProjectionRuntimeControls["scheduleWakeup"];
   onDiagnostic?: ProjectionRuntimeControls["onDiagnostic"];
   reconcileBatches?: (() => Promise<unknown>) | undefined;
+  pollConversationSources?: (() => Promise<void>) | undefined;
   sweepIntervalMs?: number | undefined;
   scheduleSweep?: ProjectionRuntimeControls["scheduleSweep"];
   activationMode?: "scheduler" | "executor";
@@ -109,6 +110,13 @@ export async function activateProjectionRuntime(
   try {
     if (options.activationMode !== "executor") {
       const performSweep = async (recoverBatches: boolean): Promise<void> => {
+        const hasActiveBatch = await options.store.hasActiveProjectionBatch();
+        const activeWave = hasActiveBatch
+          ? null
+          : await options.store.getActiveWave();
+        if (!hasActiveBatch && !activeWave) {
+          await options.pollConversationSources?.();
+        }
         if (recoverBatches) await options.reconcileBatches?.();
         await scheduler.startNextWave();
       };
