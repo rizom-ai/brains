@@ -2,12 +2,13 @@
 
 ## Status
 
-**Implemented; pending review.** Phase 1 established the Bun 1.4 runtime.
-Phases 2–6 are complete, with scope adjusted where measurement or repository
-audit contradicted the original plan. Frozen install, full lint, typecheck,
-test, architecture, and all six packed compatibility contracts pass under Bun
-1.4. The console visual runner completes in the available Chromium container;
-its committed baselines differ in that environment, while Sharp and `pngjs`
+**Partial — reopened after review.** Phases 1–4 and 6 are complete and
+green under Bun 1.4. Phase 5's successful WebView spike is being completed as
+a full Playwright removal rather than leaving two browser implementations in
+the codebase. Frozen install, full lint, typecheck, test, architecture, and all
+six packed compatibility contracts passed before this final migration. The
+console visual runner completes in the available Chromium container; its
+committed baselines differ in that environment, while Sharp and `pngjs`
 produce identical pixel-difference ratios for the same captures.
 
 ## Goal
@@ -29,6 +30,10 @@ Three concrete wins drive the plan:
    fixed real sleeps, a problem `shared/test-utils/src/wait-until.ts` already
    documents. Date control is the piece that was missing for scheduler/croner
    tests, which fire off real `Date` + `setTimeout`.
+4. **`Bun.WebView` replaces Playwright** — keep the existing browser seam, but
+   remove the 13 MB installed automation dependency, its bundler exceptions,
+   and its deployment-time browser installer rather than maintaining two
+   Chromium control paths.
 
 The upgrade itself is also a product win with zero code change: the brain is a
 long-running daemon, and 1.4 ships 5× lower idle CPU, 13–48% lower HTTP server
@@ -161,30 +166,59 @@ tests. Scheduler required no edits after audit. The converted utils targets
 dropped from 489ms to 40ms locally; the converted job-queue targets dropped
 from 2.74s to 2.66s while replacing timing races with observable gates.
 
-## Phase 5 — `Bun.WebView` spike for media-renderer (timeboxed)
+## Phase 5 — `Bun.WebView` replaces Playwright
 
 `shared/media-renderer` already isolates the browser behind the
-`BrowserFactory` seam (`renderer.ts:78`), so a spike is cheap: implement a
-WebView-backed factory without touching call sites.
+`BrowserFactory` seam, so call sites do not need to change. The initial spike
+proved the three essential capabilities against real Chromium under Bun 1.4:
+PNG capture, PDF output through `Page.printToPDF`, and CDP-backed network-idle
+tracking that waits for delayed requests.
 
-Success criteria, all three required — decided up front so the spike ends in a
-decision, not a discussion:
+Review changed the decision: maintaining Playwright as the default after the
+spike is unnecessary duplication. Repository audit finds Playwright only in
+media-renderer, the console visual harness, deployment provisioning, build
+externals, and package metadata. The complete migration therefore removes it
+from all five surfaces.
 
-1. `screenshotPng` parity through the existing seam (PNG magic-byte assertion
-   in `renderer.test.ts` passes against a real page).
-2. `renderPdf` works via the CDP escape hatch
-   (`webview.cdp("Page.printToPDF", …)`) — WebView has no first-class PDF API.
-3. The `waitUntil: "networkidle"` default is replicable (WebView only resolves
-   on `load`; CDP `Network.*` idle tracking must close the gap) — the
-   markdown-html sanitizer comment (`shared/ui-library/src/markdown-html.ts`)
-   shows render capture is a privileged context, so "load fired" is not an
-   acceptable weakening.
+Exploration identified the gaps that must be closed before switching:
 
-Spike result: all three criteria pass against real Chromium under Bun 1.4. The
-opt-in `Bun.WebView` adapter captures PNG, prints PDF through CDP, and waits for
-a delayed network request before capture. Because WebView is still experimental,
-this phase preserves `playwright-core` and existing defaults; dropping it is a
-separate follow-up migration with broader production soak coverage.
+- a timed-out network-idle loop continues polling after its view closes and can
+  keep the process alive;
+- full-page CDP capture uses content width rather than the requested viewport
+  when a scrollbar is present;
+- only A4, Letter, and Legal are mapped, while unknown formats silently fall
+  back to Chromium defaults;
+- Bun's process-global Chromium remains as six idle subprocesses (297 MiB RSS
+  in the probe) after the last render unless ownership is explicitly released;
+- root-run deployment containers require Chromium's `--no-sandbox` launch
+  flag; and
+- the console visual harness uses Playwright locators and must move to
+  WebView/CDP rather than retaining a development-only dependency.
+
+Tests come first. Real-Chromium coverage must pin default-factory PNG/PDF
+output, delayed network idle, exact full-page dimensions, standard PDF formats,
+concurrent renders, timeout recovery, browser restart, and zero idle Chromium
+processes after the last renderer lease. The console harness must complete all
+surfaces through WebView, and deployment tests must prove direct
+`chromium-headless-shell` provisioning with no Playwright command or package.
+
+Implementation keeps `BrowserFactory` for testability but makes WebView the
+only built-in factory. A module-level lease coordinator closes Bun's shared
+browser when the last concurrent media render releases it and waits through the
+process-kill turn before a later launch. Network polling observes page closure;
+full-page screenshots use layout metrics and an explicit clip; PDF formats are
+validated and mapped. Deployment installs Debian's
+`chromium-headless-shell`, sets `BUN_CHROME_PATH`, and preserves the existing
+multilingual/emoji font coverage. Equivalent-font Docker probes are roughly
+size-neutral (800 MB for either provisioning path); a 94 MB saving is possible
+only by dropping fonts and is explicitly rejected.
+
+Exploration benchmarks favor the migration: five PNG plus five PDF renders took
+7.1s with WebView and explicit last-lease shutdown versus 8.8s with Playwright;
+12 concurrent renders took 1.15s versus 1.33s. Exit gate: no non-historical
+`playwright` reference remains, frozen install and package checks pass, the
+runtime image renders through its provisioned headless shell, console captures
+complete, and the full Bun 1.4 plus packed-compatibility gate remains green.
 
 ## Phase 6 — targeted `retry` on timing-sensitive integration tests
 
