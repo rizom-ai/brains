@@ -3,11 +3,66 @@ import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import { updateInputSchema } from "../../src/system/schemas";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
-import type { BaseEntity } from "@brains/entity-service";
+import {
+  BaseEntityAdapter,
+  EntityRegistry,
+  baseEntitySchema,
+  type BaseEntity,
+} from "@brains/entity-service";
+import { BrainCharacterAdapter } from "@brains/identity-service";
 import { PermissionService } from "@brains/templates";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 const confirmationArgsSchema = z.record(z.string(), z.unknown());
+
+const metadataBackedFrontmatterSchema = z.object({
+  title: z.string(),
+  publishedAt: z.string().datetime().optional(),
+});
+const metadataBackedEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("metadata-backed-test"),
+  metadata: metadataBackedFrontmatterSchema,
+});
+type MetadataBackedTestEntity = z.infer<typeof metadataBackedEntitySchema>;
+type MetadataBackedTestMetadata = z.infer<
+  typeof metadataBackedFrontmatterSchema
+>;
+
+/** Exercises the production BaseEntityAdapter metadata persistence path. */
+class MetadataBackedTestAdapter extends BaseEntityAdapter<
+  MetadataBackedTestEntity,
+  MetadataBackedTestMetadata,
+  MetadataBackedTestMetadata
+> {
+  constructor() {
+    super({
+      entityType: "metadata-backed-test",
+      purpose: "Test metadata-backed field persistence.",
+      schema: metadataBackedEntitySchema,
+      frontmatterSchema: metadataBackedFrontmatterSchema,
+    });
+  }
+
+  public fromMarkdown(markdown: string): Partial<MetadataBackedTestEntity> {
+    return {
+      content: markdown,
+      entityType: "metadata-backed-test",
+      metadata: this.parseFrontMatter(
+        markdown,
+        metadataBackedFrontmatterSchema,
+      ),
+    };
+  }
+}
+
+class UnprobeableMetadataBackedTestAdapter extends MetadataBackedTestAdapter {
+  public override extractMetadata(
+    _entity: MetadataBackedTestEntity,
+  ): MetadataBackedTestMetadata {
+    throw new Error("adapter cannot extract metadata");
+  }
+}
 
 const updateEntityRequestSchema = z.looseObject({
   options: z
@@ -956,84 +1011,120 @@ describe("system_update tool", () => {
     expect(services.getEntities().has("newsletter-1")).toBe(true);
   });
 
-  /** Builds a topic-shaped registry: frontmatter title, metadata always empty. */
-  function useBodyBackedTopicRegistry(
-    extractMetadata: () => Record<string, unknown>,
-  ): void {
-    const originalRegistry = services.entityRegistry;
-    services.entityRegistry = {
-      ...originalRegistry,
-      getEffectiveFrontmatterSchema: (type: string) =>
-        type === "topic"
-          ? z.object({ title: z.string() })
-          : originalRegistry.getEffectiveFrontmatterSchema(type),
-      getAdapter: (type: string) =>
-        type === "topic"
-          ? { ...originalRegistry.getAdapter(type), extractMetadata }
-          : originalRegistry.getAdapter(type),
-    } as typeof services.entityRegistry;
-    tools = createSystemTools(services);
-  }
-
-  function addTopicEntity(): void {
+  function useBrainCharacterAdapter(): void {
+    const adapter = new BrainCharacterAdapter();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType("brain-character", adapter.schema, adapter);
+    services.entityRegistry = registry;
     services.addEntities([
       {
-        id: "topic-sales",
-        entityType: "topic",
-        content: "---\ntitle: Unknown Topic\n---\nSales notes.\n",
-        contentHash: "hash-topic-sales",
+        id: "brain-character",
+        entityType: "brain-character",
+        content: adapter.createCharacterContent({
+          name: "Research Brain",
+          role: "Assistant",
+          purpose: "Organize research",
+          values: ["Curiosity"],
+        }),
+        contentHash: "hash-brain-character",
         visibility: "public",
-        metadata: {},
+        metadata: { role: "Assistant", values: ["Curiosity"] },
         created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
       },
     ]);
+    tools = createSystemTools(services);
   }
 
-  it("rejects a fields update the adapter would silently drop", async () => {
-    addTopicEntity();
-    // Topic frontmatter is rebuilt from the body, so metadata never carries it.
-    useBodyBackedTopicRegistry(() => ({}));
+  function useMetadataBackedAdapter(
+    adapter: MetadataBackedTestAdapter = new MetadataBackedTestAdapter(),
+  ): void {
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(
+      "metadata-backed-test",
+      adapter.schema,
+      adapter,
+    );
+    services.entityRegistry = registry;
+    services.addEntities([
+      {
+        id: "metadata-backed-1",
+        entityType: "metadata-backed-test",
+        content:
+          "---\ntitle: Original title\npublishedAt: '2026-03-01T00:00:00.000Z'\n---\n\nBody.",
+        contentHash: "hash-metadata-backed",
+        visibility: "public",
+        metadata: {
+          title: "Original title",
+          publishedAt: "2026-03-01T00:00:00.000Z",
+        },
+        created: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-16T10:00:00.000Z").toISOString(),
+      },
+    ]);
+    tools = createSystemTools(services);
+  }
+
+  it("rejects values a real body-backed adapter would retain from content", async () => {
+    useBrainCharacterAdapter();
 
     const result = await exec({
-      entityType: "topic",
-      id: "topic-sales",
-      fields: { title: "Sales Playbook" },
+      entityType: "brain-character",
+      id: "brain-character",
+      fields: {
+        role: "Research partner",
+        purpose: "Accelerate research",
+      },
     });
 
     expect(result).toEqual({
       success: false,
       error:
-        "topic does not persist title through 'fields'. " +
+        "brain-character does not persist role, purpose through 'fields'. " +
         "The update would report success without changing anything. " +
         "Provide full markdown with frontmatter via 'content' instead.",
     });
     expect(services.getLastUpdateRequest()).toBeUndefined();
   });
 
-  it("allows a fields update the adapter does persist", async () => {
-    addTopicEntity();
-    useBodyBackedTopicRegistry(() => ({ title: "Sales Playbook" }));
+  it("allows a value persisted by a real metadata-backed adapter", async () => {
+    useMetadataBackedAdapter();
 
     const result = await exec({
-      entityType: "topic",
-      id: "topic-sales",
-      fields: { title: "Sales Playbook" },
+      entityType: "metadata-backed-test",
+      id: "metadata-backed-1",
+      fields: { title: "Updated title" },
     });
 
     expect(() => expectConfirmationArgs(result)).not.toThrow();
   });
 
-  it("leaves fields updates alone when the adapter cannot be probed", async () => {
-    addTopicEntity();
-    useBodyBackedTopicRegistry(() => {
-      throw new Error("adapter cannot extract metadata");
+  it("allows a null deletion persisted by a real metadata-backed adapter", async () => {
+    useMetadataBackedAdapter();
+
+    const result = await execConfirmed({
+      entityType: "metadata-backed-test",
+      id: "metadata-backed-1",
+      fields: { publishedAt: null },
     });
 
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "metadata-backed-1" },
+    });
+    const updateRequest = services.getLastUpdateRequest() as {
+      entity: BaseEntity;
+    };
+    expect(updateRequest.entity.metadata).not.toHaveProperty("publishedAt");
+  });
+
+  it("leaves fields updates alone when the adapter cannot be probed", async () => {
+    useMetadataBackedAdapter(new UnprobeableMetadataBackedTestAdapter());
+
     const result = await exec({
-      entityType: "topic",
-      id: "topic-sales",
-      fields: { title: "Sales Playbook" },
+      entityType: "metadata-backed-test",
+      id: "metadata-backed-1",
+      fields: { title: "Updated title" },
     });
 
     expect(() => expectConfirmationArgs(result)).not.toThrow();

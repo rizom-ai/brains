@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import {
   canWriteVisibility,
   contentVisibilitySchema,
@@ -112,16 +113,22 @@ const NON_METADATA_FIELD_KEYS = new Set([
   "ogImageId",
 ]);
 
+const persistedFrontmatterSchema = z.record(z.string(), z.unknown());
+
 /**
- * Fields-only updates persist through entity metadata. Adapters that build
- * their frontmatter from the entity body return no metadata for those keys, so
- * the write lands nowhere: the tool reports success while the stored markdown
- * and contentHash stay unchanged. Topic titles did exactly this. Ask the
- * adapter what it would persist, and require a full content replacement when
- * the requested field would be dropped.
+ * Fields-only updates change metadata and matching top-level fields, but each
+ * adapter decides what reaches storage. A field survives when the adapter
+ * extracts the requested metadata value or writes it to serialized
+ * frontmatter. Adapters that rebuild both from unchanged content otherwise
+ * produce a silent no-op.
  *
- * The probe is best-effort: an adapter that cannot answer leaves the update
- * alone rather than blocking it.
+ * DB metadata is authoritative on read. A mismatched extracted value therefore
+ * cannot be rescued by frontmatter, while a null update successfully deletes a
+ * key that previously lived in metadata when extraction omits it. Fields that
+ * never lived in metadata must disappear from serialized frontmatter instead.
+ *
+ * The probe is best-effort: an adapter that cannot answer leaves uncertain
+ * updates alone rather than blocking them.
  */
 function validateFieldUpdatePersistence(
   entity: BaseEntity,
@@ -142,16 +149,69 @@ function validateFieldUpdatePersistence(
   );
   if (requested.length === 0) return undefined;
 
-  let persisted: Record<string, unknown>;
+  const adapter = entityRegistry.getAdapter(entity.entityType);
+  const updated = applyFieldUpdates(entity, fields);
+  let persistedMetadata: Record<string, unknown>;
   try {
-    persisted = entityRegistry
-      .getAdapter(entity.entityType)
-      .extractMetadata(applyFieldUpdates(entity, fields));
+    persistedMetadata = adapter.extractMetadata(updated);
   } catch {
     return undefined;
   }
 
-  const dropped = requested.filter((key) => !(key in persisted));
+  const dropped: string[] = [];
+  const needsFrontmatterProbe: string[] = [];
+  for (const key of requested) {
+    const requestedValue = fields[key];
+    const hasPersistedMetadata = Object.hasOwn(persistedMetadata, key);
+
+    if (requestedValue === null) {
+      if (hasPersistedMetadata) {
+        dropped.push(key);
+      } else if (!Object.hasOwn(entity.metadata, key)) {
+        needsFrontmatterProbe.push(key);
+      }
+      continue;
+    }
+
+    if (hasPersistedMetadata) {
+      if (!isDeepStrictEqual(persistedMetadata[key], requestedValue)) {
+        dropped.push(key);
+      }
+    } else {
+      needsFrontmatterProbe.push(key);
+    }
+  }
+
+  if (needsFrontmatterProbe.length > 0) {
+    let persistedFrontmatter: Record<string, unknown> | undefined;
+    try {
+      persistedFrontmatter = adapter.parseFrontMatter(
+        adapter.toMarkdown(updated),
+        persistedFrontmatterSchema,
+      );
+    } catch {
+      if (dropped.length === 0) return undefined;
+    }
+
+    if (persistedFrontmatter) {
+      for (const key of needsFrontmatterProbe) {
+        const requestedValue = fields[key];
+        const hasPersistedFrontmatter = Object.hasOwn(
+          persistedFrontmatter,
+          key,
+        );
+        if (
+          requestedValue === null
+            ? hasPersistedFrontmatter
+            : !hasPersistedFrontmatter ||
+              !isDeepStrictEqual(persistedFrontmatter[key], requestedValue)
+        ) {
+          dropped.push(key);
+        }
+      }
+    }
+  }
+
   if (dropped.length === 0) return undefined;
 
   return {
