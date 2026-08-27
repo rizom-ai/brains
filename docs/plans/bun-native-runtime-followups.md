@@ -6,7 +6,7 @@
 `Bun.WebView` baseline has shipped. This plan owns the remaining credible
 Bun-native dependency reductions found in the follow-up audit.
 
-Phases 1 and 2 are independent, low-risk cleanup. Phases 3–7 contain explicit
+Phases 1 and 2 are independent, low-risk cleanup. Phases 3–8 contain explicit
 decision gates: crossing a gate requires an intentional compatibility decision,
 not an implicit fallback or a second maintained implementation. This plan does
 not authorize implementation, merge, release, publication, or deployment.
@@ -25,12 +25,14 @@ The target outcomes are:
 3. replace direct `js-yaml` use with a narrow `Bun.YAML` policy;
 4. replace `gray-matter` with one shared frontmatter boundary backed by
    `Bun.YAML`;
-5. replace Croner with `Bun.cron` if five-field cron becomes the accepted
+5. use Bun's JSON family where it matches a real repository format, with a
+   conditional `Bun.JSONL` migration for resilient line-oriented logs;
+6. replace Croner with `Bun.cron` if five-field cron becomes the accepted
    schedule contract;
-6. replace direct Marked use with `Bun.markdown` only if the unstable API can
+7. replace direct Marked use with `Bun.markdown` only if the unstable API can
    preserve the HTML, security, image, and terminal contracts with less code;
    and
-7. add `--no-orphans` only to process trees where recursive `SIGKILL` is a
+8. add `--no-orphans` only to process trees where recursive `SIGKILL` is a
    proven defense in depth and does not bypass graceful ownership rules.
 
 This is not one migration PR. Each phase must be independently reviewable and
@@ -60,6 +62,23 @@ candidate packages. Bun 1.4 probes established the following baseline:
   `js-yaml`'s quoting, collection whitespace, or trailing-newline style. A
   Bun-native writer is therefore a canonical-format change, not a byte-neutral
   implementation swap.
+- Bun's JSON family covers three formats beyond strict JSON:
+  `Bun.JSON5.parse`/`stringify` for the JSON5 configuration superset,
+  `Bun.JSONC.parse` for comments and trailing commas, and
+  `Bun.JSONL.parse`/`parseChunk` for newline-delimited or streaming JSON.
+- The repository has no tracked `.json5`/`.jsonc` files, direct JSON5/JSONC
+  imports, or direct parser dependencies. Existing `json5` and
+  `strip-json-comments` lockfile entries belong to third-party development
+  tools and cannot be removed by changing repository code.
+- The Git-broker recovery journal and usage-log aggregator do parse JSON Lines
+  manually. Bun's complete JSONL parser stops at the first malformed value,
+  while both current readers skip an unreadable line and continue; the broker
+  additionally marks its evidence incomplete. `parseChunk` is therefore a
+  candidate only behind an explicit corruption-semantics and net-benefit gate.
+- Ordinary `JSON.parse`/`JSON.stringify` already use Bun's JavaScriptCore-native
+  implementation whenever the application runs under Bun. Bun 1.4 adds JSON
+  parser/stringifier optimizations automatically; there is no alternate
+  `Bun.JSON.parse` API or source migration to perform for strict JSON.
 - `Bun.cron` provides in-process scheduling, timezone support, validation, and
   no-overlap scheduling, but accepts only five fields. The current
   content-pipeline configuration documentation and tests explicitly accept
@@ -78,6 +97,9 @@ Relevant Bun documentation:
 - [Bun 1.4 release notes](https://bun.com/blog/bun-v1.4)
 - [`Bun.Archive`](https://bun.com/docs/runtime/archive)
 - [`Bun.YAML`](https://bun.com/reference/bun/YAML)
+- [`Bun.JSON5`](https://bun.com/reference/bun/JSON5)
+- [`Bun.JSONC`](https://bun.com/reference/bun/JSONC)
+- [`Bun.JSONL`](https://bun.com/reference/bun/JSONL)
 - [`Bun.cron`](https://bun.com/docs/runtime/cron)
 - [`Bun.markdown`](https://bun.com/docs/runtime/markdown)
 
@@ -85,17 +107,18 @@ Relevant Bun documentation:
 
 Do not hide these choices inside implementation details.
 
-| Gate                             | Required decision                                                                                                                 | Allowed outcomes                                                                                                                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| YAML/frontmatter serialization   | Whether future writes may use Bun's semantically equivalent canonical YAML even though quoting and whitespace change              | Accept the new canonical format without a repository-wide rewrite, or retain the current writer and decline dependency removal. Do not grow a partial `js-yaml` clone to mimic its printer. |
-| Cron expression compatibility    | Whether configured schedules may be restricted from Croner's extended/six-field syntax to Bun's standard five-field syntax        | Adopt five fields and remove Croner, or retain Croner. Do not add a hybrid Croner fallback or a custom seconds-field scheduler.                                                             |
-| Scheduler API naming             | Whether the exported `CronerBackend` / `CronerBackendOptions` names must remain compatible after Croner is gone                   | Approve a narrow deprecated alias, or make the intentional rename to Bun-neutral names. Do not assume either outcome.                                                                       |
-| Markdown API maturity and output | Whether an unstable Bun API is acceptable for privileged HTML and user-visible CLI output, and whether output changes are allowed | Proceed only after the differential corpus and security gates pass with a net code reduction; otherwise retain Marked.                                                                      |
-| Orphan containment surface       | Which top-level production/development invocations may recursively kill descendants, including direct package-bin portability     | Adopt only the proven surfaces, or decline the flag. Never enable repository-wide `[run] noOrphans = true` as a shortcut.                                                                   |
+| Gate                             | Required decision                                                                                                                                    | Allowed outcomes                                                                                                                                                                            |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| YAML/frontmatter serialization   | Whether future writes may use Bun's semantically equivalent canonical YAML even though quoting and whitespace change                                 | Accept the new canonical format without a repository-wide rewrite, or retain the current writer and decline dependency removal. Do not grow a partial `js-yaml` clone to mimic its printer. |
+| Cron expression compatibility    | Whether configured schedules may be restricted from Croner's extended/six-field syntax to Bun's standard five-field syntax                           | Adopt five fields and remove Croner, or retain Croner. Do not add a hybrid Croner fallback or a custom seconds-field scheduler.                                                             |
+| Scheduler API naming             | Whether the exported `CronerBackend` / `CronerBackendOptions` names must remain compatible after Croner is gone                                      | Approve a narrow deprecated alias, or make the intentional rename to Bun-neutral names. Do not assume either outcome.                                                                       |
+| JSONL corruption semantics       | Whether Bun's chunk parser can preserve skip-and-continue behavior and broker evidence completeness with less code or a measured operational benefit | Adopt one shared resilient JSONL reader only if it preserves later valid lines after corruption; otherwise retain the straightforward line loop.                                            |
+| Markdown API maturity and output | Whether an unstable Bun API is acceptable for privileged HTML and user-visible CLI output, and whether output changes are allowed                    | Proceed only after the differential corpus and security gates pass with a net code reduction; otherwise retain Marked.                                                                      |
+| Orphan containment surface       | Which top-level production/development invocations may recursively kill descendants, including direct package-bin portability                        | Adopt only the proven surfaces, or decline the flag. Never enable repository-wide `[run] noOrphans = true` as a shortcut.                                                                   |
 
 Phases 1 and 2 do not depend on these decisions. Phase 3 must settle the YAML
-serialization gate before changing writers. Phase 4 follows Phase 3. Phases 5,
-6, and 7 are independent conditional migrations.
+serialization gate before changing writers. Phase 4 follows Phase 3. Phases
+5–8 are independent conditional migrations.
 
 ## Working rules
 
@@ -323,7 +346,111 @@ clearly.
 
 Add a changeset describing the parser type policy and canonical writer change.
 
-## Phase 5 — conditionally replace Croner with `Bun.cron`
+## Phase 5 — evaluate Bun's JSON family and conditionally adopt `Bun.JSONL`
+
+Strict JSON, JSON5, JSONC, and JSONL solve different problems. Do not replace
+`JSON.parse` with a more permissive parser merely because both return JavaScript
+values.
+
+### Format boundaries
+
+- **Strict JSON (`JSON.parse` / `JSON.stringify`)** is the interoperable data
+  format used by HTTP payloads, package manifests, persisted JSON columns, and
+  most repository messages. Under Bun these standard globals already execute
+  Bun/JavaScriptCore's native implementation.
+- **JSON5 (`Bun.JSON5`)** is a human-authored configuration superset with
+  comments, trailing commas, unquoted identifier keys, single-quoted strings,
+  hexadecimal numbers, `Infinity`, and `NaN`. It has parse and stringify APIs,
+  and Bun can import `.json5` files directly.
+- **JSONC (`Bun.JSONC`)** keeps JSON's value model but permits `//` and block
+  comments plus trailing commas. It is commonly used by `tsconfig.json`; Bun
+  exposes parsing but no JSONC stringifier.
+- **JSONL (`Bun.JSONL`)**, also called JSON Lines or NDJSON, stores one complete
+  JSON value per line. `parse()` handles a complete string or byte buffer;
+  `parseChunk()` reports parsed values, consumed bytes/characters, completion,
+  and syntax errors for incremental streams.
+
+JSON5 and JSONC have no current direct repository consumer. Record them as
+available APIs, but add no wrapper, dependency, or speculative format. Their
+transitive tooling packages remain owned by those third-party tools.
+
+Ordinary strict JSON also needs no migration. Bun 1.4's faster
+`JSON.parse`/`JSON.stringify` paths are received automatically by existing
+calls. Performance relative to Node/V8 depends on payload shape; do not replace
+schema validation, remove error handling, or claim a universal speed ratio.
+
+### JSONL tests first
+
+The only credible source change is a shared resilient reader for
+`plugins/directory-sync/src/lib/broker/journal.ts` and
+`shell/app/src/usage-aggregator.ts`. Before writing one, pin both current
+contracts:
+
+- complete LF and CRLF input, blank lines, UTF-8 BOM, and no final newline;
+- multiple values in one buffer and values split across streaming chunks;
+- a partial final line from a crash;
+- malformed first, middle, and final lines;
+- a valid line after a malformed middle line, which must still be returned;
+- schema-invalid but syntactically valid values;
+- broker start/settle ordering and ambiguity calculation;
+- `evidenceComplete: false` for every unreadable or partial journal record;
+- usage aggregation ignoring malformed/unrelated values while preserving later
+  valid events; and
+- input-size and Unicode behavior representative of real logs.
+
+`Bun.JSONL.parse()` alone is not compatible: after valid values it returns the
+partial prefix at the first parse error. A candidate wrapper must use
+`parseChunk()`, mark the error, advance to the next line boundary, and continue
+without losing later evidence.
+
+### Benchmark and net-simplification gate
+
+Benchmark under Bun 1.4 using realistic 1 MiB journal and usage-log fixtures:
+
+1. the existing `split("\n")` + `JSON.parse` implementation;
+2. the proposed `Bun.JSONL.parseChunk` reader;
+3. valid input;
+4. a torn final append; and
+5. sparse malformed middle records.
+
+Measure wall time and peak/transient memory in separate processes. Proceed only
+if the shared reader is simpler overall or delivers a material measured gain on
+these real paths while preserving every corruption contract. This phase removes
+no external dependency, so a marginal microbenchmark win is insufficient.
+
+If the gate fails, retain the current readers and record JSONL as evaluated. Do
+not add a wrapper around `Bun.JSON5` or `Bun.JSONC`, and do not maintain two
+JSONL parsers.
+
+### Implementation, only if the gate passes
+
+- Add one narrowly named JSON Lines utility under `@brains/utils` that returns
+  parsed values plus whether the complete input was trustworthy.
+- Implement recovery after an erroneous line with `Bun.JSONL.parseChunk`; do
+  not silently accept its prefix-only default as the repository contract.
+- Keep Zod validation in the broker and usage aggregator after syntactic
+  parsing.
+- Keep writers on `JSON.stringify(value) + "\n"`; Bun has no JSONL stringifier
+  and the current append/compaction durability policy remains correct.
+- Migrate both readers atomically and remove their duplicate manual parsing only
+  after the shared tests pass.
+
+### Exit gate
+
+- All valid, partial, corrupt-middle, and schema-invalid fixtures preserve the
+  established outcomes.
+- Broker ambiguity and `evidenceComplete` behavior are unchanged.
+- Valid usage events after one damaged log line are still aggregated.
+- Benchmarks and source diff satisfy the net-simplification gate.
+- Directory-sync broker, app usage, Git-broker process-inventory, and packaged
+  recovery tests pass under Bun 1.4.
+- No JSON5/JSONC wrapper or permissive parser substitution is introduced.
+
+No changeset is needed for a behavior-neutral internal parser optimization. If
+observable recovery or log behavior changes, stop and treat that as a separate
+reviewed contract change.
+
+## Phase 6 — conditionally replace Croner with `Bun.cron`
 
 Proceed only if five-field cron is approved as the complete supported contract.
 If six-field/seconds compatibility must remain, close this phase as declined and
@@ -388,7 +515,7 @@ existing hooks.
 Add a changeset that explicitly calls out the five-field compatibility change
 and any exported class rename.
 
-## Phase 6 — conditionally replace Marked with `Bun.markdown`
+## Phase 7 — conditionally replace Marked with `Bun.markdown`
 
 This is a measured spike followed by a cutover only if it earns one. Marked is
 small and working; merely moving equivalent renderer code into the repository
@@ -471,7 +598,7 @@ fallback.
 Add a changeset for user-visible HTML or terminal-output changes. If the phase
 is declined after the spike, ship no production changes and no changeset.
 
-## Phase 7 — conditionally adopt `--no-orphans`
+## Phase 8 — conditionally adopt `--no-orphans`
 
 Treat this as containment hardening, not dependency cleanup. It must preserve
 the runtime's explicit lifecycle and Git ownership invariants.
@@ -582,8 +709,9 @@ PATH=/tmp/bun-1.4/bun-linux-x64:$PATH bun run deps:check
 PATH=/tmp/bun-1.4/bun-linux-x64:$PATH bun run changeset:check
 ```
 
-Run the packed matrix only for cross-package/runtime phases (frontmatter, cron,
-Markdown, and no-orphans), not for the script-only Archive cleanup:
+Run the packed matrix only for cross-package/runtime phases (frontmatter,
+JSONL when it changes the broker, cron, Markdown, and no-orphans), not for the
+script-only Archive cleanup:
 
 ```bash
 PATH=/tmp/bun-1.4/bun-linux-x64:$PATH bun run test:packed:compat
@@ -604,18 +732,24 @@ configuration documentation changes.
 4. If canonical Bun frontmatter is accepted, one shared parser/writer replaces
    Gray Matter and preserves the approved delimiter, schema, visibility, and
    semantic round-trip contracts.
-5. Croner is removed only with an approved five-field schedule contract,
+5. JSON5 and JSONC remain dependency-free available formats rather than
+   speculative wrappers; JSONL replaces manual line parsing only if it
+   preserves corrupt-line recovery and produces a measured net simplification.
+6. Existing strict `JSON.parse`/`JSON.stringify` calls receive Bun's runtime
+   optimizations without a source-level migration or universal performance
+   claim.
+7. Croner is removed only with an approved five-field schedule contract,
    deterministic timezone/DST coverage, and an explicit exported-name
    decision.
-6. Marked is removed only if both consumers preserve approved output and
+8. Marked is removed only if both consumers preserve approved output and
    security contracts with a net code reduction and no fallback.
-7. No-orphans is enabled only on process-tree surfaces proven safe; explicit
+9. No-orphans is enabled only on process-tree surfaces proven safe; explicit
    graceful shutdown and Git process-group ownership remain intact.
-8. No phase introduces unsafe casts, dual production implementations, broad
-   global feature flags, or automatic durable-content rewrites.
-9. Every behavior-changing phase has a changeset and passes its targeted,
-   repository, and required packed gates under Bun 1.4.
-10. Every merge, release, publication, deployment, or compatibility-breaking
+10. No phase introduces unsafe casts, dual production implementations, broad
+    global feature flags, or automatic durable-content rewrites.
+11. Every behavior-changing phase has a changeset and passes its targeted,
+    repository, and required packed gates under Bun 1.4.
+12. Every merge, release, publication, deployment, or compatibility-breaking
     decision remains separately and explicitly authorized.
 
 When all phases are either implemented or explicitly declined, move durable
