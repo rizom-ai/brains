@@ -252,6 +252,7 @@
     "core--chat-repl-shared-confirmation-grammar",
     "core--chat-repl-typed-system-messages",
     "core--cms-follow-up-launch-and-restricted-save",
+    "core--cms-visibility-roundtrip",
     "core--console-strip-single-implementation",
     "core--console-surfaces-out-of-theme",
     "core--context-extends-published-surface",

@@ -1,5 +1,18 @@
 # @brains/cms
 
+## 0.2.0-alpha.328
+
+### Patch Changes
+
+- [#176](https://github.com/rizom-ai/brains/pull/176) [`6fca3bf`](https://github.com/rizom-ai/brains/commit/6fca3bf38c741d041cc68c9bed7965464e399cc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Expose content visibility as an explicit CMS system field for every entity type. The editor now reloads the authoritative stored tier instead of inferring it from markdown, and raw entities can change visibility without turning their content into frontmatter.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.328
+  - @brains/contracts@0.2.0-alpha.328
+  - @brains/utils@0.2.0-alpha.328
+  - @brains/auth-service@0.2.0-alpha.328
+  - @brains/plugins@0.2.0-alpha.328
+
 ## 0.2.0-alpha.327
 
 ### Patch Changes
