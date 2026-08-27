@@ -156,7 +156,9 @@ describe("canonical team bundle", () => {
       },
     );
 
-    expect(pluginIds(resolved)).not.toContain("conversation-memory");
+    expect(pluginIds(resolved)).not.toContain(
+      "@brains/conversation-memory:conversation-memory",
+    );
     expect(pluginIds(resolved)).not.toContain("@brains/doc:doc");
     expect(
       resolved.permissions?.rules?.some((rule) =>

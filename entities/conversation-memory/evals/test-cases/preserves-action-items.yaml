@@ -5,7 +5,7 @@ type: plugin
 tags:
   - summary
   - action-items
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:

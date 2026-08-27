@@ -11,7 +11,7 @@ tags:
   - extraction
   - quality
   - titles
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: extractFromEntity
 
 input:

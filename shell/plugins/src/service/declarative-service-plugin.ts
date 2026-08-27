@@ -312,7 +312,9 @@ class DeclarativeServicePlugin<
     }) ?? []) {
       this.cleanups.push(
         context.recurringChecks.register({
-          id: `${this.publicId}:${check.id}`,
+          // Bare: the registry scopes it by the plugin registering it, so
+          // prefixing here names the plugin twice.
+          id: check.id,
           cadence: check.cadence,
           ...(check.deliverAlerts !== undefined
             ? { deliverAlerts: check.deliverAlerts }

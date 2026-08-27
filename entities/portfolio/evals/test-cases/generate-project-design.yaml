@@ -6,7 +6,7 @@ tags:
   - portfolio
   - generation
   - design
-plugin: portfolio
+plugin: "@brains/portfolio:portfolio"
 handler: generateProject
 
 input:

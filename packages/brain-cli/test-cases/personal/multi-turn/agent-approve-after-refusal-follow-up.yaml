@@ -20,7 +20,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             agent: "refusal-followup.example"
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: false
       responseContainsAny:
         - ["verify", "verified", "Agent Card", "contact", "reach"]
@@ -29,7 +29,7 @@ turns:
   - userMessage: "please add"
     successCriteria:
       expectedTools:
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: true
           argsContain:
             source.kind: "url"

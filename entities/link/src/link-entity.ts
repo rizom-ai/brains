@@ -1,4 +1,8 @@
-import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
+import {
+  defineEntity,
+  frontmatterInContent,
+  type EntityDefinition,
+} from "@brains/sdk/entities";
 import { linkFrontmatterSchema, linkMetadataSchema } from "./schemas/link";
 import { linkExtractionTemplate } from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";
@@ -21,23 +25,15 @@ export const link: EntityDefinition<"link", typeof linkMetadataSchema> =
       "A saved external URL or web resource captured for later reference.",
     metadata: linkMetadataSchema,
     config: { projectionSourceRole: "supporting" },
-    markdown: {
-      // Metadata indexes two of the seven frontmatter fields. The rest —
-      // url, domain, capturedAt, source, description — stay in the content's
-      // frontmatter and are carried forward on write, so the codec only has
-      // to state what it indexes.
-      decode: ({ content, frontmatter }) => {
-        const parsed = linkFrontmatterSchema.parse(frontmatter);
-        return {
-          content,
-          metadata: { title: parsed.title, status: parsed.status },
-        };
-      },
-      encode: ({ content, metadata }) => ({
-        content,
-        frontmatter: { title: metadata.title, status: metadata.status },
-      }),
-    },
+    // Metadata indexes two of the seven frontmatter fields. The rest — url,
+    // domain, capturedAt, source, description — live in the file and are
+    // carried forward on write. Spelled out by hand this dropped them: decode
+    // returned the body without its frontmatter and encode re-emitted only
+    // the two indexed fields, so a saved link lost its URL.
+    markdown: frontmatterInContent((frontmatter) => {
+      const parsed = linkFrontmatterSchema.parse(frontmatter);
+      return { title: parsed.title, status: parsed.status };
+    }),
     templates: {
       extraction: linkExtractionTemplate,
       "link-list": linkListTemplate,

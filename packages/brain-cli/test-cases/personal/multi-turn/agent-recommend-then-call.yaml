@@ -32,7 +32,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             agent: "brand-studio.example"
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: false
       responseNotContains:
         - "Which agent"

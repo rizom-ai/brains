@@ -7,7 +7,7 @@ tags:
   - team
   - summary
   - core
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:

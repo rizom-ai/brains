@@ -7,7 +7,7 @@ tags:
   - generation
   - style
   - voice
-plugin: decks
+plugin: "@brains/decks:deck"
 handler: generateDeck
 
 input:

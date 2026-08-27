@@ -8,10 +8,7 @@ import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
 } from "./knowledge-map-data";
-import {
-  KnowledgeMapWidget,
-  knowledgeMapStyles,
-} from "../widgets/knowledge-map";
+import { KnowledgeMapWidget, knowledgeMapStyles } from "./knowledge-map";
 
 export const KNOWLEDGE_MAP_WIDGET_ID = "topics-knowledge-map";
 

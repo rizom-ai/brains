@@ -1,5 +1,6 @@
 import {
   defineEntity,
+  frontmatterInContent,
   generateMarkdownWithFrontmatter,
   type EntityDefinition,
 } from "@brains/sdk/entities";
@@ -51,38 +52,22 @@ export const project: EntityDefinition<
       metadata: { title, slug: id, status: "generating", year },
     };
   },
-  markdown: {
-    // Metadata indexes the queryable fields; description, coverImageId,
-    // ogImageId and url stay in the content's frontmatter and are carried
-    // forward on write.
-    decode: ({ content, frontmatter }) => {
-      const parsed = projectFrontmatterSchema.parse(frontmatter);
-      return {
-        content,
-        metadata: {
-          title: parsed.title,
-          slug: parsed.slug ?? slugify(parsed.title),
-          status: parsed.status,
-          year: parsed.year,
-          ...(parsed.publishedAt === undefined
-            ? {}
-            : { publishedAt: parsed.publishedAt }),
-        },
-      };
-    },
-    encode: ({ content, metadata }) => ({
-      content,
-      frontmatter: {
-        title: metadata.title,
-        slug: metadata.slug,
-        status: metadata.status,
-        year: metadata.year,
-        ...(metadata.publishedAt === undefined
-          ? {}
-          : { publishedAt: metadata.publishedAt }),
-      },
-    }),
-  },
+  // Metadata indexes the queryable fields; description, coverImageId,
+  // ogImageId and url live in the file and are carried forward on write.
+  // Spelled out by hand this dropped them — decode returned the body without
+  // its frontmatter and encode re-emitted only the indexed fields.
+  markdown: frontmatterInContent((frontmatter) => {
+    const parsed = projectFrontmatterSchema.parse(frontmatter);
+    return {
+      title: parsed.title,
+      slug: parsed.slug ?? slugify(parsed.title),
+      status: parsed.status,
+      year: parsed.year,
+      ...(parsed.publishedAt === undefined
+        ? {}
+        : { publishedAt: parsed.publishedAt }),
+    };
+  }),
   templates: getTemplates(),
   dataSources: [projectDataSource],
   attachments: [

@@ -6,7 +6,7 @@ tags:
   - summary
   - action-items
   - owners
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:

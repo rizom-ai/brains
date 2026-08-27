@@ -16,11 +16,6 @@ import {
   proximityCenterLabel,
   proximityMapDataSchema,
 } from "./proximity-map-schema";
-import {
-  AgentProximityWidget,
-  proximityMapScript,
-  proximityMapWidgetStyles,
-} from "../widgets/proximity-map";
 
 const agentNetworkDashboardDataSchema = agentNetworkWidgetDataSchema.extend({
   canInvite: z.boolean(),

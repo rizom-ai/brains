@@ -6,7 +6,7 @@ tags:
   - summary
   - long-context
   - segmentation
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:

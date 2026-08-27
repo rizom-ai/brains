@@ -38,12 +38,12 @@ describe("canonical personal posture", () => {
     const ids = pluginIds(resolved);
 
     for (const id of [
-      "image",
-      "document",
+      "@brains/image-plugin:image",
+      "@brains/document-plugin:document",
       "webserver",
       "dashboard",
       "web-chat",
-      "conversation-memory",
+      "@brains/conversation-memory:conversation-memory",
     ]) {
       expect(ids).toContain(id);
     }

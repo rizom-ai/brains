@@ -6,7 +6,7 @@ tags:
   - decks
   - description
   - core
-plugin: decks
+plugin: "@brains/decks:deck"
 handler: generateDescription
 
 input:

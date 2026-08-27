@@ -9,7 +9,7 @@ tags:
   - conversation-memory
   - retrieval
   - canonical-identity
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: retrieveMemory
 
 input:

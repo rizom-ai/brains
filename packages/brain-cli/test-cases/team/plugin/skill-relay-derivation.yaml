@@ -8,7 +8,7 @@ tags:
   - skills
   - agent-discovery
   - core
-plugin: skill
+plugin: "@brains/agent-discovery:agents"
 handler: deriveSkills
 
 input:

@@ -17,7 +17,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: true
       argsContain:
         source.kind: "url"

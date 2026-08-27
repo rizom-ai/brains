@@ -20,7 +20,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             agent: "save-first-followup.example"
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: false
       responseContainsAny:
         - ["verify", "verified", "Agent Card", "contact", "reach"]
@@ -32,7 +32,7 @@ turns:
   - userMessage: "Yes please"
     successCriteria:
       expectedTools:
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: true
           argsContain:
             source.kind: "url"

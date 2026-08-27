@@ -7,7 +7,7 @@ tags:
   - extraction
   - quality
   - github
-plugin: link
+plugin: "@brains/link:capture"
 handler: extractContent
 
 input:

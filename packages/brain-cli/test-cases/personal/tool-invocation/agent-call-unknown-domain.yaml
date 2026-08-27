@@ -20,7 +20,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         agent: "unknown-agent.io"
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: false
   responseContainsAny:
     - ["verify", "verified", "Agent Card", "contact", "reach"]
