@@ -76,6 +76,24 @@ forgot.
   in parallel" would name a thing without removing a decision.
 - **No new `define*` export.** The change is one property on an existing
   exported interface plus two exported types.
+- **Abstaining is distinct from deriving an empty set.** `[]` means "none of
+  these should exist"; `PROJECTION_ABSTAINED` means "I had nothing to derive
+  from, leave my targets alone". Both shipped exclusive rules return early
+  when their sources are empty — normal during initial sync — and without the
+  distinction that reads as "delete everything I have ever derived". Neither
+  default is safe: never deleting on empty reopens the orphan leak, always
+  deleting empties a corpus. Memo replay stops reconciling as a consequence,
+  since the memo already holds the reconciled intents and an abstention
+  memoized as no intents would replay as a mass deletion.
+- **Conversation memory writes its three types by chaining, not by owning
+  them.** `target_type` is a NOT NULL column on `projection_wave_rules`, so a
+  rule owning several types needs a schema migration or the store's write
+  guard moved out of the store. Chaining through the graph — summary from
+  conversations, then decision and action item from the summary — needs
+  neither and uses the topological levels that already exist. The two
+  downstream rules parse what the summary carries, so there is still one
+  model pass. They are additive, so nothing existing is removed while old
+  summaries lack the sections they read.
 
 ## Public surface
 
@@ -107,16 +125,20 @@ Each phase is a shippable slice with its tests written first.
    `skill` and `series` lose their diff loops; `swot` and `topics` say out loud
    that they do not delete. Their existing behavior tests are the gate.
 
-4. **The projection runtime learns conversation sources.** Rule sources are
-   entity-only (`shell/plugins/src/entity/projection-rule.ts:28`).
-   Conversation-memory's evidence is conversations, so this is the capability
-   slice: a `{ kind: "conversation" }` source whose change signal comes from
-   the conversation service, batched by the scheduler like entity changes.
-   Named consumer: phase 5.
+4. **The projection runtime learns conversation sources.** DONE. A
+   `{ kind: "conversation" }` source, normalized into the shape every matcher
+   already reads; a wildcard entity source narrowed so a conversation change
+   no longer wakes every `types: ["*"]` rule; a watermark poller, because
+   conversations are in their own database and cannot mark themselves dirty
+   inside the write that changed them; an ascending
+   `listConversationsUpdatedSince`, because the recency-ordered list cannot
+   carry a watermark without stranding older changes; and conversation reads
+   on the input context, so a woken rule can see what it was woken about.
 
-5. **Conversation-memory declares its derivation.** A `defineProjectionRule`
-   like the other four, with declared target authority, replacing the
-   776-line orphaned `SummaryProjector` class. The first full pass ships
+5. **Conversation-memory declares its derivations.** Three chained rules
+   replacing the 776-line orphaned `SummaryProjector`: summary from
+   conversations (exclusive over the configured memory visibility), then
+   decision and action item from the summary (additive, parse-only). The first full pass ships
    behind an explicit operator action rather than "no summaries exist yet" —
    that condition is true exactly once, on a fresh deploy, which is the
    machine least able to absorb N AI extractions at once. Exit criterion: the
