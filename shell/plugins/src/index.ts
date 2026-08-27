@@ -977,3 +977,10 @@ export {
   type ConsoleSurface,
   type SurfacePermissionLevel,
 } from "./console-surfaces";
+
+// The row-to-contract mapping for conversations, so the shell can build the
+// same conversation view a plugin sees rather than a second one beside it.
+export {
+  toPublicConversation,
+  toPublicMessage,
+} from "./base/public-conversations";

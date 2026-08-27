@@ -1345,6 +1345,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         { waveId: "eval", inputs: [] },
         {
           entities: entityService,
+          conversations: {
+            get: async () => null,
+            getMessages: async () => [],
+          },
           resolvePrompt: async (
             _reference: string,
             fallback: string,

@@ -28,6 +28,10 @@ import {
 } from "../src/projection-rule-job-handler";
 
 const inputContext: ProjectionInputContext = {
+  conversations: {
+    get: async () => null,
+    getMessages: async () => [],
+  },
   entities: {
     getEntity: async () => null,
     listEntities: async () => [],
