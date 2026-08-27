@@ -1,7 +1,7 @@
 {
   "name": "@brains/console-theme",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.328",
+  "version": "0.2.0-alpha.329",
   "description": "Operator-console token sheet and shared chrome styles",
   "dependencies": {
     "@brains/contracts": "workspace:*"

@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.329
+
+### Patch Changes
+
+- [#177](https://github.com/rizom-ai/brains/pull/177) [`32e1a8c`](https://github.com/rizom-ai/brains/commit/32e1a8ce5ec6d3c146b6a2a54d527ea8a0a0b698) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reject `system_update` field updates that the entity adapter would discard. The persistence probe now compares requested values with both extracted metadata and serialized frontmatter, while allowing valid metadata deletions. The tool explains silent no-ops and points callers at full content replacement.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.329
+  - @brains/image@0.2.0-alpha.329
+  - @brains/operation-context@0.2.0-alpha.329
+  - @brains/site-composition@0.2.0-alpha.329
+  - @brains/utils@0.2.0-alpha.329
+  - @brains/plugins@0.2.0-alpha.329
+  - @brains/recurring-checks@0.2.0-alpha.329
+  - @brains/runtime-state@0.2.0-alpha.329
+  - @brains/scheduler@0.2.0-alpha.329
+  - @brains/templates@0.2.0-alpha.329
+
 ## 0.2.0-alpha.328
 
 ### Patch Changes
