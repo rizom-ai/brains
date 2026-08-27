@@ -37,10 +37,12 @@ import type { RuntimeHealthCheck } from "../contracts/runtime-health";
 export type {
   ProjectionRule,
   ProjectionRuleDefinition,
+  ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "../entity/projection-rule";
 import type {
   ProjectionRule,
+  ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "../entity/projection-rule";
 import type { Conversation, Message } from "../contracts/conversations";
@@ -334,6 +336,7 @@ export interface IEvalNamespace {
    */
   runProjectionRule(
     rule: ProjectionRule,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
     signal?: AbortSignal,
   ): Promise<readonly ProjectionWriteIntent[]>;
 }

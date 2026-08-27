@@ -21,6 +21,7 @@ import type {
   ProjectionInputContext,
   ProjectionJsonObject,
   ProjectionRule,
+  ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "@brains/plugins";
 import {
@@ -806,10 +807,11 @@ export class Shell implements IShell {
    */
   public async runProjectionRule(
     rule: ProjectionRule,
+    options: { readonly inputs?: readonly ProjectionWaveInput[] } = {},
     signal: AbortSignal = new AbortController().signal,
   ): Promise<readonly ProjectionWriteIntent[]> {
     const input = await rule.selectInput(
-      { waveId: "eval", inputs: [] },
+      { waveId: "eval", inputs: options.inputs ?? [] },
       this.createProjectionInputContext(),
       signal,
     );

@@ -369,7 +369,8 @@ class DeclarativeServicePlugin<
             this.publicId,
           ),
           conversations: context.conversations,
-          runProjectionRule: (rule) => context.eval.runProjectionRule(rule),
+          runProjectionRule: (rule, options) =>
+            context.eval.runProjectionRule(rule, options),
           fixtures: createEvalFixtures(context.entityService, ownedTypes),
           template: (localName) => this.scopedTemplateName(localName),
         }),
