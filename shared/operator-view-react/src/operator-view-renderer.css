@@ -358,6 +358,45 @@
   width: min(720px, 100%);
 }
 
+.declarative-action-disclosure {
+  width: min(720px, 100%);
+}
+
+.declarative-action-disclosure > summary {
+  width: fit-content;
+  padding: 7px 11px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 6px;
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+  cursor: pointer;
+  font: 10px var(--console-mono);
+  letter-spacing: 0.04em;
+  list-style: none;
+}
+
+.declarative-action-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.declarative-action-disclosure > summary::before {
+  content: "+";
+  margin-right: 7px;
+}
+
+.declarative-action-disclosure[open] > summary {
+  margin-bottom: 14px;
+}
+
+.declarative-action-disclosure[open] > summary::before {
+  content: "−";
+}
+
+.declarative-aside .declarative-action-form {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
 .declarative-action-form label {
   display: grid;
   gap: 5px;

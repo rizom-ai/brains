@@ -844,6 +844,6 @@ export function ProximityMap({
 /** The dashboard face of the map — parses widget data, falls back quietly. */
 export function AgentProximityWidget({ data }: { data: unknown }): JSX.Element {
   const parsed = proximityMapDataSchema.safeParse(data);
-  if (!parsed.success) return <p class="muted">Nothing to show yet.</p>;
+  if (!parsed.success) return <p className="muted">Nothing to show yet.</p>;
   return <ProximityMap data={parsed.data} />;
 }

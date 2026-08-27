@@ -108,6 +108,7 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(audit).toMatchObject({
       view: {
         title: "Administration",
+        status: { label: "Admin only" },
         blocks: [{ type: "tabs", defaultTab: "audit" }],
       },
     });
@@ -118,6 +119,7 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(people).toMatchObject({
       view: {
         title: "Administration",
+        status: { label: "Admin only" },
         blocks: [{ type: "tabs", defaultTab: "people" }],
       },
     });

@@ -338,8 +338,8 @@ describe("brain config migration preview", () => {
           ),
           "obsidian-vault",
         ],
-        added: ["conversation-memory", "unified-inbox"],
-        removed: ["assessment", "wishlist"],
+        added: ["conversation-memory", "studio", "unified-inbox"],
+        removed: ["account", "assessment", "cms", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
         model: "relay" as const,
@@ -349,18 +349,27 @@ describe("brain config migration preview", () => {
           ...(preset === "core" ? [] : legacySiteMembers),
           ...legacyTeamMembers,
         ],
-        added: ["unified-inbox"],
-        removed: ["assessment", "atproto-registry", "decks", "wishlist"],
+        added: ["studio", "unified-inbox"],
+        removed: [
+          "account",
+          "assessment",
+          "atproto-registry",
+          "cms",
+          "decks",
+          "wishlist",
+        ],
       })),
       {
         model: "ranger",
         preset: "default",
         legacyMembers: [...legacyCoreMembers, ...legacySiteMembers, "products"],
-        added: ["unified-inbox"],
+        added: ["studio", "unified-inbox"],
         removed: [
+          "account",
           "assessment",
           "atproto-registry",
           "chat",
+          "cms",
           "decks",
           "email",
           "notifications",
@@ -507,6 +516,7 @@ plugins:
 
   test("migrates canonical CMS selections and plugin config to Studio", () => {
     const input = `brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 add:
   - cms # keep member note
@@ -530,6 +540,7 @@ plugins:
 
   test("moves the retired CMS route when the plugin key is already Studio", () => {
     const result = previewBrainConfigMigration(`brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 plugins:
   studio:
@@ -545,6 +556,7 @@ plugins:
   test("rejects conflicting CMS and Studio plugin config", () => {
     expect(() =>
       previewBrainConfigMigration(`brain: brain
+bundleContract: capability-bundles-v1
 bundles: [core]
 plugins:
   cms:

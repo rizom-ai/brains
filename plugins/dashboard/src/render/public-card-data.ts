@@ -14,6 +14,33 @@ export type RadialMapBlock = Extract<
 >;
 type ListBlock = Extract<RuntimeDashboardOperatorPanelBlock, { type: "list" }>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function declarativeWidgetData(data: unknown): unknown {
+  if (!isRecord(data) || !("source" in data)) return data;
+  return {
+    view: data["view"],
+    ...(data["digest"] !== undefined ? { digest: data["digest"] } : {}),
+  };
+}
+
+export function widgetSourceData(data: unknown): unknown {
+  return isRecord(data) && "source" in data ? data["source"] : data;
+}
+
+export function findRenderableWidget(
+  widgets: Record<string, RenderableWidgetData>,
+  pluginId: string,
+  widgetId: string,
+): RenderableWidgetData | undefined {
+  return Object.values(widgets).find(
+    (widget) =>
+      widget.widget.pluginId === pluginId && widget.widget.id === widgetId,
+  );
+}
+
 function orderedWidgets(
   widgets: Record<string, RenderableWidgetData>,
 ): RenderableWidgetData[] {
@@ -28,7 +55,9 @@ function orderedWidgets(
 export function widgetPanelBlocks(
   widget: RenderableWidgetData,
 ): RuntimeDashboardOperatorPanelBlock[] {
-  const parsed = safeParseRuntimeDashboardWidgetData(widget.data);
+  const parsed = safeParseRuntimeDashboardWidgetData(
+    declarativeWidgetData(widget.data),
+  );
   if (!parsed.success) return [];
   return parsed.data.view.blocks.flatMap((block) =>
     block.type === "tabs"

@@ -46,12 +46,12 @@ const expectedMembers: Record<SuiteName, string> = {
   headless:
     "a2a agents directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a account admin agents auth-service chat cms conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:
-    "a2a account admin agents analytics atproto atproto-registry auth-service blog chat cms content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo style-guide topics unified-inbox web-chat webserver",
-  team: "a2a account admin agents analytics auth-service chat cms conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  team: "a2a admin agents analytics auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
   commerce:
-    "a2a account admin agents analytics auth-service cms dashboard directory-sync document image link mcp note products profile prompt site-builder site-content site-info style-guide topics unified-inbox webserver",
+    "a2a admin agents analytics auth-service dashboard directory-sync document image link mcp note products profile prompt site-builder site-content site-info studio style-guide topics unified-inbox webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 17,

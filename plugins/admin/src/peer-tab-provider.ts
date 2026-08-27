@@ -4,14 +4,17 @@ import {
   defineWorkspaceAction,
   type OperatorCaller,
   type OperatorViewBlock,
+  type RuntimeStudioOperatorBlock,
+  type RuntimeStudioOperatorRegionBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   adminUserOptions,
+  adminWorkspaceSource,
   formatWorkspaceDate,
   requireAuthService,
-  type AdminWorkspaceRegistration,
+  type AdminWorkspaceSource,
 } from "./workspace-format";
 
 const peersQuerySchema = z.strictObject({
@@ -76,6 +79,7 @@ const peersDataSchema = z.strictObject({
     z.strictObject({
       type: z.string(),
       displayName: z.string(),
+      subjectLabel: z.string(),
       deliveryModes: z.array(z.enum(["automatic", "manual"])),
     }),
   ),
@@ -83,6 +87,46 @@ const peersDataSchema = z.strictObject({
 
 type PeerAction = typeof invitePeer | typeof linkPeer;
 type PeerBlock = OperatorViewBlock<PeerAction>;
+
+function requiredPeerRegion(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  id: string,
+): RuntimeStudioOperatorRegionBlock {
+  const matches = blocks.filter((block) => block.id === id);
+  if (matches.length !== 1) {
+    throw new Error(`Peer tab composition requires block "${id}" exactly once`);
+  }
+  const block = matches[0];
+  if (!block) {
+    throw new Error(`Peer tab composition requires block "${id}" exactly once`);
+  }
+  switch (block.type) {
+    case "tabs":
+    case "detail":
+    case "columns":
+      throw new Error(`Peer tab composition block "${id}" must be a region`);
+    default:
+      return block;
+  }
+}
+
+export function selectPeerTabSections(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+): {
+  readonly people: readonly RuntimeStudioOperatorRegionBlock[];
+  readonly invitations: readonly RuntimeStudioOperatorRegionBlock[];
+} {
+  const inviteId = blocks.some((block) => block.id === "invite-peer")
+    ? "invite-peer"
+    : "invite-peer-unavailable";
+  return {
+    people: [
+      requiredPeerRegion(blocks, "link-peer"),
+      requiredPeerRegion(blocks, "peers"),
+    ],
+    invitations: [requiredPeerRegion(blocks, inviteId)],
+  };
+}
 
 const setupResultPresentation = {
   title: "Peer invitation setup",
@@ -145,6 +189,7 @@ const peerTabProvider = defineStudioWorkspace({
                 : {}),
             },
             form: {
+              presentation: "disclosure",
               submitLabel: "Invite peer person",
               fields: {
                 peerId: { label: "External peer ID", control: "text" },
@@ -166,7 +211,14 @@ const peerTabProvider = defineStudioWorkspace({
                   })),
                 },
                 deliverySubject: {
-                  label: "Delivery address or subject",
+                  label: "Delivery destination",
+                  labelBy: {
+                    field: "deliveryType",
+                    values: data.channels.map((channel) => ({
+                      value: channel.type,
+                      label: channel.subjectLabel,
+                    })),
+                  },
                   control: "text",
                 },
                 deliveryLabel: {
@@ -190,6 +242,7 @@ const peerTabProvider = defineStudioWorkspace({
     } else {
       blocks.push({
         type: "notice",
+        id: "invite-peer-unavailable",
         tone: "warn",
         text: "No invitation delivery channel is currently available.",
       });
@@ -264,11 +317,11 @@ function mutationContext(caller: OperatorCaller | null): {
   return { actorUserId: caller.actor.id };
 }
 
-export function createPeerTabRegistration(
+export function createPeerTabSource(
   context: ServicePluginContext,
-): AdminWorkspaceRegistration {
+): AdminWorkspaceSource {
   const authService = requireAuthService();
-  return createBuiltInStudioWorkspaceRegistration({
+  const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peerTabProvider,
     bind: (bindingContext) => {
@@ -344,6 +397,7 @@ export function createPeerTabRegistration(
               .map((channel) => ({
                 type: channel.type,
                 displayName: channel.displayName,
+                subjectLabel: channel.subjectLabel,
                 deliveryModes: channel.deliveryModes,
               })),
           };
@@ -351,4 +405,5 @@ export function createPeerTabRegistration(
       });
     },
   });
+  return adminWorkspaceSource(registration, peerTabProvider.actions);
 }

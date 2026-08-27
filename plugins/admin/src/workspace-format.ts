@@ -10,6 +10,21 @@ export type AdminWorkspaceRegistration = Omit<
   "pluginId"
 >;
 
+export interface AdminWorkspaceSource {
+  readonly registration: AdminWorkspaceRegistration;
+  readonly actionIds: readonly string[];
+}
+
+export function adminWorkspaceSource(
+  registration: AdminWorkspaceRegistration,
+  actions: readonly { readonly name: string }[],
+): AdminWorkspaceSource {
+  return {
+    registration,
+    actionIds: actions.map((action) => action.name),
+  };
+}
+
 const workspaceDateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
 });

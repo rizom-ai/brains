@@ -323,6 +323,14 @@
         </div>
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">Consolidate SSR rendering on React</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">**implemented on <code>work/react-renderer-consolidation</code>, awaiting merge and prerelease publication**: React 19 now owns static SSR and client JSX, the renderer flip is guarded by semantic output fixtures, public site peers and docs use React, the Dashboard and Studio share one operator-view host, and the old containment tsconfig split is gone. This must merge and publish before <code>changeset pre exit</code>; afterward the same authoring-contract change requires <code>0.3.0</code>.</div>
+          <div class="card-file">preact-to-react-consolidation.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">Bun 1.4 adoption</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -352,14 +360,6 @@
           </div>
           <div class="card-desc">make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Consolidate SSR rendering on React</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">**implemented on <code>work/react-renderer-consolidation</code>, awaiting merge and prerelease publication**: React 19 now owns static SSR and client JSX, the renderer flip is guarded by semantic output fixtures, public site peers and docs use React, the Dashboard and Studio share one operator-view host, and the old containment tsconfig split is gone. This must merge and publish before <code>changeset pre exit</code>; afterward the same authoring-contract change requires <code>0.3.0</code>.</div>
-          <div class="card-file">preact-to-react-consolidation.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

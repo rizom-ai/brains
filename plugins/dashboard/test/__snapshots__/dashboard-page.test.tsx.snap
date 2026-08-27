@@ -2437,6 +2437,45 @@ body::after {
   width: min(720px, 100%);
 }
 
+.declarative-action-disclosure {
+  width: min(720px, 100%);
+}
+
+.declarative-action-disclosure > summary {
+  width: fit-content;
+  padding: 7px 11px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 6px;
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+  cursor: pointer;
+  font: 10px var(--console-mono);
+  letter-spacing: 0.04em;
+  list-style: none;
+}
+
+.declarative-action-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.declarative-action-disclosure > summary::before {
+  content: "+";
+  margin-right: 7px;
+}
+
+.declarative-action-disclosure[open] > summary {
+  margin-bottom: 14px;
+}
+
+.declarative-action-disclosure[open] > summary::before {
+  content: "−";
+}
+
+.declarative-aside .declarative-action-form {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
 .declarative-action-form label {
   display: grid;
   gap: 5px;
@@ -3821,6 +3860,44 @@ body::after {
 .widget-tab.is-active .widget-tab-count {
   color: var(--console-text-dim);
 }
+.widget-filter-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.widget-filter-search {
+  width: min(100%, 280px);
+  padding: 7px 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--console-card-soft) 45%, transparent);
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+.widget-filter-search::placeholder {
+  color: var(--console-text-faint);
+}
+.widget-filter-search:focus-visible {
+  border-color: var(--console-rule-accent);
+  outline: 1px solid var(--console-rule-accent);
+  outline-offset: 1px;
+}
+.widget-filter-toggle {
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.widget-filter-toggle:hover {
+  color: var(--console-text);
+}
 .widget-filter-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -3900,6 +3977,16 @@ body::after {
 }
 
 @media (max-width: 640px) {
+  .widget-filter-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .widget-filter-search {
+    width: 100%;
+  }
+  .widget-filter-toggle {
+    align-self: start;
+  }
   .list-item {
     gap: 10px;
     padding-block: 10px;
@@ -5936,9 +6023,37 @@ body::after {
     var controls = ownedBy(root, "[data-ui-filter-value]", "[data-ui-filter]");
     var items = ownedBy(root, "[data-ui-filter-values]", "[data-ui-filter]");
     var emptyStates = ownedBy(root, "[data-ui-filter-empty]", "[data-ui-filter]");
+    var tools = ownedBy(root, "[data-ui-filter-tools]", "[data-ui-filter]")[0] || null;
+    var search = ownedBy(root, "[data-ui-filter-search]", "[data-ui-filter]")[0] || null;
+    var toggle = ownedBy(root, "[data-ui-filter-toggle]", "[data-ui-filter]")[0] || null;
+    var toggleLabel = ownedBy(root, "[data-ui-filter-toggle-label]", "[data-ui-filter]")[0] || null;
     var allValue = root.getAttribute("data-ui-filter-all") || "all";
     var fallback = root.getAttribute("data-ui-filter-default") || allValue;
+    var visibleLimit = Number(root.getAttribute("data-ui-filter-visible-options")) || controls.length;
+    var hasOverflow = controls.length > visibleLimit;
+    var expanded = false;
     if (!controls.length) return;
+
+    function updateControlVisibility() {
+      var query = search ? search.value.trim().toLowerCase() : "";
+      var activeValue = root.getAttribute("data-ui-filter-active") || fallback;
+      controls.forEach(function (control, index) {
+        var value = control.getAttribute("data-ui-filter-value") || "";
+        var label = control.getAttribute("data-ui-filter-option-label") || value;
+        var matches = label.toLowerCase().indexOf(query) !== -1;
+        var visible = query
+          ? value === allValue || value === activeValue || matches
+          : expanded || index < visibleLimit || value === activeValue;
+        control.toggleAttribute("hidden", !visible);
+      });
+
+      if (tools) tools.toggleAttribute("hidden", !hasOverflow);
+      if (toggle) {
+        toggle.toggleAttribute("hidden", !hasOverflow || query.length > 0);
+        toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      }
+      if (toggleLabel) toggleLabel.textContent = expanded ? "Show fewer" : "Show all";
+    }
 
     function activate(value) {
       root.setAttribute("data-ui-filter-active", value);
@@ -5957,6 +6072,7 @@ body::after {
       emptyStates.forEach(function (emptyState) {
         emptyState.toggleAttribute("hidden", visibleCount > 0);
       });
+      updateControlVisibility();
     }
 
     root.addEventListener("click", function (event) {
@@ -5969,6 +6085,17 @@ body::after {
       if (value) activate(value);
     });
 
+    if (search) {
+      search.addEventListener("input", updateControlVisibility);
+    }
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        expanded = !expanded;
+        updateControlVisibility();
+      });
+    }
+
+    root.classList.add("ui-filter-ready");
     activate(fallback);
   }
 

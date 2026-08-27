@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { PNG } from "pngjs";
+import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/studio";
 import {
@@ -9,6 +10,12 @@ import {
   type DashboardRenderInput,
 } from "@brains/dashboard";
 import { createMockAppInfo } from "@brains/test-utils";
+import {
+  ProximityMap,
+  proximityMapScript,
+  proximityMapWidgetStyles,
+} from "../entities/agent-discovery/src/widgets/proximity-map";
+import { proximityMapDataSchema } from "../entities/agent-discovery/src/lib/proximity-map-schema";
 
 const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
@@ -232,7 +239,11 @@ const administrationWorkspaceData = {
     title: "Administration",
     description:
       "Manage local people, invitation delivery, external provenance, and security history.",
-    status: { label: "2 active", detail: "1 invitation pending", tone: "warn" },
+    status: {
+      label: "Admin only",
+      detail: "Access administration",
+      tone: "neutral",
+    },
     blocks: [
       {
         type: "tabs",
@@ -340,6 +351,197 @@ const administrationWorkspaceData = {
             blocks: [
               { type: "text", text: "Audit loads when this tab is opened." },
             ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const administrationInvitationsWorkspaceData = {
+  view: {
+    kicker: "Access administration",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    status: {
+      label: "Admin only",
+      detail: "Access administration",
+      tone: "neutral",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "invitation-totals",
+        items: [
+          { label: "Pending", value: 1 },
+          { label: "History", value: 4 },
+          { label: "Delivery failures", value: 0, tone: "neutral" },
+        ],
+      },
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: "invitations",
+        queryKey: "tab",
+        tabs: [
+          {
+            id: "people",
+            label: "People",
+            blocks: [{ type: "text", text: "People load on selection." }],
+          },
+          {
+            id: "invitations",
+            label: "Invitations",
+            count: 1,
+            blocks: [
+              {
+                type: "columns",
+                id: "invitation-layout",
+                primary: [
+                  {
+                    type: "query",
+                    id: "invitation-query",
+                    controls: [
+                      {
+                        key: "state",
+                        label: "View",
+                        value: "pending",
+                        options: [
+                          { value: "pending", label: "Pending", count: 1 },
+                          { value: "history", label: "History", count: 4 },
+                        ],
+                      },
+                    ],
+                    pagination: { offset: 0, limit: 25, total: 1 },
+                  },
+                  {
+                    type: "table",
+                    id: "invitations",
+                    empty: "No pending invitations.",
+                    columns: [
+                      { key: "person", label: "Person" },
+                      { key: "role", label: "Role" },
+                      { key: "state", label: "State" },
+                      { key: "destination", label: "Destination" },
+                      { key: "updated", label: "Updated" },
+                    ],
+                    rows: [
+                      {
+                        id: "jordan",
+                        cells: {
+                          person: "Jordan Rivera",
+                          role: "Trusted",
+                          state: "Pending",
+                          destination: "jordan@example.com",
+                          updated: "Aug 26, 2026",
+                        },
+                        actions: [
+                          {
+                            actionId: "resend-invitation",
+                            label: "Resend",
+                            input: { invitationId: "jordan" },
+                          },
+                          {
+                            actionId: "cancel-invitation",
+                            label: "Cancel",
+                            input: { invitationId: "jordan" },
+                            confirmation: { kind: "prepared" },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+                aside: [
+                  {
+                    type: "card",
+                    id: "create-invitation",
+                    label: "Add a person",
+                    blocks: [
+                      {
+                        type: "text",
+                        text: "Issue a single-use passkey setup link through a confirmed delivery channel.",
+                      },
+                      {
+                        type: "action",
+                        actionId: "create-invitation",
+                        label: "Add a person",
+                        input: { idempotencyKey: "visual-request" },
+                        form: {
+                          presentation: "disclosure",
+                          submitLabel: "Create invitation",
+                          fields: [
+                            {
+                              name: "displayName",
+                              label: "Display name",
+                              control: "text",
+                              required: true,
+                            },
+                            {
+                              name: "deliveryType",
+                              label: "Delivery channel",
+                              control: "select",
+                              required: true,
+                              options: [
+                                { value: "email", label: "Private email" },
+                              ],
+                            },
+                            {
+                              name: "deliverySubject",
+                              label: "Email address",
+                              control: "text",
+                              required: true,
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    type: "card",
+                    id: "invite-peer",
+                    label: "Peer-first invitation",
+                    blocks: [
+                      {
+                        type: "text",
+                        text: "Create local access for a person known first through another brain.",
+                      },
+                      {
+                        type: "action",
+                        actionId: "invite-external-peer-person",
+                        label: "Invite peer person",
+                        input: {},
+                        form: {
+                          presentation: "disclosure",
+                          submitLabel: "Invite peer person",
+                          fields: [
+                            {
+                              name: "peerId",
+                              label: "External peer ID",
+                              control: "text",
+                              required: true,
+                            },
+                            {
+                              name: "displayName",
+                              label: "Display name",
+                              control: "text",
+                              required: true,
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "audit",
+            label: "Audit",
+            blocks: [{ type: "text", text: "Audit loads on selection." }],
           },
         ],
       },
@@ -538,6 +740,17 @@ function activeSurfaces(activeId: string): Array<{
   }));
 }
 
+function VisualProximityWidget({
+  data,
+}: {
+  data: unknown;
+}): ReactElement | null {
+  const parsed = proximityMapDataSchema.safeParse(data);
+  return parsed.success
+    ? createElement(ProximityMap, { data: parsed.data })
+    : null;
+}
+
 function dashboardInput(): DashboardRenderInput {
   return {
     title: "Rover Collective",
@@ -605,6 +818,8 @@ function dashboardInput(): DashboardRenderInput {
         },
       ],
     }),
+    widgetStyles: [proximityMapWidgetStyles],
+    widgetScripts: [proximityMapScript],
     widgets: {
       "agent-discovery:skills": {
         widget: {
@@ -888,6 +1103,7 @@ function dashboardInput(): DashboardRenderInput {
           rendererName: "DeclarativeOperatorWidget",
           visibility: "public",
         },
+        component: VisualProximityWidget,
         data: {
           view: {
             blocks: [
@@ -947,6 +1163,39 @@ function dashboardInput(): DashboardRenderInput {
                 ],
               },
             ],
+          },
+          source: {
+            center: { kind: "identity" },
+            nodes: [
+              {
+                id: "agent:atlas",
+                name: "Atlas",
+                kind: "team",
+                status: "approved",
+                tags: ["governance", "research"],
+                distance: 0.32,
+                bearing: 42,
+              },
+              {
+                id: "agent:moss",
+                name: "Moss",
+                kind: "person",
+                status: "approved",
+                tags: ["publishing", "memory"],
+                distance: 0.56,
+                bearing: 205,
+              },
+            ],
+            clusters: [
+              {
+                label: "Shared practice",
+                memberIds: ["agent:atlas", "agent:moss"],
+                links: [{ sourceId: "agent:atlas", targetId: "agent:moss" }],
+              },
+            ],
+            sightings: [],
+            distanceRange: { min: 0.32, max: 0.56 },
+            pendingCount: 0,
           },
         },
       },
@@ -1283,7 +1532,7 @@ async function checkLayout(
     surface !== "studio-library" &&
     surface !== "studio-account" &&
     surface !== "studio-overview" &&
-    surface !== "studio-administration"
+    !surface.startsWith("studio-administration")
   ) {
     const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
@@ -1479,7 +1728,10 @@ const server = Bun.serve({
         workspace: {
           id: "admin:administration",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: administrationWorkspaceData,
+          data:
+            url.searchParams.get("tab") === "invitations"
+              ? administrationInvitationsWorkspaceData
+              : administrationWorkspaceData,
         },
       });
     if (url.pathname === "/auth/account")
@@ -1652,6 +1904,8 @@ try {
         "studio-library",
         "studio-overview",
         "studio-administration",
+        "studio-administration-invitations",
+        "studio-administration-invitations-form",
         "studio-account",
         "studio-editor",
         "studio-delete",
@@ -1697,22 +1951,30 @@ try {
               ? "/studio/workspaces/studio%3Aaccount"
               : surface === "studio-overview"
                 ? "/studio/workspaces/studio%3Aoverview"
-                : surface === "studio-administration"
+                : surface.startsWith("studio-administration")
                   ? "/studio/workspaces/admin%3Aadministration"
                   : isStudioEditor
                     ? "/studio/entities/posts/field-notes"
                     : "/studio/entities/posts";
-        const hash = isChat
-          ? `#s/${conversationId}`
-          : surface === "dashboard-knowledge"
-            ? "#knowledge"
-            : surface === "dashboard-network"
-              ? "#network"
-              : "";
+        const hash = isChat ? `#s/${conversationId}` : "";
+        const workspaceQuery = surface.startsWith(
+          "studio-administration-invitations",
+        )
+          ? `&tab=invitations`
+          : "";
         await navigateToNetworkIdle(
           page,
-          `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
+          `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (
+          surface === "dashboard-knowledge" ||
+          surface === "dashboard-network"
+        ) {
+          const tab =
+            surface === "dashboard-knowledge" ? "knowledge" : "network";
+          await clickSelector(page, `[data-dashboard-tab-link="${tab}"]`);
+          await evaluatePage(page, () => window.scrollTo(0, 0));
+        }
         if (surface === "chat" || surface === "chat-drawer") {
           await waitForText(page, "And the Studio?");
         }
@@ -1814,6 +2076,9 @@ try {
         if (surface === "studio-account") {
           await waitForText(page, "Signed-in sessions");
         }
+        if (surface === "studio-administration-invitations-form") {
+          await clickSelector(page, ".declarative-action-disclosure > summary");
+        }
         if (surface === "studio-delete") {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
@@ -1872,7 +2137,8 @@ try {
               mediaType: "image/png",
             },
           );
-          if (!selected) throw new Error("Could not select Studio upload input");
+          if (!selected)
+            throw new Error("Could not select Studio upload input");
           await waitForText(page, "Uploading…");
           await evaluatePage(page, () => {
             const text = Array.from(

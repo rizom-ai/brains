@@ -10,9 +10,10 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
+  adminWorkspaceSource,
   formatWorkspaceDate,
   requireAuthService,
-  type AdminWorkspaceRegistration,
+  type AdminWorkspaceSource,
 } from "./workspace-format";
 
 const peopleQuerySchema = z.strictObject({
@@ -639,11 +640,11 @@ async function loadBrainAnchor(
   }
 }
 
-export function createPeopleTabRegistration(
+export function createPeopleTabSource(
   context: ServicePluginContext,
-): AdminWorkspaceRegistration {
+): AdminWorkspaceSource {
   const authService = requireAuthService();
-  return createBuiltInStudioWorkspaceRegistration({
+  const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peopleWorkspace,
     bind: (bindingContext) => {
@@ -885,4 +886,5 @@ export function createPeopleTabRegistration(
       });
     },
   });
+  return adminWorkspaceSource(registration, peopleWorkspace.actions);
 }

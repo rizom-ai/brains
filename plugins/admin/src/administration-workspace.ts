@@ -8,11 +8,20 @@ import type {
 import { DECLARATIVE_STUDIO_WORKSPACE_RENDERER } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
-import { createAuditTabRegistration } from "./audit-workspace";
-import { createInvitationsTabRegistration } from "./invitations-workspace";
-import { createPeerTabRegistration } from "./peer-tab-provider";
-import { createPeopleTabRegistration } from "./people-workspace";
-import { requireAuthService } from "./workspace-format";
+import { createAuditTabSource } from "./audit-workspace";
+import {
+  composeInvitationTabSections,
+  createInvitationsTabSource,
+} from "./invitations-workspace";
+import {
+  createPeerTabSource,
+  selectPeerTabSections,
+} from "./peer-tab-provider";
+import { createPeopleTabSource } from "./people-workspace";
+import {
+  requireAuthService,
+  type AdminWorkspaceSource,
+} from "./workspace-format";
 
 const administrationQuerySchema = z.strictObject({
   tab: z.enum(["people", "invitations", "audit"]).default("people"),
@@ -35,26 +44,6 @@ type AdministrationTabBlock = Exclude<
   RuntimeStudioOperatorBlock,
   { type: "tabs" }
 >;
-
-const PEOPLE_ACTIONS = new Set([
-  "update-person-role",
-  "update-person-status",
-  "delete-person",
-  "revoke-person-passkey",
-  "start-person-passkey-registration",
-  "revoke-person-sessions",
-  "attach-person-identity",
-  "detach-person-identity",
-  "link-external-peer",
-  "unlink-external-peer",
-]);
-const INVITATION_ACTIONS = new Set([
-  "create-invitation",
-  "resend-invitation",
-  "cancel-invitation",
-  "confirm-manual-delivery",
-  "invite-external-peer-person",
-]);
 
 function requestActionId(request: unknown): string | undefined {
   if (request === null || typeof request !== "object") return undefined;
@@ -81,8 +70,16 @@ function workspaceData(
 
 function tabBlocks(
   blocks: readonly RuntimeStudioOperatorBlock[],
+  source: string,
 ): AdministrationTabBlock[] {
-  return blocks.flatMap((block) => (block.type === "tabs" ? [] : [block]));
+  const sections: AdministrationTabBlock[] = [];
+  for (const block of blocks) {
+    if (block.type === "tabs") {
+      throw new Error(`${source} tab cannot contribute nested tabs`);
+    }
+    sections.push(block);
+  }
+  return sections;
 }
 
 function inactiveBlocks(label: string): AdministrationTabBlock[] {
@@ -92,10 +89,6 @@ function inactiveBlocks(label: string): AdministrationTabBlock[] {
       text: `${label} loads when this tab is opened.`,
     },
   ];
-}
-
-function blockId(block: RuntimeStudioOperatorBlock): string | undefined {
-  return block.id;
 }
 
 async function loadChild(
@@ -122,6 +115,28 @@ async function runChildAction(
   return child.actionHandler(request, actor, signal);
 }
 
+function actionRoutes(
+  sources: readonly AdminWorkspaceSource[],
+): ReadonlyMap<string, ChildRegistration> {
+  const routes = new Map<string, ChildRegistration>();
+  for (const source of sources) {
+    for (const actionId of source.actionIds) {
+      if (routes.has(actionId)) {
+        throw new Error(
+          `Administration action "${actionId}" is declared by more than one source`,
+        );
+      }
+      if (!source.registration.actionHandler) {
+        throw new Error(
+          `Administration source "${source.registration.label}" declares actions without a handler`,
+        );
+      }
+      routes.set(actionId, source.registration);
+    }
+  }
+  return routes;
+}
+
 function administrationAttention(
   users: readonly {
     status: "active" | "invited" | "suspended";
@@ -141,10 +156,20 @@ export async function registerAdministrationWorkspace(
   context: ServicePluginContext,
 ): Promise<string | undefined> {
   if (context.executionOnly || !context.studio.isAvailable()) return undefined;
-  const people = createPeopleTabRegistration(context);
-  const invitations = createInvitationsTabRegistration(context);
-  const peers = createPeerTabRegistration(context);
-  const audit = createAuditTabRegistration(context);
+  const peopleSource = createPeopleTabSource(context);
+  const invitationsSource = createInvitationsTabSource(context);
+  const peerSource = createPeerTabSource(context);
+  const auditSource = createAuditTabSource(context);
+  const routes = actionRoutes([
+    peopleSource,
+    invitationsSource,
+    peerSource,
+    auditSource,
+  ]);
+  const people = peopleSource.registration;
+  const invitations = invitationsSource.registration;
+  const peers = peerSource.registration;
+  const audit = auditSource.registration;
 
   const result = await context.studio.registerWorkspace({
     id: "admin:administration",
@@ -163,7 +188,7 @@ export async function registerAdministrationWorkspace(
     accessHandler: (actor) => people.accessHandler(actor),
     dataProvider: async (actor, rawQuery, signal) => {
       const query = administrationQuerySchema.parse(rawQuery ?? {});
-      let active: RuntimeStudioWorkspaceData;
+      let headBlocks: AdministrationTabBlock[] = [];
       let peopleBlocks = inactiveBlocks("People");
       let invitationBlocks = inactiveBlocks("Invitations");
       let auditBlocks = inactiveBlocks("Audit");
@@ -186,18 +211,16 @@ export async function registerAdministrationWorkspace(
             signal,
           ),
         ]);
-        active = peopleData;
+        const peerSections = selectPeerTabSections(peerData.view.blocks);
         peopleBlocks = [
-          ...tabBlocks(peopleData.view.blocks),
+          ...tabBlocks(peopleData.view.blocks, "People"),
           {
             type: "notice",
             tone: "neutral",
             title: "External brain relationships",
             text: "A peer link records how a locally administered person relates to another brain. It does not grant or change local access.",
           },
-          ...tabBlocks(peerData.view.blocks).filter((block) =>
-            ["link-peer", "peers"].includes(blockId(block) ?? ""),
-          ),
+          ...peerSections.people,
         ];
       } else if (query.tab === "invitations") {
         const [invitationData, peerData] = await Promise.all([
@@ -208,8 +231,6 @@ export async function registerAdministrationWorkspace(
               ...(query.state ? { state: query.state } : {}),
               ...(query.offset !== undefined ? { offset: query.offset } : {}),
               ...(query.limit !== undefined ? { limit: query.limit } : {}),
-              ...(query.peerId ? { peerId: query.peerId } : {}),
-              ...(query.displayName ? { displayName: query.displayName } : {}),
             },
             signal,
           ),
@@ -223,15 +244,15 @@ export async function registerAdministrationWorkspace(
             signal,
           ),
         ]);
-        active = invitationData;
-        invitationBlocks = [
-          ...tabBlocks(invitationData.view.blocks),
-          ...tabBlocks(peerData.view.blocks).filter(
-            (block) => blockId(block) === "invite-peer",
-          ),
-        ];
+        const peerSections = selectPeerTabSections(peerData.view.blocks);
+        const invitationSections = composeInvitationTabSections(
+          invitationData.view.blocks,
+          peerSections.invitations,
+        );
+        headBlocks = [invitationSections.totals];
+        invitationBlocks = [...invitationSections.blocks];
       } else {
-        active = await loadChild(
+        const auditData = await loadChild(
           audit,
           actor,
           {
@@ -243,7 +264,7 @@ export async function registerAdministrationWorkspace(
           },
           signal,
         );
-        auditBlocks = tabBlocks(active.view.blocks);
+        auditBlocks = tabBlocks(auditData.view.blocks, "Audit");
       }
 
       return {
@@ -252,8 +273,13 @@ export async function registerAdministrationWorkspace(
           title: "Administration",
           description:
             "Manage local people, invitation delivery, external provenance, and security history.",
-          ...(active.view.status ? { status: active.view.status } : {}),
+          status: {
+            label: "Admin only",
+            detail: "Access administration",
+            tone: "neutral",
+          },
           blocks: [
+            ...headBlocks,
             {
               type: "tabs",
               id: "administration-tabs",
@@ -277,16 +303,10 @@ export async function registerAdministrationWorkspace(
     actionHandler: async (request, actor, signal) => {
       const actionId = requestActionId(request);
       if (!actionId) throw new Error("Administration action id is required");
-      if (PEOPLE_ACTIONS.has(actionId)) {
-        const source = actionId === "link-external-peer" ? peers : people;
-        return runChildAction(source, request, actor, signal);
-      }
-      if (INVITATION_ACTIONS.has(actionId)) {
-        const source =
-          actionId === "invite-external-peer-person" ? peers : invitations;
-        return runChildAction(source, request, actor, signal);
-      }
-      throw new Error(`Unknown Administration action: ${actionId}`);
+      const source = routes.get(actionId);
+      if (!source)
+        throw new Error(`Unknown Administration action: ${actionId}`);
+      return runChildAction(source, request, actor, signal);
     },
     badgeProvider: async () =>
       administrationAttention(await requireAuthService().listAdminUsers()),

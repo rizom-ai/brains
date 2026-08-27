@@ -9,9 +9,10 @@ import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import {
   adminUserOptions,
+  adminWorkspaceSource,
   formatWorkspaceDate,
   requireAuthService,
-  type AdminWorkspaceRegistration,
+  type AdminWorkspaceSource,
 } from "./workspace-format";
 
 const actionLabels: Readonly<Record<string, string>> = {
@@ -233,10 +234,10 @@ const studioAuditWorkspace = defineStudioWorkspace({
   },
 });
 
-export function createAuditTabRegistration(
+export function createAuditTabSource(
   context: ServicePluginContext,
-): AdminWorkspaceRegistration {
-  return createBuiltInStudioWorkspaceRegistration({
+): AdminWorkspaceSource {
+  const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: studioAuditWorkspace,
     bind: (bindingContext) =>
@@ -278,4 +279,5 @@ export function createAuditTabRegistration(
         actions: [],
       }),
   });
+  return adminWorkspaceSource(registration, studioAuditWorkspace.actions);
 }

@@ -45,6 +45,52 @@ function findById(value: unknown, id: string): unknown {
   return undefined;
 }
 
+function findAnyById(value: unknown, id: string): unknown {
+  if (value === null || typeof value !== "object") return undefined;
+  if (Reflect.get(value, "id") === id) return value;
+  for (const child of Object.values(value)) {
+    const result = findAnyById(child, id);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+}
+
+function regionIds(value: unknown, region: "primary" | "aside"): string[] {
+  if (value === null || typeof value !== "object") return [];
+  const blocks = Reflect.get(value, region);
+  if (!Array.isArray(blocks)) return [];
+  return blocks.flatMap((block) => {
+    if (block === null || typeof block !== "object") return [];
+    const id = Reflect.get(block, "id");
+    return typeof id === "string" ? [id] : [];
+  });
+}
+
+function formFields(value: unknown): unknown[] {
+  if (value === null || typeof value !== "object") return [];
+  const form = Reflect.get(value, "form");
+  if (form === null || typeof form !== "object") return [];
+  const fields = Reflect.get(form, "fields");
+  return Array.isArray(fields) ? fields : [];
+}
+
+function formFieldNames(value: unknown): string[] {
+  return formFields(value).flatMap((field) => {
+    if (field === null || typeof field !== "object") return [];
+    const name = Reflect.get(field, "name");
+    return typeof name === "string" ? [name] : [];
+  });
+}
+
+function formField(value: unknown, name: string): unknown {
+  return formFields(value).find(
+    (field) =>
+      field !== null &&
+      typeof field === "object" &&
+      Reflect.get(field, "name") === name,
+  );
+}
+
 function findRowForPerson(value: unknown, displayName: string): unknown {
   if (value === null || typeof value !== "object") return undefined;
   const cells = Reflect.get(value, "cells");
@@ -68,13 +114,13 @@ describe("Administration Invitations tab", () => {
     shell.getChannelRegistry().registerDescriptor("test", {
       type: "manual-test",
       displayName: "Manual test",
-      subjectLabel: "Address",
+      subjectLabel: "Manual address",
       manualDelivery: true,
     });
     shell.getChannelRegistry().registerDescriptor("test", {
       type: "failing-auto",
       displayName: "Failing automatic test",
-      subjectLabel: "Address",
+      subjectLabel: "Automatic address",
     });
     shell.getChannelRegistry().registerDeliveryProvider("test", {
       channelType: "failing-auto",
@@ -117,25 +163,42 @@ describe("Administration Invitations tab", () => {
     expect(initial).toMatchObject({
       view: {
         title: "Administration",
-        blocks: [{ type: "tabs", defaultTab: "invitations" }],
+        status: { label: "Admin only" },
+        blocks: [
+          { type: "stats", id: "invitation-totals" },
+          { type: "tabs", defaultTab: "invitations" },
+        ],
       },
     });
-    expect(findAction(initial, "Add a person")).toMatchObject({
+    const layout = findAnyById(initial, "invitation-layout");
+    expect(regionIds(layout, "primary")).toEqual([
+      "invitation-query",
+      "invitations",
+    ]);
+    expect(regionIds(layout, "aside")).toEqual([
+      "create-invitation",
+      "invite-peer",
+    ]);
+    const create = findAction(initial, "Add a person");
+    expect(create).toMatchObject({
       actionId: "create-invitation",
-      form: { submitLabel: "Create invitation" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+      },
     });
-    const prefilled = await workspace.dataProvider(actor, {
-      peerId: "did:web:grace.example",
-      displayName: "Grace Hopper",
-    });
-    expect(findAction(prefilled, "Add a person")).toMatchObject({
-      input: {
-        peerId: "did:web:grace.example",
-        displayName: "Grace Hopper",
+    expect(formFieldNames(create)).not.toContain("peerId");
+    expect(formField(create, "deliverySubject")).toMatchObject({
+      label: "Delivery destination",
+      labelBy: {
+        field: "deliveryType",
+        values: [
+          { value: "failing-auto", label: "Automatic address" },
+          { value: "manual-test", label: "Manual address" },
+        ],
       },
     });
 
-    const create = findAction(initial, "Add a person");
     if (create === null || typeof create !== "object") {
       throw new Error("Expected create control");
     }

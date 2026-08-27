@@ -253,6 +253,13 @@ export interface WorkspaceActionFormOption {
 
 export interface WorkspaceActionFormFieldDefinition extends OperatorFieldDefinitionBase<WorkspaceActionFormControl> {
   readonly options?: readonly WorkspaceActionFormOption[] | undefined;
+  /** Replace this field's label from the selected value of another form field. */
+  readonly labelBy?:
+    | {
+        readonly field: string;
+        readonly values: readonly WorkspaceActionFormOption[];
+      }
+    | undefined;
 }
 
 export type WorkspaceActionFormFieldMap<TSchema extends OperatorSchema> =
@@ -267,6 +274,7 @@ export type WorkspaceActionFormFieldMap<TSchema extends OperatorSchema> =
 export interface WorkspaceActionFormDefinition<
   TSchema extends OperatorSchema = OperatorSchema,
 > {
+  readonly presentation?: "inline" | "disclosure" | undefined;
   readonly submitLabel?: string | undefined;
   readonly fields: WorkspaceActionFormFieldMap<TSchema>;
 }

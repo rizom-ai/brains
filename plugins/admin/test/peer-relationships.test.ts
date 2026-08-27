@@ -3,6 +3,7 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
+import { selectPeerTabSections } from "../src/peer-tab-provider";
 import {
   actionRequest,
   administrationTab,
@@ -31,6 +32,12 @@ function actorFor(
 }
 
 describe("Administration peer relationships", () => {
+  it("fails loudly when a required peer composition block disappears", () => {
+    expect(() => selectPeerTabSections([])).toThrow(
+      'Peer tab composition requires block "link-peer"',
+    );
+  });
+
   it("lists, links, and invites peers without retaining setup output", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     shell.getChannelRegistry().registerDescriptor("test", {
@@ -83,7 +90,10 @@ describe("Administration peer relationships", () => {
         peerId: "did:web:grace.example",
         displayName: "Grace Hopper",
       },
-      form: { submitLabel: "Invite peer person" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Invite peer person",
+      },
     });
     const link = findAction(initial, "Link peer to person");
     const prepared = await workspace.actionHandler?.(

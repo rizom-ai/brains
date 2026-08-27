@@ -441,9 +441,19 @@ export interface RuntimeWorkspaceActionFormField {
   readonly secret?: boolean | undefined;
   readonly options?:
     readonly { readonly value: string; readonly label: string }[] | undefined;
+  readonly labelBy?:
+    | {
+        readonly field: string;
+        readonly values: readonly {
+          readonly value: string;
+          readonly label: string;
+        }[];
+      }
+    | undefined;
 }
 
 export interface RuntimeWorkspaceActionForm {
+  readonly presentation?: "inline" | "disclosure" | undefined;
   readonly submitLabel?: string | undefined;
   readonly fields: readonly RuntimeWorkspaceActionFormField[];
 }
@@ -1567,6 +1577,7 @@ interface SourceActionControl {
   readonly input?: unknown;
   readonly form?:
     | {
+        readonly presentation?: "inline" | "disclosure" | undefined;
         readonly submitLabel?: string | undefined;
         readonly fields: Readonly<Record<string, SourceActionFormField>>;
       }
@@ -1614,10 +1625,18 @@ const actionFormFieldSchema = z
     control: operatorFieldControlSchema,
     secret: z.boolean().optional(),
     options: z.array(actionFormOptionSchema).min(1).max(100).optional(),
+    labelBy: z
+      .object({
+        field: identifierSchema,
+        values: z.array(actionFormOptionSchema).min(1).max(100),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 const actionFormSchema = z
   .object({
+    presentation: z.enum(["inline", "disclosure"]).optional(),
     submitLabel: labelSchema.optional(),
     fields: z.record(identifierSchema, actionFormFieldSchema),
   })
@@ -2137,6 +2156,29 @@ function normalizeActionForm(
         message: `Non-select field "${name}" cannot declare options`,
       });
     }
+    if (field.labelBy) {
+      const sourceField = control.form.fields[field.labelBy.field];
+      const sourceValues = new Set(
+        sourceField?.options?.map((option) => option.value) ?? [],
+      );
+      const labelValues = new Set(
+        field.labelBy.values.map((option) => option.value),
+      );
+      if (sourceField?.control !== "select") {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "labelBy", "field"],
+          message: `Dynamic label source "${field.labelBy.field}" must be a select form field`,
+        });
+      } else if (
+        sourceValues.size !== labelValues.size ||
+        Array.from(sourceValues).some((value) => !labelValues.has(value))
+      ) {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "labelBy", "values"],
+          message: `Dynamic labels for "${name}" must cover every option of "${field.labelBy.field}"`,
+        });
+      }
+    }
     if (field.secret === true && name in initial) {
       issues.push({
         path: [...actionPath, "input", name],
@@ -2160,6 +2202,7 @@ function normalizeActionForm(
       required: unwrapped.required,
       ...(field.secret ? { secret: true } : {}),
       ...(field.options ? { options: field.options } : {}),
+      ...(field.labelBy ? { labelBy: field.labelBy } : {}),
     });
   }
   const rendered = new Set(fieldEntries.map(([name]) => name));
@@ -2174,6 +2217,9 @@ function normalizeActionForm(
   return {
     input: parsedInitial.data,
     form: {
+      ...(control.form.presentation
+        ? { presentation: control.form.presentation }
+        : {}),
       ...(control.form.submitLabel
         ? { submitLabel: control.form.submitLabel }
         : {}),

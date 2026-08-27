@@ -5,15 +5,20 @@ import {
   defineWorkspaceAction,
   type OperatorCaller,
   type OperatorViewBlock,
+  type RuntimeStudioOperatorBlock,
+  type RuntimeStudioOperatorColumnsBlock,
+  type RuntimeStudioOperatorPanelBlock,
+  type RuntimeStudioOperatorRegionBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import { randomUUID } from "node:crypto";
 import {
+  adminWorkspaceSource,
   formatWorkspaceDate,
   requireAuthService,
-  type AdminWorkspaceRegistration,
+  type AdminWorkspaceSource,
 } from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
@@ -28,8 +33,6 @@ const invitationQuerySchema = z.strictObject({
     .preprocess(queryInteger, z.number().int().min(1).max(100))
     .optional()
     .default(25),
-  peerId: z.string().trim().max(500).optional(),
-  displayName: z.string().trim().max(200).optional(),
 });
 
 const setupResultSchema = z.strictObject({
@@ -46,7 +49,6 @@ const createInvitationInputSchema = z.strictObject({
   deliverySubject: z.string().trim().min(1).max(500),
   deliveryLabel: z.string().trim().max(200).optional(),
   deliveryMode: z.enum(["automatic", "manual"]),
-  peerId: z.string().trim().max(500).optional(),
 });
 
 const invitationIdInputSchema = z.strictObject({
@@ -104,6 +106,7 @@ const confirmManualDelivery = defineWorkspaceAction({
 const invitationChannelSchema = z.strictObject({
   type: z.string(),
   displayName: z.string(),
+  subjectLabel: z.string(),
   deliveryModes: z.array(z.enum(["automatic", "manual"])),
 });
 
@@ -134,6 +137,72 @@ type InvitationAction =
   | typeof cancelInvitation
   | typeof confirmManualDelivery;
 type InvitationBlock = OperatorViewBlock<InvitationAction>;
+type InvitationTotalsBlock = Extract<
+  RuntimeStudioOperatorPanelBlock,
+  { type: "stats" }
+>;
+
+function requiredInvitationBlock(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  id: string,
+): RuntimeStudioOperatorBlock {
+  const matches = blocks.filter((block) => block.id === id);
+  if (matches.length !== 1 || !matches[0]) {
+    throw new Error(
+      `Invitations tab composition requires block "${id}" exactly once`,
+    );
+  }
+  return matches[0];
+}
+
+function requiredInvitationRegion(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  id: string,
+): RuntimeStudioOperatorRegionBlock {
+  const block = requiredInvitationBlock(blocks, id);
+  switch (block.type) {
+    case "tabs":
+    case "detail":
+    case "columns":
+      throw new Error(
+        `Invitations tab composition block "${id}" must be a region`,
+      );
+    default:
+      return block;
+  }
+}
+
+export function composeInvitationTabSections(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  peerAside: readonly RuntimeStudioOperatorRegionBlock[],
+): {
+  readonly totals: InvitationTotalsBlock;
+  readonly blocks: readonly RuntimeStudioOperatorColumnsBlock[];
+} {
+  const totals = requiredInvitationBlock(blocks, "invitation-totals");
+  if (totals.type !== "stats") {
+    throw new Error(
+      'Invitations tab composition block "invitation-totals" must be stats',
+    );
+  }
+  const creationId = blocks.some((block) => block.id === "create-invitation")
+    ? "create-invitation"
+    : "create-invitation-unavailable";
+  return {
+    totals,
+    blocks: [
+      {
+        type: "columns",
+        id: "invitation-layout",
+        primary: [
+          requiredInvitationRegion(blocks, "invitation-query"),
+          requiredInvitationRegion(blocks, "invitations"),
+        ],
+        aside: [requiredInvitationRegion(blocks, creationId), ...peerAside],
+      },
+    ],
+  };
+}
 
 const setupResultPresentation = {
   title: "Invitation setup",
@@ -194,14 +263,9 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           {
             type: "action",
             action: createInvitation,
-            input: {
-              idempotencyKey: data.idempotencyKey,
-              ...(data.query.peerId ? { peerId: data.query.peerId } : {}),
-              ...(data.query.displayName
-                ? { displayName: data.query.displayName }
-                : {}),
-            },
+            input: { idempotencyKey: data.idempotencyKey },
             form: {
+              presentation: "disclosure",
               submitLabel: "Create invitation",
               fields: {
                 displayName: { label: "Display name", control: "text" },
@@ -222,7 +286,14 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
                   })),
                 },
                 deliverySubject: {
-                  label: "Delivery address or subject",
+                  label: "Delivery destination",
+                  labelBy: {
+                    field: "deliveryType",
+                    values: data.channels.map((channel) => ({
+                      value: channel.type,
+                      label: channel.subjectLabel,
+                    })),
+                  },
                   control: "text",
                 },
                 deliveryLabel: {
@@ -237,10 +308,6 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
                     label: mode === "automatic" ? "Automatic" : "Manual",
                   })),
                 },
-                peerId: {
-                  label: "External peer ID (optional)",
-                  control: "text",
-                },
               },
             },
             result: setupResultPresentation,
@@ -250,6 +317,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
     } else {
       blocks.push({
         type: "notice",
+        id: "create-invitation-unavailable",
         tone: "warn",
         text: "No invitation delivery channel is currently available.",
       });
@@ -383,12 +451,12 @@ function setupResult(
   };
 }
 
-export function createInvitationsTabRegistration(
+export function createInvitationsTabSource(
   context: ServicePluginContext,
-): AdminWorkspaceRegistration {
+): AdminWorkspaceSource {
   const authService = requireAuthService();
   const pendingManualDeliveries = new Map<string, string>();
-  return createBuiltInStudioWorkspaceRegistration({
+  const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: studioInvitationsWorkspace,
     bind: (bindingContext) => {
@@ -406,7 +474,6 @@ export function createInvitationsTabRegistration(
                 ...(input.deliveryLabel ? { label: input.deliveryLabel } : {}),
                 mode: input.deliveryMode,
               },
-              ...(input.peerId ? { peerId: input.peerId } : {}),
             },
             mutationContext(caller),
           );
@@ -499,6 +566,7 @@ export function createInvitationsTabRegistration(
             channels: availableChannels.map((channel) => ({
               type: channel.type,
               displayName: channel.displayName,
+              subjectLabel: channel.subjectLabel,
               deliveryModes: channel.deliveryModes,
             })),
             invitations: selected
@@ -543,4 +611,5 @@ export function createInvitationsTabRegistration(
       });
     },
   });
+  return adminWorkspaceSource(registration, studioInvitationsWorkspace.actions);
 }

@@ -49,13 +49,7 @@ export const automationBundle: CapabilityBundleDefinition = defineBundle({
 
 export const webBundle: CapabilityBundleDefinition = defineBundle({
   id: WEB_BUNDLE_ID,
-  members: [
-    "webserver",
-    "auth-service",
-    "admin",
-    "dashboard",
-    "studio",
-  ],
+  members: ["webserver", "auth-service", "admin", "dashboard", "studio"],
   config: [{ member: "dashboard", value: { routePath: "/" } }],
   permissions: [
     {

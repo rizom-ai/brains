@@ -295,10 +295,26 @@ function ActionFormFields(props: {
   action: RuntimeOperatorActionControl;
 }): ReactElement {
   const initial = plainRecord(props.action.input) ?? {};
+  const [selected, setSelected] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      (props.action.form?.fields ?? []).flatMap((field) => {
+        if (field.control !== "select") return [];
+        const value = initial[field.name];
+        const selectedValue =
+          typeof value === "string" ? value : field.options?.[0]?.value;
+        return selectedValue ? [[field.name, selectedValue]] : [];
+      }),
+    ),
+  );
   return (
     <>
       {props.action.form?.fields.map((field) => {
         const value = initial[field.name];
+        const label =
+          field.labelBy?.values.find(
+            (candidate) =>
+              candidate.value === selected[field.labelBy?.field ?? ""],
+          )?.label ?? field.label;
         if (field.control === "checkbox") {
           return (
             <label key={field.name} className="declarative-action-checkbox">
@@ -307,18 +323,24 @@ function ActionFormFields(props: {
                 type="checkbox"
                 defaultChecked={value === true}
               />
-              <span>{field.label}</span>
+              <span>{label}</span>
             </label>
           );
         }
         if (field.control === "select") {
           return (
             <label key={field.name}>
-              <span>{field.label}</span>
+              <span>{label}</span>
               <select
                 name={field.name}
                 defaultValue={typeof value === "string" ? value : undefined}
                 required={field.required}
+                onChange={(event) =>
+                  setSelected((current) => ({
+                    ...current,
+                    [field.name]: event.target.value,
+                  }))
+                }
               >
                 {field.options?.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -336,7 +358,7 @@ function ActionFormFields(props: {
             : "";
         return (
           <label key={field.name}>
-            <span>{field.label}</span>
+            <span>{label}</span>
             <input
               name={field.name}
               type={
@@ -450,37 +472,45 @@ function ActionButton(props: {
   };
 
   const ActionControl = props.action.form ? "div" : "span";
+  const actionKey = `${props.action.actionId}:${JSON.stringify(props.action.input)}`;
+  const actionForm = props.action.form ? (
+    <form
+      key={actionKey}
+      className="declarative-action-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const input = actionFormInput(
+          props.action,
+          new FormData(event.currentTarget),
+        );
+        clearSecretFormFields(props.action, event.currentTarget);
+        void start({ ...props.action, input });
+      }}
+    >
+      <ActionFormFields action={props.action} />
+      <button
+        type="submit"
+        className={actionClassName(props.action, props.subordinate === true)}
+        disabled={pending || props.action.disabled === true}
+      >
+        {pending
+          ? "Working…"
+          : (props.action.form.submitLabel ?? props.action.label)}
+      </button>
+    </form>
+  ) : null;
   return (
     <>
       <ActionControl className="declarative-action-control">
         {props.action.form ? (
-          <form
-            key={`${props.action.actionId}:${JSON.stringify(props.action.input)}`}
-            className="declarative-action-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const input = actionFormInput(
-                props.action,
-                new FormData(event.currentTarget),
-              );
-              clearSecretFormFields(props.action, event.currentTarget);
-              void start({ ...props.action, input });
-            }}
-          >
-            <ActionFormFields action={props.action} />
-            <button
-              type="submit"
-              className={actionClassName(
-                props.action,
-                props.subordinate === true,
-              )}
-              disabled={pending || props.action.disabled === true}
-            >
-              {pending
-                ? "Working…"
-                : (props.action.form.submitLabel ?? props.action.label)}
-            </button>
-          </form>
+          props.action.form.presentation === "disclosure" ? (
+            <details key={actionKey} className="declarative-action-disclosure">
+              <summary>{props.action.label}</summary>
+              {actionForm}
+            </details>
+          ) : (
+            actionForm
+          )
         ) : (
           <button
             type="button"
@@ -1638,10 +1668,7 @@ function ViewBlock(props: {
             aria-selected={tab.id === active?.id}
             onClick={() => {
               if (tabQueryKey) {
-                props.onQueryChange({
-                  ...props.query,
-                  [tabQueryKey]: tab.id,
-                });
+                props.onQueryChange({ [tabQueryKey]: tab.id });
               } else {
                 setLocalActiveTab(tab.id);
               }

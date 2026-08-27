@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import type { RadialMapBlock } from "./public-card-data";
+import { type RadialMapBlock, widgetSourceData } from "./public-card-data";
+import type { RenderableWidgetData } from "./types";
 
 const WIDTH = 980;
 const HEIGHT = 560;
@@ -31,6 +32,44 @@ function statusClass(status: string, kind: string): string {
 }
 
 export function ProximityMapPanel({
+  block,
+  widget,
+}: {
+  block: RadialMapBlock | undefined;
+  widget?: RenderableWidgetData | undefined;
+}): JSX.Element {
+  if (!widget?.component) {
+    return <DeclarativeProximityMapPanel block={block} />;
+  }
+  const RegisteredVisualization = widget.component;
+
+  return (
+    <section
+      id="network"
+      className="dashboard-tab-panel card-map-panel"
+      data-dashboard-tab-panel
+      data-card-map="network"
+      data-ui-panel="network"
+      role="tabpanel"
+      aria-labelledby="dashboard-tab-network"
+    >
+      <header className="tab-section-head">
+        <h2>Network</h2>
+      </header>
+      <article className="card map-card">
+        <div className="card-head">
+          <span className="card-title">Agent proximity</span>
+          <span className="card-from">
+            public directory · semantic distance
+          </span>
+        </div>
+        <RegisteredVisualization data={widgetSourceData(widget.data)} />
+      </article>
+    </section>
+  );
+}
+
+function DeclarativeProximityMapPanel({
   block,
 }: {
   block: RadialMapBlock | undefined;

@@ -19,9 +19,12 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–9 are implemented on `work/studio-consolidation`;
-the consolidation is complete. Phase 9 replaced four administration rail entries
-with one tabbed Administration workspace. A 2026-08-23 review confirmed the rename is cleanly mechanical and
+**Progress:** Phases 1–9b are implemented on `work/studio-consolidation`;
+the consolidation is complete. Phase 9 replaced four administration rail
+entries with one tabbed Administration workspace. Its 2026-08-26 composition
+follow-ups and Phase 9b Invitations redesign are implemented with declared
+action routing, fail-loud named composition, query-resetting tabs, stable
+workspace status, list-first invitation state, and disclosure forms. A 2026-08-23 review confirmed the rename is cleanly mechanical and
 the capability-parity inventory holds. Its Phase 2 follow-ups (redundant Admin
 asserts, fetch-all audit pagination, and raw ISO timestamps) and Phase 3 entry
 conditions (shared form-control vocabulary and shared `queryInteger`) landed
@@ -496,6 +499,56 @@ rail-comparison and Administration frames are the design reference.
   `workspace-format.ts` replace the six and ten inline copies; the remaining
   raw `toISOString()` cells in the people and peers views go through
   `formatWorkspaceDate` where user-facing.
+
+Review follow-ups (2026-08-26), from the Phase 9 implementation review.
+Implemented on `work/studio-consolidation`:
+
+- **No composition by silent block surgery.** The container cherry-picks
+  child view blocks by string id (`link-peer`, `peers`, `invite-peer`); a
+  renamed id makes the peer material vanish without an error. Children
+  export named block builders the container calls directly — or, at
+  minimum, the container asserts every expected id was found and fails
+  loudly.
+- **Derive action routing from the children.** `PEOPLE_ACTIONS` and
+  `INVITATION_ACTIONS` hand-duplicate what each child registration already
+  declares, with ownership exceptions (`link-external-peer` → peers) proving
+  the sets misname it. Build the routing table from the children's declared
+  actions at registration; the capability-parity test then guards the union.
+- **Reset the query on tab switch.** The renderer's tab click spreads the
+  entire existing query into the next tab, so Audit's `selected`, `offset`,
+  and `action` leak into People and Invitations. Switching tabs writes only
+  the tab key; a test covers the bleed scenario. The workspace head also
+  keeps a stable workspace-level status instead of adopting whichever tab
+  is active.
+
+### Phase 9b — Invitations tab redesign
+
+The tab currently renders as a full-width linear pile: stats, an
+always-expanded seven-field "Add a person" form, a notice, the filter, the
+table, and a second always-expanded "Peer-first invitation" form appended by
+the container — two large forms sandwiching the list, with the rare action
+dominating and the common task (checking pending state) buried mid-page.
+
+- Tests first: the tab's default view leads with the pending list; creation
+  forms render collapsed until summoned; the standard Add-a-person form no
+  longer carries a peer field.
+- Lead with state: main column is the Pending/History filter and table;
+  stats fold into the workspace head totals.
+- Forms are summoned, not resident: "Add a person" and "Peer-first
+  invitation" become disclosure actions (collapsed action controls that
+  expand their form on demand — an additive `disclosure` presentation on the
+  existing action-form control if the protocol needs it), or live in an
+  aside column beside the table per the console's main-plus-aside grammar.
+- One creation vocabulary: drop "External peer ID (optional)" from the
+  standard Add-a-person form — peer provenance is exactly what the
+  peer-first flow owns, and two overlapping creation forms is the confusion.
+  Rewrite plumbing labels ("Delivery address or subject") per selected
+  channel.
+
+**Implemented:** Pending/History and its table lead a main-plus-aside layout;
+invitation totals sit in the workspace head; both creation flows use collapsed,
+host-rendered disclosure forms; the standard flow has no peer field; and the
+destination label follows the selected channel descriptor.
 
 ## Ordering rationale
 

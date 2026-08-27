@@ -11,6 +11,7 @@ import {
   agentNetworkWidgetDataSchema,
   buildAgentNetworkWidgetData,
 } from "./agent-network-widget";
+import { selectSkillFilterValues } from "./agent-network-rows";
 import { buildProximityMapData } from "./proximity-map-data";
 import { proximityMapDataSchema } from "./proximity-map-schema";
 import {
@@ -136,7 +137,10 @@ const agentNetworkWidget = defineDashboardWidget({
                   id: skill.id,
                   title: skill.name,
                   tags: skill.tags,
-                  filterValues: skill.tags,
+                  filterValues: selectSkillFilterValues(
+                    skill.tags,
+                    data.skillFilters,
+                  ),
                   badges: [
                     {
                       label: skill.sourceLabel,

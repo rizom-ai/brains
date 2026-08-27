@@ -12,7 +12,11 @@ import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
 import { OverviewPanel } from "./overview-panel";
 import { ProximityMapPanel } from "./proximity-map";
-import { findCartesianMap, findRadialMap } from "./public-card-data";
+import {
+  findCartesianMap,
+  findRadialMap,
+  findRenderableWidget,
+} from "./public-card-data";
 import { DASHBOARD_STYLES } from "./styles";
 import type { DashboardRenderInput } from "./types";
 import { DASHBOARD_UI_SCRIPT } from "./ui-script";
@@ -24,6 +28,11 @@ export function DashboardDocument({
 }): JSX.Element {
   const knowledgeMap = findCartesianMap(input.widgets);
   const proximityMap = findRadialMap(input.widgets);
+  const proximityWidget = findRenderableWidget(
+    input.widgets,
+    "agent-discovery",
+    "agent-proximity",
+  );
   const dashboardPath = input.dashboardPath ?? "/dashboard";
   const operatorHref = input.surfaces?.find(
     (surface) => surface.id === "studio",
@@ -120,7 +129,10 @@ export function DashboardDocument({
                   block={knowledgeMap}
                   entityTotal={input.appInfo.entities}
                 />
-                <ProximityMapPanel block={proximityMap} />
+                <ProximityMapPanel
+                  block={proximityMap}
+                  widget={proximityWidget}
+                />
               </div>
               <Colophon
                 title={input.title}

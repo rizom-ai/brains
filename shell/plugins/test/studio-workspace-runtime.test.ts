@@ -788,6 +788,80 @@ describe("workspace action forms and results", () => {
     });
   });
 
+  it("normalizes disclosure presentation and selected-field labels", () => {
+    const deliver = defineWorkspaceAction({
+      name: "deliver",
+      label: "Deliver invitation",
+      permission: "admin",
+      input: z.object({
+        deliveryType: z.enum(["email", "discord"]),
+        deliverySubject: z.string(),
+      }),
+      output: z.object({ status: z.string() }),
+    });
+    const result = safeParseRuntimeStudioOperatorView(
+      {
+        blocks: [
+          {
+            type: "action",
+            action: deliver,
+            form: {
+              presentation: "disclosure",
+              fields: {
+                deliveryType: {
+                  label: "Delivery channel",
+                  control: "select",
+                  options: [
+                    { value: "email", label: "Email" },
+                    { value: "discord", label: "Discord" },
+                  ],
+                },
+                deliverySubject: {
+                  label: "Delivery destination",
+                  labelBy: {
+                    field: "deliveryType",
+                    values: [
+                      { value: "email", label: "Email address" },
+                      { value: "discord", label: "Discord user ID" },
+                    ],
+                  },
+                  control: "text",
+                },
+              },
+            },
+          },
+        ],
+      },
+      { actions: [deliver], permission: "admin" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            form: {
+              presentation: "disclosure",
+              fields: [
+                { name: "deliveryType" },
+                {
+                  name: "deliverySubject",
+                  labelBy: {
+                    field: "deliveryType",
+                    values: [
+                      { value: "email", label: "Email address" },
+                      { value: "discord", label: "Discord user ID" },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it("rejects incomplete form and result declarations", () => {
     const result = safeParseRuntimeStudioOperatorView(
       {

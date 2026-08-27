@@ -1,6 +1,5 @@
-/** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { createMockAppInfo, createSilentLogger } from "@brains/test-utils";
 import {
   renderDashboardPageHtml,
@@ -45,7 +44,7 @@ function registryWithMap(): DashboardWidgetRegistry {
     dataProvider: async () => ({}),
     renderer: {
       component: ({ data }) => (
-        <div class="kmap-field">{JSON.stringify(data)}</div>
+        <div className="kmap-field">{JSON.stringify(data)}</div>
       ),
       clientStyles: ".kmap-field { display: block; }",
     },
@@ -110,6 +109,73 @@ describe("built-in widget renderers", () => {
     if (!widget) throw new Error("widget was not resolved");
     expect(widget.component).toBeUndefined();
     expect(resolved.widgetStyles).toEqual([]);
+  });
+
+  it("mounts the registered first-party renderer in the fixed Network slot", () => {
+    const registry = new DashboardWidgetRegistry(createSilentLogger());
+    registry.register({
+      id: "agent-proximity",
+      pluginId: "agent-discovery",
+      title: "Agent Proximity",
+      group: "network",
+      section: "primary",
+      rendererName: RENDERER_NAME,
+      dataProvider: async () => ({}),
+      renderer: {
+        component: ({ data }) => (
+          <div className="original-agent-map">{JSON.stringify(data)}</div>
+        ),
+      },
+    });
+    const resolved = resolveWidgetsForRender(
+      {
+        "agent-discovery:agent-proximity": {
+          widget: {
+            id: "agent-proximity",
+            pluginId: "agent-discovery",
+            title: "Agent Proximity",
+            group: "network",
+            priority: 35,
+            section: "primary",
+            rendererName: RENDERER_NAME,
+            visibility: "public",
+          },
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "spatial",
+                  layout: "radial",
+                  id: "agent-proximity",
+                  label: "Agent proximity map",
+                  description: "Public agents by semantic distance.",
+                  centerLabel: "Brain identity",
+                  centerKind: "identity",
+                  points: [],
+                  strata: [],
+                  legend: [],
+                },
+              ],
+            },
+            source: { nodes: ["agent-one"] },
+          },
+        },
+      },
+      registry,
+    );
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: resolved.widgets,
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain("original-agent-map");
+    expect(html).toContain("agent-one");
   });
 
   it("carries a renderer's styles and script into the page", () => {

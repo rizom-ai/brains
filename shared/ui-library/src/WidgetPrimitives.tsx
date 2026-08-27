@@ -283,9 +283,9 @@ export function WidgetFilter({
         : {})}
     >
       {hasOverflow && (
-        <div class="widget-filter-tools" data-ui-filter-tools hidden>
+        <div className="widget-filter-tools" data-ui-filter-tools hidden>
           <input
-            class="widget-filter-search"
+            className="widget-filter-search"
             type="search"
             autoComplete="off"
             placeholder="Search filters"
@@ -293,7 +293,7 @@ export function WidgetFilter({
             data-ui-filter-search
           />
           <button
-            class="widget-filter-toggle"
+            className="widget-filter-toggle"
             type="button"
             aria-expanded="false"
             data-ui-filter-toggle

@@ -493,6 +493,72 @@ describe("OperatorViewRenderer confirmations", () => {
     expect(invocations[0]?.actionId).toBe("purge");
   });
 
+  it("keeps disclosure forms collapsed until summoned and follows the selected field label", async () => {
+    const action: RuntimeOperatorActionControl = {
+      actionId: "invite",
+      label: "Add a person",
+      input: { idempotencyKey: "request-1" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+        fields: [
+          {
+            name: "deliveryType",
+            label: "Delivery channel",
+            control: "select",
+            required: true,
+            options: [
+              { value: "email", label: "Email" },
+              { value: "discord", label: "Discord" },
+            ],
+          },
+          {
+            name: "deliverySubject",
+            label: "Delivery destination",
+            labelBy: {
+              field: "deliveryType",
+              values: [
+                { value: "email", label: "Email address" },
+                { value: "discord", label: "Discord user ID" },
+              ],
+            },
+            control: "text",
+            required: true,
+          },
+        ],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: { view: { blocks: [{ type: "action", ...action }] } },
+          onAction: async () => undefined,
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    const disclosure = container.querySelector<HTMLDetailsElement>(
+      ".declarative-action-disclosure",
+    );
+    if (!disclosure) throw new Error("Expected action disclosure");
+    expect(disclosure.open).toBe(false);
+    expect(disclosure.textContent).toContain("Email address");
+
+    const channel = disclosure.querySelector<HTMLSelectElement>(
+      'select[name="deliveryType"]',
+    );
+    if (!channel) throw new Error("Expected delivery channel control");
+    await act(async () => {
+      disclosure.open = true;
+      channel.value = "discord";
+      channel.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(disclosure.open).toBe(true);
+    expect(disclosure.textContent).toContain("Discord user ID");
+  });
+
   it("submits typed form input and presents bounded action results", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     let copied = "";
@@ -817,7 +883,11 @@ describe("OperatorViewRenderer master/detail", () => {
           data: tabbed,
           onAction: async () => undefined,
           onOpenEntity: () => {},
-          query: { filter: "active" },
+          query: {
+            selected: "audit-event-1",
+            offset: 25,
+            action: "auth.user.updated",
+          },
           onQueryChange: (query) => queries.push(query),
         }),
       );
@@ -829,7 +899,7 @@ describe("OperatorViewRenderer master/detail", () => {
     if (!auditTab) throw new Error("Expected Audit tab");
     await act(async () => auditTab.click());
 
-    expect(queries).toEqual([{ filter: "active", tab: "audit" }]);
+    expect(queries).toEqual([{ tab: "audit" }]);
   });
 
   it("clears the open item from query state through the back control", async () => {

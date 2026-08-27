@@ -328,6 +328,7 @@ describe("renderDashboardPageHtml", () => {
                 },
               ],
             },
+            source: { points: [{ id: "field-notes" }] },
           },
         },
         "agent-discovery:agent-proximity": {
@@ -371,6 +372,7 @@ describe("renderDashboardPageHtml", () => {
                 },
               ],
             },
+            source: { nodes: [{ id: "agent-one" }] },
           },
         },
       },
