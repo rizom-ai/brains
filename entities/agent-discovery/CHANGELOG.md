@@ -1,5 +1,25 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.331
+
+### Patch Changes
+
+- [#180](https://github.com/rizom-ai/brains/pull/180) [`62db779`](https://github.com/rizom-ai/brains/commit/62db77946a964aaba655d5fc68b40a13e1e9139d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Agent Network skill filtering valid by deriving both filter choices and row memberships from the complete normalized tag set. Shared tags and Brain-only gaps still rank first, but agent-only tags are no longer omitted and shared tags are no longer truncated.
+
+  Declarative list filters now accept the complete bounded membership space. Filters initially show 12 choices, expose searchable overflow and a Show all control, and preserve the selected choice when collapsed. Skill ingestion independently limits each skill to 30 non-empty tags of at most 120 characters.
+
+- Updated dependencies [[`62db779`](https://github.com/rizom-ai/brains/commit/62db77946a964aaba655d5fc68b40a13e1e9139d)]:
+  - @brains/plugins@0.2.0-alpha.331
+  - @brains/dashboard@0.2.0-alpha.331
+  - @brains/ui-library@0.2.0-alpha.331
+  - @brains/auth-service@0.2.0-alpha.331
+  - @brains/atproto-contracts@0.2.0-alpha.331
+  - @brains/content-formatters@0.2.0-alpha.331
+  - @brains/contracts@0.2.0-alpha.331
+  - @brains/http-signatures@0.2.0-alpha.331
+  - @brains/utils@0.2.0-alpha.331
+  - @brains/templates@0.2.0-alpha.331
+
 ## 0.2.0-alpha.330
 
 ### Patch Changes

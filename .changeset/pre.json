@@ -221,6 +221,7 @@
     "conventional-site-package-merge",
     "conversation-service-effect-layer",
     "core--account-settings-runtime",
+    "core--agent-network-complete-tag-facets",
     "core--agent-sightings-inbox-source",
     "core--atomic-job-deduplication",
     "core--atproto-lexicon-derived-strictness",
