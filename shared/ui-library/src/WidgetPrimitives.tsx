@@ -240,6 +240,16 @@ export interface WidgetFilterOption {
   triggerProps?: WidgetElementProps<HTMLButtonElement> | undefined;
 }
 
+const WIDGET_FILTER_INITIAL_VISIBLE_OPTIONS = 12;
+
+function filterOptionSearchText(option: WidgetFilterOption): string {
+  const label =
+    typeof option.label === "string" || typeof option.label === "number"
+      ? String(option.label)
+      : option.value;
+  return label.trim().toLowerCase();
+}
+
 export function WidgetFilter({
   label,
   defaultValue,
@@ -257,13 +267,41 @@ export function WidgetFilter({
   className?: string;
   allValue?: string;
 }): JSX.Element {
+  const hasOverflow = options.length > WIDGET_FILTER_INITIAL_VISIBLE_OPTIONS;
+
   return (
     <div
       class={className}
       data-ui-filter
       data-ui-filter-default={defaultValue}
       data-ui-filter-all={allValue}
+      {...(hasOverflow
+        ? {
+            "data-ui-filter-visible-options":
+              WIDGET_FILTER_INITIAL_VISIBLE_OPTIONS,
+          }
+        : {})}
     >
+      {hasOverflow && (
+        <div class="widget-filter-tools" data-ui-filter-tools hidden>
+          <input
+            class="widget-filter-search"
+            type="search"
+            autoComplete="off"
+            placeholder="Search filters"
+            aria-label={`Search ${label}`}
+            data-ui-filter-search
+          />
+          <button
+            class="widget-filter-toggle"
+            type="button"
+            aria-expanded="false"
+            data-ui-filter-toggle
+          >
+            <span data-ui-filter-toggle-label>Show all</span>
+          </button>
+        </div>
+      )}
       <div
         class="widget-filter-tabs widget-filter-tabs--compact"
         aria-label={label}
@@ -281,6 +319,7 @@ export function WidgetFilter({
               )}
               type="button"
               data-ui-filter-value={option.value}
+              data-ui-filter-option-label={filterOptionSearchText(option)}
               aria-pressed={active ? "true" : "false"}
             >
               {option.count !== undefined && (

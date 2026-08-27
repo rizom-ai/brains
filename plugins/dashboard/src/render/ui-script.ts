@@ -114,9 +114,37 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
     var controls = ownedBy(root, "[data-ui-filter-value]", "[data-ui-filter]");
     var items = ownedBy(root, "[data-ui-filter-values]", "[data-ui-filter]");
     var emptyStates = ownedBy(root, "[data-ui-filter-empty]", "[data-ui-filter]");
+    var tools = ownedBy(root, "[data-ui-filter-tools]", "[data-ui-filter]")[0] || null;
+    var search = ownedBy(root, "[data-ui-filter-search]", "[data-ui-filter]")[0] || null;
+    var toggle = ownedBy(root, "[data-ui-filter-toggle]", "[data-ui-filter]")[0] || null;
+    var toggleLabel = ownedBy(root, "[data-ui-filter-toggle-label]", "[data-ui-filter]")[0] || null;
     var allValue = root.getAttribute("data-ui-filter-all") || "all";
     var fallback = root.getAttribute("data-ui-filter-default") || allValue;
+    var visibleLimit = Number(root.getAttribute("data-ui-filter-visible-options")) || controls.length;
+    var hasOverflow = controls.length > visibleLimit;
+    var expanded = false;
     if (!controls.length) return;
+
+    function updateControlVisibility() {
+      var query = search ? search.value.trim().toLowerCase() : "";
+      var activeValue = root.getAttribute("data-ui-filter-active") || fallback;
+      controls.forEach(function (control, index) {
+        var value = control.getAttribute("data-ui-filter-value") || "";
+        var label = control.getAttribute("data-ui-filter-option-label") || value;
+        var matches = label.toLowerCase().indexOf(query) !== -1;
+        var visible = query
+          ? value === allValue || value === activeValue || matches
+          : expanded || index < visibleLimit || value === activeValue;
+        control.toggleAttribute("hidden", !visible);
+      });
+
+      if (tools) tools.toggleAttribute("hidden", !hasOverflow);
+      if (toggle) {
+        toggle.toggleAttribute("hidden", !hasOverflow || query.length > 0);
+        toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      }
+      if (toggleLabel) toggleLabel.textContent = expanded ? "Show fewer" : "Show all";
+    }
 
     function activate(value) {
       root.setAttribute("data-ui-filter-active", value);
@@ -135,6 +163,7 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
       emptyStates.forEach(function (emptyState) {
         emptyState.toggleAttribute("hidden", visibleCount > 0);
       });
+      updateControlVisibility();
     }
 
     root.addEventListener("click", function (event) {
@@ -147,6 +176,17 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
       if (value) activate(value);
     });
 
+    if (search) {
+      search.addEventListener("input", updateControlVisibility);
+    }
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        expanded = !expanded;
+        updateControlVisibility();
+      });
+    }
+
+    root.classList.add("ui-filter-ready");
     activate(fallback);
   }
 

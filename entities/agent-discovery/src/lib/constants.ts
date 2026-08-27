@@ -11,6 +11,8 @@ export const AGENT_LIST_TEMPLATE_NAME = "agent-list";
 export const AGENT_DETAIL_TEMPLATE_NAME = "agent-detail";
 
 export const SKILL_ENTITY_TYPE = "skill";
+export const MAX_SKILL_TAGS = 30;
+export const MAX_SKILL_TAG_LENGTH = 120;
 export const SKILL_PLUGIN_ID = "skill";
 export const SKILL_DERIVATION_PROJECTION_ID = "skill-derivation";
 export const SKILL_DERIVATION_TEMPLATE_NAME = "skill-derivation";

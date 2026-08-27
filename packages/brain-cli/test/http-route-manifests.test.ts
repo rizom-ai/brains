@@ -27,16 +27,21 @@ function hasApiRoutes(plugin: Plugin): plugin is ApiRoutePlugin {
   return "getApiRoutes" in plugin && typeof plugin.getApiRoutes === "function";
 }
 
+function normalizeRoutePath(path: string): string {
+  return path.replace(
+    /(\/assets\/[^/.]+)\.[a-f0-9]{64}(\.(?:css|js))$/,
+    "$1.[content-hash]$2",
+  );
+}
+
 function routeManifest(plugins: readonly Plugin[]): string[] {
   return plugins
     .flatMap((plugin) => {
       const webRoutes = hasWebRoutes(plugin)
-        ? plugin
-            .getWebRoutes()
-            .map(
-              (route) =>
-                `${plugin.id}|handler|${route.method ?? "GET"}|${route.path}|${route.match ?? "exact"}|${route.public ?? false}`,
-            )
+        ? plugin.getWebRoutes().map((route) => {
+            const path = normalizeRoutePath(route.path);
+            return `${plugin.id}|handler|${route.method ?? "GET"}|${path}|${route.match ?? "exact"}|${route.public ?? false}`;
+          })
         : [];
       const apiRoutes = hasApiRoutes(plugin)
         ? plugin
@@ -103,6 +108,24 @@ function resolveCommerceFixture(): Plugin[] {
 
 describe("canonical HTTP route manifests", () => {
   const minimal = routeManifest(resolveTestApp("minimal"));
+
+  test("normalizes only content-addressed CSS and JavaScript routes", () => {
+    expect(
+      normalizeRoutePath(
+        "/dashboard/assets/dashboard.0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.css",
+      ),
+    ).toBe("/dashboard/assets/dashboard.[content-hash].css");
+    expect(normalizeRoutePath("/assets/dashboard.css")).toBe(
+      "/assets/dashboard.css",
+    );
+    expect(
+      normalizeRoutePath(
+        "/assets/dashboard.0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.map",
+      ),
+    ).toBe(
+      "/assets/dashboard.0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.map",
+    );
+  });
 
   test("inventories every route in the minimal composition", () => {
     expect(minimal).toEqual(readExpected("minimal"));

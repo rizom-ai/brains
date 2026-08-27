@@ -5,6 +5,7 @@ import {
   baseEntitySchema,
 } from "@brains/plugins";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
+import { skillTagsSchema } from "./skill";
 
 /**
  * Shared parser sub-schema — used by body/template parsing.
@@ -18,7 +19,7 @@ type AgentSkillSchema = z.ZodObject<{
 export const agentSkillSchema: AgentSkillSchema = z.object({
   name: z.string(),
   description: z.string(),
-  tags: z.array(z.string()),
+  tags: skillTagsSchema,
 });
 
 export type AgentSkill = z.output<typeof agentSkillSchema>;

@@ -980,12 +980,23 @@ const listFilterOptionSchema = z
     emphasis: z.literal("gap").optional(),
   })
   .strict();
+const MAX_LIST_ITEMS = 200;
+const MAX_LIST_ITEM_FILTER_VALUES = 50;
+// A complete facet set can contain one option for every distinct membership
+// across the bounded list, plus its all-value. Keep the payload fail-closed
+// without forcing providers to silently truncate canonical facets.
+const MAX_LIST_FILTER_OPTIONS =
+  MAX_LIST_ITEMS * MAX_LIST_ITEM_FILTER_VALUES + 1;
+
 const listFilterSchema = z
   .object({
     label: labelSchema,
     defaultValue: identifierSchema,
     allValue: identifierSchema.optional(),
-    options: z.array(listFilterOptionSchema).min(1).max(50),
+    options: z
+      .array(listFilterOptionSchema)
+      .min(1)
+      .max(MAX_LIST_FILTER_OPTIONS),
   })
   .strict()
   .superRefine((filter, context) => {
@@ -1019,7 +1030,10 @@ const listItemSchema = z
     tags: z.array(labelSchema).max(30).optional(),
     count: z.number().finite().optional(),
     badges: z.array(badgeSchema).max(10).optional(),
-    filterValues: z.array(identifierSchema).max(50).optional(),
+    filterValues: z
+      .array(identifierSchema)
+      .max(MAX_LIST_ITEM_FILTER_VALUES)
+      .optional(),
     links: z
       .array(
         z.object({ label: labelSchema, target: linkTargetSchema }).strict(),
@@ -1037,7 +1051,7 @@ const listBlockSchema = z
     id: identifierSchema,
     empty: shortTextSchema,
     filter: listFilterSchema.optional(),
-    items: z.array(listItemSchema).max(200),
+    items: z.array(listItemSchema).max(MAX_LIST_ITEMS),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1535,7 +1549,7 @@ const cmsListBlockSchema = z
     id: identifierSchema,
     empty: shortTextSchema,
     filter: listFilterSchema.optional(),
-    items: z.array(cmsListItemSchema).max(200),
+    items: z.array(cmsListItemSchema).max(MAX_LIST_ITEMS),
   })
   .strict()
   .superRefine((block, context) => {
