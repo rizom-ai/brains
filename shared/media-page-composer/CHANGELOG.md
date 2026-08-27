@@ -1,5 +1,17 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.330
+
+### Patch Changes
+
+- Updated dependencies [[`64f112e`](https://github.com/rizom-ai/brains/commit/64f112e170ca39f36764eadfba69421d6fc50bdb)]:
+  - @brains/media-renderer@0.2.0-alpha.330
+  - @brains/site-engine@0.2.0-alpha.330
+  - @brains/plugins@0.2.0-alpha.330
+  - @brains/contracts@0.2.0-alpha.330
+  - @brains/ui-library@0.2.0-alpha.330
+  - @brains/utils@0.2.0-alpha.330
+
 ## 0.2.0-alpha.329
 
 ### Patch Changes

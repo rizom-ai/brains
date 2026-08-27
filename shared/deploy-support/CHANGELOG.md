@@ -1,5 +1,14 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.330
+
+### Patch Changes
+
+- [#178](https://github.com/rizom-ai/brains/pull/178) [`64f112e`](https://github.com/rizom-ai/brains/commit/64f112e170ca39f36764eadfba69421d6fc50bdb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Adopt Bun 1.4 across the runtime and published brain package. Replace Sharp image optimization with `Bun.Image`, replace Playwright media rendering with `Bun.WebView`, enable measured test parallelism, make time-based tests deterministic, and apply SQLite busy timeouts before contended WAL initialization.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.330
+
 ## 0.2.0-alpha.329
 
 ### Patch Changes
