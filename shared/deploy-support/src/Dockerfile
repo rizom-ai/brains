@@ -7,8 +7,12 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates git tini \
+    chromium-headless-shell fontconfig \
+    fonts-freefont-ttf fonts-ipafont-gothic fonts-liberation \
+    fonts-noto-color-emoji fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei \
     && rm -rf /var/lib/apt/lists/*
 
+ENV BUN_CHROME_PATH=/usr/bin/chromium-headless-shell
 ENV XDG_DATA_HOME=/data
 ENV XDG_CONFIG_HOME=/config
 RUN mkdir -p /app/data /app/cache /app/brain-data && \
@@ -26,25 +30,16 @@ CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]
 FROM runtime AS standalone
 COPY package.json ./package.json
 RUN bun install --production --ignore-scripts
-RUN bunx playwright-core install --with-deps chromium-headless-shell \
- && rm -rf /var/lib/apt/lists/* /tmp/*
 COPY . .
 
 # --- fleet: install published brain at pinned version (ops deploy) ---
 FROM runtime AS fleet
 ARG BRAIN_VERSION
 ARG SITE_PACKAGES
-# playwright-core is also installed explicitly so the chromium install
-# below resolves against an installed package rather than relying on
-# transitive resolution from @rizom/brain. The brain bundle externalizes
-# playwright-core, so a missing or mismatched install would fail at
-# runtime rather than build time.
 RUN test -n "$BRAIN_VERSION" \
  && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
  && if [ -n "$SITE_PACKAGES" ]; then \
-      bun add @rizom/brain@$BRAIN_VERSION playwright-core $SITE_PACKAGES; \
+      bun add @rizom/brain@$BRAIN_VERSION $SITE_PACKAGES; \
     else \
-      bun add @rizom/brain@$BRAIN_VERSION playwright-core; \
+      bun add @rizom/brain@$BRAIN_VERSION; \
     fi
-RUN bunx playwright-core install --with-deps chromium-headless-shell \
- && rm -rf /var/lib/apt/lists/* /tmp/*

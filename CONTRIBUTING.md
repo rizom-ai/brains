@@ -53,7 +53,7 @@ bun install
 
 Requirements:
 
-- **Bun** `>= 1.3.3`
+- **Bun** `>= 1.4.0`
 - macOS or Linux, or Windows via WSL2
 
 ## Required checks

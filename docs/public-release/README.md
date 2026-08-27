@@ -138,12 +138,12 @@ Secrets stay in `.env`; everything else goes in `brain.yaml`. Full reference: [p
 
 | Requirement      | Version                                            |
 | ---------------- | -------------------------------------------------- |
-| **Bun**          | ≥ 1.3.3                                            |
+| **Bun**          | ≥ 1.4.0                                            |
 | **OS**           | macOS 13+, Linux (x64 and arm64), Windows via WSL2 |
 | **Node**         | not supported as a runtime — Bun-only              |
 | **Architecture** | x64, arm64                                         |
 
-Native dependencies (`sharp` for image processing, `@libsql/client` or `better-sqlite3` for the database) ship as `optionalDependencies`. The framework picks the right one for your platform automatically.
+Database-native dependencies (`@libsql/client` or `better-sqlite3`) ship as `optionalDependencies`. Image processing uses Bun's built-in `Bun.Image` pipeline, so packaged brains do not install a separate native image addon.
 
 ---
 

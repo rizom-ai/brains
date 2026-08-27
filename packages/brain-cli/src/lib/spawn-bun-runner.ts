@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess, type SpawnOptions } from "child_process";
+import type { EventEmitter } from "node:events";
 import type { CommandResult } from "./command-result";
 
 export interface SpawnedProcess {
@@ -37,6 +38,17 @@ export interface SignalProcess {
   ): unknown;
 }
 
+const processEvents: EventEmitter = process;
+
+export const runtimeSignalProcess: SignalProcess = {
+  env: process.env,
+  kill: (pid, signal) =>
+    signal === undefined ? process.kill(pid) : process.kill(pid, signal),
+  on: (event, listener) => processEvents.on(event, listener),
+  removeListener: (event, listener) =>
+    processEvents.removeListener(event, listener),
+};
+
 export interface SpawnBunRunnerDependencies {
   spawnImpl?: SpawnImpl;
   processImpl?: SignalProcess;
@@ -52,7 +64,7 @@ export function spawnBunRunner(
   options: SpawnBunRunnerOptions,
 ): Promise<CommandResult> {
   const spawnImpl = options.spawnImpl ?? spawn;
-  const processImpl = options.processImpl ?? process;
+  const processImpl = options.processImpl ?? runtimeSignalProcess;
 
   return new Promise((resolve) => {
     const proc = spawnImpl("bun", options.args, {

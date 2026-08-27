@@ -115,21 +115,14 @@ function createWorkerWithClock(
   );
 }
 
-function createWorkerWithSingleJob(
-  handler: MockHandler,
-  processDelay = 0,
-): { worker: JobQueueWorker; mockService: IJobQueueService } {
+function createWorkerWithSingleJob(handler: MockHandler): {
+  worker: JobQueueWorker;
+  mockService: IJobQueueService;
+} {
   let callCount = 0;
   const mockService = createMockJobQueueService({
     returns: { getHandler: handler },
   });
-
-  if (processDelay > 0) {
-    handler.process.mockImplementation(async () => {
-      await Bun.sleep(processDelay);
-      return { success: true };
-    });
-  }
 
   spyOn(mockService, "dequeue").mockImplementation(() => {
     callCount++;
@@ -817,21 +810,31 @@ describe("JobQueueWorker", () => {
   describe("Graceful shutdown", () => {
     it("should wait for active jobs before stopping", async () => {
       const handler = createMockHandler();
-      const result = createWorkerWithSingleJob(handler, 100);
+      let releaseProcessing = (): void => {};
+      const processing = new Promise<void>((resolve) => {
+        releaseProcessing = resolve;
+      });
+      handler.process.mockImplementation(async () => {
+        await processing;
+        return { success: true };
+      });
+      const result = createWorkerWithSingleJob(handler);
       worker = result.worker;
 
       await worker.start();
-
-      // stop() must be called while a job is genuinely in flight, which is what
-      // this test is about. Waiting for activeJobs says that; sleeping 50ms only
-      // aimed for the middle of the handler's 100ms and would silently test
-      // nothing if the job started late.
       await waitUntil(
         () => worker.getStats().activeJobs > 0,
         "the worker to claim a job and begin processing it",
       );
 
-      await worker.stop();
+      let stopped = false;
+      const stopPromise = worker.stop().then(() => {
+        stopped = true;
+      });
+      await Promise.resolve();
+      expect(stopped).toBe(false);
+      releaseProcessing();
+      await stopPromise;
 
       const stats = worker.getStats();
       expect(stats.isRunning).toBe(false);
@@ -840,8 +843,17 @@ describe("JobQueueWorker", () => {
 
     it("should wait for jobs claimed by an in-flight poll during stop", async () => {
       const handler = createMockHandler();
+      let releaseProcessing = (): void => {};
+      let signalProcessingStarted = (): void => {};
+      const processing = new Promise<void>((resolve) => {
+        releaseProcessing = resolve;
+      });
+      const processingStarted = new Promise<void>((resolve) => {
+        signalProcessingStarted = resolve;
+      });
       handler.process.mockImplementation(async () => {
-        await Bun.sleep(30);
+        signalProcessingStarted();
+        await processing;
         return { success: true };
       });
 
@@ -877,9 +889,15 @@ describe("JobQueueWorker", () => {
 
       // Poll is past its shouldStop check and blocked inside dequeue()
       await dequeueStarted;
-      const stopPromise = worker.stop();
-      // The in-flight dequeue claims a job after stop() was called
+      let stopped = false;
+      const stopPromise = worker.stop().then(() => {
+        stopped = true;
+      });
+      // The in-flight dequeue claims a job after stop() was called.
       releaseDequeue(testJob);
+      await processingStarted;
+      expect(stopped).toBe(false);
+      releaseProcessing();
       await stopPromise;
 
       // The claimed job must be fully processed before stop() resolves,

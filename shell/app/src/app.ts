@@ -11,6 +11,7 @@ import {
 import { Effect, Exit, Scope } from "@brains/utils/effect";
 import type { Fiber } from "@brains/utils/effect";
 import type { RuntimeProcessRole } from "@brains/core";
+import { addProcessSignalListeners } from "@brains/utils/process-signals";
 
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
@@ -320,14 +321,17 @@ export class App {
       this.requestGracefulShutdown("SIGTERM");
     };
 
-    process.on("SIGINT", sigintHandler);
-    process.on("SIGTERM", sigtermHandler);
+    const removeSigint = addProcessSignalListeners(["SIGINT"], sigintHandler);
+    const removeSigterm = addProcessSignalListeners(
+      ["SIGTERM"],
+      sigtermHandler,
+    );
     Effect.runSync(
       Scope.addFinalizer(
         scope,
         Effect.sync(() => {
-          process.removeListener("SIGTERM", sigtermHandler);
-          process.removeListener("SIGINT", sigintHandler);
+          removeSigterm();
+          removeSigint();
         }),
       ),
     );

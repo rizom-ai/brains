@@ -97,13 +97,13 @@
     "@brains/wishlist": "workspace:*",
     "@rizom/site-rizom": "workspace:*",
     "@rizom/theme-default": "workspace:*",
-    "@types/bun": "^1.3.14",
+    "@types/bun": "^1.4.0",
     "rolldown": "^1.0.0",
     "rolldown-plugin-dts": "^0.27.4",
     "typescript": "^7.0.2"
   },
   "engines": {
-    "bun": ">=1.3.3"
+    "bun": ">=1.4.0"
   },
   "exports": {
     ".": {
@@ -152,9 +152,7 @@
     "@libsql/client": "^0.17.4",
     "@tailwindcss/oxide": "^4.1.4",
     "lightningcss": "^1.29.2",
-    "playwright-core": "^1.61.0",
-    "react-devtools-core": "^7.0.1",
-    "sharp": "^0.35.1"
+    "react-devtools-core": "^7.0.1"
   },
   "publishConfig": {
     "access": "public"
@@ -182,7 +180,7 @@
     "start:personal": "bun run build:ui && cd test-apps/personal && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:publishing": "bun run build:ui && cd test-apps/publishing && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
     "start:team": "bun run build:ui && cd test-apps/team && INIT_CWD=$PWD bun run $([ -t 1 ] && echo --elide-lines=0) --filter @rizom/brain dev:start",
-    "test": "bun test",
+    "test": "bun test --parallel=4 --path-ignore-patterns='**/boot-smoke.test.ts' && bun test test/boot-smoke.test.ts",
     "test:packed:compat": "bun scripts/run-packed-compatibility.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.model.json"
   },

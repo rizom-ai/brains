@@ -15,7 +15,7 @@ const defaultMarked = new Marked({ gfm: true, breaks: true });
  * `<span class="emdash">` blockquote-attribution post-processing.
  *
  * Sanitization matters here because `markdownToHtml` output is rendered into
- * a real browser in privileged contexts (Playwright PDF capture against a
+ * a real browser in privileged contexts (Bun WebView PDF capture against a
  * localhost render server) — a `<script>` smuggled through markdown would
  * execute during render and could issue outbound fetches before the
  * snapshot completes.

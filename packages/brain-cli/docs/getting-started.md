@@ -6,7 +6,7 @@ A brain is a private AI runtime whose durable knowledge is markdown. One canonic
 
 ## Prerequisites
 
-- Bun 1.3.3 or newer
+- Bun 1.4.0 or newer
 - an API key supported by the configured AI provider
 
 ## Quick start

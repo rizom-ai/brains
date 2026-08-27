@@ -1,8 +1,8 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { Logger, LogLevel } from "../src/logger";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, watch } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { z } from "../src/zod";
 
 const logRecordSchema = z.record(z.string(), z.unknown());
@@ -21,16 +21,30 @@ async function waitForLogLines(
   count: number,
   deadline = Date.now() + 2000,
 ): Promise<string[]> {
-  const content = await readFile(logFile, "utf-8").catch(() => "");
-  const lines = content.trim() === "" ? [] : content.trim().split("\n");
-  if (lines.length >= count) return lines;
-  if (Date.now() >= deadline) {
-    throw new Error(
-      `Timed out waiting for ${count} log lines; saw ${lines.length}`,
-    );
+  const readLines = async (): Promise<string[]> => {
+    const content = await readFile(logFile, "utf-8").catch(() => "");
+    return content.trim() === "" ? [] : content.trim().split("\n");
+  };
+  const initial = await readLines();
+  if (initial.length >= count) return initial;
+
+  const remainingMs = Math.max(1, deadline - Date.now());
+  try {
+    for await (const event of watch(dirname(logFile), {
+      signal: AbortSignal.timeout(remainingMs),
+    })) {
+      if (event.filename && event.filename !== basename(logFile)) continue;
+      const lines = await readLines();
+      if (lines.length >= count) return lines;
+    }
+  } catch (error) {
+    if (Date.now() < deadline) throw error;
   }
-  await Bun.sleep(5);
-  return waitForLogLines(logFile, count, deadline);
+
+  const lines = await readLines();
+  throw new Error(
+    `Timed out waiting for ${count} log lines; saw ${lines.length}`,
+  );
 }
 
 function parseLogRecord(

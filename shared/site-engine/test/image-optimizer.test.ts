@@ -2,23 +2,10 @@ import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import sharp from "sharp";
+import { createHash } from "crypto";
 import { ImageOptimizer } from "../src/image-optimizer";
 import { createSilentLogger } from "@brains/test-utils";
-
-/** Create a real PNG buffer of a given size using sharp */
-async function createTestPng(width: number, height: number): Promise<Buffer> {
-  return sharp({
-    create: {
-      width,
-      height,
-      channels: 3,
-      background: { r: 128, g: 64, b: 32 },
-    },
-  })
-    .png()
-    .toBuffer();
-}
+import { createTestPng } from "./helpers/test-png";
 
 describe("ImageOptimizer", () => {
   const logger = createSilentLogger();
@@ -58,10 +45,30 @@ describe("ImageOptimizer", () => {
       expect(result.width).toBe(960);
       expect(result.height).toBe(480); // 960 * (1000/2000)
 
-      // Verify files exist on disk
-      const files = await fs.readdir(imagesDir);
-      const webpFiles = files.filter((f) => f.endsWith(".webp"));
-      expect(webpFiles).toHaveLength(3);
+      const hash = createHash("sha256")
+        .update(buffer)
+        .digest("hex")
+        .slice(0, 16);
+      const files = (await fs.readdir(imagesDir)).sort();
+      expect(files).toEqual([
+        `${hash}-1920w.webp`,
+        `${hash}-480w.webp`,
+        `${hash}-960w.webp`,
+      ]);
+
+      for (const width of [480, 960, 1920]) {
+        const variant = await fs.readFile(
+          join(imagesDir, `${hash}-${width}w.webp`),
+        );
+        const metadata = await new Bun.Image(variant).metadata();
+        expect(metadata).toMatchObject({
+          format: "webp",
+          width,
+          height: width / 2,
+        });
+        expect(variant.subarray(0, 4).toString("ascii")).toBe("RIFF");
+        expect(variant.subarray(8, 12).toString("ascii")).toBe("WEBP");
+      }
     });
 
     test("should skip variants larger than source width", async () => {
@@ -77,6 +84,12 @@ describe("ImageOptimizer", () => {
       expect(result.srcset).not.toContain("1920w");
       // Fallback should be the largest available (480w)
       expect(result.src).toContain("480w.webp");
+      const files = await fs.readdir(imagesDir);
+      expect(files).toHaveLength(1);
+      const metadata = await new Bun.Image(
+        await fs.readFile(join(imagesDir, files[0] ?? "missing")),
+      ).metadata();
+      expect(metadata).toMatchObject({ width: 480, height: 360 });
     });
 
     test("should return null for images smaller than all variants", async () => {
@@ -130,7 +143,7 @@ describe("ImageOptimizer", () => {
       const files = await fs.readdir(imagesDir);
       for (const f of files.filter((name) => name.endsWith(".webp"))) {
         const webpBuffer = await fs.readFile(join(imagesDir, f));
-        const meta = await sharp(webpBuffer).metadata();
+        const meta = await new Bun.Image(webpBuffer).metadata();
         expect(meta.format).toBe("webp");
       }
     });
@@ -140,14 +153,7 @@ describe("ImageOptimizer", () => {
     test("should optimize all PNG/JPEG files in directory", async () => {
       // Write test images to the images directory
       const png = await createTestPng(1200, 800);
-      const jpeg = await sharp({
-        create: {
-          width: 2000,
-          height: 1000,
-          channels: 3,
-          background: { r: 200, g: 100, b: 50 },
-        },
-      })
+      const jpeg = await new Bun.Image(await createTestPng(2000, 1000))
         .jpeg()
         .toBuffer();
 

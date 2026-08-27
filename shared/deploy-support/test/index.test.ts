@@ -44,9 +44,13 @@ describe("deploy templates", () => {
     expect(dockerfile.indexOf("FROM runtime AS fleet")).toBeGreaterThan(
       labelIndex,
     );
+    expect(dockerfile).toContain("chromium-headless-shell");
     expect(dockerfile).toContain(
-      "bunx playwright-core install --with-deps chromium-headless-shell",
+      "BUN_CHROME_PATH=/usr/bin/chromium-headless-shell",
     );
+    expect(dockerfile).toContain("fonts-noto-color-emoji");
+    expect(dockerfile).toContain("fonts-wqy-zenhei");
+    expect(dockerfile).not.toContain("playwright");
     expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
     expect(dockerfile).toContain(
       'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -77,9 +77,11 @@ function buildBinary(): void {
 }
 
 describe("built binary boot smoke", () => {
-  it("boots the canonical model and serves HTTP", async () => {
+  beforeAll(() => {
     buildBinary();
+  });
 
+  it("boots the canonical model and serves HTTP", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-boot-smoke-"));
     const productionPort = freePort();
     const apiPort = freePort();
@@ -135,8 +137,6 @@ describe("built binary boot smoke", () => {
   }, 240_000);
 
   it("passes startup checks without a webserver", () => {
-    buildBinary();
-
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-headless-smoke-"));
     try {
       writeFileSync(

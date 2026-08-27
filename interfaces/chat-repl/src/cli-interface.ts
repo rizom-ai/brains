@@ -21,6 +21,7 @@ import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
 import type { AgentNamespace } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
+import { addProcessSignalListeners } from "@brains/utils/process-signals";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig, type CLIConfigInput } from "./config";
 import packageJson from "../package.json";
@@ -60,7 +61,7 @@ export class CLIInterface extends MessageInterfacePlugin<
   private responseCallback: ((response: string) => void) | undefined;
   private systemMessageCallback: ((message: string) => void) | undefined;
   private agentService?: AgentNamespace;
-  private signalHandler: (() => void) | undefined;
+  private removeSignalHandlers: (() => void) | undefined;
 
   // Tracks pending confirmation approval ids; restores them from stored
   // conversation messages so approvals survive a process restart.
@@ -494,12 +495,14 @@ export class CLIInterface extends MessageInterfacePlugin<
    * Node warns about exceeding the max listener count.
    */
   protected registerSignalHandlers(): void {
-    this.signalHandler = (): void => {
+    const signalHandler = (): void => {
       this.logger.debug("Received termination signal, stopping CLI");
       void this.cleanup();
     };
-    process.on("SIGINT", this.signalHandler);
-    process.on("SIGTERM", this.signalHandler);
+    this.removeSignalHandlers = addProcessSignalListeners(
+      ["SIGINT", "SIGTERM"],
+      signalHandler,
+    );
   }
 
   /**
@@ -510,11 +513,8 @@ export class CLIInterface extends MessageInterfacePlugin<
     this.unregisterProgressCallback();
     this.unregisterMessageCallbacks();
 
-    if (this.signalHandler) {
-      process.removeListener("SIGINT", this.signalHandler);
-      process.removeListener("SIGTERM", this.signalHandler);
-      this.signalHandler = undefined;
-    }
+    this.removeSignalHandlers?.();
+    this.removeSignalHandlers = undefined;
 
     if (this.inkApp) {
       this.inkApp.unmount();

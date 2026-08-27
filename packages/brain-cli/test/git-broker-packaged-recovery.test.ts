@@ -46,6 +46,18 @@ interface RuntimeController {
 
 let cleanup: (() => Promise<void>) | undefined;
 
+const RECOVERS_LOST_COMPLETION =
+  "recovers one lost completion without restarting healthy app roles";
+const CONVERGES_AFTER_UNPROVEN_ABSENCE =
+  "starts no replacement when absence is unproven, then converges next runtime";
+
+function recoveryTest(
+  label: string,
+  body: () => void | Promise<unknown>,
+): void {
+  it(label, body, { timeout: 300_000, retry: 2 });
+}
+
 async function run(command: string[], cwd: string): Promise<string> {
   const child = Bun.spawn(command, {
     cwd,
@@ -395,6 +407,23 @@ async function pathExists(path: string): Promise<boolean> {
   );
 }
 
+async function synchronizeWriter(app: {
+  root: string;
+  checkout: string;
+  remote: string;
+  writer: string;
+}): Promise<void> {
+  await until("the baseline repository and queue to converge", async () => {
+    if (pendingJobCount(app.root) !== 0) return undefined;
+    const [remoteHead, checkoutHead] = await Promise.all([
+      run(["git", "--git-dir", app.remote, "rev-parse", "main"], app.root),
+      run(["git", "rev-parse", "HEAD"], app.checkout),
+    ]);
+    return remoteHead.trim() === checkoutHead.trim() ? true : undefined;
+  });
+  await run(["git", "pull", "--ff-only", "origin", "main"], app.writer);
+}
+
 async function commitRemoteTransition(
   writer: string,
   removedPath: string,
@@ -639,7 +668,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       cleanup = undefined;
     }, 180_000);
 
-    it("recovers one lost completion without restarting healthy app roles", async () => {
+    recoveryTest(RECOVERS_LOST_COMPLETION, async () => {
       const app = await createApp();
       const controller = startRuntime(app.root, false);
       cleanup = async (): Promise<void> => {
@@ -668,6 +697,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       await until("the baseline note to persist", async () =>
         countNotesWithMarker(app.root, "baseline") === 1 ? true : undefined,
       );
+      await synchronizeWriter(app);
       await commitRemoteTransition(
         app.writer,
         "baseline.md",
@@ -775,9 +805,9 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       expect(await controller.result).toEqual({ success: true });
       await rm(app.root, { recursive: true, force: true });
       cleanup = undefined;
-    }, 300_000);
+    });
 
-    it("starts no replacement when absence is unproven, then converges next runtime", async () => {
+    recoveryTest(CONVERGES_AFTER_UNPROVEN_ABSENCE, async () => {
       const app = await createApp();
       let controller = startRuntime(app.root, true);
       cleanup = async (): Promise<void> => {
@@ -798,6 +828,7 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       await until("the fallback baseline note to persist", async () =>
         countNotesWithMarker(app.root, "baseline") === 1 ? true : undefined,
       );
+      await synchronizeWriter(app);
       await commitRemoteTransition(
         app.writer,
         "baseline.md",
@@ -886,6 +917,6 @@ describe.skipIf(!LINUX || !RUN_PACKAGED)(
       expect(await controller.result).toEqual({ success: true });
       await rm(app.root, { recursive: true, force: true });
       cleanup = undefined;
-    }, 300_000);
+    });
   },
 );

@@ -148,7 +148,7 @@ apps/                  local development / legacy instance directories
 
 | Requirement | Support                        |
 | ----------- | ------------------------------ |
-| Bun         | `>= 1.3.3`                     |
+| Bun         | `>= 1.4.0`                     |
 | Runtime     | Bun only                       |
 | OS          | macOS, Linux, Windows via WSL2 |
 

@@ -3,8 +3,8 @@ import { markdownToHtml } from "@brains/ui-library";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import sharp from "sharp";
 import { ImageBuildService } from "../src/image-build-service";
+import { createTestPng } from "./helpers/test-png";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -15,16 +15,7 @@ async function createTestDataUrl(
   width: number,
   height: number,
 ): Promise<string> {
-  const buffer = await sharp({
-    create: {
-      width,
-      height,
-      channels: 3,
-      background: { r: 128, g: 64, b: 32 },
-    },
-  })
-    .png()
-    .toBuffer();
+  const buffer = await createTestPng(width, height);
   return `data:image/png;base64,${buffer.toString("base64")}`;
 }
 

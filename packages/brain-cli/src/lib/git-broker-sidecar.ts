@@ -8,10 +8,11 @@ import {
   resolveGitBrokerEntrypointPath,
   resolveGitBrokerSpec,
 } from "./git-broker-spec";
-import type {
-  SignalProcess,
-  SpawnedProcess,
-  SpawnImpl,
+import {
+  runtimeSignalProcess,
+  type SignalProcess,
+  type SpawnedProcess,
+  type SpawnImpl,
 } from "./spawn-bun-runner";
 
 function restoreEnvironment(
@@ -95,7 +96,7 @@ function spawnSidecar(
   dependencies: GitBrokerSidecarDependencies,
 ): RunningSidecar {
   const spawnImpl = dependencies.spawnImpl ?? spawn;
-  const processImpl = dependencies.processImpl ?? process;
+  const processImpl = dependencies.processImpl ?? runtimeSignalProcess;
   const entrypointPath = dependencies.entrypointPath ?? process.argv[1];
   if (!entrypointPath) {
     throw new Error("Cannot start Git broker child without a Brain entrypoint");
@@ -176,7 +177,7 @@ async function stopSidecar(
   sidecar: RunningSidecar,
   dependencies: GitBrokerSidecarDependencies,
 ): Promise<void> {
-  const processImpl = dependencies.processImpl ?? process;
+  const processImpl = dependencies.processImpl ?? runtimeSignalProcess;
   const pid = sidecar.child.pid;
 
   if (!sidecar.isClosed()) sidecar.child.kill("SIGTERM");
@@ -252,7 +253,7 @@ export async function withGitBrokerSidecar<T>(
   }
 
   // The same checkout handoff the full supervisor makes to app roles.
-  const processImpl = dependencies.processImpl ?? process;
+  const processImpl = dependencies.processImpl ?? runtimeSignalProcess;
   const previousSocket = processImpl.env[GIT_BROKER_SOCKET_ENV];
   const previousCheckout = processImpl.env[GIT_BROKER_CHECKOUT_ENV];
   processImpl.env[GIT_BROKER_SOCKET_ENV] = spec.socketPath;
