@@ -52,6 +52,7 @@ function inputContext(options: {
 }): ProjectionInputContext {
   return {
     entities: createMockEntityService({ entityTypes: ["summary"] }),
+    spaces,
     conversations: {
       get: async (id): Promise<Conversation | null> =>
         options.conversations.find((entry) => entry.id === id) ?? null,
@@ -74,7 +75,13 @@ function executionContext(entries: unknown[]): ProjectionExecutionContext {
     returns: { ai: { generate: { entries, decisions: [], actionItems: [] } } },
   });
   return {
-    ai: plugin.ai,
+    ai: {
+      ...plugin.ai,
+      generateObject: async <T>() =>
+        ({
+          object: { decision: "update", rationale: "test" } as T,
+        }) as { object: T },
+    },
     logger: createSilentLogger("summary-rule-test"),
   };
 }
@@ -97,7 +104,7 @@ describe("the summary derivation", () => {
   const signal = new AbortController().signal;
 
   it("summarizes the conversations the wave woke it about", async () => {
-    const rule = createSummaryProjectionRule(config, spaces);
+    const rule = createSummaryProjectionRule(config);
     const selected = await rule.selectInput(
       trigger(["conversation-1"]),
       inputContext({ conversations: [conversation()] }),
@@ -138,7 +145,7 @@ describe("the summary derivation", () => {
     // The cost that matters when several rules fan out in one wave: this one
     // must not walk the corpus because a single message arrived.
     const reads: string[] = [];
-    const rule = createSummaryProjectionRule(config, spaces);
+    const rule = createSummaryProjectionRule(config);
     await rule.selectInput(
       trigger(["conversation-1"]),
       inputContext({
@@ -158,7 +165,7 @@ describe("the summary derivation", () => {
   it("abstains when woken about a conversation outside its spaces", async () => {
     // Not "no summary should exist" — this rule simply has no view of a
     // channel it was never configured to remember.
-    const rule = createSummaryProjectionRule(config, spaces);
+    const rule = createSummaryProjectionRule(config);
     const selected = await rule.selectInput(
       trigger(["conversation-1"]),
       inputContext({
@@ -175,13 +182,13 @@ describe("the summary derivation", () => {
   it("adds rather than owns, so other conversations keep their summaries", () => {
     // A wave derives only what it was woken about, so "every summary this
     // run did not mention" would be every other conversation's.
-    expect(createSummaryProjectionRule(config, spaces).targets).toEqual({
+    expect(createSummaryProjectionRule(config).targets).toEqual({
       authority: "additive",
     });
   });
 
   it("leaves a prior summary alone when nothing was worth remembering", async () => {
-    const rule = createSummaryProjectionRule(config, spaces);
+    const rule = createSummaryProjectionRule(config);
     const selected = await rule.selectInput(
       trigger(["conversation-1"]),
       inputContext({ conversations: [conversation()] }),

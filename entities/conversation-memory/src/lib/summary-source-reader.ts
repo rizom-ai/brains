@@ -49,31 +49,37 @@ export class SummarySourceReader {
     return {
       conversation,
       messages,
-      sourceHash: this.computeSourceHash(conversation, messages),
+      sourceHash: computeSummarySourceHash(
+        conversation,
+        messages,
+        this.config.projectionVersion,
+      ),
     };
   }
+}
 
-  private computeSourceHash(
-    conversation: Conversation,
-    messages: Message[],
-  ): string {
-    return computeContentHash(
-      JSON.stringify({
-        projectionVersion: this.config.projectionVersion,
-        conversation: {
-          id: conversation.id,
-          channelId: conversation.channelId,
-          channelName: conversation.channelName,
-          interfaceType: conversation.interfaceType,
-          updatedAt: conversation.updatedAt,
-        },
-        messages: messages.map((message) => ({
-          id: message.id,
-          role: message.role,
-          content: message.content,
-          timestamp: message.timestamp,
-        })),
-      }),
-    );
-  }
+/** Shared provenance hash for runtime input selection, evals, and coverage. */
+export function computeSummarySourceHash(
+  conversation: Conversation,
+  messages: Message[],
+  projectionVersion: number,
+): string {
+  return computeContentHash(
+    JSON.stringify({
+      projectionVersion,
+      conversation: {
+        id: conversation.id,
+        channelId: conversation.channelId,
+        channelName: conversation.channelName,
+        interfaceType: conversation.interfaceType,
+        updatedAt: conversation.updatedAt,
+      },
+      messages: messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        timestamp: message.timestamp,
+      })),
+    }),
+  );
 }

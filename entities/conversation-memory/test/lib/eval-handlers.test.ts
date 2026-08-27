@@ -65,6 +65,45 @@ describe("summaryEvalHandlers", () => {
     expect(handlers.has("projectConversation")).toBe(true);
   });
 
+  it("summarizeMessages executes the production rule chain", async () => {
+    const { context, handlers } = registerHandlers();
+    const generateSpy = spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Projection restart",
+          summary: "The team restarted conversation projection.",
+          startMessageIndex: 1,
+          endMessageIndex: 1,
+          keyPoints: ["Projection uses the scheduler"],
+          decisions: ["Use the scheduler-owned projection graph"],
+          actionItems: ["Run the full eval suite"],
+        },
+      ],
+    });
+    const handler = handlers.get("summarizeMessages");
+    if (!handler) throw new Error("summarizeMessages handler missing");
+
+    const result = await handler({
+      messages: [
+        {
+          role: "user",
+          content:
+            "Decision: use scheduler projection. Action: run the full eval suite.",
+          timestamp: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        title: "Projection restart",
+        decisions: ["Use the scheduler-owned projection graph"],
+        actionItems: ["Run the full eval suite"],
+      }),
+    ]);
+    expect(generateSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("retrieveMemory returns same-space summary memory", async () => {
     const { context, handlers } = registerHandlers();
     const summary: SummaryEntity = {

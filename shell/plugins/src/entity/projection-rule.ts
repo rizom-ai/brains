@@ -107,6 +107,8 @@ export interface ProjectionEntityReader {
 
 export interface ProjectionInputContext {
   readonly entities: ProjectionEntityReader;
+  /** The brain's configured conversation spaces. */
+  readonly spaces: readonly string[];
   /**
    * What was said, for a rule that derives from it.
    *
@@ -129,7 +131,8 @@ export interface ProjectionInputContext {
  * `exclusive` means the latest derivation is the whole truth: anything of
  * this target type within the declared visibility that the derivation no
  * longer mentions is removed by the runtime. `additive` means the rule
- * writes and never removes.
+ * writes and never removes. `managed` means the domain explicitly reconciles
+ * a partition narrower than the runtime's visibility-wide scope.
  *
  * Declared rather than implemented, because both mistakes are silent. A rule
  * that should reconcile and does not accumulates orphans that look real; one
@@ -140,6 +143,7 @@ export interface ProjectionInputContext {
  */
 export type ProjectionTargetAuthority =
   | { readonly authority: "additive" }
+  | { readonly authority: "managed" }
   | {
       readonly authority: "exclusive";
       readonly visibility: ContentVisibility;
@@ -225,6 +229,7 @@ const ProjectionRuleMetadataSchema = z.strictObject({
   targetType: z.string().trim().min(1),
   targets: z.discriminatedUnion("authority", [
     z.strictObject({ authority: z.literal("additive") }),
+    z.strictObject({ authority: z.literal("managed") }),
     z.strictObject({
       authority: z.literal("exclusive"),
       visibility: z.enum(["public", "shared", "restricted"]),
@@ -300,6 +305,14 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
         if (entityType !== metadata.targetType) {
           throw new Error(
             `Projection rule "${metadata.id}" cannot write entity type "${entityType}"`,
+          );
+        }
+        if (
+          metadata.targets.authority === "additive" &&
+          intent.operation === "delete"
+        ) {
+          throw new Error(
+            `Additive projection rule "${metadata.id}" cannot delete targets`,
           );
         }
       }

@@ -258,6 +258,7 @@ const graph: ProjectionGraph = {
 };
 
 const inputContext: ProjectionInputContext = {
+  spaces: [],
   conversations: {
     get: async () => null,
     getMessages: async () => [],
@@ -541,6 +542,43 @@ describe("activateProjectionRuntime", () => {
       claimAttempts: 1,
       queuedRules: 1,
     });
+    runtime.dispose();
+  });
+
+  it("does not poll another conversation page while a wave is active", async () => {
+    const store = new MemoryRuntimeStore();
+    let scheduledSweep: (() => Promise<void>) | undefined;
+    let pollCount = 0;
+    const runtime = await activateProjectionRuntime({
+      store,
+      queue: {
+        enqueue: async () => "job-1",
+        getStatus: async () => null,
+        registerHandler: (): void => {},
+        unregisterHandler: (): void => {},
+      },
+      setWakeup: (): (() => void) => (): void => {},
+      graph,
+      rules: [projectionRule],
+      inputContext,
+      executionContext,
+      reconcileTargets: async () => {},
+      beforeWaveCompletion: async () => {},
+      logger: createSilentLogger(),
+      createWaveId: () => "wave-1",
+      now: () => 10,
+      pollConversationSources: async () => {
+        pollCount += 1;
+      },
+      scheduleSweep: (_interval, sweep): (() => void) => {
+        scheduledSweep = sweep;
+        return (): void => {};
+      },
+    });
+
+    expect(pollCount).toBe(1);
+    await scheduledSweep?.();
+    expect(pollCount).toBe(1);
     runtime.dispose();
   });
 

@@ -177,6 +177,7 @@ function makeFixedConversationService(input: {
     getConversation: async (conversationId: string) =>
       input.conversations.find((c) => c.id === conversationId) ?? null,
     listConversationsUpdatedSince: async () => [],
+    getConversationChangeHead: async () => null,
     listConversations: async (options) =>
       input.conversations.filter(
         (c) =>

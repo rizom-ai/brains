@@ -5,9 +5,6 @@ import {
   z,
   type BaseEntity,
   type ContentVisibility,
-  type EntityInput,
-  type EntityMutationResult,
-  type IEntityAINamespace,
   type Conversation,
   type EntityEvalDeclaration,
   type JobEntityAccess,
@@ -20,16 +17,22 @@ import {
   type ActionItemEntity,
   type DecisionEntity,
 } from "../schemas/conversation-memory";
-import { summarySchema, type SummaryEntity } from "../schemas/summary";
-import type { SummaryConfig } from "../schemas/summary-config";
-import { SummaryExtractor } from "./summary-extractor";
-import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import {
-  SummaryProjector,
-  type SummaryProjectionContext,
-} from "./summary-projector";
+  summarySchema,
+  type SummaryEntity,
+  type SummaryTimeRange,
+} from "../schemas/summary";
+import type { SummaryConfig } from "../schemas/summary-config";
+import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
+import { SummaryProjector } from "./summary-projector";
 import { conversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
+import { runMemoryRuleChain } from "./memory-rule-chain-runner";
+import { parseSummaryBody } from "./summary-body";
+import {
+  parseMemoryProjectionEnvelope,
+  type ProjectedMemoryWrite,
+} from "./memory-projection-envelope";
 import { getConversationSpaceId } from "./summary-space-eligibility";
 
 const messageRoleSchema = z.enum(["user", "assistant"]);
@@ -160,18 +163,32 @@ export function summaryEvalHandlers(
     summarizeMessages: async (input, { ai, logger }): Promise<unknown> => {
       const parsed = summarizeMessagesInputSchema.parse(input);
       const messages = toEvalMessages(parsed.messages, parsed.conversationId);
-
-      const extractor = new SummaryExtractor(ai, logger, config);
-      const memory = await extractor.extract(messages);
-      return memory.entries.map((entry) => {
-        const decisions = memory.decisions
-          .filter((item) => item.timeRange.start >= entry.timeRange.start)
-          .filter((item) => item.timeRange.end <= entry.timeRange.end)
-          .map((item) => item.text);
-        const actionItems = memory.actionItems
-          .filter((item) => item.timeRange.start >= entry.timeRange.start)
-          .filter((item) => item.timeRange.end <= entry.timeRange.end)
-          .map((item) => item.text);
+      const conversation = createEvalConversation({
+        conversationId: parsed.conversationId,
+        interfaceType: "eval",
+        channelId: "eval-channel",
+        messages,
+      });
+      const chain = await runMemoryRuleChain(
+        {
+          conversation,
+          messages,
+          existingSummary: null,
+          projectionDecision: "update",
+        },
+        { ai, logger },
+        config,
+      );
+      const summary = chain.summaries[0];
+      if (!summary) return [];
+      const envelope = parseMemoryProjectionEnvelope(summary.content);
+      return parseSummaryBody(summary.content).entries.map((entry) => {
+        const decisions = envelope
+          ? memoryTextsWithin(envelope.decisions, entry.timeRange)
+          : [];
+        const actionItems = envelope
+          ? memoryTextsWithin(envelope.actionItems, entry.timeRange)
+          : [];
         return {
           ...entry,
           decisions,
@@ -271,33 +288,27 @@ export function summaryEvalHandlers(
             visibility: config.memoryVisibility,
           })
         : null;
-      const upserted: BaseEntity[] = [];
-      const deleted: Array<{ entityType: string; id: string }> = [];
-      const projector = new SummaryProjector(
-        createEvalProjectionContext({
-          ai,
+      const chain = await runMemoryRuleChain(
+        {
           conversation,
           messages,
-          existing,
-          upserted,
-          deleted,
+          existingSummary: existing,
           projectionDecision: parsed.projectionDecision,
-        }),
-        logger,
+        },
+        { ai, logger },
         config,
       );
-      const result = await projector.projectConversation(parsed.conversationId);
 
       return {
-        result,
-        summaries: upserted.filter((entity) => entity.entityType === "summary"),
-        decisions: upserted.filter(
-          (entity) => entity.entityType === "decision",
-        ),
-        actionItems: upserted.filter(
-          (entity) => entity.entityType === "action-item",
-        ),
-        deleted,
+        result: {
+          skipped: chain.skipped,
+          projectionDecision: chain.projectionDecision,
+          summaryId: chain.summaries[0]?.id,
+        },
+        summaries: chain.summaries,
+        decisions: chain.decisions,
+        actionItems: chain.actionItems,
+        deleted: chain.deleted,
       };
     },
 
@@ -366,6 +377,32 @@ function toEvalMessages(
   });
 }
 
+function memoryTextsWithin(
+  items: ProjectedMemoryWrite[],
+  range: SummaryTimeRange,
+): string[] {
+  return items.flatMap((item) => {
+    const timeRange = item.metadata["timeRange"];
+    if (
+      !timeRange ||
+      typeof timeRange !== "object" ||
+      !("start" in timeRange) ||
+      !("end" in timeRange) ||
+      typeof timeRange["start"] !== "string" ||
+      typeof timeRange["end"] !== "string" ||
+      timeRange["start"] < range.start ||
+      timeRange["end"] > range.end
+    ) {
+      return [];
+    }
+    const body = item.content
+      .replace(/^---\n[\s\S]*?\n---\n*/, "")
+      .replace(/^# [^\n]+\n+/, "")
+      .trim();
+    return body ? [body] : [];
+  });
+}
+
 function createEvalConversation(params: {
   conversationId: string;
   interfaceType: string;
@@ -388,74 +425,6 @@ function createEvalConversation(params: {
     createdAt: startedAt,
     updatedAt: lastActiveAt,
     metadata: {},
-  };
-}
-
-function createEvalProjectionContext(params: {
-  ai: IEntityAINamespace;
-  conversation: Conversation;
-  messages: Message[];
-  existing: SummaryEntity | null;
-  upserted: BaseEntity[];
-  deleted: Array<{ entityType: string; id: string }>;
-  projectionDecision: "update" | "append";
-}): SummaryProjectionContext {
-  // Fully synthetic: an eval decides what the conversation said, which space
-  // it belongs to, and what the model chose, then records what came out.
-  const spaceId = getConversationSpaceId(params.conversation);
-  const written = (
-    entity: BaseEntity,
-  ): { entityId: string; jobId: string; skipped: boolean } => {
-    params.upserted.push(entity);
-    return { entityId: entity.id, jobId: "eval-upsert", skipped: false };
-  };
-  return {
-    spaces: [spaceId],
-    conversations: {
-      get: async () => params.conversation,
-      getMessages: async () => params.messages,
-    },
-    ai: {
-      // Only the decision is forced — extraction still runs for real, which
-      // is the thing the eval is measuring.
-      ...params.ai,
-      generateObject: async <T>() =>
-        ({
-          object: {
-            decision: params.projectionDecision,
-            rationale: "Forced by eval input",
-          },
-        }) as { object: T },
-    },
-    entities: {
-      getEntity: async <T>({ entityType }: { entityType: string }) =>
-        (entityType === "summary" ? params.existing : null) as T | null,
-      listEntities: async <T>() => [] as T[],
-      find: async () => null,
-      getEntityTypes: () => [],
-      search: async () => [],
-      get: async () => null,
-      delete: async (entityType: string, id: string): Promise<boolean> => {
-        params.deleted.push({ entityType, id });
-        return true;
-      },
-      create: async <T extends BaseEntity>(
-        entity: EntityInput<T>,
-      ): Promise<EntityMutationResult> =>
-        written(entity as unknown as BaseEntity),
-      update: async <T extends BaseEntity>(
-        entity: T,
-      ): Promise<EntityMutationResult> => written(entity),
-      createPending: async <T extends BaseEntity>(
-        entity: EntityInput<T> & { readonly id: string },
-      ): Promise<{ entityId: string; created: boolean }> => {
-        written(entity as unknown as BaseEntity);
-        return { entityId: entity.id, created: true };
-      },
-      saveProcessed: async <T extends BaseEntity>(
-        entity: EntityInput<T> & { readonly id: string },
-      ) => written(entity as unknown as BaseEntity),
-    },
   };
 }
 

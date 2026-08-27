@@ -64,6 +64,7 @@ export interface ProjectSummaryResult {
   messageCount: number;
   sourceHash: string;
   skipReason?: SummaryEligibilityReason | "unchanged" | "ai-skip";
+  projectionDecision?: "update" | "append";
 }
 
 /** Lower-cased and whitespace-collapsed, for label matching. */
@@ -111,7 +112,7 @@ export function getActorsMentionedInText(
 
 /** What a projection reads from and writes to. */
 export interface SummaryProjectionContext {
-  readonly ai: IEntityAINamespace;
+  readonly ai: Pick<IEntityAINamespace, "generate" | "generateObject">;
   readonly entities: JobEntityAccess;
   readonly conversations: EntityConversationReader;
   readonly spaces: readonly string[];
@@ -289,6 +290,7 @@ export class SummaryProjector {
       entryCount: projected.entries.length,
       messageCount: source.messages.length,
       sourceHash: source.sourceHash,
+      projectionDecision: decision.decision,
     };
   }
 
@@ -410,11 +412,11 @@ export class SummaryProjector {
     now: string,
     messages: Message[],
   ): Promise<void> {
-    const decisionEntities = projected.decisions.map((item, index) =>
-      this.createDecisionEntity(item, summaryMetadata, index, now, messages),
+    const decisionEntities = projected.decisions.map((item) =>
+      this.createDecisionEntity(item, summaryMetadata, now, messages),
     );
-    const actionItemEntities = projected.actionItems.map((item, index) =>
-      this.createActionItemEntity(item, summaryMetadata, index, now, messages),
+    const actionItemEntities = projected.actionItems.map((item) =>
+      this.createActionItemEntity(item, summaryMetadata, now, messages),
     );
 
     await Promise.all(
@@ -427,7 +429,6 @@ export class SummaryProjector {
   private createDecisionEntity(
     item: ExtractedConversationMemoryItem,
     summaryMetadata: SummaryMetadata,
-    index: number,
     now: string,
     messages: Message[],
   ): DecisionEntity {
@@ -457,12 +458,7 @@ export class SummaryProjector {
     );
 
     return {
-      id: this.memoryEntityId(
-        summaryMetadata.conversationId,
-        "decision",
-        index,
-        item.text,
-      ),
+      id: this.memoryEntityId(summaryMetadata.conversationId, "decision", item),
       entityType: DECISION_ENTITY_TYPE,
       content,
       contentHash: computeContentHash(content),
@@ -476,7 +472,6 @@ export class SummaryProjector {
   private createActionItemEntity(
     item: ExtractedConversationMemoryItem,
     summaryMetadata: SummaryMetadata,
-    index: number,
     now: string,
     messages: Message[],
   ): ActionItemEntity {
@@ -521,8 +516,7 @@ export class SummaryProjector {
       id: this.memoryEntityId(
         summaryMetadata.conversationId,
         "action-item",
-        index,
-        item.text,
+        item,
       ),
       entityType: ACTION_ITEM_ENTITY_TYPE,
       content,
@@ -703,10 +697,14 @@ export class SummaryProjector {
   private memoryEntityId(
     conversationId: string,
     type: "decision" | "action-item",
-    index: number,
-    text: string,
+    item: ExtractedConversationMemoryItem,
   ): string {
-    return `${conversationId}:${type}:${index + 1}:${computeContentHash(text).slice(0, 12)}`;
+    const identity = JSON.stringify({
+      text: normalizeForAttribution(item.text),
+      start: item.timeRange.start,
+      end: item.timeRange.end,
+    });
+    return `${conversationId}:${type}:${computeContentHash(identity).slice(0, 16)}`;
   }
 
   private titleForMemory(prefix: string, text: string): string {

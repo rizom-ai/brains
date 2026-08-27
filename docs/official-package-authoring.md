@@ -139,6 +139,33 @@ just belongs to whatever runs now. Codec round-trips go against the adapter
 the registry hands out (`harness.getEntityRegistry().getAdapter(type)`);
 generation behaviour goes against the declaration.
 
+### Projection-rule authority and input context
+
+Every advanced projection rule declares one target authority:
+
+- `additive` may upsert but cannot delete. Use it when one wave sees only the
+  changed source partition and must leave all other targets alone.
+- `exclusive` declares that the derived set is the complete truth for the
+  rule's visibility scope. The runtime removes previously owned targets the
+  rule stopped mentioning.
+- `managed` permits explicit upsert/delete intents when the domain owns a
+  partition narrower than visibility, such as decisions belonging to one
+  conversation summary. The rule must select and delete only inside that
+  partition; the runtime does not infer its boundary.
+
+`ProjectionInputContext` is read-only selection context. In addition to entity
+and conversation readers, it carries `spaces: readonly string[]`, the resolved
+brain conversation-space configuration. Rules use that value instead of
+copying shell spaces into package config. Keep model calls in `derive`; select
+only immutable input, including any existing entities needed for scoped
+reconciliation.
+
+A conversation source is an event stream rather than an entity type. Fresh
+activation establishes a current change-stream baseline and does not process
+history. Historical model work is an administrator action through
+`system_backfill_conversation_projections`, with confirmation and an independent
+durable cursor.
+
 ### Work that starts now and finishes later
 
 An import or a generation has to do two things at once: hand the caller a

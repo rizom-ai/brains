@@ -119,7 +119,10 @@ import {
   HttpRouteRegistry,
 } from "./http-route-registry";
 import { registerShellRuntimeFinalizers } from "./shell-shutdown";
-import { registerShellSystemCapabilities } from "./shell-system-capabilities";
+import {
+  registerShellSystemCapabilities,
+  registerShellSystemJobHandlers,
+} from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
 import { Exit } from "@brains/utils/effect";
@@ -197,13 +200,16 @@ export class Shell implements IShell {
               collectHttpRouteContributors(this.services.pluginManager),
             );
           },
-          registerSystemCapabilities: (): void =>
+          registerSystemJobHandlers: (): void =>
+            registerShellSystemJobHandlers(this.services, this.jobs),
+          registerSystemCapabilities: (options): void =>
             registerShellSystemCapabilities({
               services: this.services,
               jobs: this.jobs,
               insights: this.insightsRegistry,
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
+              resumeBackfill: options.resumeBackfill,
             }),
           createProjectionInputContext: (): ProjectionInputContext =>
             this.createProjectionInputContext(),
@@ -753,6 +759,7 @@ export class Shell implements IShell {
     const conversationService = this.services.conversationService;
     return {
       entities: this.services.entityService,
+      spaces: this.config.spaces,
       conversations: {
         get: async (conversationId): Promise<Conversation | null> => {
           const conversation =

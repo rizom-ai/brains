@@ -510,6 +510,107 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("conversation change cursor", () => {
+    it("drains a timestamp tie across bounded pages", async () => {
+      for (const id of ["cursor-c", "cursor-a", "cursor-b"]) {
+        await service.startConversation({
+          sessionId: id,
+          interfaceType: "cli",
+          channelId: id,
+          metadata: testMetadata,
+        });
+      }
+      const tied = "2026-01-01T00:00:00.000Z";
+      await client.execute({
+        sql: "UPDATE conversations SET updated = ?",
+        args: [tied],
+      });
+
+      const first = await service.listConversationsUpdatedSince({
+        after: null,
+        limit: 2,
+      });
+      const last = first.at(-1);
+      expect(first.map(({ id }) => id)).toEqual(["cursor-a", "cursor-b"]);
+      expect(last).toBeDefined();
+
+      const second = await service.listConversationsUpdatedSince({
+        after: last ? { updated: last.updated, id: last.id } : null,
+        limit: 2,
+      });
+      expect(second.map(({ id }) => id)).toEqual(["cursor-c"]);
+      expect(await service.getConversationChangeHead()).toEqual({
+        updated: tied,
+        id: "cursor-c",
+      });
+    });
+
+    it("rolls back the message when conversation advancement fails", async () => {
+      await service.startConversation({
+        sessionId: "transactional-message",
+        interfaceType: "test",
+        channelId: "transactional-message",
+        metadata: testMetadata,
+      });
+      const before = await service.getConversation("transactional-message");
+      await client.execute(`
+        CREATE TRIGGER reject_transactional_revision
+        BEFORE UPDATE OF updated ON conversations
+        WHEN NEW.id = 'transactional-message'
+        BEGIN
+          SELECT RAISE(ABORT, 'revision rejected');
+        END
+      `);
+
+      let failed = false;
+      try {
+        await service.addMessage({
+          conversationId: "transactional-message",
+          role: "user",
+          content: "This message must roll back.",
+        });
+      } catch (error) {
+        failed = true;
+        expect(String(error)).toContain("Failed query: update");
+      }
+      expect(failed).toBe(true);
+
+      expect(await service.getMessages("transactional-message")).toEqual([]);
+      expect(await service.getConversation("transactional-message")).toEqual(
+        before,
+      );
+    });
+
+    it("advances the revision for repeated same-millisecond writes", async () => {
+      await service.startConversation({
+        sessionId: "monotonic-revision",
+        interfaceType: "cli",
+        channelId: "monotonic-revision",
+        metadata: testMetadata,
+      });
+      const started = await service.getConversation("monotonic-revision");
+
+      await service.addMessage({
+        conversationId: "monotonic-revision",
+        role: "user",
+        content: "first",
+      });
+      const first = await service.getConversation("monotonic-revision");
+      await service.addMessage({
+        conversationId: "monotonic-revision",
+        role: "assistant",
+        content: "second",
+      });
+      const second = await service.getConversation("monotonic-revision");
+      if (!started || !first || !second) {
+        throw new Error("Expected the conversation at every revision");
+      }
+
+      expect(first.updated > started.updated).toBe(true);
+      expect(second.updated > first.updated).toBe(true);
+    });
+  });
+
   describe("updateConversationMetadata", () => {
     it("should merge conversation metadata without removing existing fields", async () => {
       const conversationId = "conv-rename";
