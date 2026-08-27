@@ -51,7 +51,7 @@ Commands exposed by plugins are discovered from the running tool registry.
 
 ## Requirements
 
-- Bun 1.3.3+
+- Bun 1.4.0+
 - a configured provider API key
 
 ## Public authoring surfaces
