@@ -71,6 +71,7 @@ import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
 import type {
   ProjectionRule,
+  ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "./entity/projection-rule";
 import type {
@@ -349,6 +350,7 @@ export interface IShell {
    */
   runProjectionRule(
     rule: ProjectionRule,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
     signal?: AbortSignal,
   ): Promise<readonly ProjectionWriteIntent[]>;
 

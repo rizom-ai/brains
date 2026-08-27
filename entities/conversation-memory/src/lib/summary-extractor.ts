@@ -26,11 +26,11 @@ export interface SummaryExtraction {
 }
 
 export class SummaryExtractor {
-  private readonly ai: IEntityAINamespace;
+  private readonly ai: Pick<IEntityAINamespace, "generate">;
   private readonly logger: LoggerContract;
   private readonly config: SummaryConfig;
   constructor(
-    ai: IEntityAINamespace,
+    ai: Pick<IEntityAINamespace, "generate">,
     logger: LoggerContract,
     config: SummaryConfig,
   ) {

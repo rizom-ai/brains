@@ -6,6 +6,7 @@ import type {
 } from "@brains/messaging-service";
 import type {
   ProjectionRule,
+  ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "../entity/projection-rule";
 import type { Channel } from "../utils/channels";
@@ -191,6 +192,7 @@ export interface IEvalNamespace {
    */
   runProjectionRule: (
     rule: ProjectionRule,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
     signal?: AbortSignal,
   ) => Promise<readonly ProjectionWriteIntent[]>;
 }

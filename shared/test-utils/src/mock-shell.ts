@@ -35,6 +35,7 @@ import type {
   IInsightsRegistry,
   InsightHandler,
   ProjectionRule,
+  ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "@brains/plugins";
 import type { AIGenerationSchema } from "@brains/ai-service";
@@ -1339,10 +1340,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     runProjectionRule: async (
       rule: ProjectionRule,
+      options: { readonly inputs?: readonly ProjectionWaveInput[] } = {},
       signal: AbortSignal = new AbortController().signal,
     ): Promise<readonly ProjectionWriteIntent[]> => {
       const input = await rule.selectInput(
-        { waveId: "eval", inputs: [] },
+        { waveId: "eval", inputs: options.inputs ?? [] },
         {
           entities: entityService,
           conversations: {

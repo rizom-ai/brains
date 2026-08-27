@@ -39,7 +39,11 @@ import type {
 } from "@brains/contracts";
 import type { AttachmentProvider } from "../service/attachment-registry";
 import type { IPermissionsNamespace } from "../public/types";
-import type { ProjectionRule, ProjectionWriteIntent } from "./projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
 import type { OperatorCaller } from "../operator/operator-context-contract";
@@ -588,6 +592,13 @@ export interface EntityEvalContext extends EntityGenerationContext {
    */
   runProjectionRule(
     rule: ProjectionRule,
+    /**
+     * The sources to measure against, for a rule that derives only from what
+     * changed. A rule that reads the corpus needs none; one woken by a
+     * conversation selects nothing without them and the eval measures an
+     * empty run instead of the derivation.
+     */
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
   ): Promise<readonly ProjectionWriteIntent[]>;
 }
 

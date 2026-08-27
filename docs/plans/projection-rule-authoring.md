@@ -135,15 +135,16 @@ Each phase is a shippable slice with its tests written first.
    carry a watermark without stranding older changes; and conversation reads
    on the input context, so a woken rule can see what it was woken about.
 
-5. **Conversation-memory declares its derivations.** Three chained rules
-   replacing the 776-line orphaned `SummaryProjector`: summary from
-   conversations (exclusive over the configured memory visibility), then
-   decision and action item from the summary (additive, parse-only). The first full pass ships
-   behind an explicit operator action rather than "no summaries exist yet" —
-   that condition is true exactly once, on a fresh deploy, which is the
-   machine least able to absorb N AI extractions at once. Exit criterion: the
-   package holds no class-based projection code and the open question in
-   `npm-package-boundaries.md` about its three unfilled types is closed.
+5. **An eval can drive a conversation rule.** `runProjectionRule` hardcodes
+   `inputs: []`, which suits a rule that reads the corpus and starves one
+   that reads only what it was woken about. It takes trigger inputs so an
+   eval can name what it is measuring. Here because it changes
+   `EntityEvalContext`, which is published.
+
+Conversation memory itself moved to
+[conversation-memory-restart.md](./conversation-memory-restart.md). Nothing
+it needs is public API: the runtime capability is done, and wiring a package
+to it does not belong in a boundaries branch.
 
 ## Validation that remains
 
@@ -151,6 +152,5 @@ Each phase is a shippable slice with its tests written first.
   after.
 - The four rules' existing behavior tests passing unchanged through phases 2–3.
 - Export ledger and authoring doc consistency (`public-authoring-golden.test.ts`).
-- A first-pass cost test for phase 5: N conversations, one AI call per eligible
-  conversation, zero on a second run (`sourceHash` memoization), and nothing at
-  all without the explicit trigger.
+- An eval can name the sources it is measuring, so a conversation rule is
+  reachable from the eval path at all.
