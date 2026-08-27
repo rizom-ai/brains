@@ -17,8 +17,7 @@ entity changes recorded inside the entity database's own transaction.
 Conversations are in their own database. Rather than build a second ingress
 beside the new one, the trigger was dropped and every reader left in place.
 
-That bridge now exists, built on `work/plugin-api-boundaries` as part of
-[projection-rule-authoring.md](./projection-rule-authoring.md): a
+That bridge now exists, built on `work/plugin-api-boundaries`: a
 `{ kind: "conversation" }` rule source, a watermark poller, an ascending
 `listConversationsUpdatedSince` scan, and conversation reads on the rule
 input context. What remains is wiring conversation-memory to it.
@@ -101,8 +100,8 @@ it the one it has.
 
 6. **The class goes.** Delete `summary-projector.ts` and its ~1000-line test
    once all 26 eval cases are green against the rules and nothing constructs
-   it. Close the open question in `npm-package-boundaries.md` about
-   conversation-memory's three unfilled types.
+   it. That also closes the last open question from the package-boundaries
+   work: conversation-memory owning three derived types nothing fills.
 
 ## Validation
 

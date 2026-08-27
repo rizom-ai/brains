@@ -13,7 +13,7 @@ non-test source files, 273,543 lines, seven parallel reviewers plus mechanical
 clone detection).
 
 This plan deliberately excludes everything owned by
-[`work/plugin-api-boundaries`](./npm-package-boundaries.md), which has 35 commits
+`work/plugin-api-boundaries`, which has 35 commits
 and 301 changed files in flight migrating entity packages onto the declarative
 `defineEntity` surface. Overlap was checked file by file before scoping; see
 "Explicitly out of scope" below.
