@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import {
   canWriteVisibility,
   contentVisibilitySchema,
@@ -101,6 +102,125 @@ function validateAnchorProfileUpdate(
   }
 
   return undefined;
+}
+
+/**
+ * Field keys that applyFieldUpdates handles outside entity metadata.
+ */
+const NON_METADATA_FIELD_KEYS = new Set([
+  "visibility",
+  "coverImageId",
+  "ogImageId",
+]);
+
+const persistedFrontmatterSchema = z.record(z.string(), z.unknown());
+
+/**
+ * Fields-only updates change metadata and matching top-level fields, but each
+ * adapter decides what reaches storage. A field survives when the adapter
+ * extracts the requested metadata value or writes it to serialized
+ * frontmatter. Adapters that rebuild both from unchanged content otherwise
+ * produce a silent no-op.
+ *
+ * DB metadata is authoritative on read. A mismatched extracted value therefore
+ * cannot be rescued by frontmatter, while a null update successfully deletes a
+ * key that previously lived in metadata when extraction omits it. Fields that
+ * never lived in metadata must disappear from serialized frontmatter instead.
+ *
+ * The probe is best-effort: an adapter that cannot answer leaves uncertain
+ * updates alone rather than blocking them.
+ */
+function validateFieldUpdatePersistence(
+  entity: BaseEntity,
+  normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  entityRegistry: SystemServices["entityRegistry"],
+): { success: false; error: string } | undefined {
+  const fields = normalizedInput.fields;
+  if (!fields) return undefined;
+
+  const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
+    entity.entityType,
+  );
+  if (!frontmatterSchema) return undefined;
+
+  const requested = Object.keys(fields).filter(
+    (key) =>
+      !NON_METADATA_FIELD_KEYS.has(key) && key in frontmatterSchema.shape,
+  );
+  if (requested.length === 0) return undefined;
+
+  const adapter = entityRegistry.getAdapter(entity.entityType);
+  const updated = applyFieldUpdates(entity, fields);
+  let persistedMetadata: Record<string, unknown>;
+  try {
+    persistedMetadata = adapter.extractMetadata(updated);
+  } catch {
+    return undefined;
+  }
+
+  const dropped: string[] = [];
+  const needsFrontmatterProbe: string[] = [];
+  for (const key of requested) {
+    const requestedValue = fields[key];
+    const hasPersistedMetadata = Object.hasOwn(persistedMetadata, key);
+
+    if (requestedValue === null) {
+      if (hasPersistedMetadata) {
+        dropped.push(key);
+      } else if (!Object.hasOwn(entity.metadata, key)) {
+        needsFrontmatterProbe.push(key);
+      }
+      continue;
+    }
+
+    if (hasPersistedMetadata) {
+      if (!isDeepStrictEqual(persistedMetadata[key], requestedValue)) {
+        dropped.push(key);
+      }
+    } else {
+      needsFrontmatterProbe.push(key);
+    }
+  }
+
+  if (needsFrontmatterProbe.length > 0) {
+    let persistedFrontmatter: Record<string, unknown> | undefined;
+    try {
+      persistedFrontmatter = adapter.parseFrontMatter(
+        adapter.toMarkdown(updated),
+        persistedFrontmatterSchema,
+      );
+    } catch {
+      if (dropped.length === 0) return undefined;
+    }
+
+    if (persistedFrontmatter) {
+      for (const key of needsFrontmatterProbe) {
+        const requestedValue = fields[key];
+        const hasPersistedFrontmatter = Object.hasOwn(
+          persistedFrontmatter,
+          key,
+        );
+        if (
+          requestedValue === null
+            ? hasPersistedFrontmatter
+            : !hasPersistedFrontmatter ||
+              !isDeepStrictEqual(persistedFrontmatter[key], requestedValue)
+        ) {
+          dropped.push(key);
+        }
+      }
+    }
+  }
+
+  if (dropped.length === 0) return undefined;
+
+  return {
+    success: false,
+    error:
+      `${entity.entityType} does not persist ${dropped.join(", ")} through 'fields'. ` +
+      "The update would report success without changing anything. " +
+      "Provide full markdown with frontmatter via 'content' instead.",
+  };
 }
 
 function validateContentReplacement(
@@ -309,6 +429,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         normalizedInput,
       );
       if (anchorProfileError) return anchorProfileError;
+
+      const fieldPersistenceError = validateFieldUpdatePersistence(
+        entity,
+        normalizedInput,
+        entityRegistry,
+      );
+      if (fieldPersistenceError) return fieldPersistenceError;
 
       const contentReplacementError = validateContentReplacement(
         entity.entityType,
