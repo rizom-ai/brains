@@ -70,9 +70,9 @@ handed", so that is what the SDK exposes: `uploads.read(id)`, with the
 runtime supplying the scope.
 
 Sometimes the answer really is that the code is in the wrong place, and no
-narrowing helps. The
-[npm-package-boundaries plan](./plans/npm-package-boundaries.md) records the
-question and the audit that applied it package by package.
+narrowing helps. That question was applied package by package until every
+official entity and plugin package was publishable-clean; what it settled
+lives in the guards below rather than in a plan.
 
 Two guards will notice the promotion:
 

@@ -598,7 +598,6 @@ Status labels distinguish delivered alpha evidence from work that still gates st
 ## Related work
 
 - [Packed compatibility test tiering](./packed-compatibility-test-tiering.md) — focused PR feedback, one default packed canary, and the nightly/release compatibility lifecycle.
-- [NPM package boundaries](./npm-package-boundaries.md) — later official plugin publishing and public-only dependency proofs.
 - [Independent site and theme package versioning](./site-package-independent-versioning.md) — external site publishing and exact hosted pins.
 - [HTTP route registry hardening](./http-route-registry-hardening.md) — post-baseline route ownership and authorization improvements.
 - [Brain model unification](./brain-model-unification.md) — stable `v0.2.0` nomination and canary crossover.
