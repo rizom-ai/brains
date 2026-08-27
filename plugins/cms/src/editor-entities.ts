@@ -73,7 +73,9 @@ export async function handleGetEntities(
       entity: {
         id: entity.id,
         entityType: entity.entityType,
-        frontmatter,
+        // The editor contract always carries the authoritative system field,
+        // even though public and raw entities omit it from stored markdown.
+        frontmatter: { ...frontmatter, visibility: entity.visibility },
         body,
         contentHash: entity.contentHash,
         created: entity.created,
@@ -90,7 +92,10 @@ export async function handleGetEntities(
     entities: entities.map((entity) => ({
       id: entity.id,
       entityType: entity.entityType,
-      frontmatter: splitEntityContent(entityType, entity.content).frontmatter,
+      frontmatter: {
+        ...splitEntityContent(entityType, entity.content).frontmatter,
+        visibility: entity.visibility,
+      },
       updated: entity.updated,
     })),
   });
@@ -132,7 +137,8 @@ export async function handleUpdateEntity(
   if (bodyError) return bodyError;
 
   const raw = isRawEntityType(entityType);
-  if (raw && Object.keys(payload.frontmatter).length > 0) {
+  const domainFrontmatter = stripCmsPolicyMetadata(payload.frontmatter);
+  if (raw && Object.keys(domainFrontmatter).length > 0) {
     return jsonResponse(
       {
         error: `Entity type ${entityType} is raw markdown without frontmatter`,
@@ -151,10 +157,9 @@ export async function handleUpdateEntity(
   // the form, the entity service is never called with invalid frontmatter.
   const frontmatter = raw
     ? z.object({}).safeParse({})
-    : // `visibility` is a system field the editor loads from a non-public
-      // entity's frontmatter and sends straight back. It is resolved above and
-      // must not reach a strict domain schema, which would reject it.
-      schema.safeParse(stripCmsPolicyMetadata(payload.frontmatter));
+    : // `visibility` is a system field in the editor projection. It is
+      // resolved above and must not reach a strict domain schema.
+      schema.safeParse(domainFrontmatter);
   if (!frontmatter.success) {
     return jsonResponse(
       { error: "Invalid frontmatter", issues: frontmatter.error.issues },
@@ -333,7 +338,8 @@ export async function handleCreateEntity(
   if (bodyError) return bodyError;
 
   const raw = isRawEntityType(entityType);
-  if (raw && Object.keys(payload.frontmatter).length > 0) {
+  const domainFrontmatter = stripCmsPolicyMetadata(payload.frontmatter);
+  if (raw && Object.keys(domainFrontmatter).length > 0) {
     return jsonResponse(
       {
         error: `Entity type ${entityType} is raw markdown without frontmatter`,
@@ -347,10 +353,9 @@ export async function handleCreateEntity(
 
   const frontmatter = raw
     ? z.object({}).safeParse({})
-    : // `visibility` is a system field the editor loads from a non-public
-      // entity's frontmatter and sends straight back. It is resolved above and
-      // must not reach a strict domain schema, which would reject it.
-      schema.safeParse(stripCmsPolicyMetadata(payload.frontmatter));
+    : // `visibility` is a system field in the editor projection. It is
+      // resolved above and must not reach a strict domain schema.
+      schema.safeParse(domainFrontmatter);
   if (!frontmatter.success) {
     return jsonResponse(
       { error: "Invalid frontmatter", issues: frontmatter.error.issues },

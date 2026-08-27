@@ -38,6 +38,15 @@ const frontmatterSchemas: Record<string, z.ZodObject<z.ZodRawShape>> = {
   brief: briefFrontmatterSchema,
 };
 
+const adminVisibilityField = {
+  name: "visibility",
+  label: "Visibility",
+  widget: "select",
+  required: true,
+  default: "public",
+  options: ["public", "shared", "restricted"],
+};
+
 const entityIdPayloadSchema = z.object({ entityId: z.string() });
 const suggestionPayloadSchema = z.object({ suggestion: z.string() });
 const skippedPayloadSchema = z.object({ skipped: z.boolean() });
@@ -871,6 +880,7 @@ describe("cms editor api", () => {
         widget: "boolean",
         required: false,
       },
+      adminVisibilityField,
     ]);
   });
 
@@ -893,9 +903,9 @@ describe("cms editor api", () => {
     expect(response.status).toBe(200);
     expect(payload.format).toBe("raw");
     expect(payload.hasBody).toBe(true);
-    // The note frontmatter schema (title/status/error bookkeeping) must not
-    // leak into the authoring form.
-    expect(payload.fields).toEqual([]);
+    // The note's domain frontmatter bookkeeping stays hidden, while the
+    // system-owned visibility control remains available for every entity.
+    expect(payload.fields).toEqual([adminVisibilityField]);
   });
 
   it("round-trips a raw note verbatim, even when it opens with a horizontal rule", async () => {
@@ -920,7 +930,7 @@ describe("cms editor api", () => {
       apiRequest("/cms/api/entities?type=note&id=rule-note", { cookie }),
     );
     const payload = entityPayloadSchema.parse(await readBack.json());
-    expect(payload.entity.frontmatter).toEqual({});
+    expect(payload.entity.frontmatter).toEqual({ visibility: "public" });
     expect(payload.entity.body).toBe(content);
 
     const newBody = "Rewritten.\n\n---\n\nStill raw.\n";
@@ -931,7 +941,7 @@ describe("cms editor api", () => {
         body: {
           entityType: "note",
           id: "rule-note",
-          frontmatter: {},
+          frontmatter: { visibility: "restricted" },
           body: newBody,
         },
       }),
@@ -941,19 +951,22 @@ describe("cms editor api", () => {
     const stored = await shell.getEntityService().getEntity({
       entityType: "note",
       id: "rule-note",
+      visibilityScope: "restricted",
     });
     expect(stored?.content).toBe(newBody);
+    expect(stored?.visibility).toBe("restricted");
   });
 
-  it("saves a restricted entity whose loaded draft carries the system visibility key", async () => {
+  it("projects authoritative visibility into the editor and keeps it after reload", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
     await shell.getEntityService().createEntity({
       entity: {
         id: "restricted-brief",
         entityType: "brief",
-        content:
-          "---\ntitle: Restricted\nvisibility: restricted\n---\n\nBody.\n",
+        // Stored content can lag the top-level policy field. The editor must
+        // render the entity's authoritative visibility, not this envelope.
+        content: "---\ntitle: Restricted\n---\n\nBody.\n",
         metadata: { title: "Restricted" },
         visibility: "restricted",
         created: "2026-07-01T00:00:00.000Z",
@@ -962,9 +975,17 @@ describe("cms editor api", () => {
     });
     const plugin = await registerPlugin(shell);
 
-    // Non-public entities carry `visibility` in their exported frontmatter, so
-    // the editor loads it into the draft and sends it straight back. It is a
-    // system field, not a domain one, and must never reach domain validation.
+    const read = await findRoute(plugin, "/cms/api/entities").handler(
+      apiRequest("/cms/api/entities?type=brief&id=restricted-brief", {
+        cookie,
+      }),
+    );
+    const loaded = entityPayloadSchema.parse(await read.json());
+    expect(loaded.entity.frontmatter).toEqual({
+      title: "Restricted",
+      visibility: "restricted",
+    });
+
     const update = await findRoute(plugin, "/cms/api/entities", "PUT").handler(
       apiRequest("/cms/api/entities", {
         cookie,
@@ -972,7 +993,7 @@ describe("cms editor api", () => {
         body: {
           entityType: "brief",
           id: "restricted-brief",
-          frontmatter: { title: "Restricted", visibility: "restricted" },
+          frontmatter: { title: "Restricted", visibility: "public" },
           body: "Edited.\n",
         },
       }),
@@ -984,8 +1005,17 @@ describe("cms editor api", () => {
       id: "restricted-brief",
       visibilityScope: "restricted",
     });
-    expect(stored?.visibility).toBe("restricted");
+    expect(stored?.visibility).toBe("public");
     expect(stored?.content).toContain("Edited.");
+    expect(stored?.content).not.toContain("visibility:");
+
+    const readAfterSave = await findRoute(plugin, "/cms/api/entities").handler(
+      apiRequest("/cms/api/entities?type=brief&id=restricted-brief", {
+        cookie,
+      }),
+    );
+    const reloaded = entityPayloadSchema.parse(await readAfterSave.json());
+    expect(reloaded.entity.frontmatter["visibility"]).toBe("public");
   });
 
   it("rejects frontmatter writes to raw types", async () => {
@@ -1196,7 +1226,10 @@ describe("cms editor api", () => {
 
     expect(response.status).toBe(200);
     expect(payload.entity.id).toBe("hello-world");
-    expect(payload.entity.frontmatter).toEqual({ title: "Hello World" });
+    expect(payload.entity.frontmatter).toEqual({
+      title: "Hello World",
+      visibility: "public",
+    });
     expect(payload.entity.body.trim()).toBe("The original body.");
   });
 
@@ -1285,7 +1318,10 @@ describe("cms editor api", () => {
       apiRequest("/cms/api/entities?type=post&id=hello-world", { cookie }),
     );
     const payload = entityPayloadSchema.parse(await readBack.json());
-    expect(payload.entity.frontmatter).toEqual({ title: "Hello Body" });
+    expect(payload.entity.frontmatter).toEqual({
+      title: "Hello Body",
+      visibility: "public",
+    });
     expect(payload.entity.body).toBe(
       "A **rewritten** body.\n\nWith two paragraphs.",
     );

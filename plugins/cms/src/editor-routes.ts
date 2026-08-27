@@ -4,7 +4,11 @@ import {
   requireSameOriginRequest,
 } from "@brains/auth-service";
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import { permissionToVisibilityScope } from "@brains/plugins";
+import {
+  canWriteVisibility,
+  deriveConsoleSurfaces,
+  permissionToVisibilityScope,
+} from "@brains/plugins";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
@@ -13,7 +17,6 @@ import {
   zodFieldToCmsWidget,
   type CmsEntityDisplayMap,
 } from "./config";
-import { deriveConsoleSurfaces } from "@brains/plugins";
 import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeCmsBasePath } from "./cms-paths";
 import type { CmsWorkspaceRegistry } from "./workspace-registry";
@@ -48,6 +51,8 @@ export type {
   CmsTypeCapabilities,
   EditorRouteOptions,
 } from "./editor-contracts";
+
+const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
 // Named cms-app.js (not app.js): in the bundled @rizom/brain this resolves
 // to the shared dist/ui directory, where app.js is web-chat's bundle.
@@ -598,13 +603,25 @@ async function handleGetSchema(
 
   const adapter = context.entities.getAdapter(entityType);
   const raw = isRawEntityType(entityType);
-  // Raw types edit the whole document as body; their frontmatter schema is
-  // system bookkeeping and must not surface as form fields.
-  const fields = raw
+  // Raw types edit the whole document as body; their domain frontmatter
+  // bookkeeping must not surface. Visibility is system-owned and applies to
+  // every entity type independently of its markdown representation.
+  const domainFields = raw
     ? []
     : Object.keys(schema.shape).map((name) =>
         zodFieldToCmsWidget(name, schema.shape[name]),
       );
+  const visibilityField = {
+    name: "visibility",
+    label: "Visibility",
+    widget: "select",
+    required: true,
+    default: "public",
+    options: CONTENT_VISIBILITIES.filter((visibility) =>
+      canWriteVisibility(access.permissionLevel, visibility),
+    ),
+  };
+  const fields = [...domainFields, visibilityField];
 
   return jsonResponse({
     entityType,

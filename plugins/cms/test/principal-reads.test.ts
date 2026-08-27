@@ -234,6 +234,20 @@ describe("CMS principal-aware reads behind the rollout gate", () => {
       ]);
 
     expect(postSchema.status).toBe(200);
+    const schemaPayload = z
+      .object({
+        fields: z.array(
+          z.object({
+            name: z.string(),
+            options: z.array(z.string()).optional(),
+          }),
+        ),
+      })
+      .parse(await postSchema.json());
+    expect(
+      schemaPayload.fields.find((field) => field.name === "visibility")
+        ?.options,
+    ).toEqual(["public", "shared"]);
     expect(secretSchema.status).toBe(404);
     expect(unknownSchema.status).toBe(404);
     const listed = z

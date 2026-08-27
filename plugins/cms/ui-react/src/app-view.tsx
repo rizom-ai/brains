@@ -404,7 +404,7 @@ export function CmsAppView(props: CmsAppViewProps): ReactElement {
                         )}
                     </div>
                   ))}
-                {entitySchema.fields.length === 0 && (
+                {entitySchema.format === "raw" && (
                   <p className="status">
                     This type is raw markdown — the whole document is the body.
                   </p>
