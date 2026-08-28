@@ -1,124 +1,194 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-08-13
+Last updated: 2026-08-27
 
 ## Status
 
-In progress. The asset foundation, image cutover, migration/reconciliation tooling,
-implementation-review fixes, and isolated `yeehaa.io` rehearsal are complete on the
-pushed `feat/durable-binary-assets-migration` branch. The remaining work is to merge and
-deploy that implementation, perform the production cutover and soak, remove the
-transitional image bridge after zero-use telemetry, and complete the independent PDF
-follow-up.
+Replanning.
 
-## Summary
+PR #125 implemented a filesystem-backed content-addressed asset store under
+`data/assets`. That backend is no longer the target architecture. Do not merge or deploy
+that branch as-is.
 
-Move durable image bytes out of the entity SQLite database into a content-addressed
-asset store. Image entities retain identity, visibility, provenance, dimensions, and
-other queryable metadata, but their `content` field becomes an opaque asset reference
-instead of a base64 data URL.
+The revised decision is to keep durable binary bytes in the same entity SQLite database
+as their entity references, using a dedicated content-addressed BLOB table. This preserves
+one transactional source of truth and one SQLite-safe backup/restore boundary while still
+removing base64 payloads from entity rows, FTS, ordinary reads, events, and API lists.
 
-Deliver images first and validate the migration on `yeehaa.io`, the only actively used
-brain with a material image corpus. Migrate PDF document entities in a follow-up phase
-only after the image path has soaked successfully.
+No production instance has been migrated. The existing PR remains useful as implementation
+research: its asset-reference contracts, image byte validation, reader/writer inventory,
+FTS policy, compatibility bridge, migration checks, and UX acceptance coverage can be
+reused after rebase. Its filesystem store, `assetDirectory` plumbing, filesystem-specific
+migration/reconciliation behavior, and backup assumptions must be replaced.
 
-## Current baseline
+## Decision
 
-Image entities currently store their complete payload in `entities.content` as a data
-URL:
+Completed image entities store an opaque content-addressed reference:
+
+```text
+asset://sha256/<lowercase-hex-digest>
+```
+
+The referenced bytes live once in a dedicated `assets` table inside the same `brain.db`
+that contains the entity row:
+
+```text
+brain.db
+├── entities
+│   └── content = asset://sha256/<digest>
+└── assets
+    ├── digest = <digest>
+    ├── bytes = <raw SQLite BLOB>
+    └── size_bytes = <decoded byte count>
+```
+
+The initial backend is SQLite, not the runtime filesystem and not a separate asset
+database. Asset insertion and the entity mutation that publishes its reference must share
+the same database transaction. A committed entity must never reference an absent asset.
+
+The asset contracts remain backend-neutral so a future object-store backend is possible,
+but introducing one requires a separately approved durability, backup, transaction, and
+multi-node design. Backend abstraction must not weaken the initial single-database
+consistency guarantee.
+
+## Why this design
+
+The existing representation is inefficient because it treats binary bytes as searchable
+text, not merely because SQLite stores them.
+
+Current image entities place a complete data URL in `entities.content`:
 
 ```text
 data:image/png;base64,...
 ```
 
-The entity service also inserts that content into FTS5. Images are excluded from vector
-embeddings, but not from full-text indexing. Data URLs therefore cause several forms of
-avoidable amplification:
+That causes avoidable amplification:
 
 - base64 adds roughly 33% over the original bytes;
-- SQLite stores the expanded value in the entity row;
+- SQLite stores the expanded text in the entity row;
 - FTS stores/indexes the same non-textual content again;
 - updates amplify WAL, backup, event, and API payloads;
-- normal entity reads and lists can materialize complete image payloads;
-- every consumer decodes the full string back into bytes.
+- ordinary entity reads and lists can materialize complete image payloads;
+- consumers repeatedly decode the text back into bytes.
+
+A raw BLOB table removes the base64 and FTS amplification without splitting durable state
+between a database and a directory. Normal entity queries remain lightweight because
+they select only the asset reference; the BLOB is loaded only through an explicit asset
+read.
 
 Read-only inspection of the local `yeehaa.io` instance found:
 
 - 160 files under `brain-data/image`;
 - 320,551,933 bytes of image files, approximately 306 MiB;
 - a `data/brain.db` file of approximately 1.4 GiB;
-- existing directory-sync behavior that already represents image entities as ordinary
-  binary files in `brain-data/image`.
+- directory sync already representing image entities as ordinary binary files in
+  `brain-data/image`.
 
-The production database must be measured independently during migration preflight; the
-local numbers are planning evidence, not a production assertion.
+A 306 MiB raw asset corpus is reasonable for local SQLite. The production database must
+still be measured independently during migration preflight. The local numbers are
+planning evidence, not a production assertion.
 
-PDF document entities use the same broad pattern with
-`data:application/pdf;base64,...`. They are deliberately deferred until the image
-storage path has been proven.
+The design deliberately prioritizes consistency and recoverability over obtaining the
+smallest possible database file. Benchmarks must verify that the revised database, WAL,
+backup, and restore costs remain operationally acceptable, but performance alone is not a
+reason to create a second source-of-truth boundary.
+
+PDF document entities use the same broad data-URL pattern. They remain deferred until the
+image path has soaked successfully.
 
 ## Goals
 
-- Store each distinct binary payload once in a durable content-addressed asset store.
-- Keep image and document entities as the durable identity and authorization boundary.
+- Keep entity references and durable binary bytes in one SQLite source of truth.
+- Commit an asset and the entity reference to it atomically.
+- Store each distinct binary payload once by SHA-256 digest.
+- Store raw bytes rather than base64 text.
+- Keep image and document entities as the identity, visibility, and authorization
+  boundary.
 - Preserve `entity://image/{id}`, `coverImageId`, and `ogImageId` contracts.
 - Preserve upload, generation, CMS, chat, site-build, directory-sync, and publishing UX.
 - Stop indexing binary payloads in FTS.
+- Keep BLOBs out of ordinary entity reads, lists, events, logs, and API responses.
 - Make migration explicit, idempotent, resumable, verifiable, and reversible.
-- Restore an instance from `brain-data` plus normal runtime initialization without
-  requiring the old base64 database representation.
-- Establish one generic asset service that the PDF phase can reuse without redesign.
+- Restore references and bytes together from one SQLite-safe `brain.db` snapshot.
+- Rebuild the database from `brain-data` through explicit reconciliation when no database
+  snapshot is available.
+- Keep generic asset contracts that the later PDF phase can reuse.
 
 ## Non-goals
 
-- Moving public site images to an external CDN.
-- Introducing S3/R2 in the first implementation; the initial backend is the persisted
-  local runtime filesystem.
-- Migrating binary entities backed by a remote entity database or running the local asset
-  backend across multiple application replicas. The first migration command supports a
-  stopped, single-node process with a local `file:` SQLite database; remote/multi-node
-  operation requires a shared object-store backend and distributed migration fence.
+- Optimizing for the smallest possible `brain.db` at the expense of consistency.
+- Using `/data/assets`, plugin data directories, cache directories, or Git checkout paths
+  as the authoritative runtime asset store.
+- Introducing S3, R2, or another object store in the first implementation.
+- Using a separate `assets.db`; that would recreate a cross-database backup and
+  transaction boundary.
+- Supporting remote libSQL/Turso or multi-node asset mutation before BLOB size,
+  transaction, replication, and restore behavior is proven explicitly.
 - Changing user-authored image references or cover/OG image IDs.
 - Rewriting Git history to remove existing image or PDF objects.
-- Migrating PDF entities in the image cutover.
-- Deleting unreferenced assets automatically. Initial deletion safety favors harmless
-  orphaned files over removing bytes shared by multiple entities.
-- Changing inline data URLs used by application CSS, static SVG decoration, or AI
-  provider request/response formats when those values are not durable entities.
+- Migrating PDF entities during the image cutover.
+- Automatically deleting unreferenced assets. Initial safety favors harmless orphaned
+  rows over deleting bytes shared by multiple entities or retained rollback points.
+- Storing MIME type, filename, dimensions, or authorization policy on the deduplicated
+  byte row. Those facts belong to the referencing entity.
+- Changing inline data URLs used by CSS, static decoration, or AI provider payloads when
+  they are not durable entities.
 
 ## Settled decisions
 
-### Asset identity and location
+### Asset identity
 
-The canonical asset reference is:
+The canonical reference is:
 
 ```text
 asset://sha256/<lowercase-hex-digest>
 ```
 
-The filesystem backend stores immutable bytes under an explicit shell
-`assetDirectory`. The app-layer default derives from the standard persisted runtime data
-root:
+The digest is computed from the original decoded bytes. The key has no user-controlled
+path component. The same bytes always produce the same reference, regardless of filename,
+entity ID, or declared MIME type.
 
-```text
-assetDirectory = <StandardPaths.dataDir>/assets
-data/assets/sha256/<lowercase-hex-digest>
+`asset://` is an internal storage reference. It is not a browser URL and not an
+authorization mechanism.
+
+### SQLite data model
+
+Add a dedicated table to the entity database. Exact Drizzle naming may follow repository
+conventions, but the durable contract is equivalent to:
+
+```sql
+CREATE TABLE assets (
+  digest TEXT PRIMARY KEY NOT NULL,
+  bytes BLOB NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  created INTEGER NOT NULL,
+  CHECK (length(digest) = 64),
+  CHECK (digest NOT GLOB '*[^0-9a-f]*'),
+  CHECK (typeof(bytes) = 'blob'),
+  CHECK (size_bytes >= 0),
+  CHECK (length(bytes) = size_bytes)
+);
 ```
 
-Add `assetDirectory` to `StandardConfig`, app configuration, and `ShellConfig`, then pass
-it directly to the asset service during shell construction. Tests and advanced callers
-may override it explicitly. Do not infer it from a database URL or reuse plugin
-`context.dataDir`, which represents the Git-syncable `brain-data` content boundary.
-Deployed instances using `XDG_DATA_HOME=/data` therefore store assets under
-`/data/assets` on the persisted volume.
+Rules:
 
-The asset key is content-addressed and has no user-controlled path component. MIME type,
-filename, dimensions, and provenance belong to the entity, not the storage path.
+- `digest` is the lowercase SHA-256 digest and the deduplication key.
+- `bytes` contains the exact original binary bytes, never base64.
+- `size_bytes` supports bounded reads and consistency checks without loading the BLOB.
+- MIME type, image format, dimensions, filename, visibility, and provenance remain on
+  the entity.
+- Asset rows are immutable. Ordinary runtime code may insert or read, but not update
+  bytes for an existing digest.
+- No normal entity list/search query joins or selects `assets.bytes`.
+- No FTS or embedding index contains `assets.bytes`.
+
+A digest collision or an existing row whose byte count/hash does not match must fail
+closed as corruption. Duplicate writes verify and reuse the existing row.
 
 ### Entity representation
 
 A completed image entity stores the asset reference in `content`. Its metadata retains
-existing fields and adds the stable binary facts needed without loading the asset:
+existing fields and adds stable binary facts needed without loading the BLOB:
 
 - `format`;
 - `mediaType`;
@@ -127,352 +197,351 @@ existing fields and adds the stable binary facts needed without loading the asse
 - `height`;
 - existing title, alt text, status, provenance, attachment type, and deduplication data.
 
-No relational entity-table migration is required because `content` remains text. The
-image schema must require a valid asset reference for completed/draft images. Pending or
-failed images may have empty content and incomplete binary metadata; browser-facing
-attachment routes provide the existing pending presentation without storing a fake
-base64 image in the entity row.
+Pending or failed images may have empty content and incomplete binary metadata. Browser-
+facing attachment routes preserve the existing pending presentation without storing a
+fake image payload.
 
 PDF documents adopt the same representation in the follow-up phase. PDF-specific
-metadata such as filename, page count, and source provenance remains on the document
-entity and in directory-sync sidecars where it exists today.
+filename, page-count, and provenance fields remain on the document entity.
+
+### Transaction boundary
+
+The asset and entity reference are one logical mutation.
+
+Writer flow:
+
+1. validate the payload and determine its canonical media type;
+2. hash the decoded bytes and derive metadata;
+3. prepare a bounded asset write without changing durable state;
+4. begin one entity-database transaction;
+5. insert the immutable asset row, or verify/reuse an identical row;
+6. persist the entity containing the matching asset reference;
+7. update FTS/projection/export journals as part of the existing entity mutation;
+8. commit once.
+
+If any step in the transaction fails, neither a new asset row nor its entity reference
+becomes visible. Existing identical asset rows are safe to reuse.
+
+The asset service must not expose a public sequence in which plugin code commits an asset
+and later commits an entity independently. Use a transaction-aware prepared-asset/unit-of-
+work contract owned by the entity mutation boundary.
+
+### Prepared and streamed input
+
+Hashing and media inspection happen before the database transaction so a slow input
+stream does not hold a SQLite write lock.
+
+In-memory generation/upload paths may prepare a bounded `Uint8Array`. Directory-sync and
+other file inputs may hash into a private temporary spool file, but that file is transient
+processing state, never authoritative durable storage. It must be removed after commit or
+failure.
+
+Before implementation, prove whether the selected SQLite/libSQL driver supports
+incremental BLOB writes within the transaction. If it does not, the implementation must:
+
+- load the prepared bytes only at the final bounded insert;
+- enforce a limit supported by the measured runtime memory budget;
+- avoid claiming that database insertion is fully streaming;
+- lower the default asset limit if the 100 MB target cannot be inserted safely.
+
+Correctness and bounded failure take priority over preserving the earlier filesystem
+implementation's streaming assumptions.
+
+### Deletion and garbage collection
+
+Entity deletion does not delete the asset row in the initial phases. Content addressing
+allows multiple entities and rollback points to share bytes, and retaining an
+unreferenced row is harmless.
+
+A future mark-and-sweep collector may delete unreferenced assets only after it accounts
+for:
+
+- every current entity reference;
+- migration/rollback retention requirements;
+- directory-sync recovery state;
+- backup retention guarantees;
+- an explicit age threshold.
+
+Garbage collection is not part of the image cutover.
 
 ### Supported image media
 
 The durable image contract supports the raster formats already exercised by upload,
-generation, optimization, and publishing paths:
+generation, optimization, and publishing:
 
 - PNG (`image/png`);
 - JPEG (`image/jpeg`, with `jpg`/`jpeg` normalized consistently);
 - GIF (`image/gif`);
 - WebP (`image/webp`).
 
-SVG is removed from the durable image schema and directory-sync image extension set in
-the image cutover. Although nominally listed today, it has no ordinary binary signature,
-current dimension detection does not support it, and serving arbitrary same-origin SVG
-would introduce script/XSS risk. Phase 0 inventories legacy SVG rows and
-`brain-data/image/*.svg`; any found asset must be explicitly sanitized and rasterized to
-PNG/WebP before migration. Dry-run reports SVG as a blocking unsupported format and never
-silently converts or serves it. Inline SVG/CSS decoration remains outside this plan.
+SVG is removed from the durable image schema and directory-sync image extension set.
+Serving arbitrary same-origin SVG introduces script/XSS risk, and current dimension and
+signature handling does not support it safely. Preflight inventories SVG rows/files and
+blocks migration until each is explicitly sanitized and rasterized.
 
 ### Public and browser references
 
-`asset://` is an internal storage reference, not a browser URL and not an authorization
-mechanism. Browsers and external integrations continue to receive an interface-owned,
-same-origin attachment descriptor containing entity-ID-based `url`, `downloadUrl`,
-`filename`, `mediaType`, and `sizeBytes` fields. Those routes resolve the entity, enforce
-its visibility and permission boundary, then read the referenced asset; they never expose
-the digest path as a public static URL.
+Browsers and external integrations receive an interface-owned, same-origin attachment
+descriptor containing entity-ID-based `url`, `downloadUrl`, `filename`, `mediaType`, and
+`sizeBytes`. Those routes resolve the entity, enforce visibility/permission, then read the
+BLOB. They never expose direct digest access as an unauthenticated route.
 
-Markdown retains `entity://image/{id}` until an explicit renderer resolves it. Database
-storage and reads using explicit reference mode expose the asset reference; site builds
-resolve bytes directly and continue emitting optimized public build artifacts.
+Markdown retains `entity://image/{id}` until an explicit renderer resolves it. Site builds
+read bytes explicitly and continue emitting optimized public build artifacts.
 
-Add a `binaryContent` mode to entity get/list request contracts. During the compatibility
-release, omitted mode preserves existing behavior and is equivalent to
-`"legacy-data-url"`; new internal consumers pass `"reference"`.
+Add a `binaryContent` mode to entity get/list contracts. During one compatibility release,
+omitted mode preserves existing behavior and is equivalent to `"legacy-data-url"`; new
+internal consumers pass `"reference"`.
 
-The method matrix is explicit:
+| Method                    | Transitional default                           | `binaryContent: "reference"`                |
+| ------------------------- | ---------------------------------------------- | ------------------------------------------- |
+| `getEntityRaw(image)`     | data URL matching today's direct image result  | stored asset reference                      |
+| `getEntity(image)`        | data URL matching today's direct image result  | stored asset reference                      |
+| `getEntity(non-image)`    | current embedded `entity://image` expansion    | embedded entity references remain unchanged |
+| `listEntities(image)`     | data URLs matching today's stored results      | asset references without byte expansion     |
+| `listEntities(non-image)` | unchanged; lists do not resolve embedded bytes | unchanged                                   |
 
-| Method                    | Transitional default                                | `binaryContent: "reference"`                |
-| ------------------------- | --------------------------------------------------- | ------------------------------------------- |
-| `getEntityRaw(image)`     | data URL, matching today's direct image result      | stored asset reference                      |
-| `getEntity(image)`        | data URL, matching today's direct image result      | stored asset reference                      |
-| `getEntity(non-image)`    | current embedded `entity://image` expansion         | embedded entity references remain unchanged |
-| `listEntities(image)`     | data URLs, matching today's stored results          | asset references without byte expansion     |
-| `listEntities(non-image)` | unchanged; lists do not resolve embedded references | unchanged                                   |
-
-The PDF transition applies the same matrix to `document`. New attachment/list surfaces
-use references or authorized descriptors from their first release. Bridge telemetry
-counts actual `legacy-data-url` materializations by method and interface surface, without
-logging content. After caller inventory and soak reach zero, remove
-`legacy-data-url`; omitted mode then means `reference` and the breaking default change is
-published in release notes.
-
-### Write ordering and deletion
-
-Asset writes occur before entity writes:
-
-1. validate the payload and determine its canonical media type;
-2. hash the bytes;
-3. write to a temporary file in the asset directory;
-4. verify the temporary file;
-5. atomically rename it to the digest path, or reuse an identical existing asset;
-6. persist the entity reference.
-
-A failed entity write can leave an orphaned asset, which is safe. Entity deletion does
-not delete bytes during these phases. A later mark-and-sweep garbage collector may remove
-unreferenced assets after a retention period, but it is not part of this plan.
-
-### Compatibility window
-
-There is no permanent dual-format contract. One transitional release:
-
-- accepts both legacy data URLs and asset references in the stored image schema;
-- writes only asset references;
-- preserves existing `getEntity`, `getEntityRaw`, and image `listEntities` results through
-  the explicit `binaryContent: "legacy-data-url"` default;
-- lets migrated internal callers opt into `binaryContent: "reference"` immediately;
-- introduces the authorized attachment descriptor/download contract that replaces raw
-  data URLs;
-- records storage-format and legacy materialization usage by method/interface surface.
-
-That release exists only to support client migration, dry-run, cutover, verification,
-and rollback on `yeehaa.io`. Removal is an explicit pre-stable API change with release
-notes and requires a completed caller inventory plus zero bridge usage during the agreed
-soak. Repository fixtures cross over in the same window. The migration parser remains
-operator-only after ordinary legacy reads are removed.
-
-The PDF phase may use the same bounded transition for document data URLs.
+Compatibility materialization reads the BLOB explicitly and encodes only for an
+inventoried legacy caller. Telemetry counts materializations by method/interface surface
+without logging content. After zero-use soak, remove legacy mode; omitted mode then means
+`reference`.
 
 ## Target architecture
 
-### Durable asset service
+### Asset contracts
 
-Add pure asset reference/store/resolver contracts in a lower-level shared
-`@brains/assets` package. `@brains/entity-service` may depend on those contracts without
-creating an `entity-service -> plugins` cycle. `@brains/plugins` re-exports the public
-contracts and exposes the instantiated store as a bounded `assets` namespace.
+Keep pure asset reference/store/resolver contracts in a lower-level shared
+`@brains/assets` package. The minimum contract supports:
 
-A shell-owned `@brains/asset-service` package implements the filesystem backend. Core
-constructs it before the entity service and injects a structural `BinaryContentResolver`
-into entity reads for the compatibility modes; entity-service never imports
-`@brains/plugins` or the filesystem implementation.
+- validating and constructing asset references;
+- preparing bounded bytes/streams and returning digest/size facts;
+- transaction-bound insertion with an entity mutation;
+- `read(ref)` returning bytes;
+- `stat(ref)` returning existence and size without reading bytes;
+- `verify(ref)` recomputing the digest;
+- explicit compatibility materialization.
 
-The minimum byte-oriented contract supports:
+Backend-neutral public contracts must not imply that `put()` independently commits before
+an entity mutation. Separate preparation from durable commit in naming and types.
 
-- `put(bytes)` returning the canonical reference, digest, and byte size for existing
-  in-memory generation/upload paths;
-- `putStream(chunks, expectedSize?)` hashing incrementally into a temporary file before
-  atomic commit, for directory-sync and large binary restoration;
-- `read(assetRef)` returning bytes;
-- `stat(assetRef)` returning existence and size without reading the payload;
-- `verify(assetRef)` recomputing and checking the digest.
+### SQLite asset repository
+
+Implement the initial repository against the same `EntityDB` connection and transaction
+type used by entity mutations. Ownership may live in `@brains/entity-service` or a lower-
+level shell package only if dependency direction remains clean and the entity transaction
+is still shared structurally.
 
 The implementation must:
 
-- use the explicitly configured `assetDirectory`, not cache, temporary storage, a
-  database-derived path, or `brain-data`;
-- reject malformed references and path traversal;
-- verify byte count and digest integrity;
-- bound streamed writes by the caller-provided import policy, remove interrupted temporary
-  files, and never buffer the complete stream in memory;
-- make concurrent writes of the same bytes safe and idempotent;
-- avoid exposing the runtime asset directory as an unauthenticated static route;
-- participate in shell construction and teardown without process-global state.
-
-The generic store does not interpret MIME types or know supported image/document
-formats. Image and document ingestion layers validate signatures, reconcile declared
-MIME types, and derive format-specific metadata before calling `put`. This keeps media
-policy in entity/shared media packages while the shell service remains reusable and
-byte-addressed.
-
-The contracts remain below the plugin boundary and are re-exported through it;
-filesystem ownership and runtime path policy remain in the shell implementation. Shared
-image/document adapters remain pure and perform no I/O.
+- never create or depend on `assetDirectory`;
+- use parameterized BLOB operations;
+- enforce byte count and digest integrity;
+- reject malformed references;
+- make concurrent insertion of identical bytes idempotent;
+- fail closed when an existing digest row is inconsistent;
+- keep BLOB selection out of normal entity reads;
+- expose no process-global state;
+- preserve existing entity mutation admission, outbox, projection, and lifecycle
+  semantics.
 
 ### Full-text indexing policy
 
 Add an explicit entity-type setting such as `fullTextSearchable: false`. Entity mutations
-must delete any stale FTS row and skip insertion when the type is not full-text
-searchable. Do not overload vector `embeddable` policy: binary entities are currently
-non-embeddable, but vector and keyword indexing are separate contracts.
+must delete stale FTS rows and skip insertion for non-searchable types. Do not overload
+vector `embeddable` policy: vector and keyword indexing are separate contracts.
 
-The image plugin sets this option in the first phase. The document plugin sets it when
-PDF content migrates.
+The image plugin enables this in the first cutover. The document plugin enables it during
+the PDF follow-up.
 
 ### Binary storage registration
 
-Add an explicit entity-type setting such as `binaryStorage: "asset"`; absence means the
-existing textual/inline storage path. Directory sync consults this registration rather
-than hardcoding image/document phase state when selecting asset-first hashing,
-rehydration, and size limits. The image plugin enables it in the image cutover. The
-document plugin remains legacy inline/base64 until Phase 5, then enables it with the PDF
-schema cutover.
+Add an explicit entity-type setting such as `binaryStorage: "asset"`. Directory sync and
+entity reads consult this registration rather than hardcoding image/document behavior.
+The image plugin enables it first; documents remain legacy until their separate phase.
 
-### Directory-sync boundary
+## Directory-sync boundary
 
-This work coordinates explicitly with
-[`directory-sync-import-load.md`](./directory-sync-import-load.md): its Phase 1 watcher
-suppression is independent, while its Phases 2–3 must land with or after the image cutover
-for binary paths. Text and binary imports use different fast paths and size policies.
+`brain-data/image` remains the human-visible and Git-syncable representation, but it is a
+mirror/recovery source rather than a second component required by an ordinary database
+restore.
 
-`brain-data/image` remains the human-visible and Git-syncable representation. Asset-backed
-binary import ordering is load-bearing:
+Asset-backed import ordering:
 
-1. derive entity type/ID and stat the source path;
-2. fetch the existing entity before adapter deserialization;
-3. if it contains an asset reference, call `assets.stat` before any unchanged-file skip;
-4. hash the source file incrementally. When the referenced asset exists and the file hash
-   equals the reference digest, skip parsing/persistence; when the asset is missing,
-   restore it through `putStream` and require the returned reference to equal the entity
-   reference before skipping;
-5. for new or changed files, validate the format, stream through `putStream`, derive the
-   canonical reference/metadata, then deserialize/persist the entity;
-6. for asset-backed types with sidecars, compare sidecar metadata before the unchanged
-   skip so a metadata-only edit still imports.
+1. derive entity type/ID and stat the source file;
+2. hash the file incrementally and validate its signature/format;
+3. derive the asset reference and metadata;
+4. fetch the existing entity and call `assets.stat` without loading the BLOB;
+5. if entity reference, asset row, file digest, and sidecar metadata are unchanged, skip;
+6. otherwise prepare the bytes and atomically insert/reuse the asset plus persist the
+   entity in one database transaction;
+7. report oversized, malformed, unsupported, or inconsistent files visibly.
 
-This ordering preserves these properties:
+Export resolves the entity reference, reads the BLOB, validates size/signature, and writes
+the original bytes. IDs, filenames, extensions, and timestamps remain stable when bytes
+are unchanged.
 
-- import never base64-encodes asset-backed files;
-- export resolves the asset reference and writes the original bytes;
-- IDs, filenames, extensions, and timestamps remain stable where the underlying bytes
-  are unchanged;
-- migration causes one expected `contentHash` change because serialized content changes
-  from a data URL to an asset reference; afterward, unchanged bytes produce the same
-  reference and stable entity hash;
-- a missing asset is repaired before the pre-parse hash shortcut can skip its entity;
-- a clean runtime with an empty entity database streams all binary files into the asset
-  store before persisting entities.
+A clean database rebuild streams/hashes every binary file and creates its asset row and
+entity atomically. Database snapshot restoration does not require this reconstruction;
+it is a secondary recovery path.
 
-Directory sync keeps separate limits:
+Keep separate limits:
 
-- `maxImportFileBytes` remains 5 MB for textual entities and legacy base64-backed binary
-  types;
-- `maxAssetImportBytes` defaults to 100 MB for registered asset-backed image/document
-  types and is operator-configurable;
-- asset-backed files are streamed and never rejected by the 5 MB text/base64 guard;
-- files exceeding their applicable limit remain in place and produce an operator-visible
-  import issue.
+- `maxImportFileBytes` remains 5 MB for textual and legacy base64-backed entities;
+- `maxAssetImportBytes` is separately configurable for registered asset-backed types;
+- its default is accepted only after SQLite insertion memory/WAL benchmarks;
+- exceeding the applicable limit leaves the source file in place and records an
+  operator-visible import issue.
 
-The PDF phase registers `document` as asset-backed and adopts the streamed limit. Until
-then, PDF import remains under the legacy 5 MB guard.
-
-Also provide an explicit full reconciliation command:
+Provide explicit reconciliation:
 
 ```text
 brain assets reconcile --entity-type image --from brain-data --dry-run
 brain assets reconcile --entity-type image --from brain-data
 ```
 
-Reconciliation scans every binary independently of entity content hashes, restores
-missing assets through `putStream`, verifies file bytes against existing references, and
-reports mismatches without silently changing an entity reference. File-versus-reference
-verification runs for every row, including when the runtime asset already exists and
-passes digest verification, so a drifted `brain-data` file is reported before the
-runtime copy is ever lost. The PDF phase extends the same command to
-`brain-data/document`.
+Reconciliation scans independently of content hashes, verifies file bytes against entity
+references, restores absent asset rows and matching entities transactionally, and reports
+mismatches without silently changing an established entity reference.
 
-The migration does not rewrite the content repository or Git history. The runtime asset
-store and the synced content checkout intentionally contain separate copies because they
-serve different durability and synchronization boundaries.
+This work still coordinates with the completed directory-sync import/load safeguards.
+Their watcher/load behavior is independent; binary imports must use the SQLite asset
+transaction and measured byte limits described here.
 
-## Phase 0: contract and baseline
+## Backup, restore, and source of truth
 
-Before implementation:
+A SQLite-safe snapshot of `brain.db` contains both entity references and asset bytes. No
+matching `/data/assets` directory exists and no second asset snapshot is required.
 
-1. Record the exact image writers and readers—including every caller of `getEntity`,
-   `getEntityRaw`, and image `listEntities`—and assign each an explicit
-   `binaryContent` mode, asset-service read, or authorized attachment boundary.
-2. Add mixed-format fixtures covering one legacy data URL and one asset reference, plus
-   method-matrix fixtures for get/raw/list behavior in both binary-content modes.
-3. Capture `yeehaa.io` production preflight metrics:
-   - image entity count and status distribution;
-   - encoded content bytes and decoded bytes;
-   - FTS image row count;
-   - duplicate payload count;
-   - malformed and unsupported image rows, including SVG entities/files;
-   - references from posts, projects, series, social posts, and site metadata;
-   - free disk space on the persisted volume.
-4. Confirm that explicit `assetDirectory` plumbing resolves to the persisted
-   `data/assets` path in local, deployed, test, and advanced-config runtimes, and include
-   that path in operator backups.
-5. Reconcile delivery order with `directory-sync-import-load.md`: Phase 1 may ship
-   independently, but its binary pre-parse and size-guard behavior must use this plan's
-   asset-first ordering and separate limits.
-6. Capture a preview build and a representative set of image checksums for before/after
-   comparison.
+Backup tooling must:
 
-The preflight is read-only and produces no base64 content in logs or manifests.
+1. capture `brain.db` through a supported SQLite online snapshot mechanism;
+2. reopen the snapshot read-only and run `PRAGMA quick_check`;
+3. validate asset table schema/count/total bytes;
+4. verify every `entities.content` asset reference resolves to an asset row;
+5. recompute asset digests for a full verified rollback snapshot, or use an explicitly
+   documented verified-inventory mechanism that cannot bless unchecked bytes;
+6. record asset count, total bytes, and a deterministic digest inventory in the backup
+   manifest;
+7. fail closed before deployment when any reference, size, or digest check fails.
 
-## Phase 1: asset foundation
+Restore replaces `brain.db` through the normal stopped-process procedure and restores the
+matching runtime release. References and bytes return to the same point in time by
+construction.
 
-Implement and validate the generic asset service:
+`brain-data` is still valuable as an off-host content mirror and reconstruction source,
+but it is not a substitute for a SQLite-safe runtime backup. Off-host encrypted database
+backup and restore drills remain operator requirements.
 
-1. Add Zod-validated `AssetRef`, byte-record, asset-store, and binary-content resolver
-   contracts in `@brains/assets`; re-export them through `@brains/plugins` without adding
-   an entity-service dependency cycle.
-2. Add `assetDirectory` to standard, app, and shell configuration; verify XDG, local,
-   test, and explicit-override resolution without deriving paths from database URLs.
-3. Add the `@brains/asset-service` filesystem backend with atomic buffered/streamed
-   writes, deduplication, stat, read, and verify.
-4. Construct the asset service before entity-service, inject the structural compatibility
-   resolver, expose the store through shell/plugin contexts, and test lifecycle ownership.
-5. Add the explicit FTS eligibility setting and `binaryStorage: "asset"` entity-type
-   declaration consumed by directory sync.
-6. Add asset-service unit tests for malformed refs, buffered and streamed duplicate
-   concurrent writes, exact/oversized stream bounds, truncated files, hash mismatch,
-   interrupted stream cleanup, and temporary-write recovery. Test MIME spoofing and
-   binary signature validation in the image/document ingestion packages instead.
-7. Add backup/restore documentation for the configured `assetDirectory`.
+## Compatibility window
 
-No durable entity changes occur in this phase.
+There is no permanent dual-format contract. One transitional release:
+
+- accepts legacy data URLs and asset references in stored image entities;
+- writes new images only as asset references plus BLOB rows;
+- preserves existing get/raw/list behavior through explicit legacy materialization;
+- moves internal callers to reference mode and authorized attachment URLs;
+- records legacy storage reads and materializations by caller surface;
+- supports dry-run, mixed-state migration, verification, and rollback.
+
+Removal requires a completed caller inventory and zero bridge use during the agreed soak.
+The migration parser remains operator-only afterward. The PDF phase may use the same
+bounded transition.
+
+## Phase 0: revalidation and backend decision evidence
+
+Before reworking implementation:
+
+1. Keep PR #125 draft and mark the filesystem backend superseded.
+2. Rebase the useful branch work onto current `main` only after this revised plan is
+   approved; do not preserve filesystem compatibility shims by default.
+3. Benchmark the real local image corpus in four forms:
+   - current base64 plus FTS;
+   - base64 without FTS;
+   - raw BLOB assets with reference-only entity rows;
+   - filesystem CAS as historical comparison only.
+4. Measure:
+   - database and WAL size;
+   - migration peak disk;
+   - SQLite-safe backup duration/size;
+   - verified restore duration;
+   - duplicate savings;
+   - normal entity list/get behavior;
+   - explicit asset read and site-build behavior;
+   - peak memory for the largest accepted asset;
+   - concurrent writer behavior.
+5. Confirm the SQLite driver can bind the chosen maximum BLOB safely. Either prove an
+   incremental BLOB path or set a lower bounded limit.
+6. Inventory every image writer/reader and every caller of get/raw/list compatibility
+   modes.
+7. Capture production preflight metrics independently, including SVG/unsupported rows,
+   FTS image rows, duplicate payloads, references, and free disk.
+8. Add mixed legacy/reference fixtures and backup/restore fixtures.
+9. Confirm no ordinary query, event, log, or API list selects BLOB bytes.
+
+If measured SQLite behavior is unacceptable, stop and write a new decision record rather
+than silently falling back to the filesystem design. Any fallback must explain how it
+preserves equivalent source-of-truth and backup guarantees.
+
+## Phase 1: SQLite asset foundation
+
+1. Retain/revise `@brains/assets` reference and validation contracts.
+2. Add the `assets` table migration to the entity database.
+3. Implement transaction-aware asset preparation, insertion, stat, read, and verify.
+4. Extend the entity mutation unit of work so a prepared asset and entity reference commit
+   together.
+5. Add explicit FTS eligibility and binary-storage registration.
+6. Add tests for malformed refs, duplicate/concurrent insertion, transaction rollback,
+   digest conflict, size mismatch, bounded input, temporary spool cleanup, missing rows,
+   and BLOB-free normal reads.
+7. Add SQLite snapshot tests proving references and bytes restore together.
+
+No existing entity is migrated in this phase.
 
 ## Phase 2: image write and read cutover
 
 ### Writers
 
-Change all durable image creation paths to decode provider/input data once, validate the
-bytes, write the asset, and persist the reference:
+Change every durable image creation path to validate/decode once, prepare bytes, and call
+the atomic asset-plus-entity mutation:
 
 - AI image generation;
 - uploaded-image promotion;
-- source attachment rendering and OG image generation;
-- stock-photo selection/import;
-- directory-sync binary imports through bounded streaming and remote-image imports;
-- pending-image completion and failure handling.
+- source attachment and OG rendering;
+- stock-photo import;
+- directory-sync image import;
+- pending-image completion/failure.
 
-The AI provider may continue returning a data URL internally during this phase; the image
-handler consumes it at the provider boundary and never persists it.
+Provider data URLs may exist transiently at the provider boundary but are never persisted
+by new writes.
 
 ### Readers
 
-Change image consumers to resolve assets explicitly:
+Change image consumers to resolve bytes explicitly:
 
-- image attachment/download providers used by chat, web chat, and CMS;
-- site image preparation and optimization;
+- attachment/download providers for chat, web chat, and CMS;
+- site image preparation/optimization;
 - media page composition and OG rendering;
 - social publishing;
 - directory-sync export;
-- any entity-reference resolver that currently expands `entity://image` into a data URL.
+- entity-reference expansion.
 
-Callers that need bytes receive bytes. Browser callers receive attachment URLs.
-Reference-mode reads and all post-bridge list/read responses must not include an encoded
-image payload; only the explicitly bounded compatibility mode may materialize one.
+Browser callers receive authorized URLs. Internal byte consumers use the asset service.
+Reference-mode reads never select or encode BLOBs unless the caller explicitly requests
+bytes.
 
-### Image schema and adapter
+### Schema and media policy
 
-Update the shared image schema, adapter, and utilities:
-
-- parse and validate asset references;
-- support only PNG, JPEG, GIF, and WebP durable entities;
-- remove SVG from the image schema and directory-sync extension set;
-- detect format and dimensions from `Buffer`/`Uint8Array` rather than base64 strings;
-- require completed image metadata;
-- model pending and failed states without a stored fake image;
-- preserve pure serialization and directory-sync round trips.
-
-### Transitional read and API bridge
-
-Keep two narrowly isolated compatibility paths:
-
-1. the transitional image schema accepts existing stored data URLs while new writes
-   produce only asset references;
-2. the injected binary-content resolver implements the method matrix above when callers
-   omit `binaryContent` or explicitly request `"legacy-data-url"`.
-
-Every internal caller receives an explicit mode during Phase 0; migrated image readers
-use `"reference"` and the asset service. Instrument storage-format reads and actual legacy
-materializations by method/interface surface and count only so production verification
-can prove both reach zero without logging content. Removing legacy mode is an explicit
-API cutover, not an incidental consequence of changing the stored representation.
+- accept asset refs for completed images;
+- support PNG/JPEG/GIF/WebP;
+- reject durable SVG;
+- detect signature, format, and dimensions from bytes;
+- require completed binary metadata;
+- preserve pending/failed UX without fake payloads;
+- test pure adapter/directory-sync round trips.
 
 ## Phase 3: image migration tooling
 
-Add an explicit offline operator command; do not hide this work in ordinary startup. The
-first implementation accepts only a local `file:` SQLite database and refuses remote
-URLs. `--dry-run` and `--verify` are read-only; the mutating command requires the brain
-application and workers to be fully stopped. The proposed surface is:
+Use an explicit offline command:
 
 ```text
 brain migrate binary-assets --entity-type image --dry-run
@@ -480,292 +549,197 @@ brain migrate binary-assets --entity-type image
 brain migrate binary-assets --entity-type image --verify
 ```
 
-The command must:
+The first implementation supports a stopped application with a local `file:` SQLite
+database. It refuses remote URLs and live writers.
 
-1. Refuse non-`file:` database URLs, probe that an exclusive SQLite write lock can be
-   acquired and release it before asset prewrite, and print the explicit requirement that
-   the application remain stopped for the complete mutating run. Re-acquire and hold the
-   lock for the database transaction in step 8.
-2. Parse and validate each legacy image data URL, rejecting SVG and every unsupported
-   format before any entity row changes.
-3. Decode the bytes without logging them.
-4. Write/reuse and verify the content-addressed asset.
-5. Update only the image content, binary metadata, and `contentHash` computed from the
-   canonical serialized asset reference while preserving entity ID, visibility,
-   provenance, and original timestamps. Record this as the expected one-time hash change;
-   subsequent directory-sync imports of unchanged bytes must compute the same reference
-   and skip the entity update.
-6. Delete the image's FTS row.
-7. Skip and verify already-migrated rows so reruns are safe.
-8. Complete a resumable asset-prewrite phase before database mutation. An incremental
-   prewrite journal may record only asset digest/verification progress. After every
-   candidate asset is present and verified, acquire the exclusive SQLite lock and use a
-   dedicated migration repository—not the normal entity mutation API—to update all
-   entity rows and delete their FTS rows in one database transaction. Preserve timestamps
-   and emit no entity events, jobs, or automatic site builds.
-9. Commit the final database checkpoint and migration manifest only after the transaction
-   succeeds. The manifest contains entity ID, old content hash, asset digest, media type,
-   byte size, status, and outcome—never the data URL. A failed prewrite resumes by
-   verifying journaled/content-addressed files; it has no partial entity migration.
-10. Fail closed on corrupt or unsupported rows before the database transaction and leave
-    all entity rows unchanged; prewritten unreferenced assets are harmless and resumable.
+### Dry-run
 
-Dry-run reports counts, errors, unsupported/SVG blockers, duplicate savings, estimated
-asset bytes, expected one-time content-hash changes, and required free space. Verify
-proves every migrated reference exists, matches its digest and entity metadata, has no
-image FTS row, and
-round-trips through directory sync without a second entity hash change. The independent
-`brain assets reconcile` command proves missing runtime assets can be restored from
-`brain-data` even when entity rows and file timestamps are otherwise unchanged.
+- parse every legacy row without writing;
+- decode and validate supported bytes without logging content;
+- block SVG, malformed, or unsupported rows;
+- report unique/duplicate bytes, expected BLOB growth, WAL/backup/vacuum peak disk, FTS
+  rows, and one-time content-hash changes;
+- prove enough free disk for backup, migration, and compaction.
 
-## Phase 4: `yeehaa.io` cutover and soak
+### Mutation
 
-### Staging rehearsal
+After a complete blocker-free preflight, migrate one entity at a time in an atomic,
+resumable transaction:
 
-1. Copy the production database and relevant runtime configuration to an isolated
-   environment.
-2. Run dry-run and resolve every malformed or missing row.
-3. Run the migration and verification.
-4. Start the transitional release.
-5. Trigger a preview rebuild on the running app through its command surface.
-6. Compare representative source and output checksums and exercise the UX acceptance
-   suite below.
-7. Measure database size before and after an offline SQLite compaction.
+1. decode/validate/hash the legacy data URL;
+2. insert or verify the asset BLOB;
+3. replace entity content with the canonical reference;
+4. add canonical binary metadata;
+5. compute the new content hash;
+6. delete the image FTS row;
+7. preserve ID, visibility, provenance, and original timestamps;
+8. commit the asset row and entity update together.
+
+A crash may leave a mixed legacy/reference database, which the transitional release must
+support. It may not leave a committed reference without bytes. Reruns verify and skip
+completed rows. The final verify command must pass before restart.
+
+### Verification
+
+- every completed image contains a valid reference;
+- every reference resolves to exactly one BLOB row;
+- every size and digest matches;
+- no image FTS row remains;
+- directory-sync export is byte-identical;
+- reimporting unchanged bytes causes no second entity hash change;
+- ordinary image lists in reference mode do not select BLOBs.
+
+The final manifest records IDs, old/new content hashes, digest, media type, byte size, and
+outcome—never image bytes or data URLs.
+
+## Phase 4: rehearsal, production cutover, and rollback
+
+### Isolated rehearsal
+
+1. Copy production database/configuration to isolation.
+2. Run dry-run and resolve every blocker.
+3. Take and verify a SQLite-safe pre-migration snapshot.
+4. Run migration and verification.
+5. Start the transitional release.
+6. Trigger a preview rebuild on the running app.
+7. Compare representative image checksums and exercise UX acceptance.
+8. Measure database/WAL/backup behavior and compact SQLite offline only after acceptance.
+9. Rehearse restoring the single pre-migration database snapshot and matching release.
 
 ### Production cutover
 
-1. Confirm sufficient temporary disk for a database backup, approximately one additional
-   asset corpus, and SQLite compaction. Use the dry-run estimate; for the current local
-   corpus, reserve at least 4 GiB before beginning.
-2. Deploy the transitional release without running the migration automatically. Before
-   pinning, map the published version to its commit and confirm it contains the image
-   cutover; a moved npm `latest` is not evidence the release includes it.
-3. Enter a bounded maintenance window and stop the entire brain application, including
-   background workers and content writes; confirm the process remains stopped until the
-   mutating command releases its exclusive SQLite lock.
-4. Back up `brain.db` plus WAL/SHM state using a SQLite-safe method, and snapshot
-   `data/assets` if it already exists.
+1. Confirm required disk from dry-run estimates.
+2. Deploy the transitional release without automatic migration.
+3. Stop the complete application and all workers.
+4. Take and verify a SQLite-safe `brain.db` snapshot.
 5. Run dry-run, migration, and verify.
 6. Start the application and confirm readiness.
-7. Trigger and inspect a preview rebuild on the running app before any production rebuild.
-8. Exercise CMS, chat attachment, and controlled publishing checks.
-9. Trigger the production site rebuild only after preview acceptance.
-10. Keep the pre-migration database snapshot for the rollback window.
-11. Compact SQLite only after functional verification, using an offline safe procedure.
+7. Trigger and inspect preview output before production rebuild.
+8. Exercise CMS, chat attachment, upload/generation, directory-sync, and controlled
+   publishing checks.
+9. Keep the pre-migration database snapshot and release for the rollback window.
+10. Compact only after functional acceptance.
 
 ### Rollback
 
-If verification or UX acceptance fails:
-
 1. stop the application;
-2. restore the pre-migration database snapshot and matching release;
-3. restart and verify the prior site and attachment paths;
-4. leave newly written content-addressed files in place as harmless orphans;
-5. do not attempt an in-place reverse conversion during the incident window.
+2. restore the pre-migration `brain.db` snapshot;
+3. deploy the matching pre-cutover release;
+4. restart and verify prior site/attachment behavior;
+5. do not attempt in-place reverse conversion during the incident window.
+
+No separate asset-directory restore is required.
 
 ### Soak and bridge removal
 
-Soak `yeehaa.io` through normal uploads, generated covers, site builds, CMS use, chat
-downloads, directory sync, and at least one controlled publishing flow. Legacy image-read
-telemetry must remain zero. After the agreed soak:
+Soak normal uploads, generated covers, site builds, CMS use, chat downloads, directory
+sync, and controlled publishing. Remove legacy storage and resolved-read bridges only
+after caller-specific telemetry remains zero. Publish the raw entity API change in release
+notes.
 
-- remove the storage data-URL reader and resolved-content API bridge only after both
-  telemetry counters remain zero and every inventoried caller uses the replacement
-  contract;
-- migrate remaining repository image fixtures to asset-backed harness fixtures;
-- retain only the explicit migration parser in operator tooling for backup recovery;
-- update architecture and entity reference documentation;
-- remove this completed image phase from the active plan once its outcome is documented.
+## Phase 5: PDF follow-up
 
-## Phase 5: PDF document follow-up
+Begin only after image storage, backup, restore, and migration have soaked without open
+correctness defects.
 
-Begin only after the image cutover has soaked successfully and the asset service has no
-open correctness or restore defects.
+Migrate durable PDF content to the same reference plus BLOB representation. Reuse the
+same transaction, migration, verification, backup, and rollback machinery.
 
-### PDF scope
+PDF-specific work includes:
 
-Migrate durable PDF document content from:
+- `application/pdf`, size, filename, page count, and provenance metadata;
+- upload/generation/preservation writers;
+- chat/CMS download and publishing readers;
+- directory-sync binary/sidecar round trips;
+- FTS exclusion for encoded PDF bytes;
+- independent migration rehearsal and production window.
 
-```text
-data:application/pdf;base64,...
-```
-
-to the same `asset://sha256/<digest>` representation. Reuse the asset service, migration
-command, manifest, verification, backup, and rollback machinery.
-
-### PDF-specific work
-
-1. Update document schema and adapter contracts for an asset reference plus:
-   - `mediaType: application/pdf`;
-   - `sizeBytes`;
-   - filename;
-   - page count and existing provenance/deduplication metadata.
-2. Change PDF writers:
-   - uploaded PDF preservation;
-   - generated printable documents;
-   - generated social/carousel documents;
-   - attachment-provider output promoted into document entities.
-3. Change PDF readers:
-   - chat/CMS attachment and download routes;
-   - social document publishing;
-   - content-pipeline publication;
-   - directory-sync import/export and document sidecars;
-   - any preview or media renderer that currently decodes document content.
-4. Set document entities to `fullTextSearchable: false` and remove existing PDF payloads
-   from FTS. Searchable extracted text, if desired later, must be a separate textual
-   projection rather than the encoded PDF bytes.
-5. Extend `brain migrate binary-assets` with `--entity-type document` and mixed
-   image/document verification.
-6. Rehearse and cut over active PDF corpora independently; do not combine the first PDF
-   migration with the image production window.
-
-### PDF acceptance
-
-- Uploaded and generated PDFs download byte-for-byte correctly.
-- Browser filenames and `Content-Type`/`Content-Disposition` remain correct.
-- Printable and carousel generation still produces immediately accessible artifacts.
-- LinkedIn or other document publishing receives the original bytes and filename.
-- Directory sync preserves PDF bytes and sidecar metadata in both directions.
-- Asset-backed PDFs use bounded streaming and the configurable asset limit rather than
-  the 5 MB text/legacy-base64 guard.
-- A clean runtime restores document assets from `brain-data/document`.
-- No document entity payload is stored in FTS or expanded into ordinary API lists.
+Searchable extracted PDF text, if desired, must be a separate textual projection rather
+than the encoded PDF bytes.
 
 ## UX acceptance criteria
 
-The storage change is complete only when users observe no regression in normal image
-workflows:
-
 1. Uploading an image returns the same immediate confirmation and usable attachment.
-2. Generated images retain pending progress, completion, failure, inline preview, and
-   download behavior.
-3. CMS lists and editors render thumbnails without exposing `asset://` to the browser.
-4. Chat and web-chat display and download images with correct filenames and MIME types.
-5. Public, shared, and restricted images preserve their current access boundaries.
-6. Preview and production sites emit the same logical images and optimized variants.
-7. Cover images, OG images, inline `entity://image` references, and alt text remain intact.
+2. Generated images retain pending, completion, failure, preview, and download behavior.
+3. CMS renders thumbnails without exposing `asset://` or BLOB bytes to the browser.
+4. Chat/web-chat display and download correct filenames and MIME types.
+5. Public/shared/restricted authorization remains entity-based and unchanged.
+6. Preview/production sites emit equivalent logical images and optimized variants.
+7. Covers, OG images, inline entity references, and alt text remain intact.
 8. Social publishing receives byte-identical source media.
-9. Directory sync imports and exports byte-identical image files without loops or
-   timestamp churn.
-10. A clean restore from synced `brain-data` rebuilds the asset store and produces a
-    working site.
-11. Missing or corrupt assets produce bounded errors and visible failed state rather than
-    process crashes or silent empty images. `read` is deliberately not digest-verified —
-    hashing every read would be prohibitive on site builds — so it catches truncation
-    through a size check only. Image and document readers additionally validate the
-    binary signature, dimensions, and size-versus-metadata consistency, which fails
-    loudly on truncated or header-corrupt bytes. Byte-level corruption that preserves a
-    valid header is caught only by operator tooling (`brain migrate binary-assets
---verify` and `brain assets reconcile`), never on the read path; no reader calls
-    `verify`, because digest verification cannot run on bytes that already passed
-    inspection.
-
-The stored/raw entity contract intentionally changes: completed `image.content` and later
-`document.content` contain an internal asset reference. The transitional resolved-read
-adapter preserves the prior data-URL representation for inventoried callers during the
-compatibility release. Before that adapter is removed, supported clients must migrate to
-the authorized attachment descriptor/download surface, and the breaking API change must
-be called out in release notes.
+9. Directory sync imports/exports byte-identical files without loops or timestamp churn.
+10. A SQLite snapshot restores references and bytes together with no reconciliation step.
+11. A clean database can still reconstruct images from `brain-data` through explicit
+    reconciliation.
+12. Missing/corrupt rows fail visibly rather than producing silent empty images.
+13. Normal entity reads/lists/events never include BLOB bytes.
 
 ## Validation
 
 ### Targeted automated checks
 
-- asset-service unit, explicit-path configuration, and lifecycle tests;
-- image schema, adapter, PNG/JPEG/GIF/WebP MIME/signature, byte-format, and dimension
-  tests, plus SVG rejection and migration-blocker tests;
-- image generation/upload/source-render handler tests;
-- attachment authorization and MIME tests;
-- directory-sync binary round-trip tests covering asset-first pre-parse ordering,
-  missing-asset repair before skip, metadata-only sidecar changes, 5 MB text/legacy
-  limits, and configurable 100 MB streamed-asset limits;
-- site image preparation and optimization tests;
-- social publishing media tests;
-- entity-service FTS exclusion and binary-storage registration tests;
-- migration dry-run, one-time content-hash transition, idempotency, resume, corruption,
-  deduplication, and rollback tests;
-- `getEntity`, `getEntityRaw`, and image `listEntities` compatibility-matrix tests in
-  legacy/reference modes plus method/surface telemetry tests;
-- missing-asset startup restoration and explicit `brain assets reconcile` tests that do
-  not depend on entity/file content drift;
-- equivalent document/PDF tests in Phase 5.
+- asset reference and SQLite repository tests;
+- transaction rollback and concurrent deduplication tests;
+- BLOB-free normal query/event/list tests;
+- image signature/schema/dimension/SVG rejection tests;
+- upload/generation/source-render tests;
+- attachment authorization/MIME tests;
+- directory-sync import/export/reconcile tests;
+- FTS exclusion tests;
+- migration dry-run, mixed-state resume, digest, idempotency, and rollback tests;
+- compatibility method-matrix and telemetry tests;
+- SQLite-safe backup, full asset verification, and restore tests;
+- equivalent PDF tests in the later phase.
 
-Run targeted workspace typecheck, tests, and lint first. Run full repository checks because
-the final contract crosses shell, shared packages, entities, service plugins, interfaces,
-and the published CLI.
+Run targeted workspace checks first, then full repository typecheck, tests, lint, build,
+architecture, changeset, formatting, environment-schema, and docs checks because the
+contract crosses shared, shell, entity, plugin, interface, and CLI boundaries.
 
 ### Runtime checks
 
-Use the canonical personal test app posture. Start the app using its canonical posture
-script, trigger the site rebuild on the running app through MCP HTTP, and inspect
-`dist/site-preview` before production output. Validate both a fresh runtime and a runtime
-containing mixed legacy/new image rows during the transition.
-
-## Resolved implementation review
-
-The 2026-08-09 implementation review findings are resolved on the implementation
-branch: lockfile alignment, buffered-size ownership, early streamed-size enforcement,
-canonical-source reconciliation, one-asset migration memory, and repository-standard
-streaming I/O. Runtime readers intentionally perform bounded size and media validation;
-full digest verification remains operator tooling only.
+Use the canonical personal test app posture. Start the app with its canonical script,
+trigger preview rebuilding on the running app through MCP HTTP, and inspect
+`dist/site-preview` before production output. Test fresh, mixed legacy/reference, fully
+migrated, restored-snapshot, and `brain-data` reconstruction states.
 
 ## Delivery sequence
 
-### Combined implementation PR: foundation, image cutover, and migration tooling
+Do not revive the old combined 179-file PR unchanged. Re-cut the work after rebase:
 
-- Lower-level `@brains/assets` contracts and `@brains/asset-service` filesystem
-  implementation without dependency cycles.
-- Explicit `assetDirectory` plumbing, shell/plugin integration, FTS eligibility policy,
-  and lifecycle/path/security/atomic-write tests.
-- Image schema/adapter and pending-state changes, with every image writer and reader moved
-  to the asset service.
-- Entity-ID-based attachment descriptors, explicit binary-content modes, the bounded
-  compatibility bridge, PNG/JPEG/GIF/WebP policy, and blocking SVG preflight.
-- Directory-sync no-drift, asset-first short-circuit, independent text/asset limits,
-  missing-asset restoration, and UX regression coverage.
-- Explicit CLI dry-run/migrate/verify and `brain assets reconcile` commands.
-- Local-SQLite-only fencing, resumable prewrite, transactional entity/FTS mutation,
-  safe manifests, idempotency, reconciliation, and backup/rollback tests.
-- `yeehaa.io` staging rehearsal and production runbook.
+1. **Foundation PR:** contracts, SQLite table/repository, transaction boundary, FTS/binary
+   registration, backup/restore tests; no entity migration.
+2. **Image cutover PR:** schema, writers/readers, authorization surfaces, compatibility
+   bridge, directory-sync support, UX coverage.
+3. **Migration PR:** offline dry-run/migrate/verify, reconciliation, runbook, isolated
+   rehearsal evidence.
+4. **Operational window:** approved production backup, migration, preview, rebuild,
+   verification, rollback readiness, and soak.
+5. **Bridge-removal PR:** remove legacy reads after zero-use telemetry.
+6. **PDF follow-up:** independently reviewed implementation and migration.
 
-### Operational window: `yeehaa.io`
-
-- Staging rehearsal.
-- Production backup, migration, preview verification, production rebuild, and soak.
-- Database compaction after acceptance.
-
-### PR 4: image bridge removal
-
-- Remove the storage reader and resolved-read compatibility adapter after caller-specific
-  telemetry reaches zero.
-- Publish the raw entity API change and attachment replacement in release notes.
-- Finalize docs and fixtures.
-
-### PR 5+: PDF follow-up
-
-- PDF writer/reader and schema cutover.
-- Document migration tooling and tests.
-- Independent PDF rehearsal, cutover, soak, and bridge removal.
+If atomic writer/reader compatibility requires two implementation slices to deploy
+together, keep the commits/PRs reviewable and gate activation behind configuration rather
+than recreating one unreviewable branch.
 
 ## Completion criteria
 
 ### Image phase
 
 - Every completed image entity contains a valid asset reference.
-- Every referenced image asset exists and passes digest verification.
+- Every reference resolves to verified bytes in the same `brain.db`.
+- Asset/entity publication is atomic.
 - No new durable image write stores a data URL.
-- No durable image entity or synced image file uses SVG; preflight has no unsupported
-  media blockers.
-- No image row remains in FTS.
+- No image bytes appear in FTS, embeddings, normal lists, or events.
+- No durable image uses unsupported SVG.
+- SQLite snapshot/restore proves references and bytes return together.
+- Directory-sync reconstruction remains independently proven.
 - All UX acceptance criteria pass on the canonical personal app and `yeehaa.io`.
 - Preview and production builds complete from the running migrated app.
-- Backup restoration and clean `brain-data` rehydration are proven.
-- The transitional storage reader and resolved-content API bridge both record zero use
-  by every inventoried caller during the agreed soak.
+- Legacy bridges record zero use before removal.
 
 ### PDF follow-up
 
-- Every completed PDF document entity contains a valid asset reference.
-- No new durable PDF write stores a data URL.
-- No document PDF payload remains in FTS.
-- PDF acceptance, restore, migration, rollback, and soak criteria pass independently.
+- Every completed PDF contains a valid reference to a verified same-database BLOB.
+- No new durable PDF stores a data URL.
+- No encoded PDF payload remains in FTS.
+- PDF acceptance, backup/restore, migration, rollback, and soak pass independently.
