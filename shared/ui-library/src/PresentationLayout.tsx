@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { Head } from "./Head";
 import { useMarkdownToHtml } from "./ImageRendererProvider";
 import { convertMermaidBlocks } from "./presentation-html";

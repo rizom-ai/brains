@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -32,7 +32,7 @@ export interface NavLinksProps extends NavLinksVariantProps {
   items: NavigationItem[];
   className?: string;
   linkClassName?: string;
-  children?: ComponentChildren;
+  children?: ReactNode;
 }
 
 /**

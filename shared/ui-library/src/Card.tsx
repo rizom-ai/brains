@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -28,7 +28,7 @@ const cardVariants: VariantFunction<CardVariantProps> = cva(
 export interface CardProps extends CardVariantProps {
   href?: string | undefined;
   className?: string;
-  children: ComponentChildren;
+  children: ReactNode;
 }
 
 /**

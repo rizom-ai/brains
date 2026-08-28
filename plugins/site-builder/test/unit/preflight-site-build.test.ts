@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
-import { h } from "preact";
+import { createElement as h } from "react";
 import {
   formatSiteBuildDiagnostic,
   preflightSiteBuild,

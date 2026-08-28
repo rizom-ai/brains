@@ -1,6 +1,6 @@
 import type { EmailSourceMessage } from "@brains/contracts";
 import {
-  assertCmsWorkspaceAdmin,
+  assertStudioWorkspaceAdmin,
   inboxItemIdSchema,
   type ChannelDeliveryProvider,
   type IEntityAINamespace,
@@ -479,7 +479,7 @@ function toDraftView(entity: EmailReplyDraftEntity): DraftView {
 }
 
 function assertDraftAdmin(actor: InboxActor): void {
-  assertCmsWorkspaceAdmin(
+  assertStudioWorkspaceAdmin(
     { userPermissionLevel: actor.permissionLevel },
     "Email reply drafting",
   );

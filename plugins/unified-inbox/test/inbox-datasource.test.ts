@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
-  CMS_WORKSPACE_REGISTER_MESSAGE,
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
   InboxRegistry,
-  type CmsWorkspaceRegistration,
+  type StudioWorkspaceRegistration,
   type DashboardWidgetRegistration,
   type InboxItem,
   type ServicePluginContext,
@@ -166,7 +166,7 @@ describe("InboxDataSource", () => {
     harness.reset();
   });
 
-  it("keeps Dashboard semantic while handing the CMS destination to interactions and digest", async () => {
+  it("keeps Dashboard semantic while handing the Studio destination to interactions and digest", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       domain: "brain.test",
       logContext: "unified-inbox-order-test",
@@ -179,8 +179,8 @@ describe("InboxDataSource", () => {
       | undefined;
     shell
       .getMessageBus()
-      .subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
-        CMS_WORKSPACE_REGISTER_MESSAGE,
+      .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+        STUDIO_WORKSPACE_REGISTER_MESSAGE,
         async () => {
           events.push("workspace");
           return {
@@ -281,7 +281,7 @@ describe("InboxDataSource", () => {
     );
   });
 
-  it("does not advertise or forward an invalid CMS workspace target", async () => {
+  it("does not advertise or forward an invalid Studio workspace target", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       logContext: "unified-inbox-invalid-target-test",
     });
@@ -289,8 +289,8 @@ describe("InboxDataSource", () => {
     let widget: DashboardWidgetRegistration | undefined;
     shell
       .getMessageBus()
-      .subscribe<CmsWorkspaceRegistration, { workspaceUrl: string }>(
-        CMS_WORKSPACE_REGISTER_MESSAGE,
+      .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+        STUDIO_WORKSPACE_REGISTER_MESSAGE,
         async () => ({
           success: true,
           data: { workspaceUrl: "https://evil.test/inbox" },
@@ -327,7 +327,7 @@ describe("InboxDataSource", () => {
     expect(dashboardData).not.toHaveProperty("managementUrl");
   });
 
-  it("answers the headless tool without webserver, CMS, or Dashboard plugins", async () => {
+  it("answers the headless tool without webserver, Studio, or Dashboard plugins", async () => {
     const harness = createPluginHarness<UnifiedInboxPlugin>({
       logContext: "unified-inbox-test",
     });
@@ -351,7 +351,7 @@ describe("InboxDataSource", () => {
       harness.getMockShell().getDataSourceRegistry().has("unified-inbox:inbox"),
     ).toBe(true);
     expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
-    expect(harness.getMockShell().hasPlugin("cms")).toBe(false);
+    expect(harness.getMockShell().hasPlugin("studio")).toBe(false);
     expect(harness.getMockShell().hasPlugin("dashboard")).toBe(false);
     expect(
       (await harness.getMockShell().getAppInfo()).interactions,

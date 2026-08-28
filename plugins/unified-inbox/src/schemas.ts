@@ -19,6 +19,7 @@ import {
   type InboxSourceMetadata,
   type ListToolOutput,
 } from "@brains/plugins";
+import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 
 interface InboxProjectionEntryValue {
@@ -170,11 +171,6 @@ export function splitInboxRowId(
     sourceId: rowId.slice(0, separator),
     itemId: rowId.slice(separator + 1),
   };
-}
-
-function queryInteger(value: unknown): unknown {
-  if (typeof value !== "string" || value.trim() === "") return value;
-  return Number(value);
 }
 
 const inboxWorkspaceOffsetSchema = z.preprocess(

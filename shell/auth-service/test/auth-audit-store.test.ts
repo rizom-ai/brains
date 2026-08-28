@@ -55,4 +55,48 @@ describe("AuthAuditStore", () => {
       await database.stop();
     }
   });
+
+  it("filters, paginates, aggregates, and resolves an off-page selection in SQL", async () => {
+    const database = new AuthRuntimeDatabase({
+      storageDir: await tempStorageDir(),
+    });
+    await database.start();
+
+    try {
+      const store = new AuthAuditStore(database.db);
+      const oldest = await store.append({
+        action: "auth.user.created",
+        targetId: "usr_first",
+      });
+      const newestMatching = await store.append({
+        action: "auth.user.created",
+        targetId: "usr_second",
+      });
+      await store.append({
+        action: "auth.user.role_updated",
+        targetId: "usr_first",
+      });
+
+      const result = await store.query({
+        action: "auth.user.created",
+        selectedId: oldest.id,
+        offset: 0,
+        limit: 1,
+      });
+
+      expect(result.events.map((event) => event.id)).toEqual([
+        newestMatching.id,
+      ]);
+      expect(result.selectedEvent?.id).toBe(oldest.id);
+      expect(result.total).toBe(2);
+      expect(result.actions).toEqual(
+        expect.arrayContaining([
+          { action: "auth.user.created", count: 2 },
+          { action: "auth.user.role_updated", count: 1 },
+        ]),
+      );
+    } finally {
+      await database.stop();
+    }
+  });
 });

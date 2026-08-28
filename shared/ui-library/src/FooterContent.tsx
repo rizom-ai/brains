@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { NavLinks, type NavigationItem } from "./NavLinks";
 import { ThemeToggle } from "./ThemeToggle";
 import { SocialLinks, type SocialLink } from "./SocialLinks";
@@ -14,7 +14,7 @@ export interface FooterContentProps {
   /** Optional brand block — wordmark + tagline displayed on the left. */
   title?: string | undefined;
   tagline?: string | undefined;
-  children?: ComponentChildren;
+  children?: ReactNode;
 }
 
 /**
@@ -62,7 +62,7 @@ export function FooterContent({
   const hasSecondary = secondaryNav.length > 0;
   const hasSocial = socialLinks && socialLinks.length > 0;
   const hasBrand = Boolean(title);
-  // children is `ComponentChildren` (often an array of slot renders).
+  // children is `ReactNode` (often an array of slot renders).
   // Treat empty arrays as "no slot content" so the slot div doesn't render
   // an empty column.
   const hasSlot = Array.isArray(children)

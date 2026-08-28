@@ -1,5 +1,6 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import { cssVariables } from "@brains/ui-library";
+import type { JSX } from "react";
 import knowledgeMapStyles from "./knowledge-map.css" with { type: "text" };
 import {
   knowledgeMapDataSchema,
@@ -335,14 +336,16 @@ function ZoneLinkShape({
 }): JSX.Element {
   return (
     <path
-      class="kmap-weave kmap-topic-link"
+      className="kmap-weave kmap-topic-link"
       pathLength={1}
       d={link.path}
       fill="none"
       stroke="var(--kmap-glow)"
-      stroke-opacity={0.11}
-      stroke-width={0.75}
-      style={`--d:${(1.15 + index * 0.11).toFixed(2)}s`}
+      strokeOpacity={0.11}
+      strokeWidth={0.75}
+      style={cssVariables({
+        "--d": `${(1.15 + index * 0.11).toFixed(2)}s`,
+      })}
     />
   );
 }
@@ -362,41 +365,48 @@ function ZoneShape({
     <g>
       {count > 0 && <path d={path} fill={`url(#kmap-mist-${surface})`} />}
       <path
-        class="kmap-weave"
+        className="kmap-weave"
         pathLength={1}
         d={path}
         fill="none"
         stroke="var(--kmap-zone)"
-        stroke-opacity={0.32}
-        stroke-width={1}
-        stroke-dasharray="3 5"
-        stroke-linecap="round"
-        style={`--d:${(0.2 + index * 0.08).toFixed(2)}s`}
+        strokeOpacity={0.32}
+        strokeWidth={1}
+        strokeDasharray="3 5"
+        strokeLinecap="round"
+        style={cssVariables({
+          "--d": `${(0.2 + index * 0.08).toFixed(2)}s`,
+        })}
       />
       {label?.leader && (
         <path
-          class="kmap-weave kmap-label-leader"
+          className="kmap-weave kmap-label-leader"
           pathLength={1}
           d={`M ${label.leader.x1} ${label.leader.y1} L ${label.leader.x2} ${label.leader.y2}`}
           fill="none"
           stroke="var(--kmap-zone)"
-          stroke-opacity={0.34}
-          stroke-width={0.7}
-          stroke-linecap="round"
-          style={`--d:${(0.9 + index * 0.08).toFixed(2)}s`}
+          strokeOpacity={0.34}
+          strokeWidth={0.7}
+          strokeLinecap="round"
+          style={cssVariables({
+            "--d": `${(0.9 + index * 0.08).toFixed(2)}s`,
+          })}
         />
       )}
       {label && (
         <text
-          class="kmap-label kmap-label--zone"
+          className="kmap-label kmap-label--zone"
           x={label.x}
           y={label.y}
-          text-anchor={label.anchor}
+          textAnchor={label.anchor}
           fill="var(--kmap-zone)"
-          font-size="9"
-          font-weight="600"
-          letter-spacing="0.18em"
-          style={`--d:${(0.95 + index * 0.08).toFixed(2)}s;text-transform:uppercase`}
+          fontSize="9"
+          fontWeight="600"
+          letterSpacing="0.18em"
+          style={cssVariables({
+            "--d": `${(0.95 + index * 0.08).toFixed(2)}s`,
+            textTransform: "uppercase",
+          })}
         >
           {count > 0 ? `${zone.name} · ${count}` : zone.name}
         </text>
@@ -418,33 +428,33 @@ function PointShape({
   const delay = (0.5 + index * 0.05).toFixed(2);
   if (point.kind === "published") {
     return (
-      <g class="kmap-point--published">
+      <g className="kmap-point--published">
         <circle
-          class="kmap-dot kmap-breathe"
+          className="kmap-dot kmap-breathe"
           cx={x}
           cy={y}
           r={15}
           fill="var(--kmap-glow)"
           opacity={0.12}
           filter={`url(#kmap-blur-${surface})`}
-          style={`--d:${delay}s`}
+          style={cssVariables({ "--d": `${delay}s` })}
         />
         <circle
-          class="kmap-dot"
+          className="kmap-dot"
           cx={x}
           cy={y}
           r={5}
           fill="var(--kmap-glow)"
-          style={`--d:${delay}s`}
+          style={cssVariables({ "--d": `${delay}s` })}
         />
         <circle
-          class="kmap-dot"
+          className="kmap-dot"
           cx={x}
           cy={y}
           r={2.1}
           fill="var(--kmap-hot)"
           opacity={0.9}
-          style={`--d:${delay}s`}
+          style={cssVariables({ "--d": `${delay}s` })}
         />
       </g>
     );
@@ -452,25 +462,27 @@ function PointShape({
   if (point.kind === "skill" || point.kind === "pearl") {
     return (
       <circle
-        class="kmap-dot kmap-point--source"
+        className="kmap-dot kmap-point--source"
         cx={x}
         cy={y}
         r={2.9}
         fill="none"
         stroke="var(--kmap-ink-dim)"
-        stroke-width={1.2}
-        style={`--d:${delay}s`}
+        strokeWidth={1.2}
+        style={cssVariables({ "--d": `${delay}s` })}
       />
     );
   }
   return (
     <circle
-      class="kmap-dot kmap-point--source kmap-point--context"
+      className="kmap-dot kmap-point--source kmap-point--context"
       cx={x}
       cy={y}
       r={1.5}
       fill="var(--kmap-ink-faint)"
-      style={`--d:${(1.4 + index * 0.03).toFixed(2)}s`}
+      style={cssVariables({
+        "--d": `${(1.4 + index * 0.03).toFixed(2)}s`,
+      })}
     />
   );
 }
@@ -482,7 +494,7 @@ function KnowledgeMapLegend(): JSX.Element {
     { label: "published", kind: "published" },
   ] as const;
   return (
-    <g class="kmap-legend" aria-hidden="true">
+    <g className="kmap-legend" aria-hidden="true">
       {items.map((item, index) => {
         const x = 720 + index * 95;
         const y = HEIGHT - 23;
@@ -495,8 +507,8 @@ function KnowledgeMapLegend(): JSX.Element {
                 r={4}
                 fill="none"
                 stroke="var(--kmap-zone)"
-                stroke-width={1.1}
-                stroke-dasharray="2 2"
+                strokeWidth={1.1}
+                strokeDasharray="2 2"
               />
             ) : item.kind === "published" ? (
               <circle cx={0} cy={0} r={4} fill="var(--kmap-glow)" />
@@ -507,10 +519,10 @@ function KnowledgeMapLegend(): JSX.Element {
                 r={3.3}
                 fill="none"
                 stroke="var(--kmap-ink-dim)"
-                stroke-width={1.1}
+                strokeWidth={1.1}
               />
             )}
-            <text x={9} y={3.5} class="kmap-label kmap-label--legend">
+            <text x={9} y={3.5} className="kmap-label kmap-label--legend">
               {item.label}
             </text>
           </g>
@@ -540,7 +552,7 @@ export function KnowledgeMap({
   const evidencePoints = data.points.filter((point) => point.kind !== "ground");
   return (
     <svg
-      class={`kmap kmap--${surface}`}
+      className={`kmap kmap--${surface}`}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
       aria-labelledby={`${titleId} ${descId}`}
@@ -558,13 +570,9 @@ export function KnowledgeMap({
           <feGaussianBlur stdDeviation="2.4" />
         </filter>
         <radialGradient id={`kmap-mist-${surface}`}>
-          <stop offset="0%" stop-color="var(--kmap-zone)" stop-opacity="0.25" />
-          <stop
-            offset="70%"
-            stop-color="var(--kmap-zone)"
-            stop-opacity="0.09"
-          />
-          <stop offset="100%" stop-color="var(--kmap-zone)" stop-opacity="0" />
+          <stop offset="0%" stopColor="var(--kmap-zone)" stopOpacity="0.25" />
+          <stop offset="70%" stopColor="var(--kmap-zone)" stopOpacity="0.09" />
+          <stop offset="100%" stopColor="var(--kmap-zone)" stopOpacity="0" />
         </radialGradient>
       </defs>
       {groundPoints.map((point, index) => (
@@ -606,9 +614,9 @@ export function KnowledgeMap({
 /** The dashboard face of the map — parses widget data, falls back quietly. */
 export function KnowledgeMapWidget({ data }: { data: unknown }): JSX.Element {
   const parsed = knowledgeMapDataSchema.safeParse(data);
-  if (!parsed.success) return <p class="muted">Nothing to show yet.</p>;
+  if (!parsed.success) return <p className="muted">Nothing to show yet.</p>;
   return (
-    <div class="kmap-field kmap-field--dashboard">
+    <div className="kmap-field kmap-field--dashboard">
       <KnowledgeMap data={parsed.data} />
     </div>
   );

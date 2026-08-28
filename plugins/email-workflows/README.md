@@ -16,11 +16,11 @@ The capability is explicit opt-in. Its active runtime composition contains the t
   category, mail-priority, and needs-reply facets for workspace and headless filtering
 - offers two decisive Inbox exits: **Done** records completed work as handled, while
   **Dismiss** archives an item that needs no work; review is implicit when opening an item
-- retains reviewed, handled, and archived records in the standard **Mail Items** CMS
+- retains reviewed, handled, and archived records in the standard **Mail Items** Studio
   collection and through the status-aware `email_triage_list` tool
 - reads the original through the email interface's private locator-backed IMAP operation,
   renders bounded plain text with `no-store`, and releases source bytes after each request
-- exposes no active reply-draft entity, Inbox follow-up, CMS workspace, or sending control
+- exposes no active reply-draft entity, Inbox follow-up, Studio workspace, or sending control
 
 ## The mailbox stays canonical
 
@@ -97,7 +97,7 @@ Classification attempts are counted by hashed message identifier in scoped runti
 
 ## Dormant reply backend
 
-The package retains the source-backed reply operator, revisioned entity schema, threading rules, explicit confirmation boundary, and revision-scoped delivery idempotency as tested source code. They are not part of `emailWorkflows()` runtime composition: the factory does not install the reply entity, and the service does not resolve its prompt or register its operator, follow-up, or workspace. Existing draft files remain untouched but are not exposed through CMS.
+The package retains the source-backed reply operator, revisioned entity schema, threading rules, explicit confirmation boundary, and revision-scoped delivery idempotency as tested source code. They are not part of `emailWorkflows()` runtime composition: the factory does not install the reply entity, and the service does not resolve its prompt or register its operator, follow-up, or workspace. Existing draft files remain untouched but are not exposed through Studio.
 
 Re-enabling reply drafting requires a separate product decision covering its destination, UI, existing revisions, and runtime migration. There is deliberately no configuration flag that exposes the unfinished surface.
 

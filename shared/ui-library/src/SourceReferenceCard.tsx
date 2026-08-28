@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { cn } from "./lib/utils";
 
 export interface SourceReferenceCardProps {

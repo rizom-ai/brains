@@ -55,7 +55,7 @@ type TopicFrontmatterSchema = z.ZodObject<{
 }>;
 
 /**
- * Topic frontmatter schema - fields editable via CMS
+ * Topic frontmatter schema - fields editable via Studio
  */
 export const topicFrontmatterSchema: TopicFrontmatterSchema = z.object({
   title: z.string().describe("Topic title"),

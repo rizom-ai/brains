@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { Head, formatDate } from "@brains/ui-library";
 import type { AgentSkill } from "../schemas/agent";
 import type { AgentView } from "./agent-view";

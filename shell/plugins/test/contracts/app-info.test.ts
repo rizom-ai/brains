@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { AppInfoSchema } from "../../src/contracts/app-info";
 import { toPublicAppInfo } from "../../src/base/public-app-info";
-import { backgroundWorkInfoSchema } from "../../src/contracts/runtime-app-info";
+import {
+  backgroundWorkInfoSchema,
+  endpointInfoSchema,
+  interactionInfoSchema,
+} from "../../src/contracts/runtime-app-info";
 
 describe("public app info contracts", () => {
   it("maps internal app info to the stable public contract", () => {
@@ -123,6 +127,27 @@ describe("public app info contracts", () => {
         },
       ],
     });
+  });
+
+  it("preserves active-session admission on endpoint and interaction descriptors", () => {
+    expect(
+      endpointInfoSchema.parse({
+        label: "Studio",
+        url: "/studio",
+        pluginId: "studio",
+        requiresActiveSession: true,
+      }),
+    ).toMatchObject({ requiresActiveSession: true });
+    expect(
+      interactionInfoSchema.parse({
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        kind: "admin",
+        pluginId: "studio",
+        requiresActiveSession: true,
+      }),
+    ).toMatchObject({ requiresActiveSession: true });
   });
 
   it("rejects malformed durable background-work status", () => {

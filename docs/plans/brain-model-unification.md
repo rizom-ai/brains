@@ -24,7 +24,7 @@ separate approval boundary. See
 
 **The fleet crossover has not executed.** An operator-approved branch canary exercised
 `0.2.0-alpha.244` on `jo` and `smoke`; both coherent config/image pairs passed exact
-version, health, unauthenticated MCP, site, and CMS checks. The crossover then stopped at
+version, health, unauthenticated MCP, site, and Studio checks. The crossover then stopped at
 the post-deploy convergence gate: deploy finalization rendered live status into
 `views/users.md`, while `reconcile-all` would rewrite that observational view with
 non-observed status. Both canaries were rolled back as coherent pairs to
@@ -107,7 +107,7 @@ override an earlier one.
 | 1   | `core`       | profile, prompt, style-guide, directory-sync, note, link, topics, unified-inbox, mcp, a2a, agents |
 | 2   | `media`      | document, image                                                                                   |
 | 3   | `automation` | playbook, playbooks, onboarding                                                                   |
-| 4   | `web`        | webserver, auth-service, account, admin, dashboard, cms                                           |
+| 4   | `web`        | webserver, auth-service, account, admin, dashboard, studio                                        |
 | 5   | `chat`       | chat, web-chat, email, notifications, conversation-memory                                         |
 | 6   | `site`       | site-info, site-content, site-builder, analytics                                                  |
 | 7   | `publishing` | blog, series, portfolio, decks, content-pipeline, social-media, newsletter, stock-photo           |
@@ -375,7 +375,7 @@ issue through the Inbox remains operator-surface work rather than a performance-
 dependency.
 
 Both halves are implemented as Phases 7 and 8 of the inbox plan, which also records
-that the CMS workspace and Dashboard widget are `web` renderings and the digest is a
+that the Studio workspace and Dashboard widget are `web` renderings and the digest is a
 `chat` delivery. This phase retains only the bundle-side gate.
 
 ### Phase 7 — Restructure the eval suites

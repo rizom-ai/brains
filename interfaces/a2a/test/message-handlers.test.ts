@@ -69,7 +69,7 @@ describe("A2A call message handlers", () => {
     const response = await harness.getMockShell().getMessageBus().send({
       type: "a2a:call:agents",
       payload: {},
-      sender: "cms",
+      sender: "studio",
     });
 
     expect(response).toEqual({
@@ -91,7 +91,7 @@ describe("A2A call message handlers", () => {
           instruction: "Is this accurate?",
           selection: "Selected markdown",
         },
-        sender: "cms",
+        sender: "studio",
       });
     const tool = harness
       .getCapabilities()
@@ -120,7 +120,7 @@ describe("A2A call message handlers", () => {
         .send({
           type: "a2a:call:request",
           payload: { agent, instruction: "Review", selection: "Text" },
-          sender: "cms",
+          sender: "studio",
         });
       expect("success" in response && response.success).toBe(false);
     }
@@ -138,7 +138,7 @@ describe("A2A call message handlers", () => {
           instruction: "Review",
           selection: "Text",
         },
-        sender: "cms",
+        sender: "studio",
       });
 
     expect("success" in response && response.success).toBe(false);

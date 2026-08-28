@@ -120,6 +120,23 @@ export function createHTMLShell(
             }
           }
         };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
       })();
     </script>`;
 

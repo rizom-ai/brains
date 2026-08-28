@@ -19,7 +19,14 @@ const result = await Bun.build({
   splitting: false,
   sourcemap: "external",
   minify: false,
-  external: ["preact", "preact/*", "clsx", "tailwind-merge"],
+  external: [
+    "react",
+    "react/*",
+    "react-dom",
+    "react-dom/*",
+    "clsx",
+    "tailwind-merge",
+  ],
 });
 
 if (!result.success) {

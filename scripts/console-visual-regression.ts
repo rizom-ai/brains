@@ -2,13 +2,20 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { PNG } from "pngjs";
+import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
-import { renderEditorShellHtml } from "@brains/cms";
+import { renderEditorShellHtml } from "@brains/studio";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "@brains/dashboard";
 import { createMockAppInfo } from "@brains/test-utils";
+import {
+  ProximityMap,
+  proximityMapScript,
+  proximityMapWidgetStyles,
+} from "../entities/agent-discovery/src/widgets/proximity-map";
+import { proximityMapDataSchema } from "../entities/agent-discovery/src/lib/proximity-map-schema";
 
 const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
@@ -24,10 +31,10 @@ const CLIMATES = ["instrument", "paper"] as const;
 const SURFACES = [
   { id: "dashboard", label: "Dashboard", href: "/dashboard", isActive: false },
   { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-  { id: "cms", label: "CMS", href: "/cms", isActive: false },
+  { id: "studio", label: "Studio", href: "/studio", isActive: false },
 ];
 
-const CMS_CAPABILITIES = {
+const editCapabilities = {
   canRead: true,
   canCreate: true,
   canUpdate: true,
@@ -36,6 +43,7 @@ const CMS_CAPABILITIES = {
   canPublish: true,
   canAssist: true,
 };
+
 const types = [
   {
     entityType: "posts",
@@ -43,7 +51,7 @@ const types = [
     isSingleton: false,
     hasBody: true,
     count: 4,
-    capabilities: CMS_CAPABILITIES,
+    capabilities: editCapabilities,
   },
   {
     entityType: "docs",
@@ -51,7 +59,7 @@ const types = [
     isSingleton: false,
     hasBody: true,
     count: 7,
-    capabilities: CMS_CAPABILITIES,
+    capabilities: editCapabilities,
   },
   {
     entityType: "settings",
@@ -59,9 +67,488 @@ const types = [
     isSingleton: true,
     hasBody: false,
     count: 1,
-    capabilities: CMS_CAPABILITIES,
+    capabilities: editCapabilities,
   },
 ];
+const overviewWorkspaceData = {
+  refreshAfterMs: 15_000,
+  view: {
+    kicker: "Operator home",
+    title: "Overview",
+    description:
+      "What needs you, and what the brain did on its own. Glance here, act in the workspace that owns it.",
+    status: {
+      label: "3 need you",
+      detail: "live operational snapshot",
+      tone: "warn",
+    },
+    blocks: [
+      {
+        type: "columns",
+        id: "overview-columns",
+        primary: [
+          {
+            type: "card",
+            id: "overview-attention",
+            label: "Needs attention",
+            tone: "warn",
+            blocks: [
+              {
+                type: "list",
+                id: "overview-attention-list",
+                empty: "Nothing needs your attention.",
+                items: [
+                  {
+                    id: "dispatch-failed",
+                    title: "Newsletter dispatch failed",
+                    description:
+                      "Urban sensor platforms — transport rejected the payload.",
+                    metadata: ["Publishing", "2 retries left", "18:20"],
+                    tone: "error",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "publishing" },
+                    },
+                  },
+                  {
+                    id: "site-preview-failed",
+                    title: "Site preview needs review",
+                    description:
+                      "One route failed during the latest preview build.",
+                    metadata: ["Site", "preview environment"],
+                    tone: "warn",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "site" },
+                    },
+                  },
+                  {
+                    id: "invitation-expiring",
+                    title: "Grace Hopper's setup link expires soon",
+                    description:
+                      "The single-use invitation link expires tomorrow.",
+                    metadata: ["Access", "Invitations"],
+                    tone: "warn",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "invitations" },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "overview-activity",
+            label: "While you were away",
+            blocks: [
+              {
+                type: "list",
+                id: "overview-activity-list",
+                empty: "No recent autonomous activity.",
+                items: [
+                  {
+                    id: "mail-triage",
+                    title: "9 mail items triaged",
+                    description: "2 flagged high priority, 1 needs a reply.",
+                    metadata: ["Inbox", "overnight"],
+                    tone: "good",
+                    link: {
+                      kind: "launch",
+                      launch: { target: "inbox" },
+                    },
+                  },
+                  {
+                    id: "preview-built",
+                    title: "Site preview built",
+                    description: "31 routes completed without warnings.",
+                    metadata: ["Site", "16:04"],
+                    tone: "good",
+                  },
+                  {
+                    id: "notes-captured",
+                    title: "3 notes captured",
+                    description:
+                      "From inbox follow-ups on the workshop thread.",
+                    metadata: ["Notes", "14:31"],
+                    tone: "neutral",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        aside: [
+          {
+            type: "card",
+            id: "overview-system",
+            label: "System",
+            tone: "neutral",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "Runtime", value: "operational" },
+                  { label: "Jobs", value: "idle" },
+                  { label: "Queue", value: "0 waiting" },
+                  { label: "Version", value: "0.2.0-alpha.306" },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "overview-network",
+            label: "Network",
+            tone: "neutral",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "Interactions", value: 4 },
+                  { label: "Channels", value: 3 },
+                  { label: "Inbox sources", value: 2 },
+                  { label: "Operational sources", value: 3 },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "overview-sources",
+            label: "All sources connected",
+            tone: "good",
+            blocks: [
+              {
+                type: "notice",
+                tone: "good",
+                text: "Email, directory sync, and the site pipeline are reporting normally.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const administrationWorkspaceData = {
+  view: {
+    kicker: "Access administration",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    status: {
+      label: "Admin only",
+      detail: "Access administration",
+      tone: "neutral",
+    },
+    blocks: [
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: "people",
+        queryKey: "tab",
+        tabs: [
+          {
+            id: "people",
+            label: "People",
+            blocks: [
+              {
+                type: "stats",
+                id: "people-summary",
+                items: [
+                  { label: "Active members", value: 2 },
+                  { label: "Active Admins", value: 1 },
+                  { label: "Suspended", value: 1, tone: "warn" },
+                ],
+              },
+              {
+                type: "detail",
+                id: "people",
+                queryKey: "selected",
+                empty: "Select a person to inspect their access.",
+                master: {
+                  type: "table",
+                  id: "people-roster",
+                  empty: "No people are available.",
+                  columns: [
+                    { key: "person", label: "Person" },
+                    { key: "role", label: "Role" },
+                    { key: "status", label: "Status" },
+                    { key: "brain", label: "Arrived via" },
+                  ],
+                  rows: [
+                    {
+                      id: "mira",
+                      cells: {
+                        person: "Mira Reyes",
+                        role: "Admin",
+                        status: "Active",
+                        brain: "Hosted",
+                      },
+                      link: { kind: "detail", itemId: "mira" },
+                    },
+                    {
+                      id: "grace",
+                      cells: {
+                        person: "Grace Hopper",
+                        role: "Trusted",
+                        status: "Active",
+                        brain: "did:web:grace.example",
+                      },
+                      link: { kind: "detail", itemId: "grace" },
+                    },
+                    {
+                      id: "sam",
+                      cells: {
+                        person: "Sam Lee",
+                        role: "Public",
+                        status: "Suspended",
+                        brain: "Hosted",
+                      },
+                      link: { kind: "detail", itemId: "sam" },
+                    },
+                  ],
+                  open: undefined,
+                },
+              },
+              {
+                type: "notice",
+                tone: "neutral",
+                title: "External brain relationships",
+                text: "Peer links record provenance from another brain. They do not grant or change local access.",
+              },
+              {
+                type: "card",
+                id: "link-peer",
+                label: "Link an existing person",
+                blocks: [
+                  {
+                    type: "text",
+                    text: "Associate an external peer identity with a locally administered person.",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "invitations",
+            label: "Invitations",
+            count: 1,
+            blocks: [
+              {
+                type: "text",
+                text: "Invitations load when this tab is opened.",
+              },
+            ],
+          },
+          {
+            id: "audit",
+            label: "Audit",
+            blocks: [
+              { type: "text", text: "Audit loads when this tab is opened." },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const administrationInvitationsWorkspaceData = {
+  view: {
+    kicker: "Access administration",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    status: {
+      label: "Admin only",
+      detail: "Access administration",
+      tone: "neutral",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "invitation-totals",
+        items: [
+          { label: "Pending", value: 1 },
+          { label: "History", value: 4 },
+          { label: "Delivery failures", value: 0, tone: "neutral" },
+        ],
+      },
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: "invitations",
+        queryKey: "tab",
+        tabs: [
+          {
+            id: "people",
+            label: "People",
+            blocks: [{ type: "text", text: "People load on selection." }],
+          },
+          {
+            id: "invitations",
+            label: "Invitations",
+            count: 1,
+            blocks: [
+              {
+                type: "columns",
+                id: "invitation-layout",
+                primary: [
+                  {
+                    type: "query",
+                    id: "invitation-query",
+                    controls: [
+                      {
+                        key: "state",
+                        label: "View",
+                        value: "pending",
+                        options: [
+                          { value: "pending", label: "Pending", count: 1 },
+                          { value: "history", label: "History", count: 4 },
+                        ],
+                      },
+                    ],
+                    pagination: { offset: 0, limit: 25, total: 1 },
+                  },
+                  {
+                    type: "table",
+                    id: "invitations",
+                    empty: "No pending invitations.",
+                    columns: [
+                      { key: "person", label: "Person" },
+                      { key: "role", label: "Role" },
+                      { key: "state", label: "State" },
+                      { key: "destination", label: "Destination" },
+                      { key: "updated", label: "Updated" },
+                    ],
+                    rows: [
+                      {
+                        id: "jordan",
+                        cells: {
+                          person: "Jordan Rivera",
+                          role: "Trusted",
+                          state: "Pending",
+                          destination: "jordan@example.com",
+                          updated: "Aug 26, 2026",
+                        },
+                        actions: [
+                          {
+                            actionId: "resend-invitation",
+                            label: "Resend",
+                            input: { invitationId: "jordan" },
+                          },
+                          {
+                            actionId: "cancel-invitation",
+                            label: "Cancel",
+                            input: { invitationId: "jordan" },
+                            confirmation: { kind: "prepared" },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+                aside: [
+                  {
+                    type: "card",
+                    id: "create-invitation",
+                    label: "Add a person",
+                    blocks: [
+                      {
+                        type: "text",
+                        text: "Issue a single-use passkey setup link through a confirmed delivery channel.",
+                      },
+                      {
+                        type: "action",
+                        actionId: "create-invitation",
+                        label: "Add a person",
+                        input: { idempotencyKey: "visual-request" },
+                        form: {
+                          presentation: "disclosure",
+                          submitLabel: "Create invitation",
+                          fields: [
+                            {
+                              name: "displayName",
+                              label: "Display name",
+                              control: "text",
+                              required: true,
+                            },
+                            {
+                              name: "deliveryType",
+                              label: "Delivery channel",
+                              control: "select",
+                              required: true,
+                              options: [
+                                { value: "email", label: "Private email" },
+                              ],
+                            },
+                            {
+                              name: "deliverySubject",
+                              label: "Email address",
+                              control: "text",
+                              required: true,
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    type: "card",
+                    id: "invite-peer",
+                    label: "Peer-first invitation",
+                    blocks: [
+                      {
+                        type: "text",
+                        text: "Create local access for a person known first through another brain.",
+                      },
+                      {
+                        type: "action",
+                        actionId: "invite-external-peer-person",
+                        label: "Invite peer person",
+                        input: {},
+                        form: {
+                          presentation: "disclosure",
+                          submitLabel: "Invite peer person",
+                          fields: [
+                            {
+                              name: "peerId",
+                              label: "External peer ID",
+                              control: "text",
+                              required: true,
+                            },
+                            {
+                              name: "displayName",
+                              label: "Display name",
+                              control: "text",
+                              required: true,
+                            },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "audit",
+            label: "Audit",
+            blocks: [{ type: "text", text: "Audit loads on selection." }],
+          },
+        ],
+      },
+    ],
+  },
+};
+
 const entities = [
   {
     id: "responsive-console",
@@ -124,7 +611,7 @@ const sessions = [
     lastActiveAt: "2026-07-09T16:30:00.000Z",
   },
   {
-    id: "cms",
+    id: "studio",
     title: "Revise field notes",
     lastActiveAt: "2026-07-08T09:20:00.000Z",
   },
@@ -154,12 +641,12 @@ const messages = [
     content:
       "The shared chrome is aligned across the three operator surfaces. Chat keeps the active conversation compact while the session rail reads as a quiet index.\n\nAt narrow widths, the index moves into a drawer and the composer remains inside the safe area.",
   },
-  { id: "m3", role: "user", content: "And the CMS?" },
+  { id: "m3", role: "user", content: "And the Studio?" },
   {
     id: "m4",
     role: "assistant",
     content:
-      "The CMS preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
+      "The Studio preserves its warm editorial climate. Desktop separates colophon from manuscript; tablet and phone retain Details, Write, and Preview.",
   },
 ];
 // A second, short session pinning the dynamic message states the mockups
@@ -253,39 +740,95 @@ function activeSurfaces(activeId: string): Array<{
   }));
 }
 
+function VisualProximityWidget({
+  data,
+}: {
+  data: unknown;
+}): ReactElement | null {
+  const parsed = proximityMapDataSchema.safeParse(data);
+  return parsed.success
+    ? createElement(ProximityMap, { data: parsed.data })
+    : null;
+}
+
 function dashboardInput(): DashboardRenderInput {
   return {
     title: "Rover Collective",
     baseUrl: "http://127.0.0.1",
-    surfaces: activeSurfaces("dashboard"),
+    surfaces: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        isActive: true,
+      },
+    ],
     character: {
       role: "A professional brain for the agentic web",
-      purpose: "captures · connects · publishes",
+      purpose: "It captures, connects, and publishes what the network learns.",
       values: ["trust", "clarity", "continuity"],
     },
     profile: {
       name: "Rover Collective",
-      description: "A public professional brain.",
+      description:
+        "The shared brain of a cooperative agent network — public by choice, private by default.",
     },
     appInfo: createMockAppInfo({
+      version: "0.2.0-alpha.317",
       uptime: 37_200,
-      entities: 269,
+      entities: 236,
       entityCounts: [
         { entityType: "post", count: 24 },
         { entityType: "note", count: 112 },
         { entityType: "link", count: 86 },
+        { entityType: "topic", count: 12 },
         { entityType: "agent", count: 2 },
       ],
-    }),
-    widgets: {
-      "content-pipeline:pipeline": {
-        widget: {
-          id: "pipeline",
-          pluginId: "content-pipeline",
-          title: "Publication Pipeline",
-          group: "publishing",
-          section: "primary",
+      endpoints: [
+        {
+          label: "Public site",
+          url: "https://rover.example",
+          pluginId: "webserver",
           priority: 10,
+          visibility: "public",
+        },
+      ],
+      interactions: [
+        {
+          id: "chat",
+          label: "Chat",
+          description: "Ask about anything held in public scope.",
+          href: "/chat",
+          kind: "human",
+          pluginId: "web-chat",
+          priority: 10,
+          visibility: "public",
+          status: "available",
+        },
+        {
+          id: "a2a",
+          label: "Agent API",
+          description: "Tools and context for connected agents.",
+          href: "/a2a",
+          kind: "agent",
+          pluginId: "a2a",
+          priority: 20,
+          visibility: "public",
+          status: "available",
+        },
+      ],
+    }),
+    widgetStyles: [proximityMapWidgetStyles],
+    widgetScripts: [proximityMapScript],
+    widgets: {
+      "agent-discovery:skills": {
+        widget: {
+          id: "skills",
+          pluginId: "agent-discovery",
+          title: "Skills",
+          group: "network",
+          section: "sidebar",
+          priority: 20,
           rendererName: "DeclarativeOperatorWidget",
           visibility: "public",
         },
@@ -293,27 +836,24 @@ function dashboardInput(): DashboardRenderInput {
           view: {
             blocks: [
               {
-                type: "stats",
-                items: [
-                  { label: "Draft", value: 2 },
-                  { label: "Queued", value: 4, tone: "warn" },
-                  { label: "Published", value: 13, tone: "good" },
-                ],
-              },
-              {
                 type: "list",
-                id: "pipeline-items",
-                empty: "Nothing queued.",
+                id: "skills",
+                empty: "No public skills.",
                 items: [
                   {
-                    id: "q1",
-                    title: "Domain as identity",
-                    badges: [{ label: "queued", tone: "warn" }],
+                    id: "shared-context",
+                    title: "Shared context",
+                    description: "Human–AI collaboration",
                   },
                   {
-                    id: "d1",
-                    title: "Verdigris pigments",
-                    badges: [{ label: "draft" }],
+                    id: "ecosystem-roles",
+                    title: "Ecosystem roles",
+                    description: "Cooperative architecture",
+                  },
+                  {
+                    id: "portable-reputation",
+                    title: "Portable reputation",
+                    description: "Trust across networks",
                   },
                 ],
               },
@@ -321,37 +861,346 @@ function dashboardInput(): DashboardRenderInput {
           },
         },
       },
-    },
-    activityLog: [
-      {
-        action: "created",
-        entityType: "note",
-        entityId: "verdigris-pigments",
-        timestamp: "2026-07-11T16:36:00.000Z",
+      "topics:topics-knowledge-map": {
+        widget: {
+          id: "topics-knowledge-map",
+          pluginId: "topics",
+          title: "Knowledge Map",
+          group: "knowledge",
+          section: "primary",
+          priority: 30,
+          rendererName: "DeclarativeOperatorWidget",
+          visibility: "public",
+        },
+        data: {
+          view: {
+            blocks: [
+              {
+                type: "spatial",
+                layout: "cartesian",
+                id: "knowledge-map",
+                label: "Knowledge map",
+                description:
+                  "Public knowledge arranged around topic territories.",
+                zones: [
+                  {
+                    id: "topic:collaboration",
+                    label: "Human–AI collaboration",
+                    x: 0.18,
+                    y: 0.22,
+                    memberIds: ["post:agents", "skill:context"],
+                  },
+                  {
+                    id: "topic:memory",
+                    label: "Institutional memory",
+                    x: 0.42,
+                    y: 0.18,
+                    memberIds: ["post:continuity", "note:archives"],
+                  },
+                  {
+                    id: "topic:ecosystems",
+                    label: "Ecosystem architecture",
+                    x: 0.62,
+                    y: 0.36,
+                    memberIds: ["post:rizom", "skill:roles"],
+                  },
+                  {
+                    id: "topic:trust",
+                    label: "Trust networks",
+                    x: 0.78,
+                    y: 0.2,
+                    memberIds: ["post:trust", "note:credentials"],
+                  },
+                  {
+                    id: "topic:decentralization",
+                    label: "Decentralization",
+                    x: 0.28,
+                    y: 0.62,
+                    memberIds: ["post:local-first", "link:protocols"],
+                  },
+                  {
+                    id: "topic:data",
+                    label: "Data politics",
+                    x: 0.55,
+                    y: 0.76,
+                    memberIds: ["post:data", "note:models"],
+                  },
+                  {
+                    id: "topic:reputation",
+                    label: "Reputation systems",
+                    x: 0.84,
+                    y: 0.66,
+                    memberIds: ["skill:reputation", "post:portable"],
+                  },
+                ],
+                points: [
+                  {
+                    id: "post:agents",
+                    label: "Working with agents",
+                    category: "published",
+                    x: 0.12,
+                    y: 0.3,
+                    zoneId: "topic:collaboration",
+                    tone: "good",
+                  },
+                  {
+                    id: "skill:context",
+                    label: "Shared context",
+                    category: "skill",
+                    x: 0.24,
+                    y: 0.12,
+                    zoneId: "topic:collaboration",
+                    tone: "neutral",
+                  },
+                  {
+                    id: "post:continuity",
+                    label: "Institutional continuity",
+                    category: "published",
+                    x: 0.38,
+                    y: 0.28,
+                    zoneId: "topic:memory",
+                    tone: "good",
+                  },
+                  {
+                    id: "note:archives",
+                    label: "Archive notes",
+                    category: "high-signal",
+                    x: 0.48,
+                    y: 0.1,
+                    zoneId: "topic:memory",
+                    tone: "warn",
+                  },
+                  {
+                    id: "post:rizom",
+                    label: "The rizom model",
+                    category: "published",
+                    x: 0.57,
+                    y: 0.44,
+                    zoneId: "topic:ecosystems",
+                    tone: "good",
+                  },
+                  {
+                    id: "skill:roles",
+                    label: "Ecosystem roles",
+                    category: "skill",
+                    x: 0.68,
+                    y: 0.3,
+                    zoneId: "topic:ecosystems",
+                    tone: "neutral",
+                  },
+                  {
+                    id: "post:trust",
+                    label: "Trust propagation",
+                    category: "published",
+                    x: 0.82,
+                    y: 0.12,
+                    zoneId: "topic:trust",
+                    tone: "good",
+                  },
+                  {
+                    id: "note:credentials",
+                    label: "Credential chains",
+                    category: "high-signal",
+                    x: 0.72,
+                    y: 0.26,
+                    zoneId: "topic:trust",
+                    tone: "warn",
+                  },
+                  {
+                    id: "post:local-first",
+                    label: "Local-first governance",
+                    category: "published",
+                    x: 0.2,
+                    y: 0.7,
+                    zoneId: "topic:decentralization",
+                    tone: "good",
+                  },
+                  {
+                    id: "link:protocols",
+                    label: "Protocol autonomy",
+                    category: "source",
+                    x: 0.36,
+                    y: 0.55,
+                    zoneId: "topic:decentralization",
+                    tone: "neutral",
+                  },
+                  {
+                    id: "post:data",
+                    label: "Big data",
+                    category: "published",
+                    x: 0.48,
+                    y: 0.86,
+                    zoneId: "topic:data",
+                    tone: "good",
+                  },
+                  {
+                    id: "note:models",
+                    label: "Model politics",
+                    category: "high-signal",
+                    x: 0.62,
+                    y: 0.68,
+                    zoneId: "topic:data",
+                    tone: "warn",
+                  },
+                  {
+                    id: "skill:reputation",
+                    label: "Portable reputation",
+                    category: "skill",
+                    x: 0.9,
+                    y: 0.58,
+                    zoneId: "topic:reputation",
+                    tone: "neutral",
+                  },
+                  {
+                    id: "post:portable",
+                    label: "Portable trust",
+                    category: "published",
+                    x: 0.78,
+                    y: 0.76,
+                    zoneId: "topic:reputation",
+                    tone: "good",
+                  },
+                  {
+                    id: "link:unfiled",
+                    label: "Open reference",
+                    category: "source",
+                    x: 0.94,
+                    y: 0.42,
+                    tone: "neutral",
+                  },
+                ],
+                relationships: [
+                  { sourceId: "topic:collaboration", targetId: "post:agents" },
+                  { sourceId: "topic:memory", targetId: "post:continuity" },
+                  { sourceId: "topic:ecosystems", targetId: "post:rizom" },
+                  { sourceId: "topic:trust", targetId: "post:trust" },
+                  {
+                    sourceId: "topic:decentralization",
+                    targetId: "post:local-first",
+                  },
+                  { sourceId: "topic:data", targetId: "post:data" },
+                  { sourceId: "topic:reputation", targetId: "post:portable" },
+                ],
+                legend: [
+                  { label: "Topic zones", tone: "neutral" },
+                  { label: "Published", tone: "good" },
+                  { label: "Skills", tone: "neutral" },
+                  { label: "High signal", tone: "warn" },
+                ],
+              },
+            ],
+          },
+        },
       },
-      {
-        action: "updated",
-        entityType: "post",
-        entityId: "domain-as-identity",
-        timestamp: "2026-07-11T16:24:00.000Z",
+      "agent-discovery:agent-proximity": {
+        widget: {
+          id: "agent-proximity",
+          pluginId: "agent-discovery",
+          title: "Agent Proximity",
+          group: "network",
+          section: "primary",
+          priority: 35,
+          rendererName: "DeclarativeOperatorWidget",
+          visibility: "public",
+        },
+        component: VisualProximityWidget,
+        data: {
+          view: {
+            blocks: [
+              {
+                type: "spatial",
+                layout: "radial",
+                id: "agent-proximity",
+                label: "Agent proximity map",
+                description:
+                  "Approved agents arranged by semantic distance from this brain.",
+                centerLabel: "Rover identity",
+                centerKind: "identity",
+                points: [
+                  {
+                    id: "agent:atlas",
+                    label: "Atlas",
+                    kind: "collective",
+                    status: "approved",
+                    tags: ["governance", "research"],
+                    distance: 0.32,
+                    bearing: 42,
+                    tone: "good",
+                  },
+                  {
+                    id: "agent:moss",
+                    label: "Moss",
+                    kind: "person",
+                    status: "approved",
+                    tags: ["publishing", "memory"],
+                    distance: 0.56,
+                    bearing: 205,
+                    tone: "good",
+                  },
+                ],
+                clusters: [
+                  {
+                    id: "cluster:shared-practice",
+                    label: "Shared practice",
+                    memberIds: ["agent:atlas", "agent:moss"],
+                  },
+                ],
+                relationships: [
+                  {
+                    sourceId: "agent:atlas",
+                    targetId: "agent:moss",
+                    tone: "good",
+                  },
+                ],
+                strata: [
+                  { id: "near", label: "Near", maxDistance: 0.33 },
+                  { id: "mid", label: "Mid-range", maxDistance: 0.66 },
+                  { id: "far", label: "Far", maxDistance: 1 },
+                ],
+                legend: [
+                  { label: "Approved agents", tone: "good" },
+                  { label: "Constellations", tone: "neutral" },
+                ],
+              },
+            ],
+          },
+          source: {
+            center: { kind: "identity" },
+            nodes: [
+              {
+                id: "agent:atlas",
+                name: "Atlas",
+                kind: "team",
+                status: "approved",
+                tags: ["governance", "research"],
+                distance: 0.32,
+                bearing: 42,
+              },
+              {
+                id: "agent:moss",
+                name: "Moss",
+                kind: "person",
+                status: "approved",
+                tags: ["publishing", "memory"],
+                distance: 0.56,
+                bearing: 205,
+              },
+            ],
+            clusters: [
+              {
+                label: "Shared practice",
+                memberIds: ["agent:atlas", "agent:moss"],
+                links: [{ sourceId: "agent:atlas", targetId: "agent:moss" }],
+              },
+            ],
+            sightings: [],
+            distanceRange: { min: 0.32, max: 0.56 },
+            pendingCount: 0,
+          },
+        },
       },
-    ],
-    indexReady: true,
-    indexStatus: {
-      ready: true,
-      embeddableEntities: 269,
-      embeddedEntities: 269,
     },
-    directorySyncStatus: {
-      syncPath: "content",
-      isInitialized: true,
-      watchEnabled: true,
-      totalFiles: 269,
-      lastSync: "2026-07-11T16:32:00.000Z",
-    },
-    operatorAccess: {
-      isOperator: true,
-      hiddenWidgetCount: 0,
+    authAccess: {
       loginUrl: "/login",
       logoutUrl: "/logout",
     },
@@ -678,14 +1527,20 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface.startsWith("cms-") && surface !== "cms-library") {
-    const modes = await elementDisplay(page, ".cms-mobile-modes");
+  if (
+    surface.startsWith("studio-") &&
+    surface !== "studio-library" &&
+    surface !== "studio-account" &&
+    surface !== "studio-overview" &&
+    !surface.startsWith("studio-administration")
+  ) {
+    const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
-      throw new Error(`CMS responsive mode mismatch at ${width}px`);
+      throw new Error(`Studio responsive mode mismatch at ${width}px`);
     if (width <= 900) {
       const pipeline = await elementBounds(page, ".pipeline");
       if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
-        throw new Error(`CMS save bar escaped the viewport at ${width}px`);
+        throw new Error(`Studio save bar escaped the viewport at ${width}px`);
     }
   }
 }
@@ -721,11 +1576,12 @@ async function comparePng(
 
 await mkdir(BASELINE_DIR, { recursive: true });
 await mkdir(ARTIFACT_DIR, { recursive: true });
-const cmsAsset = path.join(ROOT, "plugins/cms/dist/ui/cms-app.js");
+const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
+const studioAsset = path.join(studioUiDirectory, "studio-app.js");
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
-await Promise.all([readFile(cmsAsset), readFile(chatAsset)]).catch(() => {
+await Promise.all([readFile(studioAsset), readFile(chatAsset)]).catch(() => {
   throw new Error(
-    "Build @brains/cms and @brains/web-chat UI assets before visual regression.",
+    "Build @brains/studio and @brains/web-chat UI assets before visual regression.",
   );
 });
 
@@ -782,28 +1638,140 @@ const server = Bun.serve({
       });
     }
     if (
-      url.pathname === "/cms" ||
-      url.pathname.startsWith("/cms/entities/") ||
-      url.pathname.startsWith("/cms/workspaces/")
+      url.pathname === "/studio" ||
+      url.pathname.startsWith("/studio/entities/") ||
+      url.pathname.startsWith("/studio/workspaces/")
     )
       return new Response(
         climateHtml(
           renderEditorShellHtml({
-            assetPath: "/cms/assets/cms-app.js",
-            basePath: "/cms",
-            surfaces: activeSurfaces("cms"),
+            assetPath: "/studio/assets/app.js",
+            basePath: "/studio",
+            surfaces: activeSurfaces("studio"),
             sessionHref: "/logout",
+            principal: { displayName: "Mira Reyes", role: "admin" },
           }),
           request,
         ),
         { headers: { "content-type": "text/html" } },
       );
-    if (url.pathname === "/cms/assets/cms-app.js")
-      return new Response(await readFile(cmsAsset), {
-        headers: { "content-type": "text/javascript" },
+    if (url.pathname.startsWith("/studio/assets/")) {
+      const publicPath = url.pathname.slice("/studio/assets/".length);
+      const filePath = publicPath === "app.js" ? "studio-app.js" : publicPath;
+      if (
+        !/^(?:studio-app\.js|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          filePath,
+        )
+      ) {
+        return new Response("Not found", { status: 404 });
+      }
+      return new Response(
+        await readFile(path.join(studioUiDirectory, filePath)),
+        {
+          headers: {
+            "content-type": filePath.endsWith(".map")
+              ? "application/json"
+              : "text/javascript",
+          },
+        },
+      );
+    }
+    if (url.pathname === "/studio/api/types")
+      return json({
+        types,
+        workspaces: [
+          {
+            id: "studio:overview",
+            pluginId: "studio",
+            label: "Overview",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: -100,
+            entityTypes: [],
+            badge: 3,
+          },
+          {
+            id: "admin:administration",
+            pluginId: "admin",
+            label: "Administration",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 10,
+            urlQuery: true,
+            entityTypes: [],
+            badge: 2,
+          },
+          {
+            id: "studio:account",
+            pluginId: "studio",
+            label: "Account",
+            rendererName: "StudioAccountWorkspace",
+            priority: 0,
+            entityTypes: [],
+          },
+        ],
       });
-    if (url.pathname === "/cms/api/types") return json({ types });
-    if (url.pathname === "/cms/api/schema")
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "studio:overview"
+    )
+      return json({
+        workspace: {
+          id: "studio:overview",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: overviewWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "admin:administration"
+    )
+      return json({
+        workspace: {
+          id: "admin:administration",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data:
+            url.searchParams.get("tab") === "invitations"
+              ? administrationInvitationsWorkspaceData
+              : administrationWorkspaceData,
+        },
+      });
+    if (url.pathname === "/auth/account")
+      return json({
+        account: {
+          displayName: "Mira Reyes",
+          role: "admin",
+          connectedChannels: [
+            {
+              type: "email",
+              label: "mira@example.com",
+              verifiedAt: 1_735_689_600_000,
+            },
+          ],
+          pluginSettings: [],
+          passkeys: [
+            {
+              id: "passkey-1",
+              credentialBackedUp: true,
+              createdAt: 1_735_689_600_000,
+              updatedAt: 1_735_689_600_000,
+            },
+          ],
+          sessions: [
+            {
+              id: "session-current",
+              current: true,
+              createdAt: 1_735_689_600,
+              expiresAt: 1_738_281_600,
+            },
+            {
+              id: "session-tablet",
+              current: false,
+              createdAt: 1_735_776_000,
+              expiresAt: 1_738_368_000,
+            },
+          ],
+        },
+      });
+    if (url.pathname === "/studio/api/schema")
       return json({
         entityType: "posts",
         format: "frontmatter",
@@ -852,10 +1820,10 @@ const server = Bun.serve({
           },
         ],
       });
-    if (url.pathname === "/cms/api/entities" && request.method === "PUT") {
+    if (url.pathname === "/studio/api/entities" && request.method === "PUT") {
       // Saves only happen in the secondary-state scenarios: an emptied
-      // title pins the validation error line (cms-invalid), any other
-      // save pins the reconcile card (cms-conflict).
+      // title pins the validation error line (studio-invalid), any other
+      // save pins the reconcile card (studio-conflict).
       const body = (await request.json()) as {
         frontmatter?: { title?: string };
       };
@@ -877,7 +1845,7 @@ const server = Bun.serve({
         { status: 409 },
       );
     }
-    if (url.pathname === "/cms/api/upload") {
+    if (url.pathname === "/studio/api/upload") {
       // Hold the fixture at an observable in-flight boundary until its page
       // closes; teardown releases any request the browser did not abort.
       return new Promise<Response>((resolve) => {
@@ -889,10 +1857,10 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
-    if (url.pathname === "/cms/api/entities" && url.searchParams.has("id"))
+    if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
-    if (url.pathname === "/cms/api/entities") return json({ entities });
-    if (url.pathname === "/cms/api/sync-status")
+    if (url.pathname === "/studio/api/entities") return json({ entities });
+    if (url.pathname === "/studio/api/sync-status")
       return json({
         directorySync: { lastSync: "2026-07-11T16:32:00.000Z", watching: true },
         git: {
@@ -927,31 +1895,39 @@ try {
     for (const viewport of VIEWPORTS) {
       for (const surface of [
         "dashboard",
+        "dashboard-knowledge",
+        "dashboard-network",
         "chat",
         "chat-cards",
         "chat-empty",
         "chat-drawer",
-        "cms-library",
-        "cms-editor",
-        "cms-delete",
-        "cms-conflict",
-        "cms-invalid",
-        "cms-upload",
+        "studio-library",
+        "studio-overview",
+        "studio-administration",
+        "studio-administration-invitations",
+        "studio-administration-invitations-form",
+        "studio-account",
+        "studio-editor",
+        "studio-delete",
+        "studio-conflict",
+        "studio-invalid",
+        "studio-upload",
       ] as const) {
         // The sessions drawer only exists at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
-        const isCmsSecondary =
-          surface === "cms-delete" ||
-          surface === "cms-conflict" ||
-          surface === "cms-invalid" ||
-          surface === "cms-upload";
-        if (isCmsSecondary && viewport.width === 768) continue;
+        const isStudioSecondary =
+          surface === "studio-delete" ||
+          surface === "studio-conflict" ||
+          surface === "studio-invalid" ||
+          surface === "studio-upload";
+        if (isStudioSecondary && viewport.width === 768) continue;
         console.error(
           `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
         );
         const isChat = surface.startsWith("chat");
+        const isDashboard = surface.startsWith("dashboard");
         const conversationId =
           surface === "chat-cards"
             ? "cards"
@@ -966,22 +1942,41 @@ try {
         await page.navigate("about:blank");
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
         await addVisualInitScript(page, conversationId);
-        const isCmsEditor = surface === "cms-editor" || isCmsSecondary;
-        const route =
-          surface === "dashboard"
-            ? "/dashboard"
-            : isChat
-              ? "/chat"
-              : isCmsEditor
-                ? "/cms/entities/posts/field-notes"
-                : "/cms";
+        const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
+        const route = isDashboard
+          ? "/dashboard"
+          : isChat
+            ? "/chat"
+            : surface === "studio-account"
+              ? "/studio/workspaces/studio%3Aaccount"
+              : surface === "studio-overview"
+                ? "/studio/workspaces/studio%3Aoverview"
+                : surface.startsWith("studio-administration")
+                  ? "/studio/workspaces/admin%3Aadministration"
+                  : isStudioEditor
+                    ? "/studio/entities/posts/field-notes"
+                    : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
+        const workspaceQuery = surface.startsWith(
+          "studio-administration-invitations",
+        )
+          ? `&tab=invitations`
+          : "";
         await navigateToNetworkIdle(
           page,
-          `http://127.0.0.1:${server.port}${route}?climate=${climate}${hash}`,
+          `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (
+          surface === "dashboard-knowledge" ||
+          surface === "dashboard-network"
+        ) {
+          const tab =
+            surface === "dashboard-knowledge" ? "knowledge" : "network";
+          await clickSelector(page, `[data-dashboard-tab-link="${tab}"]`);
+          await evaluatePage(page, () => window.scrollTo(0, 0));
+        }
         if (surface === "chat" || surface === "chat-drawer") {
-          await waitForText(page, "And the CMS?");
+          await waitForText(page, "And the Studio?");
         }
         if (surface === "chat-empty") {
           await waitForText(page, "Begin a field note.");
@@ -1075,24 +2070,33 @@ try {
             previousTops = settled;
           }
         }
-        if (surface === "cms-delete") {
+        if (surface === "studio-overview") {
+          await waitForText(page, "While you were away");
+        }
+        if (surface === "studio-account") {
+          await waitForText(page, "Signed-in sessions");
+        }
+        if (surface === "studio-administration-invitations-form") {
+          await clickSelector(page, ".declarative-action-disclosure > summary");
+        }
+        if (surface === "studio-delete") {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await clickSelector(page, ".cms-mobile-more summary");
+            await clickSelector(page, ".studio-mobile-more summary");
             await clickText(page, "button", "Delete entry");
           } else {
             await clickSelector(page, ".pipeline .btn.danger");
           }
           await waitForSelector(page, ".delete-modal");
         }
-        if (surface === "cms-conflict") {
+        if (surface === "studio-conflict") {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
           await clickSelector(page, ".save-btn");
           await waitForSelector(page, ".conflict");
         }
-        if (surface === "cms-invalid") {
+        if (surface === "studio-invalid") {
           // Two validation aspects in one frame: a server-rejected save
           // (the fixture 400s on "!!") pins the pipeline error line, then
           // an emptied required title pins the :user-invalid outline.
@@ -1107,7 +2111,7 @@ try {
             ),
           );
         }
-        if (surface === "cms-upload") {
+        if (surface === "studio-upload") {
           // Start a cover-image upload the fixture never completes, so the
           // widget's in-flight state stays up for the capture.
           const selected = await evaluatePageWith(
@@ -1133,7 +2137,8 @@ try {
               mediaType: "image/png",
             },
           );
-          if (!selected) throw new Error("Could not select CMS upload input");
+          if (!selected)
+            throw new Error("Could not select Studio upload input");
           await waitForText(page, "Uploading…");
           await evaluatePage(page, () => {
             const text = Array.from(

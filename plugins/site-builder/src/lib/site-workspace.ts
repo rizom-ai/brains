@@ -1,8 +1,8 @@
 import {
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineEntity,
   defineWorkspaceAction,
-  registerBuiltInCmsWorkspace,
+  registerBuiltInStudioWorkspace,
   type OperatorRegionBlock,
   type OperatorViewBlock,
   type ServicePluginContext,
@@ -209,7 +209,7 @@ function environmentCard(
   };
 }
 
-const siteWorkspace = defineCmsWorkspace({
+const siteWorkspace = defineStudioWorkspace({
   id: "site",
   label: "Site",
   permission: "trusted",
@@ -455,8 +455,8 @@ export class SiteWorkspaceProvider {
     });
   }
 
-  async registerCmsWorkspace(): Promise<string | undefined> {
-    const result = await registerBuiltInCmsWorkspace({
+  async registerStudioWorkspace(): Promise<string | undefined> {
+    const result = await registerBuiltInStudioWorkspace({
       context: this.options.context,
       definition: siteWorkspace,
       bind: (context) =>
@@ -486,9 +486,9 @@ export class SiteWorkspaceProvider {
     return result === false ? undefined : result.workspaceUrl;
   }
 
-  async unregisterCmsWorkspace(): Promise<void> {
+  async unregisterStudioWorkspace(): Promise<void> {
     if (!this.registered) return;
-    await this.options.context.cms.unregisterWorkspace(
+    await this.options.context.studio.unregisterWorkspace(
       `${this.options.context.pluginId}:site`,
     );
     this.registered = false;

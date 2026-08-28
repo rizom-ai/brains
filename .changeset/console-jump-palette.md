@@ -2,7 +2,7 @@
 "@brains/console-theme": patch
 "@brains/dashboard": patch
 "@brains/web-chat": patch
-"@brains/cms": patch
+"@brains/studio": patch
 ---
 
 Cross-surface ⌘K jump: an operator-gated /api/console/jump endpoint on

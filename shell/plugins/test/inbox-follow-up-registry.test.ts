@@ -33,7 +33,7 @@ function universal(
     permissionLevel: "trusted",
     applies: ({ item: candidate }) => candidate.entityRef !== undefined,
     resolve: ({ item: candidate }) => ({
-      href: `/cms/entities/${candidate.entityRef?.entityType}/${candidate.entityRef?.entityId}`,
+      href: `/studio/entities/${candidate.entityRef?.entityType}/${candidate.entityRef?.entityId}`,
     }),
     ...overrides,
   };
@@ -43,7 +43,7 @@ describe("InboxFollowUpRegistry", () => {
   it("closes registration at finalization and freezes normalized metadata", async () => {
     const registry = new InboxFollowUpRegistry();
     registry.registerKind(
-      "cms",
+      "studio",
       universal({ label: "  Open source entity  " }),
     );
 
@@ -75,18 +75,18 @@ describe("InboxFollowUpRegistry", () => {
       {
         kind: "open-entity",
         label: "Open source entity",
-        href: "/cms/entities/mail-item/mail-1",
+        href: "/studio/entities/mail-item/mail-1",
       },
     ]);
   });
 
   it("rejects duplicate kind ownership when the catalog finalizes", () => {
     const registry = new InboxFollowUpRegistry();
-    registry.registerKind("cms", universal());
+    registry.registerKind("studio", universal());
     registry.registerKind("other", universal());
 
     expect(() => registry.finalize()).toThrow(
-      'Inbox follow-up kind "open-entity" is registered by multiple plugins: cms, other',
+      'Inbox follow-up kind "open-entity" is registered by multiple plugins: other, studio',
     );
   });
 
@@ -115,14 +115,14 @@ describe("InboxFollowUpRegistry", () => {
         resolve: () => ({ href: "/chat" }),
       }),
     );
-    registry.registerKind("cms", universal());
+    registry.registerKind("studio", universal());
     registry.registerKind(
       "notes",
       universal({
         kind: "capture-as-note",
         label: "Capture as note",
         priority: 20,
-        resolve: () => ({ href: "/cms/entities/note?mode=create" }),
+        resolve: () => ({ href: "/studio/entities/note?mode=create" }),
       }),
     );
     registry.registerKind("drafting", {
@@ -160,7 +160,7 @@ describe("InboxFollowUpRegistry", () => {
     const registry = new InboxFollowUpRegistry();
     let receivedInput: unknown;
     let universalApplyCalls = 0;
-    registry.registerKind("cms", {
+    registry.registerKind("studio", {
       ...universal({
         applies: ({ item: candidate }) => {
           universalApplyCalls += 1;
@@ -216,7 +216,7 @@ describe("InboxFollowUpRegistry", () => {
       {
         kind: "open-entity",
         label: "Open source entity",
-        href: "/cms/entities/mail-item/mail-1",
+        href: "/studio/entities/mail-item/mail-1",
       },
     ]);
     expect(receivedInput).toMatchObject({
@@ -272,12 +272,12 @@ describe("InboxFollowUpRegistry", () => {
     const registry = new InboxFollowUpRegistry();
     let resolveCalls = 0;
     registry.registerKind(
-      "cms",
+      "studio",
       universal({
         permissionLevel: "admin",
         resolve: () => {
           resolveCalls += 1;
-          return { href: "/cms/entities/mail-item/mail-1" };
+          return { href: "/studio/entities/mail-item/mail-1" };
         },
       }),
     );
@@ -308,7 +308,7 @@ describe("InboxFollowUpRegistry", () => {
     `/${"x".repeat(2_048)}`,
   ])("drops an unsafe final resolver target: %s", async (href) => {
     const registry = new InboxFollowUpRegistry();
-    registry.registerKind("cms", universal({ resolve: () => ({ href }) }));
+    registry.registerKind("studio", universal({ resolve: () => ({ href }) }));
     registry.finalize();
 
     expect(
@@ -323,12 +323,12 @@ describe("InboxFollowUpRegistry", () => {
   it("preserves a bounded JSON-safe state envelope and freezes the result", async () => {
     const registry = new InboxFollowUpRegistry();
     registry.registerKind(
-      "cms",
+      "studio",
       universal({
         resolve: () => ({
-          href: "/cms/entities/note?mode=create",
+          href: "/studio/entities/note?mode=create",
           state: {
-            cmsCreatePrefill: {
+            studioCreatePrefill: {
               version: 1,
               title: "Review the proposal",
               backlink: "entity://mail-item/mail-1",
@@ -348,9 +348,9 @@ describe("InboxFollowUpRegistry", () => {
     expect(resolved).toEqual({
       kind: "open-entity",
       label: "Open source entity",
-      href: "/cms/entities/note?mode=create",
+      href: "/studio/entities/note?mode=create",
       state: {
-        cmsCreatePrefill: {
+        studioCreatePrefill: {
           version: 1,
           title: "Review the proposal",
           backlink: "entity://mail-item/mail-1",
@@ -369,9 +369,9 @@ describe("InboxFollowUpRegistry", () => {
   ])("drops malformed or oversized resolver state", async (state) => {
     const registry = new InboxFollowUpRegistry();
     registry.registerKind(
-      "cms",
+      "studio",
       universal({
-        resolve: () => ({ href: "/cms", state }),
+        resolve: () => ({ href: "/studio", state }),
       }),
     );
     registry.finalize();
@@ -407,7 +407,7 @@ describe("InboxFollowUpRegistry", () => {
         },
       }),
     );
-    registry.registerKind("cms", universal());
+    registry.registerKind("studio", universal());
     registry.finalize();
 
     expect(
@@ -420,17 +420,17 @@ describe("InboxFollowUpRegistry", () => {
       {
         kind: "open-entity",
         label: "Open source entity",
-        href: "/cms/entities/mail-item/mail-1",
+        href: "/studio/entities/mail-item/mail-1",
       },
     ]);
   });
 
   it("removes a stopped owner from the finalized catalog", async () => {
     const registry = new InboxFollowUpRegistry();
-    registry.registerKind("cms", universal());
+    registry.registerKind("studio", universal());
     registry.finalize();
 
-    registry.unregisterPlugin("cms");
+    registry.unregisterPlugin("studio");
 
     expect(registry.listKinds()).toEqual([]);
     expect(

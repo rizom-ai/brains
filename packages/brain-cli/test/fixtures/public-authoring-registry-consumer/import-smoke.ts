@@ -7,7 +7,7 @@ if (
   readingOperator.id !== "reading-operator"
 ) {
   throw new Error(
-    "Packed Account, Dashboard, and CMS authoring did not import together",
+    "Packed Account, Dashboard, and Studio authoring did not import together",
   );
 }
 

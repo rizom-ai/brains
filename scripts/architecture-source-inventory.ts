@@ -36,7 +36,7 @@ export const architectureStructuralEdges = [
   {
     family: "plugins",
     from: "plugins/admin/src/index.ts",
-    to: "plugins/admin/src/admin-routes.ts",
+    to: "plugins/admin/src/plugin.ts",
   },
   {
     family: "entities",

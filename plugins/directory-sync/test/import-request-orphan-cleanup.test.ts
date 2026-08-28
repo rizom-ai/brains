@@ -18,7 +18,7 @@ import {
  * 2. git-sync sends entity:import:request with the changed paths
  * 3. importEntities() imports new/changed files but ignores missing ones
  * 4. Orphaned DB entity persists because cleanup never runs
- * 5. Deleted entity keeps reappearing (e.g., on CMS, in exports)
+ * 5. Deleted entity keeps reappearing (e.g., on Studio, in exports)
  *
  * The fix: run removeOrphanedEntities() after import in the message handler.
  */

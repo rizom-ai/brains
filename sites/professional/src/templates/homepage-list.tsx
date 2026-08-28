@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import type { ProfessionalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
@@ -16,7 +16,7 @@ import {
 /**
  * Per-section blurb metadata, keyed by section id (e.g. essays,
  * presentations, about). Comes from siteInfo.sections — users can edit
- * via the CMS.
+ * via the Studio.
  */
 type HomepageSections = Record<string, { blurb: string | null }>;
 
@@ -48,7 +48,7 @@ const EditorialRow = ({
   number: string;
   title: string;
   blurb?: string | null | undefined;
-  children: ComponentChildren;
+  children: ReactNode;
 }): JSX.Element => (
   <section className="py-20 border-b border-rule px-6 md:px-12">
     <div className="max-w-6xl mx-auto">
@@ -67,7 +67,7 @@ const EditorialRow = ({
 
 /**
  * Editorial homepage — restrained hero, three numbered sections (Essays,
- * Presentations, About) with optional CMS-driven blurbs, full-width CTA.
+ * Presentations, About) with optional Studio-driven blurbs, full-width CTA.
  */
 export const HomepageListLayout = ({
   profile,

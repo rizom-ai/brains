@@ -1,16 +1,16 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import {
   renderConsoleStripInnerHtml,
   type ConsoleStripSession,
   type ConsoleSurface,
 } from "@brains/console-theme";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { DashboardRenderInput } from "./types";
 
 /**
  * The console strip, rendered from the shared HTML implementation in
  * `@brains/console-theme` — the same markup the server-rendered shells
- * (web-chat, CMS editor, admin, account) interpolate, so the chrome cannot
+ * (web-chat, Studio editor, admin, account) interpolate, so the chrome cannot
  * drift between surfaces. The strip is static chrome (its toggles are wired
  * by the console scripts), so injecting markup carries no behavior.
  */
@@ -37,7 +37,7 @@ export function ConsoleStrip({
 
   return (
     <header
-      class="console-strip"
+      className="console-strip"
       aria-label="Console surfaces"
       dangerouslySetInnerHTML={{
         __html: renderConsoleStripInnerHtml({

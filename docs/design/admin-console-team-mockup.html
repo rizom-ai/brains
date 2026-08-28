@@ -99,8 +99,8 @@
       .button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg-deep); font-weight: 600; }
       .text-action { background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; padding: 0; text-decoration: none; }
       .text-action.muted { color: var(--text-muted); }
-      .cms-link { color: var(--accent); text-decoration: none; font: 600 9px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
-      .cms-link:hover { text-decoration: underline; }
+      .studio-link { color: var(--accent); text-decoration: none; font: 600 9px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+      .studio-link:hover { text-decoration: underline; }
 
       /* Anchor panel — READ-ONLY kind (declared in brain.yaml, not here) */
       .anchor-panel { border: 1px solid var(--rule-strong); border-radius: 12px; background: radial-gradient(520px 160px at 12% -20%, var(--accent-soft), transparent 70%), var(--card); padding: 22px 24px; margin-bottom: 16px; animation: rise 0.5s ease-out 0.04s both; }
@@ -115,7 +115,7 @@
       .field .k { font: 600 8px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
       .field .v { font-size: 13px; }
       .field .subnote { color: var(--text-muted); font-size: 11px; margin-top: 5px; line-height: 1.4; }
-      .cms-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+      .studio-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 
       .yaml-card { border: 1px solid var(--rule); border-radius: 10px; background: var(--bg-deep); overflow: hidden; margin-bottom: 24px; }
       .yaml-card .yhead { padding: 9px 14px; border-bottom: 1px solid var(--rule); font: 600 8px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
@@ -162,8 +162,8 @@
       .item .kind { font: 600 8px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); width: 62px; }
       .item .val { flex: 1; font-size: 12.5px; } .item .val small { color: var(--text-muted); }
       .verified { color: var(--ok); }
-      .cms-ref { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--text-dim); font-size: 12.5px; }
-      .cms-ref b { font-weight: 500; } .cms-ref .spacer { margin-left: auto; }
+      .studio-ref { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--text-dim); font-size: 12.5px; }
+      .studio-ref b { font-weight: 500; } .studio-ref .spacer { margin-left: auto; }
       .brain-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--info) 35%, transparent); border-radius: 8px; background: var(--info-soft); color: var(--text-dim); font-size: 12px; }
 
       .modal-backdrop { position: fixed; inset: 0; background: rgba(5, 4, 15, 0.66); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 50; padding: 20px; }
@@ -181,14 +181,14 @@
       .modal-foot .hosted:hover { color: var(--text-dim); }
       .modal-foot .actions { display: flex; gap: 8px; }
       .button.ghost { background: transparent; }
-      @media (max-width: 940px) { .console-strip { grid-template-columns: auto 1fr auto; gap: 12px; padding: 0 14px; } .surface-nav, .command-chip { display: none; } .note-banner { padding: 0 16px; align-items: flex-start; } .console { padding: 22px 12px 48px; } .masthead { padding: 22px 18px 0; } .masthead-meta, .tagline { display: none; } .tabs { padding: 16px 10px 0; overflow-x: auto; } .tab { padding: 9px 10px 11px; } .canvas { padding: 20px 16px 26px; } .split, .anchor-fields, .overview-grid { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } .section-head { align-items: flex-start; flex-direction: column; } .detail { padding: 18px 16px; } .detail-head { align-items: flex-start; flex-wrap: wrap; } .facets { margin-left: 0; width: 100%; justify-content: flex-start; } .facet { text-align: left; } .item { align-items: flex-start; flex-wrap: wrap; } .cms-line { align-items: flex-start; flex-direction: column; } .list-row, .audit-event { grid-template-columns: 1fr; } .modal-foot { align-items: stretch; flex-direction: column; } .modal-foot .actions { justify-content: flex-end; } }
+      @media (max-width: 940px) { .console-strip { grid-template-columns: auto 1fr auto; gap: 12px; padding: 0 14px; } .surface-nav, .command-chip { display: none; } .note-banner { padding: 0 16px; align-items: flex-start; } .console { padding: 22px 12px 48px; } .masthead { padding: 22px 18px 0; } .masthead-meta, .tagline { display: none; } .tabs { padding: 16px 10px 0; overflow-x: auto; } .tab { padding: 9px 10px 11px; } .canvas { padding: 20px 16px 26px; } .split, .anchor-fields, .overview-grid { grid-template-columns: 1fr; } .anchor-top { flex-wrap: wrap; } .config-chip { margin-left: 0; } .section-head { align-items: flex-start; flex-direction: column; } .detail { padding: 18px 16px; } .detail-head { align-items: flex-start; flex-wrap: wrap; } .facets { margin-left: 0; width: 100%; justify-content: flex-start; } .facet { text-align: left; } .item { align-items: flex-start; flex-wrap: wrap; } .studio-line { align-items: flex-start; flex-direction: column; } .list-row, .audit-event { grid-template-columns: 1fr; } .modal-foot { align-items: stretch; flex-direction: column; } .modal-foot .actions { justify-content: flex-end; } }
     </style>
   </head>
   <body>
     <div class="console-strip">
       <a class="console-mark" href="#"><span class="pulse"></span>◆ ADMIN</a>
       <nav class="surface-nav">
-        <a href="#">Dashboard</a><a href="#">Chat</a><a href="#">CMS</a>
+        <a href="#">Dashboard</a><a href="#">Chat</a><a href="#">Studio</a>
         <a href="#" class="active">Admin</a>
       </nav>
       <button class="chip command-chip">Jump to… <kbd>⌘K</kbd></button>
@@ -213,7 +213,7 @@
       <p>
         Collective brain, <b>team</b> feel. Anchor kind is declared in
         <b>brain.yaml</b> — not chosen here. Ownership is impersonal: no one is
-        the anchor. Team name &amp; profile are <b>CMS content</b>. Warm, flat
+        the anchor. Team name &amp; profile are <b>Studio content</b>. Warm, flat
         vocabulary; same structure as the org.
       </p>
     </div>
@@ -271,12 +271,12 @@
               <div class="anchor-fields">
                 <div class="field">
                   <div class="k">Team profile</div>
-                  <div class="cms-line">
+                  <div class="studio-line">
                     <div class="v">The Peppers · Ship weird software</div>
-                    <a class="cms-link" href="#">Edit in CMS →</a>
+                    <a class="studio-link" href="#">Edit in Studio →</a>
                   </div>
                   <div class="subnote">
-                    Name, mission, and brand are CMS content.
+                    Name, mission, and brand are Studio content.
                   </div>
                 </div>
                 <div class="field">
@@ -381,7 +381,7 @@
                     </div>
                     <span class="host-chip">read-only · external</span>
                   </div>
-                  <div class="cms-ref">
+                  <div class="studio-ref">
                     ◆ <b>Cara Vale</b> · Designer, spatial interfaces<span
                       class="spacer"
                     ></span

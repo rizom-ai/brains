@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -57,8 +57,7 @@ export function ThemeToggle({
 
   return (
     <button
-      // @ts-expect-error - onclick is valid HTML attribute for SSR
-      onclick="toggleTheme()"
+      data-theme-toggle
       type="button"
       className={cn(themeToggleVariants({ variant, size }), className)}
       aria-label="Toggle dark mode"

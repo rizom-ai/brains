@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { renderMediaTemplateHtml } from "@brains/media-page-composer";
+import { normalizeRendererHtml } from "@brains/test-utils";
 import { deckCarouselTemplate } from "../../src/attachments/carousel-template";
 
 describe("deck carousel template", () => {
@@ -21,6 +22,9 @@ describe("deck carousel template", () => {
     expect(html).toContain("deck-carousel-counter");
     expect(html).toContain("--carousel-surface");
     expect(html).toContain("--color-accent");
+    expect(
+      normalizeRendererHtml(html, { ignoreImagePreloads: true }),
+    ).toMatchSnapshot();
   });
 
   it("uses a medium heading weight for carousel slide titles", () => {

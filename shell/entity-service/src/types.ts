@@ -446,13 +446,13 @@ export interface EntityAdapter<
   // Generate frontmatter for markdown
   generateFrontMatter(entity: TEntity): string;
 
-  /** Optional: Zod schema for frontmatter fields. Used by CMS config generation. */
+  /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
-  /** Optional: Declares this entity type is a singleton (one file, e.g., identity/identity.md). Used by CMS to generate files collection. */
+  /** Optional: Declares this entity type is a singleton (one file, e.g., identity/identity.md). Used by Studio to generate files collection. */
   isSingleton?: boolean;
 
-  /** Optional: Whether this entity has a free-form markdown body below frontmatter. Defaults to true. When false, CMS omits the body widget. */
+  /** Optional: Whether this entity has a free-form markdown body below frontmatter. Defaults to true. When false, Studio omits the body widget. */
   hasBody?: boolean;
 
   /** Returns a markdown body template with section headings for this entity type. Empty string for free-form entities. */

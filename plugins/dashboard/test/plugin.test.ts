@@ -2,26 +2,13 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   type DashboardWidgetProviderContext,
+  type EntityCount,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
-
-/**
- * The readiness status, derived from the method rather than imported.
- *
- * IndexReadinessStatus is not exported from @brains/plugins and dashboard does
- * not depend on entity-service, so deriving keeps the stub in step with the
- * real signature without a new export or a cast.
- */
-type HarnessEntityService = ReturnType<
-  ReturnType<typeof createPluginHarness>["getEntityService"]
->;
-type IndexReadiness = Awaited<
-  ReturnType<HarnessEntityService["awaitIndexReady"]>
->;
 
 describe("DashboardPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -72,7 +59,7 @@ describe("DashboardPlugin", () => {
         id: "dashboard",
         label: "Dashboard",
         href: "/dashboard",
-        kind: "admin",
+        kind: "human",
         pluginId: "dashboard",
         visibility: "public",
       });
@@ -101,10 +88,10 @@ describe("DashboardPlugin", () => {
       expect(response?.headers.get("cache-control")).toBe("private, no-store");
       const html = await response?.text();
       expect(html).toContain("Test Owner");
-      expect(html).toContain("Entities");
-      expect(html).toContain("Identity");
+      expect(html).toContain("What I hold");
+      expect(html).toContain("What is this");
       expect(html).toContain("dashboard:dashboard");
-      expect(html).not.toContain("data-cms-frame");
+      expect(html).not.toContain("data-studio-frame");
       expect(html).toMatch(
         /<link[^>]*data-dashboard-styles[^>]*href="\/dashboard\/assets\/dashboard\.[a-f0-9]{64}\.css"/,
       );
@@ -155,6 +142,26 @@ describe("DashboardPlugin", () => {
       expect(await themeResponse?.text()).toBe(themeCSS);
     });
 
+    it("builds anonymous card holdings from public scope only", async () => {
+      const requestedScopes: string[] = [];
+      harness.getEntityService().getEntityCounts = async (
+        scope,
+      ): Promise<EntityCount[]> => {
+        requestedScopes.push(typeof scope === "string" ? scope : "internal");
+        return [{ entityType: "public-note", count: 2 }];
+      };
+
+      const response = await plugin
+        .getWebRoutes()[0]
+        ?.handler(new Request("http://brain/dashboard"));
+      const html = await response?.text();
+
+      expect(response?.status).toBe(200);
+      expect(requestedScopes).toEqual(["public"]);
+      expect(html).toContain("Public Notes");
+      expect(html).toContain("What I hold");
+    });
+
     it("should require an authenticated session for the console jump", async () => {
       const route = plugin
         .getWebRoutes()
@@ -201,10 +208,10 @@ describe("DashboardPlugin", () => {
       const session = await authPlugin.getService().createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       harness.getMockShell().registerPlugin({
-        id: "admin",
+        id: "studio",
         version: "1.0.0",
         type: "service" as const,
-        packageName: "@brains/admin",
+        packageName: "@brains/studio",
         // A real registration: the jump palette only reads getWebRoutes, but
         // registerPlugin takes a whole Plugin, and supplying one keeps this
         // checked against the interface instead of asserted past it.
@@ -216,7 +223,7 @@ describe("DashboardPlugin", () => {
         }),
         getWebRoutes: () => [
           {
-            path: "/admin",
+            path: "/studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -238,19 +245,25 @@ describe("DashboardPlugin", () => {
         groups: Array<{ id: string; items: Array<{ href: string }> }>;
       };
       const tabs = data.groups.find((group) => group.id === "tabs");
-      expect(tabs?.items.map((item) => item.href)).toContain(
-        "/dashboard#system",
-      );
+      expect(tabs?.items.map((item) => item.href)).toEqual([
+        "/dashboard#overview",
+        "/dashboard#knowledge",
+        "/dashboard#network",
+      ]);
       expect(
         data.groups.find((group) => group.id === "surfaces")?.items,
-      ).toContainEqual(expect.objectContaining({ href: "/admin" }));
-      // No CMS plugin in this harness → entity doors have no destination.
+      ).toContainEqual(
+        expect.objectContaining({
+          href: "/studio/workspaces/admin%3Aadministration?tab=people",
+        }),
+      );
+      // No search hits in this harness, so there are no entity doors.
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );
     });
 
-    it("should map search hits to CMS doors, falling back to ids", async () => {
+    it("should map search hits to Studio doors, falling back to ids", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: await createTempDir("dashboard-jump-entities-"),
       });
@@ -260,10 +273,10 @@ describe("DashboardPlugin", () => {
 
       const shell = harness.getMockShell();
       shell.registerPlugin({
-        id: "cms",
+        id: "studio",
         version: "1.0.0",
         type: "service" as const,
-        packageName: "@brains/cms",
+        packageName: "@brains/studio",
         register: async () => ({
           tools: [],
           resources: [],
@@ -272,7 +285,7 @@ describe("DashboardPlugin", () => {
         }),
         getWebRoutes: () => [
           {
-            path: "/cms",
+            path: "/studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -331,15 +344,15 @@ describe("DashboardPlugin", () => {
           id: "note/verdigris-pigments",
           title: "Verdigris pigments",
           sub: "note",
-          href: "/cms/entities/note/verdigris-pigments",
-          tag: "edit in cms",
+          href: "/studio/entities/note/verdigris-pigments",
+          tag: "edit in studio",
         },
         {
           id: "note/untitled-note",
           title: "untitled-note",
           sub: "note",
-          href: "/cms/entities/note/untitled-note",
-          tag: "edit in cms",
+          href: "/studio/entities/note/untitled-note",
+          tag: "edit in studio",
         },
       ]);
     });
@@ -361,10 +374,10 @@ describe("DashboardPlugin", () => {
       const route = plugin
         .getWebRoutes()
         .find((r) => r.path === "/api/console/jump");
-      // "sys" matches the System tab and is long enough to trigger the
+      // "net" matches the Network tab and is long enough to trigger the
       // (failing) entity search — the response degrades, never errors.
       const response = await route?.handler(
-        new Request("http://brain/api/console/jump?q=sys", {
+        new Request("http://brain/api/console/jump?q=net", {
           headers: { Cookie: cookie },
         }),
       );
@@ -394,6 +407,14 @@ describe("DashboardPlugin", () => {
         priority: 30,
         visibility: "trusted",
       });
+      shell.registerEndpoint({
+        label: "Member Studio endpoint",
+        url: "/studio",
+        pluginId: "studio",
+        priority: 40,
+        visibility: "public",
+        requiresActiveSession: true,
+      });
       shell.registerInteraction({
         id: "a2a",
         label: "A2A",
@@ -403,13 +424,14 @@ describe("DashboardPlugin", () => {
         priority: 20,
       });
       shell.registerInteraction({
-        id: "cms",
-        label: "CMS",
-        href: "/cms",
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
         kind: "admin",
-        pluginId: "cms",
+        pluginId: "studio",
         priority: 40,
-        visibility: "admin",
+        visibility: "public",
+        requiresActiveSession: true,
       });
 
       const routes = plugin.getWebRoutes();
@@ -421,9 +443,85 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("Public Site");
       expect(html).toContain("A2A");
       expect(html).not.toContain("MCP");
+      expect(html).not.toContain("Member Studio Endpoint");
       expect(html).not.toContain(
-        'interaction-link--admin" href="http://brain/cms"',
+        'interaction-link--admin" href="http://brain/studio"',
       );
+    });
+
+    it("shows the Studio operator door only to an active Public-rank person", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: await createTempDir("dashboard-public-session-auth-"),
+      });
+      await harness.installPlugin(authPlugin);
+      const person = await authPlugin.getService().createUser({
+        displayName: "Public member",
+        role: "public",
+        status: "active",
+      });
+      const session = await authPlugin
+        .getService()
+        .createAuthSession(person.userId);
+      const shell = harness.getMockShell();
+      shell.registerEndpoint({
+        label: "Member Studio endpoint",
+        url: "/studio",
+        pluginId: "studio",
+        priority: 40,
+        visibility: "public",
+        requiresActiveSession: true,
+      });
+      shell.registerInteraction({
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        kind: "admin",
+        pluginId: "studio",
+        priority: 40,
+        visibility: "public",
+        requiresActiveSession: true,
+      });
+      shell.registerPlugin({
+        id: "studio",
+        version: "1.0.0",
+        type: "service",
+        packageName: "@brains/studio",
+        register: async () => ({
+          tools: [],
+          resources: [],
+          commands: [],
+          handlers: [],
+        }),
+        getWebRoutes: (): WebRouteDefinition[] => [
+          {
+            path: "/studio",
+            method: "GET",
+            public: true,
+            handler: async (): Promise<Response> => new Response("ok"),
+          },
+        ],
+      });
+
+      const pageRoute = plugin.getWebRoutes()[0];
+      const anonymousResponse = await pageRoute?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const anonymousHtml = await anonymousResponse?.text();
+      expect(anonymousHtml).not.toContain('data-console-surface="studio"');
+      expect(anonymousHtml).not.toContain("Operators → Studio");
+
+      const response = await pageRoute?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: session.cookie },
+        }),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("Public member");
+      expect(html).not.toContain("Member Studio Endpoint");
+      expect(html).toContain('data-console-surface="studio"');
+      expect(html).toContain('href="/studio"');
+      expect(html).toContain("Operators → Studio");
     });
 
     it("should remove a tab when all widgets in that group are hidden", async () => {
@@ -450,65 +548,64 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain("Publication Pipeline");
     });
 
-    it("should render recent entity and job progress events", async () => {
-      harness.subscribe("sync:status:request", async () => ({
-        success: true,
-        data: {
-          syncPath: "/brain/content",
-          isInitialized: true,
-          watchEnabled: true,
-          lastSync: null,
-          totalFiles: 2,
-          byEntityType: { note: 2 },
-          managementUrl: "/studio/workspaces/sync",
+    it("should keep non-public widgets off the Dashboard for an Admin session", async () => {
+      const authPlugin = new AuthServicePlugin({
+        storageDir: await createTempDir("dashboard-public-widgets-only-"),
+      });
+      await harness.installPlugin(authPlugin);
+      const session = await authPlugin.getService().createAuthSession();
+      let privateProviderCalls = 0;
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "private-operations",
+        pluginId: "operations",
+        title: "Private operations",
+        group: "system",
+        section: "primary",
+        priority: 10,
+        rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+        visibility: "trusted",
+        dataProvider: async () => {
+          privateProviderCalls += 1;
+          return { view: { blocks: [] } };
         },
-      }));
-      // Assigned against the real signature: the cast this replaces declared a
-      // zero-argument awaitIndexReady returning an inline shape, where the
-      // interface takes options and returns IndexReadinessStatus.
-      // No annotation: the assignment target supplies the contextual type, so
-      // the literal is checked against the real IndexReadinessStatus. The cast
-      // this replaces declared a zero-argument method returning an inline
-      // shape, where the interface takes options.
-      harness.getEntityService().awaitIndexReady =
-        async (): Promise<IndexReadiness> => ({
-          ready: true,
-          degraded: false,
-          activeEmbeddingJobs: 0,
-          missingEmbeddings: 0,
-          staleEmbeddings: 0,
-          failedEmbeddings: 0,
-          embeddableEntities: 0,
-          embeddedEntities: 0,
-        });
-
-      await harness.sendMessage("entity:updated", {
-        entityType: "note",
-        entityId: "project-plan",
-      });
-      await harness.sendMessage("job-progress", {
-        id: "job-1",
-        type: "job",
-        status: "processing",
-        progress: { current: 1, total: 3, percentage: 33 },
-        jobDetails: { jobType: "site:build", priority: 0, retryCount: 0 },
       });
 
-      const routes = plugin.getWebRoutes();
-      const response = await routes[0]?.handler(
-        new Request("http://brain/dashboard"),
+      const response = await plugin.getWebRoutes()[0]?.handler(
+        new Request("http://brain/dashboard", {
+          headers: { Cookie: session.cookie },
+        }),
       );
       const html = await response?.text();
 
-      expect(html).toContain("note/project-plan");
-      expect(html).toContain("site:build");
-      expect(html).toContain("1/3");
-      expect(html).toContain("/brain/content");
-      expect(html).toContain("2 files");
-      expect(html).toContain("note 2");
-      expect(html).toContain("Content sync");
-      expect(html).toContain('href="/studio/workspaces/sync"');
-      expect(html).toContain("Semantic index · ready · 0 active");
+      expect(privateProviderCalls).toBe(0);
+      expect(html).not.toContain("Private operations");
+      expect(html).not.toContain("private console widget is hidden");
+    });
+
+    it("does not query or render operator diagnostics on the public card", async () => {
+      let syncStatusCalls = 0;
+      harness.subscribe("sync:status:request", async () => {
+        syncStatusCalls += 1;
+        return {
+          success: true,
+          data: {
+            syncPath: "/private/content",
+            isInitialized: true,
+            watchEnabled: true,
+          },
+        };
+      });
+
+      const response = await plugin
+        .getWebRoutes()[0]
+        ?.handler(new Request("http://brain/dashboard"));
+      const html = await response?.text();
+
+      expect(syncStatusCalls).toBe(0);
+      expect(html).not.toContain("/private/content");
+      expect(html).not.toContain("Content sync");
+      expect(html).not.toContain("Job queue");
+      expect(html).not.toContain("Semantic index");
     });
 
     it("should retain the authenticated user's actual dashboard role", async () => {
@@ -534,9 +631,9 @@ describe("DashboardPlugin", () => {
         visibility: "trusted",
       });
       shell.registerEndpoint({
-        label: "CMS",
-        url: "/cms",
-        pluginId: "cms",
+        label: "Studio",
+        url: "/studio",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
@@ -551,12 +648,12 @@ describe("DashboardPlugin", () => {
 
       expect(html).toContain("Mira Reyes");
       expect(html).toContain("Trusted");
-      expect(html).toContain("MCP");
-      expect(html).not.toContain("CMS");
+      expect(html).not.toContain("MCP");
+      expect(html).not.toContain('href="http://brain/studio"');
       expect(html).not.toContain('href="#people"');
     });
 
-    it("passes the authenticated caller and request cancellation to declarative widgets", async () => {
+    it("keeps public providers anonymous while forwarding request cancellation", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: `/tmp/dashboard-declarative-auth-${Date.now()}`,
       });
@@ -574,31 +671,26 @@ describe("DashboardPlugin", () => {
       let hiddenProviderCalls = 0;
 
       await harness.sendMessage("dashboard:register-widget", {
-        id: "declarative-reader",
+        id: "skills",
         pluginId: "reader",
-        group: "knowledge",
-        title: "Reader widget",
-        visibility: "trusted",
+        group: "network",
+        title: "Reader skills",
+        visibility: "public",
         rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
         dataProvider: async (context: DashboardWidgetProviderContext) => {
           providerContexts.push(context);
           return {
             view: {
-              title: "Reading <script>alert('nope')</script>",
               blocks: [
                 {
-                  type: "stats",
-                  items: [{ label: "Saved", value: 3, tone: "good" }],
-                },
-                {
-                  type: "links",
+                  type: "list",
+                  id: "skills",
+                  empty: "No skills advertised yet.",
                   items: [
                     {
-                      label: "Reading source",
-                      target: {
-                        kind: "external",
-                        href: "https://reading.example/library",
-                      },
+                      id: "reading",
+                      title: "Reading <script>alert('nope')</script>",
+                      description: "3 public sources saved",
                     },
                   ],
                 },
@@ -633,21 +725,18 @@ describe("DashboardPlugin", () => {
       const html = await response?.text();
 
       expect(providerContexts).toHaveLength(1);
-      expect(providerContexts[0]?.caller).toEqual({
-        actor: { id: trustedUser.userId, displayName: "Mira Reyes" },
-        permission: "trusted",
-        isAnchor: false,
-      });
+      expect(providerContexts[0]?.caller).toBeNull();
       expect(hiddenProviderCalls).toBe(0);
-      expect(html).toContain("operator-view");
-      expect(html).toContain("Reading &lt;script>alert('nope')&lt;/script>");
+      expect(html).toContain(
+        "Reading &lt;script&gt;alert(&#x27;nope&#x27;)&lt;/script&gt;",
+      );
+      expect(html).toContain("3 public sources saved");
       expect(html).not.toContain("<script>alert('nope')</script>");
-      expect(html).toContain('href="https://reading.example/library"');
       abortController.abort();
       expect(providerContexts[0]?.signal.aborted).toBeTrue();
     });
 
-    it("should show Admin endpoints and interactions without embedding People", async () => {
+    it("keeps Admin-only descriptors out of the public card", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: await createTempDir("dashboard-auth-"),
       });
@@ -670,18 +759,18 @@ describe("DashboardPlugin", () => {
         visibility: "trusted",
       });
       shell.registerEndpoint({
-        label: "CMS",
-        url: "/cms",
-        pluginId: "cms",
+        label: "Studio",
+        url: "/studio",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
       shell.registerInteraction({
-        id: "cms",
-        label: "CMS",
-        href: "/cms",
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
         kind: "admin",
-        pluginId: "cms",
+        pluginId: "studio",
         priority: 40,
         visibility: "admin",
       });
@@ -696,8 +785,8 @@ describe("DashboardPlugin", () => {
 
       expect(html).toContain("Yeehaa");
       expect(html).toContain("Admin");
-      expect(html).toContain("MCP");
-      expect(html).toContain("CMS");
+      expect(html).not.toContain("MCP");
+      expect(html).toContain("Studio");
       expect(html).not.toContain('href="#people"');
       expect(html).not.toContain('id="people"');
       expect(html).not.toContain("/auth/admin/users");

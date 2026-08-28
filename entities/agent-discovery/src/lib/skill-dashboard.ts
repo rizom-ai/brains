@@ -40,7 +40,7 @@ export function registerSkillsDashboardWidget(
 ): void {
   // Skills are the brain's A2A-advertised capabilities, so they sit
   // alongside Character (persona) in the sidebar rather than in the
-  // main corpus column. The full description lives in CMS / A2A.
+  // main corpus column. The full description lives in Studio / A2A.
   context.messaging.subscribe(
     SYSTEM_CHANNELS.pluginsRegistered,
     async (): Promise<{ success: boolean }> => {

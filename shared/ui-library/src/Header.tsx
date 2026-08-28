@@ -1,4 +1,4 @@
-import type { ComponentChildren, VNode } from "preact";
+import type { ReactNode, ReactElement } from "react";
 import { Logo } from "./Logo";
 import { Button } from "./Button";
 import { LinkButton } from "./LinkButton";
@@ -30,7 +30,7 @@ export interface HeaderProps {
    * Optional wordmark slot — replaces the title/logo entirely.
    * Use this to render a structured site brand (e.g. `<Wordmark name="yeehaa" brandSuffix="io" />`).
    */
-  wordmark?: ComponentChildren;
+  wordmark?: ReactNode;
 
   /**
    * Primary navigation items
@@ -69,7 +69,7 @@ export function Header({
   cta,
   showThemeToggle = false,
   themeToggleClassName,
-}: HeaderProps): VNode {
+}: HeaderProps): ReactElement {
   const titleElement =
     wordmark ??
     (logo ? (
@@ -123,7 +123,6 @@ export function Header({
           {/* Mobile hamburger button */}
           <Button
             variant="ghost"
-            ssrOnClick="toggleMobileMenu()"
             type="button"
             className={cn(
               "md:hidden p-2 h-auto rounded-[10px]",
@@ -168,13 +167,7 @@ export function Header({
         >
           <div className="flex flex-col gap-3 mt-4 pb-2 pt-4 border-t border-theme">
             {navigation.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                // @ts-expect-error - onclick is valid HTML attribute for SSR
-                onclick="closeMobileMenu()"
-                className="nav-link"
-              >
+              <a key={item.href} href={item.href} className="nav-link">
                 {item.label}
               </a>
             ))}

@@ -5,7 +5,7 @@ import {
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 
 /**

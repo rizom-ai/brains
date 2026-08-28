@@ -16,7 +16,7 @@
 "@brains/chat-repl": patch
 "@brains/web-chat": patch
 "@brains/dashboard": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@rizom/brain": patch
 ---
 

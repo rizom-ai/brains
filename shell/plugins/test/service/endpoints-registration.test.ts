@@ -10,13 +10,13 @@ describe("context.endpoints.register", () => {
     const shell = createMockShell({ logger });
     const context = createBasePluginContext(shell, "my-plugin");
 
-    context.endpoints.register({ label: "CMS", url: "/cms" });
+    context.endpoints.register({ label: "Studio", url: "/studio" });
 
     const endpoints = shell.listEndpoints();
     expect(endpoints).toHaveLength(1);
     expect(endpoints[0]).toEqual({
-      label: "CMS",
-      url: "/cms",
+      label: "Studio",
+      url: "/studio",
       pluginId: "my-plugin",
       priority: 100,
       visibility: "public",
@@ -25,11 +25,11 @@ describe("context.endpoints.register", () => {
 
   it("respects an explicit priority", () => {
     const shell = createMockShell({ logger });
-    const context = createBasePluginContext(shell, "cms");
+    const context = createBasePluginContext(shell, "studio");
 
     context.endpoints.register({
-      label: "CMS",
-      url: "https://example.com/cms",
+      label: "Studio",
+      url: "https://example.com/studio",
       priority: 40,
     });
 
@@ -44,36 +44,46 @@ describe("context.endpoints.register", () => {
     context.endpoints.register({ label: "Repo", url: "/repo", priority: 50 });
     context.endpoints.register({ label: "Site", url: "/site", priority: 10 });
     context.endpoints.register({ label: "MCP", url: "/mcp", priority: 30 });
-    context.endpoints.register({ label: "CMS", url: "/cms", priority: 30 });
+    context.endpoints.register({
+      label: "Studio",
+      url: "/studio",
+      priority: 30,
+    });
 
     expect(shell.listEndpoints().map((e) => e.label)).toEqual([
       "Site",
-      "CMS",
       "MCP",
+      "Studio",
       "Repo",
     ]);
   });
 
   it("appears in appInfo.endpoints", async () => {
     const shell = createMockShell({ logger });
-    const context = createBasePluginContext(shell, "cms");
-    context.endpoints.register({ label: "CMS", url: "/cms", priority: 40 });
+    const context = createBasePluginContext(shell, "studio");
+    context.endpoints.register({
+      label: "Studio",
+      url: "/studio",
+      priority: 40,
+    });
 
     const info = await shell.getAppInfo();
-    expect(info.endpoints.map((e) => e.label)).toEqual(["CMS"]);
-    expect(info.endpoints[0]?.pluginId).toBe("cms");
+    expect(info.endpoints.map((e) => e.label)).toEqual(["Studio"]);
+    expect(info.endpoints[0]?.pluginId).toBe("studio");
   });
 
   it("scopes pluginId per context", () => {
     const shell = createMockShell({ logger });
-    const cmsCtx = createBasePluginContext(shell, "cms");
+    const studioCtx = createBasePluginContext(shell, "studio");
     const mcpCtx = createBasePluginContext(shell, "mcp");
 
-    cmsCtx.endpoints.register({ label: "CMS", url: "/cms" });
+    studioCtx.endpoints.register({ label: "Studio", url: "/studio" });
     mcpCtx.endpoints.register({ label: "MCP", url: "/mcp" });
 
     const endpoints = shell.listEndpoints();
-    expect(endpoints.find((e) => e.label === "CMS")?.pluginId).toBe("cms");
+    expect(endpoints.find((e) => e.label === "Studio")?.pluginId).toBe(
+      "studio",
+    );
     expect(endpoints.find((e) => e.label === "MCP")?.pluginId).toBe("mcp");
   });
 
@@ -89,17 +99,40 @@ describe("context.endpoints.register", () => {
     expect(context.plugins.has("chat")).toBe(true);
   });
 
-  it("preserves endpoint visibility", () => {
+  it("preserves endpoint visibility and active-session admission", () => {
     const shell = createMockShell({ logger });
-    const context = createBasePluginContext(shell, "mcp");
+    const context = createBasePluginContext(shell, "studio");
 
     context.endpoints.register({
-      label: "MCP",
-      url: "/mcp",
-      visibility: "trusted",
+      label: "Studio",
+      url: "/studio",
+      visibility: "public",
+      requiresActiveSession: true,
     });
 
-    expect(shell.listEndpoints()[0]?.visibility).toBe("trusted");
+    expect(shell.listEndpoints()[0]).toMatchObject({
+      visibility: "public",
+      requiresActiveSession: true,
+    });
+  });
+
+  it("preserves interaction active-session admission", () => {
+    const shell = createMockShell({ logger });
+    const context = createBasePluginContext(shell, "studio");
+
+    context.interactions.register({
+      id: "studio",
+      label: "Studio",
+      href: "/studio",
+      kind: "admin",
+      visibility: "public",
+      requiresActiveSession: true,
+    });
+
+    expect(shell.listInteractions()[0]).toMatchObject({
+      visibility: "public",
+      requiresActiveSession: true,
+    });
   });
 
   it("registers interactions with defaults and plugin scope", () => {

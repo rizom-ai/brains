@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { cn } from "./lib/utils";
 
 export interface CoverImageProps {
@@ -6,7 +6,7 @@ export interface CoverImageProps {
   alt: string;
   width: number;
   height: number;
-  srcset?: string | undefined;
+  srcSet?: string | undefined;
   sizes?: string | undefined;
   className?: string;
 }
@@ -25,7 +25,7 @@ export const CoverImage = ({
   alt,
   width,
   height,
-  srcset,
+  srcSet,
   sizes,
   className,
 }: CoverImageProps): JSX.Element => {
@@ -36,7 +36,7 @@ export const CoverImage = ({
         alt={alt}
         width={width}
         height={height}
-        {...(srcset && { srcset })}
+        {...(srcSet && { srcSet })}
         {...(sizes && { sizes })}
         loading="lazy"
         decoding="async"

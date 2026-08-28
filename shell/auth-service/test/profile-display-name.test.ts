@@ -60,7 +60,7 @@ describe("resolveProfileDisplayNameSafely", () => {
     expect(result).toBeUndefined();
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.message).toBe(
-      "Failed to resolve CMS profile display name",
+      "Failed to resolve Studio profile display name",
     );
   });
 

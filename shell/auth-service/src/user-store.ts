@@ -32,7 +32,7 @@ export interface ConfigureBrainAnchorInput {
   displayName: string;
   profileEntityId: string;
   /**
-   * When the display name came from the CMS Anchor profile, the profile is
+   * When the display name came from the Studio Anchor profile, the profile is
    * authoritative: sync it onto the personal Anchor's person and user rows.
    */
   subjectDisplayName?: string;

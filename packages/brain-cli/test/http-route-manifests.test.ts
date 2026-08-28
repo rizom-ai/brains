@@ -48,7 +48,7 @@ function routeManifest(plugins: readonly Plugin[]): string[] {
             .getApiRoutes()
             .map(
               (route) =>
-                `${plugin.id}|tool|${route.method}|/api/${plugin.id}${route.path}|exact|${route.public}`,
+                `${plugin.id}|tool|${route.method}|${normalizeRoutePath(`/api/${plugin.id}${route.path}`)}|exact|${route.public}`,
             )
         : [];
       return [...webRoutes, ...apiRoutes];
@@ -147,6 +147,19 @@ describe("canonical HTTP route manifests", () => {
       );
     });
   }
+
+  test("normalizes generated asset hashes without hiding their routes", () => {
+    const manifests = [
+      minimal,
+      ...compositionCases.map(([, plugins]) => routeManifest(plugins)),
+    ].flat();
+    expect(manifests).toContain(
+      "dashboard|handler|GET|/assets/dashboard.[content-hash].css|exact|true",
+    );
+    expect(
+      manifests.some((entry) => /\.[a-f0-9]{64}\.(?:css|js)\|/u.test(entry)),
+    ).toBeFalse();
+  });
 
   test("has no current canonical method/path collisions", () => {
     const manifestCases: Array<[string, string[]]> = [

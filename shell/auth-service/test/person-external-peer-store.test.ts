@@ -99,6 +99,27 @@ describe("PersonExternalPeerStore", () => {
     });
   });
 
+  it("unlinks only the matching person's external peer", async () => {
+    await withStores(async (users, peers) => {
+      const admin = await users.ensureFirstAdminUser({ displayName: "Admin" });
+      const member = await users.createUser({ displayName: "Mira Reyes" });
+      const peer = await peers.linkPeer({
+        peerId: "did:web:mira.example",
+        personId: member.personId,
+        createdByUserId: admin.id,
+      });
+
+      expect(
+        await peers.unlinkPeer({
+          peerId: peer.peerId,
+          personId: member.personId,
+          actorUserId: admin.id,
+        }),
+      ).toEqual(peer);
+      expect(await peers.listByPersonId(member.personId)).toEqual([]);
+    });
+  });
+
   it("is idempotent for the same person and never switches a peer silently", async () => {
     await withStores(async (users, peers) => {
       const admin = await users.ensureFirstAdminUser({ displayName: "Admin" });

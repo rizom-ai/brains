@@ -2,8 +2,8 @@
 
 ## Status
 
-**Proposed.** Add an installable, network-first PWA shell for Dashboard, web-chat, and CMS.
-The first release deliberately does not promise offline chat, offline CMS editing, mutation
+**Proposed.** Add an installable, network-first PWA shell for Dashboard, web-chat, and Studio.
+The first release deliberately does not promise offline chat, offline Studio editing, mutation
 replay, or background synchronization.
 
 ## Goal
@@ -16,7 +16,7 @@ The PWA should:
 
 - install from the same origin that serves the operator console;
 - launch into the best registered operator surface;
-- retain shared Dashboard/Chat/CMS navigation in standalone display mode;
+- retain shared Dashboard/Chat/Studio navigation in standalone display mode;
 - provide correct icons, colors, names, and mobile safe-area behavior;
 - show a branded offline fallback when the Brain is unreachable;
 - update safely without serving stale authenticated HTML or stale client bundles;
@@ -24,13 +24,13 @@ The PWA should:
 
 ## Non-goals
 
-- Offline CMS creation or editing.
+- Offline Studio creation or editing.
 - Queued mutation replay, uploads, or conflict resolution.
 - Offline model inference or Chat responses.
 - Caching entity/API responses for offline reading.
 - Web push or notification permission prompts.
 - Background Sync, Periodic Background Sync, or badge APIs.
-- Combining Dashboard, CMS, and web-chat into one SPA.
+- Combining Dashboard, Studio, and web-chat into one SPA.
 - Replacing passkey authentication or changing session-cookie semantics.
 - Registering a root-scoped service worker for public sites unless explicitly configured.
 
@@ -73,7 +73,7 @@ forces it:
 - The production server serves the public static site and the dynamic console routes from
   one origin (`server-manager.ts` mounts `serveStatic` at `/*` on the same Hono app that
   dispatches registered web routes); the preview site is a separate server and domain.
-- The console surfaces live at `/dashboard`, `/chat`, `/cms`, and `/login` — there is no
+- The console surfaces live at `/dashboard`, `/chat`, `/studio`, and `/login` — there is no
   common path prefix, and service-worker scope is prefix-based, so a single worker covering
   all surfaces must be root-scoped. Re-homing every console route under a `/console/`
   prefix would break existing deep links for no gain.
@@ -102,7 +102,7 @@ constants for:
 - guarded service-worker registration;
 - standalone/safe-area CSS hooks.
 
-Dashboard, CMS, and web-chat include this head contract only when the PWA route is
+Dashboard, Studio, and web-chat include this head contract only when the PWA route is
 registered. Route presence—not hardcoded assumptions—determines whether registration is
 emitted.
 
@@ -139,9 +139,9 @@ Runtime validation uses Zod. The generated manifest includes:
 - `display: "standalone"`;
 - `theme_color` and `background_color`;
 - maskable and standard icons at required sizes;
-- optional Dashboard/Chat/CMS shortcuts only for registered surfaces.
+- optional Dashboard/Chat/Studio shortcuts only for registered surfaces.
 
-The default start URL is the registered Dashboard route, then Chat, then CMS. Configuration
+The default start URL is the registered Dashboard route, then Chat, then Studio. Configuration
 may override it only with a same-origin path that is inside scope.
 
 ### Service-worker policy
@@ -149,7 +149,7 @@ may override it only with a same-origin path that is inside scope.
 The first service worker intercepts **only navigation requests**: network-first with the
 dedicated offline page as fallback, and no authenticated navigation response ever written
 to Cache Storage. Every non-navigation request — `/api/**`, `/mcp`, auth/passkey routes,
-`/cms/api/**`, `/api/chat/**`, streams, uploads, bundles — passes through untouched because
+`/studio/api/**`, `/api/chat/**`, streams, uploads, bundles — passes through untouched because
 the worker never handles it. This satisfies the entire "never cache APIs, auth, documents,
 history, or streams" requirement structurally rather than by matching an allowlist.
 
@@ -160,11 +160,11 @@ A later slice extends it, still conservatively:
 - Do not cache opaque cross-origin font responses.
 - Delete old named caches during activation, limited to caches owned by this interface.
 - Call `clients.claim()` only after update behavior is tested; do not force `skipWaiting()`
-  in a way that can replace code during an active CMS save or Chat stream.
+  in a way that can replace code during an active Studio save or Chat stream.
 
 ### Asset versioning
 
-Chat and CMS currently expose stable client-asset URLs. A PWA cache must not make those URLs
+Chat and Studio currently expose stable client-asset URLs. A PWA cache must not make those URLs
 stale across releases.
 
 Before caching them, add one of these contracts:
@@ -217,10 +217,10 @@ and icons; non-PWA brains are byte-equivalent.
 
 ### Phase 2 — All surfaces
 
-1. Wire the head contract into CMS and web-chat shells via PWA route availability — route
+1. Wire the head contract into Studio and web-chat shells via PWA route availability — route
    presence, not hardcoded assumptions.
 2. Generate route-aware shortcuts and start URL from registered console surfaces
-   (Dashboard, then Chat, then CMS).
+   (Dashboard, then Chat, then Studio).
 3. Ensure climate switching updates document theme color where supported without changing
    manifest identity.
 4. Add the interface to the intended Rover/Relay presets.
@@ -233,14 +233,14 @@ enabled and none when disabled; startup registers no duplicate paths.
 1. Add cache-first handling for the explicit allowlist of immutable/versioned PWA icons
    and console static assets; cache names carry a build/release fingerprint.
 2. Add activate-time cleanup limited to caches owned by this interface.
-3. Prove that an active CMS edit/save and Chat stream are not interrupted by worker
+3. Prove that an active Studio edit/save and Chat stream are not interrupted by worker
    activation; only then enable `clients.claim()`.
-4. Add browser tests that inspect Cache Storage after visiting Dashboard, Chat, CMS,
+4. Add browser tests that inspect Cache Storage after visiting Dashboard, Chat, Studio,
    login, and API routes.
 5. Test an installed old release against a newly deployed worker and assets.
 
 Gate: installed-console upgrade succeeds across two release versions; cache inspection
-contains no cookies, entity data, conversation data, CMS content, or authenticated HTML;
+contains no cookies, entity data, conversation data, Studio content, or authenticated HTML;
 surface bundles remain network-only until content-hashed or fingerprint-revalidated.
 
 ### Phase 4 — Standalone UX and release
@@ -257,7 +257,7 @@ surface bundles remain network-only until content-hashed or fingerprint-revalida
    documentation, and deployment notes.
 6. Release Level 1 without claims of offline authoring or offline Chat.
 
-Gate: Dashboard, Chat, and CMS remain fully usable in standalone mode; browser-tab
+Gate: Dashboard, Chat, and Studio remain fully usable in standalone mode; browser-tab
 behavior is unchanged; authenticated smoke passes.
 
 ## Validation
@@ -274,11 +274,11 @@ behavior is unchanged; authenticated smoke passes.
 
 ### Browser integration tests
 
-- Manifest is discoverable from Dashboard, Chat, and CMS.
+- Manifest is discoverable from Dashboard, Chat, and Studio.
 - Worker controls all intended console routes after reload.
 - Installability criteria pass in Chromium.
 - Offline navigation renders `/console-offline`.
-- API, auth, Chat stream, CMS API, and authenticated HTML responses are absent from Cache
+- API, auth, Chat stream, Studio API, and authenticated HTML responses are absent from Cache
   Storage.
 - Worker update does not interrupt active surface operations.
 - No document-level overflow in standalone target viewports.
@@ -299,9 +299,9 @@ behavior is unchanged; authenticated smoke passes.
   automatic.
 - **Private data leaks through caches:** cache only an allowlist of public immutable assets
   and the public offline shell; assert cache contents in browser tests.
-- **Stale Chat/CMS bundles:** leave stable bundle URLs network-only until they are hashed or
+- **Stale Chat/Studio bundles:** leave stable bundle URLs network-only until they are hashed or
   fingerprint-revalidated.
-- **Worker update interrupts work:** avoid unconditional immediate activation and test CMS
+- **Worker update interrupts work:** avoid unconditional immediate activation and test Studio
   saves/Chat streams across updates.
 - **Install UI differs by browser:** treat install affordances as progressive enhancement
   and document iOS separately.
@@ -313,7 +313,7 @@ behavior is unchanged; authenticated smoke passes.
 ## Success criteria
 
 - Operators can install and relaunch the console in standalone mode.
-- Dashboard, Chat, and CMS share one manifest identity and service worker when enabled.
+- Dashboard, Chat, and Studio share one manifest identity and service worker when enabled.
 - Brains without the PWA interface are unaffected.
 - Offline launch produces a useful fallback rather than a browser error.
 - No authenticated content or API payload is stored in Cache Storage.

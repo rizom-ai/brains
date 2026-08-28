@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import {
   ProximityMap,
   proximityMapWidgetStyles,
@@ -189,8 +189,8 @@ describe("ProximityMap", () => {
     const html = render(<ProximityMap data={data} />);
 
     expect(html).not.toContain('role="button"');
-    // SVG attributes keep their casing in preact SSR output
-    expect(html).toContain('tabIndex="0"');
+    // React serializes the SVG focus attribute using its HTML spelling.
+    expect(html).toContain('tabindex="0"');
   });
 
   test("switches to dense label mode past the label budget", () => {

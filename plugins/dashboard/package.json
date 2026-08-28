@@ -2,22 +2,25 @@
   "name": "@brains/dashboard",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.332",
-  "description": "Dashboard plugin with extensible widget system",
+  "description": "Public brain card with declarative contributions and semantic maps",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/operator-view-react": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
-    "preact": "^10.27.2",
-    "preact-render-to-string": "^6.7.0"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
     "happy-dom": "^20.10.6",

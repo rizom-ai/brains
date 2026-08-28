@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { h, type JSX } from "preact";
+import { createElement as h, type JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { renderMediaTemplateHtml, type MediaPageTemplate } from "../src";
 

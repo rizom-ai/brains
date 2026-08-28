@@ -140,7 +140,7 @@ describe("unified inbox digest", () => {
     );
   });
 
-  it("falls back to the mounted Dashboard when CMS is absent", async () => {
+  it("falls back to the mounted Dashboard when Studio is absent", async () => {
     let check: RecurringCheckDefinition | undefined;
     registerUnifiedInboxDigest(
       {

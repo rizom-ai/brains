@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import {
   defineSection,
   sectionGroup,

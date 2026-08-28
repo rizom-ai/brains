@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { AiLayout } from "../src/layout";
 import type { RizomLayoutProps } from "@rizom/site-rizom";
 

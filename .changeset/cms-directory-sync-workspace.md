@@ -1,7 +1,7 @@
 ---
 "@brains/plugins": patch
 "@brains/directory-sync": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/dashboard": patch
 ---
 

@@ -210,7 +210,7 @@ describe("public authoring 0.2 golden packages", () => {
 
     for (const symbol of [
       "defineAccountSettings",
-      "defineCmsWorkspace",
+      "defineStudioWorkspace",
       "defineDashboardWidget",
       "defineServicePlugin",
       "defineWorkspaceAction",
@@ -226,12 +226,11 @@ describe("public authoring 0.2 golden packages", () => {
       "pluginId",
       "rendererName",
       "registerWidget",
-      "registerCmsWorkspace",
+      "registerStudioWorkspace",
       "workspace: readingWorkspace",
       "managementUrl",
       "process.env",
       'from "react',
-      'from "preact',
     ]) {
       expect(source).not.toContain(forbidden);
     }
@@ -493,6 +492,22 @@ describe("public authoring 0.2 golden packages", () => {
 });
 
 describe("public authoring 0.2 export ledger", () => {
+  it("exposes only Studio-named workspace authoring contracts", () => {
+    const exports = exportedNames(
+      join(repositoryRoot, "packages/brain-cli/src/entries/services.ts"),
+    );
+
+    expect(exports).toEqual(
+      expect.arrayContaining([
+        "defineStudioWorkspace",
+        "StudioWorkspaceDefinition",
+        "StudioWorkspaceView",
+        "StudioWorkspaceViewBlock",
+      ]),
+    );
+    expect(exports.some((name) => name.includes("Cms"))).toBe(false);
+  });
+
   it("classifies every current authoring export exactly once", () => {
     const ledger = readLedger();
 

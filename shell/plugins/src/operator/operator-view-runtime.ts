@@ -1,16 +1,30 @@
 import type { JsonValue } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
-import type { OperatorEntityCatalogDefinition } from "./operator-view-contract";
+import type {
+  OperatorEntityCatalogDefinition,
+  WorkspaceActionFormFieldDefinition,
+} from "./operator-view-contract";
+import {
+  operatorFieldControlSchema,
+  type OperatorFieldControl,
+} from "./operator-field-contract";
 import type { AnyWorkspaceActionDefinition } from "./workspace-action-definition-contract";
 import { meetsPermission } from "./contract-assertions";
 import { z } from "@brains/utils/zod";
+import {
+  getKind,
+  getObjectShape,
+  readEnumValues,
+  unwrapField,
+} from "@brains/utils/zod-introspect";
 
 export type RuntimeOperatorScalar = string | number | boolean | null;
 export type RuntimeOperatorTone = "good" | "warn" | "neutral" | "error";
 
 export type RuntimeOperatorLaunchIntent =
   | { readonly target: "account-settings" }
+  | { readonly target: "invitations" }
   | {
       readonly target: "admin-peer-invite";
       readonly peerId: string;
@@ -419,11 +433,50 @@ export interface RuntimePreparedConfirmation {
   readonly expiresAt: string;
 }
 
+export interface RuntimeWorkspaceActionFormField {
+  readonly name: string;
+  readonly label: string;
+  readonly control: OperatorFieldControl;
+  readonly required: boolean;
+  readonly secret?: boolean | undefined;
+  readonly options?:
+    readonly { readonly value: string; readonly label: string }[] | undefined;
+  readonly labelBy?:
+    | {
+        readonly field: string;
+        readonly values: readonly {
+          readonly value: string;
+          readonly label: string;
+        }[];
+      }
+    | undefined;
+}
+
+export interface RuntimeWorkspaceActionForm {
+  readonly presentation?: "inline" | "disclosure" | undefined;
+  readonly submitLabel?: string | undefined;
+  readonly fields: readonly RuntimeWorkspaceActionFormField[];
+}
+
+export interface RuntimeWorkspaceActionResultField {
+  readonly name: string;
+  readonly label: string;
+  readonly copyable?: boolean | undefined;
+  readonly sensitive?: boolean | undefined;
+}
+
+export interface RuntimeWorkspaceActionResult {
+  readonly title: string;
+  readonly fields: readonly RuntimeWorkspaceActionResultField[];
+}
+
 export interface RuntimeOperatorActionControl {
   readonly actionId: string;
   readonly capabilityId?: string | undefined;
   readonly label: string;
   readonly input: JsonValue;
+  readonly form?: RuntimeWorkspaceActionForm | undefined;
+  readonly result?: RuntimeWorkspaceActionResult | undefined;
   readonly disabled?: boolean | undefined;
   readonly confirmation?:
     | { readonly kind: "static"; readonly message: string }
@@ -436,40 +489,40 @@ export interface RuntimeOperatorActionControl {
     | undefined;
 }
 
-export interface RuntimeCmsOperatorListItem extends RuntimeOperatorListItem {
+export interface RuntimeStudioOperatorListItem extends RuntimeOperatorListItem {
   readonly actions?: readonly RuntimeOperatorActionControl[] | undefined;
 }
 
-export interface RuntimeCmsOperatorListBlock extends Omit<
+export interface RuntimeStudioOperatorListBlock extends Omit<
   RuntimeOperatorListBlock,
   "items"
 > {
-  readonly items: readonly RuntimeCmsOperatorListItem[];
+  readonly items: readonly RuntimeStudioOperatorListItem[];
 }
 
-export interface RuntimeCmsOperatorTableRow extends RuntimeOperatorTableRow {
+export interface RuntimeStudioOperatorTableRow extends RuntimeOperatorTableRow {
   readonly actions?: readonly RuntimeOperatorActionControl[] | undefined;
 }
 
-export interface RuntimeCmsOperatorTableBlock extends Omit<
+export interface RuntimeStudioOperatorTableBlock extends Omit<
   RuntimeOperatorTableBlock,
   "rows"
 > {
-  readonly rows: readonly RuntimeCmsOperatorTableRow[];
+  readonly rows: readonly RuntimeStudioOperatorTableRow[];
 }
 
-export interface RuntimeCmsOperatorActionBlock extends RuntimeOperatorActionControl {
+export interface RuntimeStudioOperatorActionBlock extends RuntimeOperatorActionControl {
   readonly type: "action";
   readonly id?: string | undefined;
 }
 
-export interface RuntimeCmsOperatorActionsBlock {
+export interface RuntimeStudioOperatorActionsBlock {
   readonly type: "actions";
   readonly id?: string | undefined;
   readonly items: readonly RuntimeOperatorActionControl[];
 }
 
-export type RuntimeCmsOperatorPanelBlock =
+export type RuntimeStudioOperatorPanelBlock =
   | RuntimeOperatorStatsBlock
   | RuntimeOperatorKeyValuesBlock
   | RuntimeOperatorNoticeBlock
@@ -480,82 +533,89 @@ export type RuntimeCmsOperatorPanelBlock =
   | RuntimeOperatorProgressBlock
   | RuntimeOperatorQueryBlock
   | RuntimeOperatorLinksBlock
-  | RuntimeCmsOperatorListBlock
-  | RuntimeCmsOperatorTableBlock
-  | RuntimeOperatorMatrixBlock<RuntimeCmsOperatorListItem>
+  | RuntimeStudioOperatorListBlock
+  | RuntimeStudioOperatorTableBlock
+  | RuntimeOperatorMatrixBlock<RuntimeStudioOperatorListItem>
   | RuntimeOperatorSpatialBlock
-  | RuntimeCmsOperatorActionBlock
-  | RuntimeCmsOperatorActionsBlock;
+  | RuntimeStudioOperatorActionBlock
+  | RuntimeStudioOperatorActionsBlock;
 
-export interface RuntimeCmsOperatorTabsBlock {
+export interface RuntimeStudioOperatorTabsBlock {
   readonly type: "tabs";
   readonly id: string;
   readonly label: string;
   readonly defaultTab: string;
+  readonly queryKey?: string | undefined;
   readonly tabs: readonly {
     readonly id: string;
     readonly label: string;
     readonly count?: number | undefined;
-    readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+    readonly blocks: readonly (
+      | RuntimeStudioOperatorPanelBlock
+      | RuntimeStudioOperatorCardBlock
+      | RuntimeStudioOperatorDetailBlock
+      | RuntimeStudioOperatorColumnsBlock
+    )[];
   }[];
 }
 
-export interface RuntimeCmsOperatorDetailBlock {
+export interface RuntimeStudioOperatorDetailBlock {
   readonly type: "detail";
   readonly id: string;
   readonly queryKey: string;
   readonly empty: string;
-  readonly master: RuntimeCmsOperatorListBlock | RuntimeCmsOperatorTableBlock;
+  readonly master:
+    RuntimeStudioOperatorListBlock | RuntimeStudioOperatorTableBlock;
   readonly open?:
     | {
         readonly forId: string;
         readonly title: string;
-        readonly blocks: readonly RuntimeCmsOperatorRegionBlock[];
+        readonly blocks: readonly RuntimeStudioOperatorRegionBlock[];
       }
     | undefined;
 }
 
-export interface RuntimeCmsOperatorCardBlock {
+export interface RuntimeStudioOperatorCardBlock {
   readonly type: "card";
   readonly id: string;
   readonly label: string;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
-  readonly blocks: readonly RuntimeCmsOperatorPanelBlock[];
+  readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
 }
 
-export type RuntimeCmsOperatorRegionBlock =
-  RuntimeCmsOperatorPanelBlock | RuntimeCmsOperatorCardBlock;
+export type RuntimeStudioOperatorRegionBlock =
+  RuntimeStudioOperatorPanelBlock | RuntimeStudioOperatorCardBlock;
 
-export interface RuntimeCmsOperatorColumnsBlock {
+export interface RuntimeStudioOperatorColumnsBlock {
   readonly type: "columns";
   readonly id: string;
-  readonly primary: readonly RuntimeCmsOperatorRegionBlock[];
-  readonly aside: readonly RuntimeCmsOperatorRegionBlock[];
+  readonly primary: readonly RuntimeStudioOperatorRegionBlock[];
+  readonly aside: readonly RuntimeStudioOperatorRegionBlock[];
 }
 
-export type RuntimeCmsOperatorBlock =
-  | RuntimeCmsOperatorPanelBlock
-  | RuntimeCmsOperatorTabsBlock
-  | RuntimeCmsOperatorDetailBlock
-  | RuntimeCmsOperatorColumnsBlock
-  | RuntimeCmsOperatorCardBlock;
+export type RuntimeStudioOperatorBlock =
+  | RuntimeStudioOperatorPanelBlock
+  | RuntimeStudioOperatorTabsBlock
+  | RuntimeStudioOperatorDetailBlock
+  | RuntimeStudioOperatorColumnsBlock
+  | RuntimeStudioOperatorCardBlock;
 
-export interface RuntimeCmsOperatorViewStatus {
+export interface RuntimeStudioOperatorViewStatus {
   readonly label: string;
   readonly detail?: string | undefined;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
 }
 
-export interface RuntimeCmsOperatorView {
+export interface RuntimeStudioOperatorView {
   readonly kicker?: string | undefined;
   readonly title?: string | undefined;
   readonly description?: string | undefined;
-  readonly status?: RuntimeCmsOperatorViewStatus | undefined;
-  readonly blocks: readonly RuntimeCmsOperatorBlock[];
+  readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly blocks: readonly RuntimeStudioOperatorBlock[];
 }
 
-export interface RuntimeCmsWorkspaceData {
-  readonly view: RuntimeCmsOperatorView;
+export interface RuntimeStudioWorkspaceData {
+  readonly view: RuntimeStudioOperatorView;
   readonly refreshAfterMs?: number | undefined;
 }
 
@@ -671,6 +731,7 @@ function entityLinkTarget(input: {
 
 const launchIntentSchema = z.union([
   z.object({ target: z.literal("account-settings") }).strict(),
+  z.object({ target: z.literal("invitations") }).strict(),
   z
     .object({
       target: z.literal("admin-peer-invite"),
@@ -1509,9 +1570,33 @@ const workspaceActionDefinitionSchema = z.custom<AnyWorkspaceActionDefinition>(
   { message: "Expected a workspace action definition" },
 );
 
+type SourceActionFormField = WorkspaceActionFormFieldDefinition;
+
 interface SourceActionControl {
   readonly action: AnyWorkspaceActionDefinition;
-  readonly input: unknown;
+  readonly input?: unknown;
+  readonly form?:
+    | {
+        readonly presentation?: "inline" | "disclosure" | undefined;
+        readonly submitLabel?: string | undefined;
+        readonly fields: Readonly<Record<string, SourceActionFormField>>;
+      }
+    | undefined;
+  readonly result?:
+    | {
+        readonly title: string;
+        readonly fields: Readonly<
+          Record<
+            string,
+            {
+              readonly label: string;
+              readonly copyable?: boolean | undefined;
+              readonly sensitive?: boolean | undefined;
+            }
+          >
+        >;
+      }
+    | undefined;
   readonly capability?:
     | {
         readonly id: string;
@@ -1531,25 +1616,65 @@ const capabilityDefinitionSchema = z
     confirmation: z.literal("prepared").optional(),
   })
   .strict();
+const actionFormOptionSchema = z
+  .object({ value: z.string().trim().min(1).max(500), label: labelSchema })
+  .strict();
+const actionFormFieldSchema = z
+  .object({
+    label: labelSchema,
+    control: operatorFieldControlSchema,
+    secret: z.boolean().optional(),
+    options: z.array(actionFormOptionSchema).min(1).max(100).optional(),
+    labelBy: z
+      .object({
+        field: identifierSchema,
+        values: z.array(actionFormOptionSchema).min(1).max(100),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+const actionFormSchema = z
+  .object({
+    presentation: z.enum(["inline", "disclosure"]).optional(),
+    submitLabel: labelSchema.optional(),
+    fields: z.record(identifierSchema, actionFormFieldSchema),
+  })
+  .strict();
+const actionResultFieldSchema = z
+  .object({
+    label: labelSchema,
+    copyable: z.boolean().optional(),
+    sensitive: z.boolean().optional(),
+  })
+  .strict();
+const actionResultSchema = z
+  .object({
+    title: labelSchema,
+    fields: z.record(identifierSchema, actionResultFieldSchema),
+  })
+  .strict();
 const sourceActionControlSchema = z
   .object({
     action: workspaceActionDefinitionSchema,
-    input: z.unknown(),
+    input: z.unknown().optional(),
+    form: actionFormSchema.optional(),
+    result: actionResultSchema.optional(),
     capability: capabilityDefinitionSchema.optional(),
     disabled: z.boolean().optional(),
   })
   .strict();
 
-const cmsListItemSchema = listItemSchema.extend({
+const studioListItemSchema = listItemSchema.extend({
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
-const cmsListBlockSchema = z
+const studioListBlockSchema = z
   .object({
     type: z.literal("list"),
     id: identifierSchema,
     empty: shortTextSchema,
     filter: listFilterSchema.optional(),
-    items: z.array(cmsListItemSchema).max(MAX_LIST_ITEMS),
+    items: z.array(studioListItemSchema).max(MAX_LIST_ITEMS),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1583,17 +1708,17 @@ const cmsListBlockSchema = z
     }
   });
 
-const cmsTableRowSchema = tableRowSchema.extend({
+const studioTableRowSchema = tableRowSchema.extend({
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
-const cmsTableBlockSchema = z
+const studioTableBlockSchema = z
   .object({
     type: z.literal("table"),
     id: identifierSchema,
     empty: shortTextSchema,
     filters: z.array(tableFilterSchema).max(20).optional(),
     columns: z.array(tableColumnSchema).min(1).max(30),
-    rows: z.array(cmsTableRowSchema).max(500),
+    rows: z.array(studioTableRowSchema).max(500),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1639,13 +1764,13 @@ const cmsTableBlockSchema = z
     }
   });
 
-const cmsMatrixCellSchema = z
+const studioMatrixCellSchema = z
   .object({
     id: identifierSchema,
     label: labelSchema,
     tone: toneSchema.optional(),
     empty: shortTextSchema,
-    items: z.array(cmsListItemSchema).max(100),
+    items: z.array(studioListItemSchema).max(100),
   })
   .strict()
   .superRefine((cell, context) => {
@@ -1661,14 +1786,14 @@ const cmsMatrixCellSchema = z
       ids.add(item.id);
     }
   });
-const cmsMatrixBlockSchema = z
+const studioMatrixBlockSchema = z
   .object({
     type: z.literal("matrix"),
     id: identifierSchema,
     columns: z
       .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
       .optional(),
-    cells: z.array(cmsMatrixCellSchema).min(1).max(12),
+    cells: z.array(studioMatrixCellSchema).min(1).max(12),
   })
   .strict()
   .superRefine((block, context) => {
@@ -1685,18 +1810,18 @@ const cmsMatrixBlockSchema = z
     }
   });
 
-const cmsActionBlockSchema = sourceActionControlSchema.extend({
+const studioActionBlockSchema = sourceActionControlSchema.extend({
   type: z.literal("action"),
   id: identifierSchema.optional(),
 });
-const cmsActionsBlockSchema = z
+const studioActionsBlockSchema = z
   .object({
     type: z.literal("actions"),
     id: identifierSchema.optional(),
     items: z.array(sourceActionControlSchema).max(30),
   })
   .strict();
-const cmsPanelBlockSchema = z.union([
+const studioPanelBlockSchema = z.union([
   statsBlockSchema,
   keyValuesBlockSchema,
   noticeBlockSchema,
@@ -1707,19 +1832,20 @@ const cmsPanelBlockSchema = z.union([
   progressBlockSchema,
   queryBlockSchema,
   linksBlockSchema,
-  cmsListBlockSchema,
-  cmsTableBlockSchema,
-  cmsMatrixBlockSchema,
+  studioListBlockSchema,
+  studioTableBlockSchema,
+  studioMatrixBlockSchema,
   spatialBlockSchema,
-  cmsActionBlockSchema,
-  cmsActionsBlockSchema,
+  studioActionBlockSchema,
+  studioActionsBlockSchema,
 ]);
-const cmsTabsBlockSchema = z
+const studioTabsBlockSchema = z
   .object({
     type: z.literal("tabs"),
     id: identifierSchema,
     label: labelSchema,
     defaultTab: identifierSchema,
+    queryKey: identifierSchema.optional(),
     tabs: z
       .array(
         z
@@ -1727,7 +1853,18 @@ const cmsTabsBlockSchema = z
             id: identifierSchema,
             label: labelSchema,
             count: z.number().int().nonnegative().optional(),
-            blocks: z.array(cmsPanelBlockSchema).max(30),
+            blocks: z
+              .array(
+                z.lazy(() =>
+                  z.union([
+                    studioPanelBlockSchema,
+                    studioCardBlockSchema,
+                    studioDetailBlockSchema,
+                    studioColumnsBlockSchema,
+                  ]),
+                ),
+              )
+              .max(30),
           })
           .strict(),
       )
@@ -1764,30 +1901,30 @@ const cmsTabsBlockSchema = z
  */
 /* A card groups panels under one caption so a group of related facts reads
    as one thing rather than as loose blocks. */
-const cmsCardBlockSchema = z
+const studioCardBlockSchema = z
   .object({
     type: z.literal("card"),
     id: identifierSchema,
     label: labelSchema,
     tone: toneSchema.optional(),
-    blocks: z.array(cmsPanelBlockSchema).max(12),
+    blocks: z.array(studioPanelBlockSchema).max(12),
   })
   .strict();
 
-const cmsDetailBlockSchema = z
+const studioDetailBlockSchema = z
   .object({
     type: z.literal("detail"),
     id: identifierSchema,
     /** Canonical query field the host writes with the open row's id. */
     queryKey: identifierSchema,
     empty: shortTextSchema,
-    master: z.union([cmsListBlockSchema, cmsTableBlockSchema]),
+    master: z.union([studioListBlockSchema, studioTableBlockSchema]),
     open: z
       .object({
         forId: rowIdentifierSchema,
         title: labelSchema,
         blocks: z
-          .array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema]))
+          .array(z.union([studioPanelBlockSchema, studioCardBlockSchema]))
           .max(30),
       })
       .strict()
@@ -1804,18 +1941,20 @@ const cmsDetailBlockSchema = z
 
 /* The composition every operator surface wants: a column of work beside a rail
    of standing facts. Regions hold panels and cards, one level deep. */
-const cmsColumnsBlockSchema = z
+const studioColumnsBlockSchema = z
   .object({
     type: z.literal("columns"),
     id: identifierSchema,
     primary: z
-      .array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema]))
+      .array(z.union([studioPanelBlockSchema, studioCardBlockSchema]))
       .max(20),
-    aside: z.array(z.union([cmsPanelBlockSchema, cmsCardBlockSchema])).max(12),
+    aside: z
+      .array(z.union([studioPanelBlockSchema, studioCardBlockSchema]))
+      .max(12),
   })
   .strict();
 
-const cmsViewSourceSchema = z
+const studioViewSourceSchema = z
   .object({
     kicker: labelSchema.optional(),
     title: shortTextSchema.optional(),
@@ -1831,11 +1970,11 @@ const cmsViewSourceSchema = z
     blocks: z
       .array(
         z.union([
-          cmsPanelBlockSchema,
-          cmsTabsBlockSchema,
-          cmsDetailBlockSchema,
-          cmsColumnsBlockSchema,
-          cmsCardBlockSchema,
+          studioPanelBlockSchema,
+          studioTabsBlockSchema,
+          studioDetailBlockSchema,
+          studioColumnsBlockSchema,
+          studioCardBlockSchema,
         ]),
       )
       .max(50),
@@ -1856,16 +1995,16 @@ const cmsViewSourceSchema = z
     }
   });
 
-type CmsViewSource = z.output<typeof cmsViewSourceSchema>;
-type CmsBlockSource = CmsViewSource["blocks"][number];
-type CmsRegionSource = z.output<
-  typeof cmsColumnsBlockSchema
+type StudioViewSource = z.output<typeof studioViewSourceSchema>;
+type StudioBlockSource = StudioViewSource["blocks"][number];
+type StudioRegionSource = z.output<
+  typeof studioColumnsBlockSchema
 >["primary"][number];
 
 /** Panels may nest in containers; containers may not nest in each other. */
 function isPanelBlock(
-  block: RuntimeCmsOperatorBlock,
-): block is RuntimeCmsOperatorPanelBlock {
+  block: RuntimeStudioOperatorBlock,
+): block is RuntimeStudioOperatorPanelBlock {
   return (
     block.type !== "tabs" &&
     block.type !== "detail" &&
@@ -1876,11 +2015,296 @@ function isPanelBlock(
 
 const jsonValueSchema: z.ZodType<JsonValue, unknown> = z.json();
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function formControlSupportsSchema(
+  control: SourceActionFormField["control"],
+  schema: unknown,
+): boolean {
+  const kind = getKind(unwrapField(schema).inner);
+  switch (control) {
+    case "checkbox":
+      return kind === "boolean";
+    case "number":
+      return kind === "number";
+    case "select":
+      return kind === "string" || kind === "enum";
+    case "text":
+    case "url":
+      return kind === "string";
+  }
+}
+
+function isScalarResultSchema(schema: unknown): boolean {
+  const kind = getKind(unwrapField(schema).inner);
+  return (
+    kind === "string" ||
+    kind === "number" ||
+    kind === "boolean" ||
+    kind === "enum" ||
+    kind === "literal"
+  );
+}
+
+function normalizeActionForm(
+  control: SourceActionControl,
+  actionPath: readonly PropertyKey[],
+): {
+  readonly input?: JsonValue | undefined;
+  readonly form?: RuntimeWorkspaceActionForm | undefined;
+  readonly issues: readonly RuntimeOperatorValidationIssue[];
+} {
+  if (!control.form) return { issues: [] };
+  const issues: RuntimeOperatorValidationIssue[] = [];
+  const shape = getObjectShape(control.action.input);
+  if (!shape) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "form"],
+          message: `Form action "${control.action.name}" requires an object input schema`,
+        },
+      ],
+    };
+  }
+  const initial = control.input ?? {};
+  if (!isPlainRecord(initial)) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "input"],
+          message: "Workspace action form initial input must be an object",
+        },
+      ],
+    };
+  }
+  const parsedInitial = jsonValueSchema.safeParse(initial);
+  if (!parsedInitial.success) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "input"],
+          message: "Workspace action form initial input must be JSON-native",
+        },
+      ],
+    };
+  }
+  const schemaNames = Object.keys(shape);
+  const fieldEntries = Object.entries(control.form.fields);
+  if (fieldEntries.length > 50) {
+    issues.push({
+      path: [...actionPath, "form", "fields"],
+      message: "Workspace action forms support at most 50 fields",
+    });
+  }
+  for (const [name, value] of Object.entries(initial)) {
+    const schema = shape[name];
+    if (schema === undefined) {
+      issues.push({
+        path: [...actionPath, "input", name],
+        message: `Form initial input "${name}" is not declared by the action schema`,
+      });
+    } else if (
+      schema instanceof z.ZodType &&
+      !schema.safeParse(value).success
+    ) {
+      issues.push({
+        path: [...actionPath, "input", name],
+        message: `Form initial input "${name}" does not satisfy the action schema`,
+      });
+    }
+  }
+  const runtimeFields: RuntimeWorkspaceActionFormField[] = [];
+  for (const [name, field] of fieldEntries) {
+    const schema = shape[name];
+    if (schema === undefined) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name],
+        message: `Form field "${name}" is not declared by the action schema`,
+      });
+      continue;
+    }
+    const unwrapped = unwrapField(schema);
+    const enumValues = readEnumValues(unwrapped.inner);
+    if (!formControlSupportsSchema(field.control, schema)) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "control"],
+        message: `Form control "${field.control}" is incompatible with schema field "${name}"`,
+      });
+    }
+    if (field.control === "select") {
+      if (!field.options || field.options.length === 0) {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "options"],
+          message: `Select field "${name}" requires options`,
+        });
+      } else if (enumValues) {
+        if (
+          field.options.some((option) => !enumValues.includes(option.value))
+        ) {
+          issues.push({
+            path: [...actionPath, "form", "fields", name, "options"],
+            message: `Select field "${name}" options must use values from its enum schema`,
+          });
+        }
+      }
+    } else if (field.options !== undefined) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "options"],
+        message: `Non-select field "${name}" cannot declare options`,
+      });
+    }
+    if (field.labelBy) {
+      const sourceField = control.form.fields[field.labelBy.field];
+      const sourceValues = new Set(
+        sourceField?.options?.map((option) => option.value) ?? [],
+      );
+      const labelValues = new Set(
+        field.labelBy.values.map((option) => option.value),
+      );
+      if (sourceField?.control !== "select") {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "labelBy", "field"],
+          message: `Dynamic label source "${field.labelBy.field}" must be a select form field`,
+        });
+      } else if (
+        sourceValues.size !== labelValues.size ||
+        Array.from(sourceValues).some((value) => !labelValues.has(value))
+      ) {
+        issues.push({
+          path: [...actionPath, "form", "fields", name, "labelBy", "values"],
+          message: `Dynamic labels for "${name}" must cover every option of "${field.labelBy.field}"`,
+        });
+      }
+    }
+    if (field.secret === true && name in initial) {
+      issues.push({
+        path: [...actionPath, "input", name],
+        message: `Secret form field "${name}" cannot be pre-bound into browser data`,
+      });
+    }
+    if (
+      field.secret === true &&
+      field.control !== "text" &&
+      field.control !== "url"
+    ) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name, "secret"],
+        message: `Secret field "${name}" must use a text or URL control`,
+      });
+    }
+    runtimeFields.push({
+      name,
+      label: field.label,
+      control: field.control,
+      required: unwrapped.required,
+      ...(field.secret ? { secret: true } : {}),
+      ...(field.options ? { options: field.options } : {}),
+      ...(field.labelBy ? { labelBy: field.labelBy } : {}),
+    });
+  }
+  const rendered = new Set(fieldEntries.map(([name]) => name));
+  for (const name of schemaNames) {
+    if (!rendered.has(name) && !(name in initial)) {
+      issues.push({
+        path: [...actionPath, "form", "fields", name],
+        message: `Action schema field "${name}" has no form declaration or pre-bound input`,
+      });
+    }
+  }
+  return {
+    input: parsedInitial.data,
+    form: {
+      ...(control.form.presentation
+        ? { presentation: control.form.presentation }
+        : {}),
+      ...(control.form.submitLabel
+        ? { submitLabel: control.form.submitLabel }
+        : {}),
+      fields: runtimeFields,
+    },
+    issues,
+  };
+}
+
+function normalizeActionResult(
+  control: SourceActionControl,
+  actionPath: readonly PropertyKey[],
+): {
+  readonly result?: RuntimeWorkspaceActionResult | undefined;
+  readonly issues: readonly RuntimeOperatorValidationIssue[];
+} {
+  if (!control.result) return { issues: [] };
+  const shape = getObjectShape(control.action.output);
+  if (!shape) {
+    return {
+      issues: [
+        {
+          path: [...actionPath, "result"],
+          message: `Presented result for "${control.action.name}" requires an object output schema`,
+        },
+      ],
+    };
+  }
+  const issues: RuntimeOperatorValidationIssue[] = [];
+  const fieldEntries = Object.entries(control.result.fields);
+  if (fieldEntries.length > 50) {
+    issues.push({
+      path: [...actionPath, "result", "fields"],
+      message: "Workspace action results support at most 50 fields",
+    });
+  }
+  const declared = new Set(fieldEntries.map(([name]) => name));
+  for (const [name, field] of fieldEntries) {
+    const schema = shape[name];
+    if (schema === undefined) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name],
+        message: `Result field "${name}" is not declared by the action output schema`,
+      });
+    } else if (!isScalarResultSchema(schema)) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name],
+        message: `Result field "${name}" must use a scalar output schema`,
+      });
+    }
+    if (field.sensitive === true && field.copyable !== true) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name, "copyable"],
+        message: `Sensitive result field "${name}" must be explicitly copyable`,
+      });
+    }
+  }
+  for (const name of Object.keys(shape)) {
+    if (!declared.has(name)) {
+      issues.push({
+        path: [...actionPath, "result", "fields", name],
+        message: `Action output field "${name}" has no result declaration`,
+      });
+    }
+  }
+  return {
+    result: {
+      title: control.result.title,
+      fields: fieldEntries.map(([name, field]) => ({
+        name,
+        label: field.label,
+        ...(field.copyable ? { copyable: true } : {}),
+        ...(field.sensitive ? { sensitive: true } : {}),
+      })),
+    },
+    issues,
+  };
+}
+
 function normalizeActionControls(
   controls: readonly SourceActionControl[],
   declared: readonly AnyWorkspaceActionDefinition[],
   permission: UserPermissionLevel,
   path: readonly PropertyKey[],
+  sourceIndices?: readonly number[],
 ): {
   readonly controls: readonly RuntimeOperatorActionControl[];
   readonly issues: readonly RuntimeOperatorValidationIssue[];
@@ -1888,7 +2312,7 @@ function normalizeActionControls(
   const normalized: RuntimeOperatorActionControl[] = [];
   const issues: RuntimeOperatorValidationIssue[] = [];
   for (const [index, control] of controls.entries()) {
-    const actionPath = [...path, index];
+    const actionPath = [...path, sourceIndices?.[index] ?? index];
     if (!declared.includes(control.action)) {
       issues.push({
         path: [...actionPath, "action"],
@@ -1926,22 +2350,38 @@ function normalizeActionControls(
       });
       continue;
     }
-    const parsedInput = control.action.input.safeParse(control.input);
-    if (!parsedInput.success) {
-      issues.push(
-        ...parsedInput.error.issues.map((issue) => ({
-          path: [...actionPath, "input", ...issue.path],
-          message: issue.message,
-        })),
-      );
-      continue;
+    const normalizedForm = normalizeActionForm(control, actionPath);
+    const normalizedResult = normalizeActionResult(control, actionPath);
+    issues.push(...normalizedForm.issues, ...normalizedResult.issues);
+    let actionInput: JsonValue | undefined;
+    if (control.form) {
+      actionInput = normalizedForm.input;
+    } else {
+      const parsedInput = control.action.input.safeParse(control.input);
+      if (!parsedInput.success) {
+        issues.push(
+          ...parsedInput.error.issues.map((issue) => ({
+            path: [...actionPath, "input", ...issue.path],
+            message: issue.message,
+          })),
+        );
+      } else {
+        const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
+        if (!jsonInput.success) {
+          issues.push({
+            path: [...actionPath, "input"],
+            message: "Workspace action input must be JSON-native",
+          });
+        } else {
+          actionInput = jsonInput.data;
+        }
+      }
     }
-    const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-    if (!jsonInput.success) {
-      issues.push({
-        path: [...actionPath, "input"],
-        message: "Workspace action input must be JSON-native",
-      });
+    if (
+      normalizedForm.issues.length > 0 ||
+      normalizedResult.issues.length > 0 ||
+      actionInput === undefined
+    ) {
       continue;
     }
     const actionConfirmation = control.action.confirmation;
@@ -1958,7 +2398,9 @@ function normalizeActionControls(
         actionId: control.action.name,
         ...(control.capability ? { capabilityId: control.capability.id } : {}),
         label: control.capability?.label ?? control.action.label,
-        input: jsonInput.data,
+        input: actionInput,
+        ...(normalizedForm.form ? { form: normalizedForm.form } : {}),
+        ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
         ...(control.disabled ? { disabled: true } : {}),
         ...(confirmation ? { confirmation } : {}),
       }),
@@ -1970,7 +2412,7 @@ function normalizeActionControls(
 function actionBlock(
   action: RuntimeOperatorActionControl,
   id: string | undefined,
-): RuntimeCmsOperatorActionBlock {
+): RuntimeStudioOperatorActionBlock {
   return {
     type: "action",
     ...(id ? { id } : {}),
@@ -1978,13 +2420,13 @@ function actionBlock(
   };
 }
 
-function normalizeCmsBlock(
-  block: CmsBlockSource | CmsRegionSource,
+function normalizeStudioBlock(
+  block: StudioBlockSource | StudioRegionSource,
   blockIndex: number,
   declared: readonly AnyWorkspaceActionDefinition[],
   permission: UserPermissionLevel,
 ): {
-  readonly block?: RuntimeCmsOperatorBlock | undefined;
+  readonly block?: RuntimeStudioOperatorBlock | undefined;
   readonly issues: readonly RuntimeOperatorValidationIssue[];
 } {
   switch (block.type) {
@@ -2109,16 +2551,21 @@ function normalizeCmsBlock(
     case "tabs": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const tabs = block.tabs.map((tab) => {
-        const blocks: RuntimeCmsOperatorPanelBlock[] = [];
+        const blocks: (
+          | RuntimeStudioOperatorPanelBlock
+          | RuntimeStudioOperatorCardBlock
+          | RuntimeStudioOperatorDetailBlock
+          | RuntimeStudioOperatorColumnsBlock
+        )[] = [];
         for (const [panelIndex, panelBlock] of tab.blocks.entries()) {
-          const normalized = normalizeCmsBlock(
+          const normalized = normalizeStudioBlock(
             panelBlock,
             panelIndex,
             declared,
             permission,
           );
           issues.push(...normalized.issues);
-          if (normalized.block && isPanelBlock(normalized.block)) {
+          if (normalized.block && normalized.block.type !== "tabs") {
             blocks.push(normalized.block);
           }
         }
@@ -2135,6 +2582,7 @@ function normalizeCmsBlock(
           id: block.id,
           label: block.label,
           defaultTab: block.defaultTab,
+          ...(block.queryKey ? { queryKey: block.queryKey } : {}),
           tabs,
         },
         issues,
@@ -2142,9 +2590,9 @@ function normalizeCmsBlock(
     }
     case "card": {
       const issues: RuntimeOperatorValidationIssue[] = [];
-      const panels: RuntimeCmsOperatorPanelBlock[] = [];
+      const panels: RuntimeStudioOperatorPanelBlock[] = [];
       for (const [panelIndex, panel] of block.blocks.entries()) {
-        const normalized = normalizeCmsBlock(
+        const normalized = normalizeStudioBlock(
           panel,
           panelIndex,
           declared,
@@ -2169,11 +2617,11 @@ function normalizeCmsBlock(
     case "columns": {
       const issues: RuntimeOperatorValidationIssue[] = [];
       const region = (
-        entries: readonly CmsRegionSource[],
-      ): RuntimeCmsOperatorRegionBlock[] => {
-        const out: RuntimeCmsOperatorRegionBlock[] = [];
+        entries: readonly StudioRegionSource[],
+      ): RuntimeStudioOperatorRegionBlock[] => {
+        const out: RuntimeStudioOperatorRegionBlock[] = [];
         for (const [index, entry] of entries.entries()) {
-          const normalized = normalizeCmsBlock(
+          const normalized = normalizeStudioBlock(
             entry,
             index,
             declared,
@@ -2202,7 +2650,7 @@ function normalizeCmsBlock(
     }
     case "detail": {
       const issues: RuntimeOperatorValidationIssue[] = [];
-      const master = normalizeCmsBlock(
+      const master = normalizeStudioBlock(
         block.master,
         blockIndex,
         declared,
@@ -2216,11 +2664,11 @@ function normalizeCmsBlock(
       ) {
         return { issues };
       }
-      const openBlocks: RuntimeCmsOperatorRegionBlock[] = [];
+      const openBlocks: RuntimeStudioOperatorRegionBlock[] = [];
       for (const [panelIndex, panelBlock] of (
         block.open?.blocks ?? []
       ).entries()) {
-        const normalized = normalizeCmsBlock(
+        const normalized = normalizeStudioBlock(
           panelBlock,
           panelIndex,
           declared,
@@ -2256,10 +2704,13 @@ function normalizeCmsBlock(
       };
     }
     case "action": {
-      const result = normalizeActionControls([block], declared, permission, [
-        "blocks",
-        blockIndex,
-      ]);
+      const result = normalizeActionControls(
+        [block],
+        declared,
+        permission,
+        ["blocks"],
+        [blockIndex],
+      );
       const action = result.controls[0];
       return {
         ...(action
@@ -2353,7 +2804,7 @@ function isUnknownRecord(
 function inspectAuthorLinkTarget(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
   insideDetailMaster = false,
 ): void {
@@ -2391,7 +2842,7 @@ function inspectAuthorLinkTarget(
   ) {
     issues.push({
       path: [...path, "launch", "target"],
-      message: `Launch intent "${launch["target"]}" is available only in CMS workspaces`,
+      message: `Launch intent "${launch["target"]}" is available only in Studio workspaces`,
     });
   }
 }
@@ -2399,7 +2850,7 @@ function inspectAuthorLinkTarget(
 function inspectAuthorLinkItems(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
   insideDetailMaster = false,
 ): void {
@@ -2419,7 +2870,7 @@ function inspectAuthorLinkItems(
 function inspectAuthorListItems(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
   insideDetailMaster = false,
 ): void {
@@ -2446,7 +2897,7 @@ function inspectAuthorListItems(
 function inspectAuthorBlocks(
   value: unknown,
   path: readonly PropertyKey[],
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
   issues: RuntimeOperatorValidationIssue[],
 ): void {
   if (!Array.isArray(value)) return;
@@ -2579,7 +3030,7 @@ function inspectAuthorBlocks(
 
 function authorLinkIssues(
   input: unknown,
-  profile: "dashboard" | "cms",
+  profile: "dashboard" | "studio",
 ): readonly RuntimeOperatorValidationIssue[] {
   if (!isUnknownRecord(input)) return [];
   const issues: RuntimeOperatorValidationIssue[] = [];
@@ -2600,25 +3051,25 @@ export function safeParseRuntimeDashboardOperatorView(
     : { success: false, issues: validationIssues(result.error) };
 }
 
-export function safeParseRuntimeCmsOperatorView(
+export function safeParseRuntimeStudioOperatorView(
   input: unknown,
   options: {
     readonly actions: readonly AnyWorkspaceActionDefinition[];
     readonly permission: UserPermissionLevel;
   },
-): RuntimeOperatorParseResult<RuntimeCmsOperatorView> {
-  const sourceIssues = authorLinkIssues(input, "cms");
+): RuntimeOperatorParseResult<RuntimeStudioOperatorView> {
+  const sourceIssues = authorLinkIssues(input, "studio");
   if (sourceIssues.length > 0) {
     return { success: false, issues: sourceIssues };
   }
-  const parsed = cmsViewSourceSchema.safeParse(input);
+  const parsed = studioViewSourceSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, issues: validationIssues(parsed.error) };
   }
-  const blocks: RuntimeCmsOperatorBlock[] = [];
+  const blocks: RuntimeStudioOperatorBlock[] = [];
   const issues: RuntimeOperatorValidationIssue[] = [];
   for (const [index, source] of parsed.data.blocks.entries()) {
-    const normalized = normalizeCmsBlock(
+    const normalized = normalizeStudioBlock(
       source,
       index,
       options.actions,

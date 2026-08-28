@@ -2,7 +2,7 @@
 
 export {
   defineAccountSettings,
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineDashboardWidget,
   defineEntityCatalog,
   defineJob,
@@ -14,9 +14,9 @@ export type {
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,
   AccountSettingsValue,
-  CmsWorkspaceDefinition,
-  CmsWorkspaceView,
-  CmsWorkspaceViewBlock,
+  StudioWorkspaceDefinition,
+  StudioWorkspaceView,
+  StudioWorkspaceViewBlock,
   DashboardDigest,
   DashboardOperatorView,
   DashboardOperatorViewBlock,
@@ -38,6 +38,14 @@ export type {
   ServicePackageDefinition,
   WorkspaceActionConfirmation,
   WorkspaceActionDefinition,
+  WorkspaceActionFormControl,
+  WorkspaceActionFormDefinition,
+  WorkspaceActionFormFieldDefinition,
+  WorkspaceActionFormFieldMap,
+  WorkspaceActionFormOption,
+  WorkspaceActionResultDefinition,
+  WorkspaceActionResultFieldDefinition,
+  WorkspaceActionResultFieldMap,
   WorkspacePreparedConfirmation,
 } from "@brains/plugins";
 export { z } from "@brains/utils/zod";

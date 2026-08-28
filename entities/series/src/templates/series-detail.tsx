@@ -1,5 +1,5 @@
 import type { JsonValue } from "@brains/contracts";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { SeriesListItem } from "../schemas/series";
 import {
   Card,

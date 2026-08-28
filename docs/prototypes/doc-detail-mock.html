@@ -804,7 +804,7 @@
   <body>
     <!--
       Header / Footer markup mirrors the existing <Header> and <Footer>
-      Preact components in sites/rizom/src/ui. The .tsx port uses those
+      React components in sites/rizom/src/ui. The .tsx port uses those
       directly; this HTML mock approximates them so the page reads in
       proper chrome. No <Ecosystem> on detail pages — it lives on the
       doc index (doc-list-mock.html).
@@ -906,7 +906,7 @@
             <ul>
               <li>store durable content as markdown entities</li>
               <li>expose tools and resources over MCP</li>
-              <li>serve a static site and CMS</li>
+              <li>serve a static site and Studio</li>
               <li>sync content to git</li>
               <li>talk to AI providers through one runtime</li>
               <li>expose additional interfaces such as Discord or A2A</li>
@@ -977,11 +977,11 @@ brain start</code></pre>
             <p>Typical scaffold:</p>
             <pre><code>mybrain/
   brain.yaml        # instance configuration
-  package.json      # pins @rizom/brain + preact
+  package.json      # pins @rizom/brain + react + react-dom
   README.md         # local quickstart notes
   .env.example      # environment variables to fill in
   .gitignore        # ignores .env, cache, build artifacts
-  tsconfig.json     # JSX runtime hints for Preact
+  tsconfig.json     # JSX runtime hints for React
   src/site.tsx      # local site scaffold
   src/theme.css     # local theme scaffold</code></pre>
             <p>
@@ -1028,7 +1028,7 @@ brain start</code></pre>
                 <tr>
                   <td><strong>Web</strong></td>
                   <td><code>http://localhost:8080</code></td>
-                  <td>Site, CMS, dashboard, API routes</td>
+                  <td>Site, Studio, dashboard, API routes</td>
                 </tr>
                 <tr>
                   <td><strong>MCP</strong></td>

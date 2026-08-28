@@ -251,7 +251,7 @@ This milestone intentionally avoids the UI/template question. It proves the offi
 
 Immediately after the non-UI proof, choose the public surface for TSX-heavy official packages. Do not publish `@brains/ui-library` as-is just to unblock plugins. Decide from concrete package needs among:
 
-1. package-local TSX/components plus `preact`, and/or
+1. package-local TSX/components plus `react` and `react-dom`, and/or
 2. narrow renderer/template contracts from `@rizom/brain/templates`.
 
 (`@rizom/ui` is no longer an option: it existed for multiple app-owned Rizom
@@ -283,7 +283,7 @@ A shell-layer refactoring audit surfaced duplication this plan's public
 authoring surface should absorb when the SDK shape is curated:
 
 - Five plugins carry 240–794-line `plugin.ts` files repeating the same
-  config-schema/refine/registration pattern (`plugins/cms` 794,
+  config-schema/refine/registration pattern (`plugins/studio` 794,
   `plugins/atproto` 599, `plugins/site-builder` 359, `plugins/dashboard`
   276, `plugins/directory-sync` 240).
 - The `entities/` packages share the `EntityPlugin` base (18 of 22

@@ -2,7 +2,7 @@
 "@brains/plugins": minor
 "@brains/email": minor
 "@brains/email-workflows": minor
-"@brains/cms": minor
+"@brains/studio": minor
 "@rizom/brain": patch
 ---
 

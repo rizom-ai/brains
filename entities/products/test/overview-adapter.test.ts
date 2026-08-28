@@ -39,7 +39,7 @@ Extensible architecture that adapts to your workflow
 ## Technologies
 
 - TypeScript
-- Preact
+- React
 - Drizzle ORM
 
 ## Benefits

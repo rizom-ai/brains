@@ -3,8 +3,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveDeployScriptPath } from "@brains/deploy-support";
+import { z } from "@brains/utils/zod";
 
 import packageJson from "../package.json";
+
+const studioAssetManifestSchema = z.object({
+  version: z.literal(1),
+  assets: z.record(z.string(), z.string()),
+});
 
 const packageDir = dirname(
   fileURLToPath(new URL("../package.json", import.meta.url)),
@@ -80,7 +86,7 @@ describe("@rizom/brain package metadata", () => {
         strict: true,
         moduleResolution: "bundler",
         jsx: "react-jsx",
-        jsxImportSource: "preact",
+        jsxImportSource: "react",
         noEmit: true,
       },
     });
@@ -99,17 +105,27 @@ describe("@rizom/brain package metadata", () => {
       'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',
     );
     expect(buildScript).toContain(
-      'const adminPackageDir = join(monorepoRoot, "plugins", "admin")',
+      "cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true })",
     );
-    expect(buildScript).toContain(
-      'cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"))',
+    expect(buildScript).toContain("studio-asset-manifest.json");
+    expect(buildScript).not.toContain("Building bundled Admin console UI");
+    expect(buildScript).not.toContain("adminUiAssetPath");
+    expect(buildScript).not.toContain("accountUiAssetPath");
+  });
+
+  it("copies every generated Studio entry and lazy chunk into packaged dist", () => {
+    const manifest = studioAssetManifestSchema.parse(
+      JSON.parse(readPackageFile("dist/ui/studio-asset-manifest.json")),
     );
-    expect(buildScript).toContain(
-      "const accountUiAssetPath = join(\n  adminPackageDir,",
-    );
-    expect(buildScript).toContain(
-      'cpSync(accountUiAssetPath, join(bundledWebChatUiDir, "account-app.js"))',
-    );
+    expect(manifest.assets["app.js"]).toBe("studio-app.js");
+    expect(
+      Object.keys(manifest.assets).some((asset) =>
+        /^studio-chunks\/account-view-[A-Za-z0-9]+\.js$/.test(asset),
+      ),
+    ).toBe(true);
+    for (const file of Object.values(manifest.assets)) {
+      expect(existsSync(join(packageDir, "dist", "ui", file)), file).toBe(true);
+    }
   });
 
   it("bundles package-owned onboarding markdown in dist", () => {

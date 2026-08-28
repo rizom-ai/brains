@@ -140,7 +140,7 @@
 
   `renderConsoleStripHtml` now owns the full behavior (principal chip, visitor
   chip, HTML-escaped interpolation) and the dashboard injects the shared inner
-  markup instead of restating it. The CMS editor and the admin and account
+  markup instead of restating it. The Studio editor and the admin and account
   consoles pass the principal they already hold, so their chips now show the
   signed-in user instead of the generic copy; web-chat keeps the role-neutral
   chip until its interface threads the principal through.
@@ -327,7 +327,7 @@
 
 ### Patch Changes
 
-- [#72](https://github.com/rizom-ai/brains/pull/72) [`afa5cf4`](https://github.com/rizom-ai/brains/commit/afa5cf4cbdf75400b180d4bb89ed46dd4e6097cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow active Trusted principals to use the first-party CMS with principal-scoped reads, server-derived capabilities, policy-enforced writes, uploads, assists, and workspaces, authenticated actor attribution, and visibility-safe publication views while preserving Admin-only operational boundaries.
+- [#72](https://github.com/rizom-ai/brains/pull/72) [`afa5cf4`](https://github.com/rizom-ai/brains/commit/afa5cf4cbdf75400b180d4bb89ed46dd4e6097cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow active Trusted principals to use the first-party Studio with principal-scoped reads, server-derived capabilities, policy-enforced writes, uploads, assists, and workspaces, authenticated actor attribution, and visibility-safe publication views while preserving Admin-only operational boundaries.
 
 ## 0.2.0-alpha.233
 
@@ -349,11 +349,11 @@
 
 - [`500a6dc`](https://github.com/rizom-ai/brains/commit/500a6dc284a590e1e9bb6af9fa0995332eeb8c58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the Admin-only People section in the standalone Admin console and migrate browser authentication from legacy operator terminology to role-aware auth sessions. Existing session rows and legacy browser cookies remain compatible through an explicit, release-gated migration window. Legacy dashboard `needsOperator` registration inputs remain accepted and normalize to `needsAttention`.
 
-- [`d48cf69`](https://github.com/rizom-ai/brains/commit/d48cf69098a6ef7715e79784775b16e33d8f89bb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Filter the console surface strip by the caller's permission level so a Trusted user no longer sees an Admin-only door. `deriveConsoleSurfaces` now takes the caller's level and omits surfaces above it (failing closed to public-only when unavailable), and every console surface (Dashboard, Chat, CMS, Admin) passes its resolved level. Authenticated non-Admins who reach `/admin` directly are redirected to their own `/account` surface instead of a bare, unstyled denial.
+- [`d48cf69`](https://github.com/rizom-ai/brains/commit/d48cf69098a6ef7715e79784775b16e33d8f89bb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Filter the console surface strip by the caller's permission level so a Trusted user no longer sees an Admin-only door. `deriveConsoleSurfaces` now takes the caller's level and omits surfaces above it (failing closed to public-only when unavailable), and every console surface (Dashboard, Chat, Studio, Admin) passes its resolved level. Authenticated non-Admins who reach `/admin` directly are redirected to their own `/account` surface instead of a bare, unstyled denial.
 
 - [`5c1bed1`](https://github.com/rizom-ai/brains/commit/5c1bed1134f92701f4ead9b25a6f432cd208ac29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Introduce stable person subjects for auth users and normalized canonical identity claims with independent assertion and verification evidence. Align auth persistence with generated Drizzle Kit migrations and a release-gated, row-preserving bridge for pre-Drizzle databases. Add access-neutral links between local people and independent external peer brains, including atomic peer-first invitations and existing-account linking, without inherited roles, identity claims, or attribution. Because the former representation model never shipped outside the feature branch, replace it through a clean generated schema correction rather than a historical data-copy transform or permanent dual-read path.
 
-  Replace the unreleased My agents and representation-consent flow with the permanent Overview, Members/People, Invitations, and Audit Admin sections. Show passkeys under Sign-in, verified human-facing email and Discord under Connected channels, and optional external peers as a separate account facet. Keep hosted members without peers profileless, retain CMS ownership of the Anchor profile, omit internal IDs and generic Advanced identity tooling, expose actor-attributed audit events through an Admin-only endpoint and plain-language viewer, and bridge approved directory peers into the Admin invitation flow. Keep the monitoring dashboard free of management UI and expose Admin through route-derived console navigation and the Admin-gated command palette.
+  Replace the unreleased My agents and representation-consent flow with the permanent Overview, Members/People, Invitations, and Audit Admin sections. Show passkeys under Sign-in, verified human-facing email and Discord under Connected channels, and optional external peers as a separate account facet. Keep hosted members without peers profileless, retain Studio ownership of the Anchor profile, omit internal IDs and generic Advanced identity tooling, expose actor-attributed audit events through an Admin-only endpoint and plain-language viewer, and bridge approved directory peers into the Admin invitation flow. Keep the monitoring dashboard free of management UI and expose Admin through route-derived console navigation and the Admin-gated command palette.
 
   Harden the internet-facing OAuth flow by rejecting suspended-user sessions at both authorization endpoints, returning MCP bearer claims plus the active principal from one JWT verification, requiring client-bound revocation, applying per-caller and runtime-wide bounds to open dynamic registration, and pruning stale unconsented clients at startup and on supervised maintenance. Deprecate ambiguous identity-resolution projection in favor of explicit resolved, denied, or unbound access results; bulk-load the Admin roster without per-user query fan-out; avoid duplicate browser-session resolution in web chat; preserve hash-only setup-delivery dedupe per recipient; centralize legacy imports, private mutation guards, safe error projection, mutation feedback, and persisted SHA-256 encodings; and retain exact private identity reconciliation without exposing canonical provider subjects.
 
@@ -503,9 +503,9 @@
 
 ### Patch Changes
 
-- [`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bring Chat and CMS into the approved console visual language. Chat gains a compact conversation index and responsive composer while removing its parallel surface-token palette; CMS now applies the detailed editorial palette, IBM Plex Mono source treatment, grouped library metadata, manuscript typography, responsive Details/Write/Preview styling, authored image/date/toggle/tag widgets, conflict feedback, and a recoverable delete dialog. The shared font payload includes the CMS editorial mono face.
+- [`f6dc969`](https://github.com/rizom-ai/brains/commit/f6dc96973a64c3f40694ae80fe4529a20d423e5d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bring Chat and Studio into the approved console visual language. Chat gains a compact conversation index and responsive composer while removing its parallel surface-token palette; Studio now applies the detailed editorial palette, IBM Plex Mono source treatment, grouped library metadata, manuscript typography, responsive Details/Write/Preview styling, authored image/date/toggle/tag widgets, conflict feedback, and a recoverable delete dialog. The shared font payload includes the Studio editorial mono face.
 
-- [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator-review fixes across the console: the climate toggle moves into the shared strip on all three surfaces (replacing the dashboard masthead button and chat's local toggle), the session chip gains a neutral visitor variant and quiet phone treatment, sign-in controls adopt the console button language, and the CMS library groups brain machinery under a System rail section, hides publication chips for types without a publication lifecycle, and repairs the phone type pills and row meta alignment.
+- [`b13774a`](https://github.com/rizom-ai/brains/commit/b13774afda0ba85356ab07ee29cdd09b19071054) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Operator-review fixes across the console: the climate toggle moves into the shared strip on all three surfaces (replacing the dashboard masthead button and chat's local toggle), the session chip gains a neutral visitor variant and quiet phone treatment, sign-in controls adopt the console button language, and the Studio library groups brain machinery under a System rail section, hides publication chips for types without a publication lifecycle, and repairs the phone type pills and row meta alignment.
 
 ## 0.2.0-alpha.156
 
@@ -525,25 +525,25 @@
 
 ### Patch Changes
 
-- [`70ff530`](https://github.com/rizom-ai/brains/commit/70ff53084c5bb8d021e2a4f898e108b2de220d2a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align the operator console with the canonical navy instrument and warm paper mockups, and add deliberate tablet and phone compositions across the shared strip, command palette, dashboard, chat shell, and CMS editor. Refactor responsive styles into surface-local modules, make CMS controls climate-safe, and preserve the historical and responsive console mockups as implementation references.
+- [`70ff530`](https://github.com/rizom-ai/brains/commit/70ff53084c5bb8d021e2a4f898e108b2de220d2a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align the operator console with the canonical navy instrument and warm paper mockups, and add deliberate tablet and phone compositions across the shared strip, command palette, dashboard, chat shell, and Studio editor. Refactor responsive styles into surface-local modules, make Studio controls climate-safe, and preserve the historical and responsive console mockups as implementation references.
 
 ## 0.2.0-alpha.148
 
 ### Patch Changes
 
-- [`f7054af`](https://github.com/rizom-ai/brains/commit/f7054af14705adb7690def03c70009bf95b91b8b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The CMS editor joins the console: its shell serves the shared
+- [`f7054af`](https://github.com/rizom-ai/brains/commit/f7054af14705adb7690def03c70009bf95b91b8b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Studio editor joins the console: its shell serves the shared
   @brains/console-theme sheet (paper climate default, console-wide
   console.climate preference wins) and the console strip with route-derived
   surface links; the appbar slims to a surface-local crumb bar; the local
   paper palette and IBM Plex Mono are replaced by console tokens and
   JetBrains Mono. The strip's HTML renderer and the console fonts URL move
-  into @brains/console-theme, shared by web-chat and the CMS shell.
+  into @brains/console-theme, shared by web-chat and the Studio shell.
 
 - [`d4e0245`](https://github.com/rizom-ai/brains/commit/d4e0245a37741bed6cfd7d588b77f951e36e38f2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cross-surface ⌘K jump: an operator-gated /api/console/jump endpoint on
-  the dashboard returns grouped doors (entity search hits open in the CMS
+  the dashboard returns grouped doors (entity search hits open in the Studio
   editor via hash deep-links, widget groups open dashboard tabs), and a
   shared vanilla palette in @brains/console-theme — wired to the strip's
-  ⌘K on all three surfaces — renders them. The CMS editor honors
+  ⌘K on all three surfaces — renders them. The Studio editor honors
   #/{type}/{id} deep-links, and chat appends its local conversations to
   the palette and resumes sessions from #s/{id} doors.
 

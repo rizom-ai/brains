@@ -165,37 +165,37 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 
 Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-| Package                    | Purpose                                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------------------- |
-| `plugins/analytics`        | Analytics integration and insights                                                              |
-| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                              |
-| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                    |
-| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                           |
-| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                  |
-| `plugins/directory-sync`   | File sync + git operations                                                                      |
-| `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                        |
-| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability                                    |
-| `plugins/notifications`    | Notification routing for transactional and administrative messages                              |
-| `plugins/obsidian-vault`   | Obsidian export/templates                                                                       |
-| `plugins/site-builder`     | Static site build orchestration                                                                 |
-| `plugins/site-content`     | Site section content generation                                                                 |
-| `plugins/stock-photo`      | Stock-photo search and selection                                                                |
-| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered CMS triage, summary, digest |
-| `plugins/cms`              | Browser authoring routes + CMS config                                                           |
+| Package                    | Purpose                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| `plugins/analytics`        | Analytics integration and insights                                                                 |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
+| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
+| `plugins/directory-sync`   | File sync + git operations                                                                         |
+| `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
+| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability                                       |
+| `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
+| `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
+| `plugins/site-builder`     | Static site build orchestration                                                                    |
+| `plugins/site-content`     | Site section content generation                                                                    |
+| `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
+| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
+| `plugins/studio`           | Browser authoring routes + Studio config                                                           |
 
 ### Interface plugins
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                         |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                             |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                           |
-| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads        |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                        |
-| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                                  |
-| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and split health endpoints |
+| Package                | Purpose                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                            |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                                |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                              |
+| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads           |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                           |
+| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                                     |
+| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/Studio routes, API routes, and split health endpoints |
 
 ### Sites, themes, and the canonical definition
 
@@ -216,13 +216,13 @@ Brains uses three primary plugin categories:
 
 ### Static site build boundary
 
-`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, CMS actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. At that boundary, undefined object properties are recursively omitted while unsupported JSON values remain errors with route, section, template, and field-path diagnostics. Renderers consume the validated snapshot and do not read entity or datasource services while writing output. Preact remains the default renderer and existing site/theme authoring APIs are unchanged.
+`plugins/site-builder` owns site-build jobs, tools, rebuild policy, status, Studio actions, SEO/RSS staging hooks, and publication events. A build first resolves routes, content, metadata, images, scripts, and app `public/` files into a deeply frozen, JSON-serializable `PreparedSiteBuild`. At that boundary, undefined object properties are recursively omitted while unsupported JSON values remain errors with route, section, template, and field-path diagnostics. Renderers consume the validated snapshot and do not read entity or datasource services while writing output. React 19 is the single JSX runtime, and server-rendered surfaces use `renderToStaticMarkup()` without hydration.
 
 Automatic builds are requested only after a scheduler wave has committed its derived outputs. Environment-scoped queue deduplication and dirty generations ensure changes during an active build produce at most one necessary successor; preview and production never suppress each other. The prepared route/content/template/layout/theme/asset input is fingerprinted, and a fingerprint matching the active successful manifest skips rendering.
 
 Each non-skipped build renders into an immutable generation under `dist/.site-builds/<environment>/<build-id>/`. The builder validates a manifest that accounts for and hashes every produced artifact, then publishes the generation by atomically replacing the preview or production output symlink. Preparation and rendering honor an `AbortSignal`; once a validated generation enters the bounded commit section, publication is non-interruptible. Failed or cancelled builds remove their staging generation and leave the previously published output active. Completion events run only after commit and must not mutate committed output.
 
-Shared renderer-neutral contracts live in `shared/site-engine`; shell-dependent preparation, Preact bindings, operational policy, and commit orchestration remain in `plugins/site-builder`.
+Shared renderer-neutral contracts live in `shared/site-engine`; shell-dependent preparation, React bindings, operational policy, and commit orchestration remain in `plugins/site-builder`.
 
 ### EntityPlugin behavior
 
@@ -285,21 +285,21 @@ Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
-- browsers connect through `interfaces/webserver` for public pages, dashboard/CMS routes, and browser-facing APIs
+- browsers connect through `interfaces/webserver` for public pages, dashboard/Studio routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Operator browser state
 
-Dashboard, CMS, and web-chat are separate applications with separate lifecycles. They do not share a mutable browser store:
+Dashboard, Studio, and web-chat are separate applications with separate lifecycles. They do not share a mutable browser store:
 
 - Dashboard stays server-rendered. Addressable tabs use the URL hash, request data stays request-owned, and transient enhancement state stays in the DOM.
-- CMS and web-chat each own an unpersisted package-local TanStack Query client. Keys come from typed package-local factories, and mutations update or invalidate only related entries.
-- The CMS query cache owns server snapshots while `editorWorkflowReducer` owns coordinated editor transitions. Cached snapshots and mutable drafts are separate; a background refresh cannot silently replace a dirty draft.
+- Studio and web-chat each own an unpersisted package-local TanStack Query client. Keys come from typed package-local factories, and mutations update or invalidate only related entries.
+- The Studio query cache owns server snapshots while `editorWorkflowReducer` owns coordinated editor transitions. Cached snapshots and mutable drafts are separate; a background refresh cannot silently replace a dirty draft.
 - The AI SDK `Chat`/`useChat` instance exclusively owns active and streamed chat messages. A history query may load an immutable snapshot, but reopening copies that snapshot into the AI SDK owner rather than sharing it.
 - Addressable entity and conversation doors use URL hashes. Dialogs, panes, composer text, dirty drafts, and other transient state stay local.
 - Cross-surface preferences remain framework-neutral localStorage helpers with browser events; query clients and mutable application caches are never shared across surfaces.
 
-Package-specific key and invalidation rules are documented in the [CMS README](../plugins/cms/README.md) and [web-chat README](../interfaces/web-chat/README.md).
+Package-specific key and invalidation rules are documented in the [Studio README](../plugins/studio/README.md) and [web-chat README](../interfaces/web-chat/README.md).
 
 ## Runtime flow
 

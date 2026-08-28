@@ -59,15 +59,12 @@ const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
 const bundledWebChatUiDir = join(outdir, "ui");
-const cmsPackageDir = join(monorepoRoot, "plugins", "cms");
-const cmsUiAssetPath = join(cmsPackageDir, "dist", "ui", "cms-app.js");
-const adminPackageDir = join(monorepoRoot, "plugins", "admin");
-const adminUiAssetPath = join(adminPackageDir, "dist", "ui", "admin-app.js");
-const accountUiAssetPath = join(
-  adminPackageDir,
-  "dist",
-  "ui",
-  "account-app.js",
+const studioPackageDir = join(monorepoRoot, "plugins", "studio");
+const studioUiDirectory = join(studioPackageDir, "dist", "ui");
+const studioUiAssetPath = join(studioUiDirectory, "studio-app.js");
+const studioUiManifestPath = join(
+  studioUiDirectory,
+  "studio-asset-manifest.json",
 );
 const onboardingContentSourceDir = join(
   monorepoRoot,
@@ -101,38 +98,22 @@ if (!existsSync(webChatUiAssetPath)) {
   process.exit(1);
 }
 
-console.log("Building bundled CMS editor UI...");
-const cmsBuildResult = Bun.spawnSync(["bun", "run", "build"], {
-  cwd: cmsPackageDir,
+console.log("Building bundled Studio editor UI...");
+const studioBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: studioPackageDir,
   stdout: "inherit",
   stderr: "inherit",
 });
-if (cmsBuildResult.exitCode !== 0) {
-  console.error("CMS editor UI build failed");
+if (studioBuildResult.exitCode !== 0) {
+  console.error("Studio editor UI build failed");
   process.exit(1);
 }
-if (!existsSync(cmsUiAssetPath)) {
-  console.error(`CMS editor UI asset not found at ${cmsUiAssetPath}`);
+if (!existsSync(studioUiAssetPath)) {
+  console.error(`Studio editor UI asset not found at ${studioUiAssetPath}`);
   process.exit(1);
 }
-
-console.log("Building bundled Admin console UI...");
-const adminBuildResult = Bun.spawnSync(["bun", "run", "build"], {
-  cwd: adminPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-});
-if (adminBuildResult.exitCode !== 0) {
-  console.error("Admin console UI build failed");
-  process.exit(1);
-}
-if (!existsSync(adminUiAssetPath)) {
-  console.error(`Admin console UI asset not found at ${adminUiAssetPath}`);
-  process.exit(1);
-}
-
-if (!existsSync(accountUiAssetPath)) {
-  console.error(`Account console UI asset not found at ${accountUiAssetPath}`);
+if (!existsSync(studioUiManifestPath)) {
+  console.error(`Studio asset manifest not found at ${studioUiManifestPath}`);
   process.exit(1);
 }
 
@@ -174,21 +155,16 @@ const sharedExternals = [
   "@modelcontextprotocol/server",
   // MCP client for --remote mode (lazy imported)
   "@modelcontextprotocol/client",
-  // Preact and its subpaths MUST be externalized so brain.js, the
-  // library exports and consumer site code all share a
-  // single preact instance. Bundling preact into brain.js creates a
-  // second copy that diverges from the consumer's installed preact
-  // at runtime; preact hooks (which rely on a module-level `options`
-  // global) then crash with `D.context is undefined` when the
-  // renderer's preact instance doesn't match the hook module's.
-  //
-  // Every consumer (brain init scaffold, standalone site repos) has
-  // preact as a real dependency, so the externals always resolve.
-  "preact",
-  "preact/hooks",
-  "preact/compat",
-  "preact/jsx-runtime",
-  "preact-render-to-string",
+  // React and React DOM MUST be externalized so brain.js, library exports,
+  // and consumer site code share one runtime. A bundled second React copy
+  // breaks context and hooks just as surely as it does in browser apps.
+  // Every generated or external site consumer declares React as a peer or
+  // direct dependency, while @rizom/brain supplies the server renderer.
+  "react",
+  "react/jsx-runtime",
+  "react/jsx-dev-runtime",
+  "react-dom",
+  "react-dom/server",
 ];
 
 async function bundle(opts: {
@@ -399,21 +375,15 @@ const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));
 }
-cpSync(cmsUiAssetPath, join(bundledWebChatUiDir, "cms-app.js"));
-const cmsSourceMapPath = `${cmsUiAssetPath}.map`;
-if (existsSync(cmsSourceMapPath)) {
-  cpSync(cmsSourceMapPath, join(bundledWebChatUiDir, "cms-app.js.map"));
+for (const retiredUiAsset of ["admin-app.js", "account-app.js"]) {
+  rmSync(join(bundledWebChatUiDir, retiredUiAsset), { force: true });
+  rmSync(join(bundledWebChatUiDir, `${retiredUiAsset}.map`), { force: true });
 }
-cpSync(adminUiAssetPath, join(bundledWebChatUiDir, "admin-app.js"));
-const adminSourceMapPath = `${adminUiAssetPath}.map`;
-if (existsSync(adminSourceMapPath)) {
-  cpSync(adminSourceMapPath, join(bundledWebChatUiDir, "admin-app.js.map"));
-}
-cpSync(accountUiAssetPath, join(bundledWebChatUiDir, "account-app.js"));
-const accountSourceMapPath = `${accountUiAssetPath}.map`;
-if (existsSync(accountSourceMapPath)) {
-  cpSync(accountSourceMapPath, join(bundledWebChatUiDir, "account-app.js.map"));
-}
+rmSync(join(bundledWebChatUiDir, "studio-chunks"), {
+  recursive: true,
+  force: true,
+});
+cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true });
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 

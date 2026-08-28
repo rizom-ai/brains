@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { PaginationInfo } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {

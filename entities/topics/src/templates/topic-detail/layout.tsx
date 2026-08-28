@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { TopicDetailData } from "./schema";
 import { BackLink, DetailPageHeader } from "@brains/ui-library";
 

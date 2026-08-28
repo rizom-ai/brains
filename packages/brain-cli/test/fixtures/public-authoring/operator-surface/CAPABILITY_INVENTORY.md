@@ -4,7 +4,7 @@
 
 This is the Phase 4 completeness baseline for the
 [stable authoring ledger](../../../../../../docs/public-release/AUTHORING_API_0.2.md).
-It inventories every first-party Dashboard widget and CMS workspace present
+It inventories every first-party Dashboard widget and Studio workspace present
 when the completeness revision was accepted, including the later bounded
 `card` and primary/aside `columns` composition extension.
 
@@ -21,14 +21,14 @@ spelling are host implementation details.
 
 ## Accepted boundaries applied to the inventory
 
-- Dashboard widgets and CMS workspaces remain independent declarations.
-- Dashboard and CMS own markup, browser behavior, routes, and internal links.
+- Dashboard widgets and Studio workspaces remain independent declarations.
+- Dashboard and Studio own markup, browser behavior, routes, and internal links.
 - Authors return closed, typed semantic views; they do not return UI code or a
   generic DOM tree.
-- Shared primitives use typed Dashboard and CMS profiles.
+- Shared primitives use typed Dashboard and Studio profiles.
 - Definitions are immutable. Data, view results, query options, and
   caller-filtered typed catalogs may vary at runtime.
-- Dashboard may be anonymous. CMS is authenticated.
+- Dashboard may be anonymous. Studio is authenticated.
 - Workspace actions are typed, workspace-scoped capabilities.
 - Account secrets are absent from all operator callback contexts.
 - An absent host performs no observable work.
@@ -41,15 +41,15 @@ contract.
 
 | Slice                                                          | Surfaces                                                                                                                                                                                 |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 4b — Walking skeleton                                          | Public reading fixture's Dashboard widget and CMS workspace                                                                                                                              |
+| 4b — Walking skeleton                                          | Public reading fixture's Dashboard widget and Studio workspace                                                                                                                           |
 | 4c — Collections, composition, and host launches               | Skills; SWOT; Agent Network; Open Action Items; Conversation Memory Coverage; Recent Decisions; Recent Conversation Memory; Topics; Top Wishes; Publication Pipeline; Site Health; Inbox |
 | 4d — Spatial presentation                                      | Agent Proximity; Knowledge Map                                                                                                                                                           |
-| 4e — Operational CMS foundations                               | Directory Sync; Site                                                                                                                                                                     |
+| 4e — Operational Studio foundations                            | Directory Sync; Site                                                                                                                                                                     |
 | 4f — Server state, dynamic catalogs, and prepared confirmation | Unified Inbox; Publishing                                                                                                                                                                |
 | 4g — Closeout                                                  | All converted surfaces and removal of private renderer paths                                                                                                                             |
 
 The reading fixture in 4b is not a built-in inventory entry. It is the smallest
-existing public Dashboard/CMS pair and therefore the walking-skeleton proof
+existing public Dashboard/Studio pair and therefore the walking-skeleton proof
 before built-ins from several plugin families are converted.
 
 ## Dashboard inventory
@@ -81,7 +81,7 @@ Dashboard implementation sources:
 - `entities/agent-discovery/src/lib/agent-dashboard.ts`
 - `entities/agent-discovery/src/lib/proximity-map-schema.ts`
 
-The Preact map and script remain only for the independent public site template; Dashboard no longer registers either.
+The React map and script remain only for the independent public site template; Dashboard no longer registers either.
 
 Required semantics:
 
@@ -257,14 +257,14 @@ Required semantics:
 - digest and high-priority attention count;
 - optional host-owned launch to the installed Inbox surface.
 
-## CMS workspace inventory
+## Studio workspace inventory
 
 ### 1. Directory Sync
 
 Implementation sources:
 
-- `plugins/directory-sync/src/lib/cms-workspace.ts`
-- `plugins/cms/ui-react/src/declarative-workspace.tsx`
+- `plugins/directory-sync/src/lib/studio-workspace.ts`
+- `plugins/studio/ui-react/src/declarative-workspace.tsx`
 
 Required semantics:
 
@@ -284,7 +284,7 @@ Required semantics:
 Implementation sources:
 
 - `plugins/site-builder/src/lib/site-workspace.ts`
-- `plugins/cms/ui-react/src/declarative-workspace.tsx`
+- `plugins/studio/ui-react/src/declarative-workspace.tsx`
 
 Required semantics:
 
@@ -301,8 +301,8 @@ Required semantics:
 
 Sources:
 
-- `plugins/content-pipeline/src/lib/cms-workspace.ts`
-- `plugins/cms/ui-react/src/declarative-workspace.tsx`
+- `plugins/content-pipeline/src/lib/studio-workspace.ts`
+- `plugins/studio/ui-react/src/declarative-workspace.tsx`
 - `plugins/content-pipeline/src/provider-registry.ts`
 
 Required semantics:
@@ -326,10 +326,10 @@ entity-type strings before they can satisfy the public catalog contract.
 
 Sources:
 
-- `plugins/unified-inbox/src/operator-cms.ts`
+- `plugins/unified-inbox/src/operator-studio.ts`
 - `plugins/unified-inbox/src/operator-service.ts`
 - `plugins/unified-inbox/src/schemas.ts`
-- `plugins/cms/ui-react/src/declarative-workspace.tsx`
+- `plugins/studio/ui-react/src/declarative-workspace.tsx`
 - `shell/plugins/src/inbox-registry.ts`
 - `shell/plugins/src/inbox-follow-up-registry.ts`
 
@@ -392,11 +392,11 @@ they are not frozen public type names.
 
 Phase 4 closes every demonstrated gap above:
 
-- distinct typed Dashboard and CMS profiles normalize the complete closed
+- distinct typed Dashboard and Studio profiles normalize the complete closed
   primitive vocabulary;
 - Dashboard tabs, filters, matrices, spatial interaction, launches, and
   accessibility are host-owned;
-- CMS query state, paging, catalogs, grouping, cards, primary/aside columns,
+- Studio query state, paging, catalogs, grouping, cards, primary/aside columns,
   flow, meters, progress, bounded plain-text detail, actions, launches, and
   responsive rendering are host-owned;
 - prepared confirmation is caller-, action-, input-, revision-, expiry-, and
@@ -404,29 +404,29 @@ Phase 4 closes every demonstrated gap above:
 - permission floors, narrow-only policy, caller-scoped entities, redacted
   settings, cancellation, cleanup, worker exclusion, and absent-host no-op
   behavior are runtime-enforced;
-- all 14 Dashboard and four CMS registrations use the public definition,
+- all 14 Dashboard and four Studio registrations use the public definition,
   binding, validation, normalization, permission, and host-rendering paths; and
-- Dashboard accepts only `DeclarativeOperatorWidget`, CMS accepts only
+- Dashboard accepts only `DeclarativeOperatorWidget`, Studio accepts only
   `DeclarativeOperatorWorkspace`, and the former private components, assets,
   mutations, snapshot types, tests, and renderer dispatch were removed.
 
 Representative checked evidence:
 
 - `shell/plugins/test/dashboard-widget-runtime.test.ts`;
-- `shell/plugins/test/cms-workspace-runtime.test.ts`;
+- `shell/plugins/test/studio-workspace-runtime.test.ts`;
 - `plugins/dashboard/test/widget-ui.test.tsx`;
 - `plugins/dashboard/test/ui-script.test.ts`;
-- `plugins/cms/test/declarative-workspace.test.ts`;
-- `plugins/cms/ui-react/src/declarative-workspace.test.tsx`;
+- `plugins/studio/test/declarative-workspace.test.ts`;
+- `plugins/studio/ui-react/src/declarative-workspace.test.tsx`;
 - `entities/agent-discovery/test/plugin.test.ts`;
 - `entities/topics/test/lib/knowledge-map-widget.test.tsx`;
 - `plugins/site-builder/test/unit/plugin.test.ts`;
 - `plugins/unified-inbox/test/dashboard-widget.test.ts`;
-- `plugins/unified-inbox/test/operator-cms.test.ts`;
-- `plugins/directory-sync/test/cms-workspace.test.ts`;
-- `plugins/content-pipeline/test/cms-workspace.test.ts`; and
+- `plugins/unified-inbox/test/operator-studio.test.ts`;
+- `plugins/directory-sync/test/studio-workspace.test.ts`;
+- `plugins/content-pipeline/test/studio-workspace.test.ts`; and
 - `packages/brain-cli/test/public-authoring-phase6-packed.test.ts`.
 
-The Preact spatial renderers still used by public site templates are independent
+The React spatial renderers still used by public site templates are independent
 site presentation, not Dashboard registrations or operator-authoring escape
 hatches.

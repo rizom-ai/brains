@@ -129,11 +129,13 @@ describe("@rizom/site-docs package boundary", () => {
             dependencies: {
               "@rizom/brain": `file:${brainPeerDir}`,
               "@rizom/site-docs": `file:${docsTarball}`,
-              preact: workspaceCopy("preact"),
+              react: workspaceCopy("react"),
+              "react-dom": workspaceCopy("react-dom"),
             },
             overrides: {
               "@rizom/site": `file:${sdkTarball}`,
-              preact: workspaceCopy("preact"),
+              react: workspaceCopy("react"),
+              "react-dom": workspaceCopy("react-dom"),
             },
           },
           null,

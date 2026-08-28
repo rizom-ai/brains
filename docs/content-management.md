@@ -1,6 +1,6 @@
 # Content Management Guide
 
-`brains` treats content as typed markdown entities. You can work with those entities through chat/MCP tools, the CMS, direct markdown edits, or plugin-owned generation jobs. The same content graph powers search, agent context, CMS editing, and static-site publishing.
+`brains` treats content as typed markdown entities. You can work with those entities through chat/MCP tools, the Studio, direct markdown edits, or plugin-owned generation jobs. The same content graph powers search, agent context, Studio editing, and static-site publishing.
 
 ## Where content lives
 
@@ -92,16 +92,16 @@ brain tool system_update '{
 
 Use `content` only when you intentionally want to replace the full markdown content.
 
-### CMS
+### Studio
 
-When the `cms` plugin and `webserver` interface are active, the web surface exposes a CMS for editing configured entity types. Start the brain and open the local web host:
+When the `studio` plugin and `webserver` interface are active, the web surface exposes a Studio for editing configured entity types. Start the brain and open the local web host:
 
 ```bash
 brain start
-# open http://localhost:8080/cms
+# open http://localhost:8080/studio
 ```
 
-The CMS is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, products, and newsletters. Exact CMS collections depend on selected bundles, additions/removals, and active entity plugins.
+The Studio is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, products, and newsletters. Exact Studio collections depend on selected bundles, additions/removals, and active entity plugins.
 
 ### Direct markdown edits
 

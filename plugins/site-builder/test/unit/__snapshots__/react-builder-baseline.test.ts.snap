@@ -1,0 +1,4422 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 1`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "light",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Home Route",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Home description",
+                ],
+                [
+                  "name",
+                  "description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Home Route",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Home description",
+                ],
+                [
+                  "property",
+                  "og:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Home Route",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Home description",
+                ],
+                [
+                  "name",
+                  "twitter:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "analytics",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "global-head",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "defer",
+                  "",
+                ],
+                [
+                  "src",
+                  "/scripts/page.js",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [
+                    [
+                      "data-layout",
+                      "default",
+                    ],
+                    [
+                      "data-path",
+                      "/",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Baseline Site | Home Route",
+                        },
+                      ],
+                      "name": "header",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "href",
+                              "/writing",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Writing",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "nav",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Home heading",
+                                },
+                              ],
+                              "name": "h1",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "data-page-title",
+                                  "Home Route",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "no-label",
+                                },
+                              ],
+                              "name": "p",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "section",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "main",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;
+
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 2`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "light",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Authored Head",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Authored description",
+                ],
+                [
+                  "name",
+                  "description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Authored Head",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Authored description",
+                ],
+                [
+                  "property",
+                  "og:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Authored Head",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Authored description",
+                ],
+                [
+                  "name",
+                  "twitter:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/canonical-writing",
+                ],
+                [
+                  "rel",
+                  "canonical",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "analytics",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "global-head",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [
+                    [
+                      "data-layout",
+                      "default",
+                    ],
+                    [
+                      "data-path",
+                      "/writing",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Baseline Site | Writing Route",
+                        },
+                      ],
+                      "name": "header",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "href",
+                              "/writing",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Writing",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "nav",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "data-section",
+                              "article",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Writing heading",
+                                },
+                              ],
+                              "name": "h1",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Writing Route | Essays",
+                                },
+                              ],
+                              "name": "p",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "article",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "main",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;
+
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 3`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "light",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Entity List Route",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity list description",
+                ],
+                [
+                  "name",
+                  "description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity List Route",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity list description",
+                ],
+                [
+                  "property",
+                  "og:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity List Route",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity list description",
+                ],
+                [
+                  "name",
+                  "twitter:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/posts",
+                ],
+                [
+                  "rel",
+                  "canonical",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "analytics",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "global-head",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "defer",
+                  "",
+                ],
+                [
+                  "src",
+                  "/scripts/page.js",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [
+                    [
+                      "data-layout",
+                      "default",
+                    ],
+                    [
+                      "data-path",
+                      "/posts",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Baseline Site | Entity List Route",
+                        },
+                      ],
+                      "name": "header",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "href",
+                              "/writing",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Writing",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "nav",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Entity list",
+                                },
+                              ],
+                              "name": "h1",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "data-page-title",
+                                  "Entity List Route",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "no-label",
+                                },
+                              ],
+                              "name": "p",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "section",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "main",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;
+
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 4`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "light",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Entity Detail Route",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity detail description",
+                ],
+                [
+                  "name",
+                  "description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity Detail Route",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity detail description",
+                ],
+                [
+                  "property",
+                  "og:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity Detail Route",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Entity detail description",
+                ],
+                [
+                  "name",
+                  "twitter:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/posts/example",
+                ],
+                [
+                  "rel",
+                  "canonical",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "analytics",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "global-head",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "defer",
+                  "",
+                ],
+                [
+                  "src",
+                  "/scripts/page.js",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [
+                    [
+                      "data-layout",
+                      "default",
+                    ],
+                    [
+                      "data-path",
+                      "/posts/example",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Baseline Site | Entity Detail Route",
+                        },
+                      ],
+                      "name": "header",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "href",
+                              "/writing",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Writing",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "nav",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Entity detail",
+                                },
+                              ],
+                              "name": "h1",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "data-page-title",
+                                  "Entity Detail Route",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "no-label",
+                                },
+                              ],
+                              "name": "p",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "section",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "main",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;
+
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 5`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "light",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Markdown Route",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Markdown description",
+                ],
+                [
+                  "name",
+                  "description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Markdown Route",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Markdown description",
+                ],
+                [
+                  "property",
+                  "og:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Markdown Route",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Markdown description",
+                ],
+                [
+                  "name",
+                  "twitter:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/prose",
+                ],
+                [
+                  "rel",
+                  "canonical",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "analytics",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "global-head",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [
+                    [
+                      "data-layout",
+                      "default",
+                    ],
+                    [
+                      "data-path",
+                      "/prose",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Baseline Site | Markdown Route",
+                        },
+                      ],
+                      "name": "header",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "href",
+                              "/writing",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Writing",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "nav",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "prose prose-lg max-w-none prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:mt-0 prose-h2:text-3xl prose-h2:font-semibold prose-h2:mt-16 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-4 prose-h3:text-2xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4 prose-p:text-lg prose-p:leading-relaxed prose-p:mb-6 prose-ul:my-6 prose-ul:space-y-3 prose-ol:my-6 prose-ol:space-y-3 prose-li:leading-relaxed prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:rounded-lg prose-pre:my-6 prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-sm prose-blockquote:border-l-2 prose-blockquote:border-brand prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:mt-8 prose-blockquote:mb-2 prose-blockquote:text-lg prose-blockquote:leading-relaxed prose-blockquote:font-light prose-blockquote:not-italic prose-hr:my-12 prose-img:rounded-lg prose-img:shadow-md prose-img:my-8",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "Renderer prose",
+                                    },
+                                  ],
+                                  "name": "h2",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "type": "text",
+                                  "value": 
+"
+"
+,
+                                },
+                                {
+                                  "attributes": [],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "A quote with ",
+                                    },
+                                    {
+                                      "attributes": [],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "code",
+                                        },
+                                      ],
+                                      "name": "code",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "type": "text",
+                                      "value": ", > and an apostrophe.",
+                                    },
+                                  ],
+                                  "name": "p",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "type": "text",
+                                  "value": 
+"
+"
+,
+                                },
+                              ],
+                              "name": "article",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "article",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "main",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;
+
+exports[`ReactBuilder behavioral baseline characterizes representative routes, metadata, scripts, assets, theme CSS, and progress 6`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "class",
+          "h-full",
+        ],
+        [
+          "data-theme",
+          "light",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "UTF-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.svg",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/svg+xml",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/favicon.png",
+                ],
+                [
+                  "rel",
+                  "icon",
+                ],
+                [
+                  "type",
+                  "image/png",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/styles/main.css",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "IE=edge",
+                ],
+                [
+                  "http-equiv",
+                  "X-UA-Compatible",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Canvas Route",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Canvas description",
+                ],
+                [
+                  "name",
+                  "description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Canvas Route",
+                ],
+                [
+                  "property",
+                  "og:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Canvas description",
+                ],
+                [
+                  "property",
+                  "og:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "website",
+                ],
+                [
+                  "property",
+                  "og:type",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "summary_large_image",
+                ],
+                [
+                  "name",
+                  "twitter:card",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Canvas Route",
+                ],
+                [
+                  "name",
+                  "twitter:title",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "Canvas description",
+                ],
+                [
+                  "name",
+                  "twitter:description",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "/canvas",
+                ],
+                [
+                  "rel",
+                  "canonical",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    
+    "
+,
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    "
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "analytics",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+    "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "id",
+                  "global-head",
+                ],
+              ],
+              "children": [],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+"
+,
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "type": "text",
+          "value": 
+"
+"
+,
+        },
+        {
+          "attributes": [
+            [
+              "class",
+              "h-full font-sans",
+            ],
+          ],
+          "children": [
+            {
+              "type": "text",
+              "value": 
+"
+  "
+,
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "min-h-screen",
+                ],
+                [
+                  "id",
+                  "root",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"
+    "
+,
+                },
+                {
+                  "attributes": [],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Fullscreen output",
+                        },
+                      ],
+                      "name": "div",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "type": "text",
+                  "value": 
+"
+  "
+,
+                },
+              ],
+              "name": "div",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "type": "text",
+              "value": 
+"
+
+"
+,
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;

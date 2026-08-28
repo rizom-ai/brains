@@ -18,7 +18,7 @@ import {
   TestLayout,
 } from "../test-helpers";
 import { z } from "@brains/utils/zod";
-import { h } from "preact";
+import { createElement as h } from "react";
 
 interface TestSiteBuilder {
   build(options: Omit<SiteBuilderOptions, "siteUrl">): Promise<BuildResult>;

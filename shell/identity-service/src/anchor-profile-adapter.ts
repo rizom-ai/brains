@@ -13,7 +13,7 @@ interface ProfileBodyParser<T> {
 
 /**
  * Entity adapter for Anchor Profile entities
- * Uses frontmatter format for CMS compatibility
+ * Uses frontmatter format for Studio compatibility
  */
 export class AnchorProfileAdapter extends SingletonFrontmatterAdapter<
   AnchorProfileEntity,

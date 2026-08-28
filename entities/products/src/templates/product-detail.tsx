@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { ProductView } from "./product-view";
 import { Head, StatusBadge, TagsList, LinkButton } from "@brains/ui-library";
 

@@ -54,7 +54,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p ui-react/tsconfig.json"
+    "typecheck": "tsc --noEmit"
   },
   "type": "module"
 }

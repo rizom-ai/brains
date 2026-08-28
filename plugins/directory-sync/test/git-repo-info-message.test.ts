@@ -7,7 +7,7 @@ import { MockEntityAdapter } from "./fixtures";
 
 /**
  * Regression test: git-sync:get-repo-info message was lost during
- * the git-sync merge into directory-sync. The site-builder CMS needs
+ * the git-sync merge into directory-sync. The site-builder Studio needs
  * this message to generate /admin/ config.yml with the correct repo.
  */
 describe("git-sync:get-repo-info message handler", () => {

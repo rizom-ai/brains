@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { ProjectView } from "./project-view";
 import type { PaginationInfo } from "@brains/plugins";
 import { Card, CardTitle, Head, Pagination } from "@brains/ui-library";

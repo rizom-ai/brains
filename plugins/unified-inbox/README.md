@@ -12,16 +12,16 @@ failures.
 
 The opt-in plugin provides:
 
-- an Admin-only CMS **Inbox** workspace with linkable server-side source, urgency, and
+- an Admin-only Studio **Inbox** workspace with linkable server-side source, urgency, and
   source-scoped facet filters, bounded transient paging, list/detail triage,
   destination-owned follow-up launches, and confirmation-gated actions; once registered,
   its returned workspace URL is advertised as the Admin-only `unified-inbox` interaction;
-- an access-checked open-count badge in the CMS workspace rail;
+- an access-checked open-count badge in the Studio workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
 - the bounded Admin `inbox_list` headless reader, available without browser
   plugins;
-- a daily title-only digest that links to the mounted CMS workspace, or to Dashboard when
-  CMS is absent.
+- a daily title-only digest that links to the mounted Studio workspace, or to Dashboard when
+  Studio is absent.
 
 Actions always re-list the owning source and verify that the requested item and action are
 still offered. Confirmed actions are revalidated immediately before dispatch. Optional
@@ -38,7 +38,7 @@ kinds during plugin registration and own labels, applicability, permission gates
 same-origin target resolution, and optional bounded history state. Sources may name bounded
 source-specific declarations, but cannot choose their labels or targets. The workspace
 receives only resolved `{ kind, label, href, state? }` targets for its current bounded page;
-raw declaration context and resolvers never enter browser or headless output. CMS contributes
+raw declaration context and resolvers never enter browser or headless output. Studio contributes
 **Open source entity** and capability-gated **Capture as note**, prefilled with the safe
 Inbox summary and a source link. Web chat contributes **Discuss in chat** for sources with
 permission-checked detail, resolving that source transiently on attached turns without
@@ -53,7 +53,7 @@ digest uses that channel-only mode so it never projects a summary of the Inbox b
 itself.
 
 `inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
-brains with no webserver, CMS, or Dashboard. It returns source metadata and only the
+brains with no webserver, Studio, or Dashboard. It returns source metadata and only the
 content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
 IDs, source-entity references, resolution actions, source detail, private source locators,
 and item facet values are omitted. Source-declared facets can still filter the headless
@@ -114,11 +114,11 @@ reuse a key without sharing its vocabulary. Stable workspace URL keys use
 Titles, summaries, and contact labels must be safe for browser transport. `contact` is a
 structured person relationship rather than a presentation byline: `label` is bounded
 recognizable text, while optional `personId` is the stable local Auth person key. In the
-CMS, a resolved person links through the registered Admin interaction; unresolved contacts
+Studio, a resolved person links through the registered Admin interaction; unresolved contacts
 remain plain text. Dashboard and digest projections omit contact labels and identifiers.
 Do not include message bodies, secrets, or unnecessary raw addresses. Optional
 `threadOrdinal` is a positive, content-safe position supplied only after the owning source
-has completed its consistency gate; the CMS renders it as **message N in thread** without
+has completed its consistency gate; the Studio renders it as **message N in thread** without
 claiming a total. The headless reader, Dashboard, and digest continue to omit it.
 
 ## Configuration
@@ -138,7 +138,7 @@ surfaces continue to work and delivery follows the recurring-check retry path.
 The shell-owned `recurring-checks` source is available without email or notification
 channels. The first external production source is `mail-items`, registered by
 `@brains/email-workflows`. New mail is operated here; reviewed, handled, and archived records
-remain in the standard **Mail Items** CMS collection. Source widgets resolve the registered
-`unified-inbox` interaction at request time, so custom CMS mounts and plugin ready order do
+remain in the standard **Mail Items** Studio collection. Source widgets resolve the registered
+`unified-inbox` interaction at request time, so custom Studio mounts and plugin ready order do
 not change their filter links. The synthetic pilot posture is documented in
 [`packages/brain-cli/test-apps/unified-inbox`](../../packages/brain-cli/test-apps/unified-inbox/README.md).

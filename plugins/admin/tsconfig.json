@@ -2,8 +2,9 @@
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": ".",
     "isolatedDeclarations": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
-  "exclude": ["node_modules", "dist", "ui-react"]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

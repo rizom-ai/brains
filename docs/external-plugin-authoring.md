@@ -45,7 +45,7 @@ The runtime owns:
 | -------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Store typed content or derive another type   | `@rizom/brain/entities`   | [`defineEntity()`](../packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts)                      |
 | Add tools, resources, or durable work        | `@rizom/brain/services`   | [`defineServicePlugin()`](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts)              |
-| Add Account settings, Dashboard, or CMS      | `@rizom/brain/services`   | [`operator-surface`](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)          |
+| Add Account settings, Dashboard, or Studio   | `@rizom/brain/services`   | [`operator-surface`](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)          |
 | Add HTTP routes or a supervised event feed   | `@rizom/brain/interfaces` | [`defineInterface()`](../packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts)                |
 | Connect a conversational/outbound transport  | `@rizom/brain/interfaces` | [`defineMessageInterface()`](../packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts) |
 | Define layouts, routes, sections, and assets | `@rizom/site`             | [`defineSite()`](../packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx)                         |
@@ -234,7 +234,7 @@ Read them in this order:
 6. [Brain definition](../packages/brain-cli/test/fixtures/public-authoring/brain-definition/src/index.ts)
    — typed `use()`, bundles, identity, and site composition.
 7. [Operator surface](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)
-   — encrypted Account settings, Dashboard semantics, CMS query state,
+   — encrypted Account settings, Dashboard semantics, Studio query state,
    catalogs, typed actions, and prepared confirmation.
 8. [Account-settings interface](../packages/brain-cli/test/fixtures/public-authoring/account-settings-interface/src/index.ts)
    — the same settings contract in an interface with runtime-owned per-account
@@ -351,14 +351,14 @@ validation.
 
 A service or interface can declare `defineAccountSettings()`. Secret fields are
 encrypted by the host and full values enter only the principal-specific
-`forAccounts` callback. Dashboard and CMS callbacks receive only the current
+`forAccounts` callback. Dashboard and Studio callbacks receive only the current
 caller's redacted settings.
 
 A service can independently declare `defineDashboardWidget()` and
-`defineCmsWorkspace()`. Both return schema-validated semantic data: authors do
-not provide React/Preact, HTML, CSS, scripts, renderer names, or browser bundles.
-Use `DashboardOperatorView` blocks for Dashboard data and `CmsWorkspaceView`
-blocks for authenticated CMS operations. CMS-only capabilities include:
+`defineStudioWorkspace()`. Both return schema-validated semantic data: authors do
+not provide React components, HTML, CSS, scripts, renderer names, or browser bundles.
+Use `DashboardOperatorView` blocks for Dashboard data and `StudioWorkspaceView`
+blocks for authenticated Studio operations. Studio-only capabilities include:
 
 - a Zod query schema read through `query.get(schema)`, with the host owning URL
   parsing and controls; the schema must accept `{}` and provide its initial
@@ -406,7 +406,7 @@ transport responsibilities.
 
 ### Sites
 
-Site authors import only `@rizom/site` (plus Preact for JSX). The structural
+Site authors import only `@rizom/site` (plus React for JSX). The structural
 definition never embeds a runtime plugin. See [External Site and Theme
 Authoring](./external-site-authoring.md) for package metadata and the full site
 example.
@@ -436,7 +436,7 @@ Before publishing an external package:
 | A listener never shuts down                           | Subscribe cleanup to the supplied `AbortSignal`                                             |
 | Durable work runs inside an HTTP handler              | Import a `defineJob()` contract and enqueue it                                              |
 | A widget or workspace returns JSX, HTML, or a URL     | Return a closed semantic view and typed host launch intent                                  |
-| CMS filters are parsed manually                       | Declare a query schema and read it with `query.get(schema)`                                 |
+| Studio filters are parsed manually                    | Declare a query schema and read it with `query.get(schema)`                                 |
 | A site needs backend behavior                         | Compose a separate focused plugin package; do not put `plugin` in `defineSite()`            |
 | Types leak `@brains/*` in generated declarations      | Replace private types with public family contracts before publishing                        |
 

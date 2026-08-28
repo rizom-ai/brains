@@ -4,7 +4,7 @@ import { createTemplate, type ComponentType } from "../src/types";
 import { z } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
 import { createSilentLogger } from "@brains/test-utils";
-import { h } from "preact";
+import { createElement as h } from "react";
 
 describe("TemplateCapabilities", () => {
   const mockFormatter: ContentFormatter<unknown> = {

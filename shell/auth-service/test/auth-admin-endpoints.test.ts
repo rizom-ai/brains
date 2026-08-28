@@ -490,7 +490,7 @@ describe("auth admin API", () => {
     expect(await service.listUsers()).toHaveLength(1);
   });
 
-  it("reads the config-declared Anchor with its CMS profile name", async () => {
+  it("reads the config-declared Anchor with its Studio profile name", async () => {
     const service = await createService({
       anchor: "organization",
       profileName: "Rizom",
@@ -518,7 +518,7 @@ describe("auth admin API", () => {
     ]);
   });
 
-  it("uses the CMS profile name for the personal Anchor roster entry", async () => {
+  it("uses the Studio profile name for the personal Anchor roster entry", async () => {
     const service = await createService({
       anchor: "person",
       profileName: "Alice Morgan",
@@ -871,7 +871,7 @@ describe("auth admin API", () => {
     );
   });
 
-  it("links an existing account to an independent external peer", async () => {
+  it("links and unlinks an existing account's independent external peer", async () => {
     const service = await createService();
     const admin = await service.createUser({
       displayName: "Admin",
@@ -904,6 +904,19 @@ describe("auth admin API", () => {
       },
     });
     expect(await service.listUserIdentities(collaborator.userId)).toEqual([]);
+
+    const unlinkResponse = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "unlinkExternalPeer",
+        confirmation: "unlinkExternalPeer",
+        peerId: "did:web:mira.example",
+        userId: collaborator.userId,
+      }),
+    );
+    expect(unlinkResponse.status).toBe(200);
+    expect(
+      await service.listPersonExternalPeers(collaborator.personId),
+    ).toEqual([]);
     expect(await service.listAuditEvents()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -914,6 +927,11 @@ describe("auth admin API", () => {
             personId: collaborator.personId,
             userId: collaborator.userId,
           }),
+        }),
+        expect.objectContaining({
+          actorUserId: admin.userId,
+          action: "auth.external_peer.unlinked",
+          targetId: "did:web:mira.example",
         }),
       ]),
     );

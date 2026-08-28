@@ -11,7 +11,7 @@ import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
 import { InboxDataSource } from "./inbox-datasource";
 import { registerUnifiedInboxDigest } from "./digest";
 import { createInboxListTool } from "./inbox-tool";
-import { registerUnifiedInboxCmsWorkspace } from "./operator-cms";
+import { registerUnifiedInboxStudioWorkspace } from "./operator-studio";
 import { InboxOperatorService } from "./operator-service";
 
 type UnifiedInboxConfig = Record<string, never>;
@@ -29,8 +29,8 @@ export class UnifiedInboxPlugin extends ServicePlugin<
   private dataSource: InboxDataSource | undefined;
   private operator: InboxOperatorService | undefined;
   private pluginContext: ServicePluginContext | undefined;
-  private cmsWorkspaceUrl: string | undefined;
-  private cmsRegistered = false;
+  private studioWorkspaceUrl: string | undefined;
+  private studioRegistered = false;
 
   constructor() {
     super("unified-inbox", packageJson, {}, unifiedInboxConfigSchema);
@@ -48,7 +48,7 @@ export class UnifiedInboxPlugin extends ServicePlugin<
     );
     context.entities.registerDataSource(this.dataSource);
     registerUnifiedInboxDigest(context, this.dataSource, {
-      workspaceUrl: () => this.cmsWorkspaceUrl,
+      workspaceUrl: () => this.studioWorkspaceUrl,
     });
   }
 
@@ -56,16 +56,16 @@ export class UnifiedInboxPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     const operator = this.getOperator();
-    this.cmsWorkspaceUrl = normalizeSameOriginPath(
-      await registerUnifiedInboxCmsWorkspace(context, operator),
+    this.studioWorkspaceUrl = normalizeSameOriginPath(
+      await registerUnifiedInboxStudioWorkspace(context, operator),
     );
-    this.cmsRegistered = this.cmsWorkspaceUrl !== undefined;
-    if (this.cmsWorkspaceUrl) {
+    this.studioRegistered = this.studioWorkspaceUrl !== undefined;
+    if (this.studioWorkspaceUrl) {
       context.interactions.register({
         id: "unified-inbox",
         label: "Inbox",
         description: "Review source-owned items that need operator attention.",
-        href: this.cmsWorkspaceUrl,
+        href: this.studioWorkspaceUrl,
         kind: "admin",
         priority: 20,
         visibility: "admin",
@@ -75,11 +75,13 @@ export class UnifiedInboxPlugin extends ServicePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
-    if (this.cmsRegistered) {
-      await this.pluginContext?.cms.unregisterWorkspace("unified-inbox:inbox");
-      this.cmsRegistered = false;
+    if (this.studioRegistered) {
+      await this.pluginContext?.studio.unregisterWorkspace(
+        "unified-inbox:inbox",
+      );
+      this.studioRegistered = false;
     }
-    this.cmsWorkspaceUrl = undefined;
+    this.studioWorkspaceUrl = undefined;
   }
 
   protected override async getTools(): Promise<Tool[]> {

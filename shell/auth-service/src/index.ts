@@ -52,7 +52,13 @@ export type {
 export { reinitializeAuthAccessStorage } from "./access-reinitialization";
 export type { ReinitializeAuthAccessResult } from "./access-reinitialization";
 export { AuthAuditStore } from "./audit-store";
-export type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
+export type {
+  AppendAuthAuditEventInput,
+  AuthAuditActionCount,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+} from "./audit-store";
 export {
   isSameOriginRequest,
   requireSameOriginJson,
@@ -74,6 +80,7 @@ export type {
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
   LinkExternalPeerRequest,
+  UnlinkExternalPeerRequest,
 } from "./administration-service";
 export { AuthService } from "./auth-service";
 export type {
@@ -126,6 +133,7 @@ export type {
   InvitedExternalPeerPerson,
   InviteExternalPeerPersonInput,
   LinkExternalPeerInput,
+  UnlinkExternalPeerInput,
 } from "./person-external-peer-store";
 export { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 export type {

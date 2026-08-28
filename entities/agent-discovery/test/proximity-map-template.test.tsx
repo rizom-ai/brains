@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { getTemplates } from "../src/lib/register-templates";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
@@ -105,7 +105,7 @@ describe("AgentProximityMapTemplate", () => {
     const html = render(<AgentProximityMapTemplate {...authored} />);
 
     expect(html).toContain("This is what expertise looks like");
-    expect(html).toContain("when it's alive");
+    expect(html).toContain("when it&#x27;s alive");
     expect(html).toContain("The network, live");
     // Asterisk emphasis in the authored lede renders as <b>.
     expect(html).toContain("<b>an agent that speaks for you</b>");

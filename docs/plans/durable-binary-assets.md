@@ -105,7 +105,7 @@ image path has soaked successfully.
 - Keep image and document entities as the identity, visibility, and authorization
   boundary.
 - Preserve `entity://image/{id}`, `coverImageId`, and `ogImageId` contracts.
-- Preserve upload, generation, CMS, chat, site-build, directory-sync, and publishing UX.
+- Preserve upload, generation, Studio, chat, site-build, directory-sync, and publishing UX.
 - Stop indexing binary payloads in FTS.
 - Keep BLOBs out of ordinary entity reads, lists, events, logs, and API responses.
 - Make migration explicit, idempotent, resumable, verifiable, and reversible.
@@ -518,7 +518,7 @@ by new writes.
 
 Change image consumers to resolve bytes explicitly:
 
-- attachment/download providers for chat, web chat, and CMS;
+- attachment/download providers for chat, web chat, and Studio;
 - site image preparation/optimization;
 - media page composition and OG rendering;
 - social publishing;
@@ -615,7 +615,7 @@ outcome—never image bytes or data URLs.
 5. Run dry-run, migration, and verify.
 6. Start the application and confirm readiness.
 7. Trigger and inspect preview output before production rebuild.
-8. Exercise CMS, chat attachment, upload/generation, directory-sync, and controlled
+8. Exercise Studio, chat attachment, upload/generation, directory-sync, and controlled
    publishing checks.
 9. Keep the pre-migration database snapshot and release for the rollback window.
 10. Compact only after functional acceptance.
@@ -632,7 +632,7 @@ No separate asset-directory restore is required.
 
 ### Soak and bridge removal
 
-Soak normal uploads, generated covers, site builds, CMS use, chat downloads, directory
+Soak normal uploads, generated covers, site builds, Studio use, chat downloads, directory
 sync, and controlled publishing. Remove legacy storage and resolved-read bridges only
 after caller-specific telemetry remains zero. Publish the raw entity API change in release
 notes.
@@ -649,7 +649,7 @@ PDF-specific work includes:
 
 - `application/pdf`, size, filename, page count, and provenance metadata;
 - upload/generation/preservation writers;
-- chat/CMS download and publishing readers;
+- chat/Studio download and publishing readers;
 - directory-sync binary/sidecar round trips;
 - FTS exclusion for encoded PDF bytes;
 - independent migration rehearsal and production window.
@@ -661,7 +661,7 @@ than the encoded PDF bytes.
 
 1. Uploading an image returns the same immediate confirmation and usable attachment.
 2. Generated images retain pending, completion, failure, preview, and download behavior.
-3. CMS renders thumbnails without exposing `asset://` or BLOB bytes to the browser.
+3. Studio renders thumbnails without exposing `asset://` or BLOB bytes to the browser.
 4. Chat/web-chat display and download correct filenames and MIME types.
 5. Public/shared/restricted authorization remains entity-based and unchanged.
 6. Preview/production sites emit equivalent logical images and optimized variants.

@@ -2,12 +2,13 @@ import { bookmark, readingDigest } from "@fixture/reading-entities";
 import { compileReadingDigest } from "@fixture/reading-insights";
 import {
   defineAccountSettings,
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineDashboardWidget,
   defineServicePlugin,
   defineWorkspaceAction,
   z,
   type DashboardOperatorViewBlock,
+  type OperatorViewBlock,
 } from "@rizom/brain/services";
 
 // Account settings are principal-owned rather than deployment-owned. Field
@@ -40,6 +41,20 @@ const refreshDigest = defineWorkspaceAction({
   permission: "trusted",
 });
 
+const addReadingItem = defineWorkspaceAction({
+  name: "add-reading-item",
+  label: "Add reading item",
+  input: z.object({
+    requestId: z.string(),
+    title: z.string().min(1),
+    sourceUrl: z.url(),
+    visibility: z.enum(["shared", "private"]),
+    notify: z.boolean(),
+  }),
+  output: z.object({ status: z.string(), sourceUrl: z.url() }),
+  permission: "trusted",
+});
+
 const readingRow = z.object({
   id: z.string(),
   title: z.string(),
@@ -58,7 +73,9 @@ const readingWorkspaceData = z.object({
   digestCount: z.number().int().nonnegative(),
 });
 
-const readingWorkspace = defineCmsWorkspace({
+type ReadingWorkspaceAction = typeof refreshDigest | typeof addReadingItem;
+
+const readingWorkspace = defineStudioWorkspace({
   id: "reading-library",
   label: "Reading library",
   description: "Review saved pages and refresh their durable digests.",
@@ -67,79 +84,110 @@ const readingWorkspace = defineCmsWorkspace({
   entities: [bookmark, readingDigest],
   query: readingWorkspaceQuery,
   data: readingWorkspaceData,
-  actions: [refreshDigest],
+  actions: [refreshDigest, addReadingItem],
 
   view({ data }) {
-    return {
-      title: "Reading library",
-      blocks: [
-        {
-          type: "query",
-          id: "reading-query",
-          controls: [
-            {
-              key: "tag",
-              label: "Tag",
-              value: data.selectedTag,
-              allLabel: "All tags",
-              options: [
-                ...new Set(data.bookmarks.flatMap((saved) => saved.tags)),
-              ]
-                .sort()
-                .map((tag) => ({ value: tag, label: tag })),
-            },
-          ],
-        },
-        {
-          type: "stats",
-          items: [
-            {
-              label: "Bookmarks",
-              value: data.bookmarks.length,
-            },
-            {
-              label: "Digests",
-              value: data.digestCount,
-            },
-            {
-              label: "Reading provider",
-              value: data.connected ? "connected" : "not connected",
-              tone: data.connected ? "good" : "neutral",
-            },
-          ],
-        },
-        {
-          type: "text",
-          id: "reading-guidance",
-          label: "Reader guide",
-          text: "Filter the library, then refresh any digest that needs an update.",
-        },
-        {
-          type: "table",
-          id: "bookmarks",
-          empty: "No bookmarks have been saved yet.",
-          columns: [
-            { key: "title", label: "Title" },
-            { key: "tags", label: "Tags" },
-            { key: "wordCount", label: "Words", align: "end" },
-          ],
-          rows: data.bookmarks.map((saved) => ({
-            id: saved.id,
-            cells: {
-              title: saved.title,
-              tags: saved.tags.join(", "),
-              wordCount: saved.wordCount ?? "—",
-            },
-            actions: [
-              {
-                action: refreshDigest,
-                input: { bookmarkId: saved.id },
+    const blocks: OperatorViewBlock<ReadingWorkspaceAction>[] = [
+      {
+        type: "query",
+        id: "reading-query",
+        controls: [
+          {
+            key: "tag",
+            label: "Tag",
+            value: data.selectedTag,
+            allLabel: "All tags",
+            options: [...new Set(data.bookmarks.flatMap((saved) => saved.tags))]
+              .sort()
+              .map((tag) => ({ value: tag, label: tag })),
+          },
+        ],
+      },
+      {
+        type: "stats",
+        items: [
+          {
+            label: "Bookmarks",
+            value: data.bookmarks.length,
+          },
+          {
+            label: "Digests",
+            value: data.digestCount,
+          },
+          {
+            label: "Reading provider",
+            value: data.connected ? "connected" : "not connected",
+            tone: data.connected ? "good" : "neutral",
+          },
+        ],
+      },
+      {
+        type: "text",
+        id: "reading-guidance",
+        label: "Reader guide",
+        text: "Filter the library, then refresh any digest that needs an update.",
+      },
+      {
+        type: "card",
+        id: "add-reading-item",
+        label: "Add reading item",
+        blocks: [
+          {
+            type: "action",
+            action: addReadingItem,
+            input: { requestId: "reading-library-form" },
+            form: {
+              submitLabel: "Add item",
+              fields: {
+                title: { label: "Title", control: "text" },
+                sourceUrl: { label: "Source URL", control: "url" },
+                visibility: {
+                  label: "Visibility",
+                  control: "select",
+                  options: [
+                    { value: "shared", label: "Shared" },
+                    { value: "private", label: "Private" },
+                  ],
+                },
+                notify: { label: "Notify me", control: "checkbox" },
               },
-            ],
-          })),
-        },
-      ],
-    };
+            },
+            result: {
+              title: "Reading item accepted",
+              fields: {
+                status: { label: "Status" },
+                sourceUrl: { label: "Source URL", copyable: true },
+              },
+            },
+          },
+        ],
+      },
+      {
+        type: "table",
+        id: "bookmarks",
+        empty: "No bookmarks have been saved yet.",
+        columns: [
+          { key: "title", label: "Title" },
+          { key: "tags", label: "Tags" },
+          { key: "wordCount", label: "Words", align: "end" },
+        ],
+        rows: data.bookmarks.map((saved) => ({
+          id: saved.id,
+          cells: {
+            title: saved.title,
+            tags: saved.tags.join(", "),
+            wordCount: saved.wordCount ?? "—",
+          },
+          actions: [
+            {
+              action: refreshDigest,
+              input: { bookmarkId: saved.id },
+            },
+          ],
+        })),
+      },
+    ];
+    return { title: "Reading library", blocks };
   },
 });
 
@@ -225,7 +273,7 @@ export default defineServicePlugin({
     }),
   ],
 
-  cmsWorkspaces: (context) => {
+  studioWorkspaces: (context) => {
     const refreshDigestHandler = refreshDigest.bind(
       context,
       async ({ input, jobs, signal }) => {
@@ -239,9 +287,20 @@ export default defineServicePlugin({
       }),
     );
 
+    const addReadingItemHandler = addReadingItem.bind(
+      context,
+      async ({ input, signal }) => {
+        signal.throwIfAborted();
+        return {
+          status: `${input.title} queued as ${input.visibility}${input.notify ? " with notification" : ""}`,
+          sourceUrl: input.sourceUrl,
+        };
+      },
+    );
+
     return [
       readingWorkspace.bind(context, {
-        actions: [refreshDigestHandler],
+        actions: [refreshDigestHandler, addReadingItemHandler],
         async load({ entities, settings, signal, query }) {
           signal.throwIfAborted();
           const selected = query.get(readingWorkspaceQuery);

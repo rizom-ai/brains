@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
-import { isMap, isNode, isScalar, parseDocument } from "yaml";
+import { isMap, isNode, isScalar, isSeq, parseDocument } from "yaml";
 import {
   expandBrainRecipe,
   type BrainRecipeExpansion,
@@ -44,6 +44,7 @@ interface MigrationInput {
 }
 
 const memberAliases: Readonly<Record<string, string>> = {
+  cms: "studio",
   "dashboard-root": "dashboard",
   discord: "chat",
   "email-resend": "email",
@@ -259,6 +260,10 @@ function mergePluginAliases(
     next[canonicalId] = next[canonicalId] ?? next[legacyId];
     delete next[legacyId];
   }
+  const studioConfig = next["studio"];
+  if (isRecord(studioConfig) && studioConfig["routePath"] === "/cms") {
+    next["studio"] = { ...studioConfig, routePath: "/studio" };
+  }
   return next;
 }
 
@@ -356,6 +361,83 @@ function setScalarPreservingComment(
   document.set(key, value);
 }
 
+function migrateCanonicalSelection(
+  document: ReturnType<typeof parseDocument>,
+  key: "add" | "remove",
+  value: unknown,
+): boolean {
+  const migrated = migrateMemberIds(value);
+  const current = value === undefined ? [] : value;
+  if (isDeepStrictEqual(current, migrated)) return false;
+
+  const sequence = document.get(key, true);
+  if (!isSeq(sequence)) {
+    document.set(key, migrated);
+    return true;
+  }
+  const seen = new Set<string>();
+  sequence.items = sequence.items.filter((item) => {
+    if (!isScalar(item)) return true;
+    const current = item.value;
+    if (typeof current !== "string") return true;
+    const canonical = memberAliases[current] ?? current;
+    item.value = canonical;
+    if (seen.has(canonical)) return false;
+    seen.add(canonical);
+    return true;
+  });
+  return true;
+}
+
+function migrateCanonicalStudioPlugin(
+  document: ReturnType<typeof parseDocument>,
+  pluginsValue: unknown,
+): boolean {
+  const plugins = asRecord(pluginsValue, "plugins");
+  const hasCms = "cms" in plugins;
+  if (
+    hasCms &&
+    "studio" in plugins &&
+    !isDeepStrictEqual(plugins["studio"], plugins["cms"])
+  ) {
+    throw new Error(
+      "Cannot migrate plugins.cms: plugins.studio already has different config",
+    );
+  }
+
+  const pluginsNode = document.get("plugins", true);
+  if (pluginsNode !== undefined && !isMap(pluginsNode)) {
+    throw new Error("plugins must be a mapping before migration");
+  }
+  let changed = false;
+  if (hasCms && isMap(pluginsNode)) {
+    const cmsPair = pluginsNode.items.find(
+      (entry) => isScalar(entry.key) && entry.key.value === "cms",
+    );
+    const studioPair = pluginsNode.items.find(
+      (entry) => isScalar(entry.key) && entry.key.value === "studio",
+    );
+    if (!cmsPair || !isScalar(cmsPair.key)) {
+      throw new Error("Cannot migrate plugins.cms from an invalid mapping key");
+    }
+    if (studioPair) {
+      pluginsNode.items = pluginsNode.items.filter(
+        (entry) => entry !== cmsPair,
+      );
+    } else {
+      cmsPair.key.value = "studio";
+    }
+    changed = true;
+  }
+
+  const routePath = document.getIn(["plugins", "studio", "routePath"], true);
+  if (isScalar(routePath) && routePath.value === "/cms") {
+    routePath.value = "/studio";
+    changed = true;
+  }
+  return changed;
+}
+
 function replacePresetWithBundles(
   document: ReturnType<typeof parseDocument>,
   bundles: string[],
@@ -422,6 +504,24 @@ export function previewBrainConfigMigration(
     typeof data.bundleContract !== "string"
   ) {
     throw new Error("bundleContract must be a string before migration");
+  }
+
+  if (
+    model === "brain" &&
+    preset === undefined &&
+    data.bundles !== undefined &&
+    data.bundleContract === CANONICAL_BUNDLE_CONTRACT
+  ) {
+    const changed = [
+      migrateCanonicalSelection(document, "add", data.add),
+      migrateCanonicalSelection(document, "remove", data.remove),
+      migrateCanonicalStudioPlugin(document, data.plugins),
+    ].some(Boolean);
+    return {
+      changed,
+      output: changed ? document.toString({ lineWidth: 0 }) : input,
+      source: { model, preset: undefined },
+    };
   }
 
   let target: MigrationTarget;

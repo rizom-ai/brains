@@ -1,7 +1,7 @@
 /**
  * Inline script for the cross-surface jump palette. Opens from the strip's
  * command chip or ⌘K/Ctrl+K, queries the authenticated /api/console/jump
- * endpoint, and renders grouped doors (entities → CMS, tabs → dashboard).
+ * endpoint, and renders grouped doors (entities → Studio, tabs → dashboard).
  * The hosting surface may define window.__consoleJumpLocal(query) to append
  * its own groups (e.g. chat conversations). Styled by the console sheet.
  */

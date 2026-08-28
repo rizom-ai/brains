@@ -1,0 +1,558 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
+import { mockFetch } from "@brains/test-utils";
+import type {
+  EntityDetail,
+  EntitySummary,
+  EntityTypeInfo,
+  SyncStatus,
+  TypeSchema,
+} from "./api";
+import { createEditorDocument } from "./editor-document";
+import { createStudioQueryClient } from "./query-client";
+import {
+  agentTargetsQueryOptions,
+  studioKeys,
+  entityDetailQueryOptions,
+  entityListQueryOptions,
+  entitySchemaQueryOptions,
+  invalidateAfterUpload,
+  invalidateAfterWorkspaceAction,
+  navigationQueryOptions,
+  syncStatusQueryOptions,
+  workspaceQueryOptions,
+} from "./queries";
+
+const originalFetch = globalThis.fetch;
+
+function entity(title: string): EntitySummary {
+  return {
+    id: "field-notes",
+    entityType: "post",
+    frontmatter: { title },
+    updated: "2026-07-14T09:00:00.000Z",
+  };
+}
+
+function entitiesResponse(entities: EntitySummary[]): Response {
+  return Response.json({ entities });
+}
+
+function entityType(entityType: string): EntityTypeInfo {
+  return {
+    entityType,
+    label: entityType === "post" ? "Posts" : "Notes",
+    isSingleton: false,
+    hasBody: true,
+    count: 1,
+    capabilities: {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: true,
+      canPublish: true,
+      canAssist: true,
+    },
+  };
+}
+
+function syncStatus(lastCommit: string | null): SyncStatus {
+  return {
+    directorySync: { lastSync: "2026-07-14T09:00:00.000Z", watching: true },
+    git: {
+      branch: "main",
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      lastCommit,
+      remote: "origin",
+    },
+  };
+}
+
+function entitySchema(entityType: string): TypeSchema {
+  return {
+    entityType,
+    format: "frontmatter",
+    isSingleton: false,
+    hasBody: true,
+    fields: [{ name: "title", label: "Title", widget: "string" }],
+  };
+}
+
+function entityDetail(title: string, contentHash: string): EntityDetail {
+  return {
+    ...entity(title),
+    body: "Body text",
+    contentHash,
+    created: "2026-07-14T08:00:00.000Z",
+  };
+}
+
+function waitForResult<TQueryKey extends readonly unknown[]>(
+  observer: QueryObserver<
+    EntitySummary[],
+    Error,
+    EntitySummary[],
+    EntitySummary[],
+    TQueryKey
+  >,
+  predicate: (result: QueryObserverResult<EntitySummary[], Error>) => boolean,
+): Promise<QueryObserverResult<EntitySummary[], Error>> {
+  return new Promise((resolve) => {
+    const unsubscribe = observer.subscribe((result) => {
+      if (!predicate(result)) return;
+      unsubscribe();
+      resolve(result);
+    });
+  });
+}
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
+
+describe("Studio navigation query", () => {
+  it("loads entity types and optional workspaces through one stable request", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({
+        types: [entityType("post")],
+        workspaces: [
+          {
+            id: "publishing",
+            pluginId: "content-pipeline",
+            label: "Publishing",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 40,
+            entityTypes: ["post"],
+          },
+        ],
+      });
+    });
+    const client = createStudioQueryClient();
+    const options = navigationQueryOptions();
+
+    const [first, second] = await Promise.all([
+      client.fetchQuery(options),
+      client.fetchQuery(options),
+    ]);
+
+    expect(studioKeys.navigation()).toEqual(["studio", "navigation"]);
+    expect(first.types).toEqual([entityType("post")]);
+    expect(first.workspaces).toHaveLength(1);
+    expect(second).toBe(first);
+    expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("surfaces a navigation error without retrying", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ error: "Types unavailable" }, { status: 503 });
+    });
+    const client = createStudioQueryClient();
+
+    let caught: unknown;
+    try {
+      await client.fetchQuery(navigationQueryOptions());
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    if (!(caught instanceof Error)) throw caught;
+    expect(caught.message).toBe("Types unavailable");
+    expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("Studio workspace query", () => {
+  it("deduplicates one workspace snapshot request", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({
+        workspace: {
+          id: "publishing",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: {
+            view: {
+              title: "Publishing desk",
+              blocks: [
+                {
+                  type: "stats",
+                  items: [{ label: "Queued", value: 1 }],
+                },
+              ],
+            },
+          },
+        },
+      });
+    });
+    const client = createStudioQueryClient();
+    const options = workspaceQueryOptions("publishing");
+
+    const [first, second] = await Promise.all([
+      client.fetchQuery(options),
+      client.fetchQuery(options),
+    ]);
+
+    expect(studioKeys.workspace("publishing")).toEqual([
+      "studio",
+      "workspace",
+      "publishing",
+      {},
+    ]);
+    expect(first.data.view.title).toBe("Publishing desk");
+    expect(second).toBe(first);
+    expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("keys and requests server-filtered workspace pages independently", async () => {
+    const requestedUrls: string[] = [];
+    mockFetch(async (input) => {
+      requestedUrls.push(String(input));
+      return Response.json({
+        workspace: {
+          id: "inbox",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: {
+            view: { title: "Inbox", blocks: [] },
+          },
+        },
+      });
+    });
+    const query = {
+      sourceId: "mail-items",
+      urgency: "high",
+      offset: 50,
+      limit: 50,
+    } as const;
+    const client = createStudioQueryClient();
+
+    await client.fetchQuery(workspaceQueryOptions("inbox", query));
+
+    expect(studioKeys.workspace("inbox", query)).toEqual([
+      "studio",
+      "workspace",
+      "inbox",
+      query,
+    ]);
+    expect(requestedUrls[0]).toBe(
+      "/studio/api/workspace?id=inbox&sourceId=mail-items&urgency=high&offset=50&limit=50",
+    );
+    client.clear();
+  });
+});
+
+describe("Studio workspace invalidation", () => {
+  it("invalidates the acted-on workspace scope and the badge-carrying navigation", async () => {
+    const client = createStudioQueryClient();
+    client.setQueryData(studioKeys.workspace("publishing"), { data: "before" });
+    client.setQueryData(
+      studioKeys.workspace("publishing", { offset: 50, limit: 50 }),
+      { data: "page two" },
+    );
+    client.setQueryData(studioKeys.workspace("review"), { data: "untouched" });
+    client.setQueryData(studioKeys.navigation(), { types: [], workspaces: [] });
+
+    await invalidateAfterWorkspaceAction(client, "publishing");
+
+    expect(
+      client.getQueryState(studioKeys.workspace("publishing"))?.isInvalidated,
+    ).toBe(true);
+    expect(
+      client.getQueryState(
+        studioKeys.workspace("publishing", { offset: 50, limit: 50 }),
+      )?.isInvalidated,
+    ).toBe(true);
+    expect(
+      client.getQueryState(studioKeys.workspace("review"))?.isInvalidated,
+    ).toBe(false);
+    expect(client.getQueryState(studioKeys.navigation())?.isInvalidated).toBe(
+      true,
+    );
+    client.clear();
+  });
+});
+
+describe("Studio upload invalidation", () => {
+  it("invalidates only image entities, type counts, and sync status", async () => {
+    const client = createStudioQueryClient();
+    client.setQueryData(studioKeys.entities("image"), []);
+    client.setQueryData(studioKeys.entities("post"), []);
+    client.setQueryData(studioKeys.navigation(), {
+      types: [entityType("image")],
+      workspaces: [],
+    });
+    client.setQueryData(studioKeys.syncStatus(), syncStatus("abc123"));
+
+    await invalidateAfterUpload(client);
+
+    expect(
+      client.getQueryState(studioKeys.entities("image"))?.isInvalidated,
+    ).toBe(true);
+    expect(client.getQueryState(studioKeys.navigation())?.isInvalidated).toBe(
+      true,
+    );
+    expect(client.getQueryState(studioKeys.syncStatus())?.isInvalidated).toBe(
+      true,
+    );
+    expect(
+      client.getQueryState(studioKeys.entities("post"))?.isInvalidated,
+    ).toBe(false);
+    client.clear();
+  });
+});
+
+describe("Studio agent-targets query", () => {
+  it("loads approved targets once through its own cache entry", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({
+        agents: [{ id: "reviewer", label: "Reviewer" }],
+      });
+    });
+    const client = createStudioQueryClient();
+
+    const first = await client.fetchQuery(
+      agentTargetsQueryOptions("post", "post-1"),
+    );
+    const second = client.getQueryData(
+      studioKeys.agentTargets("post", "post-1"),
+    );
+
+    expect(studioKeys.agentTargets("post", "post-1")).toEqual([
+      "studio",
+      "agent-targets",
+      "post",
+      "post-1",
+    ]);
+    expect(first).toEqual([{ id: "reviewer", label: "Reviewer" }]);
+    expect(second).toEqual(first);
+    expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("does not retry when optional agent discovery is unavailable", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ error: "A2A unavailable" }, { status: 503 });
+    });
+    const client = createStudioQueryClient();
+
+    try {
+      await client.fetchQuery(agentTargetsQueryOptions("post", "post-1"));
+    } catch {
+      // The app treats absent query data as an empty optional target list.
+    }
+
+    expect(
+      client.getQueryData(studioKeys.agentTargets("post", "post-1")),
+    ).toBeUndefined();
+    expect(requests).toBe(1);
+    client.clear();
+  });
+});
+
+describe("Studio sync-status query", () => {
+  it("polls by invalidating one active cache entry", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json(syncStatus(requests === 1 ? "abc123" : "def456"));
+    });
+    const client = createStudioQueryClient();
+    const observer = new QueryObserver(client, syncStatusQueryOptions());
+    let resolveInitial: (() => void) | undefined;
+    let resolveRefreshed: (() => void) | undefined;
+    const initial = new Promise<void>((resolve) => {
+      resolveInitial = resolve;
+    });
+    const refreshed = new Promise<void>((resolve) => {
+      resolveRefreshed = resolve;
+    });
+    const unsubscribe = observer.subscribe((result) => {
+      if (result.data?.git?.lastCommit === "abc123") resolveInitial?.();
+      if (result.data?.git?.lastCommit === "def456") resolveRefreshed?.();
+    });
+    await initial;
+
+    await client.invalidateQueries({ queryKey: studioKeys.syncStatus() });
+    await refreshed;
+
+    expect(studioKeys.syncStatus()).toEqual(["studio", "sync-status"]);
+    expect(observer.getCurrentResult().data?.git?.lastCommit).toBe("def456");
+    expect(requests).toBe(2);
+    unsubscribe();
+    client.clear();
+  });
+});
+
+describe("Studio entity-schema query", () => {
+  it("scopes schemas by type and avoids a duplicate observer request", async () => {
+    const requestedUrls: string[] = [];
+    mockFetch(async (url) => {
+      requestedUrls.push(url);
+      const type = new URL(url, "https://studio.test").searchParams.get("type");
+      return Response.json(entitySchema(type ?? "unknown"));
+    });
+    const client = createStudioQueryClient();
+    const postOptions = entitySchemaQueryOptions("post");
+
+    await client.fetchQuery({ ...postOptions, staleTime: 0 });
+    const observer = new QueryObserver(client, postOptions);
+    const unsubscribe = observer.subscribe(() => {});
+    await client.fetchQuery({
+      ...entitySchemaQueryOptions("note"),
+      staleTime: 0,
+    });
+
+    expect(studioKeys.schema("post")).toEqual(["studio", "schema", "post"]);
+    expect(observer.getCurrentResult().data?.entityType).toBe("post");
+    expect(requestedUrls).toEqual([
+      "/studio/api/schema?type=post",
+      "/studio/api/schema?type=note",
+    ]);
+    unsubscribe();
+    client.clear();
+  });
+});
+
+describe("Studio entity-detail query", () => {
+  it("loads explicitly once before mounting its cache observer", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json({ entity: entityDetail("Field notes", "hash-1") });
+    });
+    const client = createStudioQueryClient();
+    const options = entityDetailQueryOptions("post", "field-notes");
+
+    await client.fetchQuery({ ...options, staleTime: 0 });
+    const observer = new QueryObserver(client, options);
+    const unsubscribe = observer.subscribe(() => {});
+    await Promise.resolve();
+
+    expect(observer.getCurrentResult().data?.contentHash).toBe("hash-1");
+    expect(requests).toBe(1);
+    unsubscribe();
+    client.clear();
+  });
+
+  it("keeps the mutable draft pinned when the server cache changes", () => {
+    const client = createStudioQueryClient();
+    const original = entityDetail("Original title", "hash-1");
+    const document = createEditorDocument(original);
+    client.setQueryData(studioKeys.entity("post", "field-notes"), original);
+
+    client.setQueryData(
+      studioKeys.entity("post", "field-notes"),
+      entityDetail("Changed elsewhere", "hash-2"),
+    );
+
+    expect(document.entity.contentHash).toBe("hash-1");
+    expect(document.draft["title"]).toBe("Original title");
+    expect(document.draft).not.toBe(original.frontmatter);
+    client.clear();
+  });
+});
+
+describe("Studio entity-list query", () => {
+  it("uses a stable key scoped by entity type", () => {
+    expect(studioKeys.entities("post")).toEqual(["studio", "entities", "post"]);
+    expect(studioKeys.entities("note")).toEqual(["studio", "entities", "note"]);
+  });
+
+  it("deduplicates the mounted query and initialization read", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return entitiesResponse([entity("Notes from the rhizome")]);
+    });
+    const client = createStudioQueryClient();
+    const options = entityListQueryOptions("post");
+    const observer = new QueryObserver(client, options);
+    const statuses: string[] = [];
+    const unsubscribe = observer.subscribe((result) => {
+      statuses.push(result.status);
+    });
+
+    const initialized = await client.ensureQueryData(options);
+
+    expect(initialized).toHaveLength(1);
+    expect(statuses).toContain("pending");
+    expect(observer.getCurrentResult().status).toBe("success");
+    expect(requests).toBe(1);
+    unsubscribe();
+    client.clear();
+  });
+
+  it("surfaces an entity-list error without retrying", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return Response.json(
+        { error: "Entity list unavailable" },
+        { status: 503 },
+      );
+    });
+    const client = createStudioQueryClient();
+    const observer = new QueryObserver(client, entityListQueryOptions("post"));
+    const resultPromise = waitForResult(
+      observer,
+      (result) => result.status === "error",
+    );
+
+    const result = await resultPromise;
+
+    expect(result.error?.message).toBe("Entity list unavailable");
+    expect(requests).toBe(1);
+    client.clear();
+  });
+
+  it("refetches one active list after targeted invalidation", async () => {
+    let requests = 0;
+    mockFetch(async () => {
+      requests += 1;
+      return entitiesResponse([
+        entity(requests === 1 ? "Before mutation" : "After mutation"),
+      ]);
+    });
+    const client = createStudioQueryClient();
+    const observer = new QueryObserver(client, entityListQueryOptions("post"));
+    let resolveFirst: (() => void) | undefined;
+    let resolveRefreshed:
+      | ((result: QueryObserverResult<EntitySummary[], Error>) => void)
+      | undefined;
+    const firstResult = new Promise<void>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const refreshedResult = new Promise<
+      QueryObserverResult<EntitySummary[], Error>
+    >((resolve) => {
+      resolveRefreshed = resolve;
+    });
+    const unsubscribe = observer.subscribe((result) => {
+      const title = result.data?.[0]?.frontmatter["title"];
+      if (title === "Before mutation") resolveFirst?.();
+      if (title === "After mutation") resolveRefreshed?.(result);
+    });
+    await firstResult;
+
+    await client.invalidateQueries({ queryKey: studioKeys.entities("post") });
+    const refreshed = await refreshedResult;
+
+    expect(refreshed.data?.[0]?.frontmatter["title"]).toBe("After mutation");
+    expect(requests).toBe(2);
+    unsubscribe();
+    client.clear();
+  });
+});

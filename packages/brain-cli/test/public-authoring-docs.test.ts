@@ -157,7 +157,7 @@ describe("public authoring documentation", () => {
               target: "ES2022",
               lib: ["ES2022", "DOM"],
               jsx: "react-jsx",
-              jsxImportSource: "preact",
+              jsxImportSource: "react",
               types: ["bun"],
               paths: {
                 "@rizom/brain": [

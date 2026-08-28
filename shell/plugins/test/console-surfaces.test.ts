@@ -7,20 +7,46 @@ const route = (
 ): { pluginId: string; fullPath: string } => ({ pluginId, fullPath });
 
 describe("deriveConsoleSurfaces", () => {
+  it("derives the canonical Studio door from the Studio plugin", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [route("dashboard", "/dashboard"), route("studio", "/studio")],
+      {
+        activeId: "dashboard",
+        permissionLevel: "trusted",
+        hasActiveSession: true,
+      },
+    );
+
+    expect(surfaces).toEqual([
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        href: "/dashboard",
+        isActive: true,
+      },
+      {
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        isActive: false,
+        requiresActiveSession: true,
+      },
+    ]);
+  });
+
   const allSurfaceRoutes = [
     route("dashboard", "/dashboard"),
     route("web-chat", "/chat"),
     route("web-chat", "/chat/api/messages"),
-    route("cms", "/cms"),
-    route("cms", "/cms/api/types"),
-    route("admin", "/admin"),
-    route("admin", "/admin/assets/app.js"),
+    route("studio", "/studio"),
+    route("studio", "/studio/api/types"),
   ];
 
   it("shows every registered console surface to an admin caller", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "admin",
+      hasActiveSession: true,
     });
 
     expect(surfaces).toEqual([
@@ -30,30 +56,63 @@ describe("deriveConsoleSurfaces", () => {
         href: "/dashboard",
         isActive: true,
       },
-      { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-      { id: "cms", label: "CMS", href: "/cms", isActive: false },
-      { id: "admin", label: "Admin", href: "/admin", isActive: false },
+      {
+        id: "web-chat",
+        label: "Chat",
+        href: "/chat",
+        isActive: false,
+        requiresActiveSession: true,
+      },
+      {
+        id: "studio",
+        label: "Studio",
+        href: "/studio",
+        isActive: false,
+        requiresActiveSession: true,
+      },
     ]);
   });
 
-  it("hides surfaces above a Trusted caller's permission level", () => {
+  it("shows the same consolidated strip to Trusted and Admin callers", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "trusted",
+      hasActiveSession: true,
     });
 
-    // Trusted sees public (dashboard) and trusted (chat, CMS), never the
-    // admin-only Admin console.
-    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat", "cms"]);
+    // Account and administration live inside Studio, so there are no extra
+    // console doors at either permission level.
+    expect(surfaces.map((s) => s.id)).toEqual([
+      "dashboard",
+      "web-chat",
+      "studio",
+    ]);
   });
 
-  it("shows a Public caller only public surfaces", () => {
+  it("shows an anonymous Public caller only session-free surfaces", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
       permissionLevel: "public",
+      hasActiveSession: false,
     });
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard"]);
+  });
+
+  it("shows Studio to an active Public-rank caller", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [route("dashboard", "/dashboard"), route("studio", "/studio")],
+      {
+        activeId: "dashboard",
+        permissionLevel: "public",
+        hasActiveSession: true,
+      },
+    );
+
+    expect(surfaces.map((surface) => surface.id)).toEqual([
+      "dashboard",
+      "studio",
+    ]);
   });
 
   it("fails closed to public-only when no permission level is given", () => {
@@ -66,45 +125,23 @@ describe("deriveConsoleSurfaces", () => {
 
   it("always shows the active self surface even above the caller's level", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
-      activeId: "admin",
+      activeId: "web-chat",
       permissionLevel: "public",
-      self: { id: "admin", href: "/admin" },
+      self: { id: "web-chat", href: "/chat" },
     });
 
     // A caller on their own surface always keeps its door; nothing else leaks.
-    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "admin"]);
-  });
-
-  it("derives the account surface from the account plugin route", () => {
-    const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("account", "/account")],
-      {
-        activeId: "account",
-        permissionLevel: "trusted",
-        self: { id: "account", href: "/account" },
-      },
-    );
-
-    expect(surfaces).toEqual([
-      {
-        id: "dashboard",
-        label: "Dashboard",
-        href: "/dashboard",
-        isActive: false,
-      },
-      {
-        id: "account",
-        label: "Account",
-        href: "/account",
-        isActive: true,
-      },
-    ]);
+    expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
   });
 
   it("marks the rendering surface active from any surface", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
-      { activeId: "web-chat", permissionLevel: "admin" },
+      {
+        activeId: "web-chat",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
     );
 
     expect(surfaces.find((s) => s.id === "web-chat")?.isActive).toBe(true);
@@ -114,7 +151,11 @@ describe("deriveConsoleSurfaces", () => {
   it("omits surfaces whose plugin registered no routes", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
-      { activeId: "dashboard", permissionLevel: "admin" },
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
     );
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
@@ -123,14 +164,18 @@ describe("deriveConsoleSurfaces", () => {
   it("uses the shortest registered path as the surface door", () => {
     const surfaces = deriveConsoleSurfaces(
       [
-        route("cms", "/cms/api/entities/post"),
-        route("cms", "/cms"),
-        route("cms", "/cms/assets/app.js"),
+        route("studio", "/studio/api/entities/post"),
+        route("studio", "/studio"),
+        route("studio", "/studio/assets/app.js"),
       ],
-      { activeId: "cms", permissionLevel: "admin" },
+      {
+        activeId: "studio",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
     );
 
-    expect(surfaces.find((s) => s.id === "cms")?.href).toBe("/cms");
+    expect(surfaces.find((s) => s.id === "studio")?.href).toBe("/studio");
   });
 
   it("keeps the rendering surface even without a readable registration", () => {

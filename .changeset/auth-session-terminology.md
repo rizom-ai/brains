@@ -3,7 +3,7 @@
 "@brains/atproto": patch
 "@brains/atproto-contracts": patch
 "@brains/auth-service": patch
-"@brains/cms": patch
+"@brains/studio": patch
 "@brains/console-theme": patch
 "@brains/content-pipeline": patch
 "@brains/conversation-memory": patch

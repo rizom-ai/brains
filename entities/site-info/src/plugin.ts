@@ -27,7 +27,7 @@ const siteInfoEntityType = "site-info";
  * Site-info EntityPlugin — manages the site's metadata (title, description, CTA, etc.).
  *
  * Singleton entity (id: "site-info"). Created with defaults on first boot.
- * Zero tools — edited via system_update or CMS.
+ * Zero tools — edited via system_update or Studio.
  */
 export class SiteInfoPlugin extends EntityPlugin<
   SiteInfoEntity,

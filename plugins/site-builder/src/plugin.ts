@@ -244,7 +244,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     if (!this.siteWorkspaceProvider) return;
-    await this.siteWorkspaceProvider.registerCmsWorkspace();
+    await this.siteWorkspaceProvider.registerStudioWorkspace();
     await registerSiteHealthWidget(context, this.siteWorkspaceProvider);
   }
 
@@ -395,7 +395,7 @@ export class SiteBuilderPlugin extends ServicePlugin<
 
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
-    await this.siteWorkspaceProvider?.unregisterCmsWorkspace();
+    await this.siteWorkspaceProvider?.unregisterStudioWorkspace();
     await this.rebuildManager?.dispose();
     await this.siteBuilder?.cancelActiveBuilds();
     delete this.rebuildManager;

@@ -6,7 +6,7 @@ export type ProfileDisplayNameResolver = (
 ) => Promise<string | undefined>;
 
 /**
- * Resolve a CMS profile display name, failing closed to `undefined` on missing
+ * Resolve a Studio profile display name, failing closed to `undefined` on missing
  * input or lookup error. Whitespace-only names are treated as absent.
  */
 export async function resolveProfileDisplayNameSafely(
@@ -20,7 +20,7 @@ export async function resolveProfileDisplayNameSafely(
     const trimmed = displayName?.trim();
     return trimmed && trimmed.length > 0 ? trimmed : undefined;
   } catch (error) {
-    logger?.warn("Failed to resolve CMS profile display name", {
+    logger?.warn("Failed to resolve Studio profile display name", {
       profileEntityId,
       error: getErrorMessage(error, "Profile lookup failed"),
     });

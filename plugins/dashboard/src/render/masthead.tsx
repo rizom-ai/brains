@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 
 function BrandTitle({ title }: { title: string }): JSX.Element {
   const trimmed = title.trim();
@@ -23,11 +23,11 @@ export function Masthead(props: {
   const { title, tagline } = props;
 
   return (
-    <header class="masthead">
-      <h1 class="brand">
+    <header className="masthead">
+      <h1 className="brand">
         <BrandTitle title={title} />
       </h1>
-      {tagline && <p class="tagline">{tagline}</p>}
+      {tagline && <p className="tagline">{tagline}</p>}
     </header>
   );
 }

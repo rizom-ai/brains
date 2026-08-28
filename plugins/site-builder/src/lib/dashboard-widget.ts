@@ -5,7 +5,7 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { h, type ComponentChild } from "preact";
+import { createElement as h, type ReactNode } from "react";
 import type { SiteWorkspaceProvider } from "./site-workspace";
 
 const environmentSchema = z.object({
@@ -94,7 +94,7 @@ function siteLinks(data: SiteHealthWidgetData): DashboardOperatorViewBlock {
           ]
         : []),
       {
-        label: "Open in CMS",
+        label: "Open in Studio",
         target: { launch: { target: "site" } },
       },
     ],
@@ -216,7 +216,7 @@ function environmentDetail(environment: EnvironmentHealth): string {
 function EnvironmentMetric(props: {
   label: string;
   environment: EnvironmentHealth | undefined;
-}): ComponentChild {
+}): ReactNode {
   const state = props.environment
     ? environmentState(props.environment)
     : "unavailable";
@@ -242,7 +242,7 @@ function actionLink(
   href: string,
   label: string,
   kind: "external" | "manage" = "external",
-): ComponentChild {
+): ReactNode {
   return h(
     "a",
     {
@@ -261,7 +261,7 @@ function actionLink(
   );
 }
 
-export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
+export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
   const parsed = siteHealthWidgetDataSchema.safeParse(props.data);
   if (!parsed.success) {
     return h("p", { class: "muted" }, "Site health is unavailable.");
@@ -277,7 +277,7 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
   const failures = data.environments.filter(
     (environment) => environment.lastFailure !== undefined,
   );
-  const links: ComponentChild[] = [];
+  const links: ReactNode[] = [];
   if (data.site.previewUrl) {
     links.push(actionLink(data.site.previewUrl, "Open preview"));
   }
@@ -285,7 +285,7 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ComponentChild {
     links.push(actionLink(data.site.liveUrl, "Open live"));
   }
   if (data.managementUrl) {
-    links.push(actionLink(data.managementUrl, "Open in CMS", "manage"));
+    links.push(actionLink(data.managementUrl, "Open in Studio", "manage"));
   }
 
   return h("div", { class: "pipeline-digest site-health-widget" }, [

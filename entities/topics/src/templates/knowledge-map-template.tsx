@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX } from "preact";
+/** @jsxImportSource react */
+import type { JSX } from "react";
 import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { StructuredContentFormatter } from "@brains/content-formatters";
@@ -234,32 +234,35 @@ export function KnowledgeMapTemplate(
     counts: data.counts,
   };
   return (
-    <section class="knowledge-map-site" id="knowledge">
+    <section className="knowledge-map-site" id="knowledge">
       <style>{SITE_STYLES + knowledgeMapStyles}</style>
-      <div class="knowledge-map-site__grid">
+      <div className="knowledge-map-site__grid">
         <div>
-          <p class="knowledge-map-site__cap">{cap}</p>
-          <h2 class="knowledge-map-site__heading">
+          <p className="knowledge-map-site__cap">{cap}</p>
+          <h2 className="knowledge-map-site__heading">
             {headingLead} <em>{headingAccent}</em>
           </h2>
-          <p class="knowledge-map-site__intro">{intro}</p>
-          <div class="knowledge-map-site__ctas">
-            <a class="knowledge-map-site__cta" href={primaryCta.href}>
+          <p className="knowledge-map-site__intro">{intro}</p>
+          <div className="knowledge-map-site__ctas">
+            <a className="knowledge-map-site__cta" href={primaryCta.href}>
               {primaryCta.label}
             </a>
-            <a class="knowledge-map-site__cta--quiet" href={secondaryCta.href}>
+            <a
+              className="knowledge-map-site__cta--quiet"
+              href={secondaryCta.href}
+            >
               {secondaryCta.label}
             </a>
           </div>
         </div>
         <div>
           <KnowledgeMap data={mapData} surface="site" />
-          <div class="knowledge-map-site__foot">
+          <div className="knowledge-map-site__foot">
             <span>
               <b>{data.counts.entities}</b> entities ·{" "}
               <b>{data.counts.topics}</b> topics
             </span>
-            <span class="knowledge-map-site__links">
+            <span className="knowledge-map-site__links">
               {proofLinks.map((link) => (
                 <a key={link.href} href={link.href}>
                   {link.label}

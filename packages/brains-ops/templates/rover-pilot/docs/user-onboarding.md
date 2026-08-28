@@ -24,7 +24,7 @@ Your main interfaces are:
 
 - **Chat** (`/chat`) — talk to your brain;
 - **Dashboard/site** (`/`) — the configured browser surface;
-- **CMS** (`/cms`) — edit durable content in a browser.
+- **Studio** (`/studio`) — edit durable content in a browser.
 
 Start with Chat.
 
@@ -36,11 +36,11 @@ Start with Chat.
 
 That save–ask–use loop is the core workflow.
 
-## Chat or CMS?
+## Chat or Studio?
 
 **Chat** is for thinking aloud, asking questions, saving things quickly, and day-to-day work.
 
-**CMS** is for deliberate browsing and editing. It becomes more useful as your content grows.
+**Studio** is for deliberate browsing and editing. It becomes more useful as your content grows.
 
 ## Other interfaces and peer brains
 
@@ -59,7 +59,7 @@ MCP is a standard protocol that lets compatible AI clients use your brain's tool
 
 **How do I access my data?**
 
-Use the CMS. If your cohort includes GitHub access, the same durable markdown also lives in a private repository.
+Use the Studio. If your cohort includes GitHub access, the same durable markdown also lives in a private repository.
 
 **Does it search the public internet?**
 
@@ -82,7 +82,7 @@ We will send details in this shape:
 ```text
 Chat URL: https://<handle>.rizom.ai/chat
 Dashboard URL: https://<handle>.rizom.ai/
-CMS URL: https://<handle>.rizom.ai/cms
+Studio URL: https://<handle>.rizom.ai/studio
 Discord: yes/no — setup steps if enabled
 MCP: enabled/not enabled — setup details if enabled
 ```

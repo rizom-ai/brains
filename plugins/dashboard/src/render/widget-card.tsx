@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { CardHeader } from "@brains/ui-library";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { DeclarativeWidgetBody } from "./declarative-widget";
 import type { RenderableWidgetData } from "./types";
 
@@ -18,30 +18,25 @@ function sourceData(data: unknown): unknown {
 export function WidgetCard({
   widget,
   featured = false,
-  cmsPath,
-  accountPath,
-  adminPath,
+  studioPath,
 }: {
   widget: RenderableWidgetData;
   featured?: boolean;
-  cmsPath?: string | undefined;
-  accountPath?: string | undefined;
-  adminPath?: string | undefined;
+  studioPath?: string | undefined;
 }): JSX.Element {
   return (
     <article
-      class={featured ? "card card--entity-summary" : "card widget-card--wide"}
+      className={
+        featured ? "card card--entity-summary" : "card widget-card--wide"
+      }
     >
       <CardHeader title={widget.widget.title} />
       {widget.component ? (
-        <div class="widget-body widget-body--built-in">
+        <div className="widget-body widget-body--built-in">
           <widget.component data={sourceData(widget.data)} />
         </div>
       ) : (
-        <DeclarativeWidgetBody
-          widget={widget}
-          launchPaths={{ cmsPath, accountPath, adminPath }}
-        />
+        <DeclarativeWidgetBody widget={widget} launchPaths={{ studioPath }} />
       )}
     </article>
   );

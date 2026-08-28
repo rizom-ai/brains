@@ -153,7 +153,7 @@ export function registerMessageHandlers(
 
 /**
  * Git state for the status payload. A git failure degrades to null —
- * consumers (e.g. the CMS save-pipeline strip) still get the directory
+ * consumers (e.g. the Studio save-pipeline strip) still get the directory
  * status rather than an error for the whole request.
  */
 async function queryGitStatus(

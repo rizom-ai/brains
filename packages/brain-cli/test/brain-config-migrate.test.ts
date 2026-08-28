@@ -338,8 +338,8 @@ describe("brain config migration preview", () => {
           ),
           "obsidian-vault",
         ],
-        added: ["conversation-memory", "unified-inbox"],
-        removed: ["assessment", "wishlist"],
+        added: ["conversation-memory", "studio", "unified-inbox"],
+        removed: ["account", "assessment", "cms", "wishlist"],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
         model: "relay" as const,
@@ -349,18 +349,27 @@ describe("brain config migration preview", () => {
           ...(preset === "core" ? [] : legacySiteMembers),
           ...legacyTeamMembers,
         ],
-        added: ["unified-inbox"],
-        removed: ["assessment", "atproto-registry", "decks", "wishlist"],
+        added: ["studio", "unified-inbox"],
+        removed: [
+          "account",
+          "assessment",
+          "atproto-registry",
+          "cms",
+          "decks",
+          "wishlist",
+        ],
       })),
       {
         model: "ranger",
         preset: "default",
         legacyMembers: [...legacyCoreMembers, ...legacySiteMembers, "products"],
-        added: ["unified-inbox"],
+        added: ["studio", "unified-inbox"],
         removed: [
+          "account",
           "assessment",
           "atproto-registry",
           "chat",
+          "cms",
           "decks",
           "email",
           "notifications",
@@ -503,6 +512,59 @@ plugins:
     expect(parsed.plugins?.["site-content"]?.["definitions"]).toBe(
       "@custom/team-content",
     );
+  });
+
+  test("migrates canonical CMS selections and plugin config to Studio", () => {
+    const input = `brain: brain
+bundleContract: capability-bundles-v1
+bundles: [core]
+add:
+  - cms # keep member note
+  - studio
+remove: [cms]
+plugins:
+  cms:
+    routePath: /authoring
+`;
+    const result = previewBrainConfigMigration(input);
+    const parsed = parseInstanceOverrides(result.output);
+
+    expect(result.changed).toBe(true);
+    expect(result.source).toEqual({ model: "brain", preset: undefined });
+    expect(result.output).toContain("# keep member note");
+    expect(parsed.add).toEqual(["studio"]);
+    expect(parsed.remove).toEqual(["studio"]);
+    expect(parsed.plugins?.["studio"]).toEqual({ routePath: "/authoring" });
+    expect(parsed.plugins?.["cms"]).toBeUndefined();
+  });
+
+  test("moves the retired CMS route when the plugin key is already Studio", () => {
+    const result = previewBrainConfigMigration(`brain: brain
+bundleContract: capability-bundles-v1
+bundles: [core]
+plugins:
+  studio:
+    routePath: /cms # keep route note
+`);
+    const parsed = parseInstanceOverrides(result.output);
+
+    expect(result.changed).toBe(true);
+    expect(result.output).toContain("# keep route note");
+    expect(parsed.plugins?.["studio"]).toEqual({ routePath: "/studio" });
+  });
+
+  test("rejects conflicting CMS and Studio plugin config", () => {
+    expect(() =>
+      previewBrainConfigMigration(`brain: brain
+bundleContract: capability-bundles-v1
+bundles: [core]
+plugins:
+  cms:
+    routePath: /cms
+  studio:
+    routePath: /studio
+`),
+    ).toThrow(/plugins\.cms.*plugins\.studio.*different config/);
   });
 
   test("is deterministic and leaves canonical input byte-for-byte unchanged", () => {

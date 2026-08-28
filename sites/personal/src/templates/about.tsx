@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import type { PersonalProfile } from "../schemas";
 import { Head, MarkdownContent } from "@brains/ui-library";
 

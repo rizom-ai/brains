@@ -38,7 +38,7 @@ export function registerA2ACallMessageHandlers(
       {
         agent,
         message: [
-          "A CMS author is asking about selected markdown.",
+          "A Studio author is asking about selected markdown.",
           `Instruction: ${instruction}`,
           "",
           "Selected markdown:",
@@ -68,7 +68,7 @@ export function registerA2ACallMessageHandlers(
       options: {
         filter: {
           visibilityScope: internalFullScope(
-            "Admin CMS lists approved A2A contacts at any visibility",
+            "Admin Studio lists approved A2A contacts at any visibility",
           ),
         },
       },

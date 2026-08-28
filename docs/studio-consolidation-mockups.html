@@ -707,7 +707,7 @@
   .status { color: var(--console-text-dim); font-size: 13px; }
   .status-error { color: var(--console-accent-dim); }
   .status-ok { color: var(--console-ok); }
-/* Operator workspaces are a first-class CMS surface, so they use the same
+/* Operator workspaces are a first-class Studio surface, so they use the same
    editorial materials as the entity listing beside them: a display-face head
    over a strong rule, mono instrument labels, hairline separation instead of
    boxes, and card fill reserved for surfaces you actually read. Semantic blocks
@@ -1951,10 +1951,10 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
 
 <p class="label">Studio — Overview workspace (operator home · trusted/admin)</p>
 <div class="frame" data-climate="instrument"><nav class="rail">
-    <div class="rail-group"><div class="rail-title">Studio</div><a href="#" class="on">Overview<span class="n">2</span></a><a href="#">Inbox<span class="n">14</span></a><a href="#">Publishing<span class="n">1</span></a><a href="#">Sync</a><a href="#">Site</a></div>
+    <div class="rail-group"><a href="#" class="on">Overview<span class="n">2</span></a></div>
     <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div>
-    <div class="rail-group"><div class="rail-title">Administration</div><a href="#">People</a><a href="#">Invitations<span class="n">1</span></a><a href="#">Peers</a><a href="#">Audit</a></div>
-    <div class="rail-group"><div class="rail-title">You</div><a href="#">Account</a></div></nav><main class="declarative-workspace">
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Publishing<span class="n">1</span></a><a href="#">Content sync</a><a href="#">Site</a><a href="#">Administration<span class="n">1</span></a><a href="#">Account</a></div>
+    </nav><main class="declarative-workspace">
   <header class="declarative-head">
     <div class="declarative-head-copy"><span class="declarative-kicker">Operator home</span><h2>Overview</h2><p>What needs you, and what the brain did on its own. Glance here, act in the workspace that owns it.</p></div>
     <div class="declarative-head-state">
@@ -1983,6 +1983,50 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
       <section class="declarative-card" data-tone="good"><header>All sources connected</header><p>Email, directory sync, and the site pipeline are reporting normally.</p></section>
     </aside>
   </div></section></div>
+</main></div>
+
+<p class="label">Studio rail — administration before / after</p>
+<div class="frame face" data-climate="instrument" style="min-height:360px"><main class="declarative-workspace">
+  <header class="declarative-head"><div class="declarative-head-copy"><span class="declarative-kicker">Rail comparison</span><h2>One occasional job, one destination</h2><p>Administration stops competing with everyday content operations and exposes its internal concerns only after entry.</p></div></header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-columns">
+    <section class="declarative-card" data-tone="warn"><header>Before · four flat entries</header><dl class="declarative-key-values"><div><dt>People</dt><dd>access</dd></div><div><dt>Invitations</dt><dd>delivery</dd></div><div><dt>Peers</dt><dd>provenance jargon</dd></div><div><dt>Audit</dt><dd>stranded at bottom</dd></div></dl></section>
+    <section class="declarative-card" data-tone="good"><header>After · one workspace</header><dl class="declarative-key-values"><div><dt>Administration</dt><dd>1 attention</dd></div><div><dt>Tabs</dt><dd>People · Invitations · Audit</dd></div><div><dt>Peers</dt><dd>inside People</dd></div><div><dt>Overview</dt><dd>pinned above operations</dd></div></dl></section>
+  </div></section></div>
+</main></div>
+
+<p class="label">Studio — Administration · People tab (admin)</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+  <div class="rail-group"><a href="#">Overview<span class="n">2</span></a></div>
+  <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Mail items<span class="n">9</span></a></div>
+  <div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Publishing<span class="n">1</span></a><a href="#">Content sync</a><a href="#" class="on">Administration<span class="n">2</span></a><a href="#">Account</a></div>
+</nav><main class="declarative-workspace">
+  <header class="declarative-head"><div class="declarative-head-copy"><span class="declarative-kicker">Access administration</span><h2>Administration</h2><p>Manage local people, invitation delivery, external provenance, and security history.</p></div><div class="declarative-head-state"><strong class="declarative-status-badge" data-tone="neutral"><span>Admin only</span><small>Access administration</small></strong></div></header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-tabs"><div role="tablist" aria-label="Administration sections"><button role="tab" aria-selected="true">People</button><button role="tab" aria-selected="false">Invitations <span>1</span></button><button role="tab" aria-selected="false">Audit</button></div><div role="tabpanel">
+    <dl class="declarative-totals"><div><dt>Active members</dt><dd>2</dd></div><div><dt>Active Admins</dt><dd>1</dd></div><div data-tone="warn"><dt>Suspended</dt><dd>1</dd></div></dl>
+    <table class="declarative-table"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Arrived via</th></tr></thead><tbody><tr><td>Mira Reyes</td><td>Admin</td><td>Active</td><td>Hosted locally</td></tr><tr><td>Grace Hopper</td><td>Trusted</td><td>Active</td><td>did:web:grace.example</td></tr><tr><td>Sam Lee</td><td>Public</td><td>Suspended</td><td>Hosted locally</td></tr></tbody></table>
+    <section class="declarative-card" data-tone="neutral"><header>External brain relationships</header><p>A peer link records provenance from another brain. It does not grant or change local access.</p></section>
+  </div></div></section></div>
+</main></div>
+
+<p class="label">Studio — Administration · Invitations tab (admin)</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+  <div class="rail-group"><a href="#">Overview<span class="n">2</span></a></div><div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Content sync</a><a href="#" class="on">Administration<span class="n">2</span></a><a href="#">Account</a></div>
+</nav><main class="declarative-workspace">
+  <header class="declarative-head"><div class="declarative-head-copy"><span class="declarative-kicker">Access administration</span><h2>Administration</h2><p>Manage local people, invitation delivery, external provenance, and security history.</p></div><div class="declarative-head-state"><strong class="declarative-status-badge" data-tone="neutral"><span>Admin only</span><small>Access administration</small></strong><dl class="declarative-totals"><div><dt>Pending</dt><dd>1</dd></div><div><dt>History</dt><dd>4</dd></div><div><dt>Delivery failures</dt><dd>0</dd></div></dl></div></header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-tabs"><div role="tablist" aria-label="Administration sections"><button role="tab" aria-selected="false">People</button><button role="tab" aria-selected="true">Invitations <span>1</span></button><button role="tab" aria-selected="false">Audit</button></div><div role="tabpanel">
+    <div class="declarative-columns"><section><div class="declarative-query"><label>View <select><option>Pending (1)</option><option>History (4)</option></select></label></div><table class="declarative-table"><thead><tr><th>Person</th><th>Role</th><th>State</th><th>Destination</th><th>Updated</th></tr></thead><tbody><tr><td>Jordan Rivera</td><td>Trusted</td><td>Pending</td><td>jordan@example.com</td><td>26 Aug</td></tr></tbody></table></section><aside><section class="declarative-card"><header>Add a person</header><p>Issue a single-use passkey setup link through a confirmed delivery channel.</p><button class="btn ghost">+ Add a person</button></section><section class="declarative-card" data-tone="neutral"><header>Peer-first invitation</header><p>A person known through another brain receives local access only after this explicit invitation.</p><button class="btn ghost">+ Invite peer person</button></section></aside></div>
+  </div></div></section></div>
+</main></div>
+
+<p class="label">Studio — Administration · Audit tab (admin)</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+  <div class="rail-group"><a href="#">Overview<span class="n">2</span></a></div><div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Content sync</a><a href="#" class="on">Administration<span class="n">2</span></a><a href="#">Account</a></div>
+</nav><main class="declarative-workspace">
+  <header class="declarative-head"><div class="declarative-head-copy"><span class="declarative-kicker">Access administration</span><h2>Administration</h2><p>Manage local people, invitation delivery, external provenance, and security history.</p></div><div class="declarative-head-state"><strong class="declarative-status-badge" data-tone="neutral"><span>Admin only</span><small>Access administration</small></strong></div></header>
+  <div class="declarative-blocks"><section data-span="wide"><div class="declarative-tabs"><div role="tablist" aria-label="Administration sections"><button role="tab" aria-selected="false">People</button><button role="tab" aria-selected="false">Invitations <span>1</span></button><button role="tab" aria-selected="true">Audit</button></div><div role="tabpanel">
+    <div class="declarative-query"><label>Actor <select><option>All actors</option></select></label><label>Action <select><option>All actions</option></select></label></div>
+    <table class="declarative-table"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th></tr></thead><tbody><tr><td>24 Aug, 14:31</td><td>Mira Reyes</td><td>Unlinked an external peer</td><td>Grace Hopper</td></tr><tr><td>24 Aug, 13:06</td><td>Mira Reyes</td><td>Created a passkey setup link</td><td>Jordan Rivera</td></tr><tr><td>23 Aug, 18:20</td><td>System</td><td>Recorded a failed passkey sign-in</td><td>Access</td></tr></tbody></table>
+  </div></div></section></div>
 </main></div>
 
 <p class="label">Dashboard — Overview tab (what is this)</p>

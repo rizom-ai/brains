@@ -13,7 +13,7 @@ const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 /**
  * Entity adapter for SiteInfo entities
- * Uses frontmatter format for CMS compatibility
+ * Uses frontmatter format for Studio compatibility
  */
 export class SiteInfoAdapter extends BaseEntityAdapter<
   SiteInfoEntity,

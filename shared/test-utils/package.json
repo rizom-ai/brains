@@ -15,7 +15,8 @@
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "parse5": "^7.3.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

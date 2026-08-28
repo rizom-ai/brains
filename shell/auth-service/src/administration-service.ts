@@ -62,6 +62,11 @@ export interface LinkExternalPeerRequest {
   userId: string;
 }
 
+export interface UnlinkExternalPeerRequest {
+  peerId: string;
+  userId: string;
+}
+
 export interface InvitedExternalPeerAccess {
   user: AuthPrincipal;
   peer: PersonExternalPeer;
@@ -280,6 +285,31 @@ export class AuthAdministrationService {
     return peer;
   }
 
+  async unlinkExternalPeer(
+    input: UnlinkExternalPeerRequest,
+    context: AuthMutationContext,
+  ): Promise<PersonExternalPeer> {
+    if (!context.actorUserId) {
+      throw new Error("Authenticated actor is required for peer unlinking");
+    }
+    const user = await this.users.getUser(input.userId);
+    if (!user) throw new Error(`Auth user not found: ${input.userId}`);
+
+    const peer = await this.externalPeers.unlinkPeer({
+      peerId: input.peerId,
+      personId: user.personId,
+      actorUserId: context.actorUserId,
+    });
+    await this.audit.append({
+      ...auditActor(context),
+      action: "auth.external_peer.unlinked",
+      targetType: "external_peer",
+      targetId: peer.peerId,
+      metadata: { personId: peer.personId, userId: user.id },
+    });
+    return peer;
+  }
+
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
     const [anchor, users] = await Promise.all([
       this.users.getBrainAnchor(),
@@ -309,7 +339,7 @@ export class AuthAdministrationService {
       identities,
       passkeys,
       externalPeers,
-      invitations,
+      invitationState,
       anchor,
     ] = await Promise.all([
       this.users.listUsers(),
@@ -317,7 +347,7 @@ export class AuthAdministrationService {
       this.identities.listAllIdentities(),
       this.credentials.listPasskeys(),
       this.externalPeers.listAll(),
-      this.invitations.list(),
+      this.invitations.listWithCurrentSetupExpirations(),
       this.users.getBrainAnchor(),
     ]);
     const peopleById = new Map(people.map((person) => [person.id, person]));
@@ -327,7 +357,10 @@ export class AuthAdministrationService {
       externalPeers,
       (item) => item.personId,
     );
-    const invitationsByUserId = groupBy(invitations, (item) => item.userId);
+    const invitationsByUserId = groupBy(
+      invitationState.invitations,
+      (item) => item.userId,
+    );
 
     return Promise.all(
       users.map(async (user) => {
@@ -341,7 +374,14 @@ export class AuthAdministrationService {
           ...principal,
           displayName: profileDisplayName ?? principal.displayName,
           ...(profileEntityId ? { profileEntityId } : {}),
-          ...(invitation ? { invitation: invitationSummary(invitation) } : {}),
+          ...(invitation
+            ? {
+                invitation: invitationSummary(
+                  invitation,
+                  invitationState.expirations.get(invitation.id),
+                ),
+              }
+            : {}),
           identities: (identitiesByPersonId.get(user.personId) ?? []).map(
             (identity) =>
               identitySummary(identity, user.id, this.getChannelDescriptor),
@@ -551,7 +591,10 @@ function adminIdentityLabel(
   return label && label.length > 0 ? label : undefined;
 }
 
-function invitationSummary(invitation: AuthInvitation): AuthInvitationSummary {
+function invitationSummary(
+  invitation: AuthInvitation,
+  expiresAt?: number,
+): AuthInvitationSummary {
   return {
     id: invitation.id,
     userId: invitation.userId,
@@ -559,6 +602,7 @@ function invitationSummary(invitation: AuthInvitation): AuthInvitationSummary {
     ...(invitation.failureCode ? { failureCode: invitation.failureCode } : {}),
     createdAt: invitation.createdAt,
     updatedAt: invitation.updatedAt,
+    ...(expiresAt !== undefined ? { expiresAt } : {}),
     ...(invitation.sentAt !== null ? { sentAt: invitation.sentAt } : {}),
     ...(invitation.claimedAt !== null
       ? { claimedAt: invitation.claimedAt }

@@ -94,7 +94,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - **CLI** — in-process REPL via `interfaces/chat-repl` (Ink)
 - **MCP** — stdio + HTTP transports via `interfaces/mcp`
-- **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/CMS routes, browser-facing APIs, and split health endpoints
+- **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/Studio routes, browser-facing APIs, and split health endpoints
 - **Chat** — Discord and Slack bot interface via `interfaces/chat` (Chat SDK)
 - **A2A** — agent-to-agent JSON-RPC via `interfaces/a2a` (Agent Card, non-blocking tasks)
 
@@ -126,7 +126,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Web Components
 
-- **[Preact](https://preactjs.com/)** - Lightweight React alternative
+- **[React](https://react.dev/)** - Shared JSX runtime for static SSR and client applications
   - 3KB runtime
   - Used for static site generation
   - Server-side rendering
@@ -285,14 +285,14 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - `@brains/chat-repl` — interactive Ink-based REPL
 - `@brains/mcp` — MCP transport (stdio + HTTP)
-- `@brains/webserver` — in-process Hono webserver for site pages, dashboard/CMS routes, browser-facing APIs, and split health endpoints
+- `@brains/webserver` — in-process Hono webserver for site pages, dashboard/Studio routes, browser-facing APIs, and split health endpoints
 - `@brains/chat` — Discord and Slack bot interface (Chat SDK)
 - `@brains/a2a` — agent-to-agent JSON-RPC interface (Agent Card, non-blocking tasks)
 
 ### Shared Packages (`shared/*`)
 
 - `@brains/utils` — Logger (JSON mode + log file), markdown, YAML, IDs, permissions, progress, Zod re-export (overloaded; split tracked separately)
-- `@brains/ui-library` — Preact UI components (Header, Footer, ThemeToggle, widgets)
+- `@brains/ui-library` — React UI components (Header, Footer, ThemeToggle, widgets)
 - `@brains/site-engine` — renderer-agnostic site build engine utilities
 - `@brains/site-composition` — shared site composition contract and merge helpers
 - `@brains/test-utils` — mock factories, test harnesses, MockShell

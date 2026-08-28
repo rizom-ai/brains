@@ -14,7 +14,7 @@ For a git-command-oriented explanation of the sync lifecycle and conflict policy
 - supports images under `image/`
 - copies seed content on first run
 - optionally pulls, commits, and pushes a git-backed content repo
-- registers an optional CMS Sync workspace for operational status and manual sync
+- registers an optional Studio Sync workspace for operational status and manual sync
 - can bootstrap a missing/empty local `file://` bare remote from seed content
 
 ## Path conventions
@@ -90,10 +90,10 @@ brain tool directory_sync '{"action":"history","entityType":"post","id":"my-firs
 
 `directory_sync` action `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. Action `status` reports sync and git state. Action `history` reads git history for synced files when git is configured.
 
-## Optional CMS workspace
+## Optional Studio workspace
 
-When `@brains/cms` is installed, directory-sync registers an **Operations → Sync**
-workspace at `/cms/workspaces/sync`. It shows directory, watcher, Git, automation, recent-run,
+When `@brains/studio` is installed, directory-sync registers an **Operations → Sync**
+workspace at `/studio/workspaces/sync`. It shows directory, watcher, Git, automation, recent-run,
 and quarantined-file status from a bounded runtime projection.
 
 **Sync now** follows the same request path as `directory_sync` action `sync`. The workspace
@@ -101,8 +101,8 @@ is intentionally not a file browser or configuration editor. It exposes relative
 paths and a sanitized remote label; credentials and internal stack traces are never sent
 to the browser.
 
-Dashboard's existing read-only Content sync card links to the workspace when CMS returns a
-management URL. Without CMS, tools, messages, watcher, periodic sync, and Git automation
+Dashboard's existing read-only Content sync card links to the workspace when Studio returns a
+management URL. Without Studio, tools, messages, watcher, periodic sync, and Git automation
 continue unchanged.
 
 ## Seed and local remote bootstrap

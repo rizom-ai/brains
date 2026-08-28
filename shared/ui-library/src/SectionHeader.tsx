@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 
 export interface SectionHeaderProps {
   /** Section title (renders as h2). */

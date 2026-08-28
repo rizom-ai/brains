@@ -13,7 +13,17 @@ export interface CharacterInput {
 
 export interface ProfileInput {
   name: string;
+  organization?: string | undefined;
   description?: string | undefined;
+  website?: string | undefined;
+  email?: string | undefined;
+  socialLinks?:
+    | readonly {
+        platform: "github" | "instagram" | "linkedin" | "email" | "website";
+        url: string;
+        label?: string | undefined;
+      }[]
+    | undefined;
 }
 
 export interface RenderableWidgetData extends WidgetData {
@@ -28,48 +38,8 @@ export interface DashboardSessionPrincipal {
 
 export interface DashboardAuthAccess {
   principal?: DashboardSessionPrincipal;
-  hiddenWidgetCount: number;
   loginUrl: string;
   logoutUrl: string;
-}
-
-export interface DashboardActivityEvent {
-  action: "created" | "updated" | "deleted";
-  entityType: string;
-  entityId: string;
-  timestamp: string;
-  conversationId?: string | undefined;
-}
-
-export interface DashboardJobProgressItem {
-  id: string;
-  kind: "job" | "batch";
-  status: "pending" | "processing" | "completed" | "failed";
-  updatedAt: string;
-  message?: string | undefined;
-  jobType?: string | undefined;
-  progressLabel?: string | undefined;
-}
-
-export interface DashboardDirectorySyncStatus {
-  syncPath: string;
-  isInitialized: boolean;
-  watchEnabled: boolean;
-  lastSync?: string | undefined;
-  totalFiles?: number | undefined;
-  byEntityType?: Record<string, number> | undefined;
-  managementUrl?: string | undefined;
-}
-
-export interface DashboardIndexStatus {
-  ready: boolean;
-  degraded?: boolean | undefined;
-  activeEmbeddingJobs?: number | undefined;
-  missingEmbeddings?: number | undefined;
-  staleEmbeddings?: number | undefined;
-  failedEmbeddings?: number | undefined;
-  embeddableEntities?: number | undefined;
-  embeddedEntities?: number | undefined;
 }
 
 export interface DashboardAssetUrls {
@@ -92,11 +62,6 @@ export interface DashboardRenderInput {
   profile: ProfileInput;
   appInfo: AppInfo;
   themeCSS?: string;
-  activityLog?: DashboardActivityEvent[];
-  jobProgress?: DashboardJobProgressItem[];
-  indexReady?: boolean;
-  indexStatus?: DashboardIndexStatus;
-  directorySyncStatus?: DashboardDirectorySyncStatus;
   authAccess?: DashboardAuthAccess;
 }
 

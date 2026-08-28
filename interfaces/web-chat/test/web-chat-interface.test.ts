@@ -1289,11 +1289,11 @@ describe("WebChatInterface", () => {
     );
     expect(html).not.toContain("var(--dashboard-");
     // The console strip: chat is the active surface; only registered
-    // surfaces get doors (no dashboard or cms plugin in this harness).
+    // surfaces get doors (no dashboard or studio plugin in this harness).
     expect(html).toContain('class="console-strip"');
     expect(html).toContain("surface-nav-link is-active");
     expect(html).toContain(">Chat</a>");
-    expect(html).not.toContain(">CMS<");
+    expect(html).not.toContain(">Studio<");
     expect(html).not.toContain(">Dashboard<");
     // Authenticated surface: the shared session chip shows signed-in state.
     expect(html).toContain('class="session-chip"');

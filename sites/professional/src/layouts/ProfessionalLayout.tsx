@@ -1,10 +1,10 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import type { LayoutSlots } from "@brains/site-engine";
 import type { SiteLayoutInfo } from "@brains/site-composition";
 import { Header, Footer } from "@brains/ui-library";
 
 export interface ProfessionalLayoutProps {
-  sections: ComponentChildren[];
+  sections: ReactNode[];
   title: string;
   description: string;
   path: string;
@@ -16,7 +16,7 @@ export interface ProfessionalLayoutProps {
    * header. Pass e.g. `<Wordmark name="yeehaa" brandSuffix="io" />` to render
    * a structured site brand.
    */
-  wordmark?: ComponentChildren;
+  wordmark?: ReactNode;
 }
 
 /**

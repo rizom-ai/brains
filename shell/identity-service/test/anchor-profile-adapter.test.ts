@@ -54,7 +54,7 @@ describe("AnchorProfileAdapter", () => {
   });
 
   describe("frontmatterSchema", () => {
-    it("should expose frontmatterSchema for CMS", () => {
+    it("should expose frontmatterSchema for Studio", () => {
       expect(adapter.frontmatterSchema).toBeDefined();
       expect(adapter.frontmatterSchema.shape).toHaveProperty("name");
       expect(adapter.frontmatterSchema.shape).toHaveProperty("description");

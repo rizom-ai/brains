@@ -1,6 +1,6 @@
-import { createContext, h, type JSX } from "preact";
-import { useContext } from "preact/hooks";
-import type { ComponentChildren } from "preact";
+import { createContext, createElement as h, type JSX } from "react";
+import { useContext } from "react";
+import type { ReactNode } from "react";
 import { markdownToHtml, type ImageRenderer } from "./markdown-html";
 
 /**
@@ -12,14 +12,11 @@ const ImageRendererContext = createContext<ImageRenderer | null>(null);
 
 export interface ImageRendererProviderProps {
   imageRenderer: ImageRenderer | null | undefined;
-  children: ComponentChildren;
+  children: ReactNode;
 }
 
 /**
  * Provider that makes an ImageRenderer available to child components during SSR.
- *
- * NOTE: Uses h() instead of JSX to ensure consistent Preact VNode creation.
- * (Same reason as HeadProvider — Bun's JSX runtime resolution can be inconsistent.)
  */
 export function ImageRendererProvider({
   imageRenderer,

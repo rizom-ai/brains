@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { buildSkillFilters } from "../src/lib/agent-network-rows";
+import {
+  buildSkillFilters,
+  selectSkillFilterValues,
+} from "../src/lib/agent-network-rows";
 import type { AgentNetworkSkillRow } from "../src/lib/agent-network-schema";
 
 function skill(
@@ -66,5 +69,19 @@ describe("buildSkillFilters", () => {
 
     expect(filters).toHaveLength(60);
     expect(new Set(filters.map(({ tag }) => tag))).toEqual(new Set(tags));
+  });
+});
+
+describe("selectSkillFilterValues", () => {
+  it("keeps list filter values within the declared filter options", () => {
+    expect(
+      selectSkillFilterValues(
+        ["architecture", "branding", "systems"],
+        [
+          { tag: "architecture", count: 2 },
+          { tag: "systems", count: 1, variant: "gap" },
+        ],
+      ),
+    ).toEqual(["architecture", "systems"]);
   });
 });

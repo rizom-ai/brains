@@ -18,11 +18,11 @@ export type {
   AccountSettingsValue,
 } from "../operator/account-settings-definition-contract";
 export {
-  defineCmsWorkspace,
+  defineStudioWorkspace,
   defineDashboardWidget,
 } from "../operator/operator-definition-contract";
 export type {
-  CmsWorkspaceDefinition,
+  StudioWorkspaceDefinition,
   DashboardWidgetDefinition,
 } from "../operator/operator-definition-contract";
 export type {
@@ -38,8 +38,8 @@ export type {
 } from "../operator/workspace-action-definition-contract";
 export { defineEntityCatalog } from "../operator/operator-view-contract";
 export type {
-  CmsWorkspaceView,
-  CmsWorkspaceViewBlock,
+  StudioWorkspaceView,
+  StudioWorkspaceViewBlock,
   DashboardDigest,
   DashboardOperatorView,
   DashboardOperatorViewBlock,
@@ -51,6 +51,14 @@ export type {
   OperatorRegionBlock,
   OperatorViewStatus,
   OperatorViewBlock,
+  WorkspaceActionFormControl,
+  WorkspaceActionFormDefinition,
+  WorkspaceActionFormFieldDefinition,
+  WorkspaceActionFormFieldMap,
+  WorkspaceActionFormOption,
+  WorkspaceActionResultDefinition,
+  WorkspaceActionResultFieldDefinition,
+  WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
 export { defineJob, defineTool } from "../service/service-definition-contract";
 export type {

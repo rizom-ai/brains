@@ -1,5 +1,5 @@
 import {
-  assertCmsWorkspaceAdmin,
+  assertStudioWorkspaceAdmin,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
@@ -135,7 +135,7 @@ export class MailTriageOperatorService {
 }
 
 export function assertMailTriageAdmin(actor: OperatorActor): void {
-  assertCmsWorkspaceAdmin(actor, "Email triage");
+  assertStudioWorkspaceAdmin(actor, "Email triage");
 }
 
 function metadataFilter(

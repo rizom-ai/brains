@@ -123,6 +123,14 @@ export function buildSkillRows(
   return rows.sort(compareSkillRows);
 }
 
+export function selectSkillFilterValues(
+  tags: readonly string[],
+  filters: readonly AgentNetworkTagFilter[],
+): string[] {
+  const selectable = new Set(filters.map((filter) => filter.tag));
+  return tags.filter((tag) => selectable.has(tag));
+}
+
 export function buildSkillFilters(
   skills: AgentNetworkSkillRow[],
 ): AgentNetworkTagFilter[] {

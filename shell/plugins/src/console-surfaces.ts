@@ -11,7 +11,7 @@ const PERMISSION_RANK: Record<SurfacePermissionLevel, number> = {
 
 /**
  * Console surfaces in strip order. A surface's link exists exactly when its
- * plugin registered a web route — a brain without the CMS plugin shows no CMS
+ * plugin registered a web route — a brain without the Studio plugin shows no Studio
  * door, mirroring how dashboard tabs derive from widget groups. `visibility`
  * is the minimum permission level a caller needs to see the door, matching the
  * permission each surface enforces on its own route.
@@ -27,26 +27,28 @@ const SURFACE_PLUGINS: ReadonlyArray<{
   pluginId: string;
   label: string;
   visibility: SurfacePermissionLevel;
+  requiresActiveSession: boolean;
 }> = [
   {
     id: "dashboard",
     pluginId: "dashboard",
     label: "Dashboard",
     visibility: "public",
+    requiresActiveSession: false,
   },
   {
     id: "web-chat",
     pluginId: "web-chat",
     label: "Chat",
     visibility: "trusted",
+    requiresActiveSession: true,
   },
-  { id: "cms", pluginId: "cms", label: "CMS", visibility: "trusted" },
-  { id: "admin", pluginId: "admin", label: "Admin", visibility: "admin" },
   {
-    id: "account",
-    pluginId: "account",
-    label: "Account",
+    id: "studio",
+    pluginId: "studio",
+    label: "Studio",
     visibility: "public",
+    requiresActiveSession: true,
   },
 ];
 
@@ -61,6 +63,8 @@ export function deriveConsoleSurfaces(
      * when unspecified.
      */
     permissionLevel?: SurfacePermissionLevel;
+    /** Whether the caller has a verified active session. */
+    hasActiveSession?: boolean;
     /**
      * The rendering surface's own door. A surface always shows itself even
      * when it cannot read its own registration back, and regardless of the
@@ -72,9 +76,19 @@ export function deriveConsoleSurfaces(
   const callerRank = PERMISSION_RANK[options.permissionLevel ?? "public"];
   const surfaces: ConsoleSurface[] = [];
 
-  for (const { id, pluginId, label, visibility } of SURFACE_PLUGINS) {
+  for (const {
+    id,
+    pluginId,
+    label,
+    visibility,
+    requiresActiveSession,
+  } of SURFACE_PLUGINS) {
     const isSelf = options.self?.id === id;
-    if (!isSelf && callerRank < PERMISSION_RANK[visibility]) {
+    if (
+      !isSelf &&
+      (callerRank < PERMISSION_RANK[visibility] ||
+        (requiresActiveSession && options.hasActiveSession !== true))
+    ) {
       continue;
     }
     const door = isSelf
@@ -89,6 +103,7 @@ export function deriveConsoleSurfaces(
         label,
         href: door,
         isActive: id === options.activeId,
+        ...(requiresActiveSession ? { requiresActiveSession: true } : {}),
       });
     }
   }

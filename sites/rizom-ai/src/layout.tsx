@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { JSX, ComponentChildren } from "preact";
+/** @jsxImportSource react */
+import type { JSX, ReactNode } from "react";
 import { RizomFrame, type RizomLayoutProps } from "@rizom/site-rizom";
 
 /**
@@ -333,21 +333,21 @@ function MyceliumRail(): JSX.Element {
         cx="100"
         cy="1040"
         r="4"
-        style="animation-delay:.9s"
+        style={{ animationDelay: ".9s" }}
       />
       <circle
         className="myc-node"
         cx="100"
         cy="1580"
         r="4"
-        style="animation-delay:1.7s"
+        style={{ animationDelay: "1.7s" }}
       />
       <circle
         className="myc-node"
         cx="98"
         cy="2100"
         r="4"
-        style="animation-delay:2.4s"
+        style={{ animationDelay: "2.4s" }}
       />
     </svg>
   );
@@ -360,7 +360,7 @@ function RizomAiChrome({
 }: {
   path: string;
   siteInfo: RizomLayoutProps["siteInfo"];
-  children: ComponentChildren;
+  children: ReactNode;
 }): JSX.Element {
   const face = activeFace(path);
   const umbrella = isHome(path) || orgIndexActive(path) !== null;

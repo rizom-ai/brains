@@ -2,7 +2,7 @@
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsxImportSource": "react",
     "lib": ["DOM", "ES2022"],
     "rootDir": ".",
     "isolatedDeclarations": true

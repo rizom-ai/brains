@@ -102,7 +102,7 @@ export class DashboardDataSource implements DataSource {
 
   /**
    * Digest lines and attention counts are derived from the widget's fetched
-   * data on every render, so Overview cards and tab badges stay live. The
+   * data on every render, so public Overview contributions stay live. The
    * statically registered values remain the fallback.
    */
   private deriveLiveDigest(

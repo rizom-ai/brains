@@ -489,7 +489,7 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {
-    testDir = mkdtempSync(join(tmpdir(), "webserver-cms-test-"));
+    testDir = mkdtempSync(join(tmpdir(), "webserver-studio-test-"));
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
     mkdirSync(prodDir, { recursive: true });
@@ -504,7 +504,7 @@ describe("ServerManager (in-process)", () => {
       getRoutes: (): readonly RegisteredHttpRoute[] => [
         handlerRoute(
           "admin",
-          "/cms-config",
+          "/studio-config",
           async (): Promise<Response> =>
             new Response("backend:\n  repo: owner/repo\n", {
               headers: { "Content-Type": "text/yaml; charset=utf-8" },
@@ -518,7 +518,7 @@ describe("ServerManager (in-process)", () => {
     const status = manager.getStatus();
     const url = status.productionUrl;
     if (!url) return;
-    const res = await fetch(`${url}/cms-config`);
+    const res = await fetch(`${url}/studio-config`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/yaml");
     expect(await res.text()).toContain("owner/repo");
@@ -568,7 +568,7 @@ describe("ServerManager (in-process)", () => {
       match: "exact" | "prefix" = "exact",
     ): RegisteredHttpRoute =>
       handlerRoute(
-        "cms",
+        "studio",
         path,
         async (): Promise<Response> => new Response(body),
         { match },
@@ -580,9 +580,9 @@ describe("ServerManager (in-process)", () => {
       sharedImagesDir: imagesDir,
       productionPort: 0,
       getRoutes: (): readonly RegisteredHttpRoute[] => [
-        route("/cms/entities", "entities-shell", "prefix"),
-        route("/cms/entities/post", "post-shell", "prefix"),
-        route("/cms/entities/post/featured", "featured-exact"),
+        route("/studio/entities", "entities-shell", "prefix"),
+        route("/studio/entities/post", "post-shell", "prefix"),
+        route("/studio/entities/post/featured", "featured-exact"),
       ],
     });
     await manager.start();
@@ -591,18 +591,19 @@ describe("ServerManager (in-process)", () => {
     expect(url).toBeDefined();
     if (!url) return;
 
-    expect(await (await fetch(`${url}/cms/entities/note/one`)).text()).toBe(
+    expect(await (await fetch(`${url}/studio/entities/note/one`)).text()).toBe(
       "entities-shell",
     );
-    expect(await (await fetch(`${url}/cms/entities/post/one`)).text()).toBe(
+    expect(await (await fetch(`${url}/studio/entities/post/one`)).text()).toBe(
       "post-shell",
     );
     expect(
-      await (await fetch(`${url}/cms/entities/post/featured`)).text(),
+      await (await fetch(`${url}/studio/entities/post/featured`)).text(),
     ).toBe("featured-exact");
-    expect((await fetch(`${url}/cms/entities-other`)).status).toBe(404);
+    expect((await fetch(`${url}/studio/entities-other`)).status).toBe(404);
     expect(
-      (await fetch(`${url}/cms/entities/post/one`, { method: "POST" })).status,
+      (await fetch(`${url}/studio/entities/post/one`, { method: "POST" }))
+        .status,
     ).toBe(404);
   });
 

@@ -1,5 +1,3 @@
-import { getDashboardGroupLabel, sortDashboardGroups } from "./widget-groups";
-
 export interface ConsoleJumpItem {
   id: string;
   title: string;
@@ -20,52 +18,43 @@ export interface ConsoleJumpEntityHit {
   title: string;
 }
 
-function anchorForGroup(group: string): string {
-  const slug = group
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || "group";
-}
-
 /**
  * Grouped doors for the cross-surface ⌘K palette. Entities open at canonical
- * CMS detail paths, so the group exists only when a CMS is registered; tabs
+ * Studio detail paths, so the group exists only when a Studio is registered; tabs
  * land on this dashboard's in-document group anchors.
  */
 export function buildConsoleJumpGroups(options: {
   query: string;
-  groups: string[];
   dashboardPath: string;
-  cmsPath: string | undefined;
-  adminPath?: string | undefined;
+  studioPath: string | undefined;
   entities: ConsoleJumpEntityHit[];
 }): ConsoleJumpGroup[] {
   const query = options.query.trim().toLowerCase();
   const result: ConsoleJumpGroup[] = [];
 
   if (
-    options.adminPath !== undefined &&
-    (query === "" || "admin people access identity".includes(query))
+    options.studioPath !== undefined &&
+    (query === "" || "people access identity".includes(query))
   ) {
+    const studioPath =
+      options.studioPath === "/" ? "" : options.studioPath.replace(/\/+$/, "");
     result.push({
       id: "surfaces",
       label: "Console",
       items: [
         {
-          id: "surface/admin",
-          title: "Admin",
-          sub: "People, access and identity",
-          href: options.adminPath,
-          tag: "console",
+          id: "surface/people",
+          title: "People",
+          sub: "Access and identity",
+          href: `${studioPath}/workspaces/${encodeURIComponent("admin:administration")}?tab=people`,
+          tag: "studio",
         },
       ],
     });
   }
 
-  if (options.cmsPath !== undefined && options.entities.length > 0) {
-    const cmsPath = options.cmsPath;
+  if (options.studioPath !== undefined && options.entities.length > 0) {
+    const studioPath = options.studioPath;
     result.push({
       id: "entities",
       label: "Entities",
@@ -73,25 +62,28 @@ export function buildConsoleJumpGroups(options: {
         id: `${hit.entityType}/${hit.id}`,
         title: hit.title,
         sub: hit.entityType,
-        href: `${cmsPath === "/" ? "" : cmsPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
-        tag: "edit in cms",
+        href: `${studioPath === "/" ? "" : studioPath.replace(/\/+$/, "")}/entities/${encodeURIComponent(hit.entityType)}/${encodeURIComponent(hit.id)}`,
+        tag: "edit in studio",
       })),
     });
   }
 
-  const tabs = sortDashboardGroups([...new Set(options.groups)])
-    .map((group) => ({ group, label: getDashboardGroupLabel(group) }))
+  const tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "knowledge", label: "Knowledge" },
+    { id: "network", label: "Network" },
+  ]
     .filter(
-      ({ group, label }) =>
+      ({ id, label }) =>
         query === "" ||
         label.toLowerCase().includes(query) ||
-        group.toLowerCase().includes(query),
+        id.includes(query),
     )
-    .map(({ group, label }) => ({
-      id: `tab/${group}`,
+    .map(({ id, label }) => ({
+      id: `tab/${id}`,
       title: label,
       sub: "tab",
-      href: `${options.dashboardPath}#${anchorForGroup(group)}`,
+      href: `${options.dashboardPath}#${id}`,
       tag: "dashboard",
     }));
   if (tabs.length > 0) {

@@ -96,7 +96,7 @@ Settled up front so the phases do not re-litigate them.
    the same constraint `/health/operate` already honors.
 7. **Delivery failure must never crash the web process.** A failed send leaves the episode `pending`
    for the next tick with bounded backoff; the lifecycle already models this state.
-8. **Client error capture is restricted to authenticated operator surfaces** (dashboard, CMS), never
+8. **Client error capture is restricted to authenticated operator surfaces** (dashboard, Studio), never
    public site pages — an unauthenticated error-report route is a write amplifier pointed at your
    own database.
 
@@ -160,9 +160,9 @@ does not restart the first episode's re-notify clock.
 Today the operator UIs are fully dark: there is no `ErrorBoundary`, `componentDidCatch`,
 `window.onerror`, or `unhandledrejection` handler anywhere in `plugins/` or `shared/` — the only
 match in the tree is a WebSocket error listener in `plugins/atproto/src/jetstream-consumer.ts`. A
-crash in the dashboard or CMS produces no log line, no job record, and no health signal.
+crash in the dashboard or Studio produces no log line, no job record, and no health signal.
 
-Add an error boundary plus global `error`/`unhandledrejection` handlers to the dashboard and CMS
+Add an error boundary plus global `error`/`unhandledrejection` handlers to the dashboard and Studio
 surfaces, reporting to an authenticated brain route that stores a bounded ring of the most recent 50
 records in runtime state (message, stack, surface, release version — no form values, no page
 content). Register a `client-errors` operational health check that degrades on a burst, at which

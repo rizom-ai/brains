@@ -1,30 +1,42 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
   CONSOLE_PALETTE_SCRIPT,
 } from "@brains/console-theme";
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { Colophon } from "./colophon";
 import { ConsoleStrip } from "./console-strip";
-import { buildDashboardTabs, TabBar } from "./dashboard-tabs";
+import { TabBar } from "./dashboard-tabs";
+import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
 import { OverviewPanel } from "./overview-panel";
+import { ProximityMapPanel } from "./proximity-map";
+import {
+  findCartesianMap,
+  findRadialMap,
+  findRenderableWidget,
+} from "./public-card-data";
 import { DASHBOARD_STYLES } from "./styles";
 import type { DashboardRenderInput } from "./types";
 import { DASHBOARD_UI_SCRIPT } from "./ui-script";
-import { WidgetTabPanel } from "./widget-tab-panel";
 
 export function DashboardDocument({
   input,
 }: {
   input: DashboardRenderInput;
 }): JSX.Element {
-  const tabs = buildDashboardTabs(input.widgets);
-  const showAccessGate =
-    input.authAccess !== undefined && input.authAccess.hiddenWidgetCount > 0;
+  const knowledgeMap = findCartesianMap(input.widgets);
+  const proximityMap = findRadialMap(input.widgets);
+  const proximityWidget = findRenderableWidget(
+    input.widgets,
+    "agent-discovery",
+    "agent-proximity",
+  );
   const dashboardPath = input.dashboardPath ?? "/dashboard";
-  const now = new Date();
+  const operatorHref = input.surfaces?.find(
+    (surface) => surface.id === "studio",
+  )?.href;
 
   return (
     <html lang="en" data-climate="instrument" data-theme="dark">
@@ -93,40 +105,43 @@ export function DashboardDocument({
           }
           authAccess={input.authAccess}
         />
-        <main class="console" data-component="dashboard:dashboard">
+        <main className="console" data-component="dashboard:dashboard">
           <div
-            class="frame"
+            className="frame"
             data-ui-tabs
             data-ui-tabs-default="overview"
             data-ui-tabs-hash="true"
           >
             <Masthead title={input.title} tagline={input.profile.description} />
-            <TabBar tabs={tabs} />
+            <TabBar
+              knowledgeCount={input.appInfo.entities}
+              networkCount={
+                proximityMap?.points.filter(
+                  (point) => point.status !== "archived",
+                ).length ?? 0
+              }
+            />
 
-            <div class="canvas">
-              <div class="dashboard-tab-panels">
-                <OverviewPanel
-                  input={input}
-                  tabs={tabs}
-                  showAccessGate={showAccessGate}
+            <div className="canvas">
+              <div className="dashboard-tab-panels">
+                <OverviewPanel input={input} />
+                <KnowledgeMapPanel
+                  block={knowledgeMap}
+                  entityTotal={input.appInfo.entities}
                 />
-                {tabs.map((tab) => (
-                  <WidgetTabPanel
-                    key={tab.id}
-                    tab={tab}
-                    input={input}
-                    now={now}
-                  />
-                ))}
+                <ProximityMapPanel
+                  block={proximityMap}
+                  widget={proximityWidget}
+                />
               </div>
+              <Colophon
+                title={input.title}
+                appInfo={input.appInfo}
+                baseUrl={input.baseUrl}
+                operatorHref={operatorHref}
+              />
             </div>
           </div>
-
-          <Colophon
-            title={input.title}
-            appInfo={input.appInfo}
-            baseUrl={input.baseUrl}
-          />
         </main>
 
         {input.assetUrls ? (

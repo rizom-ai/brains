@@ -1,0 +1,733 @@
+import { createTempDataDir } from "@brains/plugins/test";
+import { afterEach, describe, expect, it } from "bun:test";
+import { AuthServicePlugin } from "@brains/auth-service";
+import {
+  BaseEntityAdapter,
+  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  baseEntitySchema,
+  type BaseEntity,
+  type StudioWorkspaceRegistration,
+  type WebRouteDefinition,
+} from "@brains/plugins";
+import { createMockShell, type MockShell } from "@brains/test-utils";
+import { PermissionService } from "@brains/templates";
+import { z } from "@brains/utils/zod";
+import { studioPlugin, type StudioPlugin } from "../src";
+
+const authPlugins: AuthServicePlugin[] = [];
+
+afterEach(async () => {
+  for (const plugin of authPlugins.splice(0).reverse()) {
+    await plugin.shutdown?.();
+  }
+});
+
+class NoteTestAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "note",
+      purpose: "Test notes",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({ title: z.string().optional() }),
+    });
+  }
+
+  public override toMarkdown(entity: BaseEntity): string {
+    return entity.content;
+  }
+
+  public override fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { entityType: "note", content: markdown };
+  }
+}
+
+function findRoute(
+  plugin: StudioPlugin,
+  path: string,
+  method: WebRouteDefinition["method"] = "GET",
+): WebRouteDefinition {
+  const route = plugin
+    .getWebRoutes()
+    .find(
+      (candidate) =>
+        candidate.path === path && (candidate.method ?? "GET") === method,
+    );
+  if (!route) throw new Error(`Missing ${method} route: ${path}`);
+  return route;
+}
+
+async function createSessionCookie(shell: MockShell): Promise<string> {
+  const authPlugin = new AuthServicePlugin({
+    storageDir: await createTempDataDir("brains-studio-workspace-auth-"),
+  });
+  await authPlugin.register(shell);
+  authPlugins.push(authPlugin);
+  return (await authPlugin.getService().createAuthSession()).cookie;
+}
+
+function request(
+  path: string,
+  options: { cookie?: string; method?: string; body?: unknown } = {},
+): Request {
+  return new Request(`https://yeehaa.io${path}`, {
+    method: options.method ?? "GET",
+    headers: {
+      ...(options.cookie ? { Cookie: options.cookie } : {}),
+      ...(options.body !== undefined
+        ? {
+            "Content-Type": "application/json",
+            Origin: "https://yeehaa.io",
+          }
+        : {}),
+    },
+    ...(options.body !== undefined
+      ? { body: JSON.stringify(options.body) }
+      : {}),
+  });
+}
+
+async function registerWorkspace(
+  shell: MockShell,
+  registration: StudioWorkspaceRegistration,
+): Promise<unknown> {
+  return shell.getMessageBus().send({
+    type: "studio:register-workspace",
+    payload: registration,
+    sender: registration.pluginId,
+  });
+}
+
+async function unregisterWorkspace(
+  shell: MockShell,
+  pluginId: string,
+  workspaceId?: string,
+): Promise<unknown> {
+  return shell.getMessageBus().send({
+    type: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+    payload: { pluginId, ...(workspaceId ? { workspaceId } : {}) },
+    sender: pluginId,
+  });
+}
+
+describe("optional Studio workspaces", () => {
+  it("lists the built-in Overview and Account workspaces when no provider registers", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const payload = z
+      .object({ workspaces: z.array(z.object({ id: z.string() })).optional() })
+      .parse(await response.json());
+
+    expect(response.status).toBe(200);
+    expect(payload.workspaces).toEqual([
+      { id: "studio:overview" },
+      { id: "studio:account" },
+    ]);
+  });
+
+  it("registers universal Studio follow-ups at a non-default mount", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    shell
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new NoteTestAdapter());
+    const plugin = studioPlugin({ routePath: "/studio" });
+    await plugin.register(shell);
+    shell.getInboxFollowUpRegistry().finalize();
+
+    expect(
+      await shell.getInboxFollowUpRegistry().resolveUniversal({
+        sourceId: "email-workflows",
+        actor: { permissionLevel: "admin" },
+        item: {
+          id: "mail-1",
+          title: "Review the proposal",
+          summary: "A collaboration proposal needs an operator decision.",
+          receivedAt: "2026-08-13T08:00:00.000Z",
+          urgency: "high",
+          entityRef: { entityType: "note", entityId: "new" },
+          actions: [],
+        },
+      }),
+    ).toEqual([
+      {
+        kind: "capture-as-note",
+        label: "Capture as note",
+        href: "/studio/entities/note?mode=create",
+        state: {
+          studioCreatePrefill: {
+            version: 2,
+            entityType: "note",
+            title: "Review the proposal",
+            body: "A collaboration proposal needs an operator decision.",
+            backlink: "entity://note/new",
+          },
+        },
+      },
+      {
+        kind: "open-entity",
+        label: "Open source entity",
+        href: "/studio/entities/note/new",
+      },
+    ]);
+  });
+
+  it("hides note capture when the note entity capability is absent", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    shell.getInboxFollowUpRegistry().finalize();
+
+    const resolved = await shell.getInboxFollowUpRegistry().resolveUniversal({
+      sourceId: "recurring-checks",
+      actor: { permissionLevel: "admin" },
+      item: {
+        id: "alert-1",
+        title: "Check the import",
+        receivedAt: "2026-08-13T08:00:00.000Z",
+        urgency: "high",
+        entityRef: { entityType: "operation-status", entityId: "sync-1" },
+        actions: [],
+      },
+    });
+
+    expect(resolved.map((entry) => entry.kind)).toEqual(["open-entity"]);
+  });
+
+  it("hides note capture when entity policy forbids creation", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    shell
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new NoteTestAdapter());
+    const permissionService = new PermissionService({
+      entityActions: { note: { create: "never" } },
+    });
+    shell.getPermissionService = (): PermissionService => permissionService;
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    shell.getInboxFollowUpRegistry().finalize();
+
+    const resolved = await shell.getInboxFollowUpRegistry().resolveUniversal({
+      sourceId: "email-workflows",
+      actor: { permissionLevel: "admin" },
+      item: {
+        id: "mail-1",
+        title: "Review the proposal",
+        receivedAt: "2026-08-13T08:00:00.000Z",
+        urgency: "high",
+        entityRef: { entityType: "mail-item", entityId: "mail-1" },
+        actions: [],
+      },
+    });
+
+    expect(resolved.map((entry) => entry.kind)).toEqual(["open-entity"]);
+  });
+
+  it("registers a workspace and returns its configured Studio URL", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin({ routePath: "/studio" });
+    await plugin.register(shell);
+
+    const response = await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      entityTypes: ["post", "newsletter"],
+      accessHandler: () => true,
+      dataProvider: async () => ({ summary: { queued: 2 } }),
+    });
+
+    expect(response).toEqual({
+      success: true,
+      data: { workspaceUrl: "/studio/workspaces/publishing" },
+    });
+  });
+
+  it("unregisters only workspaces owned by the requesting plugin", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const registration: StudioWorkspaceRegistration = {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+    };
+
+    expect(await registerWorkspace(shell, registration)).toMatchObject({
+      success: true,
+    });
+    expect(
+      await unregisterWorkspace(shell, "other-plugin", registration.id),
+    ).toMatchObject({ success: true });
+    expect(await registerWorkspace(shell, registration)).toMatchObject({
+      success: false,
+    });
+
+    expect(
+      await unregisterWorkspace(shell, registration.pluginId, registration.id),
+    ).toMatchObject({ success: true });
+    expect(await registerWorkspace(shell, registration)).toMatchObject({
+      success: true,
+    });
+  });
+
+  it("rejects the retired Email Triage workspace renderer", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const legacyRegistration: StudioWorkspaceRegistration = {
+      id: "email-workflows",
+      pluginId: "email-workflows",
+      label: "Email Triage",
+      // @ts-expect-error EmailTriageWorkspace was retired from the renderer
+      // union, and this asserts the runtime check still turns it away — a
+      // plugin compiled against an older release can still send it. An
+      // expect-error rather than a cast, so it fails the build if the name is
+      // ever reinstated.
+      rendererName: "EmailTriageWorkspace",
+      priority: 30,
+      entityTypes: ["mail-item"],
+      accessHandler: () => true,
+      dataProvider: async () => ({ items: [] }),
+    };
+
+    expect(await registerWorkspace(shell, legacyRegistration)).toMatchObject({
+      success: false,
+    });
+  });
+
+  it("accepts the host-owned declarative workspace renderer", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    expect(
+      await registerWorkspace(shell, {
+        id: "reading",
+        pluginId: "reading-operator",
+        label: "Reading",
+        rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+        priority: 50,
+        accessHandler: () => true,
+        dataProvider: async () => ({ view: { blocks: [] } }),
+      }),
+    ).toMatchObject({ success: true });
+  });
+
+  it("rejects the retired email reply draft workspace renderer", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    expect(
+      await shell.getMessageBus().send({
+        type: "studio:register-workspace",
+        payload: {
+          id: "email-reply-drafts",
+          pluginId: "email-workflows",
+          label: "Reply drafts",
+          rendererName: "EmailReplyDraftWorkspace",
+          priority: 21,
+          urlQuery: true,
+          accessHandler: () => true,
+          dataProvider: async () => ({ mailItemId: null }),
+        },
+        sender: "email-workflows",
+      }),
+    ).toMatchObject({ success: false });
+  });
+
+  it("exposes URL query capability only for opted-in workspaces", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 20,
+      urlQuery: true,
+      accessHandler: () => true,
+      dataProvider: async () => ({ entries: [] }),
+    });
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      accessHandler: () => true,
+      dataProvider: async () => ({ queue: [] }),
+    });
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+
+    expect(await response.json()).toMatchObject({
+      workspaces: [
+        { id: "studio:overview" },
+        { id: "studio:account" },
+        { id: "inbox", urlQuery: true },
+        { id: "publishing" },
+      ],
+    });
+    const payload = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const descriptors = z
+      .object({ workspaces: z.array(z.record(z.string(), z.unknown())) })
+      .parse(await payload.json()).workspaces;
+    expect(
+      descriptors.find((descriptor) => descriptor["id"] === "publishing"),
+    ).not.toHaveProperty("urlQuery");
+  });
+
+  it("exposes registered descriptors and provider data to the browser", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      entityTypes: ["post"],
+      accessHandler: () => true,
+      dataProvider: async () => ({ summary: { queued: 2 } }),
+    });
+
+    const typesResponse = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const typesPayload = z
+      .object({ workspaces: z.array(z.unknown()) })
+      .parse(await typesResponse.json());
+    expect(typesPayload.workspaces).toEqual([
+      {
+        id: "studio:overview",
+        pluginId: "studio",
+        label: "Overview",
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: -100,
+        entityTypes: [],
+        badge: 0,
+      },
+      {
+        id: "studio:account",
+        pluginId: "studio",
+        label: "Account",
+        rendererName: "StudioAccountWorkspace",
+        priority: 0,
+        entityTypes: [],
+      },
+      {
+        id: "publishing",
+        pluginId: "content-pipeline",
+        label: "Publishing",
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: 40,
+        entityTypes: ["post"],
+      },
+    ]);
+
+    const route = findRoute(plugin, "/studio/api/workspace");
+    const denied = await route.handler(
+      request("/studio/api/workspace?id=publishing"),
+    );
+    expect(denied.status).toBe(401);
+
+    const response = await route.handler(
+      request("/studio/api/workspace?id=publishing", { cookie }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      workspace: {
+        id: "publishing",
+        rendererName: "DeclarativeOperatorWorkspace",
+        data: { summary: { queued: 2 } },
+      },
+    });
+  });
+
+  it("resolves actor-aware entityTypes when listing descriptors", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      // Providers with per-actor publishable types resolve them against the
+      // real caller instead of disclosing the full registered list.
+      entityTypes: (actor) =>
+        actor.userPermissionLevel === "admin" ? ["post", "newsletter"] : [],
+      accessHandler: () => true,
+      dataProvider: async () => ({ summary: { queued: 2 } }),
+    });
+
+    const typesResponse = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const typesPayload = z
+      .object({
+        workspaces: z.array(z.object({ entityTypes: z.array(z.string()) })),
+      })
+      .parse(await typesResponse.json());
+    expect(typesPayload.workspaces).toEqual([
+      { entityTypes: [] },
+      { entityTypes: [] },
+      { entityTypes: ["post", "newsletter"] },
+    ]);
+  });
+
+  it("passes authorized workspace query parameters to the provider", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const queries: unknown[] = [];
+    await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 20,
+      accessHandler: () => true,
+      dataProvider: async (_actor, query) => {
+        queries.push(query);
+        return { entries: [] };
+      },
+    });
+
+    const response = await findRoute(plugin, "/studio/api/workspace").handler(
+      request(
+        "/studio/api/workspace?id=inbox&sourceId=mail-items&urgency=high&offset=50&limit=50",
+        { cookie },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    expect(queries).toEqual([
+      {
+        sourceId: "mail-items",
+        urgency: "high",
+        offset: "50",
+        limit: "50",
+      },
+    ]);
+  });
+
+  it("access-checks and failure-isolates workspace badges", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    let deniedBadgeCalls = 0;
+    await registerWorkspace(shell, {
+      id: "inbox",
+      pluginId: "unified-inbox",
+      label: "Inbox",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 20,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+      badgeProvider: async () => 7,
+    });
+    await registerWorkspace(shell, {
+      id: "broken",
+      pluginId: "broken-plugin",
+      label: "Broken",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 21,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+      badgeProvider: async () => {
+        throw new Error("private badge failure");
+      },
+    });
+    await registerWorkspace(shell, {
+      id: "denied",
+      pluginId: "denied-plugin",
+      label: "Denied",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 22,
+      accessHandler: () => false,
+      dataProvider: async () => ({}),
+      badgeProvider: async () => {
+        deniedBadgeCalls += 1;
+        return 99;
+      },
+    });
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      workspaces: [
+        { id: "studio:overview", badge: 0 },
+        { id: "studio:account" },
+        { id: "inbox", badge: 7 },
+        { id: "broken" },
+      ],
+    });
+    expect(JSON.stringify(payload)).not.toContain("private badge failure");
+    expect(JSON.stringify(payload)).not.toContain("denied");
+    expect(deniedBadgeCalls).toBe(0);
+  });
+
+  it("orders multiple workspaces deterministically", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    await registerWorkspace(shell, {
+      id: "site",
+      pluginId: "site-builder",
+      label: "Site",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 50,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+    });
+    await registerWorkspace(shell, {
+      id: "sync",
+      pluginId: "directory-sync",
+      label: "Sync",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 60,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+    });
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+    });
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    expect(await response.json()).toMatchObject({
+      workspaces: [
+        { id: "studio:overview" },
+        { id: "studio:account" },
+        { id: "publishing" },
+        { id: "site" },
+        { id: "sync" },
+      ],
+    });
+  });
+
+  it("rejects duplicate workspace ids without replacing the provider", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    await registerWorkspace(shell, {
+      id: "site",
+      pluginId: "site-builder",
+      label: "Site",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 50,
+      accessHandler: () => true,
+      dataProvider: async () => ({ source: "original" }),
+    });
+    const duplicate = await registerWorkspace(shell, {
+      id: "site",
+      pluginId: "other-plugin",
+      label: "Other site",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 10,
+      accessHandler: () => true,
+      dataProvider: async () => ({ source: "duplicate" }),
+    });
+
+    expect(duplicate).toEqual({
+      success: false,
+      error: "Studio workspace already registered: site",
+    });
+  });
+
+  it("derives the authenticated Studio actor for registered actions", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const calls: Array<{
+      action: unknown;
+      actor: unknown;
+      signal: AbortSignal | undefined;
+    }> = [];
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+      actionHandler: async (action, actor, signal) => {
+        calls.push({ action, actor, signal });
+        return { accepted: true };
+      },
+    });
+
+    const route = findRoute(plugin, "/studio/api/workspace", "POST");
+    const denied = await route.handler(
+      request("/studio/api/workspace", {
+        method: "POST",
+        body: { id: "publishing", action: { type: "retry" } },
+      }),
+    );
+    expect(denied.status).toBe(401);
+
+    const response = await route.handler(
+      request("/studio/api/workspace", {
+        cookie,
+        method: "POST",
+        body: { id: "publishing", action: { type: "retry" } },
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(await response.json()).toEqual({ result: { accepted: true } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({
+      action: { type: "retry" },
+      actor: expect.objectContaining({
+        interfaceType: "studio",
+        actor: expect.objectContaining({ kind: "user" }),
+        userPermissionLevel: "admin",
+        visibilityScope: "restricted",
+        isAnchor: true,
+      }),
+      signal: expect.any(AbortSignal),
+    });
+  });
+});

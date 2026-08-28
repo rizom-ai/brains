@@ -105,6 +105,10 @@ export interface AuthAdminOperations {
     input: { peerId: string; userId: string },
     actorUserId: string,
   ): Promise<AuthExternalPeerSummary>;
+  unlinkExternalPeer(
+    input: { peerId: string; userId: string },
+    actorUserId: string,
+  ): Promise<AuthExternalPeerSummary>;
   updateUserRole(
     userId: string,
     role: AuthUserRole,
@@ -226,6 +230,12 @@ const adminMutationSchema = z.union([
   z.strictObject({
     action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer),
     confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.linkExternalPeer),
+    peerId: z.string().trim().min(1).max(2_000),
+    userId: z.string().min(1),
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.unlinkExternalPeer),
+    confirmation: z.literal(AUTH_ADMIN_MUTATION_ACTIONS.unlinkExternalPeer),
     peerId: z.string().trim().min(1).max(2_000),
     userId: z.string().min(1),
   }),
@@ -484,6 +494,13 @@ async function executeMutation(
     case "linkExternalPeer":
       return {
         peer: await operations.linkExternalPeer(
+          { peerId: mutation.peerId, userId: mutation.userId },
+          actorUserId,
+        ),
+      };
+    case "unlinkExternalPeer":
+      return {
+        peer: await operations.unlinkExternalPeer(
           { peerId: mutation.peerId, userId: mutation.userId },
           actorUserId,
         ),

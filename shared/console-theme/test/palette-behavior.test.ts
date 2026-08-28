@@ -101,8 +101,8 @@ beforeEach(() => {
             {
               title: "Verdigris pigments",
               sub: "note",
-              href: "/cms/entities/note/verdigris-pigments",
-              tag: "edit in cms",
+              href: "/studio/entities/note/verdigris-pigments",
+              tag: "edit in studio",
             },
           ],
         },
@@ -168,7 +168,7 @@ describe("console palette behavior", () => {
     expect(rowTitles()).toEqual(["Verdigris pigments", "Publishing", "System"]);
     expect(selectedTitle()).toBe("Verdigris pigments");
     expect(window.document.querySelector(".cp-row .cp-tag")?.textContent).toBe(
-      "edit in cms",
+      "edit in studio",
     );
     expect(
       window.document.querySelector(".cp-row .cp-glyph")?.textContent,
@@ -218,7 +218,7 @@ describe("console palette behavior", () => {
       row.getAttribute("href"),
     );
     expect(hrefs).toEqual([
-      "/cms/entities/note/verdigris-pigments",
+      "/studio/entities/note/verdigris-pigments",
       "/#publishing",
       "/#system",
     ]);

@@ -15,6 +15,7 @@ import type {
   InvitedExternalPeerAccess,
   InviteExternalPeerPersonRequest,
   LinkExternalPeerRequest,
+  UnlinkExternalPeerRequest,
 } from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type {
@@ -29,7 +30,12 @@ import type {
   AuthPasskeySummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
-import type { AppendAuthAuditEventInput, AuthAuditEvent } from "./audit-store";
+import type {
+  AppendAuthAuditEventInput,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+} from "./audit-store";
 import { AuthRequestRouter } from "./auth-request-router";
 import { AuthRuntime } from "./auth-runtime";
 import type {
@@ -94,9 +100,9 @@ export interface AuthServiceOptions {
   replica?: AuthRuntimeReplicaOptions;
   /** Anchor profile flavor declared by brain configuration. */
   anchor?: AuthBrainAnchorConfigKind;
-  /** CMS profile reference projected into auth runtime state. */
+  /** Studio profile reference projected into auth runtime state. */
   anchorProfileEntityId?: string;
-  /** Resolve the current CMS profile name without copying profile content into auth. */
+  /** Resolve the current Studio profile name without copying profile content into auth. */
   resolveProfileDisplayName?: (
     profileEntityId: string,
   ) => Promise<string | undefined>;
@@ -476,6 +482,16 @@ export class AuthService {
       .linkExternalPeer(input, context);
   }
 
+  async unlinkExternalPeer(
+    input: UnlinkExternalPeerRequest,
+    context: AuthMutationContext,
+  ): Promise<PersonExternalPeer> {
+    await this.runtime.ensureStarted();
+    return this.runtime
+      .getAdministrationService()
+      .unlinkExternalPeer(input, context);
+  }
+
   async getBrainAnchor(): Promise<AuthBrainAnchorSummary> {
     await this.runtime.ensureStarted();
     return this.runtime.getAdministrationService().getBrainAnchor();
@@ -636,6 +652,11 @@ export class AuthService {
   async listAuditEvents(): Promise<AuthAuditEvent[]> {
     await this.runtime.ensureStarted();
     return this.runtime.getAdministrationService().listAuditEvents();
+  }
+
+  async queryAuditEvents(query: AuthAuditQuery): Promise<AuthAuditQueryResult> {
+    await this.runtime.ensureStarted();
+    return this.runtime.getAuditStore().query(query);
   }
 
   async resolveActorPrincipal(
@@ -832,6 +853,8 @@ export class AuthService {
         this.resendInvitation(invitationId, { actorUserId }),
       linkExternalPeer: (input, actorUserId) =>
         this.linkExternalPeer(input, { actorUserId }),
+      unlinkExternalPeer: (input, actorUserId) =>
+        this.unlinkExternalPeer(input, { actorUserId }),
       updateUserRole: (userId, role, actorUserId) =>
         this.updateUserRole(userId, role, { actorUserId }),
       updateUserStatus: (userId, status, actorUserId) =>

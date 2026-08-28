@@ -166,12 +166,13 @@ Plans:
 
 ### 5. Interfaces
 
-The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and the CMS share semantics instead of each reinventing them. Discord, Slack, and the bundled web chat ship today; this section is the consolidation and expansion work.
+The chat and editing surfaces brains speak through, kept transport-neutral so Discord, Slack, web-chat, and Studio share semantics instead of each reinventing them. Discord, Slack, and the bundled web chat ship today; this section is the consolidation and expansion work.
 
 Plans:
 
-- [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any CMS or shared adoption.
-- [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/CMS/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
+- [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any Studio or shared adoption.
+- [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/Studio/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
+- [studio-consolidation.md](./plans/studio-consolidation.md) — rename CMS to Studio, absorb administration and Account presentation without moving auth authority, gate each capability explicitly, create an operator Overview, and turn Dashboard into the public brain card.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
@@ -179,7 +180,7 @@ Plans:
 Shipped from this section:
 
 - inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail, drafting, and confirmed sends. Deliberately non-conversational: inbound mail never reaches agent chat;
-- [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, Admin CMS and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;
+- [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, Admin Studio and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;
 - [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and private bounded source reads while retaining its tested reply backend dormant and outside runtime composition.
 
 ### 6. Ecosystem
@@ -214,7 +215,7 @@ Cleanup:
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — follow the released background-recovery foundation with sustained operational-degradation delivery over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.
 - [packed-compatibility-test-tiering.md](./plans/packed-compatibility-test-tiering.md) — keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the `0.2.0` fixtures for later patch-candidate compatibility.
 - [topic-extraction-and-reconciliation.md](./plans/topic-extraction-and-reconciliation.md) — make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.
-- [preact-to-react-consolidation.md](./plans/preact-to-react-consolidation.md) — **time-boxed by prerelease exit**: retire Preact for React 19 across the server-rendered surfaces — normalize the component dialect while still on Preact, flip the runtime atomically behind an output-equivalence harness, then collapse the twice-implemented operator view host into one. `preact` is a published peer dependency, so the swap is free on the alpha line and a `0.3.0` major the day after `changeset pre exit`; its scheduling decision belongs with stable `v0.2.0`.
+- [preact-to-react-consolidation.md](./plans/preact-to-react-consolidation.md) — **implemented on `work/react-renderer-consolidation`, awaiting merge and prerelease publication**: React 19 now owns static SSR and client JSX, the renderer flip is guarded by semantic output fixtures, public site peers and docs use React, the Dashboard and Studio share one operator-view host, and the old containment tsconfig split is gone. This must merge and publish before `changeset pre exit`; afterward the same authoring-contract change requires `0.3.0`.
 - [contract-drift-fixes.md](./plans/contract-drift-fixes.md) — from a full-repo duplication audit: collapse the duplicated site-metadata schema that silently dropped `represents`, derive ATProto record strictness from the lexicons instead of one hardcoded field list, and guard the published-SDK type copies that no test currently pins.
 - [bun-1-4-adoption.md](./plans/bun-1-4-adoption.md) — bump the runtime to Bun 1.4, replace `sharp` with `Bun.Image`, parallelize the three suites with measured wins, convert fixed-sleep tests to deterministic timers, and replace Playwright completely with `Bun.WebView` behind the existing browser seam.
 

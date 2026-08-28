@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { createMockAppInfo } from "@brains/test-utils";
+import { createMockAppInfo, normalizeRendererHtml } from "@brains/test-utils";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "../src/dashboard-page";
 
 describe("renderDashboardPageHtml", () => {
-  it("should render a sign-in prompt when restricted widgets are hidden", () => {
+  it("renders the anonymous card without restricted-access affordances", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -15,7 +15,6 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       authAccess: {
-        hiddenWidgetCount: 1,
         loginUrl: "/login?return_to=%2Fdashboard",
         logoutUrl: "/logout?return_to=%2Fdashboard",
       },
@@ -23,13 +22,22 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Restricted access");
-    expect(html).toContain("1 private console widget is hidden.");
+    expect(html).not.toContain("Restricted access");
+    expect(html).not.toContain("private console widget");
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
-    expect(html).not.toContain('href="#my-agents"');
+    expect(html).toContain("What is this");
+    expect(html).toContain('href="#knowledge"');
+    expect(html).toContain('href="#network"');
+    const stableHtml = html.replace(
+      /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g,
+      "<rendered-at>",
+    );
+    expect(
+      normalizeRendererHtml(stableHtml, { ignoreImagePreloads: true }),
+    ).toMatchSnapshot();
   });
 
-  it("should explain role-limited widgets without asking signed-in users to sign in again", () => {
+  it("keeps the same public card for a signed-in role", () => {
     const input: DashboardRenderInput = {
       title: "Test Brain",
       baseUrl: "https://brain.test",
@@ -43,7 +51,6 @@ describe("renderDashboardPageHtml", () => {
           role: "trusted",
           permissionLevel: "trusted",
         },
-        hiddenWidgetCount: 1,
         loginUrl: "/login",
         logoutUrl: "/logout",
       },
@@ -51,8 +58,10 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain("Your Trusted role does not include this layer.");
-    expect(html).not.toContain('class="access-gate-link"');
+    expect(html).not.toContain("Restricted access");
+    expect(html).not.toContain("private console widget");
+    expect(html).toContain("Mira");
+    expect(html).toContain("What is this");
   });
 
   it("keeps People administration out of the monitoring dashboard", () => {
@@ -69,7 +78,6 @@ describe("renderDashboardPageHtml", () => {
           role: "admin",
           permissionLevel: "admin",
         },
-        hiddenWidgetCount: 0,
         loginUrl: "/login",
         logoutUrl: "/logout",
       },
@@ -132,7 +140,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain("data-dashboard-widget-script");
   });
 
-  it("should derive tabs from non-empty widget groups", () => {
+  it("renders exactly the public card tabs regardless of widget groups", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -172,16 +180,212 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('href="#overview"');
-    expect(html).toContain('href="#publishing"');
-    expect(html).toContain('href="#network"');
-    expect(html).not.toContain('href="#site"');
-    expect(html).toContain('class="tab-badge tab-badge--needs">2</span>');
-    expect(html).toContain('class="tab-badge tab-badge--muted">1</span>');
-    expect(html).toContain('data-dashboard-group="publishing"');
-    expect(html).toContain('data-dashboard-group="network"');
-    // Built-in tabs carry no plain-count badge (mockup: System has no badge).
-    expect(html).not.toContain('class="tab-badge tab-badge--muted">0</span>');
+    const tabIds = [...html.matchAll(/data-dashboard-tab-link="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
+    expect(tabIds).toEqual(["overview", "knowledge", "network"]);
+    expect(html).not.toContain('href="#publishing"');
+    expect(html).not.toContain('href="#system"');
+    expect(html).not.toContain('data-dashboard-group="publishing"');
+    expect(html).not.toContain('data-dashboard-group="system"');
+  });
+
+  it("renders the public identity, contacts, holdings, and skills card", () => {
+    const input: DashboardRenderInput = {
+      title: "Rizom",
+      baseUrl: "https://brain.test",
+      character: {
+        role: "A shared memory keeper",
+        purpose: "Connect what this network learns.",
+        values: ["reciprocity", "agency"],
+      },
+      profile: {
+        name: "Rizom",
+        organization: "Rizom Cooperative",
+        description: "The shared brain of the rizom network.",
+        website: "https://rizom.example",
+        email: "hello@rizom.example",
+      },
+      appInfo: createMockAppInfo({
+        uptime: 100,
+        entities: 7,
+        entityCounts: [
+          { entityType: "post", count: 3 },
+          { entityType: "note", count: 4 },
+        ],
+        interactions: [
+          {
+            id: "chat",
+            label: "Chat",
+            description: "Ask about anything held in public scope.",
+            href: "/chat",
+            kind: "human",
+            pluginId: "web-chat",
+            priority: 10,
+            visibility: "public",
+            status: "available",
+          },
+        ],
+      }),
+      widgets: {
+        "agent-discovery:skills": {
+          widget: {
+            id: "skills",
+            pluginId: "agent-discovery",
+            title: "Skills",
+            group: "network",
+            section: "sidebar",
+            priority: 20,
+            rendererName: "DeclarativeOperatorWidget",
+            visibility: "public",
+          },
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "list",
+                  id: "skills",
+                  empty: "No skills advertised yet.",
+                  items: [{ id: "shared-context", title: "Shared context" }],
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain("What is this");
+    expect(html).toContain("A shared memory keeper");
+    expect(html).toContain("belongs to them");
+    expect(html).toContain("public scope");
+    expect(html).toContain("Ways to connect");
+    expect(html).toContain('href="https://brain.test/chat"');
+    expect(html).toContain('href="https://rizom.example/"');
+    expect(html).toContain('href="mailto:hello@rizom.example"');
+    expect(html).toContain("What I hold");
+    expect(html).toContain("Posts");
+    expect(html).toContain("Notes");
+    expect(html).toContain("Skills");
+    expect(html).toContain("Shared context");
+  });
+
+  it("renders source-fed knowledge and proximity maps in their fixed panels", () => {
+    const input: DashboardRenderInput = {
+      title: "Rizom",
+      baseUrl: "https://brain.test",
+      character: { role: "Brain", purpose: "Connect knowledge", values: [] },
+      profile: { name: "Rizom" },
+      appInfo: createMockAppInfo({
+        uptime: 100,
+        entities: 2,
+        entityCounts: [{ entityType: "post", count: 2 }],
+      }),
+      widgets: {
+        "topics:topics-knowledge-map": {
+          widget: {
+            id: "topics-knowledge-map",
+            pluginId: "topics",
+            title: "Knowledge Map",
+            group: "knowledge",
+            section: "primary",
+            priority: 30,
+            rendererName: "DeclarativeOperatorWidget",
+            visibility: "public",
+          },
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "spatial",
+                  layout: "cartesian",
+                  id: "knowledge-map",
+                  label: "Knowledge map",
+                  description: "Public knowledge arranged by topic.",
+                  points: [
+                    {
+                      id: "post:field-notes",
+                      label: "Field notes",
+                      category: "published",
+                      x: 0.25,
+                      y: 0.4,
+                      zoneId: "topic:trust",
+                      tone: "good",
+                    },
+                  ],
+                  zones: [
+                    {
+                      id: "topic:trust",
+                      label: "Trust networks",
+                      x: 0.3,
+                      y: 0.42,
+                      memberIds: ["post:field-notes"],
+                    },
+                  ],
+                  legend: [{ label: "Published", tone: "good" }],
+                },
+              ],
+            },
+            source: { points: [{ id: "field-notes" }] },
+          },
+        },
+        "agent-discovery:agent-proximity": {
+          widget: {
+            id: "agent-proximity",
+            pluginId: "agent-discovery",
+            title: "Agent Proximity",
+            group: "network",
+            section: "primary",
+            priority: 35,
+            rendererName: "DeclarativeOperatorWidget",
+            visibility: "public",
+          },
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "spatial",
+                  layout: "radial",
+                  id: "agent-proximity",
+                  label: "Agent proximity map",
+                  description: "Public agents by semantic distance.",
+                  centerLabel: "Brain identity",
+                  centerKind: "identity",
+                  points: [
+                    {
+                      id: "agent-one",
+                      label: "Agent One",
+                      kind: "person",
+                      status: "approved",
+                      distance: 0.35,
+                      bearing: 55,
+                      tone: "good",
+                    },
+                  ],
+                  strata: [
+                    { id: "near", label: "Near", maxDistance: 0.5 },
+                    { id: "far", label: "Far", maxDistance: 1 },
+                  ],
+                  legend: [{ label: "Approved", tone: "good" }],
+                },
+              ],
+            },
+            source: { nodes: [{ id: "agent-one" }] },
+          },
+        },
+      },
+    };
+
+    const html = renderDashboardPageHtml(input);
+
+    expect(html).toContain('data-card-map="knowledge"');
+    expect(html).toContain('class="knowledge-map-field map-field"');
+    expect(html).toContain("Trust networks");
+    expect(html).toContain('data-card-map="network"');
+    expect(html).toContain('class="proximity-map-field map-field"');
+    expect(html).toContain("Agent One");
   });
 
   it("should wrap the console chrome and panels in a single frame", () => {
@@ -200,7 +404,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="canvas"');
     // The strip pins to the top of the viewport on every surface — it
     // lives OUTSIDE the frame so it never shifts between dashboard, chat,
-    // and the CMS. Masthead, tab bar, and panels stay inside the frame.
+    // and the Studio. Masthead, tab bar, and panels stay inside the frame.
     const frameIndex = html.indexOf('class="frame"');
     expect(frameIndex).toBeGreaterThan(-1);
     expect(html.indexOf('class="console-strip"')).toBeLessThan(frameIndex);
@@ -209,93 +413,12 @@ describe("renderDashboardPageHtml", () => {
     expect(frameIndex).toBeLessThan(
       html.indexOf('class="dashboard-tab-panels"'),
     );
+    expect(html).toMatch(
+      /<div class="canvas">.*<footer class="colophon">.*<\/footer><\/div><\/div><\/main>/s,
+    );
   });
 
-  it("should render overview vitals and digest lines from widgets", () => {
-    const input: DashboardRenderInput = {
-      title: "Test Owner",
-      baseUrl: "https://brain.test",
-      character: { role: "", purpose: "", values: [] },
-      profile: { name: "Test Owner" },
-      appInfo: createMockAppInfo({
-        uptime: 100,
-        entities: 15,
-        embeddings: 12,
-        interactions: [
-          {
-            id: "dashboard",
-            label: "Dashboard",
-            href: "/dashboard",
-            kind: "admin",
-            pluginId: "dashboard",
-            priority: 30,
-            visibility: "public",
-            status: "available",
-          },
-        ],
-      }),
-      indexStatus: {
-        ready: true,
-        activeEmbeddingJobs: 0,
-        missingEmbeddings: 0,
-        staleEmbeddings: 0,
-        failedEmbeddings: 0,
-        embeddableEntities: 12,
-        embeddedEntities: 12,
-      },
-      widgets: {
-        "content-pipeline:pipeline": {
-          widget: {
-            id: "pipeline",
-            pluginId: "content-pipeline",
-            title: "Publication Pipeline",
-            group: "publishing",
-            section: "primary",
-            priority: 10,
-            rendererName: "DeclarativeOperatorWidget",
-            visibility: "public",
-            digest: [
-              { label: "Queued", value: "3", tone: "warn" },
-              { label: "Published", value: "9", tone: "good" },
-            ],
-          },
-          data: { summary: {}, items: [] },
-        },
-      },
-    };
-
-    const html = renderDashboardPageHtml(input);
-
-    expect(html).toContain("Runtime vitals");
-    expect(html).toContain("Semantic index");
-    expect(html).toContain("Ready");
-    // Vitals carry sub-lines and semantic status dots per the mockup.
-    expect(html).toContain('class="vital-sub"');
-    expect(html).toContain("vital-card--ok");
-    // The index fraction uses the embeddable denominator, never all
-    // entities (non-embeddable types would make the fraction lie).
-    expect(html).toContain("12/12 embedded");
-    expect(html).not.toContain("12/15");
-    expect(html).toContain("Queued");
-    expect(html).toContain("Published");
-    expect(html).toContain('href="#publishing"');
-    expect(html).toContain("open →");
-    expect(html).toContain("Activity");
-    expect(html).toContain(
-      "No entity activity has been observed this session.",
-    );
-    // Overview is a fixed composition: no entity-summary or interactions
-    // cards on the overview panel (they live in their group tabs).
-    const overviewPanel = html.slice(
-      html.indexOf('id="overview"'),
-      html.indexOf('id="knowledge"'),
-    );
-    expect(overviewPanel).not.toContain("card--entity-summary");
-    expect(overviewPanel).not.toContain("Ways to connect");
-    expect(overviewPanel).toContain("overview-grid");
-  });
-
-  it("should render all tab panels in the no-JS HTML output", () => {
+  it("keeps protocol data behind the mockup's fixed Overview composition", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -303,63 +426,70 @@ describe("renderDashboardPageHtml", () => {
       profile: { name: "Test Owner" },
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {
-        "content-pipeline:pipeline": {
+        "publisher:release": {
           widget: {
-            id: "pipeline",
-            pluginId: "content-pipeline",
-            title: "Publication Pipeline",
+            id: "release",
+            pluginId: "publisher",
+            title: "Public releases",
             group: "publishing",
             section: "primary",
             priority: 10,
             rendererName: "DeclarativeOperatorWidget",
             visibility: "public",
           },
-          data: { summary: {}, items: [] },
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "stats",
+                  items: [{ label: "Published", value: 9, tone: "good" }],
+                },
+              ],
+            },
+          },
         },
       },
+    };
+
+    const html = renderDashboardPageHtml(input);
+    const overviewPanel = html.slice(
+      html.indexOf('id="overview"'),
+      html.indexOf('id="knowledge"'),
+    );
+
+    expect(overviewPanel).not.toContain("Public releases");
+    expect(overviewPanel).not.toContain("Published");
+    expect(overviewPanel.match(/<article class="card public-/g)).toHaveLength(
+      4,
+    );
+    expect(html).not.toContain('href="#publishing"');
+    expect(html).not.toContain("Runtime vitals");
+    expect(html).not.toContain("Activity");
+  });
+
+  it("renders all three card panels in the no-JS HTML output", () => {
+    const input: DashboardRenderInput = {
+      title: "Test Owner",
+      baseUrl: "https://brain.test",
+      character: { role: "", purpose: "", values: [] },
+      profile: { name: "Test Owner" },
+      appInfo: createMockAppInfo({ uptime: 100 }),
+      widgets: {},
     };
 
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain('id="overview"');
-    expect(html).toContain('id="publishing"');
-    expect(html).toContain("Entities");
-    expect(html).toContain("Publication Pipeline");
+    expect(html).toContain('id="knowledge"');
+    expect(html).toContain('id="network"');
     expect(html).toContain("dashboard-tabs-ready");
     expect(html).toContain('data-ui-tabs-default="overview"');
-    expect(html).toContain('data-ui-tab="overview"');
-    expect(html).toContain('data-ui-panel="publishing"');
-    expect(html).toContain('aria-labelledby="dashboard-tab-publishing"');
+    expect(html).toContain('data-ui-panel="knowledge"');
+    expect(html).toContain('data-ui-panel="network"');
     expect(html).not.toContain('hidden=""');
   });
 
-  it("should render activity ledger events", () => {
-    const input: DashboardRenderInput = {
-      title: "Test Owner",
-      baseUrl: "https://brain.test",
-      character: { role: "", purpose: "", values: [] },
-      profile: { name: "Test Owner" },
-      appInfo: createMockAppInfo({ uptime: 100 }),
-      widgets: {},
-      activityLog: [
-        {
-          action: "updated",
-          entityType: "note",
-          entityId: "project-plan",
-          timestamp: "2026-07-08T10:00:00.000Z",
-        },
-      ],
-    };
-
-    const html = renderDashboardPageHtml(input);
-
-    // Ledger entries follow the mockup shape: time | glyph | what.
-    expect(html).toContain('class="ledger-entry"');
-    expect(html).toContain("updated");
-    expect(html).toContain("note/project-plan");
-  });
-
-  it("should render a built-in System tab with runtime status", () => {
+  it("omits operator activity and runtime diagnostics from the card", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -367,81 +497,23 @@ describe("renderDashboardPageHtml", () => {
       profile: { name: "Test Owner" },
       appInfo: createMockAppInfo({
         uptime: 100,
-        embeddings: 0,
-        endpoints: [
-          {
-            label: "Dashboard",
-            url: "/dashboard",
-            pluginId: "dashboard",
-            priority: 30,
-            visibility: "public",
-          },
-        ],
+        embeddings: 41,
         daemons: [
           {
-            name: "Directory Sync",
-            pluginId: "directory-sync",
+            name: "Private daemon",
+            pluginId: "private-daemon",
             status: "running",
-            health: { status: "healthy" },
           },
         ],
       }),
       widgets: {},
-      jobProgress: [
-        {
-          id: "job-1",
-          kind: "job",
-          status: "processing",
-          updatedAt: "2026-07-08T10:00:00.000Z",
-          jobType: "site:build",
-          progressLabel: "1/3",
-        },
-      ],
-      indexStatus: {
-        ready: true,
-        activeEmbeddingJobs: 0,
-        missingEmbeddings: 0,
-        staleEmbeddings: 0,
-        failedEmbeddings: 0,
-      },
-      directorySyncStatus: {
-        syncPath: "/brain/content",
-        isInitialized: true,
-        watchEnabled: true,
-        lastSync: "2026-07-08T09:30:00.000Z",
-        totalFiles: 4,
-        byEntityType: { note: 3, post: 1 },
-        managementUrl: "/studio/workspaces/sync",
-      },
     };
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('href="#system"');
-    expect(html).toContain('id="system"');
-    // System tab splits into the mockup's instrument cards.
-    expect(html).toContain("Semantic index");
-    expect(html).toContain("Content sync");
-    expect(html).toContain("Job queue");
-    expect(html).toContain("1/1 healthy");
-    expect(html).toContain("Semantic index · ready · 0 active");
-    expect(html).toContain("Watching");
-    expect(html).toContain("/brain/content");
-    expect(html).toContain("4 files");
-    expect(html).toContain("note 3, post 1");
-    expect(html).toContain("last sync");
-    expect(html).toContain("site:build");
-    expect(html).toContain("1/3");
-    // Job queue renders as a table with status pills.
-    expect(html).toContain('class="jobs"');
-    expect(html).toContain('class="status-pill status-pill--run"');
-    // Content sync shows the mini write pipeline.
-    expect(html).toContain('class="pipeline-mini"');
-    expect(html).toContain("entity db");
-    expect(html).toContain("exported");
-    expect(html).toContain("committed");
-    expect(html).toContain('href="/studio/workspaces/sync"');
-    expect(html).toContain("Open in CMS");
+    expect(html).not.toContain("Private daemon");
+    expect(html).not.toContain("41 embeddings");
+    expect(html).not.toContain('href="#system"');
   });
 
   it("should render the shared console strip from derived surfaces", () => {
@@ -457,7 +529,7 @@ describe("renderDashboardPageHtml", () => {
           isActive: true,
         },
         { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-        { id: "cms", label: "CMS", href: "/cms", isActive: false },
+        { id: "studio", label: "Studio", href: "/studio", isActive: false },
       ],
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
@@ -469,7 +541,6 @@ describe("renderDashboardPageHtml", () => {
           role: "admin",
           permissionLevel: "admin",
         },
-        hiddenWidgetCount: 0,
         loginUrl: "/login?return_to=%2Fconsole",
         logoutUrl: "/logout?return_to=%2Fconsole",
       },
@@ -480,7 +551,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('class="console-strip"');
     expect(html).toContain('href="/console"');
     expect(html).toContain('href="/chat"');
-    expect(html).toContain('href="/cms"');
+    expect(html).toContain('href="/studio"');
     expect(html).toContain("Yeehaa");
     expect(html).toContain("Admin");
     // Mockup strip chrome: brandmark, command palette hint, session chip.
@@ -501,7 +572,6 @@ describe("renderDashboardPageHtml", () => {
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       authAccess: {
-        hiddenWidgetCount: 2,
         loginUrl: "/login?return_to=%2F",
         logoutUrl: "/logout?return_to=%2F",
       },
@@ -535,8 +605,8 @@ describe("renderDashboardPageHtml", () => {
     const html = renderDashboardPageHtml(input);
 
     expect(html).toContain('href="/chat"');
-    expect(html).not.toContain('href="/cms"');
-    expect(html).not.toContain(">CMS<");
+    expect(html).not.toContain('href="/studio"');
+    expect(html).not.toContain(">Studio<");
   });
 
   it("should align the initial theme mode and apply stored climate before styles", () => {
@@ -583,7 +653,6 @@ describe("renderDashboardPageHtml", () => {
           role: "admin",
           permissionLevel: "admin",
         },
-        hiddenWidgetCount: 0,
         loginUrl: "/login?return_to=%2Fdashboard",
         logoutUrl: "/logout?return_to=%2Fdashboard",
       },
@@ -609,7 +678,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
   });
 
-  it("should render identity capsule and interaction entry points", () => {
+  it("renders identity and interaction entry points on Overview", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -637,7 +706,6 @@ describe("renderDashboardPageHtml", () => {
       }),
       widgets: {},
       authAccess: {
-        hiddenWidgetCount: 1,
         loginUrl: "/login?return_to=%2Fdashboard",
         logoutUrl: "/logout?return_to=%2Fdashboard",
       },
@@ -645,20 +713,16 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    // Identity capsule: quoted role plus value chips (mockup composition).
-    expect(html).toContain('class="card identity-capsule"');
-    expect(html).toContain("“Research brain”");
-    expect(html).toContain('class="value">clarity</span>');
-    expect(html).toContain("Restricted access");
-    // Interactions move to the System tab; entity summary to Knowledge.
+    expect(html).toContain('class="card public-identity-card"');
+    expect(html).toContain("Research brain");
+    expect(html).not.toContain('class="public-values"');
+    expect(html).not.toContain(">clarity</span>");
+    expect(html).not.toContain("Restricted access");
     expect(html).toContain("Ways to connect");
     expect(html).toContain("Let other agents talk to this brain.");
     expect(html).toContain('href="https://brain.test/a2a"');
-    expect(html.indexOf("Restricted access")).toBeLessThan(
+    expect(html.indexOf("Ways to connect")).toBeLessThan(
       html.indexOf('id="knowledge"'),
-    );
-    expect(html.indexOf('id="knowledge"')).toBeLessThan(
-      html.indexOf("Ways to connect"),
     );
   });
 });

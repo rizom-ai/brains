@@ -1,6 +1,6 @@
-/** @jsxImportSource preact */
+/** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
-import { render } from "preact-render-to-string";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import { KnowledgeMap } from "../../src/widgets/knowledge-map";
 import type { KnowledgeMapData } from "../../src/lib/knowledge-map-data";
 

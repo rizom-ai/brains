@@ -1,0 +1,47 @@
+id: team-tool-operator-dashboard-studio-status
+name: Operator dashboard and Studio access from Team Brain core
+description: >-
+  Verifies that Team Brain can guide an operator to the core web/admin surfaces for
+  dashboard and Studio access without implying that the public site-builder stack is
+  required. This covers the POC acceptance item that operators can inspect the
+  dashboard/Studio on the shared webserver surface while keeping Team Brain core private.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-team
+  - team
+  - dashboard
+  - studio
+  - webserver
+  - core
+
+turns:
+  - userMessage: >-
+      Run a system status check for this Team Brain operator setup, then tell me the
+      browser paths for the dashboard and Studio. Make clear these are Team Brain core
+      web/admin surfaces and do not require enabling the public site builder.
+      Keep it concise.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_status
+      shouldBeCalled: true
+  responseContains:
+    - "dashboard"
+    - "Studio"
+    - "/dashboard"
+    - "/studio"
+    - "core"
+  responseNotContains:
+    - "site-builder is required"
+    - "enable the public site"
+    - "blog"
+    - "newsletter"
+    - "I cannot"
+    - "I don't have access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

@@ -151,7 +151,7 @@ describe("@rizom/brain public plugin API surface", () => {
 
     for (const symbol of [
       "defineAccountSettings",
-      "defineCmsWorkspace",
+      "defineStudioWorkspace",
       "defineDashboardWidget",
       "defineWorkspaceAction",
       "OperatorView",
@@ -161,7 +161,7 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(interfacesTypes).toContain("defineAccountSettings");
     expect(interfacesTypes).toContain("forAccounts");
     expect(servicesTypes).not.toContain("getDashboardWidgetLoader");
-    expect(servicesTypes).not.toContain("getCmsWorkspaceExecutor");
+    expect(servicesTypes).not.toContain("getStudioWorkspaceExecutor");
     expect(servicesTypes).not.toContain("getWorkspaceActionExecutor");
     for (const privateType of [
       "IShell",
@@ -169,7 +169,7 @@ describe("@rizom/brain public plugin API surface", () => {
       "EntityService",
       "JobQueue",
       "DashboardWidgetRegistration",
-      "CmsWorkspaceRegistration",
+      "StudioWorkspaceRegistration",
     ]) {
       expect(servicesTypes).not.toContain(privateType);
       expect(interfacesTypes).not.toContain(privateType);

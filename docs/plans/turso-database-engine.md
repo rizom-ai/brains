@@ -5,7 +5,7 @@
 Proposed / exploratory. No code written. This plan exists to settle one tradeoff:
 is the SQLite-from-scratch rewrite worth adopting, and specifically does it unlock
 a **DB-level sync model** (replacing/augmenting today's git sync, and enabling a
-browser-synced CMS) that libSQL structurally cannot. Urgency **2/5** — nothing is
+browser-synced Studio) that libSQL structurally cannot. Urgency **2/5** — nothing is
 broken; the value is option-value while the schema is small and the engine is beta.
 
 ## Context
@@ -48,7 +48,7 @@ and libSQL cannot serve well:
 
 1. **Sync the database itself** (cloud replicas / offline writes) instead of, or
    alongside, git-syncing markdown.
-2. **A browser-synced DB for a better CMS** (Turso runs in browser via WASM:
+2. **A browser-synced DB for a better Studio** (Turso runs in browser via WASM:
    `@tursodatabase/sync` / `sync-wasm`, with `push()`/`pull()`).
 
 What the engine actually adds for these futures (verified against
@@ -68,7 +68,7 @@ What the engine actually adds for these futures (verified against
   selective sync.
 
 **Consequence for the embeddings layout (corrected):** to give embeddings an
-_independent sync fate_ (e.g. sync entities to a browser CMS but keep the bulky,
+_independent sync fate_ (e.g. sync entities to a browser Studio but keep the bulky,
 regenerable vectors local), they must remain a **separate database file** — on
 _either_ engine. Folding into one DB forfeits that control, because sync is
 whole-DB. So the fold and the DB-sync future are in tension regardless of engine.
@@ -92,7 +92,7 @@ plus `drizzle.config.ts` (`dialect: 'turso'`).
   different sync fates. The open part is only: do we _want_ the DB-sync/browser
   future enough to keep the embedding DB physically separate for it (Phase 1
   confirms the sync mechanics; it does not reopen table-scoping).
-- Does the browser CMS need embeddings? **Default answer: no.** A CMS is content
+- Does the browser Studio need embeddings? **Default answer: no.** A Studio is content
   management (browse/edit/metadata/draft-publish) + keyword/FTS find; none of that
   touches vectors. In-browser semantic search would be the only reason, and even
   then a remote query against the server-side embedding store beats shipping
@@ -137,10 +137,10 @@ this spike proves _mechanics and desirability_, not table-scoping.
   second, independently-synced (or unsynced) file** — the entity DB and embedding
   DB stay physically separate, each with its own sync policy.
 - Spike the browser target (`@tursodatabase/sync-wasm`): a browser client opens
-  **only the entity DB** and runs the CMS read/edit path. Confirm the embedding DB
+  **only the entity DB** and runs the Studio read/edit path. Confirm the embedding DB
   is never opened/synced client-side (default expectation per the open question).
 - Compare against status quo: does DB sync complement git sync (DB for live
-  collaboration/CMS, git for durable history) or replace it? Record the topology.
+  collaboration/Studio, git for durable history) or replace it? Record the topology.
 
 **Exit — the fork in the road, documented:**
 

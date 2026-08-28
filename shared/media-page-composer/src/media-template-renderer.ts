@@ -1,5 +1,5 @@
-import { h } from "preact";
-import { render } from "preact-render-to-string";
+import { createElement as h } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { HeadProvider, ImageRendererProvider } from "@brains/ui-library";
 import {
   createHTMLShell,
@@ -38,7 +38,7 @@ export function renderMediaTemplateHtml(
     }),
   });
 
-  const bodyHtml = render(page);
+  const bodyHtml = renderToStaticMarkup(page);
 
   if (!headCollector.getHeadProps()) {
     headCollector.setHeadProps({

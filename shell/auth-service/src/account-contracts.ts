@@ -93,8 +93,8 @@ export interface AuthAccountSnapshot {
   role: AuthAccountRole;
   /**
    * Present when the caller is the configured personal Anchor with a
-   * CMS-owned profile: the profile owns the display name, so it is not
-   * self-editable at /account.
+   * Studio-owned profile: the profile owns the display name, so it is not
+   * self-editable in the Studio Account view.
    */
   profileEntityId?: string;
   passkeys: AuthAccountPasskey[];

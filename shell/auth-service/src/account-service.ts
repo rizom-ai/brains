@@ -85,7 +85,7 @@ export class AuthAccountService {
   }
 
   /**
-   * The CMS profile entity owning this person's display name, when they are
+   * The Studio profile entity owning this person's display name, when they are
    * the configured personal Anchor. A profile-owned name is not self-editable.
    */
   private async anchorProfileEntityId(
@@ -106,7 +106,7 @@ export class AuthAccountService {
     const user = await this.requireActiveUser(context.userId);
     if (await this.anchorProfileEntityId(user.personId)) {
       throw new Error(
-        "The Anchor display name is managed by the Anchor profile; edit it in the CMS",
+        "The Anchor display name is managed by the Anchor profile; edit it in the Studio",
       );
     }
     await this.users.updateDisplayName(context.userId, displayName);

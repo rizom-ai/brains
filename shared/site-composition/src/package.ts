@@ -40,7 +40,7 @@ export interface SitePackage<
   TPluginConfig = Record<string, unknown>,
   TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
 > extends Omit<SiteDefinition, "layouts"> {
-  /** Layout values are narrowed to Preact components by the runtime schema. */
+  /** Layout values are narrowed to React components by the runtime schema. */
   layouts: Record<string, unknown>;
 
   /** Optional runtime plugin factory for legacy/internal site integrations. */

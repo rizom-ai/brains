@@ -44,7 +44,7 @@ describe("PublicationQueueService", () => {
     const { context, queueManager, service } = await createFixture();
 
     const result = await service.enqueue("social-post", "first", {
-      interfaceType: "cms",
+      interfaceType: "studio",
       actor: { kind: "user", userId: "operator" },
       userPermissionLevel: "admin",
       authorization: "user",
@@ -73,7 +73,7 @@ describe("PublicationQueueService", () => {
         revision: 1,
         contentHashAtEnqueue: expect.any(String),
         authContext: expect.objectContaining({
-          interfaceType: "cms",
+          interfaceType: "studio",
           actor: { kind: "user", userId: "operator" },
           authorization: "user",
         }),

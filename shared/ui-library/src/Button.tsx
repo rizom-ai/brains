@@ -1,4 +1,4 @@
-import type { JSX, ComponentChildren } from "preact";
+import type { JSX, ReactNode } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import type { VariantFunction, VariantValue } from "./variant-types";
@@ -33,12 +33,10 @@ const buttonVariants: VariantFunction<ButtonVariantProps> = cva(
 
 export interface ButtonProps extends ButtonVariantProps {
   onClick?: (() => void) | undefined;
-  children?: ComponentChildren;
+  children?: ReactNode;
   className?: string;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
-  /** SSR onclick handler (lowercase, renders as string attribute for static HTML) */
-  ssrOnClick?: string | undefined;
   /** Accessible label for icon-only buttons */
   "aria-label"?: string | undefined;
   /** For toggle buttons: current expanded state */
@@ -54,7 +52,6 @@ export function Button({
   size,
   className,
   children,
-  ssrOnClick,
   type = "button",
   ...props
 }: ButtonProps): JSX.Element {
@@ -63,7 +60,6 @@ export function Button({
       type={type}
       className={cn(buttonVariants({ variant, size }), className)}
       {...props}
-      {...(ssrOnClick && { onclick: ssrOnClick })}
     >
       {children}
     </button>

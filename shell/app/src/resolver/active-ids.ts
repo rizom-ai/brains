@@ -20,6 +20,15 @@ export function resolveBrainSelection(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): ResolvedBrainSelection {
+  if (
+    overrides?.add?.includes("cms") === true ||
+    overrides?.remove?.includes("cms") === true ||
+    Object.hasOwn(overrides?.plugins ?? {}, "cms")
+  ) {
+    throw new Error(
+      'brain.yaml still references retired member "cms"; run `brain config migrate` to rename it to "studio"',
+    );
+  }
   const catalogIds = [
     ...definition.capabilities.map(([id]) => id),
     ...definition.interfaces.map(([id]) => id),

@@ -60,11 +60,15 @@ range:
   },
   "peerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.272 <0.3.0",
-    "preact": "^10.27.2"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@rizom/brain": "0.2.0-alpha.272",
-    "preact": "^10.27.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "^7.0.2"
   },
   "publishConfig": {
@@ -91,7 +95,7 @@ import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 const hero = defineSection(
   z.object({ heading: z.string(), introduction: z.string() }),
   ({ heading, introduction }) => (
-    <section class="hero">
+    <section className="hero">
       <h1>{heading}</h1>
       <p>{introduction}</p>
     </section>
@@ -160,6 +164,11 @@ For `sectionGroup("home", { hero })`:
 
 A mismatch in authored content fails `defineSite()` validation instead of
 reaching the renderer.
+
+Site components use the React 19 JSX dialect: write `className` and `htmlFor`,
+pass `style` as an object, and camel-case SVG props such as `strokeWidth`.
+Server-rendered sites remain static and are not hydrated merely because they use
+React.
 
 ## Stable structural fields
 
@@ -236,5 +245,6 @@ paths during that build.
 | A route renders no section                   | Match `template: "namespace.sectionId"` to `sectionGroup(namespace, {...})`          |
 | The site imports `@rizom/brain/site`         | Import every structural helper from `@rizom/site`                                    |
 | The site embeds tools or a runtime plugin    | Move backend behavior into a separately composed extension package                   |
+| React warns about a JSX property             | Use `className`, `htmlFor`, style objects, and camel-cased SVG props                 |
 | Theme and site versions move together        | Publish and pin them independently                                                   |
 | A static inspection passes but preview fails | Start the app and trigger the real preview rebuild before inspecting generated files |

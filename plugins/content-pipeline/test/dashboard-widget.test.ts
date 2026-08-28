@@ -170,7 +170,7 @@ describe("dashboard widget registration", () => {
     expect(derived?.needsAttention).toBe(0);
   });
 
-  it("uses a host launch instead of carrying a CMS management URL", async () => {
+  it("uses a host launch instead of carrying a Studio management URL", async () => {
     await registerDashboardWidget(context, deps);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
@@ -178,7 +178,7 @@ describe("dashboard widget registration", () => {
       type: "links",
       items: [
         {
-          label: "Open in CMS",
+          label: "Open in Studio",
           target: {
             kind: "launch",
             launch: { target: "publishing" },

@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { OgCard, formatDate as formatDateStyled } from "@brains/ui-library";
 import type { MediaPageTemplate } from "@brains/media-page-composer";

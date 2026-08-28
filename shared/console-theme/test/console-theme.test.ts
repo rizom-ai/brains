@@ -40,7 +40,7 @@ describe("CONSOLE_THEME_CSS", () => {
 
   it("keeps instrument values fixed and paper values theme-adaptive", () => {
     // Instrument is the console's own identity; paper follows an injected
-    // site theme (shell themeCSS) when present, falling back to the CMS
+    // site theme (shell themeCSS) when present, falling back to the Studio
     // editor's paper values.
     const instrument = climateBlock("instrument");
     expect(instrument).not.toContain("--color-");
@@ -95,7 +95,7 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(CONSOLE_THEME_CSS).toContain(".cp-group + .cp-group");
   });
 
-  it("loads the shared ramp and the CMS editorial mono face", () => {
+  it("loads the shared ramp and the Studio editorial mono face", () => {
     expect(CONSOLE_FONTS_URL).toContain("Fraunces");
     expect(CONSOLE_FONTS_URL).toContain("IBM+Plex+Sans");
     expect(CONSOLE_FONTS_URL).toContain("JetBrains+Mono");
@@ -103,7 +103,7 @@ describe("CONSOLE_THEME_CSS", () => {
   });
 
   it("styles chrome only from console tokens", () => {
-    // The strip is shared across Preact and React surfaces; any reference
+    // The strip is shared across server-rendered and client surfaces; any reference
     // to a surface-private variable would break the non-dashboard hosts.
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--dashboard-/);
     expect(CONSOLE_THEME_CSS).not.toMatch(/var\(--chat-/);
@@ -114,7 +114,7 @@ describe("CONSOLE_THEME_CSS", () => {
 describe("renderConsoleStripHtml", () => {
   const surfaces = [
     { id: "dashboard", label: "Dashboard", href: "/", isActive: false },
-    { id: "cms", label: "CMS", href: "/cms", isActive: true },
+    { id: "studio", label: "Studio", href: "/studio", isActive: true },
   ];
 
   const authenticated = {
@@ -128,7 +128,7 @@ describe("renderConsoleStripHtml", () => {
     expect(html).toContain("Authenticated");
     expect(html).toContain("Sign out");
     expect(html).toContain('data-console-surface="dashboard"');
-    expect(html).toContain('data-console-surface="cms"');
+    expect(html).toContain('data-console-surface="studio"');
     expect(html).not.toContain("Operator");
     expect(html).not.toContain("is-visitor");
   });
@@ -204,7 +204,7 @@ describe("renderConsoleStripHtml", () => {
 
 describe("CONSOLE_CLIMATE_SCRIPT", () => {
   it("applies the stored climate immediately but binds the toggle after parse", () => {
-    // The script runs from <head> on chat and the CMS, before the strip
+    // The script runs from <head> on chat and the Studio, before the strip
     // exists in the DOM; binding must wait for DOMContentLoaded there.
     expect(CONSOLE_CLIMATE_SCRIPT).toContain(
       'localStorage.getItem("console.climate")',

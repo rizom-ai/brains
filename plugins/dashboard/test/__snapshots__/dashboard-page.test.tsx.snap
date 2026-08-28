@@ -1,0 +1,6207 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`renderDashboardPageHtml renders the anonymous card without restricted-access affordances 1`] = `
+{
+  "children": [
+    {
+      "name": "html",
+      "publicId": "",
+      "systemId": "",
+      "type": "doctype",
+    },
+    {
+      "attributes": [
+        [
+          "data-climate",
+          "instrument",
+        ],
+        [
+          "data-theme",
+          "dark",
+        ],
+        [
+          "lang",
+          "en",
+        ],
+      ],
+      "children": [
+        {
+          "attributes": [],
+          "children": [
+            {
+              "attributes": [
+                [
+                  "charset",
+                  "utf-8",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "content",
+                  "width=device-width, initial-scale=1.0, viewport-fit=cover",
+                ],
+                [
+                  "name",
+                  "viewport",
+                ],
+              ],
+              "children": [],
+              "name": "meta",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Test Owner",
+                },
+              ],
+              "name": "title",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "https://fonts.googleapis.com",
+                ],
+                [
+                  "rel",
+                  "preconnect",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "crossorigin",
+                  "anonymous",
+                ],
+                [
+                  "href",
+                  "https://fonts.gstatic.com",
+                ],
+                [
+                  "rel",
+                  "preconnect",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"(function () {
+  var root = document.documentElement;
+  function applyClimate(climate) {
+    root.setAttribute("data-climate", climate);
+    root.setAttribute("data-theme", climate === "paper" ? "light" : "dark");
+  }
+  var stored = null;
+  try { stored = localStorage.getItem("console.climate"); } catch (e) { /* storage unavailable */ }
+  var climate = stored === "paper" || stored === "instrument"
+    ? stored
+    : root.getAttribute("data-climate");
+  if (climate === "paper" || climate === "instrument") {
+    applyClimate(climate);
+  }
+  function bind() {
+    var btn = document.getElementById("climateToggle");
+    if (!btn) return;
+    function sync() {
+      var instrument = root.getAttribute("data-climate") === "instrument";
+      btn.textContent = instrument ? "\\u25D0" : "\\u25D1";
+      var label = instrument ? "Switch to paper climate" : "Switch to instrument climate";
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("title", label);
+    }
+    btn.addEventListener("click", function () {
+      var next = root.getAttribute("data-climate") === "instrument" ? "paper" : "instrument";
+      applyClimate(next);
+      try { localStorage.setItem("console.climate", next); } catch (e) { /* storage unavailable */ }
+      sync();
+    });
+    sync();
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind);
+  } else {
+    bind();
+  }
+})();"
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "href",
+                  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap",
+                ],
+                [
+                  "rel",
+                  "stylesheet",
+                ],
+              ],
+              "children": [],
+              "name": "link",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "data-dashboard-styles",
+                  "true",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"/*
+ * Shared operator-console tokens and chrome.
+ *
+ * Instrument is the console's fixed bioluminescent identity. Paper is the
+ * warm editorial climate and may resolve from an injected site theme. All
+ * surface-local CSS consumes this semantic --console-* vocabulary.
+ */
+
+[data-climate="instrument"] {
+  --console-bg: #0a0819;
+  --console-frame: #0f0d22;
+  --console-card: #14112b;
+  --console-card-soft: #1b1638;
+  --console-bg-deep: #05040f;
+  --console-text: #f1eadd;
+  --console-text-dim: rgba(241, 234, 221, 0.62);
+  --console-text-muted: rgba(241, 234, 221, 0.4);
+  --console-text-faint: rgba(241, 234, 221, 0.22);
+  --console-accent: #ff8b3d;
+  --console-secondary: #818cf8;
+  --console-ok: #68cc8b;
+  --console-warn: #f5c158;
+  --console-err: #e26d6d;
+  --console-on-accent: #0a0819;
+  --console-shadow-card:
+    0 1px 0 rgba(255, 255, 255, 0.025) inset,
+    0 24px 58px -30px rgba(0, 0, 0, 0.72);
+  color-scheme: dark;
+}
+
+[data-climate="paper"] {
+  --console-bg: var(--color-bg, #ece5d6);
+  --console-frame: var(--color-bg-subtle, #f4efe6);
+  --console-card: var(--color-bg-card, #faf7f0);
+  --console-card-soft: var(--color-bg-muted, #ece5d6);
+  --console-bg-deep: var(--color-bg-deep, #dfd4bc);
+  --console-text: var(--color-text, #211d18);
+  --console-text-dim: var(--color-text-muted, rgba(33, 29, 24, 0.62));
+  --console-text-muted: var(--color-text-light, rgba(33, 29, 24, 0.42));
+  --console-text-faint: var(--color-border, rgba(33, 29, 24, 0.22));
+  --console-accent: var(--color-accent, #c44a1d);
+  --console-secondary: var(--color-secondary, #6b2fa0);
+  --console-ok: var(--color-success, #3d6b5c);
+  --console-warn: var(--palette-warning-text-emphasis-light, #7a4a05);
+  --console-err: var(--color-error, #932f2f);
+  --console-on-accent: var(--color-on-accent, #fff);
+  --console-shadow-card:
+    0 1px 0 rgba(255, 250, 235, 0.65) inset,
+    0 1px 0 rgba(120, 90, 40, 0.05),
+    0 22px 44px -30px rgba(90, 60, 20, 0.3);
+  color-scheme: light;
+}
+
+[data-climate] {
+  --console-neutral: var(--console-text-muted);
+  --console-rule: color-mix(in srgb, var(--console-text) 7%, transparent);
+  --console-rule-strong: color-mix(
+    in srgb,
+    var(--console-text) 14%,
+    transparent
+  );
+  --console-rule-accent: color-mix(
+    in srgb,
+    var(--console-accent) 48%,
+    transparent
+  );
+  --console-accent-dim: color-mix(in srgb, var(--console-accent) 72%, black);
+  --console-accent-soft: color-mix(
+    in srgb,
+    var(--console-accent) 12%,
+    transparent
+  );
+  --console-secondary-soft: color-mix(
+    in srgb,
+    var(--console-secondary) 12%,
+    transparent
+  );
+  --console-ok-soft: color-mix(in srgb, var(--console-ok) 13%, transparent);
+  --console-display: var(--font-display, "Fraunces", "Times New Roman", serif);
+  --console-ui: var(
+    --font-body,
+    "IBM Plex Sans",
+    -apple-system,
+    system-ui,
+    sans-serif
+  );
+  --console-mono: var(--font-label, "JetBrains Mono", ui-monospace, monospace);
+  --console-touch: 44px;
+  --console-strip-height: 52px;
+}
+
+/* ---- shared surface strip ------------------------------------------------ */
+
+.console-strip {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: var(--console-strip-height);
+  padding: 0 20px;
+  border-bottom: 1px solid var(--console-rule-strong);
+  background:
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--console-text) 4%, transparent),
+      transparent
+    ),
+    var(--console-frame);
+}
+.console-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: max-content;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.console-mark b {
+  color: var(--console-text);
+  font-weight: 500;
+}
+.surface-nav {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+.surface-nav-link {
+  display: inline-grid;
+  place-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: var(--console-text-muted);
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.surface-nav-link:hover {
+  color: var(--console-text);
+  background: var(--console-rule);
+}
+.surface-nav-link.is-active {
+  color: var(--console-text);
+  background: color-mix(in srgb, var(--console-text) 8%, transparent);
+  font-weight: 500;
+}
+.command-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-ui);
+  font-size: 12.5px;
+}
+.command-chip kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--console-rule-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--console-card) 84%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+.command-chip-icon {
+  display: none;
+  font-family: var(--console-mono);
+  font-size: 17px;
+  line-height: 1;
+}
+.climate-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 15px;
+  line-height: 1;
+}
+.climate-chip:hover {
+  color: var(--console-text);
+  background: var(--console-rule);
+}
+.session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--console-ok-soft);
+  color: var(--console-ok);
+  font-family: var(--console-mono);
+  font-size: 11px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.session-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--console-ok);
+}
+.session-chip strong {
+  color: var(--console-ok);
+  font-weight: 600;
+}
+/* Visitor state is wayfinding, not a health signal — keep it neutral. */
+.session-chip.is-visitor {
+  background: color-mix(in srgb, var(--console-text) 7%, transparent);
+  color: var(--console-text-dim);
+}
+.session-chip.is-visitor::before {
+  background: var(--console-text-muted);
+}
+.session-chip.is-visitor strong {
+  color: var(--console-text);
+}
+.session-chip-avatar { display: none; }
+.pulse {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--console-accent);
+  animation: console-pulse 2.4s ease-in-out infinite;
+}
+@keyframes console-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--console-accent) 50%, transparent);
+  }
+  55% { box-shadow: 0 0 0 7px transparent; }
+}
+
+/* Tablet keeps one line and compresses utilities rather than wrapping. */
+@media (max-width: 900px) {
+  .console-strip {
+    gap: 12px;
+    padding-inline: 16px;
+  }
+  .command-chip-hint { display: none; }
+}
+
+/* Phone uses a utility row plus a stable surface rail. */
+@media (max-width: 640px) {
+  [data-climate] { --console-strip-height: 102px; }
+  .console-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(--console-touch) var(--console-touch);
+    grid-template-areas:
+      "mark command climate session"
+      "nav nav nav nav";
+    gap: 4px 8px;
+    min-height: var(--console-strip-height);
+    padding:
+      max(8px, env(safe-area-inset-top))
+      12px
+      6px;
+  }
+  .console-mark {
+    grid-area: mark;
+    overflow: hidden;
+  }
+  .console-mark-long { display: none; }
+  .surface-nav {
+    grid-area: nav;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--console-rule);
+  }
+  .surface-nav-link {
+    min-height: 40px;
+    padding-inline: 6px;
+    font-family: var(--console-mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .command-chip {
+    grid-area: command;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    min-height: var(--console-touch);
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .command-chip kbd { display: none; }
+  .command-chip-icon { display: inline; }
+  .climate-chip {
+    grid-area: climate;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    min-height: var(--console-touch);
+    border-radius: 50%;
+  }
+  /* Utility circles keep the 44px target but read as quiet outlines, not
+     solid pucks — the phone strip should whisper like the desktop one. */
+  .command-chip,
+  .climate-chip {
+    border-color: var(--console-rule-strong);
+    background: transparent;
+  }
+  .session-chip {
+    grid-area: session;
+    width: var(--console-touch);
+    height: var(--console-touch);
+    min-height: var(--console-touch);
+    justify-content: center;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--console-ok) 45%, transparent);
+    border-radius: 50%;
+    background: transparent;
+  }
+  .session-chip.is-visitor {
+    border-color: var(--console-rule-strong);
+    background: transparent;
+  }
+  .session-chip::before,
+  .session-chip > :not(.session-chip-avatar) { display: none; }
+  .session-chip-avatar {
+    display: inline;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .session-chip.is-visitor .session-chip-avatar {
+    color: var(--console-text-muted);
+  }
+}
+
+@media (min-width: 1440px) {
+  [data-climate] { --console-strip-height: 54px; }
+  .surface-nav-link { font-size: 13.5px; }
+  .command-chip { font-size: 13px; }
+  .session-chip { font-size: 11.5px; }
+}
+
+/* ---- cross-surface command palette -------------------------------------- */
+
+.console-palette-open { overflow: hidden; }
+.console-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  place-items: start center;
+  padding: 9vh 20px 20px;
+  background: color-mix(in srgb, var(--console-bg-deep) 68%, transparent);
+  backdrop-filter: blur(4px);
+}
+.console-palette-overlay.is-open { display: grid; }
+.console-palette {
+  width: min(580px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 14px;
+  background: var(--console-card);
+  box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.58);
+}
+.cp-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+.cp-input-row::before {
+  content: "⌕";
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 18px;
+}
+.cp-input {
+  min-width: 0;
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--console-text);
+  font-family: var(--console-ui);
+  font-size: 15px;
+}
+.cp-input::placeholder { color: var(--console-text-muted); }
+.cp-esc {
+  padding: 1px 6px;
+  border: 1px solid var(--console-rule-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+.cp-groups {
+  max-height: 48vh;
+  overflow-y: auto;
+  padding-bottom: 6px;
+}
+.cp-group { padding: 7px 0 4px; }
+.cp-group + .cp-group { border-top: 1px solid var(--console-rule); }
+.cp-group-title {
+  padding: 4px 18px 5px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.cp-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 3px 11px;
+  align-items: baseline;
+  min-height: 42px;
+  padding: 8px 18px;
+  border-left: 2px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.cp-row:hover { background: var(--console-rule); }
+.cp-row.is-selected {
+  border-left-color: var(--console-accent);
+  background: var(--console-accent-soft);
+}
+.cp-glyph {
+  grid-row: span 2;
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  text-align: center;
+}
+.cp-title {
+  min-width: 0;
+  color: var(--console-text);
+  font-size: 13.5px;
+}
+.cp-title mark {
+  background: none;
+  color: var(--console-accent);
+  font-weight: 500;
+}
+.cp-sub {
+  grid-column: 2;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+.cp-tag {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  padding: 1px 9px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 999px;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.cp-empty {
+  padding: 16px 18px;
+  color: var(--console-text-muted);
+  font-size: 13px;
+}
+.cp-foot {
+  display: flex;
+  gap: 18px;
+  padding: 9px 18px;
+  border-top: 1px solid var(--console-rule-strong);
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+}
+.cp-foot span:last-child { margin-left: auto; }
+
+@media (max-width: 640px) {
+  .console-palette-overlay {
+    place-items: stretch;
+    padding: 0;
+    background: var(--console-card);
+    backdrop-filter: none;
+  }
+  .console-palette {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100dvh;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .cp-input-row {
+    min-height: calc(68px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 16px 0;
+  }
+  .cp-input { font-size: 16px; }
+  .cp-groups { max-height: none; }
+  .cp-row {
+    min-height: 54px;
+    padding: 10px 16px;
+  }
+  .cp-tag { display: none; }
+  .cp-foot {
+    justify-content: center;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .cp-foot span:not(:last-child) { display: none; }
+  .cp-foot span:last-child { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
+}
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  min-height: 100%;
+  max-width: 100%;
+}
+body {
+  font-family: var(--console-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--console-bg);
+  color: var(--console-text);
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: clip;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 0;
+}
+[data-climate="paper"] body::before {
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    transparent 0%,
+    transparent 45%,
+    var(--console-bg-deep) 110%
+  );
+  opacity: 0.55;
+  z-index: 0;
+}
+[data-climate="paper"] body::after {
+  background: radial-gradient(
+    ellipse at 50% -10%,
+    rgba(255, 250, 235, 0.6) 0%,
+    transparent 40%,
+    var(--console-bg-deep) 115%
+  );
+  opacity: 0.7;
+}
+
+.console {
+  --col-gap: 14px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px) 0 60px;
+}
+
+.frame {
+  width: min(1280px, 96vw);
+  min-height: 560px;
+  margin: 0 auto;
+  background: var(--console-frame);
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 10px;
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+[data-climate="paper"] .frame {
+  box-shadow: 0 22px 40px -28px rgba(90, 60, 20, 0.28);
+}
+
+.dashboard-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 18px 26px 0;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+.dashboard-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--console-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--console-text-muted);
+  padding: 9px 16px 11px;
+  border-bottom: 2px solid transparent;
+  transform: translateY(1px);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dashboard-tab:hover {
+  color: var(--console-text-dim);
+}
+.dashboard-tab.is-active {
+  color: var(--console-text);
+  border-bottom-color: var(--console-accent);
+}
+.tab-badge {
+  font-family: var(--console-mono);
+  font-size: 10px;
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.tab-badge--muted {
+  border: 1px solid var(--console-rule-strong);
+  color: var(--console-text-muted);
+}
+.canvas {
+  padding: 26px;
+}
+.dashboard-tab-panels {
+  display: grid;
+  gap: 42px;
+}
+.dashboard-tabs-ready .dashboard-tab-panel[hidden] {
+  display: none;
+}
+/* Section heads are a no-JS navigation aid; tabs replace them when active. */
+.dashboard-tabs-ready .tab-section-head {
+  display: none;
+}
+.tab-section-head {
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.tab-section-head h2 {
+  font-family: var(--console-display);
+  font-variation-settings: "SOFT" 40;
+  font-weight: 520;
+  font-size: 22px;
+  color: var(--console-text);
+}
+.masthead {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 26px 26px 0;
+}
+.brand {
+  font-family: var(--console-display);
+  font-variation-settings:
+    "SOFT" 80,
+    "opsz" 72;
+  font-weight: 560;
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--console-text);
+}
+.brand em {
+  font-style: italic;
+  font-variation-settings:
+    "SOFT" 100,
+    "opsz" 72;
+  font-weight: 470;
+  color: var(--console-accent);
+}
+.tagline {
+  color: var(--console-text-muted);
+  font-size: 13.5px;
+  padding-bottom: 5px;
+  max-width: 44ch;
+}
+@media (max-width: 900px) {
+  .masthead {
+    flex-wrap: wrap;
+    gap: 12px 24px;
+  }
+}
+.card {
+  background: var(--console-card);
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 10px;
+  padding: 14px 18px 16px;
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  container: dashboard-card / inline-size;
+}
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--console-text-muted);
+}
+.card-from,
+.card-subtitle {
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--console-text-faint);
+}
+
+.muted {
+  color: var(--console-text-muted);
+  font-size: 13px;
+}
+
+.colophon {
+  margin-top: 32px;
+  padding: 18px 26px 60px;
+  border-top: 1px solid var(--console-rule);
+  background: var(--console-card-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--console-text-faint);
+}
+.colophon-mark {
+  color: var(--console-text-faint);
+}
+.colophon-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: flex-end;
+}
+.colophon a,
+.colophon button {
+  color: var(--console-text-muted);
+  background: none;
+  border: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+.colophon a:hover,
+.colophon button:hover {
+  color: var(--console-accent);
+}
+@media (max-width: 700px) {
+  .colophon {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .colophon-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .dashboard-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .dashboard-tab {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+  }
+  .console {
+    padding: 12px 0 40px;
+  }
+  .frame {
+    border-inline: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .masthead {
+    align-items: center;
+    gap: 8px 12px;
+    padding: 18px 14px 0;
+  }
+  .brand {
+    font-size: clamp(27px, 8.5vw, 36px);
+    line-height: 1.03;
+  }
+  .tagline {
+    order: 3;
+    width: 100%;
+    max-width: 50ch;
+    padding: 0;
+    font-size: 12.5px;
+  }
+  .theme-btn {
+    min-width: var(--console-touch);
+    min-height: var(--console-touch);
+    margin: 0 0 0 auto;
+    padding-inline: 10px;
+  }
+  .dashboard-tabs {
+    padding: 12px 14px 0;
+  }
+  .dashboard-tab {
+    min-height: var(--console-touch);
+    margin-right: 18px;
+    padding: 8px 2px 10px;
+    font-size: 10.5px;
+  }
+  .canvas {
+    padding: 14px;
+  }
+  .dashboard-tab-panels {
+    gap: 24px;
+  }
+  .card {
+    padding: 14px;
+    border-radius: 9px;
+  }
+  .card-head {
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .card-subtitle,
+  .card-from {
+    font-size: 8.5px;
+  }
+  .colophon {
+    margin: 32px 0 0;
+    padding: 14px 14px 30px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .main-column > *,
+  .sidebar-column > * {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  }
+  .main-column > *:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  .main-column > *:nth-child(2) {
+    animation-delay: 0.22s;
+  }
+  .main-column > *:nth-child(3) {
+    animation-delay: 0.34s;
+  }
+  .sidebar-column > *:nth-child(1) {
+    animation-delay: 0.14s;
+  }
+  .sidebar-column > *:nth-child(2) {
+    animation-delay: 0.26s;
+  }
+  .sidebar-column > *:nth-child(3) {
+    animation-delay: 0.38s;
+  }
+  @keyframes rise {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+
+.public-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--col-gap);
+  align-items: start;
+}
+
+.public-identity-card p {
+  max-width: 66ch;
+  margin: 0 0 12px;
+  color: var(--console-text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.public-identity-card p b {
+  color: var(--console-text);
+  font-weight: 560;
+}
+.public-card-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--console-ok);
+  font-family: var(--console-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.public-card-pulse::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--console-ok);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--console-ok) 14%, transparent);
+}
+
+.public-card-empty {
+  padding: 9px 0;
+  color: var(--console-text-muted);
+  font-size: 13px;
+}
+.public-card-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.public-card-rows li,
+.public-card-rows li > a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.public-card-rows li {
+  padding: 8px 0;
+  border-top: 1px solid var(--console-rule);
+}
+.public-card-rows li:first-child {
+  padding-top: 2px;
+  border-top: 0;
+}
+.public-card-rows li > a {
+  width: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+.public-card-rows li > a:hover strong {
+  color: var(--console-accent);
+}
+.public-card-rows strong {
+  display: block;
+  color: var(--console-text);
+  font-size: 13.5px;
+  font-weight: 560;
+  transition: color 150ms ease;
+}
+.public-card-rows em {
+  display: block;
+  max-width: 55ch;
+  margin-top: 1px;
+  color: var(--console-text-muted);
+  font-size: 11.5px;
+  font-style: normal;
+}
+.public-card-rows small {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 4px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.public-card-rows li[data-kind="agent"] small,
+.public-card-rows li[data-kind="protocol"] small {
+  border-color: color-mix(in srgb, var(--console-secondary) 38%, transparent);
+  color: var(--console-secondary);
+}
+.public-card-rows li.is-skill strong::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--console-ok);
+  vertical-align: 1px;
+}
+.public-card-rows li.is-skill small {
+  border-color: color-mix(in srgb, var(--console-ok) 38%, transparent);
+  color: var(--console-ok);
+}
+
+.public-holdings {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--console-rule);
+  border-left: 1px solid var(--console-rule);
+}
+.public-holdings > div {
+  min-width: 0;
+  padding: 13px 12px;
+  border-right: 1px solid var(--console-rule);
+  border-bottom: 1px solid var(--console-rule);
+}
+.public-holdings dt {
+  overflow: hidden;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.public-holdings dd {
+  margin-top: 5px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 28px;
+  font-variation-settings:
+    "SOFT" 35,
+    "opsz" 58;
+  font-weight: 470;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .public-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .public-card-grid {
+    gap: 9px;
+  }
+  .public-identity-card p {
+    font-size: 13px;
+  }
+  .public-holdings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .public-holdings dd {
+    font-size: 25px;
+  }
+  .public-card-rows em {
+    font-size: 10.5px;
+  }
+}
+
+
+.card-map-panel .map-card {
+  padding: 14px 18px 16px;
+}
+.map-field {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background:
+    radial-gradient(
+      circle at 36% 50%,
+      color-mix(in srgb, var(--console-accent) 7%, transparent),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 58% 42%,
+      color-mix(in srgb, var(--console-secondary) 13%, transparent),
+      transparent 36%
+    ),
+    var(--console-bg-deep);
+  box-shadow: inset 0 2px 24px rgba(0, 0, 0, 0.5);
+}
+[data-climate="paper"] .map-field {
+  box-shadow: inset 0 2px 18px rgba(90, 60, 20, 0.22);
+}
+.knowledge-map-field,
+.proximity-map-field {
+  isolation: isolate;
+}
+.map-field svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 360px;
+}
+.map-empty {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  padding: 28px;
+  color: var(--console-text-muted);
+  font-family: var(--console-display);
+  font-size: 17px;
+  font-style: italic;
+  text-align: center;
+}
+.map-count {
+  position: absolute;
+  top: 8%;
+  left: 4%;
+  pointer-events: none;
+}
+.map-count b {
+  display: block;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: clamp(34px, 4vw, 48px);
+  font-variation-settings:
+    "opsz" 144,
+    "SOFT" 20;
+  font-weight: 330;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+  text-shadow: 0 0 26px
+    color-mix(in srgb, var(--console-accent) 25%, transparent);
+}
+.map-count span {
+  display: block;
+  margin-top: 8px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-top: 12px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.map-legend-item i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--console-text-faint);
+  border-radius: 50%;
+}
+.map-legend-item i[data-tone="good"] {
+  border-color: transparent;
+  background: var(--console-ok);
+}
+.map-legend-item i[data-tone="warn"] {
+  border-color: transparent;
+  background: var(--console-warn);
+}
+.map-legend-item i[data-kind*="topic"],
+.map-legend-item i[data-kind*="constellation"] {
+  border-color: var(--console-secondary);
+  border-style: dashed;
+  background: transparent;
+}
+.map-legend-item i[data-kind*="published"],
+.map-legend-item i[data-kind*="approved"] {
+  border-color: transparent;
+  background: var(--console-warn);
+}
+.map-legend-item i[data-kind*="skill"] {
+  border-color: transparent;
+  background: var(--console-ok);
+}
+.map-live {
+  margin-left: auto;
+  color: var(--console-text-dim);
+  font-family: var(--console-display);
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Knowledge is drawn as territories in a centerless semantic sky. */
+.knowledge-weave,
+.knowledge-zone-edge {
+  fill: none;
+  stroke: var(--console-secondary);
+  stroke-linecap: round;
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: map-draw 1.45s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+}
+.knowledge-weave {
+  opacity: 0.19;
+  stroke-width: 0.75;
+}
+.knowledge-zone-edge {
+  opacity: 0.42;
+  stroke-dasharray: 3 5;
+}
+.knowledge-zone text {
+  fill: var(--console-secondary);
+  stroke: var(--console-bg-deep);
+  stroke-width: 4px;
+  paint-order: stroke;
+  font-family: var(--console-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+.knowledge-point {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-bloom 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+.knowledge-point-mark {
+  fill: var(--console-text-faint);
+}
+.knowledge-point.is-published .knowledge-point-mark {
+  fill: var(--console-warn);
+}
+.knowledge-point.is-published .knowledge-point-glow {
+  fill: var(--console-warn);
+  opacity: 0.35;
+  animation: map-breathe 4.8s ease-in-out infinite;
+}
+.knowledge-point.is-skill .knowledge-point-mark {
+  fill: var(--console-ok);
+}
+.knowledge-point.is-signal .knowledge-point-mark {
+  fill: none;
+  stroke: var(--console-text-dim);
+  stroke-width: 1.3;
+}
+
+/* Proximity uses semantic distance as radius and affinity as threads. */
+.proximity-stratum circle {
+  fill: none;
+  stroke: var(--console-rule-strong);
+  stroke-dasharray: 2 7;
+  stroke-width: 0.8;
+}
+.proximity-stratum text {
+  fill: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+.proximity-spore {
+  fill: var(--console-text-faint);
+  opacity: 0;
+  animation: map-spore 11s linear infinite;
+}
+.proximity-thread {
+  fill: none;
+  stroke: var(--console-ok);
+  stroke-opacity: 0.24;
+  stroke-width: 0.9;
+}
+.proximity-cluster circle {
+  fill: color-mix(in srgb, var(--console-secondary) 6%, transparent);
+  stroke: var(--console-secondary);
+  stroke-dasharray: 4 7;
+  stroke-opacity: 0.48;
+  stroke-width: 0.9;
+}
+.proximity-cluster text {
+  fill: var(--console-secondary);
+  stroke: var(--console-bg-deep);
+  stroke-width: 4px;
+  paint-order: stroke;
+  font-family: var(--console-mono);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.proximity-center-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: map-breathe 5.2s ease-in-out infinite;
+}
+.proximity-center-core {
+  fill: var(--console-accent);
+  filter: drop-shadow(0 0 7px var(--console-accent));
+}
+.proximity-center text {
+  fill: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.proximity-node text {
+  fill: var(--console-text-muted);
+  stroke: var(--console-bg-deep);
+  stroke-width: 3px;
+  paint-order: stroke;
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+.proximity-node-mark {
+  fill: var(--console-text-muted);
+  stroke: var(--console-text-dim);
+  stroke-width: 1;
+}
+.proximity-node-glow {
+  fill: var(--console-warn);
+  opacity: 0.38;
+  animation: map-flicker 4.6s ease-in-out infinite;
+}
+.proximity-node-stem {
+  fill: none;
+  stroke: var(--console-warn);
+  stroke-linecap: round;
+  stroke-width: 1.2;
+}
+.proximity-node.is-approved .proximity-node-mark {
+  fill: var(--console-warn);
+  stroke: color-mix(in srgb, var(--console-warn) 70%, white);
+}
+.proximity-node.is-discovered .proximity-node-mark,
+.proximity-node.is-sighting .proximity-node-mark {
+  fill: var(--console-secondary);
+  stroke: var(--console-secondary);
+}
+.proximity-node.is-archived {
+  opacity: 0.25;
+}
+
+@keyframes map-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes map-bloom {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes map-breathe {
+  50% {
+    opacity: 0.58;
+    transform: scale(1.2);
+  }
+}
+@keyframes map-flicker {
+  50% {
+    opacity: 0.85;
+  }
+}
+@keyframes map-spore {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  20% {
+    opacity: 0.34;
+  }
+  82% {
+    opacity: 0.24;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+}
+
+@media (max-width: 700px) {
+  .card-map-panel .map-card {
+    padding: 12px;
+  }
+  .map-field,
+  .map-field svg,
+  .map-empty {
+    min-height: 260px;
+  }
+  .map-field svg {
+    width: 155%;
+    max-width: none;
+    transform: translateX(-18%);
+  }
+  .map-count {
+    top: 6%;
+    left: 4%;
+    padding: 7px 9px;
+    border: 1px solid var(--console-rule);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--console-bg-deep) 84%, transparent);
+    backdrop-filter: blur(4px);
+  }
+  .map-count b {
+    font-size: 29px;
+  }
+  .map-count span {
+    max-width: 11ch;
+    margin-top: 5px;
+    font-size: 6.5px;
+    line-height: 1.45;
+  }
+  .knowledge-zone text,
+  .proximity-node text {
+    font-size: 16px;
+  }
+  .proximity-center text,
+  .proximity-stratum text,
+  .proximity-cluster text {
+    font-size: 12px;
+  }
+  .map-legend {
+    gap: 7px 14px;
+  }
+  .map-live {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .knowledge-weave,
+  .knowledge-zone-edge,
+  .knowledge-point,
+  .knowledge-point-glow,
+  .proximity-spore,
+  .proximity-center-halo,
+  .proximity-node-glow {
+    animation: none;
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transform: none;
+  }
+}
+
+
+.operator-view {
+  display: grid;
+  gap: 18px;
+}
+.operator-view-title {
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 18px;
+  font-weight: 500;
+}
+.operator-block + .operator-block {
+  border-top: 1px solid var(--console-rule);
+  padding-top: 18px;
+}
+.operator-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  margin: 0;
+}
+.operator-stat {
+  display: grid;
+  gap: 6px;
+  padding: 4px 14px;
+  border-left: 1px solid var(--console-rule);
+}
+.operator-stat:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+.operator-stat dt,
+.operator-filter-summary {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.operator-stat dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.operator-notice {
+  padding: 12px 14px;
+  border: 1px solid var(--console-rule-strong);
+  border-left: 3px solid var(--console-text-muted);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--console-card-soft) 60%, transparent);
+  color: var(--console-text-dim);
+}
+.operator-notice--good {
+  border-left-color: var(--console-ok);
+}
+.operator-notice--warn {
+  border-left-color: var(--console-warn);
+}
+.operator-notice--error {
+  border-left-color: var(--console-err);
+}
+.operator-notice strong {
+  color: var(--console-text);
+}
+.operator-notice p {
+  margin: 4px 0 0;
+  line-height: 1.55;
+}
+.operator-empty {
+  margin: 0;
+  color: var(--console-text-muted);
+  font-size: 12px;
+}
+.operator-inline-link {
+  color: inherit;
+  text-decoration-color: var(--console-rule-accent);
+  text-underline-offset: 3px;
+}
+.operator-inline-link:hover {
+  color: var(--console-accent);
+}
+.operator-table-scroll {
+  overflow-x: auto;
+}
+.operator-filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.operator-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--console-text-dim);
+  font-size: 12px;
+}
+.operator-table th,
+.operator-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--console-rule);
+  vertical-align: top;
+}
+.operator-table th {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.operator-align--start {
+  text-align: left;
+}
+.operator-align--center {
+  text-align: center;
+}
+.operator-align--end {
+  text-align: right;
+}
+.operator-matrix {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--operator-matrix-columns, 2),
+    minmax(0, 1fr)
+  );
+  gap: 12px;
+}
+.operator-matrix-cell {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--console-rule);
+  border-top: 3px solid var(--console-text-muted);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--console-card-soft) 65%, transparent);
+}
+.operator-matrix-cell[data-tone="good"] {
+  border-top-color: var(--console-ok);
+}
+.operator-matrix-cell[data-tone="warn"] {
+  border-top-color: var(--console-warn);
+}
+.operator-matrix-cell[data-tone="error"] {
+  border-top-color: var(--console-err);
+}
+.operator-matrix-cell h5 {
+  margin: 0 0 10px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 15px;
+}
+.operator-spatial {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.operator-spatial-canvas {
+  position: relative;
+  min-height: clamp(280px, 42vw, 480px);
+  overflow: hidden;
+  border: 1px solid var(--console-rule);
+  border-radius: 8px;
+  background:
+    radial-gradient(
+      circle at center,
+      transparent 0 30%,
+      var(--console-card-soft) 100%
+    ),
+    var(--console-card);
+}
+.operator-spatial-lines,
+.operator-spatial-points {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.operator-spatial-lines ellipse,
+.operator-spatial-lines circle {
+  fill: none;
+  stroke: var(--console-rule-strong);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.operator-spatial-lines .operator-spatial-zone {
+  fill: color-mix(in srgb, var(--console-accent) 5%, transparent);
+  stroke-dasharray: 4 6;
+}
+.operator-spatial-lines line {
+  stroke: var(--console-rule-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.operator-spatial-lines line[data-tone="good"] {
+  stroke: var(--console-ok);
+}
+.operator-spatial-lines line[data-tone="warn"] {
+  stroke: var(--console-warn);
+}
+.operator-spatial-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  max-width: 120px;
+  padding: 6px 9px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 999px;
+  background: var(--console-card);
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+.operator-spatial-point {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
+  gap: 5px;
+  align-items: center;
+  max-width: 150px;
+  padding: 3px 6px;
+  border: 0;
+  background: color-mix(in srgb, var(--console-card) 88%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  line-height: 1.2;
+  text-align: left;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition:
+    opacity 120ms ease,
+    color 120ms ease;
+}
+.operator-spatial-point > span:first-child {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--console-text-muted);
+  border-radius: 50%;
+  background: var(--console-card);
+}
+.operator-spatial-point[data-tone="good"] > span:first-child {
+  border-color: var(--console-ok);
+}
+.operator-spatial-point[data-tone="warn"] > span:first-child {
+  border-color: var(--console-warn);
+}
+.operator-spatial-point[data-tone="error"] > span:first-child {
+  border-color: var(--console-err);
+}
+.operator-spatial-point:hover,
+.operator-spatial-point:focus-visible,
+.operator-spatial-point.is-selected,
+.operator-spatial-point.is-related {
+  z-index: 4;
+  color: var(--console-accent);
+  outline: 1px solid var(--console-rule-accent);
+  outline-offset: 2px;
+}
+.operator-spatial[data-ui-spatial-active]
+  .operator-spatial-point:not(.is-selected):not(.is-related) {
+  opacity: 0.3;
+}
+.operator-spatial-description {
+  margin: 0;
+  color: var(--console-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.operator-spatial-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 8px 0 0;
+  padding: 0;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  list-style: none;
+}
+.operator-spatial-legend li::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border: 1px solid currentcolor;
+  border-radius: 50%;
+}
+.operator-spatial-details article {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+.operator-spatial-details article[hidden] {
+  display: none;
+}
+.operator-spatial-details strong {
+  color: var(--console-text);
+}
+
+.operator-group dl,
+.operator-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.operator-group dl > div,
+.operator-meters > div,
+.operator-progress {
+  padding: 10px;
+  border: 1px solid var(--console-border);
+  border-radius: 8px;
+  background: var(--console-surface);
+}
+.operator-group dt,
+.operator-meters dt {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.operator-group dd,
+.operator-meters dd {
+  margin: 3px 0 0;
+  font-weight: 650;
+}
+.operator-group small,
+.operator-flow small,
+.operator-progress small {
+  display: block;
+  color: var(--console-text-muted);
+}
+.operator-flow ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+.operator-flow li {
+  min-width: 8rem;
+  padding: 9px 16px 9px 0;
+}
+.operator-flow li > span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border: 2px solid var(--console-border);
+  border-radius: 50%;
+}
+.operator-flow li[data-status="active"] > span,
+.operator-flow li[data-status="complete"] > span {
+  border-color: var(--console-accent);
+  background: var(--console-accent);
+}
+.operator-flow li[data-status="failed"] > span {
+  border-color: var(--console-error);
+  background: var(--console-error);
+}
+.operator-meters progress,
+.operator-progress progress {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  accent-color: var(--console-accent);
+}
+.operator-progress header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.operator-progress p {
+  margin: 8px 0;
+}
+
+@media (max-width: 640px) {
+  .operator-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .operator-stat:nth-child(odd) {
+    border-left: none;
+    padding-left: 0;
+  }
+  .operator-matrix {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Operator workspaces are a first-class Studio surface, so they use the same
+   editorial materials as the entity listing beside them: a display-face head
+   over a strong rule, mono instrument labels, hairline separation instead of
+   boxes, and card fill reserved for surfaces you actually read. Semantic blocks
+   arrive as an ordered stream, so width and emphasis are decided here from the
+   block's meaning rather than requested by the author.
+
+   Rendered reference: docs/operator-workspace-mockups.html. */
+
+.declarative-workspace {
+  min-height: 0;
+  max-width: 1440px;
+  padding: 26px 34px 40px;
+  overflow-y: auto;
+}
+
+/* ---- head: title, totals, and the rule that separates them from work ---- */
+
+.declarative-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 28px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--console-text);
+}
+
+.declarative-head h2 {
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 34px;
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 60;
+  font-weight: 580;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+/* Leading stats are workspace totals: a baseline-aligned readout beside the
+   title, not another card in the body. */
+.declarative-totals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0;
+  margin: 0;
+  padding-bottom: 3px;
+}
+
+.declarative-totals > div {
+  padding: 0 18px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+.declarative-totals > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.declarative-totals > div:last-child {
+  padding-right: 0;
+}
+
+.declarative-totals dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.declarative-totals dd {
+  margin: 3px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 27px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.declarative-totals > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-totals > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-totals > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- body: meaning decides width ---------------------------------------- */
+
+/* Two tracks, not three: a lone instrument panel then leaves half a row rather
+   than two-thirds of one, and paired panels still sit side by side. */
+.declarative-blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 26px 40px;
+  padding-top: 24px;
+}
+
+.declarative-blocks > section {
+  min-width: 0;
+}
+
+/* Collections, reading surfaces, and anything carrying its own controls take
+   the full measure; instrument readouts share a row. */
+.declarative-blocks > section[data-span="wide"] {
+  grid-column: 1 / -1;
+}
+
+/* Controls belong directly under the head, so they lose the block rhythm. */
+.declarative-blocks > section[data-block="query"] {
+  margin-top: -6px;
+}
+
+/* Section labels are instrument captions, not headlines. */
+.declarative-group h3,
+.declarative-flow h3,
+.declarative-text h3,
+.declarative-matrix h3,
+.declarative-spatial strong {
+  margin: 0 0 11px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ---- stats in the body -------------------------------------------------- */
+
+.declarative-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--console-rule);
+}
+
+.declarative-stats > div {
+  padding: 13px 16px 15px;
+  background: var(--console-frame);
+}
+
+.declarative-stats dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-stats dd {
+  margin: 6px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 23px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.declarative-stats > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-stats > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-stats > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- key/value and grouped readouts ------------------------------------- */
+
+.declarative-key-values,
+.declarative-group dl {
+  margin: 0;
+  border-top: 1px solid var(--console-rule-strong);
+}
+
+.declarative-key-values > div,
+.declarative-group dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--console-rule);
+}
+
+.declarative-key-values dt,
+.declarative-group dt {
+  min-width: 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-key-values dd,
+.declarative-group dd {
+  margin: 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.declarative-group dl > div {
+  flex-wrap: wrap;
+}
+
+.declarative-group small {
+  flex-basis: 100%;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+
+.declarative-group dl > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-group dl > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-group dl > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+/* ---- notices: a marked banner, not a box -------------------------------- */
+
+.declarative-notice {
+  padding: 11px 14px;
+  border-left: 2px solid var(--console-text-muted);
+  background: color-mix(in srgb, var(--console-text) 4%, transparent);
+}
+
+.declarative-notice strong {
+  display: block;
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.declarative-notice p {
+  margin: 3px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.declarative-notice[data-tone="warn"] {
+  border-left-color: var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 7%, transparent);
+}
+
+.declarative-notice[data-tone="error"] {
+  border-left-color: var(--console-err);
+  background: color-mix(in srgb, var(--console-err) 7%, transparent);
+}
+
+.declarative-notice[data-tone="good"] {
+  border-left-color: var(--console-ok);
+  background: var(--console-ok-soft);
+}
+
+/* ---- source text: a reading panel --------------------------------------- */
+
+.declarative-text {
+  padding: 16px 18px 18px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-text pre {
+  max-height: min(52vh, 40rem);
+  margin: 0;
+  overflow: auto;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.declarative-text small {
+  display: block;
+  margin-top: 11px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+/* ---- links and inline capabilities -------------------------------------- */
+
+.declarative-links,
+.declarative-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.declarative-links a,
+.declarative-inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--console-accent);
+  cursor: pointer;
+  font: inherit;
+  text-align: inherit;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+.declarative-links a:hover,
+.declarative-inline-link:hover {
+  text-decoration: underline;
+}
+
+/* A links block on its own reads as wayfinding, so space it like a nav row. */
+.declarative-blocks > section[data-block="links"] .declarative-links {
+  gap: 18px;
+  font-size: 12.5px;
+}
+
+.declarative-action-control {
+  display: inline-grid;
+  align-items: start;
+  gap: 8px;
+}
+
+.declarative-action-control .status {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+.declarative-action-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 12px;
+  width: min(720px, 100%);
+}
+
+.declarative-action-disclosure {
+  width: min(720px, 100%);
+}
+
+.declarative-action-disclosure > summary {
+  width: fit-content;
+  padding: 7px 11px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 6px;
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+  cursor: pointer;
+  font: 10px var(--console-mono);
+  letter-spacing: 0.04em;
+  list-style: none;
+}
+
+.declarative-action-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.declarative-action-disclosure > summary::before {
+  content: "+";
+  margin-right: 7px;
+}
+
+.declarative-action-disclosure[open] > summary {
+  margin-bottom: 14px;
+}
+
+.declarative-action-disclosure[open] > summary::before {
+  content: "−";
+}
+
+.declarative-aside .declarative-action-form {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
+.declarative-action-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--console-text-muted);
+  font: 10px var(--console-mono);
+}
+
+.declarative-action-form input,
+.declarative-action-form select {
+  min-height: 38px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card-soft);
+  color: var(--console-text);
+  padding: 8px 10px;
+  font: 12px var(--console-sans);
+}
+
+.declarative-action-form .declarative-action-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.declarative-action-form .declarative-action-checkbox input {
+  min-height: auto;
+}
+
+.declarative-action-form > button {
+  align-self: end;
+  justify-self: start;
+}
+
+.declarative-action-result {
+  display: grid;
+  gap: 8px;
+  width: min(720px, 100%);
+  padding: 12px;
+  border: 1px solid var(--console-rule-accent);
+  border-radius: 8px;
+  background: var(--console-accent-soft);
+}
+
+.declarative-action-result dl,
+.declarative-action-result dd {
+  margin: 0;
+}
+
+.declarative-action-result dl {
+  display: grid;
+  gap: 7px;
+}
+
+.declarative-action-result dl > div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.declarative-action-result dt {
+  color: var(--console-text-muted);
+  font: 9px var(--console-mono);
+  text-transform: uppercase;
+}
+
+.declarative-action-result dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.declarative-action-result code {
+  overflow: hidden;
+  color: var(--console-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .declarative-action-form {
+    grid-template-columns: 1fr;
+  }
+
+  .declarative-action-result dl > div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
+
+/* ---- lists: hairline rows in the listing's rhythm ----------------------- */
+
+.declarative-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--console-rule-strong);
+  list-style: none;
+}
+
+.declarative-list > li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 6px 13px 0;
+  border-bottom: 1px solid var(--console-rule);
+}
+
+/* Inside a master, only rows carrying a control light up; elsewhere every row
+   responds, because hover there is reading feedback rather than a promise. */
+.declarative-list > li:hover {
+  background: var(--console-card);
+}
+
+.declarative-detail-master .declarative-list > li:hover {
+  background: none;
+}
+
+.declarative-detail-master
+  .declarative-list
+  > li:has(strong .declarative-inline-link):hover {
+  background: var(--console-card);
+}
+
+.declarative-list > li > div:first-child {
+  min-width: 0;
+}
+
+.declarative-list strong {
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 16px;
+  font-variation-settings:
+    "SOFT" 50,
+    "opsz" 30;
+  font-weight: 520;
+  letter-spacing: -0.005em;
+}
+
+.declarative-list p {
+  margin: 3px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.declarative-list small {
+  display: block;
+  margin-top: 5px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+}
+
+.declarative-list .declarative-links {
+  margin-top: 7px;
+  font-size: 12px;
+}
+
+/* A row carrying a warning or failure states it in the margin. */
+.declarative-list > li[data-tone="warn"] {
+  box-shadow: inset 2px 0 0 var(--console-warn);
+}
+
+.declarative-list > li[data-tone="error"] {
+  box-shadow: inset 2px 0 0 var(--console-err);
+}
+
+.declarative-list > li[data-tone="good"] {
+  box-shadow: inset 2px 0 0 var(--console-ok);
+}
+
+.declarative-list-trailing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.declarative-list-trailing > span:not(.declarative-badge) {
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 13px;
+}
+
+.declarative-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.declarative-tags > span,
+.declarative-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--console-text) 7%, transparent);
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.declarative-badge[data-tone="warn"] {
+  background: color-mix(in srgb, var(--console-warn) 15%, transparent);
+  color: var(--console-warn);
+}
+
+.declarative-badge[data-tone="error"] {
+  background: color-mix(in srgb, var(--console-err) 15%, transparent);
+  color: var(--console-err);
+}
+
+.declarative-badge[data-tone="good"] {
+  background: var(--console-ok-soft);
+  color: var(--console-ok);
+}
+
+/* ---- master/detail ------------------------------------------------------- */
+
+/* Both regions stay present: the split is the surface's identity, so the
+   reading pane holds its place and states what it is waiting for. */
+.declarative-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 26px;
+}
+
+/* Nothing open means nothing to read beside: the collection takes the whole
+   measure rather than reserving a column of empty. */
+.declarative-detail[data-open="false"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.declarative-detail-master,
+.declarative-detail-pane {
+  min-width: 0;
+}
+
+.declarative-detail-pane {
+  padding-left: 26px;
+  border-left: 1px solid var(--console-rule-strong);
+}
+
+/* A half-width collection has no room for a title-and-trailing row, so master
+   rows stack the way narrow viewports already do.
+
+   Rows carry inset padding that the list gives back as negative margin: text
+   stays aligned with the head and filters above, while the open row's fill has
+   room to breathe around it instead of hugging its own marker. */
+.declarative-detail-master .declarative-list {
+  margin-inline: -12px;
+}
+
+.declarative-detail-master .declarative-list > li {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding-inline: 12px;
+}
+
+.declarative-detail-master .declarative-list-trailing {
+  justify-content: flex-start;
+}
+
+.declarative-detail-master .declarative-list strong {
+  font-size: 15px;
+}
+
+.declarative-detail-pane > h3 {
+  margin: 0 0 14px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 21px;
+  font-variation-settings:
+    "SOFT" 60,
+    "opsz" 40;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  outline: none;
+}
+
+.declarative-detail-pane > h3:focus-visible {
+  box-shadow: -10px 0 0 var(--console-accent);
+}
+
+.declarative-detail-pane > section + section {
+  margin-top: 18px;
+}
+
+/* Wide viewports keep the collection in view, so the back control is only
+   wayfinding for the stacked layout below. */
+.declarative-detail-back {
+  display: none;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+.declarative-detail-back:hover {
+  color: var(--console-accent-dim);
+}
+
+.declarative-detail .declarative-list > li[aria-current="true"] {
+  border-radius: 6px;
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
+.declarative-detail .declarative-table tr[aria-current="true"] {
+  background: var(--console-card);
+  box-shadow: inset 2px 0 0 var(--console-accent);
+}
+
+/* ---- segmented controls: local filters and tabs ------------------------- */
+
+.declarative-filter,
+.declarative-tabs > [role="tablist"] {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 14px;
+  padding: 3px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--console-card) 62%, transparent);
+}
+
+.declarative-filter button,
+.declarative-tabs [role="tab"] {
+  min-height: 28px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-ui);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.declarative-filter button:hover,
+.declarative-tabs [role="tab"]:hover {
+  color: var(--console-text);
+}
+
+.declarative-filter button[aria-pressed="true"],
+.declarative-tabs [role="tab"][aria-selected="true"] {
+  background: var(--console-text);
+  color: var(--console-frame);
+  font-weight: 500;
+}
+
+.declarative-filter button[data-emphasis="attention"] {
+  color: var(--console-warn);
+}
+
+/* ---- tables ------------------------------------------------------------- */
+
+.declarative-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* A table is as wide as its content needs, not as wide as the surface allows:
+   a two-column table must not strand its value half a screen from its label.
+   Wide tables still reach full measure and scroll inside their container. */
+.declarative-table {
+  width: auto;
+  min-width: min(100%, 520px);
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.declarative-table th:not(:last-child),
+.declarative-table td:not(:last-child) {
+  padding-right: 40px;
+}
+
+.declarative-table th {
+  padding: 0 12px 9px 0;
+  border-bottom: 1px solid var(--console-text);
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.declarative-table td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid var(--console-rule);
+  color: var(--console-text-dim);
+  font-size: 13px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.declarative-table tbody tr:hover {
+  background: var(--console-card);
+}
+
+.declarative-table td:first-child {
+  color: var(--console-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.declarative-table [data-align="center"] {
+  text-align: center;
+}
+
+.declarative-table [data-align="end"] {
+  text-align: right;
+}
+
+/* The action column is the row's right edge: no trailing gutter, and its
+   controls hug that edge rather than drifting into the last data column. */
+.declarative-table th:last-child,
+.declarative-table td:last-child {
+  padding-right: 0;
+  padding-left: 20px;
+}
+
+.declarative-table td .declarative-actions {
+  justify-content: flex-end;
+}
+
+.declarative-empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--console-text-muted);
+  font-size: 12.5px;
+}
+
+/* ---- query controls: a toolbar, not a panel ----------------------------- */
+
+.declarative-query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 18px;
+  padding-bottom: 4px;
+}
+
+.declarative-query > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.declarative-query label {
+  display: grid;
+  gap: 5px;
+  min-width: 9rem;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-query select {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 7px;
+  background: var(--console-card);
+  color: var(--console-text);
+  font-family: var(--console-ui);
+  font-size: 12.5px;
+}
+
+.declarative-query footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+
+/* ---- meters and progress: instrument faces ------------------------------ */
+
+.declarative-meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 20px;
+  margin: 0;
+}
+
+.declarative-meters dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-meters dd {
+  margin: 5px 0 0;
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 15px;
+}
+
+.declarative-progress {
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-progress header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.declarative-progress strong {
+  color: var(--console-text);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.declarative-progress header span {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.declarative-progress p {
+  margin: 8px 0 0;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-progress[data-tone="warn"] header span {
+  color: var(--console-warn);
+}
+
+.declarative-progress[data-tone="error"] header span {
+  color: var(--console-err);
+}
+
+.declarative-progress[data-tone="good"] header span {
+  color: var(--console-ok);
+}
+
+.declarative-meters progress,
+.declarative-progress progress {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-top: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--console-rule);
+}
+
+.declarative-meters progress::-webkit-progress-bar,
+.declarative-progress progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--console-rule);
+}
+
+.declarative-meters progress::-webkit-progress-value,
+.declarative-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--console-accent);
+}
+
+.declarative-meters progress::-moz-progress-bar,
+.declarative-progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--console-accent);
+}
+
+.declarative-meters > div[data-tone="warn"] dd {
+  color: var(--console-warn);
+}
+
+.declarative-meters > div[data-tone="error"] dd {
+  color: var(--console-err);
+}
+
+.declarative-meters > div[data-tone="good"] dd {
+  color: var(--console-ok);
+}
+
+.declarative-progress small,
+.declarative-flow small {
+  display: block;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+.declarative-progress small {
+  margin-top: 10px;
+}
+
+/* ---- flow: stations on a track ------------------------------------------ */
+
+.declarative-flow ol {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.declarative-flow li {
+  position: relative;
+  min-width: 8.5rem;
+  padding: 0 20px 0 0;
+  color: var(--console-text-muted);
+}
+
+/* The track runs between station marks rather than under the labels. */
+.declarative-flow li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 14px;
+  right: 12px;
+  height: 1px;
+  background: var(--console-rule-strong);
+}
+
+.declarative-flow li > span {
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin-bottom: 9px;
+  border: 1px solid var(--console-text-muted);
+  border-radius: 50%;
+  background: var(--console-frame);
+}
+
+.declarative-flow strong {
+  display: block;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.declarative-flow li[data-status="complete"] > span,
+.declarative-flow li[data-status="active"] > span {
+  border-color: var(--console-accent);
+  background: var(--console-accent);
+}
+
+.declarative-flow li[data-status="active"] strong,
+.declarative-flow li[data-status="complete"] strong {
+  color: var(--console-text);
+}
+
+.declarative-flow li[data-status="active"] > span {
+  box-shadow: 0 0 0 3px var(--console-accent-soft);
+}
+
+.declarative-flow li[data-status="failed"] > span {
+  border-color: var(--console-err);
+  background: var(--console-err);
+}
+
+.declarative-flow li[data-status="failed"] strong {
+  color: var(--console-err);
+}
+
+/* ---- matrix and spatial summaries --------------------------------------- */
+
+.declarative-matrix {
+  display: grid;
+  gap: 18px;
+}
+
+.declarative-matrix > section {
+  min-width: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-top: 2px solid var(--console-text-muted);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-matrix > section[data-tone="good"] {
+  border-top-color: var(--console-ok);
+}
+
+.declarative-matrix > section[data-tone="warn"] {
+  border-top-color: var(--console-warn);
+}
+
+.declarative-matrix > section[data-tone="error"] {
+  border-top-color: var(--console-err);
+}
+
+.declarative-matrix .declarative-list {
+  border-top: 0;
+}
+
+.declarative-matrix .declarative-list > li:last-child {
+  border-bottom: 0;
+}
+
+.declarative-spatial {
+  margin: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-spatial figcaption p {
+  margin: 0 0 12px;
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+}
+
+.declarative-spatial ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 10px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.declarative-spatial li {
+  padding-top: 8px;
+  border-top: 1px solid var(--console-rule);
+}
+
+.declarative-spatial li strong {
+  color: var(--console-text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.declarative-spatial li span {
+  display: block;
+  margin-top: 2px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 10px;
+}
+
+/* ---- narrow viewports ---------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .declarative-workspace {
+    padding: 20px 18px 28px;
+  }
+
+  .declarative-head h2 {
+    font-size: 27px;
+  }
+
+  .declarative-totals dd {
+    font-size: 22px;
+  }
+}
+
+/* Below the split threshold master/detail becomes a drill-down: one region at a
+   time, with the back control as the way out. */
+@media (max-width: 860px) {
+  .declarative-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .declarative-detail .declarative-detail-pane {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* One region at a time: the collection until something is open, then the
+     reading pane with the back control as the way out. */
+  .declarative-detail[data-open="true"] .declarative-detail-master {
+    display: none;
+  }
+
+  .declarative-detail[data-open="false"] .declarative-detail-pane {
+    display: none;
+  }
+
+  .declarative-detail-back {
+    display: block;
+  }
+}
+
+@media (max-width: 720px) {
+  .declarative-blocks {
+    grid-template-columns: 1fr;
+  }
+
+  .declarative-matrix {
+    grid-template-columns: 1fr !important;
+  }
+
+  .declarative-list > li {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .declarative-list-trailing {
+    justify-content: flex-start;
+  }
+
+  .declarative-query label {
+    min-width: 100%;
+  }
+}
+
+/* ---- head: kicker, description, standing status ------------------------- */
+
+.declarative-head {
+  align-items: flex-start;
+}
+
+.declarative-head-copy {
+  max-width: 46ch;
+}
+
+.declarative-kicker {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--console-accent);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.declarative-head-copy p {
+  margin-top: 7px;
+  color: var(--console-text-dim);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.declarative-head-state {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.declarative-status-badge {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: var(--console-text);
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.declarative-status-badge > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.declarative-status-badge > span::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--console-text-muted);
+}
+
+.declarative-status-badge[data-tone="good"] {
+  color: var(--console-ok);
+}
+
+.declarative-status-badge[data-tone="good"] > span::before {
+  background: var(--console-ok);
+}
+
+.declarative-status-badge[data-tone="warn"] {
+  color: var(--console-warn);
+}
+
+.declarative-status-badge[data-tone="warn"] > span::before {
+  background: var(--console-warn);
+}
+
+.declarative-status-badge[data-tone="error"] {
+  color: var(--console-err);
+}
+
+.declarative-status-badge[data-tone="error"] > span::before {
+  background: var(--console-err);
+}
+
+.declarative-status-badge small {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 400;
+}
+
+/* A stat says what its number counts. */
+.declarative-stat-caption {
+  display: block;
+  margin-top: 4px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+}
+
+/* ---- columns: work beside standing facts -------------------------------- */
+
+.declarative-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.6fr);
+  align-items: start;
+  gap: 30px;
+}
+
+.declarative-column {
+  display: grid;
+  align-content: start;
+  gap: 26px;
+  min-width: 0;
+}
+
+.declarative-aside {
+  gap: 15px;
+}
+
+/* Runs and queues inside a column read as a dense log, not as cards. */
+.declarative-column .declarative-list > li {
+  padding: 9px 6px 9px 12px;
+}
+
+.declarative-column .declarative-list strong {
+  font-size: 14px;
+}
+
+.declarative-column .declarative-list p {
+  margin-top: 1px;
+  font-size: 12px;
+}
+
+/* ---- card: one caption over related facts ------------------------------- */
+
+.declarative-card {
+  padding: 15px 16px 16px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px;
+  background: var(--console-card);
+}
+
+.declarative-card > header {
+  margin-bottom: 10px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.declarative-card[data-tone="good"] {
+  border-left: 2px solid var(--console-ok);
+}
+
+.declarative-card[data-tone="warn"] {
+  border-left: 2px solid var(--console-warn);
+}
+
+.declarative-card[data-tone="error"] {
+  border-left: 2px solid var(--console-err);
+}
+
+.declarative-card p {
+  color: var(--console-text-dim);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.declarative-card .declarative-key-values {
+  border-top: 0;
+}
+
+.declarative-card .declarative-key-values > div:last-child {
+  border-bottom: 0;
+}
+
+.declarative-card .declarative-meters {
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.declarative-card > div + div {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .declarative-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+/* A card already names its contents, so the block inside it does not repeat
+   the caption. */
+.declarative-card .declarative-group h3,
+.declarative-card .declarative-flow h3,
+.declarative-card .declarative-text h3 {
+  display: none;
+}
+
+/* ---- collection rows: scan first, act second ---------------------------- */
+
+/* Three accent links per row turns a triage list into noise. Row links are
+   wayfinding, so they sit quiet until pointed at; the accent stays for the
+   things that change state. */
+.declarative-list > li .declarative-links a,
+.declarative-list > li .declarative-inline-link {
+  color: var(--console-text-muted);
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+
+.declarative-list > li .declarative-links a:hover,
+.declarative-list > li .declarative-inline-link:hover {
+  color: var(--console-accent-dim);
+  border-bottom-color: var(--console-accent);
+  text-decoration: none;
+}
+
+/* Urgency belongs with the title it qualifies, not stranded under the
+   metadata, and a row is scanned before it is read. */
+.declarative-detail-master .declarative-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 10px 12px;
+}
+
+.declarative-detail-master .declarative-list > li > div:first-child {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.declarative-detail-master .declarative-list-trailing {
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: flex-end;
+  align-items: baseline;
+}
+
+.declarative-detail-master .declarative-list p {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.declarative-detail-master .declarative-list small {
+  margin-top: 3px;
+}
+
+.declarative-detail-master .declarative-list .declarative-links {
+  margin-top: 5px;
+}
+
+/* A row that opens something is itself the control: its title carries the
+   affordance rather than looking like one more link beneath it. */
+.declarative-detail-master .declarative-list strong .declarative-inline-link {
+  color: inherit;
+  font: inherit;
+  border-bottom: 0;
+}
+
+/* Only a row that actually opens something reacts to the pointer; a source
+   with no readable content must not advertise a click it cannot honour. */
+.declarative-detail-master
+  .declarative-list
+  > li:hover
+  strong
+  .declarative-inline-link {
+  color: var(--console-accent-dim);
+}
+
+/* The whole row is the target, not just the title glyph: the title's control
+   is stretched over the row so a click anywhere opens it, while the row's own
+   buttons and links stay above it and keep their own behaviour. */
+.declarative-detail-master .declarative-list > li {
+  position: relative;
+}
+
+.declarative-detail-master
+  .declarative-list
+  strong
+  .declarative-inline-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.declarative-detail-master .declarative-list-trailing,
+.declarative-detail-master .declarative-list .declarative-links {
+  position: relative;
+  z-index: 1;
+}
+
+/* A row summarises; the pane holds the whole thing. Clamping keeps rows an
+   even, scannable height whatever a source puts in its description. */
+.declarative-detail-master .declarative-list p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.declarative-detail-master .declarative-list strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.declarative-pager {
+  display: inline-flex;
+  gap: 6px;
+}
+
+/* In the reading pane a card is a labelled group, not a box: the pane is
+   already a surface, so nesting panels inside it would read as clutter.
+   The caption and a hairline do the grouping instead. */
+.declarative-detail-pane .declarative-card {
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid var(--console-rule);
+  border-radius: 0;
+  background: none;
+}
+
+.declarative-detail-pane .declarative-card > header {
+  margin-bottom: 9px;
+}
+
+/* Follow-ups are wayfinding out of the item; they stay quiet beside the verbs
+   that actually resolve it. */
+.declarative-detail-pane .declarative-links a,
+.declarative-detail-pane .declarative-links .declarative-inline-link {
+  color: var(--console-text-dim);
+  font-size: 12px;
+  border-bottom: 1px solid var(--console-rule-strong);
+}
+
+.declarative-detail-pane .declarative-links a:hover,
+.declarative-detail-pane .declarative-links .declarative-inline-link:hover {
+  color: var(--console-accent-dim);
+  border-bottom-color: var(--console-accent);
+  text-decoration: none;
+}
+
+.declarative-detail-pane .declarative-links {
+  gap: 16px;
+}
+
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 4px;
+  border-top: 1px solid var(--console-rule);
+  transition: background 0.15s ease;
+}
+.list-item:first-child {
+  border-top: none;
+}
+.list-item:hover {
+  background: var(--console-accent-soft);
+}
+.list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.list-name {
+  font-size: 13.5px;
+  color: var(--console-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-desc {
+  font-size: 12px;
+  color: var(--console-text-dim);
+  line-height: 1.45;
+}
+.list-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.tag {
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  color: var(--console-text-muted);
+  padding: 2px 7px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+}
+.list-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.list-meta-text {
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--console-text-muted);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.list-meta-text .sep {
+  color: var(--console-text-faint);
+  margin: 0 6px;
+}
+.list-count {
+  font-family: var(--console-mono);
+  font-size: 11px;
+  color: var(--console-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.pill {
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  color: var(--console-text-muted);
+  border: 1px solid var(--console-rule-strong);
+}
+.pill--warn {
+  color: var(--console-warn);
+  border-color: color-mix(in srgb, var(--console-warn) 35%, transparent);
+}
+.pill--err {
+  color: var(--console-err);
+  border-color: color-mix(in srgb, var(--console-err) 40%, transparent);
+}
+.pill--ok {
+  color: var(--console-ok);
+  border-color: color-mix(in srgb, var(--console-ok) 35%, transparent);
+}
+.pill--mute {
+  color: var(--console-text-faint);
+}
+
+/* Generic widget actions. */
+.widget-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.widget-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.widget-action--primary {
+  border-color: var(--console-rule-accent);
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+}
+.widget-action-arrow {
+  color: var(--console-accent);
+  transition: transform 0.15s ease;
+}
+.widget-action:hover {
+  border-color: var(--console-rule-accent);
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+}
+.widget-action:hover .widget-action-arrow {
+  transform: translate(2px, -1px);
+}
+
+/* Generic widget controls. */
+.widget-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--console-rule);
+  padding-bottom: 2px;
+}
+.widget-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 2px 0 10px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--console-text-faint);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.widget-tab:hover {
+  color: var(--console-text-dim);
+}
+.widget-tab.is-active {
+  color: var(--console-text);
+  border-bottom-color: var(--console-accent);
+}
+.widget-tab-count {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.widget-tab.is-active .widget-tab-count {
+  color: var(--console-text-dim);
+}
+.widget-filter-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.widget-filter-search {
+  width: min(100%, 280px);
+  padding: 7px 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--console-card-soft) 45%, transparent);
+  color: var(--console-text);
+  font-family: var(--console-mono);
+  font-size: 11px;
+}
+.widget-filter-search::placeholder {
+  color: var(--console-text-faint);
+}
+.widget-filter-search:focus-visible {
+  border-color: var(--console-rule-accent);
+  outline: 1px solid var(--console-rule-accent);
+  outline-offset: 1px;
+}
+.widget-filter-toggle {
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.widget-filter-toggle:hover {
+  color: var(--console-text);
+}
+.widget-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.widget-filter-tabs--compact {
+  margin-bottom: 12px;
+}
+.widget-filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--console-text-faint);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.widget-filter-tabs--compact .widget-filter-tab {
+  padding-inline: 8px;
+}
+.widget-filter-tab:hover {
+  background: var(--console-accent-soft);
+  border-color: var(--console-rule-accent);
+  color: var(--console-text);
+}
+.widget-filter-tab.is-active {
+  background: color-mix(in srgb, var(--console-card-soft) 55%, transparent);
+  border-color: var(--console-rule-accent);
+  color: var(--console-text);
+}
+.widget-filter-count {
+  color: var(--console-text);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.widget-filter-label {
+  color: var(--console-text-muted);
+}
+.widget-filter-tab.is-active .widget-filter-label {
+  color: var(--console-text-dim);
+}
+.widget-filter-tab.is-gap .widget-filter-count {
+  color: var(--console-warn);
+}
+
+@media (max-width: 900px) {
+  .widget-tabs {
+    gap: 20px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .widget-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .widget-tab {
+    flex: 0 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-action,
+  .widget-action-arrow {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .widget-filter-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .widget-filter-search {
+    width: 100%;
+  }
+  .widget-filter-toggle {
+    align-self: start;
+  }
+  .list-item {
+    gap: 10px;
+    padding-block: 10px;
+  }
+  .list-name {
+    white-space: normal;
+  }
+  .list-meta {
+    align-self: start;
+  }
+  .widget-tab,
+  .widget-filter-tab {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .list-name {
+    font-size: 14.5px;
+  }
+  .list-desc {
+    font-size: 13px;
+  }
+}
+
+
+/* Deprecated aliases for custom widgets authored before WidgetTabs. */
+.view-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--console-rule);
+  padding-bottom: 2px;
+}
+.view-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 2px 0 10px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--console-text-faint);
+  cursor: pointer;
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.view-tab:hover {
+  color: var(--console-text-dim);
+}
+.view-tab.is-active {
+  color: var(--console-text);
+  border-bottom-color: var(--console-accent);
+}
+.view-tab-count {
+  color: var(--console-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.view-tab.is-active .view-tab-count {
+  color: var(--console-text-dim);
+}
+
+@media (max-width: 900px) {
+  .view-tabs {
+    gap: 20px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+  .view-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .view-tab {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .view-tab {
+    min-height: 40px;
+  }
+}
+"
+,
+                },
+              ],
+              "name": "style",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+          ],
+          "name": "head",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+        {
+          "attributes": [],
+          "children": [
+            {
+              "attributes": [
+                [
+                  "aria-label",
+                  "Console surfaces",
+                ],
+                [
+                  "class",
+                  "console-strip",
+                ],
+              ],
+              "children": [
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Console home",
+                    ],
+                    [
+                      "class",
+                      "console-mark",
+                    ],
+                    [
+                      "href",
+                      "/dashboard",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "pulse",
+                        ],
+                      ],
+                      "children": [],
+                      "name": "span",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Brain ",
+                        },
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "console-mark-long",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "· ",
+                            },
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Console",
+                                },
+                              ],
+                              "name": "b",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "span",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "span",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "a",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Console surfaces",
+                    ],
+                    [
+                      "class",
+                      "surface-nav",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "surface-nav-link is-active",
+                        ],
+                        [
+                          "data-console-surface",
+                          "dashboard",
+                        ],
+                        [
+                          "href",
+                          "/dashboard",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Dashboard",
+                        },
+                      ],
+                      "name": "a",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "nav",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Search or jump",
+                    ],
+                    [
+                      "class",
+                      "command-chip",
+                    ],
+                    [
+                      "type",
+                      "button",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "command-chip-hint",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Search or jump…",
+                        },
+                      ],
+                      "name": "span",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "⌘K",
+                        },
+                      ],
+                      "name": "kbd",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [
+                        [
+                          "aria-hidden",
+                          "true",
+                        ],
+                        [
+                          "class",
+                          "command-chip-icon",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "⌕",
+                        },
+                      ],
+                      "name": "span",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "button",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Toggle climate",
+                    ],
+                    [
+                      "class",
+                      "climate-chip",
+                    ],
+                    [
+                      "id",
+                      "climateToggle",
+                    ],
+                    [
+                      "type",
+                      "button",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "◐",
+                    },
+                  ],
+                  "name": "button",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Visitor · Sign in",
+                    ],
+                    [
+                      "class",
+                      "session-chip is-visitor",
+                    ],
+                    [
+                      "href",
+                      "/login?return_to=%2Fdashboard",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Visitor",
+                        },
+                      ],
+                      "name": "span",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "Sign in",
+                        },
+                      ],
+                      "name": "strong",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [
+                        [
+                          "aria-hidden",
+                          "true",
+                        ],
+                        [
+                          "class",
+                          "session-chip-avatar",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "VI",
+                        },
+                      ],
+                      "name": "span",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "a",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+              ],
+              "name": "header",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
+                  "class",
+                  "console",
+                ],
+                [
+                  "data-component",
+                  "dashboard:dashboard",
+                ],
+              ],
+              "children": [
+                {
+                  "attributes": [
+                    [
+                      "class",
+                      "frame",
+                    ],
+                    [
+                      "data-ui-tabs",
+                      "true",
+                    ],
+                    [
+                      "data-ui-tabs-default",
+                      "overview",
+                    ],
+                    [
+                      "data-ui-tabs-hash",
+                      "true",
+                    ],
+                  ],
+                  "children": [
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "masthead",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "brand",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": "Test ",
+                            },
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Owner",
+                                },
+                              ],
+                              "name": "em",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "h1",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "header",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [
+                        [
+                          "aria-label",
+                          "Dashboard sections",
+                        ],
+                        [
+                          "class",
+                          "dashboard-tabs",
+                        ],
+                        [
+                          "role",
+                          "tablist",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "aria-selected",
+                              "true",
+                            ],
+                            [
+                              "class",
+                              "dashboard-tab is-active",
+                            ],
+                            [
+                              "data-dashboard-tab-link",
+                              "overview",
+                            ],
+                            [
+                              "data-ui-tab",
+                              "overview",
+                            ],
+                            [
+                              "href",
+                              "#overview",
+                            ],
+                            [
+                              "id",
+                              "dashboard-tab-overview",
+                            ],
+                            [
+                              "role",
+                              "tab",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Overview",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                        {
+                          "attributes": [
+                            [
+                              "aria-selected",
+                              "false",
+                            ],
+                            [
+                              "class",
+                              "dashboard-tab",
+                            ],
+                            [
+                              "data-dashboard-tab-link",
+                              "knowledge",
+                            ],
+                            [
+                              "data-ui-tab",
+                              "knowledge",
+                            ],
+                            [
+                              "href",
+                              "#knowledge",
+                            ],
+                            [
+                              "id",
+                              "dashboard-tab-knowledge",
+                            ],
+                            [
+                              "role",
+                              "tab",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Knowledge",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                        {
+                          "attributes": [
+                            [
+                              "aria-selected",
+                              "false",
+                            ],
+                            [
+                              "class",
+                              "dashboard-tab",
+                            ],
+                            [
+                              "data-dashboard-tab-link",
+                              "network",
+                            ],
+                            [
+                              "data-ui-tab",
+                              "network",
+                            ],
+                            [
+                              "href",
+                              "#network",
+                            ],
+                            [
+                              "id",
+                              "dashboard-tab-network",
+                            ],
+                            [
+                              "role",
+                              "tab",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Network",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "nav",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [
+                        [
+                          "class",
+                          "canvas",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "dashboard-tab-panels",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "aria-labelledby",
+                                  "dashboard-tab-overview",
+                                ],
+                                [
+                                  "class",
+                                  "dashboard-tab-panel is-active",
+                                ],
+                                [
+                                  "data-dashboard-tab-panel",
+                                  "true",
+                                ],
+                                [
+                                  "data-ui-panel",
+                                  "overview",
+                                ],
+                                [
+                                  "id",
+                                  "overview",
+                                ],
+                                [
+                                  "role",
+                                  "tabpanel",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "public-card-grid",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "card public-identity-card",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-head",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-title",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "What is this",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-from",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "brain · brain.test",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [],
+                                          "children": [
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "Test Owner",
+                                                },
+                                              ],
+                                              "name": "b",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": " is a brain. A shared digital brain.",
+                                            },
+                                          ],
+                                          "name": "p",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "It is grown from what Test Owner has chosen to share, and belongs to them. Ask it anything it holds; answers stay in public scope. Private memory and operator activity stay behind Studio.",
+                                            },
+                                          ],
+                                          "name": "p",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "public-card-pulse",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "alive · public scope only",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "article",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "card public-contact-card",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-head",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-title",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "Ways to connect",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "public-card-empty",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "No public interaction doors are advertised yet.",
+                                            },
+                                          ],
+                                          "name": "p",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "article",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "card public-holdings-card",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-head",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-title",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "What I hold",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-from",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "public scope",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "public-card-empty",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "No public entities yet.",
+                                            },
+                                          ],
+                                          "name": "p",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "article",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "card public-skills-card",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-head",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-title",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "Skills",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-from",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "the moss marks on the map",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "public-card-empty",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "No public skills advertised yet.",
+                                            },
+                                          ],
+                                          "name": "p",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "article",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "div",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "section",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "aria-labelledby",
+                                  "dashboard-tab-knowledge",
+                                ],
+                                [
+                                  "class",
+                                  "dashboard-tab-panel card-map-panel",
+                                ],
+                                [
+                                  "data-card-map",
+                                  "knowledge",
+                                ],
+                                [
+                                  "data-dashboard-tab-panel",
+                                  "true",
+                                ],
+                                [
+                                  "data-ui-panel",
+                                  "knowledge",
+                                ],
+                                [
+                                  "id",
+                                  "knowledge",
+                                ],
+                                [
+                                  "role",
+                                  "tabpanel",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "tab-section-head",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "Knowledge",
+                                        },
+                                      ],
+                                      "name": "h2",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "header",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "card map-card",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "card-head",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-title",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "Knowledge map",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-from",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "public topics · semantic space",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "knowledge-map-field map-field",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-empty",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "The public knowledge map will grow as topics are indexed.",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "aria-hidden",
+                                              "true",
+                                            ],
+                                            [
+                                              "class",
+                                              "map-count",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "0",
+                                                },
+                                              ],
+                                              "name": "b",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "public entities held",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "aria-label",
+                                          "Knowledge map legend",
+                                        ],
+                                        [
+                                          "class",
+                                          "map-legend",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-legend-item",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "data-kind",
+                                                  "topic-zones",
+                                                ],
+                                                [
+                                                  "data-tone",
+                                                  "neutral",
+                                                ],
+                                              ],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Topic zones",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-legend-item",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "data-kind",
+                                                  "published",
+                                                ],
+                                                [
+                                                  "data-tone",
+                                                  "neutral",
+                                                ],
+                                              ],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Published",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-legend-item",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "data-kind",
+                                                  "skills",
+                                                ],
+                                                [
+                                                  "data-tone",
+                                                  "neutral",
+                                                ],
+                                              ],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Skills",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-legend-item",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "data-kind",
+                                                  "sources",
+                                                ],
+                                                [
+                                                  "data-tone",
+                                                  "neutral",
+                                                ],
+                                              ],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Sources",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-live",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "0 sources · 0 territories · public scope",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "article",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "section",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "aria-labelledby",
+                                  "dashboard-tab-network",
+                                ],
+                                [
+                                  "class",
+                                  "dashboard-tab-panel card-map-panel",
+                                ],
+                                [
+                                  "data-card-map",
+                                  "network",
+                                ],
+                                [
+                                  "data-dashboard-tab-panel",
+                                  "true",
+                                ],
+                                [
+                                  "data-ui-panel",
+                                  "network",
+                                ],
+                                [
+                                  "id",
+                                  "network",
+                                ],
+                                [
+                                  "role",
+                                  "tabpanel",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "tab-section-head",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "Network",
+                                        },
+                                      ],
+                                      "name": "h2",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "header",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "card map-card",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "card-head",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-title",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "Agent proximity",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card-from",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "public directory · semantic distance",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "proximity-map-field map-field",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-empty",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "The public agent network will appear as approved peers are indexed.",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "aria-label",
+                                          "Agent proximity legend",
+                                        ],
+                                        [
+                                          "class",
+                                          "map-legend",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-legend-item",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "data-kind",
+                                                  "approved",
+                                                ],
+                                                [
+                                                  "data-tone",
+                                                  "good",
+                                                ],
+                                              ],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Approved",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-legend-item",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "data-kind",
+                                                  "discovered",
+                                                ],
+                                                [
+                                                  "data-tone",
+                                                  "warn",
+                                                ],
+                                              ],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Discovered",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-live",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "0 agents · 0 constellations discovered · federation open",
+                                            },
+                                          ],
+                                          "name": "span",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "article",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "section",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "div",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                        {
+                          "attributes": [
+                            [
+                              "class",
+                              "colophon",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "colophon-mark",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "Test Owner · dashboard",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "class",
+                                  "colophon-actions",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "value": "Runs on Brains 0.0.0",
+                                    },
+                                  ],
+                                  "name": "span",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "footer",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
+                      ],
+                      "name": "div",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                  ],
+                  "name": "div",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+              ],
+              "name": "main",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"(function () {
+  var ENDPOINT = "/api/console/jump";
+  var overlay = null, input = null, groupsEl = null, returnFocus = null;
+  var rows = [], selected = 0, debounceTimer = null, requestSeq = 0;
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
+  }
+
+  function ensureDom() {
+    if (overlay) return;
+    overlay = el("div", "console-palette-overlay");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Search the console");
+    var palette = el("div", "console-palette");
+    var inputRow = el("div", "cp-input-row");
+    input = el("input", "cp-input");
+    input.type = "text";
+    input.placeholder = "Search entities, tabs, surfaces\\u2026";
+    input.setAttribute("aria-label", "Search the console");
+    inputRow.appendChild(input);
+    inputRow.appendChild(el("kbd", "cp-esc", "esc"));
+    groupsEl = el("div", "cp-groups");
+    var foot = el("div", "cp-foot");
+    foot.appendChild(el("span", null, "\\u2191\\u2193 navigate"));
+    foot.appendChild(el("span", null, "\\u21B5 open"));
+    foot.appendChild(el("span", null, "one index across the console"));
+    palette.appendChild(inputRow);
+    palette.appendChild(groupsEl);
+    palette.appendChild(foot);
+    overlay.appendChild(palette);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("mousedown", function (event) {
+      if (event.target === overlay) close();
+    });
+    input.addEventListener("input", function () {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () { query(input.value); }, 150);
+    });
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "ArrowDown") { event.preventDefault(); move(1); }
+      else if (event.key === "ArrowUp") { event.preventDefault(); move(-1); }
+      else if (event.key === "Enter") {
+        event.preventDefault();
+        var row = rows[selected];
+        if (row) window.location.href = row.getAttribute("href");
+      }
+    });
+  }
+
+  function open() {
+    ensureDom();
+    returnFocus = document.activeElement;
+    overlay.classList.add("is-open");
+    document.documentElement.classList.add("console-palette-open");
+    input.value = "";
+    input.focus();
+    query("");
+  }
+
+  function close() {
+    if (overlay) overlay.classList.remove("is-open");
+    document.documentElement.classList.remove("console-palette-open");
+    if (returnFocus && typeof returnFocus.focus === "function") returnFocus.focus();
+    returnFocus = null;
+  }
+
+  function isOpen() {
+    return Boolean(overlay && overlay.classList.contains("is-open"));
+  }
+
+  function move(delta) {
+    if (!rows.length) return;
+    rows[selected].classList.remove("is-selected");
+    selected = (selected + delta + rows.length) % rows.length;
+    rows[selected].classList.add("is-selected");
+    rows[selected].scrollIntoView({ block: "nearest" });
+  }
+
+  function glyphFor(label) {
+    var normalized = String(label || "").toLowerCase();
+    if (normalized.indexOf("entit") !== -1) return "◆";
+    if (normalized.indexOf("dashboard") !== -1) return "▤";
+    if (normalized.indexOf("conversation") !== -1) return "◌";
+    return "↗";
+  }
+
+  function appendHighlighted(node, title) {
+    var value = input ? input.value.trim() : "";
+    if (!value) { node.textContent = title; return; }
+    var index = title.toLowerCase().indexOf(value.toLowerCase());
+    if (index === -1) { node.textContent = title; return; }
+    node.appendChild(document.createTextNode(title.slice(0, index)));
+    node.appendChild(el("mark", null, title.slice(index, index + value.length)));
+    node.appendChild(document.createTextNode(title.slice(index + value.length)));
+  }
+
+  function render(groups) {
+    groupsEl.textContent = "";
+    rows = [];
+    selected = 0;
+    groups.forEach(function (group) {
+      if (!group || !group.items || !group.items.length) return;
+      var groupEl = el("section", "cp-group");
+      groupEl.appendChild(el("div", "cp-group-title", group.label));
+      group.items.forEach(function (item) {
+        var row = el("a", "cp-row");
+        var title = el("span", "cp-title");
+        row.setAttribute("href", item.href);
+        row.appendChild(el("span", "cp-glyph", glyphFor(group.label)));
+        appendHighlighted(title, item.title);
+        row.appendChild(title);
+        if (item.sub) row.appendChild(el("span", "cp-sub", item.sub));
+        if (item.tag) row.appendChild(el("span", "cp-tag", item.tag));
+        groupEl.appendChild(row);
+        rows.push(row);
+      });
+      groupsEl.appendChild(groupEl);
+    });
+    if (!rows.length) {
+      groupsEl.appendChild(el("div", "cp-empty", "Nothing matches yet."));
+    } else {
+      rows[0].classList.add("is-selected");
+    }
+  }
+
+  function query(value) {
+    var seq = ++requestSeq;
+    fetch(ENDPOINT + "?q=" + encodeURIComponent(value), { credentials: "same-origin" })
+      .then(function (response) {
+        if (response.status === 401) {
+          return { groups: [{ label: "Session", items: [{
+            title: "Sign in to search the console",
+            href: "/login?return_to=" + encodeURIComponent(window.location.pathname),
+            tag: "passkey",
+          }] }] };
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        if (seq !== requestSeq || !isOpen()) return;
+        var groups = (data && data.groups) || [];
+        var local = window.__consoleJumpLocal;
+        if (typeof local === "function") {
+          try { groups = groups.concat(local(value) || []); } catch (e) { /* local groups are best-effort */ }
+        }
+        render(groups);
+      })
+      .catch(function () {
+        if (seq !== requestSeq || !isOpen()) return;
+        render([]);
+      });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "k") {
+      event.preventDefault();
+      if (isOpen()) close(); else open();
+    } else if (event.key === "Escape" && isOpen()) {
+      close();
+    }
+  });
+
+  document.addEventListener("click", function (event) {
+    var chip = event.target && event.target.closest && event.target.closest(".command-chip");
+    if (chip) { event.preventDefault(); open(); }
+  });
+})();"
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [],
+              "children": [
+                {
+                  "type": "text",
+                  "value": 
+"(function () {
+  function ownedBy(root, selector, rootSelector) {
+    return Array.prototype.slice.call(root.querySelectorAll(selector)).filter(function (node) {
+      return node.closest(rootSelector) === root;
+    });
+  }
+
+  function setupTabs(root) {
+    var tabs = ownedBy(root, "[data-ui-tab]", "[data-ui-tabs]");
+    var panels = ownedBy(root, "[data-ui-panel]", "[data-ui-tabs]");
+    var useHash = root.hasAttribute("data-ui-tabs-hash");
+    var stateAttribute = root.getAttribute("data-ui-tabs-state-attribute");
+    var fallback = root.getAttribute("data-ui-tabs-default") || "";
+    if (!tabs.length || !panels.length) return;
+
+    function panelExists(value) {
+      return panels.some(function (panel) {
+        return panel.getAttribute("data-ui-panel") === value;
+      });
+    }
+
+    function resolveValue() {
+      var hashValue = useHash ? window.location.hash.replace(/^#/, "") : "";
+      if (hashValue && panelExists(hashValue)) return hashValue;
+      if (fallback && panelExists(fallback)) return fallback;
+      return panels[0].getAttribute("data-ui-panel") || "";
+    }
+
+    function activate(value, updateHash) {
+      root.setAttribute("data-ui-tabs-active", value);
+      if (stateAttribute) root.setAttribute(stateAttribute, value);
+
+      tabs.forEach(function (tab) {
+        var active = tab.getAttribute("data-ui-tab") === value;
+        tab.classList.toggle("is-active", active);
+        tab.setAttribute("aria-selected", active ? "true" : "false");
+        tab.setAttribute("tabindex", active ? "0" : "-1");
+        if (tab.hasAttribute("aria-pressed")) {
+          tab.setAttribute("aria-pressed", active ? "true" : "false");
+        }
+      });
+
+      panels.forEach(function (panel) {
+        var active = panel.getAttribute("data-ui-panel") === value;
+        panel.classList.toggle("is-active", active);
+        panel.toggleAttribute("hidden", !active);
+      });
+
+      if (useHash && updateHash && window.history && window.history.pushState) {
+        window.history.pushState(null, "", "#" + value);
+      }
+    }
+
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      var tab = target && target.closest ? target.closest("[data-ui-tab]") : null;
+      if (!tab || tab.closest("[data-ui-tabs]") !== root) return;
+      var value = tab.getAttribute("data-ui-tab");
+      if (!value || !panelExists(value)) return;
+      event.preventDefault();
+      activate(value, true);
+    });
+
+    root.addEventListener("keydown", function (event) {
+      var target = event.target;
+      var tab = target && target.closest ? target.closest("[data-ui-tab]") : null;
+      if (!tab || tab.closest("[data-ui-tabs]") !== root) return;
+
+      var tabList = tab.closest('[role="tablist"]');
+      var vertical = tabList && tabList.getAttribute("aria-orientation") === "vertical";
+      var currentIndex = tabs.indexOf(tab);
+      var nextIndex = currentIndex;
+
+      if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = tabs.length - 1;
+      else if ((!vertical && event.key === "ArrowRight") || (vertical && event.key === "ArrowDown")) {
+        nextIndex = (currentIndex + 1) % tabs.length;
+      } else if ((!vertical && event.key === "ArrowLeft") || (vertical && event.key === "ArrowUp")) {
+        nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+      } else {
+        return;
+      }
+
+      var nextTab = tabs[nextIndex];
+      var nextValue = nextTab && nextTab.getAttribute("data-ui-tab");
+      if (!nextTab || !nextValue || !panelExists(nextValue)) return;
+      event.preventDefault();
+      nextTab.focus();
+      activate(nextValue, true);
+    });
+
+    root.classList.add("ui-tabs-ready");
+    activate(resolveValue(), false);
+
+    if (useHash) {
+      window.addEventListener("hashchange", function () {
+        activate(resolveValue(), false);
+      });
+      if (window.location.hash && typeof window.scrollTo === "function") {
+        window.addEventListener("load", function () {
+          window.scrollTo(0, 0);
+        }, { once: true });
+      }
+    }
+  }
+
+  function parseFilterValues(item) {
+    var raw = item.getAttribute("data-ui-filter-values");
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setupFilter(root) {
+    var controls = ownedBy(root, "[data-ui-filter-value]", "[data-ui-filter]");
+    var items = ownedBy(root, "[data-ui-filter-values]", "[data-ui-filter]");
+    var emptyStates = ownedBy(root, "[data-ui-filter-empty]", "[data-ui-filter]");
+    var tools = ownedBy(root, "[data-ui-filter-tools]", "[data-ui-filter]")[0] || null;
+    var search = ownedBy(root, "[data-ui-filter-search]", "[data-ui-filter]")[0] || null;
+    var toggle = ownedBy(root, "[data-ui-filter-toggle]", "[data-ui-filter]")[0] || null;
+    var toggleLabel = ownedBy(root, "[data-ui-filter-toggle-label]", "[data-ui-filter]")[0] || null;
+    var allValue = root.getAttribute("data-ui-filter-all") || "all";
+    var fallback = root.getAttribute("data-ui-filter-default") || allValue;
+    var visibleLimit = Number(root.getAttribute("data-ui-filter-visible-options")) || controls.length;
+    var hasOverflow = controls.length > visibleLimit;
+    var expanded = false;
+    if (!controls.length) return;
+
+    function updateControlVisibility() {
+      var query = search ? search.value.trim().toLowerCase() : "";
+      var activeValue = root.getAttribute("data-ui-filter-active") || fallback;
+      controls.forEach(function (control, index) {
+        var value = control.getAttribute("data-ui-filter-value") || "";
+        var label = control.getAttribute("data-ui-filter-option-label") || value;
+        var matches = label.toLowerCase().indexOf(query) !== -1;
+        var visible = query
+          ? value === allValue || value === activeValue || matches
+          : expanded || index < visibleLimit || value === activeValue;
+        control.toggleAttribute("hidden", !visible);
+      });
+
+      if (tools) tools.toggleAttribute("hidden", !hasOverflow);
+      if (toggle) {
+        toggle.toggleAttribute("hidden", !hasOverflow || query.length > 0);
+        toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      }
+      if (toggleLabel) toggleLabel.textContent = expanded ? "Show fewer" : "Show all";
+    }
+
+    function activate(value) {
+      root.setAttribute("data-ui-filter-active", value);
+      controls.forEach(function (control) {
+        var active = control.getAttribute("data-ui-filter-value") === value;
+        control.classList.toggle("is-active", active);
+        control.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      var visibleCount = 0;
+      items.forEach(function (item) {
+        var values = parseFilterValues(item);
+        var visible = value === allValue || values.indexOf(value) !== -1;
+        item.toggleAttribute("hidden", !visible);
+        if (visible) visibleCount += 1;
+      });
+      emptyStates.forEach(function (emptyState) {
+        emptyState.toggleAttribute("hidden", visibleCount > 0);
+      });
+      updateControlVisibility();
+    }
+
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      var control = target && target.closest
+        ? target.closest("[data-ui-filter-value]")
+        : null;
+      if (!control || control.closest("[data-ui-filter]") !== root) return;
+      var value = control.getAttribute("data-ui-filter-value");
+      if (value) activate(value);
+    });
+
+    if (search) {
+      search.addEventListener("input", updateControlVisibility);
+    }
+    if (toggle) {
+      toggle.addEventListener("click", function () {
+        expanded = !expanded;
+        updateControlVisibility();
+      });
+    }
+
+    root.classList.add("ui-filter-ready");
+    activate(fallback);
+  }
+
+  function spatialRelated(point) {
+    var raw = point.getAttribute("data-ui-spatial-related");
+    if (!raw) return [];
+    try {
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function setupSpatial(root) {
+    var points = ownedBy(root, "[data-ui-spatial-point]", "[data-ui-spatial]");
+    var details = ownedBy(root, "[data-ui-spatial-detail]", "[data-ui-spatial]");
+    if (!points.length) return;
+
+    function activate(id) {
+      root.setAttribute("data-ui-spatial-active", id);
+      var selected = points.find(function (point) {
+        return point.getAttribute("data-ui-spatial-point") === id;
+      });
+      var related = selected ? spatialRelated(selected) : [];
+      points.forEach(function (point) {
+        var pointId = point.getAttribute("data-ui-spatial-point") || "";
+        var pointRelated = spatialRelated(point);
+        var isSelected = pointId === id;
+        var isRelated = related.indexOf(pointId) !== -1 || pointRelated.indexOf(id) !== -1;
+        point.classList.toggle("is-selected", isSelected);
+        point.classList.toggle("is-related", isRelated);
+        point.setAttribute("aria-pressed", isSelected ? "true" : "false");
+      });
+      details.forEach(function (detail) {
+        detail.toggleAttribute(
+          "hidden",
+          detail.getAttribute("data-ui-spatial-detail") !== id,
+        );
+      });
+    }
+
+    function clear() {
+      root.removeAttribute("data-ui-spatial-active");
+      points.forEach(function (point) {
+        point.classList.remove("is-selected", "is-related");
+        point.setAttribute("aria-pressed", "false");
+      });
+      details.forEach(function (detail) {
+        detail.setAttribute("hidden", "");
+      });
+    }
+
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      var point = target && target.closest
+        ? target.closest("[data-ui-spatial-point]")
+        : null;
+      if (!point || point.closest("[data-ui-spatial]") !== root) return;
+      var id = point.getAttribute("data-ui-spatial-point");
+      if (id) activate(id);
+    });
+    root.addEventListener("focusin", function (event) {
+      var target = event.target;
+      var point = target && target.closest
+        ? target.closest("[data-ui-spatial-point]")
+        : null;
+      if (!point || point.closest("[data-ui-spatial]") !== root) return;
+      var id = point.getAttribute("data-ui-spatial-point");
+      if (id) activate(id);
+    });
+    root.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") clear();
+    });
+  }
+
+  var tabRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-tabs]"));
+  if (tabRoots.length) {
+    document.documentElement.classList.add("dashboard-tabs-ready");
+    tabRoots.forEach(setupTabs);
+  }
+
+  var filterRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-filter]"));
+  filterRoots.forEach(setupFilter);
+
+  var spatialRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-spatial]"));
+  spatialRoots.forEach(setupSpatial);
+})();"
+,
+                },
+              ],
+              "name": "script",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+          ],
+          "name": "body",
+          "namespace": "http://www.w3.org/1999/xhtml",
+          "type": "element",
+        },
+      ],
+      "name": "html",
+      "namespace": "http://www.w3.org/1999/xhtml",
+      "type": "element",
+    },
+  ],
+  "type": "document",
+}
+`;

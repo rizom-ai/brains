@@ -2,11 +2,11 @@ import { describe, test, expect, mock } from "bun:test";
 import {
   writeInlineStaticAssets,
   writePublicAssets,
-} from "../../src/lib/preact-builder";
+} from "../../src/lib/react-builder";
 import { createSilentLogger } from "@brains/test-utils";
 import { promises as fs } from "fs";
 
-describe("PreactBuilder - Snapshotted Public Assets", () => {
+describe("ReactBuilder - Snapshotted Public Assets", () => {
   const outputDir = "/tmp/output";
   const logger = createSilentLogger();
 
@@ -53,7 +53,7 @@ describe("PreactBuilder - Snapshotted Public Assets", () => {
   });
 });
 
-describe("PreactBuilder - Inline Static Assets (from SitePackage)", () => {
+describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
   const outputDir = "/tmp/output";
   const logger = createSilentLogger();
 

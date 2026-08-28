@@ -1,7 +1,6 @@
-/** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
-import type { JSX } from "preact";
-import { render } from "preact-render-to-string";
+import type { JSX } from "react";
+import { renderToStaticMarkup as render } from "react-dom/server";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,

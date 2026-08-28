@@ -34,7 +34,10 @@ import {
   createPluginsNamespace,
   createProfileKindsNamespace,
 } from "./namespaces";
-import { createCmsNamespace, type ICmsNamespace } from "./cms-namespace";
+import {
+  createStudioNamespace,
+  type IStudioNamespace,
+} from "./studio-namespace";
 import { createDashboardNamespace } from "./dashboard-namespace";
 import type { IDashboardNamespace } from "./dashboard-namespace";
 import {
@@ -157,8 +160,8 @@ export interface BasePluginContext extends PublicBasePluginContext {
   /** Dashboard widget contribution */
   readonly dashboard: IDashboardNamespace;
 
-  /** CMS workspace contribution */
-  readonly cms: ICmsNamespace;
+  /** Studio workspace contribution */
+  readonly studio: IStudioNamespace;
 
   // ============================================================================
   // Job Queue (monitoring + scoped write)
@@ -305,7 +308,7 @@ export function createBasePluginContext(
       pluginId,
       (channel) => shell.getMessageBus().hasHandlers?.(channel) ?? false,
     ),
-    cms: createCmsNamespace(
+    studio: createStudioNamespace(
       messaging,
       pluginId,
       (channel) => shell.getMessageBus().hasHandlers?.(channel) ?? false,

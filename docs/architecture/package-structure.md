@@ -42,7 +42,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | -------------------------- | -------------------------------------------------------------------------- |
 | `shared/utils`             | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives |
 | `shared/contracts`         | Shared result, job progress, and publish contracts                         |
-| `shared/ui-library`        | Preact components (Header, Footer, Cards, CTA)                             |
+| `shared/ui-library`        | React components (Header, Footer, Cards, CTA)                              |
 | `shared/site-composition`  | Shared site composition contract and merge helpers                         |
 | `shared/site-engine`       | Renderer-agnostic site build engine utilities                              |
 | `shared/theme-base`        | `composeTheme()`, shared CSS utilities, Tailwind setup                     |
@@ -86,7 +86,7 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | Package                    | Purpose                                                          |
 | -------------------------- | ---------------------------------------------------------------- |
 | `plugins/site-builder`     | SSR static site generation                                       |
-| `plugins/cms`              | Browser authoring routes + CMS config                            |
+| `plugins/studio`           | Browser authoring routes + Studio config                         |
 | `plugins/content-pipeline` | Publish orchestration, scheduling                                |
 | `plugins/newsletter`       | Compound newsletter entity + Buttondown-backed service           |
 | `plugins/playbooks`        | Compound playbook entity + runtime orchestration service         |
@@ -104,15 +104,15 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Interfaces
 
-| Package                | Purpose                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                                  |
-| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                                        |
-| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                                |
-| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                                            |
-| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                          |
-| `interfaces/webserver` | In-process Hono server: site pages, dashboard/CMS routes, API routes, and split health endpoints |
-| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                                         |
+| Package                | Purpose                                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                                     |
+| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                                           |
+| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                                   |
+| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                                               |
+| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                             |
+| `interfaces/webserver` | In-process Hono server: site pages, dashboard/Studio routes, API routes, and split health endpoints |
+| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                                            |
 
 ## Sites
 

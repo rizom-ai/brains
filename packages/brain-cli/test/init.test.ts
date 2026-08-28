@@ -337,6 +337,7 @@ describe("brain init", () => {
       expect(envSchema).toContain("AI_API_KEY=");
       expect(envSchema).toContain("GIT_SYNC_TOKEN=");
       expect(envSchema).not.toContain("CMS_CONTENT_REPO_PAT=");
+      expect(envSchema).not.toContain("STUDIO_CONTENT_REPO_PAT=");
       expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
       expect(envSchema).not.toContain("ATPROTO_IDENTIFIER=");
       expect(envSchema).toContain("SETUP_EMAIL_API_KEY=");
@@ -367,7 +368,7 @@ describe("brain init", () => {
       const content = JSON.parse(readFileSync(path, "utf-8"));
       expect(content.extends).toBe("@rizom/brain/tsconfig.instance.json");
       expect(content.compilerOptions.jsx).toBe("react-jsx");
-      expect(content.compilerOptions.jsxImportSource).toBe("preact");
+      expect(content.compilerOptions.jsxImportSource).toBe("react");
     });
 
     it("should not create local site/theme scaffold for headless or personal recipes", () => {
@@ -391,6 +392,7 @@ describe("brain init", () => {
       expect(siteSource).toContain("sectionGroup");
       expect(siteSource).toContain("defineSite");
       expect(siteSource).toContain("export default defineSite");
+      expect(siteSource).toContain('className="hero"');
 
       const themeSource = readFileSync(
         join(testDir, "src", "theme.css"),
@@ -428,12 +430,15 @@ describe("brain init", () => {
       expect(generated.dependencies["@rizom/site"]).toBe(site.version);
     });
 
-    it("should depend on preact for JSX runtime", () => {
+    it("should depend on React and React DOM for rendering", () => {
       scaffold(testDir, { recipe: "personal" });
       const pkg = JSON.parse(
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
-      expect(pkg.dependencies.preact).toBeDefined();
+      expect(pkg.dependencies.react).toBeDefined();
+      expect(pkg.dependencies["react-dom"]).toBeDefined();
+      expect(pkg.devDependencies["@types/react"]).toBeDefined();
+      expect(pkg.devDependencies["@types/react-dom"]).toBeDefined();
     });
 
     it("should set private: true", () => {

@@ -1,10 +1,12 @@
-import type { VNode } from "preact";
+import type { ReactElement } from "react";
 import type { SiteImageRendererService } from "@brains/site-engine";
 import type { ZodType } from "@brains/utils/zod";
 
 export type MediaTemplateFormat = "image" | "pdf";
 
-export type MediaPageRenderer = (props: Record<string, unknown>) => VNode;
+export type MediaPageRenderer = (
+  props: Record<string, unknown>,
+) => ReactElement;
 
 export type MediaPageContentSchema = ZodType<unknown, unknown>;
 

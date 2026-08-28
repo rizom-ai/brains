@@ -73,7 +73,7 @@ afterEach(async () => {
 });
 
 describe("auth account API", () => {
-  it("registers only account APIs and leaves the browser surface to its plugin", () => {
+  it("registers only account APIs and leaves browser presentation to Studio", () => {
     const routes = authServicePlugin().getWebRoutes();
     expect(routes.some((route) => route.path === "/account")).toBe(false);
     expect(routes).toEqual(
@@ -620,7 +620,7 @@ describe("auth account API", () => {
     });
     await first.close();
 
-    // Restart with the CMS profile name available: the profile is
+    // Restart with the Studio profile name available: the profile is
     // authoritative for the Anchor person and projects onto their account.
     const service = new AuthService({
       storageDir,

@@ -24,7 +24,7 @@ describe("unified inbox headless reader", () => {
 
     const shell = harness.getMockShell();
     expect(shell.hasPlugin("webserver")).toBe(false);
-    expect(shell.hasPlugin("cms")).toBe(false);
+    expect(shell.hasPlugin("studio")).toBe(false);
     expect(shell.hasPlugin("dashboard")).toBe(false);
 
     const mcpService = MCPService.createFresh(

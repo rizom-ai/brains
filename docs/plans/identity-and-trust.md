@@ -19,13 +19,13 @@ decisions; the plans own their own phasing.
 
 Three kinds of subject talk to a brain, over five kinds of channel:
 
-| Subject                          | Channel                                       | Identity primitive                          | Owning plan                                        |
-| -------------------------------- | --------------------------------------------- | ------------------------------------------- | -------------------------------------------------- |
-| Humans (operator, collaborators) | Session interfaces (dashboard, web-chat, CMS) | Passkey → `usr_<uuid>` session              | shipped (`shell/auth-service`)                     |
-| External clients (agents, IDEs)  | MCP over HTTP                                 | OAuth bearer, `sub` = user id               | shipped (`shell/auth-service`)                     |
-| Peer brains (directed RPC)       | A2A                                           | Domain, proven by RFC 9421 signature        | shipped (`shared/http-signatures`)                 |
-| Peer brains (ambient pub/sub)    | AT Protocol                                   | DID (`did:web:<domain>` by convention)      | [atproto-integration.md](./atproto-integration.md) |
-| Platform users                   | Discord (and future platform adapters)        | Platform id (`discord:<snowflake>`) + rules | interface config / `brain.yaml` rules              |
+| Subject                          | Channel                                          | Identity primitive                          | Owning plan                                        |
+| -------------------------------- | ------------------------------------------------ | ------------------------------------------- | -------------------------------------------------- |
+| Humans (operator, collaborators) | Session interfaces (dashboard, web-chat, Studio) | Passkey → `usr_<uuid>` session              | shipped (`shell/auth-service`)                     |
+| External clients (agents, IDEs)  | MCP over HTTP                                    | OAuth bearer, `sub` = user id               | shipped (`shell/auth-service`)                     |
+| Peer brains (directed RPC)       | A2A                                              | Domain, proven by RFC 9421 signature        | shipped (`shared/http-signatures`)                 |
+| Peer brains (ambient pub/sub)    | AT Protocol                                      | DID (`did:web:<domain>` by convention)      | [atproto-integration.md](./atproto-integration.md) |
+| Platform users                   | Discord (and future platform adapters)           | Platform id (`discord:<snowflake>`) + rules | interface config / `brain.yaml` rules              |
 
 Everything downstream of identity is the same: the resolved subject maps
 into the single permission model (`admin` / `trusted` / `public`) through

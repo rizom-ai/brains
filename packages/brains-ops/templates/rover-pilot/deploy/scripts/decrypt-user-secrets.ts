@@ -21,8 +21,8 @@ const pilot = parseStringYamlMapping(readFileSync("pilot.yaml", "utf8"));
 writeSecretGitHubEnv("AI_API_KEY", secrets["aiApiKey"]);
 writeSecretGitHubEnv("GIT_SYNC_TOKEN", secrets["gitSyncToken"]);
 writeSecretGitHubEnv(
-  "CMS_CONTENT_REPO_PAT",
-  secrets["cmsContentRepoPat"] ?? secrets["gitSyncToken"],
+  "STUDIO_CONTENT_REPO_PAT",
+  secrets["studioContentRepoPat"] ?? secrets["gitSyncToken"],
 );
 writeSecretGitHubEnv("DISCORD_BOT_TOKEN", secrets["discordBotToken"]);
 writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);

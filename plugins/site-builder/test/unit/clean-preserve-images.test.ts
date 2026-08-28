@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createPreactBuilder } from "../../src/lib/preact-builder";
+import { createReactBuilder } from "../../src/lib/react-builder";
 import { createSilentLogger } from "@brains/test-utils";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 
-describe("PreactBuilder clean (preserve images)", () => {
+describe("ReactBuilder clean (preserve images)", () => {
   let testDir: string;
   let outputDir: string;
   let workingDir: string;
@@ -26,7 +26,7 @@ describe("PreactBuilder clean (preserve images)", () => {
   });
 
   it("should preserve images/ directory during clean", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir,
       workingDir,
@@ -88,7 +88,7 @@ describe("PreactBuilder clean (preserve images)", () => {
   });
 
   it("should still remove working directory entirely", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir,
       workingDir,
@@ -108,7 +108,7 @@ describe("PreactBuilder clean (preserve images)", () => {
   });
 
   it("should handle clean when images/ does not exist", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir,
       workingDir,
@@ -129,7 +129,7 @@ describe("PreactBuilder clean (preserve images)", () => {
   });
 
   it("should handle clean when output directory does not exist", async () => {
-    const builder = createPreactBuilder({
+    const builder = createReactBuilder({
       logger: createSilentLogger(),
       outputDir,
       workingDir,

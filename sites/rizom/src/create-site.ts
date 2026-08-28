@@ -61,7 +61,7 @@ export interface CreateRizomSiteOptions {
   /**
    * Schema-first section groups (authored via `@rizom/site`'
    * `defineSection`/`sectionGroup`). Registered as content templates at brain
-   * boot exactly like `content`, so the CMS + directory-sync + resolver treat
+   * boot exactly like `content`, so the Studio + directory-sync + resolver treat
    * them identically — but the section shape is derived from one zod schema.
    */
   sections?: SiteSectionGroup | SiteSectionGroup[];

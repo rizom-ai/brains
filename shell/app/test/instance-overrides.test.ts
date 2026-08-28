@@ -1539,8 +1539,8 @@ describe("resolve with site package", () => {
     expect(getConfig(webserver)["enablePreview"]).toBe(false);
   });
 
-  test("should keep entityDisplay in shell config instead of injecting it into cms", () => {
-    const [cmsFactory] = createMockFactory("cms");
+  test("should keep entityDisplay in shell config instead of injecting it into studio", () => {
+    const [studioFactory] = createMockFactory("studio");
     const site = createMockSitePackage("personal-site", {
       entityDisplay: { post: { label: "Essay", pluralName: "Essays" } },
     });
@@ -1549,21 +1549,21 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [["cms", cmsFactory, {}]],
+      capabilities: [["studio", studioFactory, {}]],
       interfaces: [],
     });
 
     const config = resolve(def, {});
-    const cms = config.plugins?.find((p) => p.id === "cms");
+    const studio = config.plugins?.find((p) => p.id === "studio");
 
-    expect(getConfig(cms)["entityDisplay"]).toBeUndefined();
+    expect(getConfig(studio)["entityDisplay"]).toBeUndefined();
     expect(config.shellConfig?.entityDisplay).toEqual({
       post: { label: "Essay", pluralName: "Essays" },
     });
   });
 
-  test("should not inject cms routePath defaults in the resolver", () => {
-    const [cmsFactory] = createMockFactory("cms");
+  test("should not inject studio routePath defaults in the resolver", () => {
+    const [studioFactory] = createMockFactory("studio");
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const [dashboardFactory] = createMockFactory("dashboard");
 
@@ -1571,7 +1571,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [
-        ["cms", cmsFactory, {}],
+        ["studio", studioFactory, {}],
         ["site-builder", siteBuilderFactory, {}],
         ["dashboard", dashboardFactory, {}],
       ],
@@ -1579,9 +1579,9 @@ describe("resolve with site package", () => {
     });
 
     const config = resolve(def, {});
-    const cms = config.plugins?.find((p) => p.id === "cms");
+    const studio = config.plugins?.find((p) => p.id === "studio");
 
-    expect(getConfig(cms)["routePath"]).toBeUndefined();
+    expect(getConfig(studio)["routePath"]).toBeUndefined();
   });
 
   test("should not inject dashboard routePath defaults in the resolver", () => {
@@ -1870,7 +1870,7 @@ describe("resolve with site package", () => {
       def,
       {},
       {
-        plugins: { "site-builder": { cms: { enabled: true } } },
+        plugins: { "site-builder": { studio: { enabled: true } } },
       },
     );
 
@@ -1878,7 +1878,7 @@ describe("resolve with site package", () => {
     const sbConfig = getConfig(siteBuilder);
 
     expect(sbConfig["themeCSS"]).toBe(withThemeBase("body { color: pink; }"));
-    expect(sbConfig["cms"]).toEqual({ enabled: true });
+    expect(sbConfig["studio"]).toEqual({ enabled: true });
   });
 
   test("should work without any site package", () => {

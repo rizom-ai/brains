@@ -165,6 +165,33 @@ module.exports = {
         message:
           "Use getErrorMessage(error, fallback?) from @brains/utils/error instead of an inline instanceof-Error ternary.",
       },
+      {
+        selector: 'JSXAttribute[name.name="class"]',
+        message: "Use React-compatible className in TSX.",
+      },
+      {
+        selector: 'JSXAttribute[name.name="for"]',
+        message: "Use React-compatible htmlFor in TSX.",
+      },
+      {
+        selector: 'JSXAttribute[name.name="srcset"]',
+        message: "Use React-compatible srcSet in TSX.",
+      },
+      {
+        selector: "JSXAttribute[name.name=/^on[a-z]/]",
+        message:
+          "React does not render lowercase string event handlers. Bind static interactions from the site shell instead.",
+      },
+      {
+        selector:
+          'JSXAttribute[name.name="style"][value.type="Literal"], JSXAttribute[name.name="style"] > JSXExpressionContainer > TemplateLiteral',
+        message: "Use a React-compatible style object in TSX.",
+      },
+      {
+        selector:
+          "JSXAttribute[name.name=/^(fill|font|letter|stop|stroke|text)-/]",
+        message: "Use React-compatible camelCase SVG attributes in TSX.",
+      },
     ],
   },
 };

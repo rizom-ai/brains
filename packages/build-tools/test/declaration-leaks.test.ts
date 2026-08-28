@@ -29,7 +29,7 @@ describe("findInternalDeclarationImports", () => {
     const declaration = [
       "/** Mirrors types from @brains/site-composition on purpose. */",
       'export declare const label = "@rizom/site-rizom";',
-      'import { X } from "preact";',
+      'import { X } from "react";',
     ].join("\n");
 
     expect(findInternalDeclarationImports(declaration, OPTS)).toEqual([]);

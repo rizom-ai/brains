@@ -6,7 +6,7 @@ You can design a site in Claude Code, Cursor, or any other frontend environment 
 
 Ask the prototyping agent to:
 
-- use semantic HTML and Preact-compatible TSX or plain HTML;
+- use semantic HTML and React-compatible TSX or plain HTML;
 - assume static server rendering rather than Next.js APIs or server components;
 - split each page into a shell plus independent sections;
 - pass copy and collection data into components as props instead of embedding it throughout the markup;
@@ -18,14 +18,14 @@ React-style presentational components usually port easily. Framework routing, se
 
 A useful prompt is:
 
-> Build this as a static-first, Preact-compatible site. Keep page copy in typed fixture objects, make each visual band an independent component, use CSS custom properties for design tokens, and avoid framework-specific routing or server APIs. Also produce a route list and a component/content inventory for migration.
+> Build this as a static-first, React-compatible site. Keep page copy in typed fixture objects, make each visual band an independent component, use CSS custom properties for design tokens, and avoid framework-specific routing or server APIs. Also produce a route list and a component/content inventory for migration.
 
 ## How the pieces map
 
 | Mockup artifact                              | Brain destination                              |
 | -------------------------------------------- | ---------------------------------------------- |
 | Router or page list                          | `SiteDefinition.routes`                        |
-| Header, footer, and page shell               | A Preact layout in `layouts`                   |
+| Header, footer, and page shell               | A React layout in `layouts`                    |
 | Hero, feature grid, CTA, or other page block | A schema-first site section                    |
 | Fixture page copy                            | `brain-data/site-content/<route>/<section>.md` |
 | Site title and metadata                      | `brain-data/site-info/site-info.md`            |
@@ -35,7 +35,7 @@ A useful prompt is:
 | Content images                               | Image entities under `brain-data/image/`       |
 | External APIs or background behavior         | An existing capability or a service plugin     |
 
-The Brain site builder produces static HTML with Preact. Routes decide which sections appear, layouts provide the shared shell, and section schemas define both component props and editable content. Themes are selected independently from site structure.
+The Brain site builder produces static HTML with React. Routes decide which sections appear, layouts provide the shared shell, and section schemas define both component props and editable content. Themes are selected independently from site structure.
 
 ## Migration plan
 
@@ -67,7 +67,7 @@ For a one-off customization, keep the structure in the instance:
 
 A local `src/site.tsx` is discovered when `brain.yaml` does not set `site.package`. A local theme remains an additive layer over the selected base theme.
 
-For a reusable or substantially custom site, create a site package using `@rizom/site` and Preact. Export a `SiteDefinition`, install the package in the Brain instance, and select it with `site.package` in `brain.yaml`. Keep these package versions aligned with `@rizom/brain`. Use a separate theme package when the visual system should also be reusable.
+For a reusable or substantially custom site, create a site package using `@rizom/site` and React. Export a `SiteDefinition`, install the package in the Brain instance, and select it with `site.package` in `brain.yaml`. Keep these package versions aligned with `@rizom/brain`. Use a separate theme package when the visual system should also be reusable.
 
 ### 4. Port presentation from the outside in
 
@@ -76,7 +76,7 @@ Port the shared layout first, then move one route and one section at a time.
 For each mockup section:
 
 1. define a Zod schema for its editable props;
-2. turn the presentational component into a Preact component using those props;
+2. turn the presentational component into a React component using those props;
 3. register it with `defineSection` and a `sectionGroup` namespace;
 4. reference it from a route as `<namespace>:<section>`;
 5. compare the generated page with the reference screenshots.
@@ -105,7 +105,7 @@ Prefer existing Brain templates, data sources, and service plugins for live data
 
 ### 7. Verify preview before production
 
-Run the Brain, then request a preview rebuild on the running app through the CMS **Build preview** action or the `site-builder_build-site` MCP tool with `environment: "preview"`. Check the browser output and `dist/site-preview`; do not validate only the source components.
+Run the Brain, then request a preview rebuild on the running app through the Studio **Build preview** action or the `site-builder_build-site` MCP tool with `environment: "preview"`. Check the browser output and `dist/site-preview`; do not validate only the source components.
 
 Before switching production over, verify:
 

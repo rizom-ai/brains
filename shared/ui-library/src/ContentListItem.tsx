@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { formatDate } from "./utils/formatDate";
 import { cn } from "./lib/utils";
 

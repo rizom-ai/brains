@@ -1,5 +1,5 @@
-/** @jsxImportSource preact */
-import type { ComponentChildren, JSX } from "preact";
+/** @jsxImportSource react */
+import type { HTMLAttributes, ReactNode, JSX } from "react";
 
 function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
@@ -9,7 +9,7 @@ export interface WidgetDataAttributes {
   [key: `data-${string}`]: string | number | boolean | undefined;
 }
 
-export type WidgetElementProps<T extends HTMLElement> = JSX.HTMLAttributes<T> &
+export type WidgetElementProps<T extends HTMLElement> = HTMLAttributes<T> &
   WidgetDataAttributes;
 
 export function createWidgetInstanceId(
@@ -29,30 +29,30 @@ export function CardHeader({
   subtitle,
   children,
 }: {
-  title: ComponentChildren;
-  source?: ComponentChildren;
-  subtitle?: ComponentChildren;
-  children?: ComponentChildren;
+  title: ReactNode;
+  source?: ReactNode;
+  subtitle?: ReactNode;
+  children?: ReactNode;
 }): JSX.Element {
   const detail = source ? (
-    <span class="card-from">{source}</span>
+    <span className="card-from">{source}</span>
   ) : subtitle ? (
-    <span class="card-subtitle">{subtitle}</span>
+    <span className="card-subtitle">{subtitle}</span>
   ) : (
     children
   );
 
   return (
-    <div class="card-head">
-      <span class="card-title">{title}</span>
+    <div className="card-head">
+      <span className="card-title">{title}</span>
       {detail}
     </div>
   );
 }
 
 export interface KeyValueItem {
-  label: ComponentChildren;
-  value: ComponentChildren;
+  label: ReactNode;
+  value: ReactNode;
 }
 
 export function KeyValueList({
@@ -61,9 +61,9 @@ export function KeyValueList({
   items: KeyValueItem[];
 }): JSX.Element {
   return (
-    <dl class="kv">
+    <dl className="kv">
       {items.map((item, index) => (
-        <div class="kv-row" key={index}>
+        <div className="kv-row" key={index}>
           <dt>{item.label}</dt>
           <dd>{item.value}</dd>
         </div>
@@ -76,10 +76,10 @@ export function WidgetEmptyState({
   children = "Nothing to show yet.",
   className,
 }: {
-  children?: ComponentChildren;
+  children?: ReactNode;
   className?: string;
 }): JSX.Element {
-  return <p class={classes("muted", className)}>{children}</p>;
+  return <p className={classes("muted", className)}>{children}</p>;
 }
 
 export const EmptyState: typeof WidgetEmptyState = WidgetEmptyState;
@@ -90,11 +90,11 @@ export function WidgetActions({
   className,
 }: {
   label: string;
-  children: ComponentChildren;
+  children: ReactNode;
   className?: string;
 }): JSX.Element {
   return (
-    <nav class={classes("widget-actions", className)} aria-label={label}>
+    <nav className={classes("widget-actions", className)} aria-label={label}>
       {children}
     </nav>
   );
@@ -107,18 +107,18 @@ export function WidgetActionLink({
   emphasis = "secondary",
 }: {
   href: string;
-  children: ComponentChildren;
+  children: ReactNode;
   external?: boolean;
   emphasis?: "primary" | "secondary";
 }): JSX.Element {
   return (
     <a
-      class={classes("widget-action", `widget-action--${emphasis}`)}
+      className={classes("widget-action", `widget-action--${emphasis}`)}
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
     >
       <span>{children}</span>
-      <span class="widget-action-arrow" aria-hidden="true">
+      <span className="widget-action-arrow" aria-hidden="true">
         {external ? "↗" : "→"}
       </span>
     </a>
@@ -127,9 +127,9 @@ export function WidgetActionLink({
 
 export interface WidgetTabDefinition {
   value: string;
-  label: ComponentChildren;
+  label: ReactNode;
   count?: number | undefined;
-  content: ComponentChildren;
+  content: ReactNode;
   panelClassName?: string | undefined;
   triggerProps?: WidgetElementProps<HTMLButtonElement> | undefined;
   panelProps?: WidgetElementProps<HTMLDivElement> | undefined;
@@ -168,24 +168,24 @@ export function WidgetTabs({
   return (
     <div
       {...rootProps}
-      class={rootClassName}
+      className={rootClassName}
       data-ui-tabs
       data-ui-tabs-default={defaultValue}
       {...(stateAttribute
         ? { "data-ui-tabs-state-attribute": stateAttribute }
         : {})}
     >
-      <div class={listClass} role="tablist" aria-label={label}>
+      <div className={listClass} role="tablist" aria-label={label}>
         {tabs.map((tab) => {
           const active = tab.value === defaultValue;
           const triggerId = `${id}-tab-${tab.value}`;
           const panelId = `${id}-panel-${tab.value}`;
           return (
             <button
+              key={tab.value}
               {...tab.triggerProps}
               id={triggerId}
-              key={tab.value}
-              class={classes(triggerClass, active && "is-active")}
+              className={classes(triggerClass, active && "is-active")}
               type="button"
               role="tab"
               data-ui-tab={tab.value}
@@ -195,15 +195,15 @@ export function WidgetTabs({
               {variant === "pill" ? (
                 <>
                   {tab.count !== undefined && (
-                    <span class={countClass}>{tab.count}</span>
+                    <span className={countClass}>{tab.count}</span>
                   )}
-                  <span class={labelClass}>{tab.label}</span>
+                  <span className={labelClass}>{tab.label}</span>
                 </>
               ) : (
                 <>
                   {tab.label}
                   {tab.count !== undefined && (
-                    <span class={countClass}>{tab.count}</span>
+                    <span className={countClass}>{tab.count}</span>
                   )}
                 </>
               )}
@@ -215,10 +215,10 @@ export function WidgetTabs({
         const active = tab.value === defaultValue;
         return (
           <div
+            key={tab.value}
             {...tab.panelProps}
             id={`${id}-panel-${tab.value}`}
-            key={tab.value}
-            class={classes(tab.panelClassName, active && "is-active")}
+            className={classes(tab.panelClassName, active && "is-active")}
             data-ui-panel={tab.value}
             role="tabpanel"
             aria-labelledby={`${id}-tab-${tab.value}`}
@@ -234,7 +234,7 @@ export function WidgetTabs({
 
 export interface WidgetFilterOption {
   value: string;
-  label: ComponentChildren;
+  label: ReactNode;
   count?: number | undefined;
   tone?: "plain" | "gap" | undefined;
   triggerProps?: WidgetElementProps<HTMLButtonElement> | undefined;
@@ -262,8 +262,8 @@ export function WidgetFilter({
   label: string;
   defaultValue: string;
   options: WidgetFilterOption[];
-  children: ComponentChildren;
-  emptyState?: ComponentChildren;
+  children: ReactNode;
+  emptyState?: ReactNode;
   className?: string;
   allValue?: string;
 }): JSX.Element {
@@ -271,7 +271,7 @@ export function WidgetFilter({
 
   return (
     <div
-      class={className}
+      className={className}
       data-ui-filter
       data-ui-filter-default={defaultValue}
       data-ui-filter-all={allValue}
@@ -283,9 +283,9 @@ export function WidgetFilter({
         : {})}
     >
       {hasOverflow && (
-        <div class="widget-filter-tools" data-ui-filter-tools hidden>
+        <div className="widget-filter-tools" data-ui-filter-tools hidden>
           <input
-            class="widget-filter-search"
+            className="widget-filter-search"
             type="search"
             autoComplete="off"
             placeholder="Search filters"
@@ -293,7 +293,7 @@ export function WidgetFilter({
             data-ui-filter-search
           />
           <button
-            class="widget-filter-toggle"
+            className="widget-filter-toggle"
             type="button"
             aria-expanded="false"
             data-ui-filter-toggle
@@ -303,7 +303,7 @@ export function WidgetFilter({
         </div>
       )}
       <div
-        class="widget-filter-tabs widget-filter-tabs--compact"
+        className="widget-filter-tabs widget-filter-tabs--compact"
         aria-label={label}
       >
         {options.map((option) => {
@@ -312,7 +312,7 @@ export function WidgetFilter({
             <button
               {...option.triggerProps}
               key={option.value}
-              class={classes(
+              className={classes(
                 "widget-filter-tab",
                 active && "is-active",
                 option.tone === "gap" && "is-gap",
@@ -323,9 +323,9 @@ export function WidgetFilter({
               aria-pressed={active ? "true" : "false"}
             >
               {option.count !== undefined && (
-                <span class="widget-filter-count">{option.count}</span>
+                <span className="widget-filter-count">{option.count}</span>
               )}
-              <span class="widget-filter-label">{option.label}</span>
+              <span className="widget-filter-label">{option.label}</span>
             </button>
           );
         })}
@@ -344,10 +344,10 @@ export function WidgetList({
   children,
   className,
 }: {
-  children: ComponentChildren;
+  children: ReactNode;
   className?: string;
 }): JSX.Element {
-  return <ul class={classes("list", className)}>{children}</ul>;
+  return <ul className={classes("list", className)}>{children}</ul>;
 }
 
 export function WidgetMetaLine({
@@ -358,10 +358,10 @@ export function WidgetMetaLine({
   if (segments.length === 0) return null;
 
   return (
-    <span class="list-meta-text">
+    <span className="list-meta-text">
       {segments.map((segment, index) => (
         <span key={`${segment}:${index}`}>
-          {index > 0 && <span class="sep">·</span>}
+          {index > 0 && <span className="sep">·</span>}
           {segment}
         </span>
       ))}
@@ -373,9 +373,9 @@ export function WidgetTags({ tags }: { tags: string[] }): JSX.Element | null {
   if (tags.length === 0) return null;
 
   return (
-    <div class="list-tags">
+    <div className="list-tags">
       {tags.map((tag, index) => (
-        <span key={`${tag}:${index}`} class="tag">
+        <span key={`${tag}:${index}`} className="tag">
           {tag}
         </span>
       ))}
@@ -387,7 +387,7 @@ export function WidgetStatusPill({
   children,
   tone = "plain",
 }: {
-  children: ComponentChildren;
+  children: ReactNode;
   tone?: "plain" | "warn" | "error" | "ok" | "muted";
 }): JSX.Element {
   const toneClass = {
@@ -398,7 +398,7 @@ export function WidgetStatusPill({
     muted: "pill--mute",
   }[tone];
 
-  return <span class={classes("pill", toneClass)}>{children}</span>;
+  return <span className={classes("pill", toneClass)}>{children}</span>;
 }
 
 export function WidgetListItem({
@@ -411,11 +411,11 @@ export function WidgetListItem({
   className,
   itemProps,
 }: {
-  title: ComponentChildren;
-  description?: ComponentChildren | undefined;
+  title: ReactNode;
+  description?: ReactNode | undefined;
   meta?: string[] | undefined;
   tags?: string[] | undefined;
-  trailing?: ComponentChildren | undefined;
+  trailing?: ReactNode | undefined;
   filterValues?: string[] | undefined;
   className?: string | undefined;
   itemProps?: WidgetElementProps<HTMLLIElement> | undefined;
@@ -423,18 +423,18 @@ export function WidgetListItem({
   return (
     <li
       {...itemProps}
-      class={classes("list-item", className)}
+      className={classes("list-item", className)}
       {...(filterValues
         ? { "data-ui-filter-values": JSON.stringify(filterValues) }
         : {})}
     >
-      <div class="list-main">
-        <span class="list-name">{title}</span>
-        {description && <span class="list-desc">{description}</span>}
+      <div className="list-main">
+        <span className="list-name">{title}</span>
+        {description && <span className="list-desc">{description}</span>}
         <WidgetMetaLine segments={meta} />
         <WidgetTags tags={tags} />
       </div>
-      {trailing && <div class="list-meta">{trailing}</div>}
+      {trailing && <div className="list-meta">{trailing}</div>}
     </li>
   );
 }
