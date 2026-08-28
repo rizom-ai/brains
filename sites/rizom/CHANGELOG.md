@@ -1,5 +1,14 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.241
+
+### Patch Changes
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`8b10704`](https://github.com/rizom-ai/brains/commit/8b107040ea95cb3e87d8ae1bebd8dc3876f84c75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the prerelease site-authoring contract from Preact to React 19 and React DOM before the stable 0.2.0 compatibility line is frozen.
+
+- Updated dependencies [[`8b10704`](https://github.com/rizom-ai/brains/commit/8b107040ea95cb3e87d8ae1bebd8dc3876f84c75)]:
+  - @rizom/site@0.2.0-alpha.235
+
 ## 0.2.0-alpha.240
 
 ### Patch Changes

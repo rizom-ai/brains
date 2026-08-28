@@ -124,7 +124,8 @@
     "@brains/onboarding": "0.2.0-alpha.243",
     "@brains/email-workflows": "0.2.0-alpha.247",
     "@brains/unified-inbox": "0.2.0-alpha.250",
-    "@brains/operation-context": "0.2.0-alpha.240"
+    "@brains/operation-context": "0.2.0-alpha.240",
+    "@brains/operator-view-react": "0.2.0-alpha.313"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -579,6 +580,7 @@
     "site--first-party-preact-peer",
     "site--fold-rizom-ui-into-site",
     "site--json-native-section-content",
+    "site--react-authoring-runtime",
     "site--relicense-agpl-apache-split",
     "site--rizom-btn-shared-defaults",
     "site--zod-4-2-minimum",
