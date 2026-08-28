@@ -5,9 +5,7 @@ import {
   type PublishedPackageManifest,
 } from "@brains/build-tools";
 import { getPackages } from "@manypkg/get-packages";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readPackageManifestFromTarball } from "./lib/package-tarball";
 
 interface RegistryVersionMetadata extends PublishedPackageManifest {
   dist?: { tarball?: string };
@@ -151,28 +149,10 @@ async function fetchTarballManifest(
     );
   }
 
-  const dir = await mkdtemp(join(tmpdir(), "published-peer-metadata-"));
-  const tarballPath = join(dir, "package.tgz");
-  try {
-    await writeFile(tarballPath, new Uint8Array(await response.arrayBuffer()));
-    const child = Bun.spawn(
-      ["tar", "-xOf", tarballPath, "package/package.json"],
-      { stdout: "pipe", stderr: "pipe" },
-    );
-    const [exitCode, stdout, stderr] = await Promise.all([
-      child.exited,
-      new Response(child.stdout).text(),
-      new Response(child.stderr).text(),
-    ]);
-    if (exitCode !== 0) {
-      throw new Error(
-        `Could not read package.json from ${target.name}@${target.version} tarball: ${stderr.trim()}`,
-      );
-    }
-    return JSON.parse(stdout) as PublishedPackageManifest;
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
+  return readPackageManifestFromTarball(
+    await response.blob(),
+    `${target.name}@${target.version}`,
+  );
 }
 
 function parsePositiveInteger(
