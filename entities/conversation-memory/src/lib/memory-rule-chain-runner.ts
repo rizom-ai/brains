@@ -181,6 +181,13 @@ export async function runMemoryRuleChain(
       getEntityTypeConfig: () => {
         throw new Error("Rule-chain eval does not read entity type config");
       },
+      // Added to the reader after this chain was written, for rules that
+      // must not overwrite an authored entity. The memory rules are
+      // additive and never ask, so this fails loudly rather than answering
+      // for a harness that holds no ownership records.
+      isProjectionOwnedEntity: () => {
+        throw new Error("Rule-chain eval does not track projection ownership");
+      },
     },
     conversations: {
       get: async () => input.conversation,
