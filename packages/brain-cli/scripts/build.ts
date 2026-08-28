@@ -142,6 +142,12 @@ if (envSchemaResult.exitCode !== 0) {
 console.log("Building @rizom/brain...");
 
 // Native modules, lazy-loaded SDKs, and the JSX runtime.
+const productionJsx = {
+  runtime: "automatic",
+  importSource: "react",
+  development: false,
+} as const;
+
 const sharedExternals = [
   "@libsql/client",
   "libsql",
@@ -179,6 +185,7 @@ async function bundle(opts: {
     format: "esm",
     minify: true,
     sourcemap: opts.sourcemap,
+    jsx: productionJsx,
     external: sharedExternals,
     naming: `${opts.name}.js`,
   });
@@ -238,6 +245,7 @@ async function bundleLibraries(): Promise<void> {
     minify: true,
     splitting: true,
     sourcemap: "linked",
+    jsx: productionJsx,
     external: sharedExternals,
     naming: {
       entry: "[name].js",
