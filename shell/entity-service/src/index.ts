@@ -1,3 +1,24 @@
+export {
+  ASSET_REF_PATTERN,
+  ASSET_REF_PREFIX,
+  MAX_ASSET_BYTES,
+  SHA256_DIGEST_PATTERN,
+  assertPreparedAsset,
+  assetRecordSchema,
+  assetRefSchema,
+  computeAssetDigest,
+  createAssetRef,
+  getAssetDigest,
+  parseAssetRef,
+  prepareAsset,
+  type AssetReader,
+  type AssetRecord,
+  type AssetRef,
+  type AssetStat,
+  type AssetVerification,
+  type PreparedAsset,
+  type PrepareAssetOptions,
+} from "@brains/assets";
 export { EntityService } from "./entityService";
 export { EntityRegistry } from "./entityRegistry";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
@@ -18,6 +39,10 @@ export {
   type ProjectionJsonValue,
   type ProjectionWriteIntent,
 } from "./projection-contracts";
+export {
+  AssetIntegrityError,
+  AssetNotFoundError,
+} from "./sqlite-asset-repository";
 export {
   ProjectionBatchFencedError,
   ProjectionStore,

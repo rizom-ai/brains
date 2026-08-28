@@ -1,3 +1,4 @@
+import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas } from "@brains/db";
@@ -62,6 +63,7 @@ import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
+import { SqliteAssetRepository } from "./sqlite-asset-repository";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
@@ -111,6 +113,7 @@ export class EntityService implements IEntityService {
   private entityQueries: EntityQueries;
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
+  private readonly assetRepository: SqliteAssetRepository;
   private readonly entityExportStore: EntityExportStore;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
@@ -161,6 +164,7 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
+    this.assetRepository = new SqliteAssetRepository(this.db);
     this.entityExportStore = new EntityExportStore(
       this.db,
       options.projectionNow ?? Date.now,
@@ -169,6 +173,15 @@ export class EntityService implements IEntityService {
       this.db,
       options.mutationAdmission,
       options.projectionNow ?? Date.now,
+      {
+        assetRepository: this.assetRepository,
+        isAssetBacked: (entityType): boolean =>
+          options.entityRegistry.getEntityTypeConfig(entityType)
+            .binaryStorage === "asset",
+        isFullTextSearchable: (entityType): boolean =>
+          options.entityRegistry.getEntityTypeConfig(entityType)
+            .fullTextSearchable !== false,
+      },
     );
 
     let searchDbClient: Client | undefined;
@@ -227,6 +240,7 @@ export class EntityService implements IEntityService {
           mutationAdmission: options.mutationAdmission,
         }),
         projectionStore: this.projectionStore,
+        assetRepository: this.assetRepository,
         entityExportStore: this.entityExportStore,
         projectionNow: options.projectionNow ?? Date.now,
         embeddingDb: this.embeddingDb,
@@ -576,6 +590,21 @@ export class EntityService implements IEntityService {
   }
 
   // ── Reads ─────────────────────────────────────────────────────────
+
+  public async readAsset(ref: AssetRef): Promise<Uint8Array> {
+    await this.initialize();
+    return this.assetRepository.read(ref);
+  }
+
+  public async statAsset(ref: AssetRef): Promise<AssetStat | null> {
+    await this.initialize();
+    return this.assetRepository.stat(ref);
+  }
+
+  public async verifyAsset(ref: AssetRef): Promise<AssetVerification> {
+    await this.initialize();
+    return this.assetRepository.verify(ref);
+  }
 
   public async getEntity<T extends BaseEntity>(
     request: GetEntityRequest,

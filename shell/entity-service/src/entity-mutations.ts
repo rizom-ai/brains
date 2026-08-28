@@ -2,6 +2,11 @@ import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
 import type { EntityDB } from "./db";
 import type { EmbeddingDB } from "./db/embedding-db";
 import type {
+  AssetTransaction,
+  SqliteAssetRepository,
+  StagedAsset,
+} from "./sqlite-asset-repository";
+import type {
   BaseEntity,
   EmbeddingJobData,
   EntityJobOptions,
@@ -135,6 +140,7 @@ export interface EntityMutationDeps {
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
   projectionStore: ProjectionStore;
+  assetRepository: SqliteAssetRepository;
   entityExportStore: EntityExportStore;
   projectionNow: () => number;
   /** Embedding DB for writes (separate from entity DB). */
@@ -156,6 +162,7 @@ export class EntityMutations {
   private messageBus?: EntityEventBus;
   private mutationAdmission?: EntityMutationAdmission;
   private readonly projectionStore: ProjectionStore;
+  private readonly assetRepository: SqliteAssetRepository;
   private readonly entityExportStore: EntityExportStore;
   private readonly projectionNow: () => number;
   private readonly embeddingsEnabled: boolean;
@@ -170,6 +177,7 @@ export class EntityMutations {
     this.entityQueries = deps.entityQueries;
     this.jobQueueService = deps.jobQueueService;
     this.projectionStore = deps.projectionStore;
+    this.assetRepository = deps.assetRepository;
     this.entityExportStore = deps.entityExportStore;
     this.projectionNow = deps.projectionNow;
     this.embeddingsEnabled = deps.embeddingsEnabled;
@@ -198,7 +206,7 @@ export class EntityMutations {
   public async createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    const { entity, options } = request;
+    const { entity, options, preparedAsset } = request;
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
@@ -235,6 +243,12 @@ export class EntityMutations {
 
     // Compute contentHash from the serialized markdown
     const contentHash = computeContentHash(markdown);
+    const stagedAsset = this.stageAsset(
+      validatedEntity.entityType,
+      validatedEntity.content,
+      markdown,
+      preparedAsset,
+    );
 
     // Resolve final ID (may deduplicate on collision)
     let finalId = validatedEntity.id;
@@ -265,6 +279,12 @@ export class EntityMutations {
         markedAt: this.projectionNow(),
       },
       async (transaction) => {
+        await this.bindAssetContent(
+          transaction,
+          validatedEntity.entityType,
+          markdown,
+          stagedAsset,
+        );
         await transaction.insert(entities).values({
           id: finalId,
           entityType: validatedEntity.entityType,
@@ -275,7 +295,7 @@ export class EntityMutations {
           created: new Date(validatedEntity.created).getTime(),
           updated: new Date(validatedEntity.updated).getTime(),
         });
-        await this.upsertFtsIndex(
+        await this.syncFtsIndex(
           transaction,
           finalId,
           validatedEntity.entityType,
@@ -329,7 +349,7 @@ export class EntityMutations {
   public async updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    const { entity, options } = request;
+    const { entity, options, preparedAsset } = request;
     this.logger.debug(
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
@@ -403,6 +423,13 @@ export class EntityMutations {
       };
     }
 
+    const stagedAsset = this.stageAsset(
+      validatedEntity.entityType,
+      validatedEntity.content,
+      markdown,
+      preparedAsset,
+    );
+
     if (
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
@@ -413,8 +440,19 @@ export class EntityMutations {
           entityType: validatedEntity.entityType,
           id: validatedEntity.id,
         },
-        async (transaction) =>
-          this.persistEntityExport(
+        async (transaction) => {
+          await this.bindAssetContent(
+            transaction,
+            validatedEntity.entityType,
+            markdown,
+            stagedAsset,
+          );
+          await this.pruneFtsIndexIfExcluded(
+            transaction,
+            validatedEntity.id,
+            validatedEntity.entityType,
+          );
+          return this.persistEntityExport(
             transaction,
             {
               entityType: validatedEntity.entityType,
@@ -422,7 +460,8 @@ export class EntityMutations {
               operation: "upsert",
             },
             options?.persistenceOrigin,
-          ),
+          );
+        },
       );
       this.logger.debug(
         `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
@@ -460,6 +499,12 @@ export class EntityMutations {
           markedAt: this.projectionNow(),
         },
         async (transaction) => {
+          await this.bindAssetContent(
+            transaction,
+            validatedEntity.entityType,
+            markdown,
+            stagedAsset,
+          );
           const updateResult = await transaction
             .update(entities)
             .set({
@@ -484,7 +529,7 @@ export class EntityMutations {
           ) {
             throw new StaleEntityUpdateError();
           }
-          await this.upsertFtsIndex(
+          await this.syncFtsIndex(
             transaction,
             validatedEntity.id,
             validatedEntity.entityType,
@@ -622,7 +667,7 @@ export class EntityMutations {
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    const { entity, options } = request;
+    const { entity, options, preparedAsset } = request;
     this.logger.debug(
       `Upserting entity of type ${entity.entityType} with ID ${entity.id}`,
     );
@@ -635,6 +680,7 @@ export class EntityMutations {
     if (exists) {
       const result = await this.updateEntity({
         entity,
+        ...(preparedAsset !== undefined && { preparedAsset }),
         ...(options !== undefined && { options }),
       });
       return { ...result, created: false };
@@ -643,6 +689,7 @@ export class EntityMutations {
     try {
       const result = await this.createEntity({
         entity,
+        ...(preparedAsset !== undefined && { preparedAsset }),
         ...(options !== undefined && { options }),
       });
       return { ...result, created: true };
@@ -658,6 +705,7 @@ export class EntityMutations {
       );
       const result = await this.updateEntity({
         entity,
+        ...(preparedAsset !== undefined && { preparedAsset }),
         ...(options !== undefined && { options }),
       });
       return { ...result, created: false };
@@ -898,21 +946,88 @@ export class EntityMutations {
     return rows.length > 0;
   }
 
-  /**
-   * Insert or replace FTS5 index entry for an entity.
-   */
-  private async upsertFtsIndex(
+  private stageAsset(
+    entityType: string,
+    entityContent: string,
+    storedContent: string,
+    preparedAsset: CreateEntityRequest<BaseEntity>["preparedAsset"],
+  ): StagedAsset | undefined {
+    const assetBacked =
+      this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage ===
+      "asset";
+    if (!preparedAsset) return undefined;
+    if (!assetBacked) {
+      throw new Error(
+        `Entity type ${entityType} is not registered for asset-backed storage`,
+      );
+    }
+    if (
+      entityContent !== preparedAsset.ref ||
+      storedContent !== preparedAsset.ref
+    ) {
+      throw new Error(
+        `Prepared asset ${preparedAsset.ref} does not match canonical ${entityType} content`,
+      );
+    }
+    return this.assetRepository.stage(preparedAsset);
+  }
+
+  private async bindAssetContent(
+    transaction: AssetTransaction,
+    entityType: string,
+    storedContent: string,
+    stagedAsset?: StagedAsset,
+  ): Promise<void> {
+    if (
+      this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage !==
+      "asset"
+    ) {
+      return;
+    }
+    await this.assetRepository.bindEntityContent(
+      transaction,
+      storedContent,
+      stagedAsset,
+    );
+  }
+
+  /** Synchronize FTS independently from vector embedding policy. */
+  private async syncFtsIndex(
     database: Pick<EntityDB, "run">,
     entityId: string,
     entityType: string,
     content: string,
   ): Promise<void> {
-    // FTS5 doesn't support upsert — delete then insert
+    await this.deleteFtsIndex(database, entityId, entityType);
+    if (!this.isFullTextSearchable(entityType)) return;
+    await database.run(
+      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
+    );
+  }
+
+  private async pruneFtsIndexIfExcluded(
+    database: Pick<EntityDB, "run">,
+    entityId: string,
+    entityType: string,
+  ): Promise<void> {
+    if (this.isFullTextSearchable(entityType)) return;
+    await this.deleteFtsIndex(database, entityId, entityType);
+  }
+
+  private async deleteFtsIndex(
+    database: Pick<EntityDB, "run">,
+    entityId: string,
+    entityType: string,
+  ): Promise<void> {
     await database.run(
       sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
     );
-    await database.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
+  }
+
+  private isFullTextSearchable(entityType: string): boolean {
+    return (
+      this.entityRegistry.getEntityTypeConfig(entityType).fullTextSearchable !==
+      false
     );
   }
 

@@ -5,6 +5,7 @@ import {
   runPackageMigrations,
 } from "@brains/db";
 import { ensureFtsTable } from "./db";
+import { assets } from "./schema/assets";
 import { entities } from "./schema/entities";
 import {
   projectionDirtyInputs,
@@ -25,6 +26,7 @@ export async function migrateEntities(
     label: "entity",
     config,
     schema: {
+      assets,
       entities,
       projectionDirtyInputs,
       projectionWaves,

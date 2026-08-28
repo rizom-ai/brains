@@ -19,6 +19,7 @@ import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
 import { EntityExportStore } from "./entity-export-store";
+import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 import type { EntityMutationAdmission } from "./mutation-admission";
 import {
   ProjectionWriteIntentSchema,
@@ -337,12 +338,19 @@ export async function retrySqliteWrite<TResult>(
   }
 }
 
+export interface ProjectionEntityStoragePolicy {
+  assetRepository: SqliteAssetRepository;
+  isAssetBacked(entityType: string): boolean;
+  isFullTextSearchable(entityType: string): boolean;
+}
+
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore {
   private readonly db: EntityDB;
   private readonly entityExportStore: EntityExportStore;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
   private readonly now: () => number;
+  private readonly storagePolicy: ProjectionEntityStoragePolicy | undefined;
   private readonly transactionTail = new SerialQueue();
   private readonly batchScope = new AsyncLocalStorage<ProjectionBatchScope>();
 
@@ -350,11 +358,13 @@ export class ProjectionStore {
     db: EntityDB,
     mutationAdmission?: EntityMutationAdmission,
     now: () => number = Date.now,
+    storagePolicy?: ProjectionEntityStoragePolicy,
   ) {
     this.db = db;
     this.entityExportStore = new EntityExportStore(db, now);
     this.mutationAdmission = mutationAdmission;
     this.now = now;
+    this.storagePolicy = storagePolicy;
   }
 
   public async runBulkMutation<TResult>(
@@ -1942,12 +1952,24 @@ export class ProjectionStore {
           claimedAt: changedAt,
         },
       });
+    if (this.storagePolicy?.isAssetBacked(entityType)) {
+      await this.storagePolicy.assetRepository.bindEntityContent(
+        transaction,
+        intent.entity.content,
+      );
+    }
+
     if (
       existing?.contentHash === contentHash &&
       existing.content === intent.entity.content &&
       existing.visibility === intent.entity.visibility &&
       canonicalJson(existing.metadata) === canonicalJson(intent.entity.metadata)
     ) {
+      if (this.storagePolicy?.isFullTextSearchable(entityType) === false) {
+        await transaction.run(
+          sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
+        );
+      }
       return null;
     }
 
@@ -1986,9 +2008,11 @@ export class ProjectionStore {
     await transaction.run(
       sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
     );
-    await transaction.run(
-      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
-    );
+    if (this.storagePolicy?.isFullTextSearchable(entityType) !== false) {
+      await transaction.run(
+        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
+      );
+    }
     await this.entityExportStore.record(transaction, {
       entityType,
       entityId,
