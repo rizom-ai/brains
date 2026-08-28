@@ -1,7 +1,7 @@
 import {
   createId,
   type BaseEntity,
-  type IEntityService,
+  type EntityServiceClient,
   type ServicePluginContext,
 } from "@brains/plugins";
 import type { BatchMetadata, BatchResult } from "../types";
@@ -61,7 +61,7 @@ export { directorySyncOptionsSchema } from "./directory-options";
 export type { DirectorySyncOptions } from "./directory-options";
 
 export class DirectorySync implements IDirectorySync {
-  private entityService: IEntityService;
+  private entityService: EntityServiceClient;
   private logger: Logger;
   private syncPath: string;
   private autoSync: boolean;

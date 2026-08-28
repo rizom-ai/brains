@@ -27,9 +27,20 @@ export {
   ENTITY_RPC_SERVICE,
   EntityRpcRequestSchema,
   handleEntityRpcRequest,
+  parseEntityRpcCall,
   parseEntityRpcRequest,
   parseEntityRpcResult,
 } from "./entity-rpc";
+export type { EntityRpcCall } from "./entity-rpc";
+export {
+  createEntityBulkCoordination,
+  durableBulkMutationChildRefSchema,
+} from "./entity-bulk-coordination";
+export type {
+  DurableBulkMutationBatch,
+  DurableBulkMutationChildRef,
+  EntityBulkCoordination,
+} from "./entity-bulk-coordination";
 export type {
   EntityIndexReadinessRpcOptions,
   EntityRpcRequest,

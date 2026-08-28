@@ -24,10 +24,21 @@ Directory-sync remains a plugin. The surface remains plugin API.
 Stable v0.2.0 makes the plugin-facing surface a compatibility contract, so
 the shape must be right **before release**, not at the second consumer.
 
-1. **Durable-batch protocol** — five ordered calls leaking job topology
-   (`expectedChildren`, `rootJobId`, child id plumbing, manual settle).
-   Replace with a managed bracket that owns ids, child settlement, and
-   closure before release.
+1. **Durable-batch protocol** — DONE. `context.entityCoordination`
+   (`EntityBulkCoordination`, bound to the plugin id as mutation source)
+   exposes `beginDurableBulkMutation({ rootJobId, expectedChildren })` →
+   handle with `childRef(childKey)` / `seal()` / `abort()`, plus ref-keyed
+   `runDurableBulkMutationChild(ref, jobId, fn)` and
+   `settleDurableBulkMutationChild(ref, jobId, outcome)`. `source` and
+   `operationId` no longer appear in plugin code or job payloads. All five
+   `as IEntityService` casts in directory-sync are deleted; the plugin sees
+   only `EntityServiceClient`. Two deliberate deviations from the earlier
+   sketch: `expectedChildren` stays at `begin` (the durable root marker must
+   exist before enqueue makes children runnable — moving it to `seal` needs
+   store tolerance for early-settling children, surgery this did not need),
+   and explicit settle survives because terminal outcome belongs to the job
+   queue's retry lifecycle (`onTerminalSuccess`/`onTerminalError`), not to
+   the mutation bracket's first throw.
 2. **Export journal** — acknowledgement deletes the intent: one global
    cursor, no consumer identity, "export" baked into the names. Names and
    contract shapes must be release-final now; consumer-scoped
@@ -36,47 +47,10 @@ the shape must be right **before release**, not at the second consumer.
    reader, uncallable by any plugin. Remove from the plugin surface before
    release.
 
-Owner of the subsystem executes; this is release-gate work, not
-opportunistic refactoring.
-
-## Proposed shape (for subsystem-owner review)
-
-Grounded in the actual call sites; the owner may amend.
-
-- **Durable fan-out** becomes a handle with automatic settlement:
-  `beginDurableBulkMutation({ source, rootJobId })` returns a batch whose
-  `childRef(childKey)` tokens embed in job data, `seal({ expectedChildren })`
-  commits the count at enqueue success, and `abort()` replaces the failure
-  marker. `runDurableBulkMutationChild(ref, fn)` settles from the outcome of
-  `fn` — resolve is completed, throw is failed — eliminating the manual
-  settle-on-both-paths and the six re-threaded fields. `operationId` is
-  dropped (always `rootJobId` in practice). Store question for the owner:
-  children settling before seal must be tolerated.
-- **Callback bracket** `runBulkMutation(input, fn)` is already right;
-  unchanged.
-- **Journal** gets neutral, release-final names —
-  `listPendingEntityChanges` / `hasPendingEntityChanges` /
-  `acknowledgeEntityChanges` — with consumer scoping later as an additive
-  optional parameter.
-- **`recoverProjectionBatches`** moves to an internal shell contract.
-
-## Boundary casts — the actual defect, and the gate
-
-The privileged methods are not on the typed plugin context at all today:
-the service context narrows `entityService` to the curated client type, and
-directory-sync reaches past it with `as IEntityService` in five production
-sites (`batch-operations.ts:113`, `plugin.ts:599`,
-`inline-image-conversion-handler.ts:49`, `projection-batch-job.ts:16,38`).
-Typed boundaries are the point of this branch; these casts smuggle
-capability access past the type system in-process.
-
-Release-gate acceptance criteria:
-
-1. The capability methods land on the typed plugin context deliberately, in
-   the proposed shape — and all five casts are deleted.
-2. Zero service-boundary casts in production plugin code, enforced by a
-   check script (same pattern as `check-legacy-code`) so they cannot
-   return.
+Owner of the subsystem executes items 2–3; release-gate work, not
+opportunistic refactoring. The five raw `EntityService` methods behind
+`entityCoordination` remain the internal shell/RPC contract, excluded from
+`EntityServiceClient`.
 
 ## Standing note
 

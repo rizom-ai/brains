@@ -395,6 +395,10 @@ export type {
   ProjectionSourceRole,
   ICoreEntityService,
   IEntityService,
+  EntityServiceClient,
+  EntityBulkCoordination,
+  DurableBulkMutationBatch,
+  DurableBulkMutationChildRef,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -405,6 +409,7 @@ export type {
   SearchResult,
 } from "@brains/entity-service";
 export {
+  durableBulkMutationChildRefSchema,
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
   BaseEntityAdapter,
