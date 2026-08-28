@@ -349,6 +349,7 @@
     "core--ops-upgrade-private-key-preflight",
     "core--prepare-canonical-crossover",
     "core--preserve-visibility-on-content-replacement",
+    "core--production-jsx-bundle",
     "core--profile-kind-content-cutover",
     "core--projection-burst-coalescing",
     "core--projection-burst-soak-coordination",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.334
+
+### Patch Changes
+
+- [#186](https://github.com/rizom-ai/brains/pull/186) [`8e08960`](https://github.com/rizom-ai/brains/commit/8e089602356c04c2547eb33d4c0f684c94f84813) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build packaged Brain entrypoints with the production React JSX transform so production runtimes never call the development-only `jsxDEV` export.
+
 ## 0.2.0-alpha.333
 
 ### Minor Changes
