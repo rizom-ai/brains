@@ -30,12 +30,13 @@ export const conversationMemory: ServicePackageDefinition<
   id: "conversation-memory",
   config: summaryConfigSchema,
   entities: [summary, decision, actionItem],
-  projectionRules: ({ config }) => [
-    createSummaryProjectionRule(config),
+  projectionRules: ({ config, template }) => [
+    createSummaryProjectionRule(config, template("ai-response")),
     createDecisionProjectionRule(config),
     createActionItemProjectionRule(config),
   ],
-  evals: ({ config }) => summaryEvalHandlers(config),
+  evals: ({ config, template }) =>
+    summaryEvalHandlers(config, template("ai-response")),
 });
 
 export default conversationMemory;

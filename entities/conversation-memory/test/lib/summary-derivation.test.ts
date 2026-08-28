@@ -11,9 +11,10 @@ import {
   createSilentLogger,
 } from "@brains/test-utils";
 import {
+  deriveConversationMemory,
   getActorsMentionedInText,
-  SummaryProjector,
-} from "../../src/lib/summary-projector";
+} from "../../src/lib/summary-derivation";
+import { computeSummarySourceHash } from "../../src/lib/summary-source-reader";
 import { composeSummaryBody } from "../../src/lib/summary-body";
 import { composeMemoryMarkdown } from "../../src/lib/memory-markdown";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
@@ -23,6 +24,21 @@ import {
   createMockActionItemEntity,
   createMockDecisionEntity,
 } from "../fixtures/conversation-memory-entities";
+
+function createDerivationHarness(
+  context: Parameters<typeof deriveConversationMemory>[0],
+  logger: Parameters<typeof deriveConversationMemory>[1],
+  config: Parameters<typeof deriveConversationMemory>[2],
+): {
+  projectConversation: (
+    conversationId: string,
+  ) => ReturnType<typeof deriveConversationMemory>;
+} {
+  return {
+    projectConversation: (conversationId) =>
+      deriveConversationMemory(context, logger, config, conversationId),
+  };
+}
 
 const conversation: Conversation = {
   id: "conv-1",
@@ -201,7 +217,7 @@ function makeMessages(count: number): Message[] {
   }));
 }
 
-describe("SummaryProjector", () => {
+describe("conversation memory derivation", () => {
   it("defaults projected memory visibility to restricted", () => {
     expect(summaryConfigSchema.parse({}).memoryVisibility).toBe("restricted");
     expect(
@@ -211,8 +227,8 @@ describe("SummaryProjector", () => {
   });
 
   it("attributes label-less actors by their stable actor key", () => {
-    // No projector needed: attribution is a pure function now, so this tests
-    // it directly instead of building a projector to reach a private method.
+    // No derivation needed: attribution is a pure function now, so this tests
+    // it directly instead of building a derivation to reach a private method.
     const actor: ConversationMessageActor = {
       identity: { kind: "external", externalActorId: "ext_label_less" },
       interfaceType: "mcp",
@@ -236,13 +252,13 @@ describe("SummaryProjector", () => {
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     mockDecisionAndExtraction(context);
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.skipped).toBe(false);
     expect(result.entryCount).toBe(1);
@@ -287,13 +303,13 @@ describe("SummaryProjector", () => {
       ],
     });
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
 
-    const result = await projector.projectConversation("discord-conv-1");
+    const result = await derivation.projectConversation("discord-conv-1");
 
     expect(result.skipped).toBe(false);
     expect(upsertSpy.mock.calls).toHaveLength(3);
@@ -332,13 +348,13 @@ describe("SummaryProjector", () => {
       ],
     });
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("discord-conv-1");
+    const result = await derivation.projectConversation("discord-conv-1");
 
     expect(result.skipped).toBe(false);
     expect(upsertSpy).toHaveBeenCalledTimes(3);
@@ -457,13 +473,13 @@ describe("SummaryProjector", () => {
       ],
     });
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("discord-conv-1");
+    const result = await derivation.projectConversation("discord-conv-1");
 
     expect(result.skipped).toBe(false);
     const actionItemEntity = upsertSpy.mock.calls[1]?.[0]?.entity;
@@ -508,13 +524,13 @@ describe("SummaryProjector", () => {
       ],
     });
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("discord-conv-1");
+    const result = await derivation.projectConversation("discord-conv-1");
 
     expect(result.skipped).toBe(false);
     expect(upsertSpy).toHaveBeenCalledTimes(3);
@@ -598,13 +614,13 @@ describe("SummaryProjector", () => {
       },
     );
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ maxMessagesPerChunk: 2 }),
     );
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.entryCount).toBe(3);
     expect(generateSpy).toHaveBeenCalledTimes(3);
@@ -638,13 +654,13 @@ describe("SummaryProjector", () => {
       } as T);
     });
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ maxMessagesPerChunk: 1, maxEntries: 2 }),
     );
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.entryCount).toBe(2);
     expect(upsertSpy.mock.calls[0]?.[0]?.entity.content).toContain(
@@ -659,13 +675,13 @@ describe("SummaryProjector", () => {
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     const generateSpy = spyOn(context.ai, "generate");
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.skipped).toBe(true);
     expect(result.skipReason).toBe("space-not-configured");
@@ -683,13 +699,13 @@ describe("SummaryProjector", () => {
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     mockDecisionAndExtraction(context, "skip");
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.skipped).toBe(true);
     expect(result.skipReason).toBe("ai-skip");
@@ -781,13 +797,13 @@ describe("SummaryProjector", () => {
       },
     );
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.skipped).toBe(false);
     expect(result.entryCount).toBe(2);
@@ -817,16 +833,16 @@ describe("SummaryProjector", () => {
     spyOn(context.entityService, "upsertEntity");
     mockDecisionAndExtraction(context);
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
 
-    await projector.projectConversation("conv-1");
+    await derivation.projectConversation("conv-1");
 
     // A summary stored as "shared" is invisible to a read that fails closed
-    // to public — and a projector that cannot see one derives a second
+    // to public — and a derivation that cannot see one derives a second
     // summary beside it.
     expect(getEntitySpy).toHaveBeenCalledWith({
       entityType: "summary",
@@ -842,12 +858,12 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
-    const source = await projector["sourceReader"].readConversation("conv-1");
+    const sourceHash = computeSummarySourceHash(conversation, messages, 1);
     spyOn(context.entityService, "getEntity").mockResolvedValue(
       createMockSummaryEntity({
         content: "# Conversation Summary\n",
@@ -859,7 +875,7 @@ describe("SummaryProjector", () => {
           interfaceType: "cli",
           messageCount: 2,
           entryCount: 1,
-          sourceHash: source.sourceHash,
+          sourceHash,
           projectionVersion: 1,
         },
       }),
@@ -867,7 +883,7 @@ describe("SummaryProjector", () => {
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     mockDecisionAndExtraction(context, "update");
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.skipped).toBe(false);
     expect(result.created).toBe(true);
@@ -919,13 +935,13 @@ describe("SummaryProjector", () => {
     const deleteEntitySpy = spyOn(context.entityService, "deleteEntity");
     mockDecisionAndExtraction(context, "update");
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({ memoryVisibility: "shared" }),
     );
 
-    await projector.projectConversation("conv-1");
+    await derivation.projectConversation("conv-1");
 
     const listedTypes = listEntitiesSpy.mock.calls.map(
       (call) => call[0].entityType,
@@ -966,12 +982,12 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
 
-    const projector = new SummaryProjector(
+    const derivation = createDerivationHarness(
       narrowContext(context),
       createSilentLogger(),
       summaryConfigSchema.parse({}),
     );
-    const source = await projector["sourceReader"].readConversation("conv-1");
+    const sourceHash = computeSummarySourceHash(conversation, messages, 1);
 
     spyOn(context.entityService, "getEntity").mockResolvedValue(
       createMockSummaryEntity({
@@ -983,7 +999,7 @@ describe("SummaryProjector", () => {
           interfaceType: "cli",
           messageCount: 2,
           entryCount: 1,
-          sourceHash: source.sourceHash,
+          sourceHash,
           projectionVersion: 1,
           timeRange: {
             start: "2026-01-01T00:00:00.000Z",
@@ -995,7 +1011,7 @@ describe("SummaryProjector", () => {
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     const generateSpy = spyOn(context.ai, "generate");
 
-    const result = await projector.projectConversation("conv-1");
+    const result = await derivation.projectConversation("conv-1");
 
     expect(result.skipped).toBe(true);
     expect(upsertSpy).not.toHaveBeenCalled();

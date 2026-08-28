@@ -29,14 +29,17 @@ export class SummaryExtractor {
   private readonly ai: Pick<IEntityAINamespace, "generate">;
   private readonly logger: LoggerContract;
   private readonly config: SummaryConfig;
+  private readonly templateName: string;
   constructor(
     ai: Pick<IEntityAINamespace, "generate">,
     logger: LoggerContract,
     config: SummaryConfig,
+    templateName: string = SUMMARY_AI_TEMPLATE_NAME,
   ) {
     this.ai = ai;
     this.logger = logger;
     this.config = config;
+    this.templateName = templateName;
   }
 
   public async extract(messages: Message[]): Promise<SummaryExtraction> {
@@ -52,7 +55,7 @@ export class SummaryExtractor {
     try {
       const raw = await this.ai.generate<unknown>({
         prompt,
-        templateName: SUMMARY_AI_TEMPLATE_NAME,
+        templateName: this.templateName,
         data: { schema: summaryExtractionResultSchema },
         representedIdentity: "none",
       });

@@ -10,6 +10,8 @@ import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
+const extractionTemplateName =
+  "@brains/conversation-memory:summary:ai-response";
 
 function registerHandlers(): {
   context: ReturnType<typeof createMockEntityPluginContext>;
@@ -23,10 +25,7 @@ function registerHandlers(): {
     },
   );
 
-  /**
-   * The narrow context the runtime hands an eval. Fixtures and templates are
-   * unused here: these evals seed their own memory through their input.
-   */
+  /** The narrow context the runtime hands an eval. */
   const evalContext = (
     ctx: ReturnType<typeof createMockEntityPluginContext>,
   ): Parameters<(typeof declared)[string]>[1] => ({
@@ -44,6 +43,7 @@ function registerHandlers(): {
 
   const declared = summaryEvalHandlers(
     summaryConfigSchema.parse({ projectionVersion: 3 }),
+    extractionTemplateName,
   );
   for (const [handlerId, handler] of Object.entries(declared)) {
     handlers.set(handlerId, (input: unknown) =>
@@ -102,6 +102,9 @@ describe("summaryEvalHandlers", () => {
       }),
     ]);
     expect(generateSpy).toHaveBeenCalledTimes(1);
+    expect(generateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ templateName: extractionTemplateName }),
+    );
   });
 
   it("retrieveMemory returns same-space summary memory", async () => {
@@ -191,18 +194,20 @@ describe("summaryEvalHandlers", () => {
       ],
     });
 
-    expect(result).toEqual([
-      expect.objectContaining({
-        id: "summary-1",
-        source: "conversation-memory",
-        content: "The team chose explicit memory retrieval.",
-        provenance: expect.objectContaining({
-          entityType: "summary",
-          conversationId: "conv-1",
-          spaceId: "mcp:team",
+    expect(result).toEqual({
+      items: [
+        expect.objectContaining({
+          id: "summary-1",
+          source: "conversation-memory",
+          content: "The team chose explicit memory retrieval.",
+          provenance: expect.objectContaining({
+            entityType: "summary",
+            conversationId: "conv-1",
+            spaceId: "mcp:team",
+          }),
         }),
-      }),
-    ]);
+      ],
+    });
   });
 
   it("retrieveMemory can evaluate first-class decision and action memory", async () => {
@@ -268,8 +273,8 @@ describe("summaryEvalHandlers", () => {
           startMessageIndex: 1,
           endMessageIndex: 2,
           keyPoints: ["Summaries stay narrative-only"],
-          decisions: ["Use separate decision entities"],
-          actionItems: ["Add projection evals"],
+          decisions: ["Daniel decided to use separate decision entities"],
+          actionItems: ["Daniel will add projection evals"],
         },
       ],
     });
@@ -286,11 +291,27 @@ describe("summaryEvalHandlers", () => {
           role: "user",
           content: "Decision: use separate decision entities.",
           timestamp: "2026-01-01T00:00:00.000Z",
+          actor: {
+            actorId: "mcp:daniel",
+            userId: "usr_daniel",
+            canonicalId: "person:daniel",
+            interfaceType: "mcp",
+            role: "user",
+            displayName: "Daniel",
+          },
         },
         {
           role: "user",
           content: "Action item: add projection evals.",
           timestamp: "2026-01-01T00:01:00.000Z",
+          actor: {
+            actorId: "mcp:daniel",
+            userId: "usr_daniel",
+            canonicalId: "person:daniel",
+            interfaceType: "mcp",
+            role: "user",
+            displayName: "Daniel",
+          },
         },
       ],
     });
@@ -302,18 +323,47 @@ describe("summaryEvalHandlers", () => {
           expect.objectContaining({
             entityType: "summary",
             content: expect.not.stringContaining("### Decisions"),
+            metadata: expect.objectContaining({
+              participants: [
+                expect.objectContaining({
+                  identity: {
+                    kind: "user",
+                    userId: "usr_daniel",
+                    canonicalId: "person:daniel",
+                  },
+                }),
+              ],
+            }),
           }),
         ],
         decisions: [
           expect.objectContaining({
             entityType: "decision",
-            metadata: expect.objectContaining({ status: "active" }),
+            metadata: expect.objectContaining({
+              status: "active",
+              decidedBy: [
+                expect.objectContaining({
+                  identity: expect.objectContaining({
+                    canonicalId: "person:daniel",
+                  }),
+                }),
+              ],
+            }),
           }),
         ],
         actionItems: [
           expect.objectContaining({
             entityType: "action-item",
-            metadata: expect.objectContaining({ status: "open" }),
+            metadata: expect.objectContaining({
+              status: "open",
+              assignedTo: [
+                expect.objectContaining({
+                  identity: expect.objectContaining({
+                    canonicalId: "person:daniel",
+                  }),
+                }),
+              ],
+            }),
           }),
         ],
       }),

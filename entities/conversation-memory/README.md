@@ -39,4 +39,5 @@ The plugin registers an agent-context provider so relevant same-space summaries,
 bun run typecheck
 bun test
 bun run lint
+bun run eval # requires shell/ai-evaluation/.env
 ```

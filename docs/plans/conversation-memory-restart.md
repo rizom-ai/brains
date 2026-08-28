@@ -2,10 +2,10 @@
 
 ## Status
 
-In progress. Revised after implementation review and fact-checked against
-`work/plugin-api-boundaries` on 2026-08-27. Phases 1–7 are implemented; the
-26-case model eval gate still requires provider credentials before the legacy
-`SummaryProjector` comparison path can be removed in phase 8.
+Complete. Revised after implementation review and fact-checked against
+`work/plugin-api-boundaries` on 2026-08-27. All eight phases are implemented.
+The production-rule eval chain passed all 26 model cases on 2026-08-28, after
+which the old `SummaryProjector` comparison path was removed.
 
 The brain stopped deriving memory from conversations in `173b53092`. The
 feature was not rejected; the scheduler-only projection runtime had no durable
@@ -19,8 +19,8 @@ correctness gaps, then wires conversation-memory to it.
 
 ## Quality baseline
 
-`SummaryProjector` is the behavior being replaced, not a design to rewrite on
-the way out. The package has 26 eval cases:
+The former `SummaryProjector` behavior is the compatibility baseline, not a
+design to rewrite on the way out. The package has 26 eval cases:
 
 - 12 use `summarizeMessages`;
 - 4 use `projectMessages`;
@@ -131,9 +131,9 @@ simplification:
 - participant and item attribution are computed from the original message
   metadata.
 
-Move these behaviors from private class methods into package-local pure helpers
-used by both the rule and evals. `SummaryProjector` remains until parity is
-proven.
+Move these behaviors from private class methods into package-local derivation
+helpers used by both the rule and evals. The comparison class remains only
+until parity is proven, then is removed.
 
 The selected-input fingerprint, including model and config version, is the
 scheduler memo key. `sourceHash` remains stored provenance for coverage; it is

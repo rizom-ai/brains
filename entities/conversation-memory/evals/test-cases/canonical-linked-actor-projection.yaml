@@ -25,6 +25,7 @@ input:
       timestamp: "2026-05-04T10:00:00Z"
       actor:
         actorId: discord:user-daniel
+        userId: usr_daniel
         canonicalId: person:daniel
         interfaceType: discord
         role: user
@@ -35,6 +36,7 @@ input:
       timestamp: "2026-05-04T10:01:00Z"
       actor:
         actorId: mcp:daniel
+        userId: usr_daniel
         canonicalId: person:daniel
         interfaceType: mcp
         role: user
@@ -44,19 +46,19 @@ expectedOutput:
   validateEach:
     - path: result.skipped
       equals: false
-    - path: summaries[0].metadata.participants[0].canonicalId
+    - path: summaries[0].metadata.participants[0].identity.userId
+      equals: usr_daniel
+    - path: summaries[0].metadata.participants[0].identity.canonicalId
       equals: person:daniel
-    - path: summaries[0].metadata.participants[0].sourceActorIds[0]
-      equals: discord:user-daniel
-    - path: summaries[0].metadata.participants[0].sourceActorIds[1]
-      equals: mcp:daniel
-    - path: decisions[0].metadata.decidedBy[0].canonicalId
+    - path: summaries[0].metadata.participants[1]
+      exists: false
+    - path: decisions[0].metadata.decidedBy[0].identity.canonicalId
       equals: person:daniel
     - path: decisions[0].content
       matches: "compact checklist|onboarding|Daniel"
-    - path: actionItems[0].metadata.assignedTo[0].canonicalId
+    - path: actionItems[0].metadata.assignedTo[0].identity.canonicalId
       equals: person:daniel
-    - path: actionItems[0].metadata.requestedBy[0].canonicalId
+    - path: actionItems[0].metadata.requestedBy[0].identity.canonicalId
       equals: person:daniel
     - path: actionItems[0].content
       matches: "compact checklist|MCP|Daniel"

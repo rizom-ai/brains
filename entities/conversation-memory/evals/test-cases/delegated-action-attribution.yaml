@@ -53,10 +53,10 @@ expectedOutput:
       equals: false
     - path: actionItems[0].entityType
       equals: action-item
-    - path: actionItems[0].metadata.assignedTo[0].actorId
-      equals: discord:user-daniel
-    - path: actionItems[0].metadata.requestedBy[0].actorId
-      equals: discord:user-mira
+    - path: actionItems[0].metadata.assignedTo[0].displayName
+      equals: Daniel
+    - path: actionItems[0].metadata.requestedBy[0].displayName
+      equals: Mira Ops
     - path: actionItems[0].content
       matches: "Daniel.*checklist|checklist.*Daniel"
     - path: actionItems[0].content

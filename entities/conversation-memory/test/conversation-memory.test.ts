@@ -91,6 +91,9 @@ describe("conversation memory package", () => {
     expect(templates.some((name) => name.includes("summary-detail"))).toBe(
       true,
     );
+    expect(templates).toContain(
+      "@brains/conversation-memory:summary:ai-response",
+    );
     expect(
       [...harness.getDataSources().keys()].some((id) =>
         id.includes("conversation-memory"),
