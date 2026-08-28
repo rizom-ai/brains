@@ -1,5 +1,19 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.332
+
+### Patch Changes
+
+- [#181](https://github.com/rizom-ai/brains/pull/181) [`5d2c496`](https://github.com/rizom-ai/brains/commit/5d2c496304ed223271f0d032e57a5cf6a2855931) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Register configured dashboard theme styles before the HTTP route snapshot is finalized so rendered theme asset URLs remain servable.
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.332
+  - @brains/contracts@0.2.0-alpha.332
+  - @brains/ui-library@0.2.0-alpha.332
+  - @brains/utils@0.2.0-alpha.332
+  - @brains/auth-service@0.2.0-alpha.332
+  - @brains/plugins@0.2.0-alpha.332
+
 ## 0.2.0-alpha.331
 
 ### Patch Changes

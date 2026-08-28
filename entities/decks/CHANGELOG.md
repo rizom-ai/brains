@@ -1,5 +1,20 @@
 # @brains/decks
 
+## 0.2.0-alpha.332
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.332
+  - @brains/content-formatters@0.2.0-alpha.332
+  - @brains/contracts@0.2.0-alpha.332
+  - @brains/image@0.2.0-alpha.332
+  - @brains/media-page-composer@0.2.0-alpha.332
+  - @brains/site-composition@0.2.0-alpha.332
+  - @brains/ui-library@0.2.0-alpha.332
+  - @brains/utils@0.2.0-alpha.332
+  - @brains/plugins@0.2.0-alpha.332
+
 ## 0.2.0-alpha.331
 
 ### Patch Changes

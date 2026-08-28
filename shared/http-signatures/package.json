@@ -1,7 +1,7 @@
 {
   "name": "@brains/http-signatures",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.331",
+  "version": "0.2.0-alpha.332",
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",

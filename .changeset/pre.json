@@ -261,6 +261,7 @@
     "core--contracts-channel-ownership",
     "core--cross-process-durable-work",
     "core--dashboard-paper-theme-mode",
+    "core--dashboard-theme-asset-route",
     "core--dashboard-widget-namespace",
     "core--declarative-dashboard-runtime",
     "core--delete-email-contracts",
