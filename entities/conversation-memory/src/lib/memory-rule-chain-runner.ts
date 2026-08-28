@@ -10,6 +10,7 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
 import type { SummaryConfig } from "../schemas/summary-config";
+import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 import type { SummaryEntity } from "../schemas/summary";
 import {
   createActionItemProjectionRule,
@@ -122,8 +123,12 @@ export async function runMemoryRuleChain(
     logger: ProjectionExecutionContext["logger"];
   },
   config: SummaryConfig,
+  extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
 ): Promise<MemoryRuleChainResult> {
-  const summaryRule = createSummaryProjectionRule(config);
+  const summaryRule = createSummaryProjectionRule(
+    config,
+    extractionTemplateName,
+  );
   const executionContext: ProjectionExecutionContext = {
     ai: {
       ...dependencies.ai,

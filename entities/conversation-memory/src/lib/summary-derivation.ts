@@ -14,6 +14,7 @@ import {
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
+  SUMMARY_AI_TEMPLATE_NAME,
   SUMMARY_ENTITY_TYPE,
 } from "./constants";
 import type {
@@ -118,7 +119,38 @@ export interface SummaryProjectionContext {
   readonly spaces: readonly string[];
 }
 
-export class SummaryProjector {
+function getNewOrChangedMessages(
+  messages: Message[],
+  existing: SummaryEntity | null,
+): Message[] {
+  if (!existing) return messages;
+
+  const offset = existing.metadata.messageCount;
+  if (offset <= 0 || offset >= messages.length) return messages;
+  return messages.slice(offset);
+}
+
+export async function decideSummaryProjection(
+  ai: Pick<IEntityAINamespace, "generateObject">,
+  messages: Message[],
+  existing: SummaryEntity | null,
+): Promise<SummaryProjectionDecision> {
+  const prompt = buildSummaryProjectionDecisionPrompt({
+    existingSummary: existing?.content,
+    messages: getNewOrChangedMessages(messages, existing),
+  });
+  const { object } = await ai.generateObject(
+    prompt,
+    summaryProjectionDecisionSchema,
+  );
+  const decision = summaryProjectionDecisionSchema.parse(object);
+
+  return !existing && decision.decision === "append"
+    ? { ...decision, decision: "update" }
+    : decision;
+}
+
+class SummaryDerivation {
   private readonly context: SummaryProjectionContext;
   private readonly logger: LoggerContract;
   private readonly config: SummaryConfig;
@@ -129,12 +161,18 @@ export class SummaryProjector {
     context: SummaryProjectionContext,
     logger: LoggerContract,
     config: SummaryConfig,
+    extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
   ) {
     this.context = context;
     this.logger = logger;
     this.config = config;
     this.sourceReader = new SummarySourceReader(context.conversations, config);
-    this.extractor = new SummaryExtractor(context.ai, logger, config);
+    this.extractor = new SummaryExtractor(
+      context.ai,
+      logger,
+      config,
+      extractionTemplateName,
+    );
   }
 
   public async projectConversation(
@@ -189,7 +227,11 @@ export class SummaryProjector {
       };
     }
 
-    const decision = await this.decideProjection(source.messages, existing);
+    const decision = await decideSummaryProjection(
+      this.context.ai,
+      source.messages,
+      existing,
+    );
     if (decision.decision === "skip") {
       this.logger.info(
         "Skipping conversation memory projection by AI decision",
@@ -294,28 +336,6 @@ export class SummaryProjector {
     };
   }
 
-  public async decideProjection(
-    messages: Message[],
-    existing: SummaryEntity | null,
-  ): Promise<SummaryProjectionDecision> {
-    const decisionMessages = this.getNewOrChangedMessages(messages, existing);
-    const prompt = buildSummaryProjectionDecisionPrompt({
-      existingSummary: existing?.content,
-      messages: decisionMessages,
-    });
-    const { object } = await this.context.ai.generateObject(
-      prompt,
-      summaryProjectionDecisionSchema,
-    );
-    const decision = summaryProjectionDecisionSchema.parse(object);
-
-    if (!existing && decision.decision === "append") {
-      return { ...decision, decision: "update" };
-    }
-
-    return decision;
-  }
-
   private async extractProjectedMemory(
     messages: Message[],
     existing: SummaryEntity | null,
@@ -326,7 +346,7 @@ export class SummaryProjector {
     }
 
     const newMemory = await this.extractMemory(
-      this.getNewOrChangedMessages(messages, existing),
+      getNewOrChangedMessages(messages, existing),
     );
     const existingEntries = parseSummaryBody(existing.content).entries;
 
@@ -335,17 +355,6 @@ export class SummaryProjector {
       decisions: newMemory.decisions,
       actionItems: newMemory.actionItems,
     };
-  }
-
-  private getNewOrChangedMessages(
-    messages: Message[],
-    existing: SummaryEntity | null,
-  ): Message[] {
-    if (!existing) return messages;
-
-    const offset = existing.metadata.messageCount;
-    if (offset <= 0 || offset >= messages.length) return messages;
-    return messages.slice(offset);
   }
 
   private async extractMemory(
@@ -771,4 +780,20 @@ export class SummaryProjector {
     if (!first || !last) return undefined;
     return { start: first.timestamp, end: last.timestamp };
   }
+}
+
+/** Derive and persist one conversation's complete memory state. */
+export function deriveConversationMemory(
+  context: SummaryProjectionContext,
+  logger: LoggerContract,
+  config: SummaryConfig,
+  conversationId: string,
+  extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
+): Promise<ProjectSummaryResult> {
+  return new SummaryDerivation(
+    context,
+    logger,
+    config,
+    extractionTemplateName,
+  ).projectConversation(conversationId);
 }

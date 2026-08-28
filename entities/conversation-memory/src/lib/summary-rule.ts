@@ -21,6 +21,7 @@ import {
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
+  SUMMARY_AI_TEMPLATE_NAME,
   SUMMARY_ENTITY_TYPE,
 } from "./constants";
 import {
@@ -30,7 +31,7 @@ import {
   type MemoryProjectionEnvelope,
   type ProjectedMemoryWrite,
 } from "./memory-projection-envelope";
-import { SummaryProjector } from "./summary-projector";
+import { deriveConversationMemory } from "./summary-derivation";
 import { SummarySourceReader } from "./summary-source-reader";
 import { evaluateSummaryEligibility } from "./summary-space-eligibility";
 import type { SummaryConfig } from "../schemas/summary-config";
@@ -327,6 +328,7 @@ export async function deriveSummaryProjection(
   context: ProjectionExecutionContext,
   signal: AbortSignal,
   config: SummaryConfig,
+  extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
 ): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> {
   if (input.conversations.length === 0) return PROJECTION_ABSTAINED;
 
@@ -345,7 +347,7 @@ export async function deriveSummaryProjection(
     // partial envelope that would make old memory look authoritative.
     const projectorExisting = previousEnvelope ? storedExisting : null;
     const captured: BaseEntity[] = [];
-    const projector = new SummaryProjector(
+    const result = await deriveConversationMemory(
       {
         ai: context.ai,
         entities: createCaptureEntityAccess({
@@ -360,8 +362,9 @@ export async function deriveSummaryProjection(
       },
       context.logger,
       config,
+      source.id,
+      extractionTemplateName,
     );
-    const result = await projector.projectConversation(source.id);
     if (result.skipped) continue;
 
     const summaryEntity = captured.find(
@@ -402,6 +405,7 @@ export async function deriveSummaryProjection(
 /** Conversation memory: one additive narrative summary per conversation. */
 export function createSummaryProjectionRule(
   config: SummaryConfig,
+  extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
 ): ProjectionRule {
   return defineProjectionRule({
     id: SUMMARY_PROJECTION_ID,
@@ -413,7 +417,13 @@ export function createSummaryProjectionRule(
     selectInput: async (trigger, context) =>
       selectSummaryProjectionInput(trigger, context, config),
     derive: async (input, context, signal) =>
-      deriveSummaryProjection(input, context, signal, config),
+      deriveSummaryProjection(
+        input,
+        context,
+        signal,
+        config,
+        extractionTemplateName,
+      ),
   });
 }
 

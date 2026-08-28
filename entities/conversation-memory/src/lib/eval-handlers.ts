@@ -24,7 +24,10 @@ import {
 } from "../schemas/summary";
 import type { SummaryConfig } from "../schemas/summary-config";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
-import { SummaryProjector } from "./summary-projector";
+import {
+  decideSummaryProjection,
+  deriveConversationMemory,
+} from "./summary-derivation";
 import { conversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
 import { runMemoryRuleChain } from "./memory-rule-chain-runner";
@@ -34,11 +37,13 @@ import {
   type ProjectedMemoryWrite,
 } from "./memory-projection-envelope";
 import { getConversationSpaceId } from "./summary-space-eligibility";
+import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 
 const messageRoleSchema = z.enum(["user", "assistant"]);
 
 const conversationMessageActorSchema = z.object({
   actorId: z.string(),
+  userId: z.string().optional(),
   canonicalId: z.string().optional(),
   interfaceType: z.string(),
   role: messageRoleSchema,
@@ -158,6 +163,7 @@ const decideProjectionInputSchema = z.object({
  */
 export function summaryEvalHandlers(
   config: SummaryConfig,
+  extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
 ): EntityEvalDeclaration {
   return {
     summarizeMessages: async (input, { ai, logger }): Promise<unknown> => {
@@ -178,6 +184,7 @@ export function summaryEvalHandlers(
         },
         { ai, logger },
         config,
+        extractionTemplateName,
       );
       const summary = chain.summaries[0];
       if (!summary) return [];
@@ -200,10 +207,7 @@ export function summaryEvalHandlers(
       });
     },
 
-    decideProjection: async (
-      input,
-      { ai, logger, conversations },
-    ): Promise<unknown> => {
+    decideProjection: async (input, { ai }): Promise<unknown> => {
       const parsed = decideProjectionInputSchema.parse(input);
       const messages = toEvalMessages(parsed.messages, parsed.conversationId);
 
@@ -217,12 +221,7 @@ export function summaryEvalHandlers(
           })
         : null;
 
-      const projector = new SummaryProjector(
-        { ai, entities: seededEntityAccess([]), conversations, spaces: [] },
-        logger,
-        config,
-      );
-      return projector.decideProjection(messages, existing);
+      return decideSummaryProjection(ai, messages, existing);
     },
 
     retrieveMemory: async (
@@ -261,12 +260,16 @@ export function summaryEvalHandlers(
       { entities, conversations, logger },
     ): Promise<unknown> => {
       const parsed = agentContextInputSchema.parse(input);
-      return conversationMemoryAgentContext({
-        request: parsed,
-        entities: parsed.memory ? seededEntityAccess(parsed.memory) : entities,
-        conversations,
-        logger,
-      });
+      return {
+        items: await conversationMemoryAgentContext({
+          request: parsed,
+          entities: parsed.memory
+            ? seededEntityAccess(parsed.memory)
+            : entities,
+          conversations,
+          logger,
+        }),
+      };
     },
 
     projectMessages: async (input, { ai, logger }): Promise<unknown> => {
@@ -297,6 +300,7 @@ export function summaryEvalHandlers(
         },
         { ai, logger },
         config,
+        extractionTemplateName,
       );
 
       return {
@@ -317,12 +321,13 @@ export function summaryEvalHandlers(
       { ai, logger, entities, conversations },
     ): Promise<unknown> => {
       const parsed = projectConversationInputSchema.parse(input);
-      const projector = new SummaryProjector(
+      return deriveConversationMemory(
         { ai, entities, conversations, spaces: [] },
         logger,
         config,
+        parsed.conversationId,
+        extractionTemplateName,
       );
-      return projector.projectConversation(parsed.conversationId);
     },
   };
 }
@@ -370,7 +375,24 @@ function toEvalMessages(
       content: message.content,
       timestamp,
       metadata: {
-        ...(message.actor ? { actor: message.actor } : {}),
+        ...(message.actor
+          ? {
+              actor: {
+                identity: actorRefFromLegacy(message.actor),
+                interfaceType: message.actor.interfaceType,
+                role: message.actor.role,
+                ...(message.actor.displayName
+                  ? { displayName: message.actor.displayName }
+                  : {}),
+                ...(message.actor.username
+                  ? { username: message.actor.username }
+                  : {}),
+                ...(message.actor.isBot !== undefined
+                  ? { isBot: message.actor.isBot }
+                  : {}),
+              },
+            }
+          : {}),
         ...(message.source ? { source: message.source } : {}),
       },
     };

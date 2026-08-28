@@ -51,11 +51,11 @@ function isPlugin(value: unknown): value is Plugin {
   return typeof value.register === "function";
 }
 
-async function resolvePluginExport(
+async function resolvePluginExports(
   moduleExports: Record<string, unknown>,
   pluginConfig: Record<string, unknown>,
   pluginPackageName: string,
-): Promise<Plugin> {
+): Promise<Plugin[]> {
   const entries = Object.entries(moduleExports);
   const candidates = entries.sort(([nameA, valueA], [nameB, valueB]) => {
     const rank = (name: string, value: unknown): number => {
@@ -74,22 +74,22 @@ async function resolvePluginExport(
 
   for (const [exportName, candidate] of candidates) {
     if (isPlugin(candidate)) {
-      return candidate;
+      return [candidate];
     }
 
     // A declaratively-authored package exports a definition rather than a
-    // plugin factory. Its eval handlers belong to the first plugin it
-    // produces — the service half for a package that declares both.
+    // plugin factory. Install the complete package: its eval handler may use
+    // templates or entities registered by a sibling plugin.
     if (isPluginPackageDefinition(candidate)) {
       try {
         const metadata = { name: pluginPackageName, version: "0.0.0-eval" };
         bindPluginPackageMetadata(candidate, metadata);
-        const [plugin] = instantiatePluginPackageDefinition(
+        const plugins = instantiatePluginPackageDefinition(
           candidate,
           pluginConfig,
           metadata,
         );
-        if (plugin) return plugin;
+        if (plugins.length > 0) return plugins;
       } catch (error) {
         errors.push(
           `${exportName} via package definition failed: ${getErrorMessage(error)}`,
@@ -107,7 +107,7 @@ async function resolvePluginExport(
         Reflect.construct(candidate, [pluginConfig]),
       );
       if (isPlugin(instance)) {
-        return instance;
+        return [instance];
       }
     } catch (error) {
       errors.push(
@@ -120,7 +120,7 @@ async function resolvePluginExport(
         Reflect.apply(candidate, undefined, [pluginConfig]),
       );
       if (isPlugin(instance)) {
-        return instance;
+        return [instance];
       }
     } catch (error) {
       errors.push(
@@ -149,11 +149,13 @@ export async function loadPluginEvalConfig(
     Object.fromEntries(Object.entries(await import(evalConfig.plugin))),
   );
   const pluginConfig = evalConfig.config ?? {};
-  const plugin = await resolvePluginExport(
+  const plugins = await resolvePluginExports(
     mod,
     pluginConfig,
     evalConfig.plugin,
   );
+  const plugin = plugins[0];
+  if (!plugin) throw new Error(`No plugins exported by ${evalConfig.plugin}`);
 
   const pluginId = plugin.id;
   const evalDbBase = `/tmp/${pluginId}-eval-${Date.now()}`;
@@ -167,7 +169,7 @@ export async function loadPluginEvalConfig(
     version: "0.1.0",
     ...(resolvedApiKey ? { aiApiKey: resolvedApiKey } : {}),
     ...(resolvedModel ? { aiModel: resolvedModel } : {}),
-    plugins: [plugin],
+    plugins,
     shellConfig: {
       database: { url: `file:${evalDbBase}.db` },
       jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },

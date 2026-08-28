@@ -5,9 +5,8 @@
  * everything that reads them: retrieval, the grounding it offers the agent,
  * four dashboard widgets, and the evals that measure all of it.
  *
- * Automatic conversation-to-entity projection is disabled (see the README).
- * The projector is kept and exercised by evals; nothing triggers it in
- * production.
+ * Conversation changes flow through the scheduler-owned summary, decision,
+ * and action-item projection graph.
  */
 
 export { conversationMemory, default } from "./conversation-memory";
@@ -15,10 +14,6 @@ export { summary } from "./summary-entity";
 export { actionItem, decision } from "./memory-entities";
 
 export { SummaryExtractor } from "./lib/summary-extractor";
-export {
-  SummaryProjector,
-  type SummaryProjectionContext,
-} from "./lib/summary-projector";
 export { conversationMemoryAgentContext } from "./lib/agent-context-provider";
 export { ConversationMemoryRetriever } from "./lib/conversation-memory-retriever";
 export { SummarySourceReader } from "./lib/summary-source-reader";
