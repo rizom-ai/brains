@@ -54,9 +54,7 @@ function extractFrontmatterStringField(
   const match = FRONTMATTER_BLOCK.exec(entity.content);
   if (!match?.[1]) return undefined;
   try {
-    const parsed = frontmatterRecordSchema.safeParse(
-      fromYaml<unknown>(match[1]),
-    );
+    const parsed = frontmatterRecordSchema.safeParse(fromYaml(match[1]));
     if (parsed.success) {
       const value = parsed.data[field];
       return typeof value === "string" ? value : undefined;

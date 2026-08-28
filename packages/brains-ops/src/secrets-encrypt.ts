@@ -471,7 +471,7 @@ function readAgeIdentity(
 }
 
 function parseUserSecrets(contents: string): Partial<EncryptedUserSecrets> {
-  const parsed = fromYaml<unknown>(contents);
+  const parsed = fromYaml(contents);
   const mapping: Record<string, string> = {};
   if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
     for (const [key, value] of Object.entries(parsed)) {

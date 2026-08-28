@@ -43,7 +43,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 describe("canonical unified inbox test app", () => {
   test("keeps email workflows explicit above the professional bundle selection", () => {
     const yaml = stagedFile(TEST_APP_CONFIG);
-    const config = asRecord(fromYaml<unknown>(yaml));
+    const config = asRecord(fromYaml(yaml));
     const plugins = asRecord(config["plugins"]);
     const site = asRecord(config["site"]);
     const email = asRecord(plugins["email"]);
