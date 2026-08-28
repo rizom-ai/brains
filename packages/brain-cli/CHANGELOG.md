@@ -1,5 +1,33 @@
 # @rizom/brain
 
+## 0.2.0-alpha.333
+
+### Minor Changes
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`df72bcf`](https://github.com/rizom-ai/brains/commit/df72bcf07a0d196ecb1a41297a88fa2b67c2b0d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rename the browser authoring surface from CMS to Studio. Replace the plugin id, package, routes, workspace runtime, and public operator authoring exports with Studio-named contracts; migrate canonical brain configuration with `brain config migrate`; and retain permanent deep-path redirects from `/cms` to `/studio`.
+
+### Patch Changes
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`0290b90`](https://github.com/rizom-ai/brains/commit/0290b90b4cd7a0925696530b05c6ec54c152d926) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Admin the source owner for its Audit, People, Invitations, and Peers Studio workspaces without introducing an Admin/Studio package dependency. Add roster detail, Anchor posture, role/status/credential/session/channel administration, peer-first invitations, person-peer linking, prepared confirmations, actor attribution, and ephemeral setup links while retiring the duplicate Admin React views.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`35f7f8c`](https://github.com/rizom-ai/brains/commit/35f7f8c7ba2c59d8dbe52406866add5813b8a7b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden the tabbed Administration composition with fail-loud named sections, child-declared action routing, stable workspace status, and query-resetting tab changes. Redesign Invitations around the pending/history list with head totals, collapsed creation disclosures, peer-specific provenance, and channel-selected destination labels.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`548f35e`](https://github.com/rizom-ai/brains/commit/548f35ea48ea5c23d0e31bc8fbf0f1533aaa4e16) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Consolidate access administration into one query-backed Studio workspace with People, Invitations, and Audit tabs, one aggregate rail badge, legacy deep-link aliases, peer provenance and unlink controls, and per-tab provider loading. Pin Overview in the rail and rename Directory Sync's entry to Content sync.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`1fc7982`](https://github.com/rizom-ai/brains/commit/1fc798229c946dad335b7489d440fb16a66ce960) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild Dashboard as the anonymous public brain card with fixed Overview, Knowledge, and Network tabs. Scope holdings and declarative providers to Public visibility, keep authenticated sessions from changing card content, preserve the mockup's four-card identity, contact, holdings, and skills Overview, and host source-fed knowledge and agent-proximity maps in Dashboard. Mount the agent domain's registered first-party visualization in the fixed Network slot while retaining the declarative spatial view as a closed fallback.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`8b10704`](https://github.com/rizom-ai/brains/commit/8b107040ea95cb3e87d8ae1bebd8dc3876f84c75) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Consolidate server-rendered JSX on React 19 and React DOM's static renderer, preserving semantic HTML output while removing the parallel Preact runtime.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`005f3c0`](https://github.com/rizom-ai/brains/commit/005f3c04b7c3cc3b255178ff9f507bda7508b344) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move self-service Account into Studio as an active-session Public-floor workspace with a fixed lazy host renderer while preserving the auth-service `/auth/account/*` contracts and WebAuthn ceremonies. Replace `/account` and `/admin` with permanent Studio redirects, remove the independent browser bundles and console doors, reject retired Admin route configuration, retain Admin as a headless workspace provider, and package every manifest-listed Studio split chunk.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`06808e9`](https://github.com/rizom-ai/brains/commit/06808e9b0e4e0f117b8dd0f22bb298a008e19ec6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move Audit presentation into an Admin-only built-in Studio workspace with URL-backed filters and event detail. Keep `/auth/admin/audit` and audit authority in auth-service, and remove only the retired Admin app view and client query wrapper.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`1cf0261`](https://github.com/rizom-ai/brains/commit/1cf0261201397a48daec93a497ea55cb03ba6045) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Admit every active session to the Studio shell while keeping entity authoring Trusted, repository diagnostics Admin-only, and workspace providers behind host-enforced permission floors that default to Trusted. Add active-session admission facets to console, endpoint, and interaction descriptors so anonymous Dashboard visitors do not see Studio while active Public-rank people do.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`c433540`](https://github.com/rizom-ai/brains/commit/c4335408c46179ac33ef79912207de250c0da59b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add schema-driven declarative workspace action forms and bounded ephemeral result presentation. Move invitation creation, delivery, retry, cancellation, manual confirmation, setup-link presentation, and peer-invite handoffs into the Admin-only Studio Invitations workspace while keeping auth-service authoritative. Query Audit pages and action counts in the auth store and share canonical workspace query/date helpers.
+
+- [#182](https://github.com/rizom-ai/brains/pull/182) [`c28974c`](https://github.com/rizom-ai/brains/commit/c28974c7fe745d57b00f3c1d1ec5c49973d8e135) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add the Trusted-floor Studio Overview workspace as the operator home. Re-home non-public declarative Dashboard widgets into Overview without changing provider definitions, aggregate their attention badges and launch links, surface failed jobs and expiring invitation setup links, show recent entity/job activity plus system and network state, and keep the public Dashboard from invoking restricted widget providers.
+
 ## 0.2.0-alpha.332
 
 ## 0.2.0-alpha.331

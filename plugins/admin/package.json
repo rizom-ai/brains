@@ -1,7 +1,7 @@
 {
   "name": "@brains/admin",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.332",
+  "version": "0.2.0-alpha.333",
   "description": "Headless source owner for Admin-gated Studio workspaces",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
