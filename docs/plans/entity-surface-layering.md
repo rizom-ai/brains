@@ -39,6 +39,45 @@ the shape must be right **before release**, not at the second consumer.
 Owner of the subsystem executes; this is release-gate work, not
 opportunistic refactoring.
 
+## Proposed shape (for subsystem-owner review)
+
+Grounded in the actual call sites; the owner may amend.
+
+- **Durable fan-out** becomes a handle with automatic settlement:
+  `beginDurableBulkMutation({ source, rootJobId })` returns a batch whose
+  `childRef(childKey)` tokens embed in job data, `seal({ expectedChildren })`
+  commits the count at enqueue success, and `abort()` replaces the failure
+  marker. `runDurableBulkMutationChild(ref, fn)` settles from the outcome of
+  `fn` — resolve is completed, throw is failed — eliminating the manual
+  settle-on-both-paths and the six re-threaded fields. `operationId` is
+  dropped (always `rootJobId` in practice). Store question for the owner:
+  children settling before seal must be tolerated.
+- **Callback bracket** `runBulkMutation(input, fn)` is already right;
+  unchanged.
+- **Journal** gets neutral, release-final names —
+  `listPendingEntityChanges` / `hasPendingEntityChanges` /
+  `acknowledgeEntityChanges` — with consumer scoping later as an additive
+  optional parameter.
+- **`recoverProjectionBatches`** moves to an internal shell contract.
+
+## Boundary casts — the actual defect, and the gate
+
+The privileged methods are not on the typed plugin context at all today:
+the service context narrows `entityService` to the curated client type, and
+directory-sync reaches past it with `as IEntityService` in five production
+sites (`batch-operations.ts:113`, `plugin.ts:599`,
+`inline-image-conversion-handler.ts:49`, `projection-batch-job.ts:16,38`).
+Typed boundaries are the point of this branch; these casts smuggle
+capability access past the type system in-process.
+
+Release-gate acceptance criteria:
+
+1. The capability methods land on the typed plugin context deliberately, in
+   the proposed shape — and all five casts are deleted.
+2. Zero service-boundary casts in production plugin code, enforced by a
+   check script (same pattern as `check-legacy-code`) so they cannot
+   return.
+
 ## Standing note
 
 Persistence-touching features from main get an explicit process-placement
