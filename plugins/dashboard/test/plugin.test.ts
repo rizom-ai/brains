@@ -124,6 +124,37 @@ describe("DashboardPlugin", () => {
       expect(await scriptResponse?.text()).toContain("/api/console/jump");
     });
 
+    it("should declare configured theme assets before the route snapshot", async () => {
+      const themeCSS = ":root { --dashboard-accent: lime; }";
+      const themedPlugin = new DashboardPlugin({ themeCSS });
+      await harness.installPlugin(themedPlugin);
+
+      const routes = themedPlugin.getWebRoutes();
+      const pageRoute = routes.find((route) => route.path === "/dashboard");
+      const pageResponse = await pageRoute?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await pageResponse?.text();
+      const themePath = html?.match(
+        /data-dashboard-theme[^>]*href="([^"]+)"/,
+      )?.[1];
+
+      expect(themePath).toMatch(
+        /^\/dashboard\/assets\/theme\.[a-f0-9]{64}\.css$/,
+      );
+      const themeRoute = routes.find((route) => route.path === themePath);
+      expect(themeRoute).toBeDefined();
+
+      const themeResponse = await themeRoute?.handler(
+        new Request(`http://brain${themePath}`),
+      );
+      expect(themeResponse?.status).toBe(200);
+      expect(themeResponse?.headers.get("Content-Type")).toBe(
+        "text/css; charset=utf-8",
+      );
+      expect(await themeResponse?.text()).toBe(themeCSS);
+    });
+
     it("should require an authenticated session for the console jump", async () => {
       const route = plugin
         .getWebRoutes()
