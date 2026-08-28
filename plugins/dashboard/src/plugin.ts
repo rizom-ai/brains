@@ -38,6 +38,7 @@ import {
 } from "./console-jump";
 import type {
   DashboardActivityEvent,
+  DashboardAssetUrls,
   DashboardJobProgressItem,
 } from "./render/types";
 import { getActiveAuthService } from "@brains/auth-service";
@@ -189,6 +190,7 @@ export class DashboardPlugin extends ServicePlugin<
   DashboardConfigInput
 > {
   private readonly assetRegistry: DashboardAssetRegistry;
+  private readonly assetUrls: DashboardAssetUrls;
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
   private siteUrl: string | undefined;
@@ -199,6 +201,9 @@ export class DashboardPlugin extends ServicePlugin<
   constructor(config: DashboardConfigInput = {}) {
     super("dashboard", packageJson, config, dashboardConfigSchema);
     this.assetRegistry = new DashboardAssetRegistry(this.config.routePath);
+    this.assetUrls = this.assetRegistry.createRenderUrls({
+      themeCSS: this.config.themeCSS,
+    });
   }
 
   private recordActivity(
@@ -472,10 +477,6 @@ export class DashboardPlugin extends ServicePlugin<
           const requestUrl = new URL(request.url);
           const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
           const encodedReturnTo = encodeURIComponent(returnTo);
-          const assetUrls = this.assetRegistry.createRenderUrls({
-            themeCSS: this.config.themeCSS,
-          });
-
           const resolved = resolveWidgetsForRender(
             dashboardData.widgets,
             this.widgetRegistry,
@@ -487,7 +488,7 @@ export class DashboardPlugin extends ServicePlugin<
             widgets: resolved.widgets,
             widgetStyles: resolved.widgetStyles,
             widgetScripts: resolved.widgetScripts,
-            assetUrls,
+            assetUrls: this.assetUrls,
             dashboardPath: this.config.routePath,
             surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
               activeId: "dashboard",
