@@ -1,4 +1,4 @@
-# Decision: directory-sync stays a plugin; entity surface frozen, not blessed
+# Decision: directory-sync stays a plugin; entity surface reshaped before stable
 
 ## Status
 
@@ -19,20 +19,25 @@ methods.
 
 Directory-sync remains a plugin. The surface remains plugin API.
 
-## Surface assessment: right capability, wrong shape
+## Surface assessment: right capability, wrong shape — fix before stable
 
-Frozen as-is; reshape only at the named triggers.
+Stable v0.2.0 makes the plugin-facing surface a compatibility contract, so
+the shape must be right **before release**, not at the second consumer.
 
 1. **Durable-batch protocol** — five ordered calls leaking job topology
    (`expectedChildren`, `rootJobId`, child id plumbing, manual settle).
-   Reshape into a managed bracket **when inbox adopts it**, driven by inbox's
-   requirements.
+   Replace with a managed bracket that owns ids, child settlement, and
+   closure before release.
 2. **Export journal** — acknowledgement deletes the intent: one global
-   cursor, no consumer identity, "export" in the names. Add consumer-scoped
-   acknowledgements and neutral naming **when a second subscriber lands**.
+   cursor, no consumer identity, "export" baked into the names. Names and
+   contract shapes must be release-final now; consumer-scoped
+   acknowledgements may land later only if additive.
 3. **`recoverProjectionBatches`** — bootloader-only, takes a process-local
-   reader, uncallable by any plugin. Remove from the plugin surface now
-   (shell-internal contract); owner of the subsystem executes.
+   reader, uncallable by any plugin. Remove from the plugin surface before
+   release.
+
+Owner of the subsystem executes; this is release-gate work, not
+opportunistic refactoring.
 
 ## Standing note
 
