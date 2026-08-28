@@ -2,14 +2,14 @@
 
 ## Status
 
-**Planned; implementation not started.** The Bun 1.4 runtime, `Bun.Image`, and
-`Bun.WebView` baseline has shipped. This plan owns the remaining credible
-Bun-native dependency reductions found in the follow-up audit.
+**In progress; Phases 1, 2, 6, and 8 are implemented pending review.** The Bun
+1.4 runtime, `Bun.Image`, and `Bun.WebView` baseline has shipped. Phases 3 and 4
+are declined for now because Bun's YAML writer would churn durable Markdown,
+Phase 5 is declined because JSONL did not pass its compatibility and net-benefit
+gates, and Phase 7 is declined because Bun 1.4's custom Markdown renderer cannot
+preserve the browser-facing rendering contract.
 
-Phases 1 and 2 are independent, low-risk cleanup. Phases 3–8 contain explicit
-decision gates: crossing a gate requires an intentional compatibility decision,
-not an implicit fallback or a second maintained implementation. This plan does
-not authorize implementation, merge, release, publication, or deployment.
+This plan does not authorize merge, release, publication, or deployment.
 
 ## Goal
 
@@ -85,8 +85,12 @@ candidate packages. Bun 1.4 probes established the following baseline:
   six-field schedules such as `* * * * * *`; Bun rejects them as having too
   many fields.
 - `Bun.markdown` provides GFM parsing, HTML, ANSI output, and custom render
-  callbacks, but Bun labels the API unstable. The two Marked consumers both
-  have behavior beyond default rendering.
+  callbacks, but Bun labels the API unstable. Bun 1.4's `hardSoftBreaks` option
+  does not reproduce Marked's `breaks` output, and custom rendering does not
+  expose a line-break callback or the original image-alt source. Inline HTML
+  tokens and ordinary angle-bracket text also arrive through the same untyped
+  `text` callback. Those gaps prevent a complete escaped HTML renderer from
+  preserving the current image, raw-HTML, and visible-text contracts.
 - `--no-orphans` makes Bun exit when its original parent dies and recursively
   `SIGKILL`s descendants on clean exit. That is useful as a final containment
   layer, but it is not a substitute for the runtime supervisor's ordered drain,
@@ -210,7 +214,13 @@ This phase needs no changeset.
 
 ## Phase 3 — move direct `js-yaml` consumers to `Bun.YAML`
 
-This phase starts only after the YAML serialization decision is recorded.
+**Decision: declined for now.** Bun's parser is compatible for current data, but
+its writer changes quoting and collection whitespace, offers insufficient
+formatting controls, and can turn a touched Markdown file into a noisy Git diff.
+Keeping `js-yaml` only for writing would retain the dependency for little gain.
+Revisit only when Bun can produce an approved stable durable-content format.
+
+The following gate remains the bar for any future revisit.
 
 ### Tests first
 
@@ -270,6 +280,10 @@ Add a changeset because formatter output and timestamp runtime types can be
 externally observable.
 
 ## Phase 4 — replace `gray-matter` with shared Bun-native frontmatter
+
+**Decision: declined with Phase 3.** A Bun-native frontmatter boundary would
+inherit the same writer churn. Parsing alone does not remove Gray Matter, so it
+would add a second boundary without deleting the dependency.
 
 This phase depends on Phase 3's YAML policy and the same serialization decision.
 It replaces a frontmatter boundary, not Markdown parsing generally; Remark
@@ -347,6 +361,26 @@ clearly.
 Add a changeset describing the parser type policy and canonical writer change.
 
 ## Phase 5 — evaluate Bun's JSON family and conditionally adopt `Bun.JSONL`
+
+**Decision: declined after compatibility and performance evaluation.** A
+`parseChunk()` wrapper preserved 10 of 11 line-oriented fixtures, including a
+valid record after malformed middle input, but treated a whitespace-only damaged
+journal line as harmless where the current broker marks evidence incomplete.
+Preserving that distinction requires another pre-scan or line parser.
+
+Nine-sample separate-process timing medians over repeated 1 MiB
+schema-inclusive fixtures, plus five-sample peak-RSS measurements, showed no
+material operational gain:
+
+| Path           |       Valid | Torn final line | Sparse corrupt lines |    Peak RSS impact |
+| -------------- | ----------: | --------------: | -------------------: | -----------------: |
+| Broker journal | 5.0% faster |     1.6% faster |          2.8% faster | 0.5–2.4 MiB higher |
+| Usage log      | 3.6% slower |     2.8% slower |          4.2% slower | 7.5–9.2 MiB higher |
+
+The broker reads at most 1 MiB only during startup, and the usage path became
+slower. The wrapper also adds recovery logic while removing no dependency, so
+the current `split("\n")` + `JSON.parse` readers remain simpler and safer.
+JSON5 and JSONC still have no direct repository consumer.
 
 Strict JSON, JSON5, JSONC, and JSONL solve different problems. Do not replace
 `JSON.parse` with a more permissive parser merely because both return JavaScript
@@ -452,6 +486,16 @@ reviewed contract change.
 
 ## Phase 6 — conditionally replace Croner with `Bun.cron`
 
+### Outcome — implemented pending review
+
+The five-field schedule contract and Bun-neutral exported names were approved.
+The implementation in the separate `feat/bun-cron` worktree uses `Bun.cron`
+and `Bun.cron.parse`, renames the production backend to
+`BunSchedulerBackend` without a compatibility alias, rejects six-field
+expressions with migration guidance, removes Croner, and adds timezone, DST,
+POSIX day, overlap, error, and drain coverage. Targeted checks and the complete
+repository test gate pass under Bun 1.4. It remains uncommitted and unpushed.
+
 Proceed only if five-field cron is approved as the complete supported contract.
 If six-field/seconds compatibility must remain, close this phase as declined and
 keep Croner.
@@ -516,6 +560,38 @@ Add a changeset that explicitly calls out the five-field compatibility change
 and any exported class rename.
 
 ## Phase 7 — conditionally replace Marked with `Bun.markdown`
+
+### Outcome — declined on Bun 1.4
+
+Characterization coverage was added for the HTML/GFM/security/image contract
+and for color-enabled and color-disabled terminal rendering. The differential
+spike found that:
+
+- `{ hardSoftBreaks: true }` still emits a literal soft line break instead of
+  the `<br>` produced by the current `breaks: true` contract;
+- `render()` has no line-break callback;
+- an image callback receives rendered alt children (`some alt`) rather than the
+  original alt source (`some *alt*`), so it cannot preserve `ImageRenderer`
+  arguments;
+- returning `undefined` from an image callback omits the image rather than
+  falling through to default image HTML;
+- registering one callback disables default wrappers for all elements, so
+  custom images require a complete local HTML renderer; and
+- inline HTML tags and ordinary angle-bracket text are both delivered to the
+  `text` callback without token metadata, so a local renderer cannot both
+  preserve allowed raw HTML and escape visible text without reparsing or
+  rewriting the source.
+
+A Bun callback-based CLI prototype did preserve the characterized terminal
+contract and reduced its adapter from 159 to 98 lines. That is insufficient for
+an atomic dependency removal because the privileged HTML consumer cannot pass
+Gate A. Migrating only the CLI would retain Marked, add exposure to an unstable
+API, and remove no dependency. The prototype is discarded; both consumers
+retain Marked, with no fallback, production change, or changeset.
+
+Reconsider only when Bun exposes token-distinct escaped/raw text, original image
+alt source, and effective hard-soft-break customization, or when the repository
+intentionally changes those contracts.
 
 This is a measured spike followed by a cutover only if it earns one. Marked is
 small and working; merely moving equivalent renderer code into the repository
@@ -599,6 +675,32 @@ Add a changeset for user-visible HTML or terminal-output changes. If the phase
 is declined after the spike, ship no production changes and no changeset.
 
 ## Phase 8 — conditionally adopt `--no-orphans`
+
+### Outcome — implemented on narrow surfaces pending review
+
+Host and `oven/bun:1.4.0-slim` probes proved recursive cleanup after clean exit,
+original-parent death, detached process-group containment, no signalling of an
+unrelated sibling, and ordinary `SIGTERM` drain before final containment. The
+same behavior passed through direct scripts, `bun run`, and filtered workspace
+scripts. A container probe with tini confirmed parent, child, and grandchild
+cleanup handlers completed in order before the container stopped.
+
+The separate `feat/bun-no-orphans-evaluation` worktree applies the flag only to:
+
+- the generated deployment `CMD` behind tini;
+- canonical `start:*` development postures, using `exec` so the flagged Bun
+  process observes the original runner's death;
+- monorepo runner subprocesses that already forward graceful signals; and
+- the one-shot `operate` runner, which otherwise has no abrupt-parent cleanup.
+
+It deliberately does not change the portable `brain` package-bin shebang, add a
+wrapper, flag supervisor-owned web/worker/Git-broker children, or set a global
+bunfig/environment switch. Runtime drain order, signal forwarding, Git broker
+process-group escalation, and group-absence proof remain unchanged. The process
+matrix passed ten consecutive runs; the Git process-inventory soak completed
+300 operations with zero lost completions or zombies, and packaged broker
+recovery passed. The implementation and changeset remain uncommitted and
+unpushed.
 
 Treat this as containment hardening, not dependency cleanup. It must preserve
 the runtime's explicit lifecycle and Git ownership invariants.
