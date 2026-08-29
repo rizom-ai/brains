@@ -1,5 +1,6 @@
 import { readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { parseJsonObject } from "./json";
 
 const BACKUP_FILENAME = "package.json.publish-backup";
 
@@ -17,8 +18,6 @@ export interface RestorePublishManifestOptions {
   /** Do nothing when no backup exists. Useful for failure-safe workspace cleanup. */
   ifPresent?: boolean;
 }
-
-type Manifest = Record<string, unknown>;
 
 /**
  * Rewrite a package manifest into its publishable shape, backing up
@@ -90,7 +89,7 @@ async function createPublishManifestText(
   originalText: string,
   resolveFrom: string,
 ): Promise<string> {
-  const manifest = JSON.parse(originalText) as Manifest;
+  const manifest = parseJsonObject(originalText, "package.json");
 
   delete manifest["devDependencies"];
 
@@ -153,7 +152,7 @@ async function resolveWorkspaceVersion(
     const candidate = join(dir, "node_modules", name, "package.json");
     const text = await readFile(candidate, "utf8").catch(() => undefined);
     if (text !== undefined) {
-      const version = (JSON.parse(text) as Manifest)["version"];
+      const version = parseJsonObject(text, candidate)["version"];
       if (typeof version !== "string") {
         throw new Error(`Workspace dependency ${name} has no version`);
       }
