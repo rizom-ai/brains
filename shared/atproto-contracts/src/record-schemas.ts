@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { isKeyOf } from "@brains/utils/object-keys";
 import type {
   AtprotoLexicon,
   AtprotoLexiconObjectDef,
@@ -195,7 +196,8 @@ export function listCanonicalAtprotoRecordSchemas(): AtprotoRecordSchema[] {
 export function getCanonicalAtprotoRecordSchema(
   id: string,
 ): AtprotoRecordSchema | undefined {
-  return canonicalAtprotoRecordSchemas[id as CanonicalAtprotoLexiconId];
+  if (!isKeyOf(canonicalAtprotoRecordSchemas, id)) return undefined;
+  return canonicalAtprotoRecordSchemas[id];
 }
 
 function getRecordPathValue(

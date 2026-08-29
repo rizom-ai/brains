@@ -9,6 +9,7 @@ import {
   resolveLocalPath,
 } from "@brains/deploy-support";
 import { fromYaml, toYaml } from "@brains/utils/yaml";
+import { objectKeys } from "@brains/utils/object-keys";
 import { z } from "@brains/utils/zod";
 
 import { extractAgeIdentity } from "./age-key-bootstrap";
@@ -110,9 +111,7 @@ export async function encryptPilotSecrets(
 
   const plaintext = `${toYaml(secrets).trimEnd()}\n`;
   assertPlaintextRoundTrip(plaintext, secrets);
-  const encryptedKeys = Object.keys(secrets) as Array<
-    keyof EncryptedUserSecrets
-  >;
+  const encryptedKeys = objectKeys(secrets);
 
   if (options.dryRun) {
     logger(

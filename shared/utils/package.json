@@ -39,6 +39,7 @@
     "./id": "./src/id.ts",
     "./logger": "./src/logger.ts",
     "./markdown": "./src/markdown.ts",
+    "./object-keys": "./src/object-keys.ts",
     "./p-limit": "./src/p-limit.ts",
     "./parse-schema": "./src/parse-schema.ts",
     "./predicates": "./src/predicates.ts",

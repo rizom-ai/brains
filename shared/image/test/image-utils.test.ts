@@ -4,7 +4,29 @@ import {
   createDataUrl,
   detectImageFormat,
   isValidDataUrl,
+  toImageFormat,
 } from "../src/lib/image-utils";
+
+describe("toImageFormat", () => {
+  it("accepts the supported formats", () => {
+    expect(toImageFormat("png")).toBe("png");
+    expect(toImageFormat("jpeg")).toBe("jpeg");
+    expect(toImageFormat("jpg")).toBe("jpg");
+    expect(toImageFormat("webp")).toBe("webp");
+    expect(toImageFormat("gif")).toBe("gif");
+  });
+
+  it("normalizes the svg+xml media subtype to svg", () => {
+    expect(toImageFormat("svg+xml")).toBe("svg");
+    expect(toImageFormat("SVG+XML")).toBe("svg");
+  });
+
+  it("rejects media subtypes outside the supported union", () => {
+    expect(toImageFormat("bmp")).toBeNull();
+    expect(toImageFormat("tiff")).toBeNull();
+    expect(toImageFormat("")).toBeNull();
+  });
+});
 
 // Minimal 1x1 pixel PNG (base64)
 const TINY_PNG_BASE64 =

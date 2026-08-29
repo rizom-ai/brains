@@ -10,7 +10,22 @@ import {
   parseDataUrl,
   detectImageDimensions,
   detectImageFormat,
+  toImageFormat,
 } from "../lib/image-utils";
+
+/**
+ * The media subtype of an image data URL, validated against the supported
+ * formats. Throws rather than asserting: a `data:image/bmp;...` URL is a real
+ * input this package does not support, and storing it as an ImageFormat would
+ * put a value in entity metadata that its own schema rejects.
+ */
+function requireImageFormat(mediaSubtype: string): ImageFormat {
+  const format = toImageFormat(mediaSubtype);
+  if (!format) {
+    throw new Error(`Unsupported image format: ${mediaSubtype}`);
+  }
+  return format;
+}
 
 /**
  * Input for creating an image entity
@@ -56,7 +71,7 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
       entityType: "image",
       content,
       metadata: {
-        format: format as ImageFormat,
+        format: requireImageFormat(format),
         width: dimensions?.width ?? 0,
         height: dimensions?.height ?? 0,
       },
@@ -94,7 +109,7 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
     const dimensions = detectImageDimensions(base64);
 
     const detectedFormat = detectImageFormat(base64);
-    const finalFormat = (detectedFormat ?? format) as ImageFormat;
+    const finalFormat = detectedFormat ?? requireImageFormat(format);
 
     return {
       entityType: "image",
