@@ -10,7 +10,6 @@ import { getErrorMessage } from "@brains/utils/error";
  */
 
 import type { PublishResult } from "@brains/contracts";
-import type { GenerationCondition } from "./types/config";
 import { sendPublishCompleted, sendPublishFailed } from "./scheduler-publish";
 import type { PublishDeps } from "./scheduler-publish";
 import {
@@ -18,13 +17,17 @@ import {
   sendGenerationFailed,
 } from "./scheduler-generation";
 import type { GenerationDeps } from "./scheduler-generation";
-import type { SchedulerConfig } from "./types/scheduler";
+import type {
+  SchedulerConfig,
+  ResolvedSchedulerConfig,
+} from "./types/scheduler";
 import { PublishScheduleRunner } from "./scheduler-publish-runner";
 import { GenerationScheduleRunner } from "./scheduler-generation-runner";
 
 // Re-export all types from types/scheduler for backward compatibility
 export type {
   SchedulerConfig,
+  ResolvedSchedulerConfig,
   GenerateExecuteEvent,
   GenerationConditionResult,
   PublishSuccessEvent,
@@ -32,7 +35,7 @@ export type {
 } from "./types/scheduler";
 
 export class ContentScheduler {
-  private config: SchedulerConfig;
+  private config: ResolvedSchedulerConfig;
   private publishRunner: PublishScheduleRunner;
   private generationRunner: GenerationScheduleRunner;
   private running = false;
@@ -133,11 +136,11 @@ export class ContentScheduler {
   // -------------------------------------------------------------------
 
   private get entitySchedules(): Record<string, string> {
-    return this.config.entitySchedules as Record<string, string>;
+    return this.config.entitySchedules;
   }
 
   private get generationSchedules(): Record<string, string> {
-    return this.config.generationSchedules as Record<string, string>;
+    return this.config.generationSchedules;
   }
 
   private get publishDeps(): PublishDeps {
@@ -154,10 +157,7 @@ export class ContentScheduler {
     return {
       logger: this.config.logger,
       messageBus: this.config.messageBus,
-      generationConditions: this.config.generationConditions as Record<
-        string,
-        GenerationCondition
-      >,
+      generationConditions: this.config.generationConditions,
       onCheckGenerationConditions: this.config.onCheckGenerationConditions,
       onGenerate: this.config.onGenerate,
     };

@@ -39,6 +39,7 @@
     "./logger": "./src/logger.ts",
     "./markdown": "./src/markdown.ts",
     "./p-limit": "./src/p-limit.ts",
+    "./parse-schema": "./src/parse-schema.ts",
     "./predicates": "./src/predicates.ts",
     "./progress": "./src/progress.ts",
     "./process-signals": "./src/process-signals.ts",
