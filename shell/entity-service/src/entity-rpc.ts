@@ -1,6 +1,11 @@
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { ProjectionBatchScopeSchema } from "./projection-rpc";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
+import type {
+  DurableBulkMutationRootInput,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-store";
 import type {
   BaseEntity,
   CountEntitiesRequest,
@@ -30,7 +35,7 @@ export const ENTITY_RPC_SERVICE = "entity";
 export interface EntityRpcTransport {
   initialize(): Promise<void>;
   request(
-    payload: EntityRpcRequest,
+    payload: EntityRpcCall,
     options?: { signal?: AbortSignal | undefined },
   ): Promise<unknown>;
   close(): void;
@@ -78,7 +83,17 @@ export type EntityRpcRequest =
       request: ProjectSemanticSpaceRequest;
     }
   | { operation: "countEmbeddings" }
-  | { operation: "getAsyncJobStatus"; jobId: string };
+  | { operation: "getAsyncJobStatus"; jobId: string }
+  | {
+      operation: "prepareDurableBulkMutation";
+      input: DurableBulkMutationRootInput;
+    }
+  | { operation: "finalizeDurableBulkMutationEnqueue"; operationId: string }
+  | { operation: "failDurableBulkMutationEnqueue"; operationId: string }
+  | {
+      operation: "settleDurableBulkMutationChild";
+      input: SettleDurableBulkMutationChildInput;
+    };
 
 const nonEmptyString = z.string().min(1);
 const metadataSchema = z.record(z.string(), z.unknown());
@@ -300,6 +315,35 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
       operation: z.literal("getAsyncJobStatus"),
       jobId: nonEmptyString,
     }),
+    z.strictObject({
+      operation: z.literal("prepareDurableBulkMutation"),
+      input: z.strictObject({
+        source: nonEmptyString,
+        operationId: nonEmptyString,
+        rootJobId: nonEmptyString,
+      }),
+    }),
+    z.strictObject({
+      operation: z.literal("finalizeDurableBulkMutationEnqueue"),
+      operationId: nonEmptyString,
+    }),
+    z.strictObject({
+      operation: z.literal("failDurableBulkMutationEnqueue"),
+      operationId: nonEmptyString,
+    }),
+    z.strictObject({
+      operation: z.literal("settleDurableBulkMutationChild"),
+      input: z.strictObject({
+        operationId: nonEmptyString,
+        childKey: nonEmptyString,
+        jobId: nonEmptyString,
+        outcome: z.enum(["completed", "failed"]),
+      }),
+    }),
+    // Boundary cast, deliberate: zod optionals are `T | undefined` under
+    // exactOptionalPropertyTypes while the domain types use plain optionals.
+    // Reconciling without a cast means rewriting the domain types as schema
+    // outputs — tracked as a follow-up, not smuggled into this layer.
   ]) as z.ZodType<EntityRpcRequest, unknown>;
 
 const mutationResultSchema = z.strictObject({
@@ -355,6 +399,37 @@ const readinessSchema = z.strictObject({
 
 export function parseEntityRpcRequest(input: unknown): EntityRpcRequest {
   return EntityRpcRequestSchema.parse(input);
+}
+
+/**
+ * A request plus the caller's active projection batch scope.
+ *
+ * A worker runs a bulk-mutation body in its own process while the writes land
+ * in the owner's database, so it sends the scope it opened remotely. The owner
+ * re-enters that scope before dispatch, which is what keeps `withDirtyInput`
+ * fencing worker-originated writes against the batch.
+ */
+const EntityRpcCallSchema = z.strictObject({
+  request: z.unknown(),
+  batchScope: ProjectionBatchScopeSchema.optional(),
+});
+
+export interface EntityRpcCall {
+  request: EntityRpcRequest;
+  batchScope?: z.output<typeof ProjectionBatchScopeSchema> | undefined;
+}
+
+export function parseEntityRpcCall(input: unknown): EntityRpcCall {
+  const enveloped = EntityRpcCallSchema.safeParse(input);
+  if (!enveloped.success) {
+    // A bare request predates the envelope and never carries a batch scope.
+    return { request: parseEntityRpcRequest(input) };
+  }
+  const { request, batchScope } = enveloped.data;
+  return {
+    request: parseEntityRpcRequest(request),
+    ...(batchScope !== undefined && { batchScope }),
+  };
 }
 
 export function parseEntityRpcResult(
@@ -414,6 +489,12 @@ export function parseEntityRpcResult(
               error: z.string().optional(),
             })
             .parse(input);
+    case "settleDurableBulkMutationChild":
+      return z.boolean().parse(input);
+    case "prepareDurableBulkMutation":
+    case "finalizeDurableBulkMutationEnqueue":
+    case "failDurableBulkMutationEnqueue":
+      return z.undefined().parse(input);
   }
 }
 
@@ -472,6 +553,14 @@ export function handleEntityRpcRequest(
       return service.countEmbeddings();
     case "getAsyncJobStatus":
       return service.getAsyncJobStatus(request.jobId);
+    case "prepareDurableBulkMutation":
+      return service.prepareDurableBulkMutation(request.input);
+    case "finalizeDurableBulkMutationEnqueue":
+      return service.finalizeDurableBulkMutationEnqueue(request.operationId);
+    case "failDurableBulkMutationEnqueue":
+      return service.failDurableBulkMutationEnqueue(request.operationId);
+    case "settleDurableBulkMutationChild":
+      return service.settleDurableBulkMutationChild(request.input);
   }
 }
 

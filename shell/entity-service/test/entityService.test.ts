@@ -132,12 +132,12 @@ describe("EntityService", (): void => {
       expect.objectContaining({ entityId: entity.id }),
     );
 
-    const client = createClient({ url: entityDbUrl });
-    const persisted = await client.execute({
+    const connection = createEntityDatabase({ url: entityDbUrl });
+    const persisted = await connection.client.execute({
       sql: "SELECT id FROM entities WHERE entityType = ? AND id = ?",
       args: ["note", entity.id],
     });
-    client.close();
+    connection.client.close();
     expect(persisted.rows).toHaveLength(1);
     expect(await entityService.listPendingEntityExports()).toEqual([
       {
@@ -224,9 +224,9 @@ describe("EntityService", (): void => {
       new NoteSerializerAdapter(),
     );
     await entityService.initialize();
-    const client = createClient({ url: entityDbUrl });
-    await client.execute("DROP TABLE entity_export_intents");
-    client.close();
+    const connection = createEntityDatabase({ url: entityDbUrl });
+    await connection.client.execute("DROP TABLE entity_export_intents");
+    connection.client.close();
     const entity = createNote({
       id: "durable-export-rollback",
       content: "Rollback",

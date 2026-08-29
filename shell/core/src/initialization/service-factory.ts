@@ -14,8 +14,10 @@ import {
   ENTITY_RPC_SERVICE,
   EntityRegistry,
   PROJECTION_STORE_RPC_SERVICE,
+  ProjectionStore,
   handleEntityRpcRequest,
   handleProjectionStoreRpcRequest,
+  parseEntityRpcCall,
   type EntityRpcTransport,
   type ProjectionStoreRpcTransport,
 } from "@brains/entity-service";
@@ -372,9 +374,21 @@ export function createShellServices(options: {
     }),
   );
   const entityService = Context.get(entityContext, EntityServiceTag);
-  registerOwnerHandler(ENTITY_RPC_SERVICE, (payload, signal) =>
-    handleEntityRpcRequest(entityService, payload, signal),
-  );
+  registerOwnerHandler(ENTITY_RPC_SERVICE, (payload, signal) => {
+    // A worker running a bulk mutation sends its batch scope with each call;
+    // re-entering it here keeps those writes fenced against the batch.
+    const call = parseEntityRpcCall(payload);
+    const dispatch = (): Promise<unknown> =>
+      handleEntityRpcRequest(entityService, call.request, signal);
+    if (!call.batchScope) return dispatch();
+    const projectionStore = entityService.getProjectionStore();
+    if (!(projectionStore instanceof ProjectionStore)) {
+      throw new Error(
+        "Batch-scoped entity calls require the owner's local projection store",
+      );
+    }
+    return projectionStore.runInBatchScope(call.batchScope, dispatch);
+  });
   registerOwnerHandler(PROJECTION_STORE_RPC_SERVICE, (payload, signal) =>
     handleProjectionStoreRpcRequest(
       entityService.getProjectionStore(),

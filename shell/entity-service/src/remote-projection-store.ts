@@ -1,9 +1,12 @@
 import type {
   ApplyProjectionRuleResultInput,
+  BulkMutationInput,
   ClaimProjectionWaveInput,
+  DurableBulkMutationChildInput,
   GetProjectionRuleMemoInput,
   IProjectionStore,
   MarkProjectionDirtyInput,
+  ProjectionBatchScope,
   ProjectionIncidentDiagnostics,
   ProjectionIncidentInput,
   ProjectionRuleMemoValue,
@@ -64,6 +67,36 @@ export class RemoteProjectionStore implements IProjectionStore {
     return this.requestRemote<ProjectionWaveInput[]>({
       operation: "listWaveInputs",
       waveId,
+    });
+  }
+
+  public getWave(waveId: string): Promise<ProjectionWave | null> {
+    return this.requestRemote<ProjectionWave | null>({
+      operation: "getWave",
+      waveId,
+    });
+  }
+
+  /**
+   * Sweep gating runs only in the scheduler (web) process; a worker reaching
+   * this is a process-placement mistake, so it refuses rather than proxies.
+   */
+  public hasActiveProjectionBatch(): Promise<boolean> {
+    return Promise.reject(
+      new Error(
+        "hasActiveProjectionBatch runs in the database owner, not in a worker",
+      ),
+    );
+  }
+
+  public supersedeWaveIfStale(
+    waveId: string,
+    supersededAt: number,
+  ): Promise<boolean> {
+    return this.requestRemote<boolean>({
+      operation: "supersedeWaveIfStale",
+      waveId,
+      supersededAt,
     });
   }
 
@@ -154,8 +187,8 @@ export class RemoteProjectionStore implements IProjectionStore {
 
   public applyRuleResult(
     input: ApplyProjectionRuleResultInput,
-  ): Promise<ProjectionWaveRule> {
-    return this.requestRemote<ProjectionWaveRule>({
+  ): Promise<ProjectionWaveRule | null> {
+    return this.requestRemote<ProjectionWaveRule | null>({
       operation: "applyRuleResult",
       input,
     });
@@ -166,6 +199,38 @@ export class RemoteProjectionStore implements IProjectionStore {
   ): Promise<ProjectionRuleMemoValue | null> {
     return this.requestRemote<ProjectionRuleMemoValue | null>({
       operation: "getRuleMemo",
+      input,
+    });
+  }
+
+  public openCallbackBatch(
+    input: BulkMutationInput,
+  ): Promise<ProjectionBatchScope> {
+    return this.requestRemote<ProjectionBatchScope>({
+      operation: "openCallbackBatch",
+      input,
+    });
+  }
+
+  public renewCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
+    return this.requestRemote<void>({
+      operation: "renewCallbackBatch",
+      scope,
+    });
+  }
+
+  public closeCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
+    return this.requestRemote<void>({
+      operation: "closeCallbackBatch",
+      scope,
+    });
+  }
+
+  public openDurableBatchChild(
+    input: DurableBulkMutationChildInput,
+  ): Promise<ProjectionBatchScope> {
+    return this.requestRemote<ProjectionBatchScope>({
+      operation: "openDurableBatchChild",
       input,
     });
   }

@@ -89,7 +89,6 @@ describe("git broker spec", () => {
       jobQueueDatabase: { url: "file:jobs.db" },
       conversationDatabase: { url: "file:conversations.db" },
       runtimeStateDatabase: { url: "file:runtime.db" },
-      embeddingDatabase: { url: "file:embeddings.db" },
       embedding: { url: "file:embedding.db" },
       ai: { model: "test", apiKey: "test-key" },
     });

@@ -55,7 +55,6 @@ describe("standard shell paths", () => {
         "file:./data/runtime-state.db",
       );
       expect(config.embedding.enabled).toBe(true);
-      expect(config.embedding.cacheDir).toBe("./cache/embeddings");
     } finally {
       delete process.env["XDG_DATA_HOME"];
     }

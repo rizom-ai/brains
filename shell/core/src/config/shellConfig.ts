@@ -61,8 +61,6 @@ export interface ShellConfigSchemaOutput {
   };
   embedding: {
     enabled: boolean;
-    model: "fast-all-MiniLM-L6-v2";
-    cacheDir: string;
   };
   logging: {
     level: "debug" | "info" | "warn" | "error";
@@ -126,8 +124,6 @@ export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
 
     embedding: z.object({
       enabled: z.boolean().default(true),
-      model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
-      cacheDir: z.string(),
     }),
 
     logging: z

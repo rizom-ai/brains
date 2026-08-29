@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { IJobQueueService } from "@brains/job-queue";
 import { Logger } from "@brains/utils/logger";
@@ -12,6 +13,17 @@ import {
 } from "./entity-rpc";
 import { RemoteProjectionStore } from "./remote-projection-store";
 import type { ProjectionStoreRpcTransport } from "./projection-rpc";
+import type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchScope,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-store";
+import type {
+  AcknowledgeEntityExportsRequest,
+  EntityExportIntent,
+} from "./entity-export-types";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   BaseEntity,
@@ -33,6 +45,7 @@ import type {
   IndexReadinessStatus,
   ListEntitiesRequest,
   ProjectSemanticSpaceRequest,
+  ProjectionOwnedEntityRequest,
   SearchResult,
   SearchWithDistancesRequest,
   SemanticSpaceProjection,
@@ -59,6 +72,7 @@ export class RemoteEntityService implements EntityService {
   private readonly jobQueueService: IJobQueueService;
   private readonly serializer: EntitySerializer;
   private readonly projectionStore: RemoteProjectionStore;
+  private readonly batchScope = new AsyncLocalStorage<ProjectionBatchScope>();
   private initialization: Promise<void> | undefined;
   private closeRequested = false;
   private embeddingHandlerRegistered = false;
@@ -120,7 +134,13 @@ export class RemoteEntityService implements EntityService {
     options?: { signal?: AbortSignal | undefined },
   ): Promise<T> {
     this.assertOpen();
-    const result = await this.transport.request(request, options);
+    // The owner re-enters this scope before dispatch so writes made inside a
+    // worker-run bulk mutation are still fenced against its batch.
+    const batchScope = this.batchScope.getStore();
+    const result = await this.transport.request(
+      { request, ...(batchScope !== undefined && { batchScope }) },
+      options,
+    );
     return parseEntityRpcResult(request, result) as T;
   }
 
@@ -312,5 +332,121 @@ export class RemoteEntityService implements EntityService {
     error?: string;
   } | null> {
     return this.requestRemote({ operation: "getAsyncJobStatus", jobId });
+  }
+
+  // ── Owner-only operations ──────────────────────────────────────────────
+  // The worker surface carries only operations worker code demonstrably
+  // calls. Everything else refuses loudly: a new feature reaching one of
+  // these from the worker is a process-placement decision to make
+  // explicitly, not a proxy to add silently.
+
+  private ownerOnly(method: string): Promise<never> {
+    return Promise.reject(
+      new Error(`${method} runs in the database owner, not in a worker`),
+    );
+  }
+
+  public listPendingEntityExports(): Promise<EntityExportIntent[]> {
+    return this.ownerOnly("listPendingEntityExports");
+  }
+
+  public hasPendingEntityExports(): Promise<boolean> {
+    return this.ownerOnly("hasPendingEntityExports");
+  }
+
+  public acknowledgeEntityExports(
+    _request: AcknowledgeEntityExportsRequest,
+  ): Promise<number> {
+    return this.ownerOnly("acknowledgeEntityExports");
+  }
+
+  public isProjectionOwnedEntity(
+    _request: ProjectionOwnedEntityRequest,
+  ): Promise<boolean> {
+    return this.ownerOnly("isProjectionOwnedEntity");
+  }
+
+  // ── Bulk mutation ──────────────────────────────────────────────────────
+  // The mutation body runs here; only its durable bracketing crosses to the
+  // owner. The scope travels with every entity request this process makes
+  // (see `requestRemote`), so owner-side writes are fenced against the batch
+  // exactly as they would be in-process.
+
+  public async runBulkMutation<TResult>(
+    input: BulkMutationInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    await this.initialize();
+    if (this.batchScope.getStore()) return mutation();
+
+    const scope = await this.projectionStore.openCallbackBatch(input);
+    const heartbeat = setInterval(() => {
+      void this.projectionStore.renewCallbackBatch(scope).catch(() => {
+        // Mutation transactions enforce the fence if renewal loses ownership.
+      });
+    }, 10_000);
+    heartbeat.unref();
+    try {
+      return await this.batchScope.run(scope, mutation);
+    } finally {
+      clearInterval(heartbeat);
+      await this.projectionStore.closeCallbackBatch(scope);
+    }
+  }
+
+  public async prepareDurableBulkMutation(
+    input: DurableBulkMutationRootInput,
+  ): Promise<void> {
+    await this.requestRemote({
+      operation: "prepareDurableBulkMutation",
+      input,
+    });
+  }
+
+  public async finalizeDurableBulkMutationEnqueue(
+    operationId: string,
+  ): Promise<void> {
+    await this.requestRemote({
+      operation: "finalizeDurableBulkMutationEnqueue",
+      operationId,
+    });
+  }
+
+  public async failDurableBulkMutationEnqueue(
+    operationId: string,
+  ): Promise<void> {
+    await this.requestRemote({
+      operation: "failDurableBulkMutationEnqueue",
+      operationId,
+    });
+  }
+
+  public async runDurableBulkMutationChild<TResult>(
+    input: DurableBulkMutationChildInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    await this.initialize();
+    if (this.batchScope.getStore()) return mutation();
+
+    const scope = await this.projectionStore.openDurableBatchChild(input);
+    return this.batchScope.run(scope, mutation);
+  }
+
+  public settleDurableBulkMutationChild(
+    input: SettleDurableBulkMutationChildInput,
+  ): Promise<boolean> {
+    return this.requestRemote({
+      operation: "settleDurableBulkMutationChild",
+      input,
+    });
+  }
+
+  /**
+   * Startup recovery reads batch roots through a process-local reader, which
+   * cannot cross the endpoint. Only the owner runs recovery, so reaching this
+   * from a worker is a wiring mistake rather than a supported call.
+   */
+  public recoverProjectionBatches(): Promise<never> {
+    return this.ownerOnly("recoverProjectionBatches");
   }
 }

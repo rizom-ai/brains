@@ -251,7 +251,7 @@ Live probes used `@tursodatabase/sync@0.7.2`,
   replica adds a second distribution path without replacing Git's durable,
   reviewable markdown history.
 
-**Owner decision:** retain Git as the only content sync model and keep CMS
+**Owner decision:** retain Git as the only content sync model and keep Studio
 reads and writes behind the entity service. No sync SDK dependency or
 production path is added. Folding the regenerable embedding table into the
 entity database is now available in Phase 5.

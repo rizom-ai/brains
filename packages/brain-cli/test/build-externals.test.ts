@@ -46,7 +46,7 @@ describe("brain-cli build config", () => {
   });
 
   it("builds a broker-only runtime beside the full Brain bundle", () => {
-    expect(buildScript).toContain('name: "git-broker"');
+    expect(buildScript).toContain('bundleExecutable(\n  "git-broker"');
     expect(buildScript).toContain('"src", "git-broker-entrypoint.ts"');
     expect(buildScript).toContain("brokerBuild");
   });

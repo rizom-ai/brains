@@ -45,11 +45,7 @@ function createFullPresetApp(dataDir: string): App {
       jobQueueDatabase: { url: `file:${dataDir}/jobs.db` },
       conversationDatabase: { url: `file:${dataDir}/conversations.db` },
       runtimeStateDatabase: { url: `file:${dataDir}/runtime-state.db` },
-      embedding: {
-        enabled: true,
-        model: "fast-all-MiniLM-L6-v2",
-        cacheDir: `${dataDir}/embedding-cache`,
-      },
+      embedding: { enabled: true },
       dataDir: `${dataDir}/content`,
       logging: { level: "error" },
     },

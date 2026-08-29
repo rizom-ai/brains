@@ -197,18 +197,36 @@ function outboxInsert(index: number): {
     sql: `INSERT INTO entity_job_outbox
       (id, jobId, type, data, createdAt)
       VALUES (?, ?, 'shell:embedding', ?, ?)`,
-    args: [`outbox-${index}`, job.args[0]!, job.args[1]!, index],
+    args: [
+      `outbox-${index}`,
+      requireArg(job.args, 0),
+      requireArg(job.args, 1),
+      index,
+    ],
   };
+}
+
+function requireArg(
+  args: ReadonlyArray<string | number>,
+  index: number,
+): string | number {
+  const value = args[index];
+  if (value === undefined) throw new Error(`missing job argument ${index}`);
+  return value;
 }
 
 function summarize(samples: number[]): LatencySummary {
   if (samples.length === 0) throw new Error("No latency samples collected");
   const sorted = [...samples].sort((left, right) => left - right);
   const totalMs = samples.reduce((sum, sample) => sum + sample, 0);
-  const percentile = (fraction: number): number =>
-    sorted[
-      Math.min(sorted.length - 1, Math.ceil(sorted.length * fraction) - 1)
-    ]!;
+  const percentile = (fraction: number): number => {
+    const value =
+      sorted[
+        Math.min(sorted.length - 1, Math.ceil(sorted.length * fraction) - 1)
+      ];
+    if (value === undefined) throw new Error("percentile out of range");
+    return value;
+  };
   return {
     totalMs,
     medianMs: percentile(0.5),
@@ -254,47 +272,46 @@ async function drainOutbox(options: {
   jobClient: Client;
   failAfterQueueCommit?: boolean;
 }): Promise<number> {
-  let delivered = 0;
-  while (true) {
-    const pending = await options.entityClient.execute({
-      sql: `SELECT id, jobId, type, data, createdAt
-        FROM entity_job_outbox ORDER BY createdAt, id LIMIT ?`,
-      args: [RELAY_BATCH_SIZE],
-    });
-    if (pending.rows.length === 0) return delivered;
+  // Recursive batch drain: each call relays one batch and recurses until a
+  // poll finds no pending intents.
+  const pending = await options.entityClient.execute({
+    sql: `SELECT id, jobId, type, data, createdAt
+      FROM entity_job_outbox ORDER BY createdAt, id LIMIT ?`,
+    args: [RELAY_BATCH_SIZE],
+  });
+  if (pending.rows.length === 0) return 0;
 
-    await withWriteTransaction(options.jobClient, async (transaction) => {
-      for (const row of pending.rows) {
-        await transaction.execute({
-          sql: `INSERT INTO job_queue
-            (id, type, data, status, priority, createdAt, runtimeUpdatedAt)
-            VALUES (?, ?, ?, 'pending', 0, ?, ?)
-            ON CONFLICT(id) DO NOTHING`,
-          args: [
-            rowString(row, "jobId"),
-            rowString(row, "type"),
-            rowString(row, "data"),
-            Number(row["createdAt"]),
-            Number(row["createdAt"]),
-          ],
-        });
-      }
-    });
-
-    if (options.failAfterQueueCommit) {
-      throw new Error("injected relay interruption after queue commit");
-    }
-
-    const ids = pending.rows.map((row) => rowString(row, "id"));
-    await withWriteTransaction(options.entityClient, async (transaction) => {
+  await withWriteTransaction(options.jobClient, async (transaction) => {
+    for (const row of pending.rows) {
       await transaction.execute({
-        sql: `DELETE FROM entity_job_outbox
-          WHERE id IN (${ids.map(() => "?").join(", ")})`,
-        args: ids,
+        sql: `INSERT INTO job_queue
+          (id, type, data, status, priority, createdAt, runtimeUpdatedAt)
+          VALUES (?, ?, ?, 'pending', 0, ?, ?)
+          ON CONFLICT(id) DO NOTHING`,
+        args: [
+          rowString(row, "jobId"),
+          rowString(row, "type"),
+          rowString(row, "data"),
+          Number(row["createdAt"]),
+          Number(row["createdAt"]),
+        ],
       });
-    });
-    delivered += pending.rows.length;
+    }
+  });
+
+  if (options.failAfterQueueCommit) {
+    throw new Error("injected relay interruption after queue commit");
   }
+
+  const ids = pending.rows.map((row) => rowString(row, "id"));
+  await withWriteTransaction(options.entityClient, async (transaction) => {
+    await transaction.execute({
+      sql: `DELETE FROM entity_job_outbox
+        WHERE id IN (${ids.map(() => "?").join(", ")})`,
+      args: ids,
+    });
+  });
+  return pending.rows.length + (await drainOutbox(options));
 }
 
 async function scalarCount(client: Client, table: string): Promise<number> {

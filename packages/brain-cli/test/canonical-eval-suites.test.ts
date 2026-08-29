@@ -139,7 +139,6 @@ function createSuiteApp(
         conversationDatabase: {
           url: `file:${join(directory, "conversation.db")}`,
         },
-        embeddingDatabase: { url: `file:${join(directory, "embeddings.db")}` },
         runtimeStateDatabase: {
           url: `file:${join(directory, "runtime-state.db")}`,
         },

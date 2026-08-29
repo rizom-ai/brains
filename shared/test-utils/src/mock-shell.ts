@@ -1063,6 +1063,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   const jobQueueService: IJobQueueService = {
+    // Mirrors the real service: freeze an id for the caller's transaction, then
+    // let `enqueue` admit it. The fake needs no outbox, so the id is arbitrary.
+    prepareEnqueue: (request) => ({ jobId: `job-${Date.now()}`, request }),
     enqueue: async (request) => recordEnqueuedJob(request),
     // The real service reports whether the job was still claimable; the fake
     // has no attempt bookkeeping, so it reports success.

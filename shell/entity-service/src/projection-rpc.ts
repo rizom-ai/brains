@@ -2,10 +2,13 @@ import { z } from "@brains/utils/zod";
 import { ProjectionWriteIntentSchema } from "./projection-contracts";
 import type {
   ApplyProjectionRuleResultInput,
+  BulkMutationInput,
   ClaimProjectionWaveInput,
+  DurableBulkMutationChildInput,
   GetProjectionRuleMemoInput,
   IProjectionStore,
   MarkProjectionDirtyInput,
+  ProjectionBatchScope,
   ProjectionIncidentDiagnostics,
   ProjectionIncidentInput,
   ProjectionRuleMemoValue,
@@ -56,9 +59,18 @@ export type ProjectionStoreRpcRequest =
       ruleId: string;
       jobId: string;
     }
+  | { operation: "getWave"; waveId: string }
+  | { operation: "supersedeWaveIfStale"; waveId: string; supersededAt: number }
   | { operation: "getWaveRule"; waveId: string; ruleId: string }
   | { operation: "applyRuleResult"; input: ApplyProjectionRuleResultInput }
-  | { operation: "getRuleMemo"; input: GetProjectionRuleMemoInput };
+  | { operation: "getRuleMemo"; input: GetProjectionRuleMemoInput }
+  | { operation: "openCallbackBatch"; input: BulkMutationInput }
+  | { operation: "renewCallbackBatch"; scope: ProjectionBatchScope }
+  | { operation: "closeCallbackBatch"; scope: ProjectionBatchScope }
+  | {
+      operation: "openDurableBatchChild";
+      input: DurableBulkMutationChildInput;
+    };
 
 const nonEmptyString = z.string().trim().min(1);
 const timestamp = z.number().int().nonnegative();
@@ -79,6 +91,27 @@ const memoKeySchema = z.strictObject({
   ruleId: nonEmptyString,
   ruleVersion: nonEmptyString,
   inputFingerprint: nonEmptyString,
+});
+const bulkMutationInputSchema = z.strictObject({
+  source: nonEmptyString,
+  operationId: nonEmptyString,
+});
+const durableRootInputSchema = bulkMutationInputSchema.extend({
+  rootJobId: nonEmptyString,
+  expectedChildren: z.number().int().nonnegative(),
+});
+const durableChildInputSchema = durableRootInputSchema.extend({
+  childKey: nonEmptyString,
+  jobId: nonEmptyString,
+});
+export const ProjectionBatchScopeSchema: z.ZodType<
+  ProjectionBatchScope,
+  unknown
+> = z.strictObject({
+  batchId: nonEmptyString,
+  source: nonEmptyString,
+  operationId: nonEmptyString,
+  ownerToken: nonEmptyString,
 });
 const applyRuleResultSchema = z.strictObject({
   waveId: nonEmptyString,
@@ -146,6 +179,12 @@ export const ProjectionStoreRpcRequestSchema: z.ZodType<
     ruleId: nonEmptyString,
     jobId: nonEmptyString,
   }),
+  z.strictObject({ operation: z.literal("getWave"), ...waveIdSchema }),
+  z.strictObject({
+    operation: z.literal("supersedeWaveIfStale"),
+    ...waveIdSchema,
+    supersededAt: timestamp,
+  }),
   z.strictObject({
     operation: z.literal("getWaveRule"),
     ...waveIdSchema,
@@ -156,15 +195,32 @@ export const ProjectionStoreRpcRequestSchema: z.ZodType<
     input: applyRuleResultSchema,
   }),
   z.strictObject({ operation: z.literal("getRuleMemo"), input: memoKeySchema }),
-]) as z.ZodType<ProjectionStoreRpcRequest, unknown>;
+  z.strictObject({
+    operation: z.literal("openCallbackBatch"),
+    input: bulkMutationInputSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("renewCallbackBatch"),
+    scope: ProjectionBatchScopeSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("closeCallbackBatch"),
+    scope: ProjectionBatchScopeSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("openDurableBatchChild"),
+    input: durableChildInputSchema,
+  }),
+]);
 
 const dirtyRecordSchema: z.ZodType<ProjectionDirtyInput, unknown> =
   dirtyInputSchema.extend({ generation: z.number().int().nonnegative() });
 const waveSchema: z.ZodType<ProjectionWave, unknown> = z.strictObject({
   id: nonEmptyString,
   cutoffGeneration: z.number().int().nonnegative(),
+  admissionEpoch: z.number().int().nonnegative(),
   graphFingerprint: nonEmptyString,
-  status: z.enum(["running", "completed", "failed"]),
+  status: z.enum(["running", "completed", "failed", "superseded"]),
   startedAt: timestamp,
   completedAt: timestamp.nullable(),
 });
@@ -235,6 +291,7 @@ export function parseProjectionStoreRpcResult(
       return z.array(dirtyRecordSchema).parse(input);
     case "claimPendingWave":
     case "getActiveWave":
+    case "getWave":
       return input === null ? null : waveSchema.parse(input);
     case "listWaveInputs":
       return z.array(waveInputSchema).parse(input);
@@ -249,12 +306,21 @@ export function parseProjectionStoreRpcResult(
     case "listWaveRules":
       return z.array(waveRuleSchema).parse(input);
     case "queueWaveRule":
-    case "applyRuleResult":
       return waveRuleSchema.parse(input);
+    // A rule whose wave moved on applies to nothing, so the owner returns null.
+    case "applyRuleResult":
     case "getWaveRule":
       return input === null ? null : waveRuleSchema.parse(input);
     case "getRuleMemo":
       return input === null ? null : memoSchema.parse(input);
+    case "supersedeWaveIfStale":
+      return z.boolean().parse(input);
+    case "openCallbackBatch":
+    case "openDurableBatchChild":
+      return ProjectionBatchScopeSchema.parse(input);
+    case "renewCallbackBatch":
+    case "closeCallbackBatch":
+      return z.undefined().parse(input);
   }
 }
 
@@ -290,12 +356,24 @@ export function handleProjectionStoreRpcRequest(
       return store.listWaveRules(request.waveId);
     case "queueWaveRule":
       return store.queueWaveRule(request.waveId, request.ruleId, request.jobId);
+    case "getWave":
+      return store.getWave(request.waveId);
+    case "supersedeWaveIfStale":
+      return store.supersedeWaveIfStale(request.waveId, request.supersededAt);
     case "getWaveRule":
       return store.getWaveRule(request.waveId, request.ruleId);
     case "applyRuleResult":
       return store.applyRuleResult(request.input);
     case "getRuleMemo":
       return store.getRuleMemo(request.input);
+    case "openCallbackBatch":
+      return store.openCallbackBatch(request.input);
+    case "renewCallbackBatch":
+      return store.renewCallbackBatch(request.scope);
+    case "closeCallbackBatch":
+      return store.closeCallbackBatch(request.scope);
+    case "openDurableBatchChild":
+      return store.openDurableBatchChild(request.input);
   }
 }
 

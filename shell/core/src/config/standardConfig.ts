@@ -13,8 +13,6 @@ export interface StandardConfig {
   runtimeStateDatabase: DbConfig;
   embedding: {
     enabled: boolean;
-    model: "fast-all-MiniLM-L6-v2";
-    cacheDir: string;
   };
 }
 
@@ -47,8 +45,6 @@ export function createStandardConfig(paths: StandardPaths): StandardConfig {
     },
     embedding: {
       enabled: true,
-      model: "fast-all-MiniLM-L6-v2",
-      cacheDir: `${paths.cacheDir}/embeddings`,
     },
   };
 }

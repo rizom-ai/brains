@@ -98,6 +98,12 @@ const vectors = Array.from({ length: ENTITY_COUNT }, (_, index) =>
   randomVector(index),
 );
 
+function requireVector(index: number): string {
+  const vector = vectors[index % vectors.length];
+  if (vector === undefined) throw new Error("benchmark generated no vectors");
+  return vector;
+}
+
 async function timed(
   label: string,
   operations: number,
@@ -219,7 +225,7 @@ async function benchmarkEntityDatabase(engine: SqliteEngine): Promise<void> {
       for (let index = 0; index < ENTITY_COUNT; index++) {
         await client.execute({
           sql: "INSERT INTO embeddings VALUES (?, 'note', vector32(?), ?)",
-          args: [`e-${index}`, vectors[index] ?? vectors[0]!, `hash-${index}`],
+          args: [`e-${index}`, requireVector(index), `hash-${index}`],
         });
       }
     });

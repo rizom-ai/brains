@@ -725,7 +725,9 @@ export class JobQueueService implements IJobQueueService {
   }
 
   public async getJobsByRootJobId(rootJobId: string): Promise<JobInfo[]> {
-    return this.repository.getJobsByRootJobId(rootJobId);
+    // Only projection-batch recovery reads this, and recovery runs in the
+    // database owner; requireRepository keeps the worker refusal loud.
+    return this.requireRepository().getJobsByRootJobId(rootJobId);
   }
 
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {

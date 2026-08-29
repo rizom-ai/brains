@@ -9,7 +9,8 @@ import {
   RemoteEntityService,
   handleEntityRpcRequest,
   handleProjectionStoreRpcRequest,
-  type EntityRpcRequest,
+  parseEntityRpcCall,
+  type EntityRpcCall,
   type EntityRpcTransport,
   type ProjectionStoreRpcRequest,
   type ProjectionStoreRpcTransport,
@@ -34,8 +35,16 @@ class DirectEntityTransport implements EntityRpcTransport {
 
   public async initialize(): Promise<void> {}
 
-  public request(payload: EntityRpcRequest): Promise<unknown> {
-    return handleEntityRpcRequest(this.owner, payload);
+  public request(payload: EntityRpcCall): Promise<unknown> {
+    // Mirrors the owner registration in service-factory: parse the call
+    // envelope and re-enter any batch scope it carries before dispatch.
+    const call = parseEntityRpcCall(payload);
+    const dispatch = (): Promise<unknown> =>
+      handleEntityRpcRequest(this.owner, call.request);
+    if (!call.batchScope) return dispatch();
+    return this.owner
+      .getProjectionStore()
+      .runInBatchScope(call.batchScope, dispatch);
   }
 
   public close(): void {}
@@ -204,6 +213,7 @@ describe("entity owner RPC", () => {
       writeIntents: [],
       completedAt: 102,
     });
+    if (!outcome) throw new Error("expected the wave rule to accept a result");
     expect(outcome.status).toBe("completed");
     expect(await store.completeWave("remote-wave", 103)).toMatchObject({
       status: "completed",

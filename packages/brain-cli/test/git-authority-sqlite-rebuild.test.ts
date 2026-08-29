@@ -117,7 +117,6 @@ function createShell(
       runtimeStateDatabase: {
         url: `file:${join(root, "runtime-state.db")}`,
       },
-      embeddingDatabase: { url: `file:${join(root, "embeddings.db")}` },
       dataDir,
       ai: { apiKey: MOCK_LOAD_API_KEY, model: MOCK_LOAD_MODEL },
       embedding: { enabled: false },

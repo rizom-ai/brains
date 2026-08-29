@@ -281,6 +281,8 @@ describe("builtin process supervision", () => {
           BRAINS_LOCAL_DATABASE_SECRET: localDatabaseEndpoint.secret,
           BRAINS_LOCAL_DATABASE_SESSION_ID: localDatabaseEndpoint.sessionId,
         },
+        // The broker-aware supervisor type also requires signal delivery.
+        kill: () => true,
       });
 
       const result = await start(

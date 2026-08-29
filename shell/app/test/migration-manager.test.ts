@@ -28,11 +28,7 @@ describe("MigrationManager", () => {
       url: "file:runtime-state.db",
       authToken: "runtime-state-token",
     },
-    embedding: {
-      enabled: true,
-      model: "fast-all-MiniLM-L6-v2",
-      cacheDir: "./cache/embeddings",
-    },
+    embedding: { enabled: true },
   } satisfies StandardConfig;
 
   beforeEach(() => {
@@ -132,11 +128,7 @@ describe("MigrationManager", () => {
           url: "file:runtime-state.db",
           authToken: undefined,
         },
-        embedding: {
-          enabled: true,
-          model: "fast-all-MiniLM-L6-v2",
-          cacheDir: "./cache/embeddings",
-        },
+        embedding: { enabled: true },
       } satisfies StandardConfig;
 
       mockMigrations.getStandardConfigWithDirectories = mock(() =>
