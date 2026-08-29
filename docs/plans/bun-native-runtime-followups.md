@@ -2,12 +2,12 @@
 
 ## Status
 
-**In progress; Phases 1, 2, 6, and 8 are implemented pending review.** The Bun
-1.4 runtime, `Bun.Image`, and `Bun.WebView` baseline has shipped. Phases 3 and 4
-are declined for now because Bun's YAML writer would churn durable Markdown,
-Phase 5 is declined because JSONL did not pass its compatibility and net-benefit
-gates, and Phase 7 is declined because Bun 1.4's custom Markdown renderer cannot
-preserve the browser-facing rendering contract.
+**Implementation complete; pending review.** Phases 1, 2, 6, and 8 are
+implemented in this branch. Phases 3 and 4 are declined for now because Bun's
+YAML writer would churn durable Markdown, Phase 5 is declined because JSONL did
+not pass its compatibility and net-benefit gates, and Phase 7 is declined
+because Bun 1.4's custom Markdown renderer cannot preserve the browser-facing
+rendering contract.
 
 This plan does not authorize merge, release, publication, or deployment.
 
@@ -489,12 +489,12 @@ reviewed contract change.
 ### Outcome — implemented pending review
 
 The five-field schedule contract and Bun-neutral exported names were approved.
-The implementation in the separate `feat/bun-cron` worktree uses `Bun.cron`
-and `Bun.cron.parse`, renames the production backend to
-`BunSchedulerBackend` without a compatibility alias, rejects six-field
-expressions with migration guidance, removes Croner, and adds timezone, DST,
-POSIX day, overlap, error, and drain coverage. Targeted checks and the complete
-repository test gate pass under Bun 1.4. It remains uncommitted and unpushed.
+The implementation included in this branch uses `Bun.cron` and
+`Bun.cron.parse`, renames the production backend to `BunSchedulerBackend`
+without a compatibility alias, rejects six-field expressions with migration
+guidance, removes Croner, and adds timezone, DST, POSIX day, overlap, error, and
+drain coverage. Targeted checks and the complete repository test gate pass
+under Bun 1.4.
 
 Proceed only if five-field cron is approved as the complete supported contract.
 If six-field/seconds compatibility must remain, close this phase as declined and
@@ -685,7 +685,7 @@ same behavior passed through direct scripts, `bun run`, and filtered workspace
 scripts. A container probe with tini confirmed parent, child, and grandchild
 cleanup handlers completed in order before the container stopped.
 
-The separate `feat/bun-no-orphans-evaluation` worktree applies the flag only to:
+The implementation included in this branch applies the flag only to:
 
 - the generated deployment `CMD` behind tini;
 - canonical `start:*` development postures, using `exec` so the flagged Bun
@@ -699,8 +699,7 @@ bunfig/environment switch. Runtime drain order, signal forwarding, Git broker
 process-group escalation, and group-absence proof remain unchanged. The process
 matrix passed ten consecutive runs; the Git process-inventory soak completed
 300 operations with zero lost completions or zombies, and packaged broker
-recovery passed. The implementation and changeset remain uncommitted and
-unpushed.
+recovery passed.
 
 Treat this as containment hardening, not dependency cleanup. It must preserve
 the runtime's explicit lifecycle and Git ownership invariants.
