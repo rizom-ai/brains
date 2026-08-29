@@ -13,6 +13,7 @@ export type {
   Prompt,
   ResourceVars,
 } from "./types";
+export { ToolVisibilitySchema } from "./types";
 export {
   toolResponseSchema,
   toolSuccessSchema,

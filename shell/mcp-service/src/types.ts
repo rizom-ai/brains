@@ -3,6 +3,9 @@ import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 import { actorRefSchema, type ActorRef } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
+// Re-exported beside ToolVisibility so consumers can validate an untrusted
+// permission level without reaching past mcp-service for the schema.
+export { UserPermissionLevelSchema as ToolVisibilitySchema } from "@brains/templates";
 
 /**
  * Tool visibility levels for permission control
