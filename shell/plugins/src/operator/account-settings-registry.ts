@@ -1,4 +1,6 @@
 import { z } from "@brains/utils/zod";
+import { parseWithSchema } from "@brains/utils/parse-schema";
+import { freeze } from "@brains/utils/freeze";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
@@ -373,9 +375,12 @@ export class AccountSettingsRegistry {
       identityFor(registration, actorId),
     );
     return stored
-      ? (Object.freeze(
-          registration.definition.schema.parse(stored.values),
-        ) as AccountSettingsValue<TDefinition>)
+      ? freeze(
+          parseWithSchema<TDefinition["schema"]>(
+            registration.definition.schema,
+            stored.values,
+          ),
+        )
       : null;
   }
 
@@ -390,9 +395,12 @@ export class AccountSettingsRegistry {
     return records.map((record) =>
       Object.freeze({
         id: record.actorId,
-        settings: Object.freeze(
-          registration.definition.schema.parse(record.values),
-        ) as AccountSettingsValue<TDefinition>,
+        settings: freeze(
+          parseWithSchema<TDefinition["schema"]>(
+            registration.definition.schema,
+            record.values,
+          ),
+        ),
         revision: record.revision,
       }),
     );

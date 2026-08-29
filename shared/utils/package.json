@@ -32,6 +32,7 @@
     "./env-schema": "./src/env-schema.ts",
     "./error": "./src/error.ts",
     "./fetch-like": "./src/fetch-like.ts",
+    "./freeze": "./src/freeze.ts",
     "./hash": "./src/hash.ts",
     "./http-response": "./src/http-response.ts",
     "./http-utils": "./src/http-utils.ts",
