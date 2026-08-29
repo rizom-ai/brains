@@ -3,6 +3,7 @@ import { CardHeader } from "@brains/ui-library";
 import type { JSX } from "react";
 import { DeclarativeWidgetBody } from "./declarative-widget";
 import type { RenderableWidgetData } from "./types";
+import { isPlainRecord } from "@brains/utils/predicates";
 
 /**
  * A self-drawing widget's payload carries its own data beside the semantic
@@ -10,9 +11,7 @@ import type { RenderableWidgetData } from "./types";
  * envelope the declarative body reads.
  */
 function sourceData(data: unknown): unknown {
-  return data !== null && typeof data === "object" && "source" in data
-    ? (data as { source: unknown }).source
-    : data;
+  return isPlainRecord(data) && "source" in data ? data["source"] : data;
 }
 
 export function WidgetCard({

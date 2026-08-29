@@ -74,9 +74,9 @@ type EvalAgentFrontmatter = z.infer<typeof evalAgentFrontmatterSchema>;
 type EvalAgentSkill = z.output<typeof evalAgentSkillSchema>;
 
 function formatSkills(value: unknown): string {
-  if (!Array.isArray(value) || value.length === 0) return "";
-  const skills = value as EvalAgentSkill[];
-  return skills
+  const parsed = z.array(evalAgentSkillSchema).safeParse(value);
+  if (!parsed.success || parsed.data.length === 0) return "";
+  return parsed.data
     .map((skill) => {
       const tags = skill.tags.length > 0 ? ` [${skill.tags.join(", ")}]` : "";
       return `- ${skill.name}: ${skill.description}${tags}`;

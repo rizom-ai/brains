@@ -10,6 +10,7 @@
 
 import { getErrorMessage } from "@brains/utils/error";
 import { createPrefixedId } from "@brains/utils/id";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { PlaybookBody, PlaybookState } from "../entity";
 import {
   createPlaybookRun,
@@ -115,10 +116,7 @@ function entityEvidenceDetails(
 function recordFromUnknown(
   value: unknown,
 ): Record<string, unknown> | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
+  return isPlainRecord(value) ? value : undefined;
 }
 
 function firstNonEmptyString(...values: unknown[]): string | undefined {

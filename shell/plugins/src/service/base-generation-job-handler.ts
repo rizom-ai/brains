@@ -4,6 +4,7 @@ import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   generateMarkdown,
@@ -58,18 +59,19 @@ function getPreallocatedEntityId(data: unknown): string | undefined {
 function normalizeGenericCoverImageRequest(
   data: unknown,
 ): NormalizedGenericCoverImageRequest | undefined {
-  if (typeof data !== "object" || data === null || !("coverImage" in data)) {
+  if (!isPlainRecord(data) || !("coverImage" in data)) {
     return undefined;
   }
 
-  const coverImage = (data as { coverImage?: unknown }).coverImage;
+  const coverImage = data["coverImage"];
   if (coverImage === undefined || coverImage === false) return undefined;
   if (coverImage === true) return { generate: true };
-  if (typeof coverImage !== "object" || coverImage === null) return undefined;
+  if (!isPlainRecord(coverImage)) return undefined;
 
-  const request = coverImage as GenericCoverImageRequest;
-  if (request.generate === false) return undefined;
-  const prompt = request.prompt?.trim();
+  if (coverImage["generate"] === false) return undefined;
+  const promptValue = coverImage["prompt"];
+  const prompt =
+    typeof promptValue === "string" ? promptValue.trim() : undefined;
   return {
     generate: true,
     ...(prompt && { prompt }),

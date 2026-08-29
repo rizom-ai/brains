@@ -90,10 +90,10 @@ const capabilityAgentBodySchema = z.object({
 type CapabilityAgentBody = z.infer<typeof capabilityAgentBodySchema>;
 
 function formatSkills(value: unknown): string {
-  if (!Array.isArray(value) || value.length === 0) return "";
-  const skills = value as CapabilityAgentSkill[];
+  const parsed = z.array(capabilityAgentSkillSchema).safeParse(value);
+  if (!parsed.success || parsed.data.length === 0) return "";
 
-  return skills
+  return parsed.data
     .map((skill) => {
       const tags = skill.tags.length > 0 ? ` [${skill.tags.join(", ")}]` : "";
       return `- ${skill.name}: ${skill.description}${tags}`;

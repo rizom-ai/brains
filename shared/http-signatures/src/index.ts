@@ -369,7 +369,7 @@ function toPublicKey(key: JsonWebKey): KeyObject {
 }
 
 function isKeyObject(key: SigningKey): key is KeyObject {
-  return typeof (key as KeyObject).export === "function";
+  return "export" in key && typeof key.export === "function";
 }
 
 function escapeParam(value: string): string {
