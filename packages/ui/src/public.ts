@@ -2,7 +2,7 @@
  * Curated public surface for `@rizom/brain-ui`.
  *
  * Every symbol here has a consumer today, per the subpath curation rule in
- * docs/plans/npm-package-boundaries.md. `./index.ts` remains the internal
+ * docs/plans/plugin-interface-boundaries.md. `./index.ts` remains the internal
  * barrel and carries the full component set; adding to this file requires a
  * named consumer, an export-ledger entry, and a stable-API document update
  * in the same change.
@@ -54,6 +54,7 @@ export {
   WidgetTabs,
   WidgetTags,
   createWidgetInstanceId,
+  cssVariables,
   formatDate,
   markdownToHtml,
   renderHighlightedText,
@@ -73,6 +74,7 @@ export type {
   CardProps,
   CardTitleProps,
   ContentArchiveProps,
+  CSSVariableProperties,
   ContentItem,
   ContentListProps,
   CoverImageProps,

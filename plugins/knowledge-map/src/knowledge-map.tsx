@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { cssVariables } from "@brains/ui-library";
+import { cssVariables } from "@rizom/brain-ui";
 import type { JSX } from "react";
 import knowledgeMapStyles from "./knowledge-map.css" with { type: "text" };
 import {

@@ -11,7 +11,6 @@
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*",
-    "preact-render-to-string": "^6.7.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

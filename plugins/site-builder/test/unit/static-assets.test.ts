@@ -3,8 +3,9 @@ import {
   writeInlineStaticAssets,
   writePublicAssets,
 } from "../../src/lib/react-builder";
-import { createSilentLogger } from "@brains/test-utils";
-import { promises as fs } from "fs";
+import { createSilentLogger, stubMethod } from "@brains/test-utils";
+import { promises as fs, type PathLike } from "fs";
+import type { FileHandle } from "fs/promises";
 
 describe("ReactBuilder - Snapshotted Public Assets", () => {
   const outputDir = "/tmp/output";

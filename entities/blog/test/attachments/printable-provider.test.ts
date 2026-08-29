@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { normalizeRendererHtml } from "@brains/test-utils";
-import { BlogPlugin } from "../../src/plugin";
+import { postEntityPlugin } from "../helpers/install";
 import { createBlogPrintableProvider } from "../../src/attachments/printable-provider";
 import type { BlogPost } from "../../src/schemas/blog-post";
 
