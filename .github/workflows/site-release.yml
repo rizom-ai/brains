@@ -150,11 +150,7 @@ jobs:
         run: bun scripts/verify-site-publish-metadata.ts
 
       - name: Publish site and theme packages to npm
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          bun run changeset:publish:site
+        run: bun run changeset:publish:site
 
       - name: Deprecate retired alpha-only site package
         env:

@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -67,20 +67,7 @@ async function waitForListening(
   return outcome ?? { log, listening: false };
 }
 
-function buildBinary(): void {
-  const build = Bun.spawnSync(["bun", "scripts/build.ts"], {
-    cwd: packageDir,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  expect(build.exitCode).toBe(0);
-}
-
 describe("built binary boot smoke", () => {
-  beforeAll(() => {
-    buildBinary();
-  });
-
   it("boots the canonical model and serves HTTP", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-boot-smoke-"));
     const productionPort = freePort();

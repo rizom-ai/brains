@@ -84,6 +84,19 @@ describe("core release workflow", () => {
 });
 
 describe("site release workflow", () => {
+  test("publishes through GitHub OIDC without a registry token", () => {
+    const workflow = readWorkflow("site-release.yml");
+    const publishStep = workflowStep(
+      "site-release.yml",
+      "Publish site and theme packages to npm",
+    );
+
+    expect(workflow).toContain("id-token: write");
+    expect(publishStep).toContain("bun run changeset:publish:site");
+    expect(publishStep).not.toContain("NPM_TOKEN");
+    expect(publishStep).not.toContain("_authToken");
+  });
+
   test("keeps standard versioning serialized while stable publication bypasses the core wait lock", () => {
     const workflow = readWorkflow("site-release.yml");
 
