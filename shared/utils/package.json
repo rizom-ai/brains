@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.334",
+  "version": "0.2.0-alpha.335",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",

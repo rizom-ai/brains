@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.335
+
+### Patch Changes
+
+- [#189](https://github.com/rizom-ai/brains/pull/189) [`bffda4d`](https://github.com/rizom-ai/brains/commit/bffda4dd53ddcb1907a5c5deaa7e3e944a835098) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace Croner with Bun's in-process cron scheduler and rename `CronerBackend` to `BunSchedulerBackend`. Content pipeline schedules now use standard five-field cron expressions; six-field expressions with seconds are rejected with a migration error.
+
+- [#189](https://github.com/rizom-ai/brains/pull/189) [`b6840d1`](https://github.com/rizom-ai/brains/commit/b6840d1ca54abffde71984818756c31b9e71a9f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contain generated deployment, canonical development, and one-shot runner process trees with Bun's `--no-orphans` flag. Existing graceful signal forwarding, runtime drain order, and Git process-group ownership remain authoritative; the flag only handles abrupt parent loss and descendants left after normal shutdown.
+
 ## 0.2.0-alpha.334
 
 ### Patch Changes
