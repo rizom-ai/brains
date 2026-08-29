@@ -27,6 +27,40 @@ function actorFor(
   };
 }
 
+interface ViewBlockLike {
+  readonly type?: string;
+  readonly id?: string;
+  readonly primary?: readonly ViewBlockLike[];
+  readonly aside?: readonly ViewBlockLike[];
+}
+
+function viewBlocks(value: unknown): ViewBlockLike[] {
+  if (value === null || typeof value !== "object") return [];
+  const view = Reflect.get(value, "view");
+  if (view === null || typeof view !== "object") return [];
+  const blocks = Reflect.get(view, "blocks");
+  return Array.isArray(blocks) ? (blocks as ViewBlockLike[]) : [];
+}
+
+function peopleTabBlocks(value: unknown): ViewBlockLike[] {
+  const tabs = viewBlocks(value).find((block) => block.type === "tabs");
+  const entries = tabs ? Reflect.get(tabs, "tabs") : undefined;
+  if (!Array.isArray(entries)) return [];
+  const people = entries.find(
+    (tab) => tab !== null && typeof tab === "object" && tab.id === "people",
+  );
+  const blocks = people ? Reflect.get(people, "blocks") : undefined;
+  return Array.isArray(blocks) ? (blocks as ViewBlockLike[]) : [];
+}
+
+function headBlockIds(value: unknown): string[] {
+  return viewBlocks(value).flatMap((block) => (block.id ? [block.id] : []));
+}
+
+function blockIds(blocks: readonly ViewBlockLike[] | undefined): string[] {
+  return (blocks ?? []).flatMap((block) => (block.id ? [block.id] : []));
+}
+
 function tabIds(value: unknown): string[] {
   if (value === null || typeof value !== "object") return [];
   if (Reflect.get(value, "type") === "tabs") {
@@ -120,10 +154,29 @@ describe("Admin-owned Studio Administration workspace", () => {
       view: {
         title: "Administration",
         status: { label: "Admin only" },
-        blocks: [{ type: "tabs", defaultTab: "people" }],
+        blocks: [
+          { type: "stats", id: "people-summary" },
+          { type: "tabs", defaultTab: "people" },
+        ],
       },
     });
     expect(rosterLoads).toBeGreaterThan(0);
     expect(await workspace.badgeProvider?.(actor)).toBe(2);
+
+    // People leads with the roster, then reads in the same main-plus-aside
+    // grammar as Invitations: the peer roster owns the primary column while
+    // standing facts and the peer actions sit beside it. Totals move to the
+    // head instead of banding across the top of the table.
+    const peopleTab = peopleTabBlocks(people);
+    expect(blockIds(peopleTab)).toEqual(["people", "people-standing"]);
+    const layout = peopleTab.find((block) => block.type === "columns");
+    expect(blockIds(layout?.primary)).toEqual(["people-peers"]);
+    expect(blockIds(layout?.aside)).toEqual([
+      "brain-anchor",
+      "people-peer-note",
+      "link-peer",
+    ]);
+    expect(peopleTab.some((block) => block.type === "stats")).toBe(false);
+    expect(headBlockIds(people)).toContain("people-summary");
   });
 });

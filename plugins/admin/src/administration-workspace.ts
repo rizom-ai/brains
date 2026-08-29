@@ -17,7 +17,10 @@ import {
   createPeerTabSource,
   selectPeerTabSections,
 } from "./peer-tab-provider";
-import { createPeopleTabSource } from "./people-workspace";
+import {
+  composePeopleTabSections,
+  createPeopleTabSource,
+} from "./people-workspace";
 import {
   requireAuthService,
   type AdminWorkspaceSource,
@@ -212,16 +215,19 @@ export async function registerAdministrationWorkspace(
           ),
         ]);
         const peerSections = selectPeerTabSections(peerData.view.blocks);
-        peopleBlocks = [
-          ...tabBlocks(peopleData.view.blocks, "People"),
+        const peopleSections = composePeopleTabSections(
+          tabBlocks(peopleData.view.blocks, "People"),
           {
             type: "notice",
+            id: "people-peer-note",
             tone: "neutral",
             title: "External brain relationships",
             text: "A peer link records how a locally administered person relates to another brain. It does not grant or change local access.",
           },
-          ...peerSections.people,
-        ];
+          peerSections.people,
+        );
+        headBlocks = [peopleSections.totals];
+        peopleBlocks = [...peopleSections.blocks];
       } else if (query.tab === "invitations") {
         const [invitationData, peerData] = await Promise.all([
           loadChild(

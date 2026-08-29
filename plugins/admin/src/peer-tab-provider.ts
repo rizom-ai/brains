@@ -13,6 +13,7 @@ import {
   adminUserOptions,
   adminWorkspaceSource,
   formatWorkspaceDate,
+  peerOriginLabel,
   requireAuthService,
   type AdminWorkspaceSource,
 } from "./workspace-format";
@@ -290,7 +291,7 @@ const peerTabProvider = defineStudioWorkspace({
         rows: data.peers.map((peer) => ({
           id: `${peer.peerId}:${peer.displayName}`,
           cells: {
-            peer: peer.peerId,
+            peer: peerOriginLabel(peer.peerId),
             person: peer.displayName,
             role: peer.role,
             verification: peer.verificationStatus,

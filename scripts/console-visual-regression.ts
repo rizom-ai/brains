@@ -246,6 +246,15 @@ const administrationWorkspaceData = {
     },
     blocks: [
       {
+        type: "stats",
+        id: "people-summary",
+        items: [
+          { label: "Active members", value: 2 },
+          { label: "Active Admins", value: 1 },
+          { label: "Suspended", value: 1, tone: "warn" },
+        ],
+      },
+      {
         type: "tabs",
         id: "administration-tabs",
         label: "Administration sections",
@@ -256,15 +265,6 @@ const administrationWorkspaceData = {
             id: "people",
             label: "People",
             blocks: [
-              {
-                type: "stats",
-                id: "people-summary",
-                items: [
-                  { label: "Active members", value: 2 },
-                  { label: "Active Admins", value: 1 },
-                  { label: "Suspended", value: 1, tone: "warn" },
-                ],
-              },
               {
                 type: "detail",
                 id: "people",
@@ -287,7 +287,7 @@ const administrationWorkspaceData = {
                         person: "Mira Reyes",
                         role: "Admin",
                         status: "Active",
-                        brain: "Hosted",
+                        brain: "This brain",
                       },
                       link: { kind: "detail", itemId: "mira" },
                     },
@@ -297,7 +297,7 @@ const administrationWorkspaceData = {
                         person: "Grace Hopper",
                         role: "Trusted",
                         status: "Active",
-                        brain: "did:web:grace.example",
+                        brain: "grace.example",
                       },
                       link: { kind: "detail", itemId: "grace" },
                     },
@@ -307,7 +307,7 @@ const administrationWorkspaceData = {
                         person: "Sam Lee",
                         role: "Public",
                         status: "Suspended",
-                        brain: "Hosted",
+                        brain: "This brain",
                       },
                       link: { kind: "detail", itemId: "sam" },
                     },
@@ -316,19 +316,72 @@ const administrationWorkspaceData = {
                 },
               },
               {
-                type: "notice",
-                tone: "neutral",
-                title: "External brain relationships",
-                text: "Peer links record provenance from another brain. They do not grant or change local access.",
-              },
-              {
-                type: "card",
-                id: "link-peer",
-                label: "Link an existing person",
-                blocks: [
+                type: "columns",
+                id: "people-standing",
+                primary: [
                   {
-                    type: "text",
-                    text: "Associate an external peer identity with a locally administered person.",
+                    type: "card",
+                    id: "people-peers",
+                    label: "External brains",
+                    blocks: [
+                      {
+                        type: "table",
+                        id: "peers",
+                        empty: "No external brains are linked.",
+                        columns: [
+                          { key: "peer", label: "Brain" },
+                          { key: "person", label: "Person" },
+                          { key: "verification", label: "Verification" },
+                          { key: "linked", label: "Linked" },
+                        ],
+                        rows: [
+                          {
+                            id: "grace.example",
+                            cells: {
+                              peer: "grace.example",
+                              person: "Grace Hopper",
+                              verification: "Verified",
+                              linked: "Aug 12, 2026",
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+                aside: [
+                  {
+                    type: "card",
+                    id: "brain-anchor",
+                    label: "Brain Anchor",
+                    blocks: [
+                      {
+                        type: "key-values",
+                        items: [
+                          { label: "Name", value: "Mira Reyes" },
+                          { label: "Kind", value: "Person" },
+                          { label: "Ownership", value: "Personal" },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: "notice",
+                    id: "people-peer-note",
+                    tone: "neutral",
+                    title: "External brain relationships",
+                    text: "A peer link records how a locally administered person relates to another brain. It does not grant or change local access.",
+                  },
+                  {
+                    type: "card",
+                    id: "link-peer",
+                    label: "Link an existing person",
+                    blocks: [
+                      {
+                        type: "text",
+                        text: "Associate an external peer identity with a locally administered person.",
+                      },
+                    ],
                   },
                 ],
               },

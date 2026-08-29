@@ -139,7 +139,7 @@ const SITE_STYLES = `
 }
 .agent-proximity-site .proximity-hud { display: none; }
 .agent-proximity-site .proximity-node-label,
-.agent-proximity-site .proximity-you-label,
+.agent-proximity-site .proximity-center-label,
 .agent-proximity-site .proximity-strata-label,
 .agent-proximity-site .proximity-cluster-label {
   font-family: var(--console-mono);
@@ -151,7 +151,7 @@ const SITE_STYLES = `
 }
 .agent-proximity-site .proximity-agent[data-proximity-status="archived"] .proximity-node-label { opacity: 0.22; }
 .agent-proximity-site .proximity-agent[data-proximity-status="archived"] > path { opacity: 0.16; }
-.agent-proximity-site .proximity-you-label {
+.agent-proximity-site .proximity-center-label {
   fill: var(--console-text-dim);
   font-size: 9px;
   letter-spacing: 0.26em;

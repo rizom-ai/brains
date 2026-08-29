@@ -87,6 +87,8 @@ describe("ProximityMap", () => {
     expect(html).toContain("data-proximity-map");
     expect(html).toContain('data-proximity-ring="0.2"');
     expect(html).toContain('data-proximity-center="identity"');
+    expect(html).toContain("Brain identity");
+    expect(html).not.toContain(">you<");
     expect(html).toContain('data-proximity-node="alpha"');
     expect(html).toContain('data-proximity-node="beta"');
     expect(html).toContain('data-proximity-node="old"');

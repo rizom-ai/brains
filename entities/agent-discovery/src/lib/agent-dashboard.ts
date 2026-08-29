@@ -13,7 +13,10 @@ import {
 } from "./agent-network-widget";
 import { selectSkillFilterValues } from "./agent-network-rows";
 import { buildProximityMapData } from "./proximity-map-data";
-import { proximityMapDataSchema } from "./proximity-map-schema";
+import {
+  proximityCenterLabel,
+  proximityMapDataSchema,
+} from "./proximity-map-schema";
 import {
   AgentProximityWidget,
   proximityMapScript,
@@ -240,8 +243,7 @@ const agentProximityWidget = defineDashboardWidget({
             data.center.kind === "identity"
               ? "Agents arranged by semantic distance from this Brain identity."
               : "Agents arranged around the semantic centroid while identity indexing is unavailable.",
-          centerLabel:
-            data.center.kind === "identity" ? "Brain identity" : "Centroid",
+          centerLabel: proximityCenterLabel(data.center),
           centerKind: data.center.kind,
           points: [
             ...data.nodes.map((node) => {

@@ -87,7 +87,10 @@ describe("Administration People tab", () => {
     expect(initial).toMatchObject({
       view: {
         title: "Administration",
-        blocks: [{ type: "tabs", defaultTab: "people" }],
+        blocks: [
+          { type: "stats", id: "people-summary" },
+          { type: "tabs", defaultTab: "people" },
+        ],
       },
     });
     expect(JSON.stringify(initial)).toContain("Tess Trusted");

@@ -156,7 +156,7 @@
 .proximity-agent[data-proximity-status="archived"] > path {
   opacity: 0.16;
 }
-.proximity-you-label {
+.proximity-center-label {
   fill: var(--console-text-dim);
   font-family: var(--console-mono);
   font-size: 9px;

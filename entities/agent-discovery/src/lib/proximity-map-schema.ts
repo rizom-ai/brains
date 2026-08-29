@@ -156,3 +156,13 @@ export const proximityMapDataSchema: z.ZodType<ProximityMapData> = z.object({
   ctaLabel: z.string().nullable().default(null),
   ctaHref: z.string().nullable().default(null),
 });
+
+/**
+ * The map's center is the brain itself, never the person reading it: the
+ * public brain card renders this map to anonymous visitors. Both the widget
+ * and the declarative dashboard block label the center through this helper so
+ * the two renderers cannot drift apart.
+ */
+export function proximityCenterLabel(center: ProximityMapCenter): string {
+  return center.kind === "identity" ? "Brain identity" : "Centroid";
+}

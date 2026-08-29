@@ -2,6 +2,7 @@
 import type { CSSProperties, JSX } from "react";
 import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
+  proximityCenterLabel,
   proximityMapDataSchema,
   type ProximityMapCluster,
   type ProximityMapData,
@@ -646,8 +647,12 @@ export function ProximityMap({
             r="2"
             fill="var(--console-text)"
           />
-          <text className="proximity-you-label" x={CENTER_X} y={CENTER_Y + 30}>
-            you
+          <text
+            className="proximity-center-label"
+            x={CENTER_X}
+            y={CENTER_Y + 30}
+          >
+            {proximityCenterLabel(data.center)}
           </text>
         </g>
 

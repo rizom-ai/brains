@@ -6,15 +6,109 @@ import {
   type OperatorCaller,
   type OperatorRegionBlock,
   type OperatorViewBlock,
+  type RuntimeStudioOperatorBlock,
+  type RuntimeStudioOperatorColumnsBlock,
+  type RuntimeStudioOperatorPanelBlock,
+  type RuntimeStudioOperatorRegionBlock,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   adminWorkspaceSource,
   formatWorkspaceDate,
+  peerOriginLabel,
   requireAuthService,
   type AdminWorkspaceSource,
 } from "./workspace-format";
+
+type PeopleTotalsBlock = Extract<
+  RuntimeStudioOperatorPanelBlock,
+  { type: "stats" }
+>;
+
+function requiredPeopleBlock(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  id: string,
+): RuntimeStudioOperatorBlock {
+  const matches = blocks.filter((block) => block.id === id);
+  if (matches.length !== 1 || !matches[0]) {
+    throw new Error(
+      `People tab composition requires block "${id}" exactly once`,
+    );
+  }
+  return matches[0];
+}
+
+function requiredPeopleRegion(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  id: string,
+): RuntimeStudioOperatorRegionBlock {
+  const block = requiredPeopleBlock(blocks, id);
+  switch (block.type) {
+    case "tabs":
+    case "detail":
+    case "columns":
+      throw new Error(`People tab composition block "${id}" must be a region`);
+    default:
+      return block;
+  }
+}
+
+/**
+ * People leads with the roster and follows with its standing material in the
+ * console's main-plus-aside grammar, the same rhythm the Invitations tab
+ * uses. The roster stays a top-level block because master/detail already owns
+ * two columns and the region contract admits no nested detail; totals are
+ * hoisted so the workspace head carries them instead of a full-width band
+ * above the table.
+ */
+export function composePeopleTabSections(
+  blocks: readonly RuntimeStudioOperatorBlock[],
+  peerNote: RuntimeStudioOperatorRegionBlock,
+  peerSections: readonly RuntimeStudioOperatorRegionBlock[],
+): {
+  readonly totals: PeopleTotalsBlock;
+  readonly blocks: readonly Exclude<
+    RuntimeStudioOperatorBlock,
+    { type: "tabs" }
+  >[];
+} {
+  const totals = requiredPeopleBlock(blocks, "people-summary");
+  if (totals.type !== "stats") {
+    throw new Error(
+      'People tab composition block "people-summary" must be stats',
+    );
+  }
+  const roster = requiredPeopleBlock(blocks, "people");
+  if (roster.type !== "detail") {
+    throw new Error('People tab composition block "people" must be a detail');
+  }
+  // The peer roster follows the member roster in the same column, so it needs
+  // its own caption: a bare table would read as more rows of the table above.
+  const peerRoster = peerSections
+    .filter(
+      (block): block is RuntimeStudioOperatorPanelBlock =>
+        block.id === "peers" && block.type !== "card",
+    )
+    .map((block) => ({
+      type: "card" as const,
+      id: "people-peers",
+      label: "External brains",
+      blocks: [block],
+    }));
+  const peerActions = peerSections.filter((block) => block.id !== "peers");
+  const layout: RuntimeStudioOperatorColumnsBlock = {
+    type: "columns",
+    id: "people-standing",
+    primary: peerRoster,
+    aside: [
+      requiredPeopleRegion(blocks, "brain-anchor"),
+      peerNote,
+      ...peerActions,
+    ],
+  };
+  return { totals, blocks: [roster, layout] };
+}
 
 const peopleQuerySchema = z.strictObject({
   selected: z.string().trim().min(1).max(200).optional(),
@@ -514,8 +608,8 @@ const peopleWorkspace = defineStudioWorkspace({
         empty: "No external peer linked; this person is hosted locally.",
         items: selected.peers.map((peer) => ({
           id: peer.peerId,
-          title: peer.peerId,
-          description: "Arrived via an external brain relationship",
+          title: peerOriginLabel(peer.peerId),
+          description: `Vouched in by ${peerOriginLabel(peer.peerId)} · ${peer.peerId}`,
           metadata: [titleCase(peer.verificationStatus)],
           actions: [
             {
@@ -579,7 +673,7 @@ const peopleWorkspace = defineStudioWorkspace({
               person: person.displayName,
               role: titleCase(person.role),
               status: titleCase(person.status),
-              brain: person.peers[0]?.peerId ?? "Hosted locally",
+              brain: peerOriginLabel(person.peers[0]?.peerId),
               signIn: `${person.passkeys.length} passkeys · ${person.identities.length} channels`,
             },
             link: { detail: { itemId: person.userId } },
