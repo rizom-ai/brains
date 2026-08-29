@@ -27,7 +27,7 @@ export {
 } from "./scheduler";
 export { RetryTracker, type RetryInfo } from "./retry-tracker";
 export {
-  CronerBackend,
+  BunSchedulerBackend,
   type CronScheduleOptions,
   type SchedulerBackend,
   type ScheduledJob,

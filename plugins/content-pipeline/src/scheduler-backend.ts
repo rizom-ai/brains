@@ -1,9 +1,9 @@
 /**
  * @deprecated Import scheduler backend contracts from `@brains/scheduler`.
- * Re-exported here to preserve the content-pipeline public API.
+ * Re-exported here during the prerelease move to the shared scheduler package.
  */
 export {
-  CronerBackend,
+  BunSchedulerBackend,
   type CronScheduleOptions,
   type ScheduledJob,
   type SchedulerBackend,

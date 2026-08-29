@@ -17,7 +17,7 @@ import {
   RECURRING_CHECK_JOB_TYPE,
   RecurringCheckService,
 } from "@brains/recurring-checks";
-import { CronerBackend } from "@brains/scheduler";
+import { BunSchedulerBackend } from "@brains/scheduler";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import {
@@ -456,7 +456,7 @@ describe("Shell service ownership", () => {
 
     const recurringCheckService = new RecurringCheckService({
       brainId: "service-ownership",
-      scheduler: new CronerBackend(),
+      scheduler: new BunSchedulerBackend(),
       runtimeState: runtimeStateService,
       jobQueue: jobQueueService,
       logger,

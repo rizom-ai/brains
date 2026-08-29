@@ -159,8 +159,8 @@ describe("ContentScheduler", () => {
       scheduler = ContentScheduler.createFresh(
         baseConfig({
           backend: drainingBackend,
-          entitySchedules: { "blog-post": "* * * * * *" },
-          generationSchedules: { newsletter: "* * * * * *" },
+          entitySchedules: { "blog-post": "* * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
         }),
       );
       await scheduler.start();
@@ -276,7 +276,7 @@ describe("ContentScheduler", () => {
         baseConfig({
           backend: cronBackend,
           publishExecutor: { publish: mockExecutorPublish },
-          entitySchedules: { "blog-post": "* * * * * *" },
+          entitySchedules: { "blog-post": "* * * * *" },
           onPublish: mockOnPublish,
         }),
       );
@@ -285,7 +285,7 @@ describe("ContentScheduler", () => {
       await schedulerWithCron.start();
 
       // Trigger the cron
-      await cronBackend.tick("* * * * * *");
+      await cronBackend.tick("* * * * *");
 
       expect(mockExecutorPublish).toHaveBeenCalledWith({
         entityType: "blog-post",
@@ -304,7 +304,7 @@ describe("ContentScheduler", () => {
           publishExecutor: { publish: mockExecutorPublish },
           entitySchedules: {
             "blog-post": "0 0 1 1 *", // Jan 1st at midnight only
-            "social-post": "* * * * * *", // Every second
+            "social-post": "* * * * *", // Every minute
           },
           onPublish: mockOnPublish,
         }),
@@ -315,7 +315,7 @@ describe("ContentScheduler", () => {
       await schedulerWithCron.start();
 
       // Trigger only the social cron
-      await cronBackend.tick("* * * * * *");
+      await cronBackend.tick("* * * * *");
 
       // Social should have been called, blog should not
       expect(mockExecutorPublish).toHaveBeenCalledWith({
@@ -363,7 +363,7 @@ describe("ContentScheduler", () => {
         baseConfig({
           backend: cronBackend,
           publishExecutor: { publish: mockExecutorPublish },
-          entitySchedules: { "blog-post": "* * * * * *" },
+          entitySchedules: { "blog-post": "* * * * *" },
           onPublish: mockOnPublish,
         }),
       );
@@ -375,7 +375,7 @@ describe("ContentScheduler", () => {
       await schedulerWithCron.start();
 
       // Trigger once - should process exactly one item
-      await cronBackend.tick("* * * * * *");
+      await cronBackend.tick("* * * * *");
 
       expect(mockExecutorPublish.mock.calls.length).toBe(1);
 

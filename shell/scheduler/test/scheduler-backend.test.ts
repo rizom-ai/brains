@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, jest } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import { CronerBackend } from "../src";
+import { BunSchedulerBackend } from "../src";
 import { TestSchedulerBackend } from "../src/test";
 
 function yieldToFibers(): Effect.Effect<void> {
@@ -82,6 +82,89 @@ describe("TestSchedulerBackend", () => {
     await scheduler.advanceTo(new Date("2026-01-05T14:00:00.000Z"));
 
     expect(runs).toEqual(["2026-01-05T14:00:00.000Z"]);
+  });
+
+  it("supports the standard five-field expression subset", () => {
+    const scheduler = new TestSchedulerBackend();
+
+    for (const expression of [
+      "* * * * *",
+      "*/15 9-17 * JAN,MAR MON-FRI",
+      "0 0 15 * FRI",
+      "@daily",
+    ]) {
+      expect(() => scheduler.validateCron(expression)).not.toThrow();
+    }
+  });
+
+  it("rejects six-field schedules with a seconds migration message", () => {
+    const scheduler = new TestSchedulerBackend();
+
+    expect(() => scheduler.validateCron("* * * * * *")).toThrow(
+      /5 fields.*seconds are not supported/i,
+    );
+  });
+
+  it("rejects schedules with no possible future occurrence", () => {
+    const scheduler = new TestSchedulerBackend();
+
+    expect(() => scheduler.validateCron("0 0 30 2 *")).toThrow(
+      /no future occurrences/i,
+    );
+  });
+
+  it("uses POSIX OR semantics for restricted month-day and weekday", async () => {
+    const scheduler = new TestSchedulerBackend({
+      now: new Date("2026-05-16T00:00:00.000Z"),
+    });
+    const runs: string[] = [];
+    scheduler.scheduleCron(
+      "0 0 15 * FRI",
+      () => {
+        runs.push(scheduler.now().toISOString());
+      },
+      { timezone: "UTC" },
+    );
+
+    await scheduler.advanceTo(new Date("2026-05-22T00:00:00.000Z"));
+
+    expect(runs).toEqual(["2026-05-22T00:00:00.000Z"]);
+  });
+
+  it("shifts a missing DST time forward by the spring gap", async () => {
+    const scheduler = new TestSchedulerBackend({
+      now: new Date("2026-03-08T06:00:00.000Z"),
+    });
+    const runs: string[] = [];
+    scheduler.scheduleCron(
+      "30 2 * * *",
+      () => {
+        runs.push(scheduler.now().toISOString());
+      },
+      { timezone: "America/New_York" },
+    );
+
+    await scheduler.advanceTo(new Date("2026-03-08T07:30:00.000Z"));
+
+    expect(runs).toEqual(["2026-03-08T07:30:00.000Z"]);
+  });
+
+  it("runs a fixed time once in the duplicated fall DST hour", async () => {
+    const scheduler = new TestSchedulerBackend({
+      now: new Date("2026-11-01T04:00:00.000Z"),
+    });
+    const runs: string[] = [];
+    scheduler.scheduleCron(
+      "30 1 * * *",
+      () => {
+        runs.push(scheduler.now().toISOString());
+      },
+      { timezone: "America/New_York" },
+    );
+
+    await scheduler.advanceTo(new Date("2026-11-01T07:00:00.000Z"));
+
+    expect(runs).toEqual(["2026-11-01T05:30:00.000Z"]);
   });
 
   it("supports independent jobs with the same cron expression", async () => {
@@ -169,12 +252,112 @@ describe("TestSchedulerBackend", () => {
   });
 });
 
-describe("CronerBackend lifecycle", () => {
+describe("BunSchedulerBackend lifecycle", () => {
+  it("runs an in-process cron on the scheduled minute", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-14T00:00:30.000Z"));
+    const scheduler = new BunSchedulerBackend();
+    let calls = 0;
+    const job = scheduler.scheduleCron("* * * * *", () => {
+      calls++;
+    });
+
+    try {
+      jest.advanceTimersByTime(29_999);
+      await Effect.runPromise(yieldToFibers());
+      expect(calls).toBe(0);
+
+      jest.advanceTimersByTime(1);
+      await Effect.runPromise(yieldToFibers());
+      expect(calls).toBe(1);
+    } finally {
+      await job.stop();
+      jest.useRealTimers();
+    }
+  });
+
+  it("reports overlapping cron ticks and drains the active cycle on stop", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-14T00:00:30.000Z"));
+    let releaseCycle: (() => void) | undefined;
+    const activeCycle = new Promise<void>((resolve) => {
+      releaseCycle = resolve;
+    });
+    let calls = 0;
+    let skipped = 0;
+    const scheduler = new BunSchedulerBackend({
+      onOverlapSkipped: (): void => {
+        skipped++;
+      },
+    });
+    const job = scheduler.scheduleCron("* * * * *", async () => {
+      calls++;
+      await activeCycle;
+    });
+
+    try {
+      jest.advanceTimersByTime(30_000);
+      await Effect.runPromise(yieldToFibers());
+      expect(calls).toBe(1);
+
+      jest.advanceTimersByTime(60_000);
+      await Effect.runPromise(yieldToFibers());
+      expect(calls).toBe(1);
+      expect(skipped).toBe(1);
+
+      let stopSettled = false;
+      const stopping = job.stop().then(() => {
+        stopSettled = true;
+      });
+      await Effect.runPromise(yieldToFibers());
+      expect(stopSettled).toBe(false);
+
+      releaseCycle?.();
+      await stopping;
+      expect(stopSettled).toBe(true);
+    } finally {
+      releaseCycle?.();
+      await job.stop();
+      jest.useRealTimers();
+    }
+  });
+
+  it("reports cron callback errors without stopping later runs", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-14T00:00:30.000Z"));
+    const failure = new Error("cron failed");
+    const errors: unknown[] = [];
+    let calls = 0;
+    const scheduler = new BunSchedulerBackend({
+      onCallbackError: (_jobKey, error): void => {
+        errors.push(error);
+      },
+    });
+    const job = scheduler.scheduleCron("* * * * *", () => {
+      calls++;
+      throw failure;
+    });
+
+    try {
+      jest.advanceTimersByTime(30_000);
+      await Effect.runPromise(yieldToFibers());
+      expect(errors).toEqual([failure]);
+
+      jest.advanceTimersByTime(60_000);
+      await Effect.runPromise(yieldToFibers());
+      expect(calls).toBe(2);
+      expect(errors).toEqual([failure, failure]);
+    } finally {
+      await job.stop();
+      jest.useRealTimers();
+    }
+  });
+
   it("uses the injected clock and waits one interval before the first cycle", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
         const clock = yield* TestClock.testClock();
-        const scheduler = new CronerBackend({ clock });
+        const scheduler = new BunSchedulerBackend({ clock });
         let calls = 0;
         const job = scheduler.scheduleInterval(100, () => {
           calls++;
@@ -203,7 +386,7 @@ describe("CronerBackend lifecycle", () => {
         });
         let calls = 0;
         let skipped = 0;
-        const scheduler = new CronerBackend({
+        const scheduler = new BunSchedulerBackend({
           clock,
           onOverlapSkipped: (): void => {
             skipped++;

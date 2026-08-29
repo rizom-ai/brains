@@ -67,7 +67,9 @@ export function spawnBunRunner(
   const processImpl = options.processImpl ?? runtimeSignalProcess;
 
   return new Promise((resolve) => {
-    const proc = spawnImpl("bun", options.args, {
+    // Signal forwarding owns graceful shutdown. Bun's containment flag covers
+    // abrupt parent loss and any descendants left after that shutdown ends.
+    const proc = spawnImpl("bun", ["--no-orphans", ...options.args], {
       cwd: options.cwd,
       stdio: "inherit",
       env: processImpl.env,

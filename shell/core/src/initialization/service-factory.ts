@@ -27,7 +27,7 @@ import {
   RuntimeStateServiceTag,
   createRuntimeStateServiceLayer,
 } from "@brains/runtime-state/effect";
-import { CronerBackend } from "@brains/scheduler";
+import { BunSchedulerBackend } from "@brains/scheduler";
 import {
   PermissionService,
   RenderService,
@@ -170,7 +170,7 @@ export function createShellServices(options: {
     dependencies?.recurringCheckService ??
     new RecurringCheckService({
       brainId: config.siteBaseUrl ?? config.dataDir,
-      scheduler: new CronerBackend(),
+      scheduler: new BunSchedulerBackend(),
       runtimeState: runtimeStateService,
       clock: Clock.make(),
       jobQueue: jobQueueService,

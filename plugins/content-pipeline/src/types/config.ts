@@ -116,7 +116,7 @@ export const contentPipelineConfigSchema: z.ZodType<
    *   "0 9 * * *"      - Daily at 9am
    *   "0 9 * * 1-5"    - Weekdays at 9am
    *   "0 *\/6 * * *"    - Every 6 hours
-   *   "* * * * * *"    - Every second (6-field format)
+   *   "* * * * *"      - Every minute
    */
   entitySchedules: z.record(z.string(), z.string()).optional(),
 

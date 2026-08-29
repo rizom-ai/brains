@@ -1,6 +1,6 @@
 import { Effect, Exit, Fiber, FiberMap, Scope } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
-import { Cron } from "croner";
+import { nextCronOccurrence, validateCronExpression } from "./cron";
 
 /** A scheduled job that prevents future cycles and drains active callbacks. */
 export interface ScheduledJob {
@@ -28,18 +28,18 @@ export interface SchedulerBackend {
   validateCron(expression: string): void;
 }
 
-export interface CronerBackendOptions {
+export interface BunSchedulerBackendOptions {
   clock?: Clock.Clock | undefined;
   onOverlapSkipped?: ((jobKey: string) => void) | undefined;
   onCallbackError?: ((jobKey: string, error: unknown) => void) | undefined;
 }
 
-/** Production scheduler backed by Croner and supervised Effect fibers. */
-export class CronerBackend implements SchedulerBackend {
-  private readonly options: CronerBackendOptions;
+/** Production scheduler backed by Bun and supervised Effect fibers. */
+export class BunSchedulerBackend implements SchedulerBackend {
+  private readonly options: BunSchedulerBackendOptions;
   private nextJobId = 0;
 
-  constructor(options: CronerBackendOptions = {}) {
+  constructor(options: BunSchedulerBackendOptions = {}) {
     this.options = options;
   }
 
@@ -48,22 +48,22 @@ export class CronerBackend implements SchedulerBackend {
     callback: SchedulerCallback,
     options: CronScheduleOptions = {},
   ): ScheduledJob {
+    nextCronOccurrence(expression, Date.now(), options.timezone);
     const key = `cron:${this.nextJobId++}:${expression}`;
-    const cronRef: { current?: Cron } = {};
+    const cronRef: { current?: Bun.CronJob } = {};
     const scheduledJob = new SupervisedScheduledJob(
       key,
       callback,
       this.options,
       () => cronRef.current?.stop(),
     );
-    const cron = new Cron(
+    cronRef.current = Bun.cron(
       expression,
-      options.timezone ? { timezone: options.timezone } : undefined,
       () => {
         scheduledJob.trigger();
       },
+      options.timezone ? { tz: options.timezone } : undefined,
     );
-    cronRef.current = cron;
     return scheduledJob;
   }
 
@@ -83,15 +83,14 @@ export class CronerBackend implements SchedulerBackend {
   }
 
   validateCron(expression: string): void {
-    const job = new Cron(expression, { paused: true });
-    job.stop();
+    validateCronExpression(expression);
   }
 }
 
 class SupervisedScheduledJob implements ScheduledJob {
   private readonly key: string;
   private readonly callback: SchedulerCallback;
-  private readonly options: CronerBackendOptions;
+  private readonly options: BunSchedulerBackendOptions;
   private readonly stopTrigger: () => void;
   private readonly scope: Scope.CloseableScope;
   private readonly cycles: FiberMap.FiberMap<string, void, never>;
@@ -102,7 +101,7 @@ class SupervisedScheduledJob implements ScheduledJob {
   constructor(
     key: string,
     callback: SchedulerCallback,
-    options: CronerBackendOptions,
+    options: BunSchedulerBackendOptions,
     stopTrigger: () => void = () => {},
   ) {
     this.key = key;

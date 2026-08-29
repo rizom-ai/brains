@@ -99,6 +99,15 @@ describe("start subprocess lifecycle", () => {
         },
       );
 
+      expect(spawnImpl).toHaveBeenCalledWith(
+        "bun",
+        [
+          "--no-orphans",
+          "run",
+          expect.stringContaining("shell/app/src/runner.ts"),
+        ],
+        expect.objectContaining({ cwd: appDir }),
+      );
       expect(fakeProcess.listenerCount("SIGINT")).toBe(1);
       expect(fakeProcess.listenerCount("SIGTERM")).toBe(1);
       expect(fakeProcess.listenerCount("exit")).toBe(1);

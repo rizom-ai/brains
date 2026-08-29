@@ -54,7 +54,7 @@ export interface SchedulerConfig {
   logger: Logger;
   /**
    * Scheduler backend for cron/interval scheduling.
-   * Use CronerBackend for production, TestSchedulerBackend for tests.
+   * Use BunSchedulerBackend for production, TestSchedulerBackend for tests.
    */
   backend: SchedulerBackend;
   /**

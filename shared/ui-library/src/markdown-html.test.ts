@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { markdownToHtml } from "./markdown-html";
+import type { RenderedImageRef } from "@brains/contracts";
 
 describe("markdownToHtml sanitization", () => {
   it("strips inline <script> tags from markdown HTML passthrough", () => {
@@ -59,5 +60,97 @@ describe("markdownToHtml sanitization", () => {
   it("preserves code block language class for mermaid downstream handling", () => {
     const html = markdownToHtml("```mermaid\ngraph TD\nA-->B\n```");
     expect(html).toContain('class="language-mermaid"');
+  });
+});
+
+describe("markdownToHtml rendering contract", () => {
+  it("renders headings, hard and soft breaks, nested lists, quotes, rules, links, and code", () => {
+    const html = markdownToHtml(
+      '## Heading\n\nfirst\nsecond  \nthird\n\n> quote\n\n1. one\n   - nested\n2. two\n\n---\n\n[link](https://example.com "title")\n\n`<tag> &`',
+    );
+
+    expect(html).toContain("<h2>Heading</h2>");
+    expect(html).toContain("<p>first<br />second<br />third</p>");
+    expect(html).toContain("<blockquote>\n<p>quote</p>\n</blockquote>");
+    expect(html).toContain("<li>one<ul>");
+    expect(html).toContain("<li>nested</li>");
+    expect(html).toContain("<hr />");
+    expect(html).toContain(
+      '<a href="https://example.com" title="title">link</a>',
+    );
+    expect(html).toContain("<code>&lt;tag&gt; &amp;</code>");
+  });
+
+  it("renders the supported GFM table, task-list, deletion, and autolink subset", () => {
+    const html = markdownToHtml(
+      "| a | b |\n| :- | -: |\n| 1 | 2 |\n\n- [x] done\n- [ ] todo\n\n~~gone~~ <https://example.com> user@example.com",
+    );
+
+    expect(html).toContain("<table>");
+    expect(html).toContain('<th align="left">a</th>');
+    expect(html).toContain('<td align="right">2</td>');
+    expect(html).toContain("<li> done</li>");
+    expect(html).toContain("<li> todo</li>");
+    expect(html).toContain("<del>gone</del>");
+    expect(html).toContain(
+      '<a href="https://example.com">https://example.com</a>',
+    );
+    expect(html).toContain(
+      '<a href="mailto:user@example.com">user@example.com</a>',
+    );
+  });
+
+  it("preserves allowed raw HTML and entities while stripping attributes outside the allowlist", () => {
+    const html = markdownToHtml(
+      'before <em data-x="1">raw &amp; html</em> after\n\n<div onclick="x"><span>block</span></div>',
+    );
+
+    expect(html).toContain("<em>raw &amp; html</em>");
+    expect(html).toContain("<div><span>block</span></div>");
+    expect(html).not.toContain("data-x");
+    expect(html).not.toContain("onclick");
+  });
+
+  it("passes renderer-neutral image arguments and sanitizes custom output", () => {
+    const calls: RenderedImageRef[] = [];
+    const html = markdownToHtml('![some *alt* &](entity:abc "image title")', {
+      imageRenderer: (input) => {
+        calls.push(input);
+        return '<img src="https://example.com/image.png" alt="rewritten" width="100" onerror="alert(1)">';
+      },
+    });
+
+    expect(calls).toEqual([
+      {
+        href: "entity:abc",
+        alt: "some *alt* &",
+        title: "image title",
+      },
+    ]);
+    expect(html).toContain('src="https://example.com/image.png"');
+    expect(html).toContain('alt="rewritten"');
+    expect(html).toContain('width="100"');
+    expect(html).not.toContain("onerror");
+  });
+
+  it("uses standard image rendering when the custom renderer returns undefined", () => {
+    const calls: RenderedImageRef[] = [];
+    const html = markdownToHtml('![fallback](entity:abc "image title")', {
+      imageRenderer: (input) => {
+        calls.push(input);
+        return undefined;
+      },
+    });
+
+    expect(calls).toEqual([
+      {
+        href: "entity:abc",
+        alt: "fallback",
+        title: "image title",
+      },
+    ]);
+    expect(html).toContain(
+      '<img src="entity:abc" alt="fallback" title="image title" />',
+    );
   });
 });

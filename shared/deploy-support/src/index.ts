@@ -160,15 +160,15 @@ export function isStaleDeployDockerfile(content: string): boolean {
     content.includes('ENTRYPOINT ["/usr/bin/tini", "--"]') &&
     content.includes("BUN_CHROME_PATH=/usr/bin/chromium-headless-shell") &&
     content.includes(
-      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+      'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
   if (hasCurrentRuntime) return false;
 
-  const hasGeneratedCommand =
-    content.includes('CMD ["./node_modules/.bin/brain", "start"]') ||
-    content.includes(
-      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
-    );
+  const hasGeneratedCommand = [
+    'CMD ["./node_modules/.bin/brain", "start"]',
+    'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+    'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+  ].some((command) => content.includes(command));
   const hasGeneratedBrowser = content.includes("chromium-headless-shell");
   return (
     hasGeneratedCommand &&

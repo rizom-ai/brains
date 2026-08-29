@@ -28,6 +28,25 @@ describe("@rizom/brain package metadata", () => {
     expect(readPackageFile("scripts/build.ts")).not.toContain("playwright");
   });
 
+  it("contains owned development and one-shot runner process trees", () => {
+    for (const scriptName of [
+      "start:minimal",
+      "start:unified-inbox",
+      "start:personal",
+      "start:publishing",
+      "start:team",
+    ] as const) {
+      expect(packageJson.scripts[scriptName]).toContain(
+        "exec bun --no-orphans run",
+      );
+    }
+
+    const operateSource = readPackageFile("src/commands/operate.ts");
+    expect(operateSource).toContain(
+      'const runnerArgs = [\n    "--no-orphans",\n    "run",',
+    );
+  });
+
   it("publishes package-owned deploy scripts with expected runtime hooks", () => {
     const installHealthWatchdog = readPackageFile(
       "templates/deploy/scripts/install-health-watchdog.ts",
