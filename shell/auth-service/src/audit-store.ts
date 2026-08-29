@@ -1,5 +1,6 @@
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { authAuditEvents } from "./runtime-schema";
 
@@ -139,7 +140,5 @@ function auditEventFromRow(
 
 function parseMetadata(value: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(value);
-  return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-    ? (parsed as Record<string, unknown>)
-    : {};
+  return isPlainRecord(parsed) ? parsed : {};
 }

@@ -1,17 +1,42 @@
+import { z } from "@brains/utils/zod";
 import type { CloudflareConfig } from "../config";
 
 /**
- * Cloudflare Web Analytics GraphQL response envelope
+ * Cloudflare Web Analytics GraphQL response envelope.
+ *
+ * `data` is nullable because Cloudflare omits it when the query itself fails,
+ * in which case `errors` carries the reason — so the error branch below has to
+ * run before `data` is required.
  */
-interface CloudflareGraphQLResponse<TGroup> {
-  data: {
-    viewer: {
-      accounts: Array<{
-        rumPageloadEventsAdaptiveGroups?: TGroup[];
-      }>;
-    };
-  };
-  errors?: Array<{ message: string }>;
+function cloudflareGraphQLResponseSchema<TGroup>(
+  groupSchema: z.ZodType<TGroup>,
+): z.ZodType<{
+  data?:
+    | {
+        viewer: {
+          accounts: Array<{
+            rumPageloadEventsAdaptiveGroups?: TGroup[] | undefined;
+          }>;
+        };
+      }
+    | null
+    | undefined;
+  errors?: Array<{ message: string }> | undefined;
+}> {
+  return z.object({
+    data: z
+      .object({
+        viewer: z.object({
+          accounts: z.array(
+            z.object({
+              rumPageloadEventsAdaptiveGroups: z.array(groupSchema).optional(),
+            }),
+          ),
+        }),
+      })
+      .nullish(),
+    errors: z.array(z.object({ message: z.string() })).optional(),
+  });
 }
 
 /**
@@ -97,6 +122,7 @@ export class CloudflareClient {
    * first account in the response.
    */
   private async queryGraphQL<TGroup>(
+    groupSchema: z.ZodType<TGroup>,
     query: string,
     variables: Record<string, unknown>,
   ): Promise<TGroup[]> {
@@ -116,12 +142,18 @@ export class CloudflareClient {
       );
     }
 
-    const result = (await response.json()) as CloudflareGraphQLResponse<TGroup>;
+    const result = cloudflareGraphQLResponseSchema(groupSchema).parse(
+      await response.json(),
+    );
 
     if (result.errors && result.errors.length > 0) {
       throw new Error(
         `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
       );
+    }
+
+    if (!result.data) {
+      throw new Error("Cloudflare GraphQL response contained no data");
     }
 
     return (
@@ -177,11 +209,15 @@ export class CloudflareClient {
       }
     `;
 
-    const groups = await this.queryGraphQL<{
-      count: number;
-      sum: { visits: number };
-      dimensions: { date: string };
-    }>(query, this.baseVariables(options));
+    const groups = await this.queryGraphQL(
+      z.object({
+        count: z.number(),
+        sum: z.object({ visits: z.number() }),
+        dimensions: z.object({ date: z.string() }),
+      }),
+      query,
+      this.baseVariables(options),
+    );
 
     let pageviews = 0;
     let visits = 0;
@@ -217,7 +253,9 @@ export class CloudflareClient {
     `;
 
     try {
-      await this.queryGraphQL(query, { accountTag: this.config.accountId });
+      await this.queryGraphQL(z.unknown(), query, {
+        accountTag: this.config.accountId,
+      });
       return true;
     } catch {
       return false;
@@ -253,13 +291,14 @@ export class CloudflareClient {
       }
     `;
 
-    const groups = await this.queryGraphQL<{
-      count: number;
-      dimensions: { requestPath: string };
-    }>(query, {
-      ...this.baseVariables(options),
-      limit: options.limit ?? 20,
-    });
+    const groups = await this.queryGraphQL(
+      z.object({
+        count: z.number(),
+        dimensions: z.object({ requestPath: z.string() }),
+      }),
+      query,
+      { ...this.baseVariables(options), limit: options.limit ?? 20 },
+    );
 
     return groups.map((g) => ({
       path: g.dimensions.requestPath,
@@ -300,13 +339,14 @@ export class CloudflareClient {
       }
     `;
 
-    const groups = await this.queryGraphQL<{
-      sum: { visits: number };
-      dimensions: { refererHost: string };
-    }>(query, {
-      ...this.baseVariables(options),
-      limit: options.limit ?? 20,
-    });
+    const groups = await this.queryGraphQL(
+      z.object({
+        sum: z.object({ visits: z.number() }),
+        dimensions: z.object({ refererHost: z.string() }),
+      }),
+      query,
+      { ...this.baseVariables(options), limit: options.limit ?? 20 },
+    );
 
     return groups.map((g) => ({
       host: g.dimensions.refererHost || "(direct)",
@@ -346,10 +386,14 @@ export class CloudflareClient {
       }
     `;
 
-    const groups = await this.queryGraphQL<{
-      sum: { visits: number };
-      dimensions: { deviceType: string };
-    }>(query, this.baseVariables(options));
+    const groups = await this.queryGraphQL(
+      z.object({
+        sum: z.object({ visits: z.number() }),
+        dimensions: z.object({ deviceType: z.string() }),
+      }),
+      query,
+      this.baseVariables(options),
+    );
 
     const breakdown: DeviceBreakdownResult = {
       desktop: 0,
@@ -404,13 +448,14 @@ export class CloudflareClient {
       }
     `;
 
-    const groups = await this.queryGraphQL<{
-      sum: { visits: number };
-      dimensions: { countryName: string };
-    }>(query, {
-      ...this.baseVariables(options),
-      limit: options.limit ?? 20,
-    });
+    const groups = await this.queryGraphQL(
+      z.object({
+        sum: z.object({ visits: z.number() }),
+        dimensions: z.object({ countryName: z.string() }),
+      }),
+      query,
+      { ...this.baseVariables(options), limit: options.limit ?? 20 },
+    );
 
     return groups.map((g) => ({
       country: g.dimensions.countryName,

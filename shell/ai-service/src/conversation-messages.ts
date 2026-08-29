@@ -67,7 +67,7 @@ function parseMessageMetadata(
   if (isRecord(metadata)) return metadata;
   if (typeof metadata !== "string") return null;
   try {
-    const parsed = JSON.parse(metadata) as unknown;
+    const parsed: unknown = JSON.parse(metadata);
     return isRecord(parsed) ? parsed : null;
   } catch {
     return null;
