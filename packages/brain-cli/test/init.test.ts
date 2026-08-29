@@ -648,7 +648,7 @@ describe("brain init", () => {
           .replace("curl ca-certificates git tini", "curl ca-certificates git")
           .replace('ENTRYPOINT ["/usr/bin/tini", "--"]\n', "")
           .replace(
-            'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+            'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
             'CMD ["./node_modules/.bin/brain", "start"]',
           ),
       );
@@ -681,7 +681,7 @@ describe("brain init", () => {
       expect(dockerfile).toContain("curl ca-certificates git tini");
       expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
       expect(dockerfile).toContain(
-        'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+        'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
       );
 
       const workflow = readFileSync(

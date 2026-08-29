@@ -53,7 +53,7 @@ describe("deploy templates", () => {
     expect(dockerfile).not.toContain("playwright");
     expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
     expect(dockerfile).toContain(
-      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+      'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
     expect(dockerfile).toContain(
       "HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3",
@@ -67,6 +67,10 @@ describe("deploy templates", () => {
   });
 
   it("recognizes only the previous generated Docker runtime", () => {
+    const priorUncontainedRuntime = renderDockerfile().replace(
+      'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+    );
     const priorUnscopedRuntime = renderDockerfile().replace(
       '\nLABEL ai.rizom.brain.watchdog="true"\n',
       "\n",
@@ -79,10 +83,11 @@ describe("deploy templates", () => {
       .replace("curl ca-certificates git tini", "curl ca-certificates git")
       .replace('ENTRYPOINT ["/usr/bin/tini", "--"]\n', "")
       .replace(
-        'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+        'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
         'CMD ["./node_modules/.bin/brain", "start"]',
       );
 
+    expect(isStaleDeployDockerfile(priorUncontainedRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(priorUnscopedRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(priorHealthlessRuntime)).toBe(true);
     expect(isStaleDeployDockerfile(legacy)).toBe(true);

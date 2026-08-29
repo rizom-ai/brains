@@ -627,7 +627,7 @@ describe("initPilotRepo", () => {
     expect(dockerfile).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
     expect(dockerfile).toContain("http://127.0.0.1:8080/health/live");
     expect(dockerfile).toContain(
-      'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+      'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
     );
 
     const deployConfig = await readFile(
@@ -731,7 +731,7 @@ describe("initPilotRepo", () => {
         .replace("curl ca-certificates git tini", "curl ca-certificates git")
         .replace('ENTRYPOINT ["/usr/bin/tini", "--"]\n', "")
         .replace(
-          'CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
+          'CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]',
           'CMD ["./node_modules/.bin/brain", "start"]',
         ),
     );

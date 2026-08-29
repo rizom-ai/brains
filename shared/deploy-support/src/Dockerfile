@@ -24,7 +24,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl --fail --silent --show-error http://127.0.0.1:8080/health/live || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["bun", "./node_modules/@rizom/brain/dist/brain.js", "start"]
+CMD ["bun", "--no-orphans", "./node_modules/@rizom/brain/dist/brain.js", "start"]
 
 # --- standalone: bake full project into image (brain-cli deploy) ---
 FROM runtime AS standalone

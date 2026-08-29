@@ -232,7 +232,10 @@ async function operateSubprocess(
     };
   }
 
+  // The runner can own service descendants; do not leave them behind if this
+  // short-lived CLI parent disappears before it receives the close event.
   const runnerArgs = [
+    "--no-orphans",
     "run",
     runner.path,
     "--cli-command",
