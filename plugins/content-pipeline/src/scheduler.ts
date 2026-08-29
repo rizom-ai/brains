@@ -3,7 +3,7 @@ import { getErrorMessage } from "@brains/utils/error";
  * ContentScheduler - Cron-based scheduler for content pipeline queues
  *
  * Implements Component Interface Standardization pattern.
- * Uses a pluggable backend for scheduling (defaults to croner).
+ * Uses a pluggable backend for scheduling (Bun in production).
  *
  * Publishes queued entities through registered providers and supports
  * generation scheduling for automatic draft creation.

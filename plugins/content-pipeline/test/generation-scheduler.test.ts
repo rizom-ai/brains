@@ -83,10 +83,20 @@ describe("ContentScheduler - Generation Scheduling", () => {
       ).toThrow();
     });
 
+    it("rejects legacy seconds schedules with migration guidance", () => {
+      expect(() =>
+        ContentScheduler.createFresh(
+          baseConfig({
+            generationSchedules: { newsletter: "* * * * * *" },
+          }),
+        ),
+      ).toThrow(/newsletter.*5 fields.*seconds are not supported/i);
+    });
+
     it("should start generation cron jobs", async () => {
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { newsletter: "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
           onGenerate: onGenerateMock,
         }),
       );
@@ -95,7 +105,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
       expect(scheduler.isRunning()).toBe(true);
 
       // Trigger the generation cron
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       expect(onGenerateMock).toHaveBeenCalled();
     });
@@ -112,7 +122,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { newsletter: "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
           generationConditions: {
             newsletter: { skipIfDraftExists: true },
           },
@@ -123,7 +133,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       await scheduler.start();
 
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       // Should have checked conditions but not generated
       expect(checkConditionsMock).toHaveBeenCalled();
@@ -137,7 +147,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { newsletter: "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
           generationConditions: {
             newsletter: {
               skipIfDraftExists: true,
@@ -151,7 +161,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       await scheduler.start();
 
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       expect(checkConditionsMock).toHaveBeenCalled();
       expect(onGenerateMock).toHaveBeenCalledWith(
@@ -171,7 +181,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { newsletter: "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
           generationConditions: {
             newsletter: { maxUnpublishedDrafts: 5 },
           },
@@ -182,7 +192,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       await scheduler.start();
 
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       expect(checkConditionsMock).toHaveBeenCalled();
       expect(onGenerateMock).not.toHaveBeenCalled();
@@ -204,7 +214,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { newsletter: "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
           generationConditions: conditions,
           onCheckGenerationConditions: checkConditionsMock,
           onGenerate: onGenerateMock,
@@ -213,7 +223,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       await scheduler.start();
 
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       expect(checkConditionsMock).toHaveBeenCalledWith(
         "newsletter",
@@ -226,14 +236,14 @@ describe("ContentScheduler - Generation Scheduling", () => {
     it("should emit generate:execute message when triggering generation", async () => {
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { newsletter: "* * * * * *" },
+          generationSchedules: { newsletter: "* * * * *" },
           onGenerate: onGenerateMock,
         }),
       );
 
       await scheduler.start();
 
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       const executeMessages = messageBus._sentMessages.filter(
         (m) => m.type === GENERATE_MESSAGES.EXECUTE,
@@ -247,14 +257,14 @@ describe("ContentScheduler - Generation Scheduling", () => {
     it("should call onGenerate callback when triggering generation", async () => {
       scheduler = ContentScheduler.createFresh(
         baseConfig({
-          generationSchedules: { "social-post": "* * * * * *" },
+          generationSchedules: { "social-post": "* * * * *" },
           onGenerate: onGenerateMock,
         }),
       );
 
       await scheduler.start();
 
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       expect(onGenerateMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -311,7 +321,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         baseConfig({
           generationSchedules: {
             newsletter: "0 0 1 1 *", // Far future - won't trigger
-            "social-post": "* * * * * *", // Every second
+            "social-post": "* * * * *", // Every minute
           },
           onGenerate: (event) => {
             if (event.entityType === "newsletter") {
@@ -326,7 +336,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
       await scheduler.start();
 
       // Trigger only the social-post cron
-      await backend.tick("* * * * * *");
+      await backend.tick("* * * * *");
 
       // Social should have triggered, newsletter should not
       expect(socialGenMock).toHaveBeenCalled();

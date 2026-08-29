@@ -1,5 +1,5 @@
 import type { Clock } from "@brains/utils/effect";
-import { Cron } from "croner";
+import { nextCronOccurrence, validateCronExpression } from "./cron";
 import {
   assertValidInterval,
   type CronScheduleOptions,
@@ -19,8 +19,8 @@ interface TestCronJob {
   id: number;
   expression: string;
   callback: SchedulerCallback;
-  cron: Cron;
-  nextRun: Date | null;
+  timezone: string | undefined;
+  nextRun: Date;
 }
 
 interface TestIntervalJob {
@@ -65,22 +65,21 @@ export class TestSchedulerBackend implements SchedulerBackend {
     callback: SchedulerCallback,
     options: CronScheduleOptions = {},
   ): ScheduledJob {
-    const cron = new Cron(expression, {
-      paused: true,
-      ...(options.timezone ? { timezone: options.timezone } : {}),
-    });
     const entry: TestCronJob = {
       id: this.nextId++,
       expression,
       callback,
-      cron,
-      nextRun: cron.nextRun(this.currentTime),
+      timezone: options.timezone,
+      nextRun: nextCronOccurrence(
+        expression,
+        this.currentTime,
+        options.timezone,
+      ),
     };
     this.cronJobs.push(entry);
 
     return {
       stop: async (): Promise<void> => {
-        cron.stop();
         this.cronJobs = this.cronJobs.filter((job) => job.id !== entry.id);
         await this.drainCallbacks(entry.id);
       },
@@ -111,8 +110,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
   }
 
   validateCron(expression: string): void {
-    const job = new Cron(expression, { paused: true });
-    job.stop();
+    validateCronExpression(expression);
   }
 
   /** Return the current injected clock value. */
@@ -212,7 +210,6 @@ export class TestSchedulerBackend implements SchedulerBackend {
       throw new Error("Reset the injected Effect clock through TestClock");
     }
     assertValidDate(now);
-    for (const job of this.cronJobs) job.cron.stop();
     this.cronJobs = [];
     this.intervalJobs = [];
     this.nextId = 0;
@@ -267,7 +264,7 @@ export class TestSchedulerBackend implements SchedulerBackend {
   private nextDueTime(targetTime: Date): Date | null {
     let next: Date | null = null;
     for (const job of this.cronJobs) {
-      if (job.nextRun && job.nextRun <= targetTime) {
+      if (job.nextRun <= targetTime) {
         if (!next || job.nextRun < next) next = job.nextRun;
       }
     }
@@ -284,9 +281,9 @@ export class TestSchedulerBackend implements SchedulerBackend {
     const dueTimestamp = dueTime.getTime();
 
     for (const job of this.cronJobs) {
-      if (job.nextRun?.getTime() !== dueTimestamp) continue;
+      if (job.nextRun.getTime() !== dueTimestamp) continue;
       callbacks.push({ id: job.id, callback: job.callback });
-      job.nextRun = job.cron.nextRun(dueTime);
+      job.nextRun = nextCronOccurrence(job.expression, dueTime, job.timezone);
     }
     for (const job of this.intervalJobs) {
       if (job.nextRun.getTime() !== dueTimestamp) continue;

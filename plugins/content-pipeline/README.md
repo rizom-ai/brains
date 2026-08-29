@@ -34,6 +34,9 @@ const config = defineConfig({
 });
 ```
 
+Schedules use standard five-field cron syntax (`minute hour day month weekday`);
+seconds fields are not supported.
+
 ## Operator surfaces
 
 When Studio and content-pipeline are both installed, Studio automatically adds an
