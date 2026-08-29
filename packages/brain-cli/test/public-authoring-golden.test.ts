@@ -493,9 +493,11 @@ describe("public authoring 0.2 golden packages", () => {
 
 describe("public authoring 0.2 export ledger", () => {
   it("exposes only Studio-named workspace authoring contracts", () => {
-    const exports = exportedNames(
-      join(repositoryRoot, "packages/brain-cli/src/entries/services.ts"),
-    );
+    // The contract lives in the SDK; the brain-cli entry is a thin re-export,
+    // so read whichever file the ledger names as the source.
+    const entry = readLedger().entries["@rizom/brain/services"];
+    expect(entry).toBeDefined();
+    const exports = exportedNames(join(repositoryRoot, entry?.source ?? ""));
 
     expect(exports).toEqual(
       expect.arrayContaining([

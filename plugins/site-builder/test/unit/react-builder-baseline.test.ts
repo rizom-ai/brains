@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join, relative } from "path";
 import { createSilentLogger, normalizeRendererHtml } from "@brains/test-utils";
-import { Head, MarkdownContent } from "@brains/ui-library";
+import { Head, MarkdownContent } from "@rizom/brain-ui";
 import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import { Fragment, createElement as h, type ReactElement } from "react";

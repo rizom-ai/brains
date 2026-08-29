@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX } from "react";
 import { ContentListItem, type SeriesInfo } from "./ContentListItem";
 
 export interface ContentItem {

@@ -69,16 +69,12 @@
         "react": "^19.2.7",
       },
       "devDependencies": {
-        "@brains/content-formatters": "workspace:*",
         "@brains/eslint-config": "workspace:*",
-        "@brains/plugins": "workspace:*",
         "@brains/typescript-config": "workspace:*",
-        "@brains/utils": "workspace:*",
         "@types/bun": "^1.4.0",
         "@types/react": "^19.2.17",
         "bun-types": "^1.4.0",
         "eslint": "^10.5.0",
-        "preact": "^10.27.2",
         "typescript": "^7.0.2",
       },
     },
@@ -158,7 +154,6 @@
       "dependencies": {
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@rizom/brain-ui": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
         "react": "^19.2.7",
       },
@@ -859,7 +854,6 @@
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
-        "preact-render-to-string": "^6.7.0",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
       },
@@ -926,7 +920,7 @@
         "@brains/content-formatters": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
+        "@rizom/brain-ui": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1361,7 +1355,6 @@
         "@brains/site-engine": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
-        "preact-render-to-string": "^6.7.0",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
       },
@@ -3966,10 +3959,6 @@
     "postcss": ["postcss@8.5.26", "", { "dependencies": { "nanoid": "^3.3.17", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ=="],
 
     "postcss-selector-parser": ["postcss-selector-parser@6.0.10", "", { "dependencies": { "cssesc": "^3.0.0", "util-deprecate": "^1.0.2" } }, "sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w=="],
-
-    "preact": ["preact@10.29.8", "", { "peerDependencies": { "preact-render-to-string": ">=5" }, "optionalPeers": ["preact-render-to-string"] }, "sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q=="],
-
-    "preact-render-to-string": ["preact-render-to-string@6.7.0", "", { "peerDependencies": { "preact": ">=10 || >= 11.0.0-0" } }, "sha512-Z4WR8fmLMRpdYqJ9i7vrlXSsSrxVJydwrkEXHapexfARbWfGb7vGcnvNQnIzN0cXciMVOlz/XLoiMCi9gUsy9Q=="],
 
     "prelude-ls": ["prelude-ls@1.2.1", "", {}, "sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g=="],
 

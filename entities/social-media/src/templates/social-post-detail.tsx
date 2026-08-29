@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { formatDate } from "@brains/ui-library";
+import { formatDate } from "@rizom/brain-ui";
 import {
   Head,
   Breadcrumb,

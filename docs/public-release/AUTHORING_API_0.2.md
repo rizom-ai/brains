@@ -234,7 +234,7 @@ JSON and schema-backed content types:
 
 ## `@rizom/brain-ui`
 
-Preact components for site and dashboard templates. `preact` is a peer dependency. The package holds more components than it publishes; this list is the supported surface, and adding to it requires a named consumer.
+React components for site and dashboard templates. `react` and `react-dom` are peer dependencies. The package holds more components than it publishes; this list is the supported surface, and adding to it requires a named consumer.
 
 Components and helpers:
 
@@ -283,6 +283,7 @@ Components and helpers:
 - `WidgetTabs`
 - `WidgetTags`
 - `createWidgetInstanceId`
+- `cssVariables`
 - `formatDate`
 - `markdownToHtml`
 - `renderHighlightedText`
@@ -296,6 +297,7 @@ Types:
 - `BackLinkProps`
 - `BreadcrumbItem`
 - `BreadcrumbProps`
+- `CSSVariableProperties`
 - `CTASectionProps`
 - `CardImageProps`
 - `CardMetadataProps`

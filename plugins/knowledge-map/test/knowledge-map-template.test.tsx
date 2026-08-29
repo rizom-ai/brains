@@ -1,10 +1,10 @@
 /** @jsxImportSource react */
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { KnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
-import type { KnowledgeMapTemplateData } from "../../src/templates/knowledge-map-template";
-import { getKnowledgeMapTemplate } from "../../src/templates/knowledge-map-template";
-import { KnowledgeMapDataSource } from "../../src/datasources/knowledge-map-datasource";
+import { KnowledgeMapTemplate } from "../src/knowledge-map-template";
+import type { KnowledgeMapTemplateData } from "../src/knowledge-map-template";
+import { getKnowledgeMapTemplate } from "../src/knowledge-map-template";
+import { KnowledgeMapDataSource } from "../src/knowledge-map-datasource";
 
 /* The knowledge-map site template. The proof
    section — authored copy on the left, the live map on the right, honest
