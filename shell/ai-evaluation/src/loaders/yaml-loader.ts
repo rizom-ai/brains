@@ -1,6 +1,7 @@
 import { readdir, readFile } from "fs/promises";
 import { join, extname } from "path";
 import { parse } from "yaml";
+import { isErrnoException } from "@brains/utils/predicates";
 
 import type { ITestCaseLoader } from "../types";
 import type { TestCase } from "../schemas";
@@ -93,7 +94,7 @@ export class YAMLLoader implements ITestCaseLoader {
       }
     } catch (error) {
       // Directory might not exist yet
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      if (!isErrnoException(error) || error.code !== "ENOENT") {
         throw error;
       }
     }

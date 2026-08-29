@@ -4,6 +4,8 @@ import {
   type CapabilityBundleDefinition,
 } from "./bundle-definition";
 import type { PluginConfig } from "./brain-definition";
+import { clonePlainData } from "@brains/utils/clone";
+import { isPlainRecord } from "@brains/utils/predicates";
 
 export interface BundleSelectionInput {
   catalogIds: readonly string[];
@@ -44,29 +46,6 @@ interface ConfigLeafNode {
 }
 
 type ConfigNode = ConfigObjectNode | ConfigLeafNode;
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-
-  const prototype = Object.getPrototypeOf(value) as unknown;
-  return prototype === Object.prototype || prototype === null;
-}
-
-function cloneValue<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneValue(item)) as T;
-  }
-
-  if (isPlainRecord(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, cloneValue(item)]),
-    ) as T;
-  }
-
-  return value;
-}
 
 function valuesEqual(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true;
@@ -110,12 +89,12 @@ function configNode(value: unknown, source: string): ConfigNode {
   return {
     kind: "leaf",
     sources: new Set([source]),
-    value: cloneValue(value),
+    value: clonePlainData(value),
   };
 }
 
 function configNodeValue(node: ConfigNode): unknown {
-  if (node.kind === "leaf") return cloneValue(node.value);
+  if (node.kind === "leaf") return clonePlainData(node.value);
 
   return Object.fromEntries(
     [...node.children].map(([key, child]) => [key, configNodeValue(child)]),
@@ -441,7 +420,7 @@ export function resolveBundleSelection(
       .map(({ member, config, overrides }) => ({
         bundleId: definition.id,
         member,
-        config: cloneValue(config),
+        config: clonePlainData(config),
         ...(overrides ? { overrides } : {}),
       })),
   );

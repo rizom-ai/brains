@@ -24,6 +24,7 @@
   "exports": {
     "./array": "./src/array.ts",
     "./chunk-message": "./src/chunk-message.ts",
+    "./clone": "./src/clone.ts",
     "./date": "./src/date.ts",
     "./debounce": "./src/debounce.ts",
     "./effect": "./src/effect.ts",
@@ -38,6 +39,7 @@
     "./logger": "./src/logger.ts",
     "./markdown": "./src/markdown.ts",
     "./p-limit": "./src/p-limit.ts",
+    "./predicates": "./src/predicates.ts",
     "./progress": "./src/progress.ts",
     "./process-signals": "./src/process-signals.ts",
     "./query": "./src/query.ts",
