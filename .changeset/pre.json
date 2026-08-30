@@ -384,6 +384,7 @@
     "core--serialized-status-store",
     "core--shared-sqlite-column-annotations",
     "core--shell-wiring-dedup",
+    "core--site-build-status-hardening",
     "core--site-engine-ui-library-internal-dedup",
     "core--site-manifest-path-single-constant",
     "core--site-metadata-single-schema",

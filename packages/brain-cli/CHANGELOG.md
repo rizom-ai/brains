@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.339
+
+### Patch Changes
+
+- [#196](https://github.com/rizom-ai/brains/pull/196) [`997d4ac`](https://github.com/rizom-ai/brains/commit/997d4acba2b44a59a9f135f8cc1a01769aa26c1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden site build status against lost writes: reconcile from the queue's recent jobs even when no lifecycle write ever landed, restore in-flight builds to the projection, clear active entries for jobs the queue no longer knows, report the published generation from one shared schema, and derive dashboard state, detail, and tone from a single precedence walk so retained failures can never masquerade as the current attempt.
+
 ## 0.2.0-alpha.338
 
 ### Patch Changes

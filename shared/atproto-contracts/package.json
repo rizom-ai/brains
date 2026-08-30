@@ -1,7 +1,7 @@
 {
   "name": "@brains/atproto-contracts",
   "license": "Apache-2.0",
-  "version": "0.2.0-alpha.338",
+  "version": "0.2.0-alpha.339",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
