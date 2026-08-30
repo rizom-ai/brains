@@ -17,6 +17,7 @@ import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { type LinkEntity, linkSchema, type LinkSource } from "./schemas/link";
 import { slugify } from "@brains/utils/string-utils";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import {
   linkConfigSchema,
@@ -110,8 +111,9 @@ export class LinkPlugin extends EntityPlugin<
     if (input.content) {
       try {
         const parsed = this.adapter.fromMarkdown(input.content);
-        const parsedMetadata = parsed.metadata as
-          Record<string, unknown> | undefined;
+        const parsedMetadata = isPlainRecord(parsed.metadata)
+          ? parsed.metadata
+          : undefined;
         const parsedTitle =
           typeof parsedMetadata?.["title"] === "string"
             ? parsedMetadata["title"]

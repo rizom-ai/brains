@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { readString } from "@brains/utils/record-fields";
 // Remove ContentGenerationRequest import - we'll define our own schema
 import { Logger } from "@brains/utils/logger";
 import type { ContentService, GenerationContext } from "../types";
@@ -115,9 +116,8 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
 
       // Save the generated content as an entity if entityId and entityType are provided
       if (data.entityId && data.entityType) {
-        const routeId = data.context.data?.["routeId"] as string | undefined;
-        const sectionId = data.context.data?.["sectionId"] as
-          string | undefined;
+        const routeId = readString(data.context.data, "routeId");
+        const sectionId = readString(data.context.data, "sectionId");
 
         // Only save if we have the required metadata
         if (routeId && sectionId) {

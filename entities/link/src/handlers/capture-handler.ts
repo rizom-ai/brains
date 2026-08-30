@@ -8,6 +8,7 @@ import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
 import type { LinkSource, LinkStatus } from "../schemas/link";
+import { readLinkStatus } from "../schemas/link";
 import type { LinkExtractionResult } from "../templates/extraction-template";
 
 /**
@@ -124,7 +125,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         const { frontmatter } = this.linkAdapter.parseLinkContent(
           existingEntity.content,
         );
-        const status = existingEntity.metadata["status"] as LinkStatus;
+        const status = readLinkStatus(existingEntity.metadata);
 
         if (status !== "pending") {
           this.logger.info("Link already captured, returning existing", {

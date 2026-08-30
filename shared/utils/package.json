@@ -44,6 +44,7 @@
     "./parse-schema": "./src/parse-schema.ts",
     "./predicates": "./src/predicates.ts",
     "./progress": "./src/progress.ts",
+    "./record-fields": "./src/record-fields.ts",
     "./process-signals": "./src/process-signals.ts",
     "./query": "./src/query.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",

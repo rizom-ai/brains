@@ -6,6 +6,7 @@ import {
 } from "@brains/plugins";
 import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { readString } from "@brains/utils/record-fields";
 import type { Logger } from "@brains/utils/logger";
 import { truncateText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
@@ -208,14 +209,10 @@ export class NewsletterDataSource extends BaseEntityDataSource<
             id: entityId,
           });
           if (entity) {
-            const metadata = entity.metadata as {
-              title?: string;
-              slug?: string;
-            };
             return {
               id: entityId,
-              title: metadata.title ?? entityId,
-              url: `/${entityType}s/${metadata.slug ?? entityId}`,
+              title: readString(entity.metadata, "title") ?? entityId,
+              url: `/${entityType}s/${readString(entity.metadata, "slug") ?? entityId}`,
             };
           }
           return null;

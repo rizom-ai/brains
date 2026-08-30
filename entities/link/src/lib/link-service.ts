@@ -4,6 +4,7 @@ import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
 import { UrlFetcher } from "./url-fetcher";
 import type { LinkSource, LinkStatus } from "../schemas/link";
+import { readLinkStatus } from "../schemas/link";
 import type { LinkExtractionResult } from "../templates/extraction-template";
 
 /**
@@ -127,7 +128,7 @@ export class LinkService {
         entityId: existingEntity.id,
         title: frontmatter.title,
         url,
-        status: existingEntity.metadata["status"] as LinkStatus,
+        status: readLinkStatus(existingEntity.metadata),
       };
     }
 
@@ -355,7 +356,7 @@ export class LinkService {
       ...(summary && { summary }),
       domain: frontmatter.domain,
       capturedAt: frontmatter.capturedAt,
-      status: entity.metadata["status"] as LinkStatus,
+      status: readLinkStatus(entity.metadata),
     };
   }
 }
