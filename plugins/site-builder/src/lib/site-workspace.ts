@@ -12,8 +12,13 @@ import { z } from "@brains/utils/zod";
 import type { SiteBuilderConfig } from "../config";
 import type {
   SiteBuildEnvironment,
+  SiteBuildEnvironmentStatus,
   SiteBuildStatusService,
 } from "./site-build-status";
+import {
+  readSitePublicationStatus,
+  type SitePublicationStatus,
+} from "./site-publication-status";
 import { resolveSiteMetadata } from "./site-metadata";
 
 export type SiteWorkspaceAction =
@@ -39,9 +44,9 @@ export interface SiteWorkspaceSnapshot {
     debounceMs: number;
     defaultEnvironment: SiteBuildEnvironment;
   };
-  environments: Awaited<
-    ReturnType<SiteBuildStatusService["getSnapshot"]>
-  >["environments"];
+  environments: Array<
+    SiteBuildEnvironmentStatus & { publication: SitePublicationStatus }
+  >;
   recentBuilds: Awaited<
     ReturnType<SiteBuildStatusService["getSnapshot"]>
   >["recentBuilds"];
@@ -54,8 +59,20 @@ const activeBuildSchema = z.object({
   requestedAt: z.string().datetime(),
   startedAt: z.string().datetime().optional(),
 });
+const publicationSchema = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("not-published") }),
+  z.object({
+    state: z.literal("published"),
+    buildId: z.string(),
+    publishedAt: z.string().datetime(),
+    routesBuilt: z.number().int().nonnegative(),
+    warnings: z.array(z.string()),
+  }),
+  z.object({ state: z.literal("unreadable"), message: z.string() }),
+]);
 const buildEnvironmentSchema = z.object({
   environment: z.enum(["preview", "production"]),
+  publication: publicationSchema,
   active: activeBuildSchema.optional(),
   lastSuccess: z
     .object({
@@ -83,7 +100,7 @@ const buildEnvironmentSchema = z.object({
 const recentBuildSchema = z.object({
   jobId: z.string(),
   environment: z.enum(["preview", "production"]),
-  outcome: z.enum(["succeeded", "failed", "cancelled"]),
+  outcome: z.enum(["succeeded", "failed", "cancelled", "skipped"]),
   completedAt: z.string().datetime(),
   routesBuilt: z.number().int().nonnegative().optional(),
   warnings: z.array(z.string()).optional(),
@@ -147,7 +164,9 @@ function environmentStatus(
   environment: SiteWorkspaceSnapshot["environments"][number],
 ): "idle" | "active" | "complete" | "failed" {
   if (environment.active) return "active";
+  if (environment.publication.state === "unreadable") return "failed";
   if (environment.lastFailure) return "failed";
+  if (environment.publication.state === "published") return "complete";
   if (environment.lastSuccess) return "complete";
   return "idle";
 }
@@ -169,31 +188,62 @@ function environmentCard(
   environment: SiteWorkspaceSnapshot["environments"][number],
 ): SiteCardBlock {
   const isPreview = environment.environment === "preview";
+  const publication = environment.publication;
+  const publicationFacts =
+    publication.state === "published"
+      ? [
+          { label: "Published generation", value: publication.buildId },
+          { label: "Published at", value: publication.publishedAt },
+          {
+            label: "Published result",
+            value: `${publication.routesBuilt} routes`,
+          },
+        ]
+      : [
+          {
+            label: "Published generation",
+            value:
+              publication.state === "unreadable"
+                ? publication.message
+                : "not published",
+          },
+        ];
   return {
     type: "card",
     id: `site-${environment.environment}-card`,
     label: isPreview ? "Preview" : "Live",
-    tone: environment.lastFailure
-      ? "warn"
-      : environment.lastSuccess
-        ? "good"
-        : "neutral",
+    tone: environment.active
+      ? "neutral"
+      : environment.lastFailure
+        ? "warn"
+        : environment.lastSuccess
+          ? "good"
+          : "neutral",
     blocks: [
       {
         type: "key-values",
         id: `${environment.environment}-facts`,
         items: [
           { label: "State", value: environmentStatus(environment) },
+          ...publicationFacts,
           {
-            label: "Last build",
+            label: "Last successful render",
             value: environment.lastSuccess?.completedAt ?? "—",
           },
           {
-            label: "Result",
+            label: "Rendered result",
             value: environment.lastSuccess
-              ? `${environment.lastSuccess.routesBuilt} routes`
-              : "no successful build",
+              ? `${environment.lastSuccess.routesBuilt} routes · ${environment.lastSuccess.jobId}`
+              : "no successful render",
           },
+          ...(environment.lastFailure
+            ? [
+                {
+                  label: "Previous failed attempt",
+                  value: `${environment.lastFailure.completedAt} · ${environment.lastFailure.jobId}`,
+                },
+              ]
+            : []),
         ],
       },
       {
@@ -430,10 +480,13 @@ export class SiteWorkspaceProvider {
 
   async getSnapshot(): Promise<SiteWorkspaceSnapshot> {
     const { context, config, routeRegistry, statusService } = this.options;
-    const [metadata, status] = await Promise.all([
-      resolveSiteMetadata(context.messaging.send, config.siteInfo),
-      statusService.getSnapshot(),
-    ]);
+    const [metadata, status, previewPublication, productionPublication] =
+      await Promise.all([
+        resolveSiteMetadata(context.messaging.send, config.siteInfo),
+        statusService.getSnapshot(),
+        readSitePublicationStatus(config.previewOutputDir, "preview"),
+        readSitePublicationStatus(config.productionOutputDir, "production"),
+      ]);
     return siteWorkspaceDataSchema.parse({
       site: {
         title: metadata.title,
@@ -445,7 +498,13 @@ export class SiteWorkspaceProvider {
         debounceMs: config.rebuildDebounce,
         defaultEnvironment: config.previewOutputDir ? "preview" : "production",
       },
-      environments: status.environments,
+      environments: status.environments.map((environment) => ({
+        ...environment,
+        publication:
+          environment.environment === "preview"
+            ? previewPublication
+            : productionPublication,
+      })),
       recentBuilds: status.recentBuilds,
       routes: routeRegistry.list().map((route) => ({
         id: route.id,

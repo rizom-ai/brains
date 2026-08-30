@@ -22,7 +22,11 @@ import type { SiteBuildStatusService } from "../lib/site-build-status";
  */
 export type BuildStatusRecorder = Pick<
   SiteBuildStatusService,
-  "markBuilding" | "markSuccess" | "markCancelled" | "markFailure"
+  | "markBuilding"
+  | "markSuccess"
+  | "markSkipped"
+  | "markCancelled"
+  | "markFailure"
 >;
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -156,7 +160,17 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         buildProgressReporter.toCallback(),
       );
 
-      if (result.success) {
+      if (result.success && result.skipped) {
+        await this.recordStatus(
+          () =>
+            this.cfg.statusService?.markSkipped(
+              environment,
+              jobId,
+              result.routesBuilt,
+            ),
+          "skipped",
+        );
+      } else if (result.success) {
         await this.recordStatus(
           () =>
             this.cfg.statusService?.markSuccess(
@@ -206,8 +220,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         cancelled: result.cancelled ?? false,
       });
 
-      // Emit site:build:completed event for other plugins to hook into
-      if (result.success) {
+      // A skipped build publishes nothing, so completion hooks must not run.
+      if (result.success && !result.skipped) {
         this.logger.info(
           `Emitting site:build:completed event for ${environment} environment`,
         );

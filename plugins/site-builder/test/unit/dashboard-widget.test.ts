@@ -48,6 +48,69 @@ describe("SiteHealthWidget", () => {
     expect(html).not.toContain("Update live site");
   });
 
+  it("shows the generation selected by the active published output", () => {
+    const html = render(
+      h(SiteHealthWidget, {
+        title: "Site health",
+        data: {
+          ...siteHealth,
+          environments: [
+            {
+              environment: "production",
+              publication: {
+                state: "published",
+                buildId: "generation-837",
+                publishedAt: "2026-08-30T15:15:18.000Z",
+                routesBuilt: 46,
+                warnings: [],
+              },
+              lastSuccess: {
+                completedAt: "2026-08-26T14:43:49.345Z",
+                routesBuilt: 46,
+                warnings: [],
+              },
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(html).toContain("generation-837");
+    expect(html).toContain("46 published routes");
+    expect(html).toContain("2026-08-30T15:15:18.000Z");
+  });
+
+  it("does not present a previous failure as the detail for a queued retry", () => {
+    const html = render(
+      h(SiteHealthWidget, {
+        title: "Site health",
+        data: {
+          ...siteHealth,
+          environments: [
+            {
+              environment: "production",
+              active: {
+                jobId: "job-retry",
+                state: "queued",
+                requestedAt: "2026-07-16T10:00:00.000Z",
+              },
+              lastFailure: {
+                jobId: "job-failed",
+                completedAt: "2026-07-16T09:00:00.000Z",
+                message: "Template failed",
+              },
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(html).toContain("queued · job-retry");
+    expect(html).toContain("Previous build failures");
+    expect(html).toContain("job-failed");
+    expect(html).not.toContain('<small class="muted">Template failed</small>');
+  });
+
   it("distinguishes cancellation from a build failure", () => {
     const html = render(
       h(SiteHealthWidget, {

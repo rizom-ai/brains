@@ -225,6 +225,7 @@ describe("SiteBuildJobHandler", () => {
     const statusService: BuildStatusRecorder = {
       markBuilding: mock(async () => undefined),
       markSuccess: mock(async () => undefined),
+      markSkipped: mock(async () => undefined),
       markFailure: mock(async () => undefined),
       markCancelled,
     };
@@ -271,5 +272,53 @@ describe("SiteBuildJobHandler", () => {
     expect(
       _sentMessages.some((message) => message.type === "site:build:completed"),
     ).toBe(false);
+  });
+
+  it("records unchanged inputs as skipped instead of successful", async () => {
+    const markSuccess = mock(async () => undefined);
+    const markSkipped = mock(async () => undefined);
+    const statusService: BuildStatusRecorder = {
+      markBuilding: mock(async () => undefined),
+      markSuccess,
+      markSkipped,
+      markFailure: mock(async () => undefined),
+      markCancelled: mock(async () => undefined),
+    };
+    const unchangedBuilder: ISiteBuilder = {
+      build: mock(async () => ({
+        success: true,
+        skipped: true,
+        outputDir: "/tmp/output",
+        filesGenerated: 10,
+        routesBuilt: 10,
+      })),
+    };
+    const { sendMessage } = createMockMessageSender();
+    const unchangedHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder: unchangedBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+        statusService,
+      },
+    );
+    const progressReporter = ProgressReporter.from(async () => {});
+    if (!progressReporter) throw new Error("Expected progress reporter");
+
+    const result = await unchangedHandler.process(
+      { outputDir: "/tmp/output", environment: "production" },
+      "job-skipped",
+      progressReporter,
+    );
+
+    expect(result).toMatchObject({ success: true, skipped: true });
+    expect(markSkipped).toHaveBeenCalledWith("production", "job-skipped", 10);
+    expect(markSuccess).not.toHaveBeenCalled();
   });
 });

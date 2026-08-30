@@ -45,7 +45,7 @@ export interface SiteBuildEnvironmentStatus {
 export interface RecentSiteBuild {
   jobId: string;
   environment: SiteBuildEnvironment;
-  outcome: "succeeded" | "failed" | "cancelled";
+  outcome: "succeeded" | "failed" | "cancelled" | "skipped";
   completedAt: string;
   routesBuilt?: number | undefined;
   warnings?: string[] | undefined;
@@ -99,7 +99,7 @@ const environmentStatusSchema = z.object({
 const recentSiteBuildSchema = z.object({
   jobId: z.string(),
   environment: z.enum(["preview", "production"]),
-  outcome: z.enum(["succeeded", "failed", "cancelled"]),
+  outcome: z.enum(["succeeded", "failed", "cancelled", "skipped"]),
   completedAt: z.string().datetime(),
   routesBuilt: z.number().int().nonnegative().optional(),
   warnings: z.array(z.string()).optional(),
@@ -115,6 +115,7 @@ const storedSiteBuildStatusSchema: z.ZodType<StoredSiteBuildStatus> = z.object({
 const terminalJobResultSchema = z.object({
   success: z.boolean(),
   cancelled: z.boolean().optional(),
+  skipped: z.boolean().optional(),
   routesBuilt: z.number().int().nonnegative(),
   warnings: z.array(z.string()).optional(),
   errors: z.array(z.string()).optional(),
@@ -139,7 +140,7 @@ export class SiteBuildStatusService {
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
-    jobs: ServicePluginContext["jobs"],
+    jobs: Pick<ServicePluginContext["jobs"], "getStatus">,
   ) {
     this.store = new SerializedStatusStore({
       runtimeState,
@@ -154,23 +155,26 @@ export class SiteBuildStatusService {
   async initialize(): Promise<void> {
     // Reconciling against the job queue is a read-modify-write like any other,
     // so it runs inside the queue rather than racing mutations alongside it.
-    await this.store.mutate((state) => this.reconcile(state));
+    await this.store.mutate((state) => this.reconcile(state, true));
   }
 
-  private async reconcile(state: StoredSiteBuildStatus): Promise<void> {
+  private async reconcile(
+    state: StoredSiteBuildStatus,
+    clearUnrecoverableDebounce: boolean = false,
+  ): Promise<void> {
     const environments: SiteBuildEnvironment[] = ["preview", "production"];
     for (const environment of environments) {
       const current = state[environment];
       const active = current.active;
       if (!active) continue;
       if (!active.jobId) {
-        delete current.active;
+        if (clearUnrecoverableDebounce) delete current.active;
         continue;
       }
 
       const job = await this.jobs.getStatus(active.jobId);
       if (!job) {
-        delete current.active;
+        if (clearUnrecoverableDebounce) delete current.active;
         continue;
       }
 
@@ -211,6 +215,14 @@ export class SiteBuildStatusService {
           active.jobId,
           completedAt,
           result.data.errors?.join("; ") ?? "Site build cancelled",
+        );
+      } else if (result.success && result.data.success && result.data.skipped) {
+        this.applySkipped(
+          state,
+          environment,
+          active.jobId,
+          completedAt,
+          result.data.routesBuilt,
         );
       } else if (result.success && result.data.success) {
         this.applySuccess(
@@ -296,6 +308,17 @@ export class SiteBuildStatusService {
     });
   }
 
+  markSkipped(
+    environment: SiteBuildEnvironment,
+    jobId: string,
+    routesBuilt: number,
+    completedAt: string = new Date().toISOString(),
+  ): Promise<void> {
+    return this.mutate((state: StoredSiteBuildStatus) => {
+      this.applySkipped(state, environment, jobId, completedAt, routesBuilt);
+    });
+  }
+
   markCancelled(
     environment: SiteBuildEnvironment,
     jobId: string,
@@ -325,6 +348,7 @@ export class SiteBuildStatusService {
   }
 
   async getSnapshot(): Promise<SiteBuildStatusSnapshot> {
+    await this.store.mutate((state) => this.reconcile(state));
     const state = await this.store.snapshot();
     return {
       environments: [
@@ -366,6 +390,24 @@ export class SiteBuildStatusService {
       completedAt,
       routesBuilt,
       warnings,
+    });
+  }
+
+  private applySkipped(
+    state: StoredSiteBuildStatus,
+    environment: SiteBuildEnvironment,
+    jobId: string,
+    completedAt: string,
+    routesBuilt: number,
+  ): void {
+    this.clearMatchingActive(state, environment, jobId);
+    this.prependRecent(state, {
+      jobId,
+      environment,
+      outcome: "skipped",
+      completedAt,
+      routesBuilt,
+      message: "Site inputs were unchanged; no render was published",
     });
   }
 
