@@ -84,7 +84,6 @@ export type {
   CapabilityContext,
   PluginFactory,
   InterfaceEntry,
-  InterfaceConstructor,
 } from "./brain-definition";
 export type {
   BundleConfigContribution,

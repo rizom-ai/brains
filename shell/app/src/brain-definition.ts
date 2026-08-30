@@ -64,27 +64,19 @@ export type CapabilityEntry = [
 ];
 
 /**
- * An interface entry is an [id, constructor, envMapper] tuple.
+ * An interface entry is an [id, factory, envMapper] tuple.
  * The id is used for disable checks and override matching in brain.yaml.
- * The envMapper receives the deployment environment and returns the interface config,
- * or null to skip this interface (e.g. when credentials are missing).
- * The constructor is called with `new` to create a fresh interface instance.
- */
-export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
-
-/**
- * A declared interface, which has no constructor to call.
+ * The envMapper receives the deployment environment and returns the interface
+ * config, or null to skip this interface (e.g. when credentials are missing).
  *
- * Wrapped rather than passed bare so the resolver can tell the two apart
- * without guessing whether a function is a class.
+ * The factory is the same shape a capability uses. An interface used to be a
+ * constructor called with `new`, which a declared package cannot satisfy — it
+ * is a definition, not a class. Rather than teach the resolver to tell a class
+ * from a declaration, both sides hand it a function: `(config) => plugins`.
  */
-export interface DeclaredInterface {
-  readonly declared: PluginFactory;
-}
-
 export type InterfaceEntry = [
   id: string,
-  source: InterfaceConstructor | DeclaredInterface,
+  factory: PluginFactory,
   envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];
 

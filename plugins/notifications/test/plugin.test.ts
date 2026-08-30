@@ -4,11 +4,8 @@ import type {
   ChannelDeliveryInput,
   ChannelDeliveryResult,
 } from "@brains/plugins";
-import {
-  NOTIFICATIONS_SEND,
-  NotificationsPlugin,
-  type SendNotificationResult,
-} from "../src";
+import { NOTIFICATIONS_SEND, type SendNotificationResult } from "../src";
+import { notificationsPlugin } from "./helpers/install";
 
 /**
  * Registers an email transport the way a message interface would, so the
@@ -16,7 +13,7 @@ import {
  * message channel.
  */
 function installEmailProvider(
-  harness: ReturnType<typeof createPluginHarness<NotificationsPlugin>>,
+  harness: ReturnType<typeof createPluginHarness>,
   send: (input: ChannelDeliveryInput) => Promise<ChannelDeliveryResult>,
 ): ChannelDeliveryInput[] {
   const sent: ChannelDeliveryInput[] = [];
@@ -39,10 +36,10 @@ function installEmailProvider(
   return sent;
 }
 
-describe("NotificationsPlugin", () => {
+describe("notifications service", () => {
   it("stays channel-agnostic and registers no channel metadata", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
-    await harness.installPlugin(new NotificationsPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     expect(
@@ -54,13 +51,13 @@ describe("NotificationsPlugin", () => {
   });
 
   it("delivers through the transport registered for the recipient's channel", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     const sent = installEmailProvider(harness, async () => ({
       status: "sent",
       providerDeliveryId: "email_123",
     }));
 
-    await harness.installPlugin(new NotificationsPlugin());
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const result = await harness.sendMessage<unknown, SendNotificationResult>(
@@ -87,13 +84,13 @@ describe("NotificationsPlugin", () => {
   });
 
   it("uses the configured default recipient when the message omits one", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     const sent = installEmailProvider(harness, async () => ({
       status: "sent",
     }));
 
     await harness.installPlugin(
-      new NotificationsPlugin({
+      notificationsPlugin({
         defaultRecipient: { type: "email", address: "operator@example.com" },
       }),
     );
@@ -109,14 +106,14 @@ describe("NotificationsPlugin", () => {
   });
 
   it("gives each notification its own idempotency key when none is supplied", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
+    const harness = createPluginHarness();
     let delivery = 0;
     const sent = installEmailProvider(harness, async () => {
       delivery += 1;
       return { status: "sent", providerDeliveryId: `email_${delivery}` };
     });
 
-    await harness.installPlugin(new NotificationsPlugin());
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const payload = {
@@ -143,8 +140,8 @@ describe("NotificationsPlugin", () => {
   });
 
   it("reports failure when no transport is registered for the recipient", async () => {
-    const harness = createPluginHarness<NotificationsPlugin>();
-    await harness.installPlugin(new NotificationsPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(notificationsPlugin());
     await harness.finalizeRegistration();
 
     const response = await harness.sendMessage<unknown, SendNotificationResult>(
@@ -164,11 +161,10 @@ describe("empty recipient env interpolation", () => {
   // Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; the
   // plugin must boot without a default recipient rather than being skipped.
   it("boots with an empty default recipient address", () => {
-    expect(
-      () =>
-        new NotificationsPlugin({
-          defaultRecipient: { type: "email", address: "" },
-        }),
+    expect(() =>
+      notificationsPlugin({
+        defaultRecipient: { type: "email", address: "" },
+      }),
     ).not.toThrow();
   });
 });

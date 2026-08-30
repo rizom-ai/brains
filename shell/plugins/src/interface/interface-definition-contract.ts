@@ -202,27 +202,14 @@ export interface MessageChannelDefinition<
   readonly recipient: TRecipientSchema;
 }
 
-/**
- * A request this interface answers on the message bus.
- *
- * An interface that delivered a message is the only thing that can fetch it
- * back, so something has to be able to ask. The payload schema is the
- * boundary: the runtime validates before the handler runs, and a malformed
- * request is refused rather than reaching it. Named consumer: @brains/email,
- * which answers EMAIL_SOURCE_READ.
- */
-export interface MessageSubscriptionDefinition<
-  TPayloadSchema extends InterfaceSchema = InterfaceSchema,
-> {
-  readonly topic: string;
-  readonly payload: TPayloadSchema;
-  handle(context: {
-    readonly payload: z.output<TPayloadSchema>;
-  }): unknown | Promise<unknown>;
-}
+// A subscription is not an interface concept — a service answers requests on
+// the bus too — so it lives in contracts/ and both families name it there.
+import type { AnySubscriptionDefinition } from "../contracts/subscription";
 
-export type AnyMessageSubscriptionDefinition =
-  MessageSubscriptionDefinition<InterfaceSchema>;
+export type {
+  AnySubscriptionDefinition,
+  SubscriptionDefinition,
+} from "../contracts/subscription";
 
 /** The narrow publish surface an interface gets, not the whole bus. */
 export interface MessageInterfacePublisher {
@@ -360,7 +347,7 @@ export interface MessageInterfaceDefinitionInput<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
-      }) => readonly AnyMessageSubscriptionDefinition[])
+      }) => readonly AnySubscriptionDefinition[])
     | undefined;
   readonly daemons?:
     | ((context: {

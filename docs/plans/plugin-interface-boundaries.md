@@ -2,17 +2,25 @@
 
 ## Status
 
-Phase 1 done. Counts re-measured against the tree after the rebase onto
-`origin/main`; the first draft said 29 packages, which was wrong when written
-(28) and is now 30 — main added `plugins/email-triage` and `plugins/studio`.
+Phases 1, 2 and 3 done; **2 of 28 packages converted** (`@brains/email`,
+`@brains/notifications`).
+
+The count has been wrong three times, each time because it was taken from
+directories on disk. It is **28 tracked `package.json` files** under
+`plugins/` (21) and `interfaces/` (7) — `git ls-files 'plugins/*/package.json'
+'interfaces/*/package.json'`. The earlier 29 and 30 counted `plugins/cms`,
+which holds nothing but a stale `dist/`, and `plugins/email-triage`, an empty
+directory; both are untracked leftovers of main's CMS-to-Studio rename, with
+no manifest and nothing referencing them. Count manifests, not folders.
 
 The entity tranche is finished: 18 of 18 entity packages import only
 `@brains/sdk` plus shared publishable libraries. That work scoped to
 `entities/` and said so. It left the other two families untouched, and they
 are the larger half.
 
-**30 packages under `plugins/` and `interfaces/`. None are clean.** Not one
-depends on `@brains/sdk`, and not one uses a declarative definition.
+**28 packages under `plugins/` and `interfaces/`; 1 is clean.** `@brains/email`
+depends on `@brains/sdk` and declares itself; the other 27 still import
+`@brains/plugins` in `src`.
 
 | reaches for                                                          | packages |
 | -------------------------------------------------------------------- | -------- |
@@ -181,10 +189,37 @@ made the entity tranche find real defects rather than move code.
    explicit type arguments. The contract now says so on `setup`, since the
    failure names the wrong culprit: it points at the slots, not the ordering.
 
-3. **Convert one service plugin.** Likewise the smallest — `analytics`,
-   `notifications`, `profile` or `onboarding` — as the first `plugins/`
-   conversion, establishing what a service plugin needs that an entity
-   package did not.
+3. **Convert one service plugin.** _Done: `@brains/notifications`._ One file,
+   104 lines, whose entire job is answering one request on the bus — and it
+   took nothing from `@brains/plugins` but the base class.
+
+   It needed three things a service could not say:
+
+   - **`subscriptions`.** Reactions cover checks, inbox actions and tools;
+     none of them is a request arriving on a topic. This is the same slot
+     message interfaces needed, so the definition moved to
+     `contracts/subscription.ts` and `defineSubscription` now serves both —
+     abstracted at two consumers rather than three.
+   - **`channels` and `logger` in `setup`.** A service that routes an alert
+     resolves a transport by the recipient's channel type. It reads only: a
+     narrow `ServiceChannelReader`, not the registry, because registering a
+     descriptor belongs to the interface that owns the channel.
+   - **Failure semantics.** The first cut wrapped every handler return as a
+     success, so a refusal arrived as `{success: true, data: {success: false}}`.
+     A handler that cannot answer now throws, and the runtime reports a failed
+     response — in both families.
+
+   **Composition was collapsed to one adapter in the same change**, while only
+   two packages were converted and the blast radius was small. Phase 2 had
+   added `declaredInterface` beside `packageCapability` because `InterfaceEntry`
+   demanded a constructor, which a declaration cannot satisfy. That was two
+   adapters for two lists differing only historically. Both now take the same
+   `PluginFactory`: class-based interfaces are wrapped at their call site
+   (`(config) => new MCPInterface(config)`), `InterfaceConstructor` and
+   `DeclaredInterface` are deleted, and one `packageFactory` binds metadata and
+   instantiates for either list. The remaining split between `plugins:` and
+   `interfaces:` is only the third tuple slot — a capability config versus an
+   env mapper that may return null to skip.
 
 4. **Auth-service as a capability.** The seven consumers named, one slice
    designed against all seven rather than the first one encountered.

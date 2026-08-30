@@ -1,4 +1,5 @@
 import { createExternalActorId } from "@brains/contracts";
+import { getErrorMessage } from "@brains/utils/error";
 import type { ChatAttachment } from "../contracts/agent";
 import type {
   ChannelDeliveryInput,
@@ -221,10 +222,16 @@ class DeclarativeMessageInterfacePlugin<
             error: `Message interface "${this.definition.id}" rejected a malformed "${subscription.topic}" request`,
           };
         }
-        return {
-          success: true,
-          data: await subscription.handle({ payload: payload.data }),
-        };
+        try {
+          return {
+            success: true,
+            data: await subscription.handle({ payload: payload.data }),
+          };
+        } catch (error) {
+          // A handler that cannot answer says so by throwing; the caller sees
+          // a failed response rather than a successful one wrapping a refusal.
+          return { success: false, error: getErrorMessage(error) };
+        }
       });
     }
 

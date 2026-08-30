@@ -106,6 +106,7 @@ Definitions and schema vocabulary:
 - `defineEntityCatalog`
 - `defineJob`
 - `defineServicePlugin`
+- `defineSubscription`
 - `defineTool`
 - `defineWorkspaceAction`
 - `z`

@@ -1,6 +1,18 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
+import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import type { ChannelDeliveryProvider } from "../channel-registry";
+
+/**
+ * Looking up a transport, not the registry that holds them.
+ *
+ * A service asks "what delivers to this channel type"; registering a
+ * descriptor or a provider belongs to the interface that owns the channel.
+ */
+export interface ServiceChannelReader {
+  getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
+}
 import type { z } from "@brains/utils/zod";
 import type {
   AnyEntityDefinition,
@@ -370,11 +382,42 @@ interface ServiceDefinitionCore<
         readonly template: (localName: string) => string;
       }) => readonly ProjectionRule[])
     | undefined;
+  /**
+   * What the service holds while it runs, built once at registration.
+   *
+   * **Write this before any slot that destructures `state`.** The state type
+   * is inferred from what `setup` returns, and a destructured parameter above
+   * it resolves its context while that type is still unknown — which silently
+   * fixes `state` to an empty object rather than failing.
+   */
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly lifecycle: ServiceLifecycle;
+        /**
+         * Finding the transport that serves a channel type.
+         *
+         * A service that routes an alert does not name a transport — a new one
+         * becomes reachable by registering a delivery provider, not by
+         * changing the router. Named consumer: @brains/notifications.
+         */
+        readonly channels: ServiceChannelReader;
+        readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
+    | undefined;
+  /**
+   * Requests this service answers on the message bus.
+   *
+   * Jobs, tools and checks are all things the runtime asks for. A request
+   * arriving on a topic is not one of them, and until now a service had to
+   * reach past its context for `messaging.subscribe` to answer one.
+   * Named consumer: @brains/notifications.
+   */
+  readonly subscriptions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly AnySubscriptionDefinition[])
     | undefined;
   readonly instructions?:
     | ((context: {

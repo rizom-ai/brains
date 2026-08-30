@@ -281,8 +281,49 @@ class DeclarativeServicePlugin<
               this.cleanups.push(cleanup);
             },
           },
+          // Reading only: a service finds the transport for a channel type,
+          // it does not register descriptors or providers.
+          channels: {
+            getDeliveryProvider: (channelType) =>
+              context.channels.getDeliveryProvider(channelType),
+          },
+          logger: this.logger,
         })
       : (Object.freeze({}) as TState);
+
+    const subscriptions =
+      this.definition.subscriptions?.({
+        config: this.config,
+        state: this.state,
+      }) ?? [];
+    const topics = new Set<string>();
+    for (const subscription of subscriptions) {
+      if (topics.has(subscription.topic)) {
+        throw new Error(
+          `Service "${this.definition.id}" subscribes to "${subscription.topic}" more than once`,
+        );
+      }
+      topics.add(subscription.topic);
+      context.messaging.subscribe(subscription.topic, async (message) => {
+        const payload = subscription.payload.safeParse(message.payload);
+        if (!payload.success) {
+          return {
+            success: false,
+            error: `Service "${this.definition.id}" rejected a malformed "${subscription.topic}" request`,
+          };
+        }
+        try {
+          return {
+            success: true,
+            data: await subscription.handle({ payload: payload.data }),
+          };
+        } catch (error) {
+          // A handler that cannot answer says so by throwing; the caller sees
+          // a failed response rather than a successful one wrapping a refusal.
+          return { success: false, error: getErrorMessage(error) };
+        }
+      });
+    }
 
     const templates = this.templateFormatter();
     context.templates.register(this.runtimeTemplates(), this.id);

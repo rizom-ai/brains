@@ -10,13 +10,16 @@ import type {
   InterfaceRouteInput,
   InterfaceSchema,
   MessageInterfaceDefinitionInput,
-  MessageSubscriptionDefinition,
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   RouteMethod,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
 import { createDeclarativeMessageInterfacePlugin } from "../message-interface/declarative-message-interface-plugin";
+import type {
+  SubscriptionDefinition,
+  SubscriptionPayloadSchema,
+} from "../contracts/subscription";
 import {
   assertIdentifier,
   createPluginPackageDefinition,
@@ -67,14 +70,17 @@ export function protocol(
 }
 
 /**
- * A request this interface answers, with its payload schema.
+ * A request a package answers on the bus, with its payload schema.
  *
  * Written as a helper rather than a bare object so `handle` sees the parsed
- * payload typed, the same way `defineRoute` types a body.
+ * payload typed, the same way `defineRoute` types a body. Interfaces and
+ * services both declare these.
  */
-export function defineSubscription<TPayloadSchema extends InterfaceSchema>(
-  definition: MessageSubscriptionDefinition<TPayloadSchema>,
-): MessageSubscriptionDefinition<TPayloadSchema> {
+export function defineSubscription<
+  TPayloadSchema extends SubscriptionPayloadSchema,
+>(
+  definition: SubscriptionDefinition<TPayloadSchema>,
+): SubscriptionDefinition<TPayloadSchema> {
   assertIdentifier(definition.topic.split(":")[0] ?? "", "Subscription topic");
   return definition;
 }
