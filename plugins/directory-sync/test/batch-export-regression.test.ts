@@ -90,7 +90,7 @@ describe("batch operations should not include exports (regression)", () => {
           type: "directory-cleanup",
           data: expect.objectContaining({
             projectionBatch: expect.objectContaining({
-              operationId: expect.any(String),
+              rootJobId: expect.any(String),
               childKey: "0:directory-cleanup",
               expectedChildren: 1,
             }),

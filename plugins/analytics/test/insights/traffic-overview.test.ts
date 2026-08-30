@@ -1,9 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
 import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
 import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
-import type { ICoreEntityService } from "@brains/plugins";
+import { createMockEntityService } from "@brains/test-utils";
 
-const mockEntityService = {} as ICoreEntityService;
+const mockEntityService = createMockEntityService();
 
 function createMockClient(
   overrides: Partial<TrafficStatsClient> = {},

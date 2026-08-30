@@ -1,8 +1,4 @@
-import type {
-  BatchOperation,
-  IEntityService,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { BatchOperation, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
 import type {
@@ -97,26 +93,18 @@ export class BatchOperationsManager {
     }
 
     const rootJobId = createId();
-    const expectedChildren = batchData.operations.length;
+    const batch =
+      await pluginContext.entityCoordination.beginDurableBulkMutation({
+        rootJobId,
+        expectedChildren: batchData.operations.length,
+      });
     const operations = batchData.operations.map((operation, index) => ({
       ...operation,
       data: {
         ...operation.data,
-        projectionBatch: {
-          operationId: rootJobId,
-          rootJobId,
-          childKey: `${index}:${operation.type}`,
-          expectedChildren,
-        },
+        projectionBatch: batch.childRef(`${index}:${operation.type}`),
       },
     }));
-    const coordinator = pluginContext.entityService as IEntityService;
-    await coordinator.prepareDurableBulkMutation({
-      source: "directory-sync",
-      operationId: rootJobId,
-      rootJobId,
-      expectedChildren,
-    });
     let batchId: string;
     try {
       batchId = await pluginContext.jobs.enqueueBatch(operations, {
@@ -132,10 +120,10 @@ export class BatchOperationsManager {
           channelId: metadata?.channelId,
         },
       });
-      await coordinator.finalizeDurableBulkMutationEnqueue(rootJobId);
+      await batch.seal();
     } catch (error) {
       try {
-        await coordinator.failDurableBulkMutationEnqueue(rootJobId);
+        await batch.abort();
       } catch (markerError) {
         this.logger.error(
           "Failed to record durable projection batch enqueue failure",

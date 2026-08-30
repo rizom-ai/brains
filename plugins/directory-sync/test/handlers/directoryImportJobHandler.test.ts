@@ -130,7 +130,10 @@ describe("DirectoryImportJobHandler", () => {
       entityService.runDurableBulkMutationChild =
         runChild as typeof entityService.runDurableBulkMutationChild;
       entityService.settleDurableBulkMutationChild = settleChild;
-      const context = createMockServicePluginContext({ entityService });
+      const context = createMockServicePluginContext({
+        entityService,
+        pluginId: "directory-sync",
+      });
       const testHandler = new DirectoryImportJobHandler(
         createSilentLogger("test"),
         context,
@@ -139,7 +142,6 @@ describe("DirectoryImportJobHandler", () => {
       const data = {
         paths: ["/path/to/series.md"],
         projectionBatch: {
-          operationId: "root-1",
           rootJobId: "root-1",
           childKey: "0:directory-import",
           expectedChildren: 2,

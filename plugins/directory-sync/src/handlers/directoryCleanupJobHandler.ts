@@ -3,9 +3,9 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
-  directoryProjectionBatchRefSchema,
+  durableBulkMutationChildRefSchema,
   type CleanupResult,
-  type DirectoryProjectionBatchRef,
+  type DurableBulkMutationChildRef,
   type IDirectorySync,
 } from "../types";
 import { z } from "@brains/utils/zod";
@@ -15,14 +15,14 @@ import {
 } from "../lib/projection-batch-job";
 
 interface DirectoryCleanupJobData {
-  projectionBatch?: DirectoryProjectionBatchRef | undefined;
+  projectionBatch?: DurableBulkMutationChildRef | undefined;
 }
 
 const directoryCleanupJobSchema: z.ZodType<
   DirectoryCleanupJobData,
   DirectoryCleanupJobData
 > = z.object({
-  projectionBatch: directoryProjectionBatchRefSchema.optional(),
+  projectionBatch: durableBulkMutationChildRefSchema.optional(),
 });
 
 export class DirectoryCleanupJobHandler extends BaseJobHandler<

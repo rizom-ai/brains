@@ -23,7 +23,7 @@ const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
 const projectionBatchJobDataSchema = z.object({
   projectionBatch: z.object({
-    operationId: z.string().min(1),
+    rootJobId: z.string().min(1),
     childKey: z.string().min(1),
   }),
 });
@@ -187,7 +187,7 @@ export class ShellBootloader {
         }),
         reconcileBatches: () =>
           this.services.entityService.recoverProjectionBatches(
-            async (rootJobId, operationId) => {
+            async (rootJobId) => {
               const jobs =
                 await this.services.jobQueueService.getJobsByRootJobId(
                   rootJobId,
@@ -198,7 +198,7 @@ export class ShellBootloader {
                 );
                 if (
                   !parsed.success ||
-                  parsed.data.projectionBatch.operationId !== operationId
+                  parsed.data.projectionBatch.rootJobId !== rootJobId
                 ) {
                   return [];
                 }

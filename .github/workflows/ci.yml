@@ -98,6 +98,9 @@ jobs:
       - name: Lint core packages
         run: bun scripts/lint.mjs --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
+      - name: Check boundary casts
+        run: bun run casts:check
+
       - name: Check legacy code inventory
         run: bun run legacy:check
 
