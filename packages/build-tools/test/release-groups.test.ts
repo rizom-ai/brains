@@ -81,7 +81,6 @@ test("deployable site and theme inventory declares brain compatibility", async (
   expect(deployablePackages.map(({ packageJson }) => packageJson.name)).toEqual(
     [
       "@rizom/site-docs",
-      "@rizom/site-rizom",
       "@rizom/site-rizom-ai",
       "@rizom/theme-default",
       "@rizom/theme-rizom-ai",
@@ -195,28 +194,6 @@ test("public site and theme packages release independently", async () => {
   expect(themeRelease.has("@rizom/brain")).toBe(false);
 });
 
-test("a site release with private dependents stays out of the fixed core group", async () => {
-  // @rizom/site-rizom is runtime-depended on by the private relay and ranger
-  // apps. Their version bumps are npm-invisible bookkeeping and are allowed in
-  // the site release plan — but they must not drag the fixed core group in,
-  // which is the bridge that used to turn every site fix into a full core
-  // release.
-  const plan = await releasePlanFor("@rizom/site-rizom");
-  const published = plan
-    .filter((release) => !release.private)
-    .map((release) => release.name)
-    .sort();
-  expect(published).toEqual(["@rizom/site-rizom", "@rizom/site-rizom-ai"]);
-  expect(() => assertReleasePlanMatchesLane("site", plan)).not.toThrow();
-
-  const packages = await getPackages(repositoryRoot);
-  const config = await readChangesetsConfig(repositoryRoot, packages);
-  const fixedPackages = new Set(config.fixed.flat());
-  expect(
-    plan.map((release) => release.name).filter((n) => fixedPackages.has(n)),
-  ).toEqual([]);
-});
-
 test("fixed release group packages never depend on the site lane", async () => {
   // A fixed-group package with a bump-propagating dependency on a site or
   // theme package re-arms the site→core release bridge, whether the package
@@ -261,7 +238,7 @@ test("brain-only changes do not version public site or theme packages", async ()
 test("release lane is inferred from a changeset's own packages", () => {
   expect(
     inferReleaseLane([
-      { name: "@rizom/site-rizom" },
+      { name: "@rizom/site-rizom-ai" },
       { name: "@rizom/theme-rizom-ai" },
     ]),
   ).toBe("site");
@@ -272,17 +249,20 @@ test("release lane is inferred from a changeset's own packages", () => {
     "Cannot infer a release lane from a changeset without packages",
   );
   expect(() =>
-    inferReleaseLane([{ name: "@rizom/brain" }, { name: "@rizom/site-rizom" }]),
-  ).toThrow("core (@rizom/brain) and site (@rizom/site-rizom)");
+    inferReleaseLane([
+      { name: "@rizom/brain" },
+      { name: "@rizom/site-rizom-ai" },
+    ]),
+  ).toThrow("core (@rizom/brain) and site (@rizom/site-rizom-ai)");
 });
 
 test("release lane guard rejects core/site plan crossover", () => {
   expect(() =>
     assertReleasePlanMatchesLane("core", [
       { name: "@rizom/brain" },
-      { name: "@rizom/site-rizom" },
+      { name: "@rizom/site-rizom-ai" },
     ]),
-  ).toThrow("@rizom/site-rizom");
+  ).toThrow("@rizom/site-rizom-ai");
   expect(() =>
     assertReleasePlanMatchesLane("site", [
       { name: "@rizom/theme-rizom-ai" },
@@ -294,7 +274,7 @@ test("release lane guard rejects core/site plan crossover", () => {
   // allowed to ride along in either lane's plan.
   expect(() =>
     assertReleasePlanMatchesLane("site", [
-      { name: "@rizom/site-rizom" },
+      { name: "@rizom/site-rizom-ai" },
       { name: "@brains/relay", private: true },
     ]),
   ).not.toThrow();
@@ -317,7 +297,7 @@ test("coordinated stable plan accepts both lanes but only stable versions", () =
     assertCoordinatedStableReleasePlan([
       { name: "@rizom/brain", type: "minor", newVersion: "0.2.0" },
       {
-        name: "@rizom/site-rizom",
+        name: "@rizom/site-rizom-ai",
         type: "patch",
         newVersion: "0.2.0",
       },
@@ -397,7 +377,7 @@ test("normal dependency propagation still applies across release groups", async 
 });
 
 describe("assertReleaseConfigReferencesWorkspacePackages", () => {
-  const workspace = ["@brains/core", "@rizom/site", "@rizom/site-rizom"];
+  const workspace = ["@brains/core", "@rizom/site", "@rizom/site-rizom-ai"];
 
   test("accepts entries that name live workspace packages", () => {
     expect(() =>

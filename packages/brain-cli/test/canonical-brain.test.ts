@@ -41,7 +41,6 @@ const expectedCatalogIds = [
   "atproto",
   "conversation-memory",
   "docs",
-  "products",
   "obsidian-vault",
   "email-workflows",
   "unified-inbox",

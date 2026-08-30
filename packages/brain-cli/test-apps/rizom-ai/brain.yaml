@@ -17,7 +17,6 @@ add:
   - web-chat
   - email
   - notifications
-  - products
   - obsidian-vault
 
 # Local test app: Admin tools (build-site etc.) available over MCP

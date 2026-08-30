@@ -65,7 +65,6 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/decks`               | Presentations                                       |
 | `entities/link`                | Curated bookmarks + URL capture                     |
 | `entities/portfolio`           | Case studies                                        |
-| `entities/products`            | Product listings                                    |
 | `entities/topics`              | AI-powered tagging                                  |
 | `entities/conversation-memory` | Conversation summaries, decisions, and action items |
 | `entities/social-media`        | Social media posts                                  |
@@ -123,7 +122,7 @@ Site definitions are structural-only bundles: layouts, routes, schema-first sect
 | `sites/default`      | Default structural site, typically paired with `@rizom/theme-default` |
 | `sites/personal`     | Personal site composition, blog-focused                               |
 | `sites/professional` | Professional site composition, editorial + portfolio + decks          |
-| `sites/rizom`        | Shared Rizom site core composed by the Rizom app instances            |
+| `sites/rizom-ai`     | Consolidated Rizom brand site and its package-local chrome/runtime    |
 
 ## Canonical brain
 

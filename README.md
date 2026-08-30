@@ -99,7 +99,6 @@ brain.yaml + brain-data/
 - `personal` — `core + media + web + chat`
 - `professional` — `core + media + automation + web + chat + site + publishing + federation`
 - `team` — `core + media + automation + web + chat + site + team`, plus `docs`
-- `commerce` — `core + media + web + site`, plus `products`
 
 If you are trying `brains` for the first time, use `brain init --recipe personal`. Recipes expand to explicit YAML and have no runtime meaning.
 

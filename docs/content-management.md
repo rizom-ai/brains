@@ -101,7 +101,7 @@ brain start
 # open http://localhost:8080/studio
 ```
 
-The Studio is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, products, and newsletters. Exact Studio collections depend on selected bundles, additions/removals, and active entity plugins.
+The Studio is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, and newsletters. Exact Studio collections depend on selected bundles, additions/removals, and active entity plugins.
 
 ### Direct markdown edits
 

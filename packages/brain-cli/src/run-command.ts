@@ -73,7 +73,7 @@ const initCommand: BrainCommand = defineCommand({
       type: "string",
       placeholder: "<name>",
       description:
-        "Scaffold recipe: headless, personal, professional, team, commerce (default: personal)",
+        "Scaffold recipe: headless, personal, professional, team (default: personal)",
     },
     domain: {
       type: "string",
@@ -289,7 +289,7 @@ const configMigrate: BrainCommand = defineCommand({
       type: "string",
       placeholder: "<name>",
       description:
-        "Required target for unversioned canonical YAML: headless, personal, professional, team, commerce",
+        "Required target for unversioned canonical YAML: headless, personal, professional, team",
     },
   },
   run: async ({ flags }, dir): Promise<CommandResult> => {

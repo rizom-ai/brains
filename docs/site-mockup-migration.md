@@ -54,7 +54,7 @@ This becomes the visual acceptance reference while the implementation changes un
 
 ### 2. Start a Brain instance
 
-Scaffold the appropriate recipe, install its pinned dependencies, and get the generated canonical site posture running before replacing anything. Use `personal` for publishing, `team` for collaborative knowledge, or `commerce` for product content. Confirm that explicit bundles include `site` and any content members the site needs.
+Scaffold the appropriate recipe, install its pinned dependencies, and get the generated canonical site posture running before replacing anything. Use `professional` for publishing or `team` for collaborative knowledge. Confirm that explicit bundles include `site` and any content members the site needs.
 
 Keep the first checkpoint boring: the Brain starts, content syncs, and an unchanged preview build succeeds.
 

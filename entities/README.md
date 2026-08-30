@@ -49,7 +49,6 @@ There is no event-owned projection job or manual derive/rebuild tool. Command-ow
 | link                | `link`                               |            | Web links with AI-powered content extraction             |
 | note                | `note`                               |            | Personal notes with markdown-first workflow              |
 | portfolio           | `project`                            |            | Portfolio projects with structured case studies          |
-| products            | `product`                            |            | Product entities with marketing overview                 |
 | prompt              | `prompt`                             |            | Reusable prompt entities                                 |
 | series              | `series`                             | yes        | Cross-content series, projected from seriesName field    |
 | site-info           | `site-info`                          |            | Site metadata — title, description, CTA, theme           |

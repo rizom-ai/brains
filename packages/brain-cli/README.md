@@ -29,7 +29,7 @@ plugins:
     seedContentPath: ./seed-content
 ```
 
-The fixed bundles are `core`, `media`, `automation`, `web`, `chat`, `site`, `publishing`, `federation`, and policy-only `team`. The `headless`, `personal`, `professional`, `team`, and `commerce` recipes expand to explicit YAML during scaffolding and have no runtime meaning.
+The fixed bundles are `core`, `media`, `automation`, `web`, `chat`, `site`, `publishing`, `federation`, and policy-only `team`. The `headless`, `personal`, `professional`, and `team` recipes expand to explicit YAML during scaffolding and have no runtime meaning.
 
 ## Commands
 

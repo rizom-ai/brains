@@ -243,11 +243,10 @@ explicit blocking policy: **a parked or exploratory branch never blocks trunk
 hygiene (it rebases); an active branch blocks only the exact code it is
 redesigning, and trivial adjacent fixes proceed.**
 
-- **`@rizom/ui` folded into `sites/rizom` and retired** — the package existed
-  for multiple Rizom site variants; the one-site consolidation removed its
-  reason to exist, and its only consumer had forked it. Single copy restored,
-  canonical `Wordmark` back in the site chrome, npm deprecation is the
-  operator's step.
+- **`@rizom/ui` and `@rizom/site-rizom` folded into `sites/rizom-ai` and retired** — the packages existed
+  for multiple Rizom site variants; the one-site consolidation removed their
+  reason to exist. A single copy is restored with the canonical `Wordmark`
+  back in the site chrome; npm deprecation is the operator's step.
 - **Identity-service twins** — `SingletonDocumentService` and
   `SingletonFrontmatterAdapter` now own the wiring both anchor-profile and
   brain-character duplicated. Measured honestly: the audit's "~370 identical

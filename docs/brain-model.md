@@ -111,7 +111,7 @@ Definition authors may use arbitrary ordered bundles over their own catalog. Can
 - `federation` — AT Protocol publication and registry capabilities;
 - `team` — policy-only shared-memory defaults and trusted collaborative writes.
 
-Site and publishing remain independent. Commerce is a recipe posture built from `core + media + web + site + add: [products]`.
+Site and publishing remain independent. Optional capabilities are selected explicitly with `add`.
 
 ## Deterministic resolution
 
@@ -180,7 +180,6 @@ brain init my-brain --recipe headless
 brain init my-console --recipe personal
 brain init my-site --recipe professional
 brain init my-team --recipe team
-brain init my-shop --recipe commerce
 ```
 
 Review the generated YAML. Runtime behavior depends on that explicit YAML, not the recipe name.

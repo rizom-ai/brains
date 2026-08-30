@@ -6,15 +6,10 @@
       "packages": [
         "@rizom/site",
         "@rizom/site-docs",
-        "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
         "@rizom/theme-rizom-ai"
       ],
-      "dependencies": [
-        "@rizom/site",
-        "@rizom/site-rizom",
-        "@rizom/theme-default"
-      ],
+      "dependencies": ["@rizom/site", "@rizom/theme-default"],
       "dependencyTypes": ["local", "prod"]
     },
     {
@@ -58,15 +53,10 @@
       "label": "Public site/theme packages pin exact versions of published internal deps",
       "packages": [
         "@rizom/site-docs",
-        "@rizom/site-rizom",
         "@rizom/site-rizom-ai",
         "@rizom/theme-rizom-ai"
       ],
-      "dependencies": [
-        "@rizom/site",
-        "@rizom/site-rizom",
-        "@rizom/theme-default"
-      ],
+      "dependencies": ["@rizom/site", "@rizom/theme-default"],
       "dependencyTypes": ["prod"],
       "range": ""
     },

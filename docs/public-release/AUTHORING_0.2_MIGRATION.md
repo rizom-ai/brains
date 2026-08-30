@@ -80,7 +80,7 @@ A conversational listener must define `send`. An outbound-only transport may def
 
 Replace `@rizom/brain/site` and `@rizom/site-sections` imports with the one SDK, `@rizom/site`. Default-export `defineSite(...)`, author sections with `defineSection()` and `sectionGroup()`, and import its blessed `z`. Stable site definitions do not embed runtime plugins; advanced backend behavior belongs in a separately composed package.
 
-Rename conventional local site source from `src/site.ts` to `src/site.tsx` when it contains JSX. Import brand-specific `Rizom*` layout and chrome types from `@rizom/site-rizom`; they are not part of the generic `@rizom/site` SDK.
+Rename conventional local site source from `src/site.ts` to `src/site.tsx` when it contains JSX. Import brand-specific `Rizom*` layout and chrome types from `@rizom/site-rizom-ai`; they are not part of the generic `@rizom/site` SDK.
 
 ## Validation
 

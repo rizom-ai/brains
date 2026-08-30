@@ -97,6 +97,17 @@ describe("site release workflow", () => {
     expect(publishStep).not.toContain("_authToken");
   });
 
+  test("deprecates both retired site packages outside the OIDC publish step", () => {
+    const deprecationStep = workflowStep(
+      "site-release.yml",
+      "Deprecate retired alpha-only site packages",
+    );
+
+    expect(deprecationStep).toContain("@rizom/site-sections@*");
+    expect(deprecationStep).toContain("@rizom/site-rizom@*");
+    expect(deprecationStep).toContain("NPM_TOKEN");
+  });
+
   test("keeps standard versioning serialized while stable publication bypasses the core wait lock", () => {
     const workflow = readWorkflow("site-release.yml");
 

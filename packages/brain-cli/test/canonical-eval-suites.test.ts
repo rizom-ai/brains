@@ -29,13 +29,7 @@ const testCasesDirectory = join(packageDirectory, "test-cases");
 const rawManifest = fromYaml<Record<string, unknown>>(
   readFileSync(manifestPath, "utf8"),
 );
-const suiteNames = [
-  "headless",
-  "personal",
-  "professional",
-  "team",
-  "commerce",
-] as const;
+const suiteNames = ["headless", "personal", "professional", "team"] as const;
 type SuiteName = (typeof suiteNames)[number];
 
 const catalogIds = [
@@ -50,15 +44,12 @@ const expectedMembers: Record<SuiteName, string> = {
   professional:
     "a2a admin agents analytics atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
   team: "a2a admin agents analytics auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
-  commerce:
-    "a2a admin agents analytics auth-service dashboard directory-sync document image link mcp note products profile prompt site-builder site-content site-info studio style-guide topics unified-inbox webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 17,
   personal: 20,
   professional: 85,
   team: 38,
-  commerce: 3,
 };
 const tempDirectories: string[] = [];
 
@@ -212,13 +203,6 @@ describe("canonical eval recipe ladder", () => {
       add: ["docs"],
       tags: ["recipe-team"],
     });
-    expect(suiteSelection("commerce")).toMatchObject({
-      anchor: "organization",
-      kind: "organization",
-      bundles: ["core", "media", "web", "site"],
-      add: ["products"],
-      tags: ["recipe-commerce"],
-    });
   });
 
   test("keeps Git disabled for in-process eval boot", () => {
@@ -251,7 +235,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(197);
+    expect(testCases.length).toBe(194);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(

@@ -66,8 +66,8 @@ Success means:
 3. **Bundles are fixed and named.** Runtime bundles are `core`, `media`, `automation`,
    `web`, `chat`, `site`, `publishing`, `federation`, and the policy-only `team`. They are
    not parameterized. Instance tuning remains `add`, `remove`, and `plugins` config.
-4. **Recipes are scaffolding only.** The five recipes — `headless`, `personal`,
-   `professional`, `team`, `commerce` — expand to explicit `bundles:` plus
+4. **Recipes are scaffolding only.** The four recipes — `headless`, `personal`,
+   `professional`, and `team` — expand to explicit `bundles:` plus
    site/theme/seed defaults. No `recipe:` field is stored or interpreted at runtime.
 5. **Core needs nothing external.** Every core member works with no inbound listener and
    no third-party account. Anything requiring a listener, an external service
@@ -215,7 +215,6 @@ only widen these baselines.
 
 These stay outside default bundles unless a new product decision is recorded:
 
-- products;
 - obsidian-vault;
 - docs;
 - wishlist;
@@ -238,7 +237,6 @@ Recipes form a ladder of postures. The axis is what the brain is for, not how la
 | `personal`     | `bundles: [core, media, web, chat]`                                                                                     |
 | `professional` | `bundles: [core, media, automation, web, chat, site, publishing, federation]` plus professional site/theme/seed content |
 | `team`         | `bundles: [core, media, automation, web, chat, site, team]`, `add: [docs]`, plus team site/theme/seed content           |
-| `commerce`     | `bundles: [core, media, web, site]`, `add: [products]`, plus commerce site/theme/seed content                           |
 
 `personal` is a private brain with a console: capture, chat, browser administration, and
 conversation memory, with no public presence. It omits `automation` on maturity grounds.
@@ -382,22 +380,20 @@ that the Studio workspace and Dashboard widget are `web` renderings and the dige
 
 The recipe ladder is active in `packages/brain-cli/brain.eval.yaml`. Dedicated
 `eval-content/recipes` fixtures cover postures whose membership changed; member-compatible
-professional and commerce content remains shared. Strict seed-type validation is opt-in
+professional content remains shared. Strict seed-type validation is opt-in
 for these curated fixtures and fails startup when a seeded entity type is not registered.
 
-`packages/brain-cli/brain.eval.yaml` declares the five recipe suites with explicit
+`packages/brain-cli/brain.eval.yaml` declares the four recipe suites with explicit
 case categories. Composition inheritance and behavior-case selection are separate:
 `inheritTags: false` lets a child inherit compatible config without silently inheriting
 cases for capabilities or fixtures it does not own.
 
 - `personal` extends `headless`; `professional` and `team` extend `personal` because their
-  member sets are supersets. `commerce` extends `headless`, not `personal`, because it does
-  not own the `chat` surface.
-- Dedicated headless, personal, team, and commerce fixtures contain only registered entity
-  types. Unsupported legacy cases are retained behind explicit `requires-*` tags for
+  member sets are supersets.
+- Dedicated headless, personal, and team fixtures contain only registered entity types. Unsupported legacy cases are retained behind explicit `requires-*` tags for
   supervised Git, external network, or omitted opt-in members.
-- Cases use only `recipe-headless`, `recipe-personal`, `recipe-professional`, `recipe-team`,
-  or `recipe-commerce`; the broad legacy `posture-*` categories are gone. Every suite now
+- Cases use only `recipe-headless`, `recipe-personal`, `recipe-professional`, or
+  `recipe-team`; the broad legacy `posture-*` categories are gone. Every suite now
   selects a non-empty behavior set rather than treating zero selected cases as success.
 - Deterministic coverage pins each case count, verifies every expected tool and entity type
   against the resolved suite, verifies plugin eval handlers, imports every fixture type,
@@ -471,7 +467,7 @@ source-to-target manifests are reviewed:
 8. If any gate fails, restore the prior desired-state revision and prior image together,
    then verify convergence with the prior ops release.
 
-After convergence: run the `headless`, `personal`, `professional`, `team`, and `commerce`
+After convergence: run the `headless`, `personal`, `professional`, and `team`
 eval suites only with explicit operator authorization; soak `jo` and `smoke`; validate
 `yeehaa.io`; confirm no deployed config uses the old bundle names; then nominate the
 deployed alpha as the stable `0.2.0` release candidate.
@@ -498,7 +494,7 @@ without operator authorization.
 
 - one canonical definition, eight capability bundles, and one policy bundle remain;
 - `bundles: [core]` boots headless and is covered by a startup test;
-- headless, personal, professional, team, commerce, and external-plugin fixtures resolve
+- headless, personal, professional, team, and external-plugin fixtures resolve
   from explicit bundles and additions;
 - no checked-in config or desired-state file uses the former four-bundle compositions as
   the whole taxonomy;

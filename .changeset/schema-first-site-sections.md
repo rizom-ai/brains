@@ -1,6 +1,5 @@
 ---
 "@rizom/site": minor
-"@rizom/site-rizom": patch
 "@rizom/site-rizom-ai": patch
 "@rizom/brain": patch
 ---

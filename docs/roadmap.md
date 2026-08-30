@@ -74,7 +74,7 @@ The product is one brain, composed from fixed **capability bundles** — named g
 - **`federation`** — outbound AT Protocol publication and registry capabilities.
 - **`team`** — policy only: shared memory, team instructions, and trusted collaborator permissions over selected members.
 
-Posture is explicit `brain.yaml` configuration. `headless`, `personal`, `professional`, `team`, and `commerce` recipes expand to the fixed ladder documented in [brain-model.md](./brain-model.md). `site` and `publishing` remain independent, and instances tune at the edges with visible `add`/`remove` plus plugin config.
+Posture is explicit `brain.yaml` configuration. `headless`, `personal`, `professional`, and `team` recipes expand to the fixed ladder documented in [brain-model.md](./brain-model.md). `site` and `publishing` remain independent, and instances tune at the edges with visible `add`/`remove` plus plugin config.
 
 **The structural bet that makes this true** has shipped on the alpha line: the three model packages and preset runtime are gone, and one canonical definition owns the bundle primitive. The remaining work is operational certification of that contract through clean pilot convergence, canary soak, and stable release.
 
@@ -252,7 +252,6 @@ There is one brain; "reference models" are now bundle combinations, not packages
 - **personal** — `core + media + web + chat`; a private console without a public site.
 - **professional publishing** — the full capability ladder through `federation`; the public reference, live in production (formerly the `rover` model).
 - **collective / team** — the team recipe with policy-only `team` plus explicit `docs`; the active POC (formerly the `relay` model).
-- **commerce** — `core + media + web + site` plus the opt-in `products` capability (absorbs what the `ranger` model carried).
 
 External examples and docs should treat the **personal-publishing** posture as the main reference. The `rover`/`relay`/`ranger` model packages are being retired in [brain-model-unification.md](./plans/brain-model-unification.md).
 
