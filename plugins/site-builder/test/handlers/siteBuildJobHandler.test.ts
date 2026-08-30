@@ -239,7 +239,7 @@ describe("SiteBuildJobHandler", () => {
         errors: ["[build-cancelled] Site build cancelled: superseded"],
       })),
     };
-    const { sendMessage, _sentMessages } = createMockMessageSender();
+    const { sendMessage, sentMessages } = createMockMessageSender();
     const cancelledHandler = new SiteBuildJobHandler(
       createSilentLogger("test"),
       sendMessage,
@@ -270,7 +270,7 @@ describe("SiteBuildJobHandler", () => {
       "[build-cancelled] Site build cancelled: superseded",
     );
     expect(
-      _sentMessages.some((message) => message.type === "site:build:completed"),
+      sentMessages.some((message) => message.type === "site:build:completed"),
     ).toBe(false);
   });
 
@@ -293,7 +293,7 @@ describe("SiteBuildJobHandler", () => {
         routesBuilt: 10,
       })),
     };
-    const { sendMessage } = createMockMessageSender();
+    const { sendMessage, sentMessages } = createMockMessageSender();
     const unchangedHandler = new SiteBuildJobHandler(
       createSilentLogger("test"),
       sendMessage,
@@ -320,5 +320,48 @@ describe("SiteBuildJobHandler", () => {
     expect(result).toMatchObject({ success: true, skipped: true });
     expect(markSkipped).toHaveBeenCalledWith("production", "job-skipped", 10);
     expect(markSuccess).not.toHaveBeenCalled();
+    expect(
+      sentMessages.some((message) => message.type === "site:build:completed"),
+    ).toBe(false);
+  });
+
+  it("does not fail the build when a status write fails", async () => {
+    const statusService: BuildStatusRecorder = {
+      markBuilding: mock(async () => undefined),
+      markSuccess: mock(async () => {
+        throw new Error("runtime-state write failed");
+      }),
+      markSkipped: mock(async () => undefined),
+      markFailure: mock(async () => undefined),
+      markCancelled: mock(async () => undefined),
+    };
+    const { sendMessage, sentMessages } = createMockMessageSender();
+    const failingWriteHandler = new SiteBuildJobHandler(
+      createSilentLogger("test"),
+      sendMessage,
+      {
+        siteBuilder: mockSiteBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+        statusService,
+      },
+    );
+    const progressReporter = ProgressReporter.from(async () => {});
+    if (!progressReporter) throw new Error("Expected progress reporter");
+
+    const result = await failingWriteHandler.process(
+      { outputDir: "/tmp/output", environment: "production" },
+      "job-write-fails",
+      progressReporter,
+    );
+
+    expect(result).toMatchObject({ success: true });
+    expect(
+      sentMessages.some((message) => message.type === "site:build:completed"),
+    ).toBe(true);
   });
 });

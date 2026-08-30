@@ -1,5 +1,6 @@
 import { siteBuildArtifactManifestSchema } from "@brains/site-engine";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import { readFile, stat } from "fs/promises";
 import { join, resolve } from "path";
 import { SITE_BUILD_MANIFEST_FILE } from "./site-build-artifact-manifest";
@@ -15,6 +16,21 @@ export type SitePublicationStatus =
       warnings: string[];
     }
   | { state: "unreadable"; message: string };
+
+// isolatedDeclarations rules out deriving the type from the schema, so the
+// schema is annotated against the type instead; both live only in this module.
+export const sitePublicationStatusSchema: z.ZodType<SitePublicationStatus> =
+  z.discriminatedUnion("state", [
+    z.object({ state: z.literal("not-published") }),
+    z.object({
+      state: z.literal("published"),
+      buildId: z.string(),
+      publishedAt: z.string().datetime(),
+      routesBuilt: z.number().int().nonnegative(),
+      warnings: z.array(z.string()),
+    }),
+    z.object({ state: z.literal("unreadable"), message: z.string() }),
+  ]);
 
 /** Read the manifest selected by the active output path, not a status cache. */
 export async function readSitePublicationStatus(

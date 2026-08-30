@@ -352,6 +352,11 @@ export interface IJobQueueService {
   getActiveJobs(types?: string[]): Promise<JobInfo[]>;
 
   /**
+   * Get recent jobs of any status, newest first
+   */
+  getRecentJobs(types?: string[], limit?: number): Promise<JobInfo[]>;
+
+  /**
    * Get failed jobs
    */
   getFailedJobs(types?: string[]): Promise<JobInfo[]>;
@@ -501,6 +506,9 @@ export interface IJobsNamespace {
 
   /** Get active jobs, optionally filtered by type */
   getActiveJobs(types?: string[]): Promise<JobInfo[]>;
+
+  /** Get recent jobs of any status, newest first, optionally filtered by type */
+  getRecentJobs(types?: string[], limit?: number): Promise<JobInfo[]>;
 
   /** Get status of a specific job */
   getStatus(jobId: string): Promise<JobInfo | null>;

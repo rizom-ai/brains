@@ -849,6 +849,18 @@ export class JobQueueRepository {
       .orderBy(desc(jobQueue.createdAt));
   }
 
+  public async getRecentJobs(types?: string[], limit = 20): Promise<JobInfo[]> {
+    const whereClause =
+      types && types.length > 0 ? inArray(jobQueue.type, types) : undefined;
+
+    return this.db
+      .select()
+      .from(jobQueue)
+      .where(whereClause)
+      .orderBy(desc(jobQueue.createdAt))
+      .limit(limit);
+  }
+
   public async getFailedJobs(types?: string[]): Promise<JobInfo[]> {
     const failedStatusFilter = eq(jobQueue.status, JOB_STATUS.FAILED);
     const whereClause =

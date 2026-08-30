@@ -6,25 +6,12 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { GENERATE_MESSAGES } from "../src/types/messages";
-import type { SchedulerMessagePublisher } from "../src/types/scheduler";
-import { createMockLogger } from "@brains/test-utils";
+import {
+  createMockLogger,
+  createMockMessagePublisher,
+} from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;
-
-// Mock message bus
-function createMockMessageBus(): SchedulerMessagePublisher & {
-  _sentMessages: Array<{ type: string; payload: unknown }>;
-} {
-  const sentMessages: Array<{ type: string; payload: unknown }> = [];
-
-  return {
-    send: mock(async (request: { type: string; payload: unknown }) => {
-      sentMessages.push({ type: request.type, payload: request.payload });
-      return { success: true };
-    }),
-    _sentMessages: sentMessages,
-  };
-}
 
 describe("ContentScheduler - Generation Scheduling", () => {
   let scheduler: ContentScheduler;
@@ -33,7 +20,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
   let mockLogger: ReturnType<typeof createMockLogger>;
-  let messageBus: ReturnType<typeof createMockMessageBus>;
+  let messageBus: ReturnType<typeof createMockMessagePublisher>;
   let onGenerateMock: ReturnType<typeof mock>;
 
   function baseConfig(overrides?: SchedulerConfigOverrides): SchedulerConfig {
@@ -54,7 +41,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh();
     mockLogger = createMockLogger();
-    messageBus = createMockMessageBus();
+    messageBus = createMockMessagePublisher();
     onGenerateMock = mock(() => {});
   });
 
@@ -245,7 +232,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       await backend.tick("* * * * *");
 
-      const executeMessages = messageBus._sentMessages.filter(
+      const executeMessages = messageBus.sentMessages.filter(
         (m) => m.type === GENERATE_MESSAGES.EXECUTE,
       );
       expect(executeMessages.length).toBeGreaterThan(0);
@@ -278,7 +265,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
     it("should emit generate:completed message", async () => {
       scheduler = ContentScheduler.createFresh(baseConfig());
 
-      messageBus._sentMessages.length = 0;
+      messageBus.sentMessages.length = 0;
 
       scheduler.completeGeneration("newsletter", "newsletter-2024-01");
 
@@ -297,7 +284,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
     it("should emit generate:failed message", async () => {
       scheduler = ContentScheduler.createFresh(baseConfig());
 
-      messageBus._sentMessages.length = 0;
+      messageBus.sentMessages.length = 0;
 
       scheduler.failGeneration("newsletter", "No source content available");
 

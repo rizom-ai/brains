@@ -417,6 +417,7 @@ export function createMockSystemServices(
     getLastEnqueued: () => enqueuedJobs[enqueuedJobs.length - 1],
     registerHandler: () => {},
     getActiveJobs: async () => [],
+    getRecentJobs: async () => [],
     getActiveBatches: async () => [],
     getBatchStatus: async () => null,
     getStatus: async () => null,

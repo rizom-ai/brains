@@ -6,23 +6,45 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactNode } from "react";
+import {
+  sitePublicationStatusSchema,
+  type SitePublicationStatus,
+} from "./site-publication-status";
 import type { SiteWorkspaceProvider } from "./site-workspace";
 
-const publicationSchema = z.discriminatedUnion("state", [
-  z.object({ state: z.literal("not-published") }),
-  z.object({
-    state: z.literal("published"),
-    buildId: z.string(),
-    publishedAt: z.string(),
-    routesBuilt: z.number(),
-    warnings: z.array(z.string()),
-  }),
-  z.object({ state: z.literal("unreadable"), message: z.string() }),
-]);
+interface EnvironmentHealth {
+  environment: "preview" | "production";
+  publication?: SitePublicationStatus | undefined;
+  active?:
+    | {
+        jobId?: string | undefined;
+        state: "debouncing" | "queued" | "building";
+        requestedAt?: string | undefined;
+        startedAt?: string | undefined;
+      }
+    | undefined;
+  lastSuccess?:
+    | { completedAt: string; routesBuilt: number; warnings: string[] }
+    | undefined;
+  lastFailure?:
+    | { jobId?: string | undefined; completedAt: string; message: string }
+    | undefined;
+  lastCancellation?: { completedAt: string; message: string } | undefined;
+}
 
-const environmentSchema = z.object({
+interface SiteHealthWidgetData {
+  site: {
+    title: string;
+    previewUrl?: string | undefined;
+    liveUrl?: string | undefined;
+  };
+  environments: EnvironmentHealth[];
+  managementUrl?: string | undefined;
+}
+
+const environmentSchema: z.ZodType<EnvironmentHealth> = z.object({
   environment: z.enum(["preview", "production"]),
-  publication: publicationSchema.optional(),
+  publication: sitePublicationStatusSchema.optional(),
   active: z
     .object({
       jobId: z.string().optional(),
@@ -53,7 +75,7 @@ const environmentSchema = z.object({
     .optional(),
 });
 
-const siteHealthWidgetDataSchema = z.object({
+const siteHealthWidgetDataSchema: z.ZodType<SiteHealthWidgetData> = z.object({
   site: z.object({
     title: z.string(),
     previewUrl: z.string().optional(),
@@ -63,11 +85,16 @@ const siteHealthWidgetDataSchema = z.object({
   managementUrl: z.string().optional(),
 });
 
-type SiteHealthWidgetData = z.output<typeof siteHealthWidgetDataSchema>;
-type EnvironmentHealth = z.output<typeof environmentSchema>;
-
 function boundedDetail(value: string): string {
   return value.length <= 500 ? value : `${value.slice(0, 497)}…`;
+}
+
+/** "environment · jobId" — the one way a failed attempt is labelled anywhere. */
+function failureLabel(failure: EnvironmentHealth): string {
+  const attempt = failure.lastFailure?.jobId
+    ? ` · ${failure.lastFailure.jobId}`
+    : "";
+  return `${failure.environment}${attempt}`;
 }
 
 function failureBlocks(
@@ -82,11 +109,10 @@ function failureBlocks(
       text: failures
         .map((failure) => {
           const previous = failure.lastFailure;
-          const attempt = previous?.jobId ? ` · ${previous.jobId}` : "";
           const completed = previous?.completedAt
             ? ` · ${previous.completedAt}`
             : "";
-          return `${failure.environment}${attempt}${completed}: ${boundedDetail(previous?.message ?? "Build failed without details.")}`;
+          return `${failureLabel(failure)}${completed}: ${boundedDetail(previous?.message ?? "Build failed without details.")}`;
         })
         .join("\n"),
       tone: "error",
@@ -122,6 +148,38 @@ function siteLinks(data: SiteHealthWidgetData): DashboardOperatorViewBlock {
   };
 }
 
+export function siteHealthDigest(data: SiteHealthWidgetData): {
+  items: { label: string; value: string; tone: "good" | "warn" }[];
+  attention: number;
+} {
+  const preview = data.environments.find(
+    (environment) => environment.environment === "preview",
+  );
+  const production = data.environments.find(
+    (environment) => environment.environment === "production",
+  );
+  const failures = data.environments.filter(
+    (environment) => environment.lastFailure !== undefined,
+  ).length;
+  const previewPresentation = presentEnvironment(preview);
+  const productionPresentation = presentEnvironment(production);
+  return {
+    items: [
+      {
+        label: "Preview",
+        value: previewPresentation.state,
+        tone: previewPresentation.tone,
+      },
+      {
+        label: "Live",
+        value: productionPresentation.state,
+        tone: productionPresentation.tone,
+      },
+    ],
+    attention: failures,
+  };
+}
+
 const siteHealthWidget = defineDashboardWidget({
   id: "site-health",
   title: "Site health",
@@ -131,32 +189,7 @@ const siteHealthWidget = defineDashboardWidget({
   priority: 50,
   permission: "admin",
   data: siteHealthWidgetDataSchema,
-  digest: ({ data }) => {
-    const preview = data.environments.find(
-      (environment) => environment.environment === "preview",
-    );
-    const production = data.environments.find(
-      (environment) => environment.environment === "production",
-    );
-    const failures = data.environments.filter(
-      (environment) => environment.lastFailure !== undefined,
-    ).length;
-    return {
-      items: [
-        {
-          label: "Preview",
-          value: preview ? environmentState(preview) : "unavailable",
-          tone: preview?.lastFailure ? "warn" : "good",
-        },
-        {
-          label: "Live",
-          value: production ? environmentState(production) : "unavailable",
-          tone: production?.lastFailure ? "warn" : "good",
-        },
-      ],
-      attention: failures,
-    };
-  },
+  digest: ({ data }) => siteHealthDigest(data),
   view: ({ data }) => {
     const preview = data.environments.find(
       (environment) => environment.environment === "preview",
@@ -167,6 +200,8 @@ const siteHealthWidget = defineDashboardWidget({
     const failures = data.environments.filter(
       (environment) => environment.lastFailure !== undefined,
     );
+    const previewPresentation = presentEnvironment(preview);
+    const productionPresentation = presentEnvironment(production);
     return {
       blocks: [
         {
@@ -174,13 +209,13 @@ const siteHealthWidget = defineDashboardWidget({
           items: [
             {
               label: "Preview",
-              value: preview ? environmentState(preview) : "unavailable",
-              tone: preview?.lastFailure ? "warn" : "good",
+              value: previewPresentation.state,
+              tone: previewPresentation.tone,
             },
             {
               label: "Live",
-              value: production ? environmentState(production) : "unavailable",
-              tone: production?.lastFailure ? "warn" : "good",
+              value: productionPresentation.state,
+              tone: productionPresentation.tone,
             },
           ],
         },
@@ -189,15 +224,11 @@ const siteHealthWidget = defineDashboardWidget({
           items: [
             {
               label: "Preview detail",
-              value: preview
-                ? boundedDetail(environmentDetail(preview))
-                : "Unavailable",
+              value: boundedDetail(previewPresentation.detail),
             },
             {
               label: "Live detail",
-              value: production
-                ? boundedDetail(environmentDetail(production))
-                : "Unavailable",
+              value: boundedDetail(productionPresentation.detail),
             },
           ],
         },
@@ -213,67 +244,104 @@ interface SiteHealthWidgetProps {
   data: unknown;
 }
 
-function environmentState(environment: EnvironmentHealth): string {
-  if (environment.active) return environment.active.state;
-  if (environment.publication?.state === "unreadable") return "unknown";
-  if (environment.lastCancellation) return "cancelled";
-  if (environment.lastFailure) return "failed";
-  if (environment.publication?.state === "published") return "published";
-  if (environment.lastSuccess) return "rendered";
-  return "not built";
+interface EnvironmentPresentation {
+  state: string;
+  detail: string;
+  tone: "good" | "warn";
 }
 
-function environmentDetail(environment: EnvironmentHealth): string {
+/**
+ * The single precedence walk for how an environment renders. State, detail,
+ * and tone always come from the same branch, so no surface can pair a live
+ * attempt with a stale failure — the contradiction this widget once shipped.
+ * Tone tracks the current attempt; failed history stays in the failures
+ * section and the digest's attention count.
+ */
+function presentEnvironment(
+  environment: EnvironmentHealth | undefined,
+): EnvironmentPresentation {
+  if (!environment) {
+    return { state: "unavailable", detail: "Unavailable", tone: "good" };
+  }
   if (environment.active) {
-    return [environment.active.state, environment.active.jobId]
-      .filter((value): value is string => value !== undefined)
-      .join(" · ");
+    return {
+      state: environment.active.state,
+      detail: [environment.active.state, environment.active.jobId]
+        .filter((value): value is string => value !== undefined)
+        .join(" · "),
+      tone: "good",
+    };
   }
   if (environment.publication?.state === "unreadable") {
-    return environment.publication.message;
+    return {
+      state: "unknown",
+      detail: environment.publication.message,
+      tone: "warn",
+    };
   }
-  if (environment.lastCancellation) return environment.lastCancellation.message;
+  if (environment.lastCancellation) {
+    // Supersede cancellations are routine, so they don't demand attention.
+    return {
+      state: "cancelled",
+      detail: environment.lastCancellation.message,
+      tone: "good",
+    };
+  }
   if (environment.lastFailure) {
     const retained =
       environment.publication?.state === "published"
         ? ` Published generation ${environment.publication.buildId} remains active.`
         : "";
-    return `${environment.lastFailure.message}${retained}`;
+    return {
+      state: "failed",
+      detail: `${environment.lastFailure.message}${retained}`,
+      tone: "warn",
+    };
   }
   if (environment.publication?.state === "published") {
     const publication = environment.publication;
-    return `${publication.routesBuilt} published routes · ${publication.buildId} · ${publication.publishedAt}`;
+    return {
+      state: "published",
+      detail: `${publication.routesBuilt} published routes · ${publication.buildId} · ${publication.publishedAt}`,
+      tone: "good",
+    };
   }
   if (environment.lastSuccess) {
     const warningLabel =
       environment.lastSuccess.warnings.length > 0
         ? ` · ${environment.lastSuccess.warnings.length} warning`
         : "";
-    return `${environment.lastSuccess.routesBuilt} routes rendered${warningLabel}`;
+    return {
+      state: "rendered",
+      detail: `${environment.lastSuccess.routesBuilt} routes rendered${warningLabel}`,
+      tone: "good",
+    };
   }
-  return "No published generation";
+  return {
+    state: "not built",
+    detail: "No published generation",
+    tone: "good",
+  };
 }
 
 function EnvironmentMetric(props: {
   label: string;
   environment: EnvironmentHealth | undefined;
 }): ReactNode {
-  const state = props.environment
-    ? environmentState(props.environment)
-    : "unavailable";
+  const presentation = presentEnvironment(props.environment);
   return h(
     "div",
     {
-      class: `pipeline-metric site-health-metric site-health-metric--${state}`,
+      class: `pipeline-metric site-health-metric site-health-metric--${presentation.state}`,
     },
     [
       h("dt", {}, [
         h("span", { class: "site-health-dot", "aria-hidden": "true" }),
         props.label,
       ]),
-      h("dd", {}, state),
+      h("dd", {}, presentation.state),
       props.environment
-        ? h("small", { class: "muted" }, environmentDetail(props.environment))
+        ? h("small", { class: "muted" }, presentation.detail)
         : null,
     ],
   );
@@ -337,21 +405,19 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
     failures.length > 0
       ? h("section", { class: "pipeline-failures" }, [
           h("h4", {}, "Previous build failures"),
-          ...failures.map((failure) => {
-            const previous = failure.lastFailure;
-            const attempt = previous?.jobId ? ` · ${previous.jobId}` : "";
-            return h(
+          ...failures.map((failure) =>
+            h(
               "div",
               {
                 class: "pipeline-failure",
                 key: failure.environment,
               },
               [
-                h("strong", {}, `${failure.environment}${attempt}`),
-                h("span", {}, previous?.message),
+                h("strong", {}, failureLabel(failure)),
+                h("span", {}, failure.lastFailure?.message),
               ],
-            );
-          }),
+            ),
+          ),
         ])
       : null,
     links.length > 0

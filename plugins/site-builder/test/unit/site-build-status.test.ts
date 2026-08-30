@@ -4,49 +4,80 @@ import { createServicePluginContext } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
 import { SiteBuildStatusService } from "../../src/lib/site-build-status";
 
+type StatusServiceJobs = ConstructorParameters<
+  typeof SiteBuildStatusService
+>[1];
+
 function createStatusService(
-  getStatus?: (jobId: string) => Promise<JobInfo | null>,
+  jobs?: Partial<StatusServiceJobs>,
 ): SiteBuildStatusService {
   const context = createServicePluginContext(createMockShell(), "site-builder");
   return new SiteBuildStatusService(
     context.runtimeState,
-    getStatus ? { getStatus } : context.jobs,
+    jobs
+      ? {
+          getStatus: jobs.getStatus ?? (async (): Promise<null> => null),
+          getRecentJobs: jobs.getRecentJobs ?? (async (): Promise<[]> => []),
+        }
+      : context.jobs,
   );
 }
 
-function processingJob(id: string): JobInfo {
-  const now = Date.parse("2026-07-16T09:00:01.000Z");
+const TERMINAL_AT = Date.parse("2026-07-16T09:00:04.000Z");
+
+function siteBuildJob(overrides: Partial<JobInfo> = {}): JobInfo {
   return {
-    id,
+    id: "job-preview",
     type: "site-builder:site-build",
-    data: "{}",
-    status: "processing",
+    data: JSON.stringify({ environment: "preview" }),
+    status: "completed",
     source: "site-builder",
     priority: 0,
     retryCount: 0,
     maxRetries: 3,
     lastError: null,
-    createdAt: now - 1_000,
-    scheduledFor: now - 1_000,
-    startedAt: now,
-    completedAt: null,
-    attemptId: "attempt",
-    workerSlotId: "worker",
-    workerSessionId: "session",
-    leaseExpiresAt: now + 60_000,
-    attemptHeartbeatAt: now,
-    runtimeUpdatedAt: now,
+    createdAt: TERMINAL_AT - 4_000,
+    scheduledFor: TERMINAL_AT - 4_000,
+    startedAt: TERMINAL_AT - 3_000,
+    completedAt: TERMINAL_AT,
+    attemptId: null,
+    workerSlotId: null,
+    workerSessionId: null,
+    leaseExpiresAt: null,
+    attemptHeartbeatAt: null,
+    runtimeUpdatedAt: TERMINAL_AT,
     metadata: {
-      rootJobId: id,
+      rootJobId: "job-preview",
       operationType: "content_operations",
     },
     progress: null,
+    result: {
+      success: true,
+      routesBuilt: 18,
+      environment: "preview",
+      outputDir: "./dist/site-preview",
+    },
+    ...overrides,
   };
+}
+
+function processingJob(id: string): JobInfo {
+  const startedAt = Date.parse("2026-07-16T09:00:01.000Z");
+  return siteBuildJob({
+    id,
+    status: "processing",
+    startedAt,
+    completedAt: null,
+    result: null,
+    metadata: { rootJobId: id, operationType: "content_operations" },
+  });
 }
 
 describe("SiteBuildStatusService", () => {
   it("tracks one build through request, queue, execution, and success", async () => {
-    const service = createStatusService(async (jobId) => processingJob(jobId));
+    const service = createStatusService({
+      getStatus: async (jobId) => processingJob(jobId),
+    });
     await service.initialize();
 
     await service.markRequested("preview", "2026-07-16T09:00:00.000Z");
@@ -162,42 +193,11 @@ describe("SiteBuildStatusService", () => {
       createMockShell(),
       "site-builder",
     );
-    const completedAt = Date.parse("2026-07-16T09:00:04.000Z");
-    const terminalJob: JobInfo = {
-      id: "job-preview",
-      type: "site-builder:site-build",
-      data: "{}",
-      status: "completed",
-      source: "site-builder",
-      priority: 0,
-      retryCount: 0,
-      maxRetries: 3,
-      lastError: null,
-      createdAt: completedAt - 4_000,
-      scheduledFor: completedAt - 4_000,
-      startedAt: completedAt - 3_000,
-      completedAt,
-      attemptId: null,
-      workerSlotId: null,
-      workerSessionId: null,
-      leaseExpiresAt: null,
-      attemptHeartbeatAt: null,
-      runtimeUpdatedAt: completedAt,
-      metadata: {
-        rootJobId: "job-preview",
-        operationType: "content_operations",
-      },
-      progress: null,
-      result: {
-        success: true,
-        routesBuilt: 18,
-        environment: "preview",
-        outputDir: "./dist/site-preview",
-      },
-    };
+    const terminalJob = siteBuildJob();
     const getStatus = mock(async () => terminalJob);
     const service = new SiteBuildStatusService(context.runtimeState, {
       getStatus,
+      getRecentJobs: mock(async () => []),
     });
     await service.markQueued("preview", terminalJob.id);
 
@@ -216,7 +216,9 @@ describe("SiteBuildStatusService", () => {
   });
 
   it("records cancellation without clearing a newer active build", async () => {
-    const service = createStatusService(async (jobId) => processingJob(jobId));
+    const service = createStatusService({
+      getStatus: async (jobId) => processingJob(jobId),
+    });
     await service.markBuilding(
       "preview",
       "job-old",
@@ -268,6 +270,66 @@ describe("SiteBuildStatusService", () => {
     expect(
       (await restarted.getSnapshot()).environments[0]?.active,
     ).toBeUndefined();
+  });
+
+  it("heals a lost lifecycle write from the queue's recent jobs", async () => {
+    const job = siteBuildJob({ id: "job-lost" });
+    const service = createStatusService({ getRecentJobs: async () => [job] });
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.environments[0]?.lastSuccess).toMatchObject({
+      jobId: "job-lost",
+      completedAt: "2026-07-16T09:00:04.000Z",
+      routesBuilt: 18,
+    });
+    expect(snapshot.recentBuilds[0]?.jobId).toBe("job-lost");
+  });
+
+  it("restores a running build lost from the projection", async () => {
+    const job = processingJob("job-running");
+    const service = createStatusService({
+      getStatus: async () => job,
+      getRecentJobs: async () => [job],
+    });
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.environments[0]?.active).toMatchObject({
+      jobId: "job-running",
+      state: "building",
+    });
+  });
+
+  it("clears an active entry whose job the queue no longer knows", async () => {
+    const service = createStatusService({});
+    await service.markQueued("preview", "job-vanished");
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.environments[0]?.active).toBeUndefined();
+  });
+
+  it("does not resurrect an older terminal job over newer recorded state", async () => {
+    const older = siteBuildJob({
+      id: "job-old",
+      completedAt: Date.parse("2026-07-16T08:00:00.000Z"),
+    });
+    const service = createStatusService({ getRecentJobs: async () => [older] });
+    await service.markSuccess(
+      "preview",
+      "job-new",
+      5,
+      [],
+      "2026-07-16T09:00:00.000Z",
+    );
+
+    const snapshot = await service.getSnapshot();
+
+    expect(snapshot.environments[0]?.lastSuccess?.jobId).toBe("job-new");
+    expect(snapshot.recentBuilds.map((build) => build.jobId)).toEqual([
+      "job-new",
+    ]);
   });
 
   it("keeps only five recent terminal results", async () => {

@@ -67,7 +67,12 @@ import {
   type EntityExportIntent,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
-import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
+import type {
+  IJobQueueService,
+  IJobsNamespace,
+  JobInfo,
+  JobQueueEnqueueRequest,
+} from "@brains/job-queue";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -779,6 +784,55 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEffectiveFrontmatterSchema: () => undefined,
   };
 
+  // --- In-memory job queue state ---
+  // Enqueued jobs are remembered so status reads see what writes created; a
+  // fake queue that forgets its own enqueues makes reconciliation code treat
+  // every fresh job as pruned.
+  const enqueuedJobs = new Map<string, JobInfo>();
+  let enqueuedJobCount = 0;
+
+  function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
+    const id = `job-${++enqueuedJobCount}`;
+    const now = Date.now();
+    enqueuedJobs.set(id, {
+      id,
+      type: request.type,
+      data:
+        typeof request.data === "string"
+          ? request.data
+          : JSON.stringify(request.data ?? {}),
+      status: "pending",
+      source: request.options?.source ?? null,
+      priority: 0,
+      retryCount: 0,
+      maxRetries: 3,
+      lastError: null,
+      createdAt: now,
+      scheduledFor: now,
+      startedAt: null,
+      completedAt: null,
+      attemptId: null,
+      workerSlotId: null,
+      workerSessionId: null,
+      leaseExpiresAt: null,
+      attemptHeartbeatAt: null,
+      runtimeUpdatedAt: now,
+      metadata: {
+        rootJobId: id,
+        operationType: "data_processing",
+      },
+      progress: null,
+      result: null,
+    });
+    return id;
+  }
+
+  function listQueuedJobs(types?: string[]): JobInfo[] {
+    return [...enqueuedJobs.values()].filter(
+      (job) => !types || types.length === 0 || types.includes(job.type),
+    );
+  }
+
   // --- Jobs namespace ---
   const jobs: IJobsNamespace = {
     enqueueBatch: async () => `batch-${Date.now()}`,
@@ -791,8 +845,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       errors: [],
       status: "completed" as const,
     }),
-    getActiveJobs: async () => [],
-    getStatus: async () => null,
+    getActiveJobs: async (types) =>
+      listQueuedJobs(types).filter(
+        (job) => job.status === "pending" || job.status === "processing",
+      ),
+    getRecentJobs: async (types, limit = 20) =>
+      listQueuedJobs(types)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, limit),
+    getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
   };
 
   // --- Content Service ---
@@ -1002,13 +1063,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   const jobQueueService: IJobQueueService = {
-    enqueue: async () => `job-${Date.now()}`,
+    enqueue: async (request) => recordEnqueuedJob(request),
     // The real service reports whether the job was still claimable; the fake
     // has no attempt bookkeeping, so it reports success.
     complete: async () => true,
     fail: async () => true,
     update: async () => true,
-    getStatus: async () => null,
+    getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
     getJobsByRootJobId: async () => [],
     getStats: async () => ({
       pending: 0,
@@ -1027,7 +1088,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getValidator: () => undefined,
     finalizeHandlerRegistrations: () => [],
     getExecutionRegistrations: () => [],
-    getActiveJobs: async () => [],
+    getActiveJobs: async (types) =>
+      listQueuedJobs(types).filter(
+        (job) => job.status === "pending" || job.status === "processing",
+      ),
+    getRecentJobs: async (types, limit = 20) =>
+      listQueuedJobs(types)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, limit),
     getFailedJobs: async () => [],
     getStatusByEntityId: async () => null,
     getDiagnostics: async () => ({

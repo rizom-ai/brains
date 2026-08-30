@@ -576,6 +576,16 @@ export class JobQueueService implements IJobQueueService {
   }
 
   /**
+   * Get recent jobs of any status, newest first
+   */
+  public async getRecentJobs(
+    types?: string[],
+    limit?: number,
+  ): Promise<JobInfo[]> {
+    return this.repository.getRecentJobs(types, limit);
+  }
+
+  /**
    * Get failed jobs
    */
   public async getFailedJobs(types?: string[]): Promise<JobInfo[]> {

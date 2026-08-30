@@ -17,6 +17,7 @@ import type {
 } from "./site-build-status";
 import {
   readSitePublicationStatus,
+  sitePublicationStatusSchema,
   type SitePublicationStatus,
 } from "./site-publication-status";
 import { resolveSiteMetadata } from "./site-metadata";
@@ -59,20 +60,9 @@ const activeBuildSchema = z.object({
   requestedAt: z.string().datetime(),
   startedAt: z.string().datetime().optional(),
 });
-const publicationSchema = z.discriminatedUnion("state", [
-  z.object({ state: z.literal("not-published") }),
-  z.object({
-    state: z.literal("published"),
-    buildId: z.string(),
-    publishedAt: z.string().datetime(),
-    routesBuilt: z.number().int().nonnegative(),
-    warnings: z.array(z.string()),
-  }),
-  z.object({ state: z.literal("unreadable"), message: z.string() }),
-]);
 const buildEnvironmentSchema = z.object({
   environment: z.enum(["preview", "production"]),
-  publication: publicationSchema,
+  publication: sitePublicationStatusSchema,
   active: activeBuildSchema.optional(),
   lastSuccess: z
     .object({
