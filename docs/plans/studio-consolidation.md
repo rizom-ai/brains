@@ -19,8 +19,9 @@ the card:
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
 (decided 2026-08-19).
 
-**Progress:** Phases 1–9b are implemented on `work/studio-consolidation`;
-the consolidation is complete. Phase 9 replaced four administration rail
+**Progress:** Phases 1–9b are implemented and merged; Phase 10 (Chat becomes
+a Studio workspace, decided 2026-08-30 after a docked-companion alternative
+was mocked and rejected) is open. Phase 9 replaced four administration rail
 entries with one tabbed Administration workspace. Its 2026-08-26 composition
 follow-ups and Phase 9b Invitations redesign are implemented with declared
 action routing, fail-loud named composition, query-resetting tabs, stable
@@ -105,18 +106,33 @@ End state:
   this is — identity and ownership, ways to connect, what it holds, its
   skills), **Knowledge** (the knowledge map), and **Network** (the agent
   proximity map). Public-visibility data only; no operator content.
-- Console strip: Dashboard / Chat / Studio — Dashboard being the only
-  surface that also serves the logged-out world.
+- Chat becomes a Studio workspace (decided 2026-08-30): one rail entry
+  beside Overview, the existing web-chat React client mounted as a lazy
+  chunk behind a fixed host-owned renderer — the Account precedent —
+  while `interfaces/web-chat` keeps owning transport, sessions, streaming,
+  uploads, and conversation access. "Discuss in chat" becomes router
+  navigation carrying the existing prefill contract, retiring the console's
+  last reload bounce.
+- Console strip: Dashboard / Studio — Dashboard being the only surface that
+  also serves the logged-out world. Chat's strip entry retires with the chat
+  workspace: conversations are trusted-only (admins, or trusted users on
+  their own conversations), so the strip door had no non-operator audience.
 
 ## Non-goals
 
-- Moving web-chat into Studio. Chat is an interface with a live message
-  stream, aligned with the Chat SDK provider family
-  ([`brain-web-chat-sdk-adapter.md`](./brain-web-chat-sdk-adapter.md)); the
-  operator-console composition stays navigational per
-  [`operator-console-pwa.md`](./operator-console-pwa.md). Studio features that
-  need chat call the chat surface; chat does not move house. The Dashboard
-  likewise stays a separate surface — only its operator content moves.
+- Moving the web-chat package into Studio. `interfaces/web-chat` remains the
+  interface that owns the message stream, aligned with the Chat SDK provider
+  family ([`brain-web-chat-sdk-adapter.md`](./brain-web-chat-sdk-adapter.md));
+  Phase 10 moves only its operator door and client mount into the Studio
+  shell. The Dashboard likewise stays a separate surface — only its operator
+  content moves.
+- Anonymous public-scope chat. The public card's Chat door currently leads
+  through sign-in; whether visitors ever get a public-scope conversation is
+  a separate product decision, not part of this consolidation.
+- A docked chat companion beside workspaces. Side-by-side chat was mocked
+  and rejected for now: it creates a second conversation venue and squeezes
+  the master/detail workspaces. The workspace shape forecloses nothing — a
+  dock would reuse the same context plumbing if it ever earns its chrome.
 - Weakening what any capability requires. The gate inversion moves the
   trusted floor from the route perimeter into the capability families; no
   data or action becomes reachable at a lower rank than today. The only
@@ -549,6 +565,25 @@ dominating and the common task (checking pending state) buried mid-page.
 invitation totals sit in the workspace head; both creation flows use collapsed,
 host-rendered disclosure forms; the standard flow has no peer field; and the
 destination label follows the selected channel descriptor.
+
+### Phase 10 — Chat becomes a Studio workspace
+
+Chat is operator-only: `canAccessBrowserConversation` admits admins and
+trusted users on their own conversations, nothing anonymous. Its separate
+surface therefore buys no audience split — only the console's last
+cross-surface bounce, Studio's `discussInboxInChat` doing a `pushState` plus
+`window.location.reload()` into the chat page. The mockups' Chat-workspace
+and mobile frames sketch the direction; the UX is settled by
+[`studio-ux-research.md`](./studio-ux-research.md), not pinned here.
+Implementation follows the Account precedent (a real client app mounted in
+the shell).
+
+Boundaries the phase must hold: `interfaces/web-chat` keeps owning
+transport, sessions, streaming, uploads, and conversation access — Studio
+takes only the door and the mount. Done means: "Discuss in chat" reaches the
+conversation with its context and without a reload, the conversation
+resumes across navigation and devices, the old chat route redirects, and
+the strip reads Dashboard / Studio.
 
 ## Ordering rationale
 

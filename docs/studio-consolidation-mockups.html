@@ -1947,6 +1947,122 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
   .kn-label { opacity: 1; animation: none; }
   .kn-breathe, .px-halo, .px-flicker { animation: none; }
 }
+
+/* ---- chat as a Studio workspace (desktop + phone) ------------------------ */
+
+.chat-ws { display: flex; flex-direction: column; height: 100%; min-height: 430px; }
+.chat-ws-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 14px; max-width: 760px; width: 100%; margin: 0 auto; padding: 6px 0 18px; }
+.chat-ws-composer { max-width: 760px; width: 100%; margin: 0 auto; border-top: 1px solid var(--console-rule); padding-top: 13px; display: flex; flex-direction: column; gap: 9px; }
+.chat-arrival { align-self: center; display: inline-flex; align-items: center; gap: 8px; font-family: var(--console-mono); font-size: 9.5px; letter-spacing: .08em; color: var(--console-text-muted); }
+
+.chat-msg { max-width: 82%; padding: 10px 13px; border-radius: 10px; font-size: 13px; line-height: 1.55; }
+.chat-msg .who { display: block; margin-bottom: 4px; font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--console-text-muted); }
+.chat-msg.you { align-self: flex-end; background: var(--console-accent-soft); border: 1px solid var(--console-rule-accent); color: var(--console-text); }
+.chat-msg.brain { align-self: flex-start; background: var(--console-card); border: 1px solid var(--console-rule-strong); color: var(--console-text-dim); }
+.chat-msg .src { display: block; margin-top: 7px; font-family: var(--console-mono); font-size: 9px; letter-spacing: .04em; color: var(--console-text-muted); }
+.chat-msg.typing .dots { display: inline-flex; gap: 4px; }
+.chat-msg.typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--console-text-muted); animation: chatdot 1.2s ease-in-out infinite; }
+.chat-msg.typing i:nth-child(2) { animation-delay: .16s; }
+.chat-msg.typing i:nth-child(3) { animation-delay: .32s; }
+@keyframes chatdot { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+
+.chat-context-chip { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 3px 8px; border: 1px solid var(--console-rule-accent); border-radius: 999px; background: var(--console-accent-soft); font-family: var(--console-mono); font-size: 9.5px; color: var(--console-accent); }
+.chat-context-chip button { background: none; border: 0; color: inherit; cursor: pointer; font-size: 11px; line-height: 1; }
+.chat-input-row { display: flex; align-items: center; gap: 8px; }
+.chat-input { flex: 1 1 auto; padding: 9px 12px; border: 1px solid var(--console-rule-strong); border-radius: 8px; background: var(--console-frame); color: var(--console-text-muted); font-size: 12.5px; }
+
+/* phones */
+.frame.phone-row { grid-template-columns: minmax(0, 1fr); padding: 30px 34px 34px; gap: 26px; display: flex; flex-wrap: wrap; align-items: flex-start; }
+.phone { flex: 0 0 258px; }
+.phone-cap { margin-bottom: 9px; font-family: var(--console-mono); font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--console-text-muted); }
+.phone-screen { position: relative; height: 460px; display: flex; flex-direction: column; border: 1px solid var(--console-rule-strong); border-radius: 22px; overflow: hidden; background: var(--console-frame); }
+.phone-bar { display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-bottom: 1px solid var(--console-rule); background: var(--console-card-soft); }
+.phone-menu, .phone-chat { color: var(--console-text-dim); font-size: 13px; }
+.phone-chat { position: relative; margin-left: auto; }
+.phone-title { font-size: 12.5px; color: var(--console-text); }
+.phone-context { margin-left: auto; font-family: var(--console-mono); font-size: 8.5px; color: var(--console-accent); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-body { padding: 14px; }
+.phone-kicker { font-family: var(--console-mono); font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: var(--console-accent); }
+.phone-h1 { margin: 5px 0 12px; font-family: var(--console-display); font-size: 25px; font-weight: 560; color: var(--console-text); }
+.phone-kv { margin: 0 0 12px; font-size: 11px; color: var(--console-text-dim); line-height: 1.7; }
+.phone-kv b { color: var(--console-text); font-weight: 500; }
+.phone-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.phone-actions .btn { font-size: 11.5px; padding: 7px 12px; }
+.phone-chat-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow: hidden; }
+.phone-chat-body .chat-msg { font-size: 11.5px; max-width: 90%; }
+.phone-composer { border-top: 1px solid var(--console-rule); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.phone-note { flex: 1 1 300px; min-width: 260px; align-self: center; }
+.phone-note p { margin: 0 0 12px; font-size: 13.5px; line-height: 1.65; color: var(--console-text-dim); }
+.phone-note b { color: var(--console-text); font-weight: 560; }
+
+/* ---- UX research frames -------------------------------------------------- */
+
+.ux-stack { display: flex; flex-direction: column; gap: 0; padding: 30px 40px 36px; }
+.ux-band { display: flex; flex-direction: column; gap: 7px; padding: 22px 4px 20px; border-top: 1px solid var(--console-rule); }
+.ux-band:first-child { border-top: 0; }
+.ux-band-cap { font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--console-text-muted); }
+.ux-head-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.ux-kicker { font-family: var(--console-mono); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--console-accent); }
+.ux-title { font-family: var(--console-display); font-weight: 620; font-variation-settings: "SOFT" 40; color: var(--console-text); line-height: 1; }
+.ux-title--l { font-size: 34px; }
+.ux-title--m { font-size: 27px; }
+.ux-meta { font-family: var(--console-mono); font-size: 10.5px; letter-spacing: .05em; color: var(--console-text-muted); }
+.ux-desc { margin: 0; font-size: 13px; color: var(--console-text-dim); }
+.ux-spacer { flex: 1 1 auto; }
+.ux-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--console-rule-strong); font-family: var(--console-mono); font-size: 9.5px; letter-spacing: .06em; color: var(--console-text-dim); }
+.ux-chip[data-tone="warn"] { color: var(--console-warn); border-color: color-mix(in srgb, var(--console-warn) 40%, transparent); }
+.ux-chip[data-tone="lock"] { color: var(--console-text-muted); }
+.ux-statchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ux-statchips span { display: inline-flex; gap: 7px; align-items: baseline; padding: 4px 10px; border-radius: 7px; background: var(--console-card); border: 1px solid var(--console-rule-strong); font-size: 11.5px; color: var(--console-text-muted); }
+.ux-statchips b { font-family: var(--console-display); font-size: 15px; font-weight: 560; color: var(--console-text); }
+.ux-note { padding: 20px 4px 4px; border-top: 1px solid var(--console-rule-strong); }
+.ux-note p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.65; color: var(--console-text-dim); max-width: 78ch; }
+.ux-note b { color: var(--console-text); font-weight: 560; }
+
+/* audit regrammared */
+.ux-filterbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; }
+.ux-select { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border: 1px solid var(--console-rule-strong); border-radius: 8px; background: var(--console-card); font-size: 12px; color: var(--console-text-dim); }
+.ux-select small { font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--console-text-muted); }
+.ux-pager { margin-left: auto; font-family: var(--console-mono); font-size: 10.5px; color: var(--console-text-muted); }
+.ux-table { width: 100%; border-collapse: collapse; }
+.ux-table th { text-align: left; padding: 8px 10px; font-family: var(--console-mono); font-size: 9px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--console-text-muted); border-bottom: 1px solid var(--console-rule-strong); }
+.ux-table td { padding: 11px 10px; border-bottom: 1px solid var(--console-rule); font-size: 13px; color: var(--console-text-dim); }
+.ux-table td:first-child { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); white-space: nowrap; }
+.ux-table td b { color: var(--console-text); font-weight: 500; }
+
+/* phone additions (reuses .phone / .phone-screen / .phone-bar from chat section) */
+.phone-chips { display: flex; gap: 7px; padding: 9px 0 9px 14px; overflow: hidden; border-bottom: 1px solid var(--console-rule); -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent 98%); mask-image: linear-gradient(90deg, #000 82%, transparent 98%); }
+.phone-chips span { flex: 0 0 auto; padding: 4px 11px; border: 1px solid var(--console-rule-strong); border-radius: 999px; font-size: 10.5px; color: var(--console-text-dim); }
+.phone-chips span.on { border-color: var(--console-rule-accent); color: var(--console-text); }
+.phone-chips i { font-style: normal; margin-left: 5px; font-family: var(--console-mono); font-size: 8.5px; color: var(--console-text-muted); }
+.phone-headrow { display: flex; align-items: baseline; gap: 9px; padding: 12px 14px 10px; }
+.phone-headrow .ux-kicker { font-size: 8px; }
+.phone-headrow .t { font-family: var(--console-display); font-size: 19px; font-weight: 600; color: var(--console-text); }
+.phone-headrow .ux-chip { margin-left: auto; font-size: 8.5px; padding: 2px 8px; }
+.phone-rows { flex: 1 1 auto; overflow: hidden; padding: 0 14px; }
+.phone-rows .row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--console-rule); }
+.phone-rows .row > div { min-width: 0; }
+.phone-rows .row strong { display: block; font-size: 13px; font-weight: 560; color: var(--console-text); }
+.phone-rows .row small { display: block; margin-top: 2px; font-family: var(--console-mono); font-size: 9.5px; color: var(--console-text-muted); }
+.phone-rows .row .ux-chip { margin-left: auto; flex: 0 0 auto; font-size: 8px; }
+.phone-pin { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-top: 1px solid var(--console-rule-strong); background: var(--console-card-soft); }
+.phone-pin .btn { font-size: 12px; padding: 8px 14px; }
+.phone-pin .meta { margin-left: auto; font-family: var(--console-mono); font-size: 8.5px; color: var(--console-text-muted); text-align: right; line-height: 1.5; }
+
+/* chat sessions (relocated web-chat session rail) */
+.chat-split { display: flex; flex: 1 1 auto; min-height: 480px; }
+.chat-sessions { flex: 0 0 218px; display: flex; flex-direction: column; gap: 2px; padding: 16px 12px; border-right: 1px solid var(--console-rule-strong); background: var(--console-card-soft); }
+.chat-new { align-self: stretch; margin-bottom: 12px; font-size: 12px; }
+.chat-session-cap { padding: 0 8px 6px; font-family: var(--console-mono); font-size: 8.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--console-text-muted); }
+.chat-session { display: block; padding: 8px 10px; border-radius: 8px; border-left: 2px solid transparent; text-decoration: none; }
+.chat-session strong { display: block; font-size: 12.5px; font-weight: 500; color: var(--console-text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-session small { display: block; margin-top: 2px; font-family: var(--console-mono); font-size: 9px; color: var(--console-text-muted); }
+.chat-session.on { background: var(--console-card); border-left-color: var(--console-accent); }
+.chat-session.on strong { color: var(--console-text); }
+.chat-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 18px 26px 20px; }
+.chat-main-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--console-rule); }
+.chat-main-title { font-family: var(--console-display); font-size: 21px; font-weight: 560; color: var(--console-text); }
+.chat-main-meta { font-family: var(--console-mono); font-size: 9.5px; letter-spacing: .05em; color: var(--console-text-muted); }
 </style></head><body>
 
 <p class="label">Studio — Overview workspace (operator home · trusted/admin)</p>
@@ -2028,6 +2144,166 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
     <table class="declarative-table"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th></tr></thead><tbody><tr><td>24 Aug, 14:31</td><td>Mira Reyes</td><td>Unlinked an external peer</td><td>Grace Hopper</td></tr><tr><td>24 Aug, 13:06</td><td>Mira Reyes</td><td>Created a passkey setup link</td><td>Jordan Rivera</td></tr><tr><td>23 Aug, 18:20</td><td>System</td><td>Recorded a failed passkey sign-in</td><td>Access</td></tr></tbody></table>
   </div></div></section></div>
 </main></div>
+
+<p class="label">Studio — Chat workspace (desktop: sessions + conversation, arrived via "Discuss in chat")</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+    <div class="rail-group"><a href="#">Overview<span class="n">2</span></a><a href="#" class="on">Chat</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div>
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Publishing<span class="n">1</span></a><a href="#">Content sync</a><a href="#">Site</a><a href="#">Administration<span class="n">1</span></a><a href="#">Account</a></div>
+    </nav><main class="declarative-workspace chat-ws" style="padding:0">
+  <div class="chat-split">
+    <aside class="chat-sessions">
+      <button class="btn ghost chat-new">+ New conversation</button>
+      <div class="chat-session-cap">Conversations</div>
+      <a href="#" class="chat-session on"><strong>Urban sensor platforms</strong><small>from Inbox · just now</small></a>
+      <a href="#" class="chat-session"><strong>Newsletter tone check</strong><small>yesterday</small></a>
+      <a href="#" class="chat-session"><strong>Who knows about LoRa?</strong><small>3 days ago</small></a>
+      <a href="#" class="chat-session"><strong>Draft: workshop outline</strong><small>last week</small></a>
+    </aside>
+    <section class="chat-main">
+      <header class="chat-main-head">
+        <span class="chat-main-title">Urban sensor platforms</span>
+        <span class="chat-main-meta">started from Inbox · rename · delete</span>
+      </header>
+      <div class="chat-ws-body">
+        <span class="chat-arrival">context attached: mail-items/urban-sensor-platforms</span>
+        <div class="chat-msg you"><span class="who">you</span>Summarise this thread and draft a reply that promises the summary by Wednesday.</div>
+        <div class="chat-msg brain"><span class="who">brain</span>Sam is asking for the sensor-platform summary before Thursday's session. Draft:<br><br>“Hi Sam — sending the platform summary your way by Wednesday so you have it ahead of the session. Shout if you need the raw field notes too.”<span class="src">context: mail-items/urban-sensor-platforms · 2 linked notes</span></div>
+        <div class="chat-msg you"><span class="who">you</span>Good — capture the draft as a note next to the field notes.</div>
+        <div class="chat-msg brain typing"><span class="who">brain</span><span class="dots"><i></i><i></i><i></i></span></div>
+      </div>
+      <div class="chat-ws-composer">
+        <span class="chat-context-chip">Urban sensor platforms<button aria-label="Drop context">×</button></span>
+        <div class="chat-input-row"><span class="chat-input">Message the brain…</span><button class="btn">Send</button></div>
+      </div>
+    </section>
+  </div>
+</main></div>
+
+<p class="label">Studio on mobile — the session drawer survives; "Discuss in chat" auto-titles a session</p>
+<div class="frame phone-row" data-climate="instrument">
+  <div class="phone">
+    <div class="phone-cap">Conversation · session named in the bar</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Urban sensor platforms ▾</span></div>
+      <div class="phone-chat-body">
+        <div class="chat-msg you"><span class="who">you</span>Draft a reply promising the summary by Wednesday.</div>
+        <div class="chat-msg brain"><span class="who">brain</span>“Hi Sam — sending the platform summary your way by Wednesday…”<span class="src">context: mail-items/urban-sensor-platforms</span></div>
+      </div>
+      <div class="phone-composer"><span class="chat-context-chip">Urban sensor platforms<button aria-label="Drop context">×</button></span><div class="chat-input-row"><span class="chat-input">Message…</span><button class="btn">Send</button></div></div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="phone-cap">Session drawer · web-chat's existing drawer, unchanged</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Conversations</span><span class="phone-chat">×</span></div>
+      <div class="phone-rows" style="padding-top:8px">
+        <div class="row"><div><strong>Urban sensor platforms</strong><small>from Inbox · just now</small></div><span class="ux-chip" data-tone="warn">active</span></div>
+        <div class="row"><div><strong>Newsletter tone check</strong><small>yesterday</small></div></div>
+        <div class="row"><div><strong>Who knows about LoRa?</strong><small>3 days ago</small></div></div>
+        <div class="row"><div><strong>Draft: workshop outline</strong><small>last week</small></div></div>
+      </div>
+      <div class="phone-pin"><button class="btn">+ New conversation</button></div>
+    </div>
+  </div>
+  <div class="phone-note">
+    <p><b>Sessions are the workspace's spine, not a casualty of the move.</b> The client's existing session rail — titles, rename, delete, new conversation — mounts as the workspace's left column on desktop and stays the drawer on the phone. Nothing about session handling is redesigned; it relocates.</p>
+    <p><b>"Discuss in chat" creates a titled conversation.</b> The handoff starts (or resumes) a session named from the item, so the discussion is findable later in the list — context isn't a mode, it's a conversation like any other.</p>
+    <p><b>The strip slims to Dashboard / Studio.</b> Chat is trusted-only, so its strip entry retires; the public card's Chat door leads through sign-in to this workspace. Anonymous public-scope chat stays a separate decision.</p>
+  </div>
+</div>
+
+<p class="label">UX research — one head grammar, density as the only parameter</p>
+<div class="frame face" data-climate="instrument"><div class="ux-stack">
+  <div class="ux-band">
+    <div class="ux-band-cap">Library · compact density</div>
+    <div class="ux-head-row"><span class="ux-kicker">Collection</span></div>
+    <div class="ux-head-row"><span class="ux-title ux-title--m">Field notes</span><span class="ux-meta">4 · sorted by updated</span><span class="ux-spacer"></span><button class="btn">New field note</button></div>
+  </div>
+  <div class="ux-band">
+    <div class="ux-band-cap">Workspace · regular density</div>
+    <div class="ux-head-row"><span class="ux-kicker">Access administration</span><span class="ux-chip" data-tone="lock">admin only</span></div>
+    <div class="ux-head-row"><span class="ux-title ux-title--l">Administration</span><span class="ux-chip" data-tone="warn">1 needs you</span><span class="ux-spacer"></span><span class="ux-statchips"><span>Pending <b>1</b></span><span>History <b>4</b></span><span>Failures <b>0</b></span></span></div>
+    <p class="ux-desc">Manage local people, invitation delivery, external provenance, and security history.</p>
+  </div>
+  <div class="ux-band">
+    <div class="ux-band-cap">Account · same grammar, no bespoke idiom</div>
+    <div class="ux-head-row"><span class="ux-kicker">You</span></div>
+    <div class="ux-head-row"><span class="ux-title ux-title--l">Account</span><span class="ux-meta">signed in as Mira Reyes · admin</span></div>
+  </div>
+  <div class="ux-note">
+    <p><b>One grammar:</b> kicker line, then a single title row carrying meta, status, and totals as chips, then at most one line of description. Density (title size, which chips appear) is the only parameter. The "Admin only · Access administration" status corner becomes a lock chip on the kicker line; the totals block becomes stat chips in the title row — the head stops being a region and becomes two lines.</p>
+  </div>
+</div></div>
+
+<p class="label">UX research — Audit regrammared (filters together, table owns the width)</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+    <div class="rail-group"><a href="#">Overview<span class="n">2</span></a><a href="#">Chat</a></div>
+    <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail items<span class="n">9</span></a><a href="#">Topics<span class="n">3</span></a></div>
+    <div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Publishing<span class="n">1</span></a><a href="#">Content sync</a><a href="#">Site</a><a href="#" class="on">Administration<span class="n">1</span></a><a href="#">Account</a></div>
+    </nav><main class="declarative-workspace">
+  <div class="ux-band" style="border-top:0;padding-top:4px">
+    <div class="ux-head-row"><span class="ux-kicker">Access administration</span><span class="ux-chip" data-tone="lock">admin only</span></div>
+    <div class="ux-head-row"><span class="ux-title ux-title--l">Administration</span><span class="ux-spacer"></span><span class="ux-statchips"><span>Events <b>212</b></span></span></div>
+  </div>
+  <div class="declarative-tabs" style="margin-top:8px"><div role="tablist"><button role="tab" aria-selected="false">People</button><button role="tab" aria-selected="false">Invitations · 1</button><button role="tab" aria-selected="true">Audit</button></div></div>
+  <div class="ux-filterbar">
+    <span class="ux-select"><small>Actor</small>All actors ▾</span>
+    <span class="ux-select"><small>Action</small>All actions ▾</span>
+    <span class="ux-pager">1–25 of 212 · Previous · Next</span>
+  </div>
+  <table class="ux-table">
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>24 Aug, 14:31</td><td><b>Mira Reyes</b></td><td>Unlinked an external peer</td><td>Grace Hopper</td></tr>
+      <tr><td>24 Aug, 13:06</td><td><b>Mira Reyes</b></td><td>Created a passkey setup link</td><td>Jordan Rivera</td></tr>
+      <tr><td>23 Aug, 18:20</td><td>System</td><td>Recorded a failed passkey sign-in</td><td>Access</td></tr>
+      <tr><td>23 Aug, 09:12</td><td><b>Mira Reyes</b></td><td>Changed an account role</td><td>Tess Trusted</td></tr>
+    </tbody>
+  </table>
+  <div class="ux-note" style="margin-top:18px">
+    <p><b>Filters live together</b>, left-aligned above the table they filter, with the pager on the same line; nothing sits at the far screen edge. The table takes the full main column — no dead half-screen — and the head is the two-line grammar from the previous frame.</p>
+  </div>
+</main></div>
+
+<p class="label">UX research — phone: tables re-flow, chrome compresses, actions pin</p>
+<div class="frame phone-row" data-climate="instrument">
+  <div class="phone">
+    <div class="phone-cap">People at 390px · list re-flow + pinned action</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Studio</span></div>
+      <div class="phone-chips"><span>Overview<i>2</i></span><span>Chat</span><span class="on">Administration<i>1</i></span><span>Inbox<i>14</i></span><span>Publish</span></div>
+      <div class="phone-headrow"><span class="t">Administration</span><span class="ux-meta">People</span><span class="ux-chip" data-tone="warn">1</span></div>
+      <div class="phone-rows">
+        <div class="row"><div><strong>Mira Reyes</strong><small>Admin · Active · 2 passkeys</small></div><span class="ux-chip">this brain</span></div>
+        <div class="row"><div><strong>Grace Hopper</strong><small>Trusted · Active · 1 passkey</small></div><span class="ux-chip">grace.example</span></div>
+        <div class="row"><div><strong>Sam Lee</strong><small>Public · Suspended</small></div><span class="ux-chip">this brain</span></div>
+        <div class="row"><div><strong>Jordan Rivera</strong><small>Trusted · Invited · expires in 2d</small></div><span class="ux-chip">via mail</span></div>
+      </div>
+      <div class="phone-pin"><button class="btn">+ Invite</button><span class="meta">4 people · 1 pending</span></div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="phone-cap">Audit at 390px · same rules, zero side-scroll</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Studio</span></div>
+      <div class="phone-chips"><span>Overview<i>2</i></span><span>Chat</span><span class="on">Administration<i>1</i></span><span>Inbox<i>14</i></span><span>Publish</span></div>
+      <div class="phone-headrow"><span class="t">Administration</span><span class="ux-meta">Audit</span><span class="ux-chip">212</span></div>
+      <div class="phone-rows">
+        <div class="row"><div><strong>Unlinked an external peer</strong><small>Mira Reyes → Grace Hopper · 24 Aug 14:31</small></div></div>
+        <div class="row"><div><strong>Created a passkey setup link</strong><small>Mira Reyes → Jordan Rivera · 24 Aug 13:06</small></div></div>
+        <div class="row"><div><strong>Recorded a failed passkey sign-in</strong><small>System → Access · 23 Aug 18:20</small></div></div>
+        <div class="row"><div><strong>Changed an account role</strong><small>Mira Reyes → Tess Trusted · 23 Aug 09:12</small></div></div>
+      </div>
+      <div class="phone-pin"><span class="ux-select" style="padding:6px 10px"><small>Filter</small>All ▾</span><span class="meta">1–25 of 212</span></div>
+    </div>
+  </div>
+  <div class="phone-note">
+    <p><b>Chrome budget: two bars and two lines.</b> Strip collapses into the top bar, the chips row scrolls with a visible fade, and the head is one line — title, tab, attention chip. Content starts at roughly 160px instead of 450px.</p>
+    <p><b>Tables re-flow into the list grammar</b> the protocol already has: the row's key fact becomes the title, the rest becomes the meta line, chips carry provenance or state. A renderer rule at phone width, not per-workspace work — Audit gets it for free.</p>
+    <p><b>The primary action pins to the bottom bar</b> — the editor's pattern, generalized. On desktop the same action sits trailing in the head's title row; one grammar, one responsive rule.</p>
+  </div>
+</div>
 
 <p class="label">Dashboard — Overview tab (what is this)</p>
 <div class="frame face" data-climate="instrument"><div>
