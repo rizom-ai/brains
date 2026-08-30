@@ -7,7 +7,8 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { imageAdapter, setCoverImageId } from "@brains/image";
+import { prepareAsset } from "@brains/assets";
+import { imageAdapter, parseDataUrl, setCoverImageId } from "@brains/image";
 import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
@@ -194,9 +195,13 @@ ${entityContent}`,
         message: "Creating image entity",
       });
 
-      // Step 3: Create or update image entity
+      // Step 3: Validate provider output and commit bytes with the entity.
+      const parsedImage = parseDataUrl(generationResult.dataUrl);
+      const preparedAsset = prepareAsset(parsedImage.bytes);
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: generationResult.dataUrl,
+        assetRef: preparedAsset.ref,
+        bytes: parsedImage.bytes,
+        declaredMediaType: parsedImage.mediaType,
         title,
         status: "draft",
         attachmentType: "generated",
@@ -210,6 +215,7 @@ ${entityContent}`,
           ...entityData,
           id: imageId,
         },
+        preparedAsset,
       });
 
       this.logger.debug("Created image entity", { imageId });

@@ -1,3 +1,4 @@
+import { prepareAsset } from "@brains/assets";
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
@@ -9,6 +10,7 @@ import {
 import { DirectorySync } from "../src/lib/directory-sync";
 import { FileOperations } from "../src/lib/file-operations";
 import { OversizedFileError } from "../src/lib/oversized-file-error";
+import { TINY_PNG_BYTES } from "./fixtures";
 
 const LIMIT_BYTES = 8;
 
@@ -68,26 +70,21 @@ describe("directory import size guard", () => {
     expect(existsSync(absolutePath)).toBe(true);
   });
 
-  it("allows legacy binary files exactly at the configured limit", async () => {
+  it("allows valid binary images exactly at the configured limit", async () => {
     mkdirSync(join(testDir, "image"), { recursive: true });
-    writeFileSync(
-      join(testDir, "image", "exact.png"),
-      Buffer.alloc(LIMIT_BYTES),
-    );
+    writeFileSync(join(testDir, "image", "exact.png"), TINY_PNG_BYTES);
     const service = createMockEntityService({ entityTypes: ["image"] });
     const fileOperations = new FileOperations(testDir, service);
 
     const entity = await fileOperations.readEntity(
       "image/exact.png",
-      LIMIT_BYTES,
+      TINY_PNG_BYTES.byteLength,
     );
 
-    expect(entity.content).toBe(
-      `data:image/png;base64,${Buffer.alloc(LIMIT_BYTES).toString("base64")}`,
-    );
+    expect(entity.content).toBe(prepareAsset(TINY_PNG_BYTES).ref);
   });
 
-  it("throws a typed error for oversized legacy binary files", async () => {
+  it("throws a typed error for oversized binary images", async () => {
     mkdirSync(join(testDir, "image"), { recursive: true });
     const relativePath = "image/oversized.png";
     writeFileSync(join(testDir, relativePath), Buffer.alloc(LIMIT_BYTES + 1));

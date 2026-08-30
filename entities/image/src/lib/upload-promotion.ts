@@ -26,10 +26,6 @@ export function getUploadImageIdentity(input: {
   return { id, title };
 }
 
-export function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
-}
-
 function getUploadTitle(title: string | undefined, filename: string): string {
   const trimmed = title?.trim();
   if (trimmed) return trimmed;

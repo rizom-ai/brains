@@ -112,6 +112,11 @@ Some text
       mockEntityService = {
         getEntity: mock(() => Promise.resolve(null)),
         getEntityRaw: mock(() => Promise.resolve(null)),
+        readAsset: mock(() => Promise.resolve(new Uint8Array())),
+        statAsset: mock(() => Promise.resolve(null)),
+        verifyAsset: mock(() => {
+          throw new Error("not configured");
+        }),
         listEntities: mock(() => Promise.resolve([])),
         search: mock(() => Promise.resolve([])),
         searchWithDistances: mock(() => Promise.resolve([])),

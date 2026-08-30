@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.338",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/image": "workspace:*",
     "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-engine": "workspace:*",

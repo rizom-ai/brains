@@ -1,3 +1,4 @@
+import { prepareAsset } from "@brains/assets";
 import { describe, expect, it } from "bun:test";
 import { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -67,17 +68,19 @@ describe("SourceImageRenderJobHandler", () => {
       imageId: "og-post-post-1",
       reused: false,
     });
+    const preparedAsset = prepareAsset(TINY_PNG);
     expect(context.entityService.createEntity).toHaveBeenCalledWith({
       entity: expect.objectContaining({
         id: "og-post-post-1",
         entityType: "image",
-        content: expect.stringContaining("data:image/png;base64,"),
+        content: preparedAsset.ref,
         metadata: expect.objectContaining({
           attachmentType: "og-image",
           sourceEntityType: "post",
           sourceEntityId: "post-1",
         }),
       }),
+      preparedAsset,
     });
     expect(context.entities.update).toHaveBeenCalledWith(
       expect.objectContaining({

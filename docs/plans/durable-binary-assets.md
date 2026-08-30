@@ -4,8 +4,11 @@ Last updated: 2026-08-28
 
 ## Status
 
-SQLite backend accepted for foundation implementation; production migration remains
-blocked.
+The SQLite asset foundation merged in PR #187; production image migration remains
+blocked. The current image-cutover phase stores newly completed images as SQLite assets,
+retains read compatibility for existing inline image entities, and deliberately performs
+no bulk conversion. Existing payloads will move only through the separately rehearsed,
+verifiable migration phase.
 
 PR #125 implemented a filesystem-backed content-addressed asset store under
 `data/assets`. That backend is no longer the target architecture. Do not merge or deploy

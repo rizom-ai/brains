@@ -1,3 +1,5 @@
+import type { PreparedAsset } from "@brains/assets";
+
 /**
  * Directory sync status
  */
@@ -152,6 +154,8 @@ export interface RawEntity {
   entityType: string;
   id: string;
   content: string;
+  /** Binary bytes staged for the same transaction as an asset-backed entity. */
+  preparedAsset?: PreparedAsset;
   created: Date;
   updated: Date;
   metadata?: Record<string, unknown>;

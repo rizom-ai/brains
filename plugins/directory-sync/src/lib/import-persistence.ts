@@ -1,3 +1,4 @@
+import type { PreparedAsset } from "@brains/assets";
 import type { BaseEntity, ContentVisibility } from "@brains/plugins";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -17,6 +18,7 @@ export interface ImportPersistenceDeps {
     serializeEntity(entity: BaseEntity): string;
     upsertEntity(request: {
       entity: BaseEntity;
+      preparedAsset?: PreparedAsset | undefined;
       options: { persistenceOrigin: "directory-sync" };
     }): Promise<{ jobId: string }>;
   };
@@ -141,7 +143,10 @@ export async function persistImportEntity(
     );
 
     const upsertResult = await deps.entityService.upsertEntity({
-      entity: entity,
+      entity,
+      ...(rawEntity.preparedAsset
+        ? { preparedAsset: rawEntity.preparedAsset }
+        : {}),
       options: { persistenceOrigin: "directory-sync" },
     });
     result.imported++;

@@ -2105,22 +2105,37 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toBe("Document not found");
   });
 
-  it("serves generated image attachments to Admins", async () => {
+  it("serves SQLite-backed image attachments to Admins", async () => {
     const plugin = adminPlugin();
-    harness.addEntities([
-      {
-        id: "mossy-robot",
-        entityType: "image",
-        content: "data:image/png;base64,iVBORw0KGgo=",
-        metadata: {
-          title: "Mossy robot",
-          alt: "Mossy robot",
-          format: "png",
-          width: 1,
-          height: 1,
+    const bytes = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const digest = new Bun.CryptoHasher("sha256")
+      .update(bytes)
+      .digest("hex") as string;
+    const ref = `asset://sha256/${digest}` as const;
+    await harness
+      .getMockShell()
+      .getEntityService()
+      .createEntity({
+        entity: {
+          id: "mossy-robot",
+          entityType: "image",
+          content: ref,
+          visibility: "public",
+          metadata: {
+            title: "Mossy robot",
+            alt: "Mossy robot",
+            format: "png",
+            mediaType: "image/png",
+            sizeBytes: bytes.byteLength,
+            width: 1,
+            height: 1,
+          },
         },
-      },
-    ]);
+        preparedAsset: { ref, digest, sizeBytes: bytes.byteLength, bytes },
+      });
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 
@@ -2136,9 +2151,7 @@ describe("WebChatInterface", () => {
     expect(response?.headers.get("content-disposition")).toBe(
       "attachment; filename=\"mossy-robot.png\"; filename*=UTF-8''mossy-robot.png",
     );
-    expect(Buffer.from(body ?? new ArrayBuffer(0)).toString("base64")).toBe(
-      "iVBORw0KGgo=",
-    );
+    expect(Buffer.from(body ?? new ArrayBuffer(0))).toEqual(bytes);
   });
 
   it("rejects image attachment requests from unauthenticated callers", async () => {

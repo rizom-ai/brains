@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.338",
   "description": "Directory-based entity synchronization plugin for Brains",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",

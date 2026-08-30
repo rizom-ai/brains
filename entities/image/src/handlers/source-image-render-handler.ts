@@ -1,3 +1,4 @@
+import { prepareAsset } from "@brains/assets";
 import type { EntityPluginContext } from "@brains/plugins";
 import {
   BaseJobHandler,
@@ -11,7 +12,6 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
-  createDataUrl,
   imageAdapter,
   setCoverImageId,
   setOgImageId,
@@ -120,12 +120,11 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         message: "Creating image entity",
       });
 
-      // Derive the data-URL format from the attachment's declared mime type
-      // rather than hardcoding "png", so it stays correct if providers ever
-      // emit another image format.
-      const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
+      const preparedAsset = prepareAsset(attachment.data);
       const entityData = imageAdapter.createImageEntity({
-        dataUrl: createDataUrl(attachment.data.toString("base64"), imageFormat),
+        assetRef: preparedAsset.ref,
+        bytes: attachment.data,
+        declaredMediaType: attachment.mimeType,
         title: data.imageId,
         status: "draft",
         sourceEntityType: data.sourceEntityType,
@@ -137,6 +136,7 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       await saveProcessedEntity({
         entityService: this.context.entityService,
         entity: { ...entityData, id: data.imageId },
+        preparedAsset,
       });
 
       await this.updateTarget(data, data.imageId);

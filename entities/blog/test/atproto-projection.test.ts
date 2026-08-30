@@ -13,6 +13,9 @@ import { BlogPlugin } from "../src/plugin";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";
 import { createMockPost } from "./fixtures/blog-entities";
 
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 describe("blog ATProto projection", () => {
   beforeEach(() => {
     AtprotoProjectionRegistry.resetInstance();
@@ -52,7 +55,7 @@ describe("blog ATProto projection", () => {
     });
   });
 
-  it("includes cover image shape during dry-run without uploading a blob", async () => {
+  it("includes a SQLite-backed cover image during dry-run without uploading a blob", async () => {
     const projection = createBlogAtprotoProjection();
     const entity = createMockPost(
       "post-1",
@@ -76,18 +79,32 @@ describe("blog ATProto projection", () => {
         },
       ),
     };
-    const image = {
-      id: "image-1",
-      entityType: "image",
-      content: "data:image/png;base64,aGVsbG8=",
-      created: "2026-05-28T10:00:00.000Z",
-      updated: "2026-05-28T10:00:00.000Z",
-      visibility: "public" as const,
-      contentHash: "image-hash",
-      metadata: { alt: "Cover alt", width: 1200, height: 630 },
-    };
+    const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
+    const digest = new Bun.CryptoHasher("sha256")
+      .update(bytes)
+      .digest("hex") as string;
+    const ref = `asset://sha256/${digest}` as const;
     const shell = createMockShell();
-    shell.addEntities([postWithCover, image]);
+    shell.addEntities([postWithCover]);
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "image-1",
+        entityType: "image",
+        content: ref,
+        created: "2026-05-28T10:00:00.000Z",
+        updated: "2026-05-28T10:00:00.000Z",
+        visibility: "public" as const,
+        metadata: {
+          alt: "Cover alt",
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1200,
+          height: 630,
+        },
+      },
+      preparedAsset: { ref, digest, sizeBytes: bytes.byteLength, bytes },
+    });
     const context = createServicePluginContext(shell, "blog");
 
     const record = await projection.buildRecord({
@@ -102,7 +119,7 @@ describe("blog ATProto projection", () => {
         $type: "blob",
         ref: { $link: "dry-run" },
         mimeType: "image/png",
-        size: 5,
+        size: bytes.byteLength,
       },
       alt: "Cover alt",
       width: 1200,

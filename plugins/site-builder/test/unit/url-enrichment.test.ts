@@ -304,6 +304,59 @@ coverImageId: project-cover-image
       expect(result.url).toBe("/projects/test-project");
     });
 
+    it("should explicitly resolve an asset-backed cover image without a build image", async () => {
+      const bytes = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      const content = `---
+title: Asset Project
+slug: asset-project
+coverImageId: asset-cover
+---
+# Asset Project`;
+      const entity = createTestEntity("project", {
+        id: "asset-project",
+        content,
+        metadata: { slug: "asset-project", title: "Asset Project" },
+      });
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
+        id: "asset-cover",
+        entityType: "image",
+        content: `asset://sha256/${"a".repeat(64)}`,
+        contentHash: "asset-hash",
+        visibility: "public",
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1,
+          height: 1,
+        },
+      });
+      const readAsset = spyOn(
+        mockContext.entityService,
+        "readAsset",
+      ).mockResolvedValue(bytes);
+
+      const result = z
+        .object({
+          coverImageUrl: z.string(),
+          coverImageWidth: z.number(),
+          coverImageHeight: z.number(),
+        })
+        .parse(await enrich(entity));
+
+      expect(result.coverImageUrl).toBe(
+        `data:image/png;base64,${bytes.toString("base64")}`,
+      );
+      expect(result.coverImageWidth).toBe(1);
+      expect(result.coverImageHeight).toBe(1);
+      expect(readAsset).toHaveBeenCalledTimes(1);
+    });
+
     it("should resolve absolute ogImageUrl from ogImageId before coverImageId", async () => {
       const content = `---
 title: Test Post

@@ -9,11 +9,11 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
-import { imageAdapter } from "@brains/image";
+import { prepareAsset } from "@brains/assets";
+import { imageAdapter, inspectImageBytes } from "@brains/image";
 import {
   getUploadImageIdentity,
   isSupportedImageMediaType,
-  toDataUrl,
   webChatUploadsScope,
 } from "../lib/upload-promotion";
 
@@ -84,9 +84,16 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
         message: "Saving uploaded image",
       });
 
+      const inspected = inspectImageBytes(
+        upload.content,
+        upload.record.mediaType,
+      );
+      const preparedAsset = prepareAsset(upload.content);
       const now = new Date().toISOString();
       const imageEntity = imageAdapter.createImageEntity({
-        dataUrl: toDataUrl(upload.record.mediaType, upload.content),
+        assetRef: preparedAsset.ref,
+        bytes: upload.content,
+        declaredMediaType: inspected.mediaType,
         title: identity.title,
         status: "draft",
         sourceUploadId: data.uploadId,
@@ -102,6 +109,7 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
           created: now,
           updated: now,
         },
+        preparedAsset,
       });
 
       await this.reportProgress(progressReporter, {

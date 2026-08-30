@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createAssetRef, prepareAsset } from "@brains/assets";
 import { imageAdapter } from "../src/adapters/image-adapter";
 import type { Image } from "../src/schemas/image";
 
@@ -6,6 +7,8 @@ import type { Image } from "../src/schemas/image";
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BASE64}`;
+const TINY_PNG_BYTES = Buffer.from(TINY_PNG_BASE64, "base64");
+const ASSET_REF = prepareAsset(TINY_PNG_BYTES).ref;
 
 const mockImageEntity: Image = {
   id: "img-123",
@@ -40,10 +43,37 @@ describe("ImageAdapter", () => {
       const result = imageAdapter.schema.safeParse(mockImageEntity);
       expect(result.success).toBe(true);
     });
+
+    it("should require binary facts for asset-backed images", () => {
+      expect(
+        imageAdapter.schema.safeParse({
+          ...mockImageEntity,
+          content: ASSET_REF,
+          metadata: { title: "Incomplete asset" },
+        }).success,
+      ).toBe(false);
+    });
+
+    it("should permit empty content only for incomplete images", () => {
+      expect(
+        imageAdapter.schema.safeParse({
+          ...mockImageEntity,
+          content: "",
+          metadata: { title: "Pending", status: "pending" },
+        }).success,
+      ).toBe(true);
+      expect(
+        imageAdapter.schema.safeParse({
+          ...mockImageEntity,
+          content: "",
+          metadata: { title: "Draft", status: "draft" },
+        }).success,
+      ).toBe(false);
+    });
   });
 
   describe("toMarkdown", () => {
-    it("should return content as-is (base64 data URL)", () => {
+    it("should return content as-is", () => {
       const result = imageAdapter.toMarkdown(mockImageEntity);
       expect(result).toBe(TINY_PNG_DATA_URL);
     });
@@ -64,6 +94,13 @@ describe("ImageAdapter", () => {
       expect(result.metadata?.title).toBeUndefined();
       expect(result.metadata?.alt).toBeUndefined();
     });
+
+    it("should preserve an opaque asset reference without loading bytes", () => {
+      expect(imageAdapter.fromMarkdown(ASSET_REF)).toEqual({
+        entityType: "image",
+        content: ASSET_REF,
+      });
+    });
   });
 
   describe("extractMetadata", () => {
@@ -78,29 +115,58 @@ describe("ImageAdapter", () => {
   });
 
   describe("createImageEntity", () => {
-    it("should create a valid image entity from data URL", () => {
+    it("should create a valid asset-backed image entity from bytes", () => {
       const result = imageAdapter.createImageEntity({
-        dataUrl: TINY_PNG_DATA_URL,
+        assetRef: ASSET_REF,
+        bytes: TINY_PNG_BYTES,
+        declaredMediaType: "image/png",
         title: "My Image",
         alt: "Description of my image",
       });
 
       expect(result.entityType).toBe("image");
-      expect(result.content).toBe(TINY_PNG_DATA_URL);
+      expect(result.content).toBe(ASSET_REF);
       expect(result.metadata.title).toBe("My Image");
       expect(result.metadata.alt).toBe("Description of my image");
       expect(result.metadata.format).toBe("png");
+      expect(result.metadata.mediaType).toBe("image/png");
+      expect(result.metadata.sizeBytes).toBe(TINY_PNG_BYTES.byteLength);
       expect(result.metadata.width).toBe(1);
       expect(result.metadata.height).toBe(1);
     });
 
+    it("should reject a reference that does not match the bytes", () => {
+      expect(() =>
+        imageAdapter.createImageEntity({
+          assetRef: createAssetRef("0".repeat(64)),
+          bytes: TINY_PNG_BYTES,
+          title: "Mismatched",
+        }),
+      ).toThrow("Image asset reference does not match its bytes");
+    });
+
     it("should default alt to title if not provided", () => {
       const result = imageAdapter.createImageEntity({
-        dataUrl: TINY_PNG_DATA_URL,
+        assetRef: ASSET_REF,
+        bytes: TINY_PNG_BYTES,
         title: "My Image",
       });
 
       expect(result.metadata.alt).toBe("My Image");
+    });
+
+    it("should create pending images without persisted fake bytes", () => {
+      expect(
+        imageAdapter.createPendingImageEntity({ title: "Pending" }),
+      ).toEqual({
+        entityType: "image",
+        content: "",
+        metadata: {
+          title: "Pending",
+          alt: "Pending",
+          status: "pending",
+        },
+      });
     });
   });
 });

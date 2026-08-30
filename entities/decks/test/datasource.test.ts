@@ -194,7 +194,8 @@ coverImageId: cover-img-1
       const coverImageEntity: BaseEntity = {
         id: "cover-img-1",
         entityType: "image",
-        content: "data:image/png;base64,AAAA",
+        content:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         visibility: "public",
         metadata: {
           title: "Cover",
