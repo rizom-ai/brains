@@ -412,6 +412,7 @@ describe("TypeSwitcher", () => {
       label: "Account",
       rendererName: "StudioAccountWorkspace",
       priority: 0,
+      permission: "public",
       entityTypes: [],
     };
     const html = renderToStaticMarkup(
@@ -437,6 +438,7 @@ describe("TypeSwitcher", () => {
       label: "Overview",
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 100,
+      permission: "trusted",
       entityTypes: [],
     };
     const administration: StudioWorkspaceInfo = {
@@ -445,6 +447,7 @@ describe("TypeSwitcher", () => {
       label: "Administration",
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 10,
+      permission: "admin",
       entityTypes: [],
     };
     const html = renderToStaticMarkup(
@@ -471,6 +474,7 @@ describe("TypeSwitcher", () => {
       label: "Publishing",
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 40,
+      permission: "trusted",
       entityTypes: ["post"],
     };
     const withWorkspace = renderToStaticMarkup(
@@ -581,6 +585,7 @@ function renderCapabilityView(
         label: "Publishing",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 40,
+        permission: "trusted",
         entityTypes: ["post"],
       },
     ],

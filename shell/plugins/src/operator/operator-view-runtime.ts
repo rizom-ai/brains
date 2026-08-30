@@ -182,9 +182,7 @@ export interface RuntimeOperatorQueryOption {
   readonly count?: number | undefined;
 }
 
-export interface RuntimeOperatorQueryBlock {
-  readonly type: "query";
-  readonly id: string;
+export interface RuntimeOperatorQueryDefinition {
   readonly controls: readonly {
     readonly key: string;
     readonly label: string;
@@ -200,6 +198,11 @@ export interface RuntimeOperatorQueryBlock {
         readonly label?: string | undefined;
       }
     | undefined;
+}
+
+export interface RuntimeOperatorQueryBlock extends RuntimeOperatorQueryDefinition {
+  readonly type: "query";
+  readonly id: string;
 }
 
 export interface RuntimeOperatorLinkItem {
@@ -265,6 +268,15 @@ export interface RuntimeOperatorTableFilter {
   readonly key: string;
   readonly label: string;
   readonly values: readonly RuntimeOperatorScalar[];
+}
+
+export interface RuntimeOperatorTableCompactRow {
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly metadata?: readonly string[] | undefined;
+  readonly badges?: readonly RuntimeOperatorBadge[] | undefined;
+  readonly count?: number | undefined;
+  readonly tone?: RuntimeOperatorTone | undefined;
 }
 
 export interface RuntimeOperatorTableRow {
@@ -501,6 +513,7 @@ export interface RuntimeStudioOperatorListBlock extends Omit<
 }
 
 export interface RuntimeStudioOperatorTableRow extends RuntimeOperatorTableRow {
+  readonly compact?: RuntimeOperatorTableCompactRow | undefined;
   readonly actions?: readonly RuntimeOperatorActionControl[] | undefined;
 }
 
@@ -508,6 +521,7 @@ export interface RuntimeStudioOperatorTableBlock extends Omit<
   RuntimeOperatorTableBlock,
   "rows"
 > {
+  readonly query?: RuntimeOperatorQueryDefinition | undefined;
   readonly rows: readonly RuntimeStudioOperatorTableRow[];
 }
 
@@ -611,6 +625,7 @@ export interface RuntimeStudioOperatorView {
   readonly title?: string | undefined;
   readonly description?: string | undefined;
   readonly status?: RuntimeStudioOperatorViewStatus | undefined;
+  readonly primaryAction?: RuntimeOperatorActionControl | undefined;
   readonly blocks: readonly RuntimeStudioOperatorBlock[];
 }
 
@@ -988,10 +1003,8 @@ const queryControlSchema = z
     options: z.array(queryOptionSchema).max(100),
   })
   .strict();
-const queryBlockSchema = z
+const queryDefinitionSchema = z
   .object({
-    type: z.literal("query"),
-    id: identifierSchema,
     controls: z.array(queryControlSchema).max(20),
     pagination: z
       .object({
@@ -1002,6 +1015,13 @@ const queryBlockSchema = z
       })
       .strict()
       .optional(),
+  })
+  .strict();
+
+const queryBlockSchema = queryDefinitionSchema
+  .extend({
+    type: z.literal("query"),
+    id: identifierSchema,
   })
   .strict()
   .superRefine((block, context) => {
@@ -1017,6 +1037,20 @@ const queryBlockSchema = z
       keys.add(control.key);
     }
   });
+
+const tableQuerySchema = queryDefinitionSchema.superRefine((query, context) => {
+  const keys = new Set<string>();
+  for (const [index, control] of query.controls.entries()) {
+    if (keys.has(control.key)) {
+      context.addIssue({
+        code: "custom",
+        message: `Query key "${control.key}" is duplicated`,
+        path: ["controls", index, "key"],
+      });
+    }
+    keys.add(control.key);
+  }
+});
 
 const linksBlockSchema = z
   .object({
@@ -1164,6 +1198,16 @@ const tableCellSchema = z.union([
   scalarSchema,
   z.array(z.string().max(500)).max(50),
 ]);
+const tableCompactRowSchema = z
+  .object({
+    title: shortTextSchema.trim().min(1),
+    description: textSchema.optional(),
+    metadata: z.array(shortTextSchema).max(20).optional(),
+    badges: z.array(badgeSchema).max(10).optional(),
+    count: z.number().finite().optional(),
+    tone: toneSchema.optional(),
+  })
+  .strict();
 const tableRowSchema = z
   .object({
     id: rowIdentifierSchema,
@@ -1709,6 +1753,7 @@ const studioListBlockSchema = z
   });
 
 const studioTableRowSchema = tableRowSchema.extend({
+  compact: tableCompactRowSchema.optional(),
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
 const studioTableBlockSchema = z
@@ -1717,6 +1762,7 @@ const studioTableBlockSchema = z
     id: identifierSchema,
     empty: shortTextSchema,
     filters: z.array(tableFilterSchema).max(20).optional(),
+    query: tableQuerySchema.optional(),
     columns: z.array(tableColumnSchema).min(1).max(30),
     rows: z.array(studioTableRowSchema).max(500),
   })
@@ -1967,6 +2013,7 @@ const studioViewSourceSchema = z
       })
       .strict()
       .optional(),
+    primaryAction: sourceActionControlSchema.optional(),
     blocks: z
       .array(
         z.union([
@@ -2304,7 +2351,7 @@ function normalizeActionControls(
   declared: readonly AnyWorkspaceActionDefinition[],
   permission: UserPermissionLevel,
   path: readonly PropertyKey[],
-  sourceIndices?: readonly number[],
+  sourceIndices?: readonly PropertyKey[],
 ): {
   readonly controls: readonly RuntimeOperatorActionControl[];
   readonly issues: readonly RuntimeOperatorValidationIssue[];
@@ -2480,6 +2527,7 @@ function normalizeStudioBlock(
         return {
           id: row.id,
           cells: row.cells,
+          ...(row.compact ? { compact: row.compact } : {}),
           ...(row.link ? { link: row.link } : {}),
           ...(actions.controls.length > 0 ? { actions: actions.controls } : {}),
         };
@@ -2490,6 +2538,7 @@ function normalizeStudioBlock(
           id: block.id,
           empty: block.empty,
           ...(block.filters ? { filters: block.filters } : {}),
+          ...(block.query ? { query: block.query } : {}),
           columns: block.columns,
           rows,
         },
@@ -3068,6 +3117,16 @@ export function safeParseRuntimeStudioOperatorView(
   }
   const blocks: RuntimeStudioOperatorBlock[] = [];
   const issues: RuntimeOperatorValidationIssue[] = [];
+  const primaryAction = parsed.data.primaryAction
+    ? normalizeActionControls(
+        [parsed.data.primaryAction],
+        options.actions,
+        options.permission,
+        [],
+        ["primaryAction"],
+      )
+    : { controls: [], issues: [] };
+  issues.push(...primaryAction.issues);
   for (const [index, source] of parsed.data.blocks.entries()) {
     const normalized = normalizeStudioBlock(
       source,
@@ -3088,6 +3147,9 @@ export function safeParseRuntimeStudioOperatorView(
         ? { description: parsed.data.description }
         : {}),
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
+      ...(primaryAction.controls[0]
+        ? { primaryAction: primaryAction.controls[0] }
+        : {}),
       blocks: Object.freeze(blocks),
     }),
   };

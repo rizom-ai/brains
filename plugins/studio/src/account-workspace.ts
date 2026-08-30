@@ -19,6 +19,7 @@ export interface StudioAccountWorkspaceDescriptor {
   readonly label: string;
   readonly rendererName: typeof STUDIO_ACCOUNT_WORKSPACE_RENDERER;
   readonly priority: number;
+  readonly permission: UserPermissionLevel;
   readonly entityTypes: readonly [];
 }
 
@@ -58,6 +59,7 @@ export function listBuiltInStudioWorkspaces(
       label: STUDIO_ACCOUNT_WORKSPACE.label,
       rendererName: STUDIO_ACCOUNT_WORKSPACE.rendererName,
       priority: STUDIO_ACCOUNT_WORKSPACE.priority,
+      permission: STUDIO_ACCOUNT_WORKSPACE.permission,
       entityTypes: STUDIO_ACCOUNT_WORKSPACE.entityTypes,
     },
   ];

@@ -127,9 +127,7 @@ export interface OperatorQuerySelectControl {
   readonly options: readonly OperatorQueryOption[];
 }
 
-export interface OperatorQueryBlock {
-  readonly type: "query";
-  readonly id: string;
+export interface OperatorQueryDefinition {
   readonly controls: readonly OperatorQuerySelectControl[];
   readonly pagination?:
     | {
@@ -139,6 +137,11 @@ export interface OperatorQueryBlock {
         readonly label?: string | undefined;
       }
     | undefined;
+}
+
+export interface OperatorQueryBlock extends OperatorQueryDefinition {
+  readonly type: "query";
+  readonly id: string;
 }
 
 export interface OperatorEntityCatalogDefinition {
@@ -399,6 +402,15 @@ export interface OperatorTableFilter {
   readonly values: readonly OperatorScalar[];
 }
 
+export interface OperatorTableCompactRow {
+  readonly title: string;
+  readonly description?: string | undefined;
+  readonly metadata?: readonly string[] | undefined;
+  readonly badges?: readonly OperatorBadge[] | undefined;
+  readonly count?: number | undefined;
+  readonly tone?: OperatorTone | undefined;
+}
+
 export interface OperatorTableRow<
   TAction extends AnyWorkspaceActionDefinition,
 > {
@@ -417,6 +429,21 @@ export interface OperatorTableBlock<
   readonly filters?: readonly OperatorTableFilter[] | undefined;
   readonly columns: readonly OperatorTableColumn[];
   readonly rows: readonly OperatorTableRow<TAction>[];
+}
+
+export interface StudioOperatorTableRow<
+  TAction extends AnyWorkspaceActionDefinition,
+> extends OperatorTableRow<TAction> {
+  /** Source-declared list semantics used when Studio reflows a narrow table. */
+  readonly compact?: OperatorTableCompactRow | undefined;
+}
+
+export interface StudioOperatorTableBlock<
+  TAction extends AnyWorkspaceActionDefinition,
+> extends Omit<OperatorTableBlock<TAction>, "rows"> {
+  /** Server-backed controls and pagination owned by this collection. */
+  readonly query?: OperatorQueryDefinition | undefined;
+  readonly rows: readonly StudioOperatorTableRow<TAction>[];
 }
 
 export interface OperatorMatrixCell<
@@ -540,7 +567,7 @@ export type OperatorPanelBlock<
   | OperatorActionBlock<TAction>
   | OperatorActionsBlock<TAction>
   | OperatorListBlock<TAction>
-  | OperatorTableBlock<TAction>
+  | StudioOperatorTableBlock<TAction>
   | OperatorMatrixBlock<TAction>
   | OperatorSpatialBlock;
 
@@ -585,7 +612,8 @@ export interface OperatorDetailBlock<
   readonly queryKey: string;
   /** Rendered in the detail region while nothing is open. */
   readonly empty: string;
-  readonly master: OperatorListBlock<TAction> | OperatorTableBlock<TAction>;
+  readonly master:
+    OperatorListBlock<TAction> | StudioOperatorTableBlock<TAction>;
   readonly open?:
     | {
         readonly forId: string;
@@ -646,6 +674,8 @@ export interface OperatorView<
   /** What the surface is for, in a sentence. */
   readonly description?: string | undefined;
   readonly status?: OperatorViewStatus | undefined;
+  /** The one host-positioned action; in-flow actions remain in blocks. */
+  readonly primaryAction?: OperatorActionControl<TAction> | undefined;
   readonly blocks: readonly OperatorViewBlock<TAction>[];
 }
 

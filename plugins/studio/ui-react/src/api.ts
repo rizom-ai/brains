@@ -1,4 +1,7 @@
-import type { RuntimeStudioWorkspaceData } from "@brains/plugins";
+import type {
+  RuntimeStudioWorkspaceData,
+  UserPermissionLevel,
+} from "@brains/plugins";
 
 /**
  * Typed client for the Studio editor API served by plugins/studio.
@@ -30,6 +33,7 @@ export interface StudioWorkspaceInfo {
   label: string;
   rendererName: "DeclarativeOperatorWorkspace" | "StudioAccountWorkspace";
   priority: number;
+  permission: UserPermissionLevel;
   urlQuery?: true;
   aliases?: readonly {
     id: string;

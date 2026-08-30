@@ -21,7 +21,7 @@ const runRegistryEvidence = registryEvidenceEnabled();
 const exactVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u;
 const originalAuthoringBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
 const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
-const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.313 <0.3.0";
+const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
 
 function requiredVersion(variable: string, pattern: RegExp): string {
   const value = process.env[variable];
