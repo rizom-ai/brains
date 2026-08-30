@@ -152,6 +152,15 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
+    /**
+     * The channel and its handler are correlated — a Channel takes a
+     * TypedMessageHandler, a name takes a MessageHandler — and the public
+     * IMessagingNamespace declares that as two call signatures, so callers are
+     * checked. This implementation cannot express it: narrowing the channel
+     * does not narrow the separately-declared handler, and a discriminated
+     * rest tuple does not propagate the discriminant to the second element
+     * either. Hence the two assertions, one per already-declared overload.
+     */
     subscribe: <T = unknown, R = unknown>(
       channelOrName: string | Channel<T, R>,
       handler: MessageHandler<T, R> | TypedMessageHandler<T, R>,
@@ -171,7 +180,7 @@ export function createMessagingNamespace(
           }
 
           const { payload: _payload, ...baseMessage } = message;
-          return typedHandler(parseResult.data as T, baseMessage);
+          return typedHandler(parseResult.data, baseMessage);
         };
 
         return messageBus.subscribe(channel.name, wrappedHandler);

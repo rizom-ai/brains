@@ -13,6 +13,7 @@ import {
   registerBuiltInDashboardWidget,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { ProgressReporter } from "@brains/utils/progress";
 import {
   wishPrioritySchema,
   wishSchema,
@@ -130,7 +131,7 @@ export class WishlistPlugin extends EntityPlugin<
         ...(input.content ? { content: input.content } : {}),
       },
       `wish-create-${Date.now()}`,
-      {} as never,
+      ProgressReporter.noop(),
     );
 
     if (!result.success) {

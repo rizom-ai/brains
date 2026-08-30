@@ -21,6 +21,20 @@ describe("ProgressReporter", () => {
     });
   });
 
+  describe("noop", () => {
+    it("always returns a reporter, never undefined", () => {
+      expect(ProgressReporter.noop()).toBeInstanceOf(ProgressReporter);
+    });
+
+    it("accepts reports without throwing", async () => {
+      await ProgressReporter.noop().report({ progress: 50, total: 100 });
+    });
+
+    it("returns a distinct instance each call", () => {
+      expect(ProgressReporter.noop()).not.toBe(ProgressReporter.noop());
+    });
+  });
+
   describe("report", () => {
     it("should call callback with message", async () => {
       const progress = ProgressReporter.from(mockCallback);

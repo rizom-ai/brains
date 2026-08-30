@@ -57,6 +57,20 @@ export class ProgressReporter {
   }
 
   /**
+   * A reporter that discards notifications.
+   *
+   * For callers that must supply a reporter but have nowhere to send progress —
+   * a synchronous tool path invoking a job handler directly, for instance.
+   * Unlike `from`, this always returns a reporter, so such callers do not have
+   * to fabricate one.
+   */
+  static noop(): ProgressReporter {
+    return new ProgressReporter(async () => {
+      // Intentionally discards progress.
+    });
+  }
+
+  /**
    * Create a sub-reporter with scaled progress range
    */
   createSub(options?: {
