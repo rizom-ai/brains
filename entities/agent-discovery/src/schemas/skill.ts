@@ -1,4 +1,4 @@
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import {
   MAX_SKILL_TAG_LENGTH,
@@ -49,11 +49,11 @@ export type SkillMetadata = z.infer<typeof skillMetadataSchema>;
  * Skill entity schema.
  */
 export const skillEntitySchema: ReturnType<
-  typeof baseEntitySchema.extend<{
+  typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<typeof SKILL_ENTITY_TYPE>;
     metadata: SkillFrontmatterSchema;
   }>
-> = baseEntitySchema.extend({
+> = baseEntityParserSchema.extend({
   entityType: z.literal(SKILL_ENTITY_TYPE),
   metadata: skillMetadataSchema,
 });

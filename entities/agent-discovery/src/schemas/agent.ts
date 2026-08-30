@@ -2,8 +2,7 @@ import { z } from "@brains/utils/zod";
 import {
   anchorProfileKindSchema,
   baseEntityParserSchema,
-  baseEntitySchema,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { skillTagsSchema } from "./skill";
 
@@ -191,11 +190,11 @@ export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
  * Agent entity schema
  */
 export const agentEntitySchema: ReturnType<
-  typeof baseEntitySchema.extend<{
+  typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<typeof AGENT_ENTITY_TYPE>;
     metadata: AgentMetadataSchema;
   }>
-> = baseEntitySchema.extend({
+> = baseEntityParserSchema.extend({
   entityType: z.literal(AGENT_ENTITY_TYPE),
   metadata: agentMetadataSchema,
 });
