@@ -588,6 +588,7 @@
     "shell-lifecycle-transitions",
     "show-account-contact-details",
     "site--authoring-brand-contract-boundary",
+    "site--consolidate-rizom-package",
     "site--drop-rizom-theme-profiles",
     "site--first-party-preact-peer",
     "site--fold-rizom-ui-into-site",

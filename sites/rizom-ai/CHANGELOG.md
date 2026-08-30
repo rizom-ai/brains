@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.242
+
+### Minor Changes
+
+- [#191](https://github.com/rizom-ai/brains/pull/191) [`e526178`](https://github.com/rizom-ai/brains/commit/e526178dea6d429a7e7725cfbda68e81eeda43c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fold the Rizom runtime, layouts, and chrome into the consolidated Rizom AI site package and retire the standalone `@rizom/site-rizom` package.
+
 ## 0.2.0-alpha.241
 
 ### Patch Changes
