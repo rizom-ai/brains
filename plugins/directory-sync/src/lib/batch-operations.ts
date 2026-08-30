@@ -1,8 +1,4 @@
-import type {
-  BatchOperation,
-  IEntityService,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { BatchOperation, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
 import type {
@@ -110,7 +106,7 @@ export class BatchOperationsManager {
         },
       },
     }));
-    const coordinator = pluginContext.entityService as IEntityService;
+    const coordinator = pluginContext.bulkMutations;
     await coordinator.prepareDurableBulkMutation({
       source: "directory-sync",
       operationId: rootJobId,

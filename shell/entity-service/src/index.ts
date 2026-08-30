@@ -149,6 +149,7 @@ export type {
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
   EntityServiceClient,
+  DurableBulkMutationCoordinator,
   ICoreEntityService,
   IEntitiesNamespace,
   EntityDbConfig,

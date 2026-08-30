@@ -1,8 +1,8 @@
-import type { IEntityService } from "@brains/plugins";
+import type { EntityServiceClient } from "@brains/plugins";
 import type { FileOperations } from "./file-operations";
 
 export interface ImportPathFilterDeps {
-  entityService: IEntityService;
+  entityService: EntityServiceClient;
   fileOperations: FileOperations;
   entityTypes?: string[] | undefined;
 }

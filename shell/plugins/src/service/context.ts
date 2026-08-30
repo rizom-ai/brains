@@ -16,7 +16,10 @@ import {
   createEntitiesNamespace,
   createPromptsNamespace,
 } from "../entity/namespaces";
-import type { EntityServiceClient } from "@brains/entity-service";
+import type {
+  EntityServiceClient,
+  DurableBulkMutationCoordinator,
+} from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import type { RuntimeInterfacePrincipalState } from "@brains/contracts";
 import { TemplateCapabilities } from "@brains/templates";
@@ -111,6 +114,13 @@ export interface ServicePluginContext
   /** Full entity service with write operations */
   readonly entityService: ServiceEntityService;
 
+  /**
+   * Durable bulk-mutation coordination, for plugins that own a projection and
+   * must enqueue and settle their own batches. Deliberately separate from
+   * entityService, which omits these.
+   */
+  readonly bulkMutations: DurableBulkMutationCoordinator;
+
   /** Entity management namespace */
   readonly entities: IEntitiesNamespace;
 
@@ -167,6 +177,8 @@ export function createServicePluginContext(
     },
 
     entityService,
+
+    bulkMutations: entityService,
 
     entities: createEntitiesNamespace(shell),
 

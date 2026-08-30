@@ -1,4 +1,4 @@
-import type { IEntityService, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { DirectoryProjectionBatchRef } from "../types";
 
 interface ProjectionBatchJobData {
@@ -13,7 +13,7 @@ export function runDirectoryProjectionBatchChild<TResult>(
 ): Promise<TResult> {
   const batch = data.projectionBatch;
   if (!batch) return mutation();
-  const coordinator = context.entityService as IEntityService;
+  const coordinator = context.bulkMutations;
   return coordinator.runDurableBulkMutationChild(
     {
       source: "directory-sync",
@@ -35,7 +35,7 @@ export async function settleDirectoryProjectionBatchChild(
 ): Promise<void> {
   const batch = data.projectionBatch;
   if (!batch) return;
-  const coordinator = context.entityService as IEntityService;
+  const coordinator = context.bulkMutations;
   await coordinator.settleDurableBulkMutationChild({
     operationId: batch.operationId,
     childKey: batch.childKey,

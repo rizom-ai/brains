@@ -395,6 +395,8 @@ export type {
   ProjectionSourceRole,
   ICoreEntityService,
   IEntityService,
+  EntityServiceClient,
+  DurableBulkMutationCoordinator,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,

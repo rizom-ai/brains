@@ -969,6 +969,24 @@ export type EntityServiceClient = Omit<
   | "recoverProjectionBatches"
 >;
 
+/**
+ * The durable bulk-mutation coordination surface, kept out of
+ * EntityServiceClient so ordinary plugins cannot reach it by accident.
+ *
+ * Projection-owning plugins genuinely need it. Publishing it as its own
+ * capability makes that dependency explicit and checkable — the alternative
+ * was asserting the narrowed client back up to the full EntityService, which
+ * also silently re-granted everything else the client omits.
+ */
+export type DurableBulkMutationCoordinator = Pick<
+  EntityService,
+  | "prepareDurableBulkMutation"
+  | "finalizeDurableBulkMutationEnqueue"
+  | "failDurableBulkMutationEnqueue"
+  | "runDurableBulkMutationChild"
+  | "settleDurableBulkMutationChild"
+>;
+
 export interface EntityService extends ICoreEntityService {
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(

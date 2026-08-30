@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "fs/promises";
-import type { IEntityService, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -46,7 +46,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       jobTypeName: "inline-image-convert",
     });
     this.converter = new MarkdownImageConverter(
-      context.entityService as IEntityService,
+      context.entityService,
       logger,
       fetcher,
     );
