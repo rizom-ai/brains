@@ -8,13 +8,12 @@ export function isDeclarativeBrainDefinition(
   value: unknown,
 ): value is BrainDefinition {
   if (value === null || typeof value !== "object") return false;
-  const candidate = value as Partial<BrainDefinition>;
+  const plugins: unknown = Reflect.get(value, "plugins");
   return (
-    typeof candidate.name === "string" &&
-    Array.isArray(candidate.plugins) &&
-    candidate.plugins.every(
-      (plugin: unknown): plugin is ConfiguredPluginDefinition =>
-        isConfiguredPluginDefinition(plugin),
+    typeof Reflect.get(value, "name") === "string" &&
+    Array.isArray(plugins) &&
+    plugins.every((plugin: unknown): plugin is ConfiguredPluginDefinition =>
+      isConfiguredPluginDefinition(plugin),
     )
   );
 }

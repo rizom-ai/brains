@@ -103,7 +103,9 @@ export class EntityService implements IEntityService {
   private searchDbClient: Client;
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
-  private dbInitPromise!: Promise<void>;
+  // Assigned inside the constructor's try block: null until that succeeds, so
+  // initialize() reports the failure instead of awaiting undefined.
+  private dbInitPromise: Promise<void> | null = null;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -302,6 +304,11 @@ export class EntityService implements IEntityService {
    * Called by Shell.initialize() before plugins load.
    */
   public async initialize(): Promise<void> {
+    if (!this.dbInitPromise) {
+      throw new Error(
+        "Entity service database initialization never started; construction failed",
+      );
+    }
     await this.dbInitPromise;
   }
 

@@ -264,18 +264,50 @@ export interface PlaybooksPluginDeps {
   goalCheck?: GoalCheck | undefined;
 }
 
+/** The services the plugin builds during registration, as one unit. */
+interface PlaybooksRuntime {
+  readonly store: PlaybookRunStore;
+  readonly runs: RunEngine;
+  readonly lifecycleStarters: LifecycleStarterRegistry;
+}
+
 export class PlaybooksPlugin extends ServicePlugin<
   PlaybooksConfig,
   PlaybooksConfigInput
 > {
-  private store!: PlaybookRunStore;
   private ctx: ServicePluginContext | undefined;
   private goalCheck: GoalCheck;
   private readonly injectedGoalCheck: GoalCheck | undefined;
   private readonly startLocks = new Map<string, Promise<ToolResponse>>();
   private readonly runLocks = new Map<string, Promise<void>>();
-  private lifecycleStarters!: LifecycleStarterRegistry;
-  private runs!: RunEngine;
+
+  /**
+   * Built together in onRegister. Held as one nullable object so the compiler
+   * proves availability at every read, rather than three `!:` declarations
+   * each switching that check off. The getters below keep read sites unchanged.
+   */
+  private runtime: PlaybooksRuntime | null = null;
+
+  private requireRuntime(): PlaybooksRuntime {
+    if (!this.runtime) {
+      throw new Error(
+        "Playbooks runtime is unavailable before plugin registration",
+      );
+    }
+    return this.runtime;
+  }
+
+  private get store(): PlaybookRunStore {
+    return this.requireRuntime().store;
+  }
+
+  private get runs(): RunEngine {
+    return this.requireRuntime().runs;
+  }
+
+  private get lifecycleStarters(): LifecycleStarterRegistry {
+    return this.requireRuntime().lifecycleStarters;
+  }
 
   constructor(
     config: PlaybooksConfigInput = {},
@@ -291,10 +323,10 @@ export class PlaybooksPlugin extends ServicePlugin<
   ): Promise<void> {
     await super.onRegister(context);
     this.ctx = context;
-    this.store = new PlaybookRunStore(context.runtimeState);
+    const store = new PlaybookRunStore(context.runtimeState);
     this.goalCheck = this.injectedGoalCheck ?? createJudgeGoalCheck(context);
-    this.runs = new RunEngine({
-      store: this.store,
+    const runs = new RunEngine({
+      store,
       goalCheck: this.goalCheck,
       getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
         this.getPlaybook(playbookId),
@@ -303,16 +335,18 @@ export class PlaybooksPlugin extends ServicePlugin<
         operation: () => Promise<T>,
       ): Promise<T> => this.withRunLock(runId, operation),
     });
-    this.lifecycleStarters = new LifecycleStarterRegistry({
+    const lifecycleStarters = new LifecycleStarterRegistry({
       logger: this.logger,
       configuredLifecycle: this.config.lifecycle,
       triggers: this.config.triggers,
       findRunByLifecycle: (lifecycle): Promise<PlaybookRun | undefined> =>
-        this.store.findByLifecycle(lifecycle),
+        store.findByLifecycle(lifecycle),
       getPlaybook: (playbookId): Promise<ParsedPlaybook | undefined> =>
         this.getPlaybook(playbookId),
       listPlaybooks: (): Promise<ParsedPlaybook[]> => this.listPlaybooks(),
     });
+
+    this.runtime = { store, runs, lifecycleStarters };
 
     context.registerInstructions(buildInstructions(this.config.lifecycle));
     context.eval.registerHandler("goalCheck", async (input: unknown) =>

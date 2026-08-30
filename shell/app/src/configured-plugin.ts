@@ -33,10 +33,9 @@ export function isConfiguredPluginDefinition(
   value: unknown,
 ): value is ConfiguredPluginDefinition {
   if (value === null || typeof value !== "object") return false;
-  const candidate = value as Partial<ConfiguredPluginDefinition>;
   return (
-    candidate.kind === "rizom-configured-plugin" &&
-    isPluginPackageDefinition(candidate.definition) &&
-    typeof candidate.config === "object"
+    Reflect.get(value, "kind") === "rizom-configured-plugin" &&
+    isPluginPackageDefinition(Reflect.get(value, "definition")) &&
+    typeof Reflect.get(value, "config") === "object"
   );
 }
