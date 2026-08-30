@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { emailPlugin, EMAIL_PLUGIN_ID } from "./helpers/install";
 import { EventEmitter } from "node:events";
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
@@ -10,7 +11,6 @@ import { createMockLogger } from "@brains/test-utils";
 
 import {
   EMAIL_INBOUND,
-  EmailInterface,
   createInboundEmailSourceRef,
   inboundEmailSchema,
   type EmailImapConfig,
@@ -303,9 +303,9 @@ describe("inbound email intake", () => {
     ];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -326,8 +326,8 @@ describe("inbound email intake", () => {
     );
     const registry = harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
     unsubscribe();
 
     const replayed: InboundEmail[] = [];
@@ -335,8 +335,8 @@ describe("inbound email intake", () => {
       replayed.push(inboundEmailSchema.parse(message.payload));
       return { success: true };
     });
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(requestedUids).toEqual([1, 2]);
     expect(firstAttempt.map((email) => email.subject)).toEqual([
@@ -369,9 +369,9 @@ describe("inbound email intake", () => {
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     let connection = 0;
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -393,10 +393,10 @@ describe("inbound email intake", () => {
     });
     const registry = harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(requestedUids).toEqual([1, 2]);
     expect(received.map((email) => email.messageId)).toEqual([
@@ -412,9 +412,9 @@ describe("inbound email intake", () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
     let connection = 0;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -435,10 +435,10 @@ describe("inbound email intake", () => {
     });
     const registry = harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(requestedUids).toEqual([1, 1]);
     expect(received).toHaveLength(2);
@@ -507,7 +507,7 @@ describe("inbound email intake", () => {
     ];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async (message) => {
       const request = authPrincipalResolveRequestSchema.parse(message.payload);
       expect(request.actor).toEqual({
@@ -534,7 +534,7 @@ describe("inbound email intake", () => {
       };
     });
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -549,8 +549,8 @@ describe("inbound email intake", () => {
     });
 
     const registry = harness.getMockShell().getDaemonRegistry();
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(received[0]?.sender).toEqual({
       personId: "prsn_alice",
@@ -565,12 +565,12 @@ describe("inbound email intake", () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
-    const harness = createPluginHarness<EmailInterface>({ logger });
+    const harness = createPluginHarness({ logger });
     harness.subscribe(AUTH_PRINCIPAL_RESOLVE_CHANNEL, async () => {
       throw new Error("alice@example.com must not leak");
     });
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -585,8 +585,8 @@ describe("inbound email intake", () => {
     });
 
     const registry = harness.getMockShell().getDaemonRegistry();
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(received[0]?.sender).toBeUndefined();
     expect(logger.warn).toHaveBeenCalledWith(
@@ -603,9 +603,9 @@ describe("inbound email intake", () => {
   it("leaves unknown senders unenriched", async () => {
     const messages = [await fixtureMessage(1, "plain.eml")];
     const requestedUids: number[] = [];
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -620,8 +620,8 @@ describe("inbound email intake", () => {
     });
 
     const registry = harness.getMockShell().getDaemonRegistry();
-    await registry.startPlugin("email");
-    await registry.stopPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(received[0]?.sender).toBeUndefined();
   });

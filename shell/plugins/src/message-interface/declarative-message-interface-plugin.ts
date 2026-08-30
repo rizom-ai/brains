@@ -111,19 +111,56 @@ class DeclarativeMessageInterfacePlugin<
       });
     }
     this.state = this.definition.setup
-      ? await this.definition.setup({ config: this.config })
+      ? await this.definition.setup({
+          config: this.config,
+          // Namespaced under the declaring package, so two interfaces cannot
+          // read or corrupt each other's bookkeeping.
+          // Namespaced under the interface's own id, which is what the
+          // stored keys already carry: a class wrote "email.inbound.cursor"
+          // by hand. Changing the prefix here would orphan a live cursor, and
+          // an inbound mailbox with no cursor re-reads from the beginning —
+          // every message in it delivered again as new.
+          runtimeState: (options) =>
+            context.runtimeState.scoped({
+              ...options,
+              namespace: `${this.definition.id}.${options.namespace}`,
+            }),
+          messaging: {
+            send: (message) =>
+              context.messaging.send({
+                type: message.type,
+                payload: message.payload,
+              }),
+          },
+          logger: this.logger,
+        })
       : (Object.freeze({}) as TState);
     context.channels.registerDescriptor({
       type: this.definition.channel.type,
       displayName: this.definition.channel.displayName,
       subjectLabel: this.definition.channel.subjectLabel,
+      ...(this.definition.channel.subjectPattern
+        ? { subjectPattern: this.definition.channel.subjectPattern }
+        : {}),
       ...(this.definition.deliver ? { manualDelivery: true } : {}),
     });
 
-    if (this.definition.deliver) {
+    const available = this.definition.available;
+    // The channel is registered either way: an interface with no outbound
+    // credential still runs inbound. Delivery is a separate question, and an
+    // interface that answers "no" registers no provider — callers that read a
+    // provider's presence as "delivery is possible" are then right.
+    const deliverable =
+      !available ||
+      (await available({ config: this.config, state: this.requireState() }));
+    if (this.definition.deliver && deliverable) {
       context.channels.registerDeliveryProvider({
         channelType: this.definition.channel.type,
-        isAvailable: () => Promise.resolve(this.state !== undefined),
+        isAvailable: async () => {
+          if (this.state === undefined) return false;
+          if (!available) return true;
+          return available({ config: this.config, state: this.state });
+        },
         send: (input) => this.deliver(input),
       });
     }
@@ -161,6 +198,34 @@ class DeclarativeMessageInterfacePlugin<
         continue;
       }
       context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
+    }
+
+    const subscriptions =
+      this.definition.subscriptions?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? [];
+    const topics = new Set<string>();
+    for (const subscription of subscriptions) {
+      if (topics.has(subscription.topic)) {
+        throw new Error(
+          `Message interface "${this.definition.id}" subscribes to "${subscription.topic}" more than once`,
+        );
+      }
+      topics.add(subscription.topic);
+      context.messaging.subscribe(subscription.topic, async (message) => {
+        const payload = subscription.payload.safeParse(message.payload);
+        if (!payload.success) {
+          return {
+            success: false,
+            error: `Message interface "${this.definition.id}" rejected a malformed "${subscription.topic}" request`,
+          };
+        }
+        return {
+          success: true,
+          data: await subscription.handle({ payload: payload.data }),
+        };
+      });
     }
 
     if (this.definition.listen) {
@@ -278,17 +343,37 @@ class DeclarativeMessageInterfacePlugin<
     }
     try {
       const recipient = this.parseRecipient(input.recipient);
-      const deliveryId = await this.definition.deliver({
+      const outcome = await this.definition.deliver({
         config: this.config,
         state: this.requireState(),
         recipient,
         message: { text: input.text },
+        delivery: {
+          subject: input.subject,
+          text: input.text,
+          idempotencyKey: input.idempotencyKey,
+          ...(input.html !== undefined ? { html: input.html } : {}),
+          ...(input.sensitivity !== undefined
+            ? { sensitivity: input.sensitivity }
+            : {}),
+          ...(input.threading !== undefined
+            ? { threading: input.threading }
+            : {}),
+        },
       });
+      if (outcome && typeof outcome === "object") {
+        return outcome.status === "sent"
+          ? {
+              status: "sent",
+              ...(outcome.providerDeliveryId
+                ? { providerDeliveryId: outcome.providerDeliveryId }
+                : {}),
+            }
+          : { status: "failed", failureCode: outcome.failureCode };
+      }
       return {
         status: "sent",
-        ...(typeof deliveryId === "string"
-          ? { providerDeliveryId: deliveryId }
-          : {}),
+        ...(typeof outcome === "string" ? { providerDeliveryId: outcome } : {}),
       };
     } catch (error) {
       this.logger.warn("Outbound channel delivery failed", { error });

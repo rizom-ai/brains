@@ -464,13 +464,14 @@
       "version": "0.2.0-alpha.349",
       "dependencies": {
         "@brains/contracts": "workspace:*",
-        "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "imapflow": "^1.6.5",
         "mailparser": "^3.9.14",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",

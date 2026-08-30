@@ -5,6 +5,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineSubscription,
   defineRoute,
   protocol,
 } from "@brains/plugins";
@@ -16,3 +17,7 @@ export type {
 export { UserPermissionLevelSchema } from "@brains/templates";
 export type { UserPermissionLevel } from "@brains/templates";
 export { z } from "@brains/utils/zod";
+
+// The durable store `setup` hands an interface, so a declaration can hold one.
+// Named consumer: @brains/email, which keeps an IMAP cursor.
+export type { IRuntimeStateStore } from "@brains/plugins";

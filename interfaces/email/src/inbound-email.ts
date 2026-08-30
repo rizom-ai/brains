@@ -10,7 +10,16 @@ import {
   type InboundEmailAddress,
   type InboundEmailSender,
 } from "@brains/contracts";
-import type { IRuntimeStateStore, MessageSender } from "@brains/plugins";
+import type { IRuntimeStateStore } from "@brains/sdk/interfaces";
+
+/**
+ * Handing an arrived email on. Narrower than the shell bus: intake only
+ * publishes and only cares whether the event was acknowledged.
+ */
+export type InboundEmailPublisher = (message: {
+  readonly type: string;
+  readonly payload: unknown;
+}) => Promise<unknown>;
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 
@@ -267,7 +276,7 @@ export function createInboundEmailSourceRef(
 
 export interface InboundEmailIntakeDependencies {
   cursor: IRuntimeStateStore<InboundEmailCursor>;
-  publish: MessageSender;
+  publish: InboundEmailPublisher;
   resolveSender?:
     ((address: string) => Promise<InboundEmailSender | undefined>) | undefined;
   recordSourceLocator?:
@@ -360,7 +369,11 @@ export async function intakeInboundEmail(
         type: EMAIL_INBOUND,
         payload: email,
       });
-      acknowledged = "success" in response && response.success;
+      acknowledged =
+        typeof response === "object" &&
+        response !== null &&
+        "success" in response &&
+        response.success === true;
     } catch {
       // Publishing failures are retried from the durable mailbox cursor.
     }

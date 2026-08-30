@@ -125,30 +125,56 @@ made the entity tranche find real defects rather than move code.
    about where it lives, not how it is authored.
 
    `email` is the smallest by every honest measure and its one missing symbol,
-   `Daemon`, dissolves into `defineDaemon`. Converting it surfaced six things
-   `defineMessageInterface` cannot yet express, each verified against
-   `MessageInterfaceDefinitionInput` rather than the fixture:
+   `Daemon`, dissolves into `defineDaemon`. **It is converted.** Its `src`
+   imports only `@brains/sdk`, `@brains/contracts` and `@brains/utils`, and it
+   is the first production consumer either interface API has ever had.
 
-   1. **Channel subject validation.** Email validates an address with a regex
-      `subjectPattern`. `MessageChannelDefinition` carries `recipient`, which
-      types a _recipient payload_, not the channel subject.
-   2. **`manualDelivery`** on the channel descriptor. No slot.
-   3. **Delivery availability.** Email registers its provider only when
-      `apiKey` and `from` are configured, and an inbound-only posture must
-      still boot. `deliver` is present or absent at authoring time, with no
-      runtime availability predicate.
-   4. **Scoped runtime state.** Email keeps an IMAP UID cursor and a
-      source-locator store through `context.runtimeState.scoped`. `setup`
-      receives `config` and nothing else.
-   5. **Request/response subscription.** Email answers `EMAIL_SOURCE_READ`
-      over messaging. A message interface has no subscription slot.
-   6. **Injected dependencies.** Its tests supply `fetchImpl`, an IMAP client
-      factory, and a sleep. A declaration has no constructor.
+   The count moved twice while doing it, which is the answer the phase was
+   asked for. Six were guessed from reading `setup`, the channel and the
+   subscription surface. Two of those dissolved: `manualDelivery` is already
+   derived from `deliver`, and injected dependencies need no slot — the
+   package exports a factory that closes over them and default-exports
+   `emailInterface()`, which is what `@brains/link` already does. Then five
+   more appeared that only writing the conversion could find. Nine in total:
 
-   Three and four are the load-bearing ones: without them a declared message
-   interface cannot hold state across a restart or degrade to inbound-only,
-   which is not an email quirk. Each gets a slot with email as the named
-   consumer, or email stays a class and the API is honestly not ready for it.
+   1. **Channel subject validation.** `subjectPattern` on the channel.
+      `recipient` types a payload, not the subject a person types.
+   2. **Delivery availability.** An `available` predicate. An interface that
+      answers "no" registers its channel and **no delivery provider** — two
+      callers read a provider's presence as "delivery is possible", so
+      registering an unavailable one would have quietly misled them.
+   3. **Durable state in `setup`.** A `runtimeState` scope factory.
+   4. **Request/response subscriptions**, with `defineSubscription` so the
+      handler sees its payload typed, as `defineRoute` types a body.
+   5. **The delivery envelope.** `MessageOutput` is chat-shaped — a body and
+      nothing else. `deliver` was silently dropping subject, html, threading,
+      idempotency key and sensitivity, and flattening every failure into one
+      code. It now receives the whole envelope and may return a reason.
+   6. **Reaching the bus from `setup`.** Not everything an interface receives
+      is a chat turn; an inbound email is an event other packages consume.
+   7. **A logger in `setup`**, for the same reason.
+   8. **Pulled daemon health.** `ready`/`warning` are pushed at moments the
+      daemon chooses, which cannot express a mailbox that is connected or
+      reconnecting _now_. `defineDaemon` takes a `check`, authoritative while
+      the daemon runs — once stopped the recorded outcome stands, so a daemon
+      that failed to shut down cannot report itself healthy.
+   9. **Declared interfaces in the brain model.** `InterfaceEntry` required a
+      constructor, so the composition layer could not name a declared
+      interface at all.
+
+   Two things the tests caught that would have shipped as defects. The class
+   replaced a failed IMAP disconnect with a fixed message because the
+   transport's own error carries host, user and password; the first draft of
+   the conversion let the raw error through to daemon health. And runtime
+   state is namespaced by the interface's **id**, not its package name as on
+   the entity side — a stored cursor lives under `email.inbound.uid-cursor`,
+   and an inbound mailbox with no cursor re-reads from UID 0, delivering every
+   message in it again as new.
+
+   One rough edge left standing: dependency injection wants a factory, and a
+   factory needs a return type annotation, which pins the generic and stops
+   `state` inferring from `setup`. `@brains/email` names its four type
+   arguments explicitly. Worth fixing before the second conversion.
 
 3. **Convert one service plugin.** Likewise the smallest — `analytics`,
    `notifications`, `profile` or `onboarding` — as the first `plugins/`

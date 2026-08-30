@@ -72,9 +72,19 @@ export type CapabilityEntry = [
  */
 export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
 
+/**
+ * A declared interface, which has no constructor to call.
+ *
+ * Wrapped rather than passed bare so the resolver can tell the two apart
+ * without guessing whether a function is a class.
+ */
+export interface DeclaredInterface {
+  readonly declared: PluginFactory;
+}
+
 export type InterfaceEntry = [
   id: string,
-  constructor: InterfaceConstructor,
+  source: InterfaceConstructor | DeclaredInterface,
   envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];
 

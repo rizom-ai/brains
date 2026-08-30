@@ -377,6 +377,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineSubscription,
   defineRoute,
   protocol,
 } from "./public/interface-definition";

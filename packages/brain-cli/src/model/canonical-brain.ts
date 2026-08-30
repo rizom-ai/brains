@@ -2,6 +2,7 @@ import {
   defineBrain,
   type BrainDefinition,
   type CapabilityEntry,
+  type InterfaceEntry,
   type PluginConfig,
 } from "@brains/app";
 import {
@@ -28,7 +29,7 @@ import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import docPackage from "@brains/doc";
 import documentPackage from "@brains/document-plugin";
-import { EmailInterface } from "@brains/email";
+import emailPackage from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
@@ -114,6 +115,24 @@ export {
  * This lives in layer 3 on purpose: instantiation is the composer's job, so
  * declaratively-authored packages never need to reach for shell internals.
  */
+/** An interface that declares itself rather than exporting a class. */
+function declaredInterface(
+  id: string,
+  packageName: string,
+  definition: PluginPackageDefinition,
+): InterfaceEntry {
+  const metadata = { name: packageName, version: packageJson.version };
+  bindPluginPackageMetadata(definition, metadata);
+  return [
+    id,
+    {
+      declared: (config): Plugin[] =>
+        instantiatePluginPackageDefinition(definition, config, metadata),
+    },
+    (): PluginConfig => ({}),
+  ];
+}
+
 function packageCapability(
   id: string,
   packageName: string,
@@ -208,7 +227,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   ],
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["email", EmailInterface, (): PluginConfig => ({})],
+    declaredInterface("email", "@brains/email", emailPackage),
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["web-chat", WebChatInterface, (): PluginConfig => ({})],
     [
