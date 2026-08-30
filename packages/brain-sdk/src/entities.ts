@@ -246,6 +246,13 @@ export type {
   AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
 
+// Reading another brain's published A2A Agent Card. A package that discovers
+// peers fetches the card itself and needs the parse to be the runtime's, so a
+// card the brain would accept and a card the package accepts are the same
+// card. Named consumer: @brains/agent-discovery.
+export { parseAgentCard } from "@brains/plugins";
+export type { ParsedAgentCard } from "@brains/plugins";
+
 // The brain's own identity and declared skills, which an entity assessing
 // its capabilities reads. Named consumer: @brains/assessment.
 export { anchorProfileKindSchema, skillDataSchema } from "@brains/plugins";

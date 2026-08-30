@@ -1,4 +1,4 @@
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility, JobEntityAccess } from "@brains/sdk/entities";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { parseAgentContent } from "./agent-content";
@@ -64,7 +64,7 @@ export function buildTagVocabulary(
 }
 
 export async function collectTagVocabulary(
-  context: EntityPluginContext,
+  entities: JobEntityAccess,
   opts: {
     minCount?: number;
     topN?: number;
@@ -76,11 +76,11 @@ export async function collectTagVocabulary(
   const [skills, agents] = await Promise.all([
     opts.includeSkills === false
       ? Promise.resolve([])
-      : context.entityService.listEntities<SkillEntity>({
+      : entities.listEntities<SkillEntity>({
           entityType: SKILL_ENTITY_TYPE,
           options: { filter: { visibilityScope } },
         }),
-    context.entityService.listEntities<AgentEntity>({
+    entities.listEntities<AgentEntity>({
       entityType: AGENT_ENTITY_TYPE,
       options: { filter: { visibilityScope } },
     }),

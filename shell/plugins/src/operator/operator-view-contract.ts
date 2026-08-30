@@ -1,5 +1,4 @@
 import type { z } from "@brains/utils/zod";
-import type { EntityDefinitionShape } from "../entity/entity-shape";
 import { assertIdentifier } from "../package-definition";
 import { assertText } from "./contract-assertions";
 import type { OperatorSchema } from "./operator-context-contract";
@@ -163,8 +162,23 @@ export interface OperatorExternalLinkTarget {
   readonly external: string;
 }
 
+/**
+ * What a link needs from an entity: the brand proving it came from a real
+ * `defineEntity`, and the type name. It is exactly what the runtime checks
+ * before reducing the target to `{ entityType, id }`, so the compile-time
+ * type and the runtime guard now state the same requirement.
+ *
+ * Naming the whole definition here would overstate the dependency and point
+ * the operator contracts back at the entity contract — the edge that closes
+ * into a cycle once an entity package can declare a dashboard widget.
+ */
+export interface OperatorLinkableEntity {
+  readonly kind: "rizom-entity";
+  readonly type: string;
+}
+
 export interface OperatorEntityLinkTarget {
-  readonly entity: EntityDefinitionShape;
+  readonly entity: OperatorLinkableEntity;
   readonly id: string;
 }
 

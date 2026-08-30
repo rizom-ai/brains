@@ -124,6 +124,18 @@ module.exports = {
       },
     },
     {
+      name: "no-operator-contract-to-entity-definition",
+      severity: "error",
+      comment:
+        "Operator contracts must not import the entity definition contract. An entity package can declare a dashboard widget, so the entity contract points at the operator contracts; an operator contract pointing back closes a cycle. Operator code takes what it needs from the leaf shapes in entity/entity-shape, or names the narrow shape it actually reads — OperatorLinkableEntity is a link target needing a branded type name, not a whole definition.",
+      from: {
+        path: "^shell/plugins/src/operator/",
+      },
+      to: {
+        path: "^shell/plugins/src/entity/entity-definition-contract\\.ts$",
+      },
+    },
+    {
       name: "no-entity-to-entity-imports",
       severity: "error",
       comment:

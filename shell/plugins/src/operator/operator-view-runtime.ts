@@ -1,8 +1,8 @@
 import type { JsonValue } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type {
   OperatorEntityCatalogDefinition,
+  OperatorLinkableEntity,
   WorkspaceActionFormFieldDefinition,
 } from "./operator-view-contract";
 import {
@@ -694,7 +694,7 @@ const safeExternalUrlSchema = z
     { message: "External operator links must use http or https" },
   );
 
-function isEntityDefinition(value: unknown): value is AnyEntityDefinition {
+function isEntityDefinition(value: unknown): value is OperatorLinkableEntity {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -706,7 +706,7 @@ function isEntityDefinition(value: unknown): value is AnyEntityDefinition {
   );
 }
 
-const entityDefinitionSchema = z.custom<AnyEntityDefinition>(
+const entityDefinitionSchema = z.custom<OperatorLinkableEntity>(
   isEntityDefinition,
   { message: "Expected an imported entity definition" },
 );
@@ -738,7 +738,7 @@ function externalLinkTarget(input: {
 }
 
 function entityLinkTarget(input: {
-  readonly entity: AnyEntityDefinition;
+  readonly entity: OperatorLinkableEntity;
   readonly id: string;
 }): RuntimeOperatorLinkTarget {
   return { kind: "entity", entityType: input.entity.type, id: input.id };

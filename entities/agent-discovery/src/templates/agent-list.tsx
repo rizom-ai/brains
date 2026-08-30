@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/entities";
 import { Head, Pagination } from "@rizom/brain-ui";
 import type { AgentStatus } from "../schemas/agent";
 import type { AgentView } from "./agent-view";

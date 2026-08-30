@@ -4,7 +4,7 @@
  * means every shape on the way down has to satisfy `JsonObject`.
  */
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
-import { anchorProfileKindSchema } from "@brains/plugins";
+import { anchorProfileKindSchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import type { AgentSkill, AgentStatus } from "../schemas/agent";
 

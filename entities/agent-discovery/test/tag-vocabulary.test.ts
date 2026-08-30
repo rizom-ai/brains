@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
-import { createMockEntityService } from "@brains/test-utils";
+import type { BaseEntity } from "@brains/sdk/entities";
+import {
+  createMockEntityService,
+  createTestEntityAccess,
+} from "@brains/test-utils";
 import { createAgentContent } from "../src/lib/agent-content";
 import {
   collectTagVocabulary,
@@ -118,7 +121,7 @@ describe("tag vocabulary", () => {
       },
     ];
 
-    const context = {
+    const entities = createTestEntityAccess({
       entityService: createMockEntityService({
         listEntitiesImpl: async (request: { entityType: string }) => {
           if (request.entityType === "agent") return agentEntities;
@@ -126,9 +129,9 @@ describe("tag vocabulary", () => {
           return [];
         },
       }),
-    } as EntityPluginContext;
+    });
 
-    const vocabulary = await collectTagVocabulary(context, {
+    const vocabulary = await collectTagVocabulary(entities, {
       minCount: 1,
       topN: 10,
     });

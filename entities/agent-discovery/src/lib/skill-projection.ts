@@ -8,7 +8,7 @@ import {
   type ProjectionInputContext,
   type ProjectionAbstention,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createSkillContent } from "./directory-markdown";
@@ -172,8 +172,7 @@ async function deriveSkillIntents(
         metadata: skill,
         visibility: input.targetVisibility,
       },
-    }),
-  );
+    }));
   return intents;
 }
 
