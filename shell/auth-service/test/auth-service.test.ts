@@ -809,7 +809,18 @@ describe("AuthService", () => {
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: "{}",
+          // The endpoint validates the credential envelope before verifying it,
+          // so this flow test posts a well-formed one.
+          body: JSON.stringify({
+            id: "cred-id",
+            rawId: "cred-id",
+            type: "public-key",
+            clientExtensionResults: {},
+            response: {
+              clientDataJSON: "client-data",
+              attestationObject: "attestation",
+            },
+          }),
         },
       );
 

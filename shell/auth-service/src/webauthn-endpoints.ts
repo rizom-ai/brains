@@ -1,7 +1,7 @@
-import type {
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON,
-} from "@simplewebauthn/server";
+import {
+  authenticationResponseSchema,
+  registrationResponseSchema,
+} from "./webauthn-request-schemas";
 import type {
   PasskeyRegistrationUser,
   PasskeyService,
@@ -161,8 +161,18 @@ export class WebAuthnEndpoints {
       }
     }
 
+    // A malformed credential body is a failed registration, not a crash: it
+    // gets the same response the downstream verification failure produces.
+    const credential = registrationResponseSchema.safeParse(
+      await request.json(),
+    );
+    if (!credential.success) {
+      await this.recordRegistrationFailure(setup.targetUserId);
+      return oauthErrorResponse("access_denied", "Passkey registration failed");
+    }
+
     const result = await this.passkeyService.verifyRegistrationResponse(
-      (await request.json()) as RegistrationResponseJSON,
+      credential.data,
       webAuthnRequestContext(request),
       setup.targetUserId ?? undefined,
     );
@@ -219,8 +229,23 @@ export class WebAuthnEndpoints {
   }
 
   async handleAuthenticationVerify(request: Request): Promise<Response> {
+    // As in registration: a malformed credential body is a failed
+    // authentication, reported the same way rather than thrown.
+    const credential = authenticationResponseSchema.safeParse(
+      await request.json(),
+    );
+    if (!credential.success) {
+      await this.recordAuditEvent?.({
+        action: "auth.passkey.authentication_failed",
+      });
+      return oauthErrorResponse(
+        "access_denied",
+        "Passkey authentication failed",
+      );
+    }
+
     const result = await this.passkeyService.verifyAuthenticationResponse(
-      (await request.json()) as AuthenticationResponseJSON,
+      credential.data,
       webAuthnRequestContext(request),
     );
     if (!result.verified) {
