@@ -53,9 +53,11 @@ interface EntityServiceOverrides {
     entityType: string;
     id: string;
   }) => Promise<BaseEntity | null>;
-  createEntity?: () => Promise<EntityMutationResult>;
+  createEntity?: (request: {
+    entity: BaseEntity;
+  }) => Promise<EntityMutationResult>;
   updateEntity?: (request: {
-    entity: { id: string };
+    entity: BaseEntity;
   }) => Promise<EntityMutationResult>;
 }
 
@@ -67,23 +69,15 @@ function createEntityServiceWith(
       ? { listEntitiesImpl: overrides.listEntities }
       : {}),
     ...(overrides.getEntity ? { getEntityImpl: overrides.getEntity } : {}),
-  });
-
-  return {
-    ...base,
     ...(overrides.createEntity
-      ? {
-          createEntity:
-            overrides.createEntity as IEntityService["createEntity"],
-        }
+      ? { createEntityImpl: overrides.createEntity }
       : {}),
     ...(overrides.updateEntity
-      ? {
-          updateEntity:
-            overrides.updateEntity as IEntityService["updateEntity"],
-        }
+      ? { updateEntityImpl: overrides.updateEntity }
       : {}),
-  };
+  });
+
+  return base;
 }
 
 // -- Minimal PNG data URL for testing --

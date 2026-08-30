@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/plugins";
+import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
@@ -15,7 +15,7 @@ export interface DirectorySyncOptionsInput {
 }
 
 export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
-  entityService: IEntityService;
+  entityService: EntityServiceClient;
   logger: Logger;
 }
 

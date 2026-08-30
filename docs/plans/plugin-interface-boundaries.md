@@ -84,10 +84,15 @@ Each phase is a shippable slice with its tests written first, and each
 conversion adds capability only with a named consumer — the discipline that
 made the entity tranche find real defects rather than move code.
 
-1. **Take directory-sync's casts from turso.** Cherry-pick or rebuild
-   `01daa20b7`, so the one boundary violation that typechecks is gone and the
-   `entityCoordination` capability exists for anything else that needs it.
-   Exit: zero `as IEntityService` in the repo, enforced by a check.
+1. **Take directory-sync's casts from turso.** _Done._ `01daa20b7` is
+   cherry-picked, minus the RPC exports it carried that belong to the turso
+   branch — the coordination module imports only zod and the local
+   `EntityService` type, so it separates cleanly. Directory-sync compiles
+   against `EntityServiceClient` alone and its five casts are gone. Three
+   more lived in `plugins/` tests and are fixed at the source: the shared
+   mock already had the `createEntityImpl`/`updateEntityImpl` slots
+   stock-photo was casting around. `bun run casts:check` now fails on any
+   `as I*Service` outside `shell/`, in the pre-commit hook and CI.
 
 2. **Convert one interface.** `chat-repl` — the lightest of the seven, with
    four internal dependencies against `email` and `webserver`'s six and

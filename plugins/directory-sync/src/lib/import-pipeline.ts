@@ -1,4 +1,4 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
@@ -23,7 +23,7 @@ import {
 } from "./import-result";
 
 export interface ImportPipelineDeps {
-  entityService: IEntityService;
+  entityService: EntityServiceClient;
   logger: Logger;
   fileOperations: FileOperations;
   quarantine: Quarantine;

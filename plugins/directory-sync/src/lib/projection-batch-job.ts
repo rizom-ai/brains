@@ -1,8 +1,8 @@
-import type { IEntityService, ServicePluginContext } from "@brains/plugins";
-import type { DirectoryProjectionBatchRef } from "../types";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { DurableBulkMutationChildRef } from "../types";
 
 interface ProjectionBatchJobData {
-  projectionBatch?: DirectoryProjectionBatchRef | undefined;
+  projectionBatch?: DurableBulkMutationChildRef | undefined;
 }
 
 export function runDirectoryProjectionBatchChild<TResult>(
@@ -13,16 +13,9 @@ export function runDirectoryProjectionBatchChild<TResult>(
 ): Promise<TResult> {
   const batch = data.projectionBatch;
   if (!batch) return mutation();
-  const coordinator = context.entityService as IEntityService;
-  return coordinator.runDurableBulkMutationChild(
-    {
-      source: "directory-sync",
-      operationId: batch.operationId,
-      rootJobId: batch.rootJobId,
-      childKey: batch.childKey,
-      expectedChildren: batch.expectedChildren,
-      jobId,
-    },
+  return context.entityCoordination.runDurableBulkMutationChild(
+    batch,
+    jobId,
     mutation,
   );
 }
@@ -35,11 +28,9 @@ export async function settleDirectoryProjectionBatchChild(
 ): Promise<void> {
   const batch = data.projectionBatch;
   if (!batch) return;
-  const coordinator = context.entityService as IEntityService;
-  await coordinator.settleDurableBulkMutationChild({
-    operationId: batch.operationId,
-    childKey: batch.childKey,
+  await context.entityCoordination.settleDurableBulkMutationChild(
+    batch,
     jobId,
     outcome,
-  });
+  );
 }

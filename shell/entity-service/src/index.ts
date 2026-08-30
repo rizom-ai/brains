@@ -21,6 +21,15 @@ export {
 } from "@brains/assets";
 export { EntityService } from "./entityService";
 export { EntityRegistry } from "./entityRegistry";
+export {
+  createEntityBulkCoordination,
+  durableBulkMutationChildRefSchema,
+} from "./entity-bulk-coordination";
+export type {
+  DurableBulkMutationBatch,
+  DurableBulkMutationChildRef,
+  EntityBulkCoordination,
+} from "./entity-bulk-coordination";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
