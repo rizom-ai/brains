@@ -364,7 +364,7 @@ function createEvalProjectionContext(params: {
   projectionDecision: "update" | "append";
 }): EntityPluginContext {
   const spaceId = getConversationSpaceId(params.conversation);
-  return {
+  const context: EntityPluginContext = {
     ...params.context,
     spaces: [spaceId],
     conversations: {
@@ -374,17 +374,26 @@ function createEvalProjectionContext(params: {
     },
     ai: {
       ...params.context.ai,
-      generateObject: async () => ({
+      // generateObject promises the caller's chosen T, which a fixed stub
+      // cannot produce. The assertion is scoped to this one member so every
+      // other override in this context is still checked against the real type.
+      generateObject: (async () => ({
         object: {
           decision: params.projectionDecision,
           rationale: "Forced by eval input",
         },
-      }),
+      })) as EntityPluginContext["ai"]["generateObject"],
     },
     entityService: {
       ...params.context.entityService,
-      getEntity: async ({ entityType }: { entityType: string }) =>
-        entityType === "summary" ? params.existing : null,
+      // getEntity is declared `<T extends BaseEntity>(request) => Promise<T |
+      // null>`: the caller picks T and the implementation must return it. This
+      // stub can only ever return the one seeded summary, so no honest
+      // signature exists for it — a fixed value cannot satisfy an arbitrary T.
+      getEntity: (async ({ entityType }: { entityType: string }) =>
+        entityType === "summary"
+          ? params.existing
+          : null) as EntityPluginContext["entityService"]["getEntity"],
       listEntities: async () => [],
       deleteEntity: async (request: { entityType: string; id: string }) => {
         params.deleted.push(request);
@@ -400,7 +409,8 @@ function createEvalProjectionContext(params: {
         };
       },
     },
-  } as EntityPluginContext;
+  };
+  return context;
 }
 
 type SeededMemory = z.output<typeof seededMemorySchema>;
@@ -420,15 +430,22 @@ function createSeededRetrievalContext(
     }),
   );
 
-  return {
+  const seeded: EntityPluginContext = {
     ...context,
     entityService: {
       ...context.entityService,
-      search: async () => searchResults,
-      listEntities: async ({ entityType }: { entityType: string }) =>
-        entities.filter((entity) => entity.entityType === entityType),
+      // Both promise the caller's chosen entity type, which a fixed set of
+      // seeded memories cannot satisfy. Scoped to these two members so the
+      // rest of the context is checked against the real type.
+      search: (async () =>
+        searchResults) as EntityPluginContext["entityService"]["search"],
+      listEntities: (async ({ entityType }: { entityType: string }) =>
+        entities.filter(
+          (entity) => entity.entityType === entityType,
+        )) as EntityPluginContext["entityService"]["listEntities"],
     },
-  } as EntityPluginContext;
+  };
+  return seeded;
 }
 
 function toMemoryEntity(memory: SeededMemory): EvalMemoryEntity {

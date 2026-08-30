@@ -237,14 +237,14 @@ export interface SectionMeta {
  * same schema used by runtime validation, markdown formatting, and editing.
  */
 export interface SiteSectionDefinition<
-  S extends z.ZodType = z.ZodType,
+  S extends z.ZodType = z.ZodType<JsonObject>,
 > extends SectionMeta {
   schema: S;
   component: ComponentType<z.output<S>>;
 }
 
 /** Concise alias used when declaring heterogeneous section maps. */
-export type SectionDefinition<S extends z.ZodType = z.ZodType> =
+export type SectionDefinition<S extends z.ZodType = z.ZodType<JsonObject>> =
   SiteSectionDefinition<S>;
 
 export interface SiteSectionGroup {
@@ -417,7 +417,10 @@ const entityDisplaySchema = z.strictObject({
 });
 
 const sectionDefinitionSchema = z.strictObject({
-  schema: z.custom<z.ZodType>(
+  // defineSection has already proved JSON output via JsonObjectOutputGuard;
+  // this runtime check confirms it is a zod schema, and the declared type
+  // carries that proof forward instead of erasing it to unknown.
+  schema: z.custom<z.ZodType<JsonObject>>(
     (value) => value instanceof z.ZodType,
     "Expected a Zod schema",
   ),

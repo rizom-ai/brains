@@ -70,6 +70,11 @@ class ConversationMemoryEntityAdapter<
   }
 
   public fromMarkdown(markdown: string): Partial<TEntity> {
+    // Irreducible: TEntity is chosen by the subclass and may narrow these
+    // fields — its entityType is a literal like "summary" where the base class
+    // stores a string — so TypeScript cannot verify a literal against
+    // Partial<TEntity>. Removing this means the adapter carrying its entity
+    // type as a type parameter, which the base EntityAdapter does not.
     return {
       entityType: this.entityType,
       content: markdown,
