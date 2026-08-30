@@ -13,6 +13,15 @@ The current deploy contract separates image publication from deployment:
 
 This is the same publish-then-deploy shape that has already been proven on live instances.
 
+### Process containment
+
+Generated runtime images start through `tini`, then run the top-level Bun
+process with `--no-orphans`. The runtime still owns graceful signal forwarding,
+ordered web/worker drain, and Git-broker process-group shutdown; Bun's recursive
+cleanup is only final containment for abrupt parent loss or descendants left
+after normal shutdown. The portable `brain` package executable does not enable
+the flag globally.
+
 ## Prerequisites
 
 - a GitHub repo for the brain instance

@@ -14,6 +14,27 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
   - Native test runner
   - Fast package manager
 
+### Bun-native runtime boundaries
+
+Bun APIs are adopted when they remove a dependency, operating-system
+requirement, or process-lifetime failure mode without weakening an existing
+contract:
+
+- package-release verification reads npm tarballs in memory with `Bun.Archive`;
+- Web Chat has one browser build path, `Bun.build`;
+- scheduled runtime work uses in-process `Bun.cron` with standard five-field
+  expressions; and
+- reviewed top-level deployment, canonical development, and one-shot runner
+  processes use `--no-orphans` as final containment after graceful shutdown.
+
+Some mature boundaries deliberately remain library-backed. `js-yaml` and
+Gray Matter preserve stable formatting for durable Markdown; Marked preserves
+browser security/image hooks and terminal output that Bun 1.4's unstable
+Markdown callbacks cannot express. Git-broker journals and usage logs retain
+line-by-line strict `JSON.parse` recovery because `Bun.JSONL` changed damaged-line
+semantics and showed no end-to-end benefit. JSON5 and JSONC need no wrappers
+until the repository owns a corresponding format.
+
 ### Language & Build
 
 - **[TypeScript](https://www.typescriptlang.org/)** - Primary development language
