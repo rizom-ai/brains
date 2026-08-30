@@ -3,7 +3,6 @@
 "@rizom/theme-default": patch
 "@rizom/theme-rizom-ai": patch
 "@rizom/site-docs": patch
-"@rizom/site-rizom": patch
 "@rizom/site-rizom-ai": patch
 ---
 

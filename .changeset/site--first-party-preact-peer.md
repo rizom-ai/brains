@@ -1,6 +1,5 @@
 ---
 "@rizom/site-docs": patch
-"@rizom/site-rizom": patch
 "@rizom/site-rizom-ai": patch
 ---
 

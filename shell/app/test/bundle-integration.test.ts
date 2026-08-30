@@ -58,12 +58,12 @@ describe("brain.yaml bundle selection", () => {
     expect(
       parseInstanceOverrides(`brain: "brain"
 bundles: [site, core]
-add: [products]
+add: [assessment]
 remove: [analytics]
 `),
     ).toMatchObject({
       bundles: ["site", "core"],
-      add: ["products"],
+      add: ["assessment"],
       remove: ["analytics"],
     });
 

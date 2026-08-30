@@ -6,7 +6,6 @@ export const BRAIN_RECIPE_NAMES = [
   "personal",
   "professional",
   "team",
-  "commerce",
 ] as const;
 
 export type BrainRecipeName = (typeof BRAIN_RECIPE_NAMES)[number];
@@ -63,20 +62,6 @@ const recipes: Record<BrainRecipeName, BrainRecipeExpansion> = {
     add: ["docs"],
     site: {
       package: "@brains/site-default",
-      theme: "@brains/theme-rizom",
-    },
-    plugins: {
-      "directory-sync": { seedContentPath: "./seed-content" },
-    },
-  },
-  commerce: {
-    bundleContract: CANONICAL_BUNDLE_CONTRACT,
-    anchor: "organization",
-    kind: "organization",
-    bundles: ["core", "media", "web", "site"],
-    add: ["products"],
-    site: {
-      package: "@rizom/site-rizom",
       theme: "@brains/theme-rizom",
     },
     plugins: {

@@ -152,12 +152,13 @@ jobs:
       - name: Publish site and theme packages to npm
         run: bun run changeset:publish:site
 
-      - name: Deprecate retired alpha-only site package
+      - name: Deprecate retired alpha-only site packages
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
           npm deprecate '@rizom/site-sections@*' 'This alpha-only package is retired. Migrate to @rizom/site: https://github.com/rizom-ai/brains/blob/main/docs/external-site-authoring.md'
+          npm deprecate '@rizom/site-rizom@*' 'This alpha-only package is retired. Its implementation is part of @rizom/site-rizom-ai.'
           bun scripts/verify-retired-package-deprecations.ts
 
       - name: Verify registry and tarball metadata

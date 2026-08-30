@@ -34,7 +34,7 @@ HTTP behavior now has one finalized composition boundary:
 
 The shared server also owns `/health/*`, `/images/*`, the blocked `/.site-build-manifest.json`, static files, clean URLs, and production-versus-preview host selection. Health is split across `/health/live`, `/health/ready`, and `/health/operate`; the aggregate `/health` endpoint is absent. Dynamic routes run only on the production surface; preview remains static-only. MCP HTTP mounts on the shared host, and production rejects configurations without the webserver. The unused standalone `ApiServer` export is absent; the MCP transport's test-only listener method remains cleanup work.
 
-Canonical minimal, personal, publishing, team, commerce, docs, and Rizom manifests are checked and currently contain no method/path collisions. Configured Chat SDK routes and the newsletter tool route have focused inventory coverage. The packed external handler-route fixture installs and serves outside the monorepo through documented `@rizom/brain/*` entry points.
+Canonical minimal, personal, publishing, team, docs, and Rizom manifests are checked and currently contain no method/path collisions. Configured Chat SDK routes and the newsletter tool route have focused inventory coverage. The packed external handler-route fixture installs and serves outside the monorepo through documented `@rizom/brain/*` entry points.
 
 ## Problems to solve
 
@@ -273,7 +273,7 @@ Gate:
 
 ### Contract stability
 
-- canonical minimal, personal, publishing, team, commerce, docs, and Rizom compositions through register-only or startup-check as appropriate;
+- canonical minimal, personal, publishing, team, docs, and Rizom compositions through register-only or startup-check as appropriate;
 - focused package tests for every route owner;
 - packed external interface with the stable handler-backed web-route contract;
 - package-local tool-route getter coverage without adding it to the stable `0.2` ledger;

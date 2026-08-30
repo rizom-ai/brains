@@ -1,5 +1,4 @@
 ---
-"@rizom/site-rizom": patch
 ---
 
 Fold `@rizom/ui` into the site and retire the package.

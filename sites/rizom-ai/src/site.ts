@@ -1,4 +1,4 @@
-import { createRizomSite, type SitePackage } from "@rizom/site-rizom";
+import { createRizomSite, type SitePackage } from "./rizom";
 import { AiLayout } from "./layout";
 import { homeSections } from "./home";
 import { brainSections } from "./brain";

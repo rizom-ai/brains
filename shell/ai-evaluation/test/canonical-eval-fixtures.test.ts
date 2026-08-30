@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { readFile, readdir } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 
 import { YAMLLoader } from "../src/loaders/yaml-loader";
 
@@ -52,39 +52,5 @@ describe("canonical evaluation test cases", () => {
     }
 
     expect(seenIds.size).toBe(files.length);
-  });
-
-  it("keeps commerce eval seed content aligned with its recipe", async () => {
-    const brainPackageDir = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "packages",
-      "brain-cli",
-    );
-    const recipeDir = join(
-      brainPackageDir,
-      "templates",
-      "recipes",
-      "commerce",
-      "seed-content",
-    );
-    const evalDir = join(brainPackageDir, "eval-content", "commerce");
-    const recipeFiles = (await findFiles(recipeDir)).sort();
-    const evalFiles = (await findFiles(evalDir))
-      .filter((file) => !/\.db(?:-shm|-wal)?$/.test(file))
-      .sort();
-
-    expect(evalFiles.map((file) => relative(evalDir, file))).toEqual(
-      recipeFiles.map((file) => relative(recipeDir, file)),
-    );
-    for (const [index, recipeFile] of recipeFiles.entries()) {
-      const evalFile = evalFiles[index];
-      expect(evalFile).toBeDefined();
-      if (!evalFile)
-        throw new Error(`Missing commerce eval fixture at ${index}`);
-      expect(await readFile(evalFile)).toEqual(await readFile(recipeFile));
-    }
   });
 });

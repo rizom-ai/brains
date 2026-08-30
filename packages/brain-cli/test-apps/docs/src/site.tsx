@@ -3,7 +3,7 @@ import {
   type RouteDefinitionInput,
   type SitePackage,
 } from "@brains/site-composition";
-import rizomSite from "@rizom/site-rizom";
+import defaultSite from "@brains/site-default";
 
 const docsSections: RouteDefinitionInput["sections"] = [
   {
@@ -16,7 +16,7 @@ const docsSections: RouteDefinitionInput["sections"] = [
   },
 ];
 
-const docsSite: SitePackage = extendSite(rizomSite, {
+const docsSite: SitePackage = extendSite(defaultSite, {
   routes: [
     {
       id: "docs-home",

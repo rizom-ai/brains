@@ -120,7 +120,15 @@ describe("public authoring Phase 4 packed site contract", () => {
 
       const generatedSourceDirectory = join(consumerDirectory, "generated");
       await runCommand(
-        ["bun", "run", "brain", "init", "generated", "--recipe", "commerce"],
+        [
+          "bun",
+          "run",
+          "brain",
+          "init",
+          "generated",
+          "--recipe",
+          "professional",
+        ],
         consumerDirectory,
         { env: runtimeEnv, timeoutMs: 90_000 },
       );

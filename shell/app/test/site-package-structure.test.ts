@@ -4,13 +4,11 @@ import { join } from "node:path";
 
 const siteSources = [
   "sites/default/src/index.ts",
-  "sites/rizom/src/index.ts",
   "sites/rizom-ai/src/index.ts",
 ];
 
 const sitePackages = [
   "sites/default/package.json",
-  "sites/rizom/package.json",
   "sites/rizom-ai/package.json",
 ];
 

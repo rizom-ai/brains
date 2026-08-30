@@ -172,11 +172,10 @@ outcome is to defer the whole plan to `0.3.0` rather than split it. A stable
 `@rizom/site` on Preact wrapping an internal React graph is the two-runtime tax
 made permanent and published.
 
-One further ordering constraint: `sites/rizom-ai` and `sites/rizom` publish
-exact dependencies on `@rizom/site` and `@rizom/site-rizom`. Their source flips
-atomically with the repository, but Phase 4 must prove the site-lane version
-plan rewrites those exact dependencies to the React-line versions before any
-package is published. The site release then publishes the SDK before its
+One further ordering constraint: `sites/rizom-ai` publishes an exact dependency
+on `@rizom/site`. Its source flips atomically with the repository, but Phase 4
+must prove the site-lane version plan rewrites that exact dependency to the
+React-line version before any package is published. The site release then publishes the SDK before its
 dependents in topological order; no package may publish against the old Preact
 SDK merely because workspace linking hid the mismatch during development.
 
@@ -270,9 +269,8 @@ what external authors install against, so it cannot lag the flip.
   the change is version-cheap, not review-cheap.
 - Hard gate: this phase must merge **before** `changeset pre exit`. After
   prerelease exit the same change is a `0.3.0` major.
-- Gate the site release plan: versioned manifests for `sites/rizom-ai` and
-  `sites/rizom` must reference the React-line SDK/site versions, and publishing
-  must remain topological. Workspace linking is not accepted as evidence.
+- Gate the site release plan: the versioned manifest for `sites/rizom-ai` must
+  reference the React-line SDK version, and publishing must remain topological. Workspace linking is not accepted as evidence.
 
 ### Phase 5 — Collapse the duplicated operator host ✅
 

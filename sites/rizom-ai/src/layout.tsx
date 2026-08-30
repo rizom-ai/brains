@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
-import { RizomFrame, type RizomLayoutProps } from "@rizom/site-rizom";
+import { RizomFrame, type RizomLayoutProps } from "./rizom";
 
 /**
  * The consolidated rizom.ai chrome (rev-5): a quiet org-level faces strip

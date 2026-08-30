@@ -10,6 +10,7 @@ import {
   type LegacyBrainModel,
 } from "../src/lib/brain-config-migration";
 import {
+  BRAIN_RECIPE_NAMES,
   expandBrainRecipe,
   type BrainRecipeName,
 } from "../src/lib/brain-recipes";
@@ -140,20 +141,6 @@ const recipeExpectations: Record<
       "directory-sync": { seedContentPath: "./seed-content" },
     },
   },
-  commerce: {
-    bundleContract: "capability-bundles-v1",
-    anchor: "organization",
-    kind: "organization",
-    bundles: ["core", "media", "web", "site"],
-    add: ["products"],
-    site: {
-      package: "@rizom/site-rizom",
-      theme: "@brains/theme-rizom",
-    },
-    plugins: {
-      "directory-sync": { seedContentPath: "./seed-content" },
-    },
-  },
 };
 
 function expectMigrationSelection(
@@ -187,13 +174,16 @@ function expectMigrationSelection(
 }
 
 describe("brain recipe preparation", () => {
+  test("does not expose the retired commerce initializer", () => {
+    expect(BRAIN_RECIPE_NAMES).not.toContain("commerce");
+  });
+
   test("expands fixed recipes to explicit runtime selections", () => {
     for (const recipe of [
       "headless",
       "personal",
       "professional",
       "team",
-      "commerce",
     ] as const) {
       expect(expandBrainRecipe(recipe)).toEqual(recipeExpectations[recipe]);
     }
@@ -275,12 +265,12 @@ describe("brain config migration preview", () => {
       anchor: "team",
       kind: "team",
     });
-    expectMigrationSelection("ranger", "default", {
-      bundles: ["core", "media", "web", "site"],
-      add: ["products"],
-      anchor: "organization",
-      kind: "organization",
-    });
+  });
+
+  test("rejects the retired Ranger migration source", () => {
+    expect(() =>
+      previewBrainConfigMigration("brain: ranger\npreset: default\n"),
+    ).toThrow('Unsupported legacy brain model "ranger"');
   });
 
   test("records every intentional member delta from the retired taxonomy", () => {
@@ -359,27 +349,6 @@ describe("brain config migration preview", () => {
           "wishlist",
         ],
       })),
-      {
-        model: "ranger",
-        preset: "default",
-        legacyMembers: [...legacyCoreMembers, ...legacySiteMembers, "products"],
-        added: ["studio", "unified-inbox"],
-        removed: [
-          "account",
-          "assessment",
-          "atproto-registry",
-          "chat",
-          "cms",
-          "decks",
-          "email",
-          "notifications",
-          "onboarding",
-          "playbook",
-          "playbooks",
-          "web-chat",
-          "wishlist",
-        ],
-      },
     ];
 
     for (const migrationCase of cases) {
@@ -487,7 +456,7 @@ permissions:
   test("preserves explicit site, seed, add, and remove choices", () => {
     const result = previewBrainConfigMigration(`brain: relay
 preset: full
-add: [products]
+add: [assessment]
 remove: [analytics]
 site:
   package: "@custom/team-site"
@@ -500,7 +469,7 @@ plugins:
 `);
     const parsed = parseInstanceOverrides(result.output);
 
-    expect(parsed.add).toEqual(["products", "docs"]);
+    expect(parsed.add).toEqual(["assessment", "docs"]);
     expect(parsed.remove).toEqual(["analytics"]);
     expect(parsed.site).toEqual({
       package: "@custom/team-site",
@@ -680,7 +649,7 @@ plugins:
     const directory = mkdtempSync(join(tmpdir(), "brain-config-migrate-"));
     temporaryDirectories.push(directory);
     const path = join(directory, "brain.yaml");
-    const original = "brain: ranger\npreset: default\n";
+    const original = "brain: rover\npreset: default\n";
     writeFileSync(path, original);
 
     const result = await runCommand(

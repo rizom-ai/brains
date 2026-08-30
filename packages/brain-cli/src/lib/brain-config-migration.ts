@@ -7,7 +7,7 @@ import {
 } from "./brain-recipes";
 import { CANONICAL_BUNDLE_CONTRACT } from "../model/canonical-bundles";
 
-export type LegacyBrainModel = "rover" | "relay" | "ranger";
+export type LegacyBrainModel = "rover" | "relay";
 type MigrationSourceModel = LegacyBrainModel | "brain";
 
 export interface BrainConfigMigrationPreview {
@@ -91,7 +91,6 @@ function normalizeModel(value: unknown): MigrationSourceModel {
   if (
     normalized === "rover" ||
     normalized === "relay" ||
-    normalized === "ranger" ||
     normalized === "brain"
   ) {
     return normalized;
@@ -152,14 +151,6 @@ function migrationTarget(
         bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
       };
     }
-  }
-
-  if (model === "ranger" && preset === "default") {
-    return {
-      ...expandBrainRecipe("commerce"),
-      anchor: "organization",
-      bundles: ["core", "media", "web", "site"],
-    };
   }
 
   throw new Error(`Unsupported ${model} preset "${preset}"`);

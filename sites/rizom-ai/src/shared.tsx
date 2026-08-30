@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
 import { z } from "@rizom/site";
-import { Button, Section, renderHighlightedText } from "@rizom/site-rizom";
+import { Button, Section, renderHighlightedText } from "./rizom";
 
 /**
  * Shared presentational primitives for the consolidated Rizom site — the

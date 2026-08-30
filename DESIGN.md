@@ -244,4 +244,4 @@ Avoid extraction language such as “optimize,” “leverage,” and “synergi
 
 ## Implementation Notes
 
-Use the shared theme tokens in `shared/theme-rizom/src/theme.css` and shared UI primitives in `shared/rizom-ui/src/`. The site composition package lives in `sites/rizom/src/`. Brand source material lives in `apps/rizom-foundation/brain-data/RizomBrandBook.md`.
+Use the shared theme tokens in `shared/theme-rizom/src/theme.css` and shared UI primitives in `shared/rizom-ui/src/`. The site composition package lives in `sites/rizom-ai/src/rizom/`. Brand source material lives in `apps/rizom-foundation/brain-data/RizomBrandBook.md`.

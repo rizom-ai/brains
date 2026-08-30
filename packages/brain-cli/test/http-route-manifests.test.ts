@@ -93,19 +93,6 @@ function resolveTestApp(name: string): Plugin[] {
   return resolve(canonicalBrain, {}, overrides).plugins ?? [];
 }
 
-function resolveCommerceFixture(): Plugin[] {
-  const source = readFileSync(
-    join(import.meta.dir, "fixtures", "canonical-commerce", "brain.yaml"),
-    "utf8",
-  );
-  const {
-    brain: _brain,
-    site: _site,
-    ...overrides
-  } = parseInstanceOverrides(source);
-  return resolve(canonicalBrain, {}, overrides).plugins ?? [];
-}
-
 describe("canonical HTTP route manifests", () => {
   const minimal = routeManifest(resolveTestApp("minimal"));
 
@@ -135,7 +122,6 @@ describe("canonical HTTP route manifests", () => {
     ["personal", resolveTestApp("personal")],
     ["publishing", resolveTestApp("publishing")],
     ["team", resolveTestApp("team")],
-    ["commerce", resolveCommerceFixture()],
     ["docs", resolveTestApp("docs")],
     ["rizom-ai", resolveTestApp("rizom-ai")],
   ];

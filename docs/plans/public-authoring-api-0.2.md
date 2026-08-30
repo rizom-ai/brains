@@ -356,7 +356,7 @@ Exit gate:
 2. Derive runtime site validation and all public site types from the canonical SDK source, covering layouts, routes, content, sections, entity display, CSS, head scripts, and static assets.
 3. Exclude embedded runtime plugins from the stable site definition and document a separate explicit plugin export/package for advanced backend behavior.
 4. Remove the `@rizom/brain/site` export map and entry. Migrate every source, fixture, test, scaffold, and current document to `@rizom/site`; historical changelogs may retain old package names as history.
-5. Migrate every internal `@rizom/site-sections` consumer, including `shared/site-composition`, `sites/rizom`, `sites/rizom-ai`, and their tests, to import from `@rizom/site` directly.
+5. Migrate every internal `@rizom/site-sections` consumer, including `shared/site-composition`, `sites/rizom-ai`, and its tests, to import from `@rizom/site` directly.
 6. Regenerate the `brain-cli init` site source from the site golden fixture and add an exact compatible direct `@rizom/site` dependency to the generated package manifest, so a new consumer starts on the one-import canonical path instead of relying on a transitive dependency.
 7. Activate the one-import site fixture and test compile, runtime parsing, and every supported field without direct `zod`, Brain authoring imports, casts, or monorepo tooling.
 8. Boot the packed consumer, trigger an app-managed preview rebuild on the running app, and inspect generated routes, layout, CSS, head script, content section, and static asset.

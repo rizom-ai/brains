@@ -144,7 +144,6 @@ describe("brain init", () => {
         ["personal", "person", "professional"],
         ["professional", "person", "professional"],
         ["team", "team", "team"],
-        ["commerce", "organization", "organization"],
       ] as const) {
         const dir = join(testDir, recipe);
         scaffold(dir, { recipe });
@@ -245,14 +244,6 @@ describe("brain init", () => {
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
       expect(yaml).toContain("bundles:\n  - core\n");
-    });
-
-    it("should scaffold explicit commerce site choices", () => {
-      scaffold(testDir, { recipe: "commerce" });
-
-      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('package: "@rizom/site-rizom"');
-      expect(yaml).toContain('theme: "@brains/theme-rizom"');
     });
 
     it("should scaffold explicit team site choices", () => {
@@ -380,8 +371,8 @@ describe("brain init", () => {
       }
     });
 
-    it("should create src/site.tsx and src/theme.css for commerce", () => {
-      scaffold(testDir, { recipe: "commerce" });
+    it("should create src/site.tsx and src/theme.css for professional", () => {
+      scaffold(testDir, { recipe: "professional" });
 
       const siteSource = readFileSync(
         join(testDir, "src", "site.tsx"),
@@ -532,7 +523,7 @@ describe("brain init", () => {
           "brain: brain",
           "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
-          "add: [products]",
+          "add: [assessment]",
           "domain: rizom.ai",
           "plugins:",
           "  mcp:",
@@ -563,7 +554,7 @@ describe("brain init", () => {
           "brain: brain",
           "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
-          "add: [products]",
+          "add: [assessment]",
           "domain: rizom.ai",
           "",
         ].join("\n"),
@@ -583,7 +574,7 @@ describe("brain init", () => {
           "brain: brain",
           "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
-          "add: [products]",
+          "add: [assessment]",
           "domain: rizom.ai",
           "",
         ].join("\n"),
@@ -611,7 +602,7 @@ describe("brain init", () => {
           "brain: brain",
           "bundleContract: capability-bundles-v1",
           "bundles: [core, site]",
-          "add: [products]",
+          "add: [assessment]",
           "domain: rizom.ai",
           "",
         ].join("\n"),
@@ -1195,7 +1186,7 @@ GIT_SYNC_TOKEN=bitwarden("secret-id")
 
       scaffold(dir1, { recipe: "personal", deploy: true });
       scaffold(dir2, {
-        recipe: "commerce",
+        recipe: "team",
         domain: "custom.example.com",
         deploy: true,
       });

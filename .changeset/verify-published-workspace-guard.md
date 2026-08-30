@@ -1,6 +1,5 @@
 ---
 "@rizom/site-docs": patch
-"@rizom/site-rizom": patch
 "@rizom/site-rizom-ai": patch
 "@rizom/site-smoke-canary": patch
 "@rizom/theme-default": patch

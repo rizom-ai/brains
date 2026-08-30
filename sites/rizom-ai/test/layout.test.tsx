@@ -2,7 +2,7 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { AiLayout } from "../src/layout";
-import type { RizomLayoutProps } from "@rizom/site-rizom";
+import type { RizomLayoutProps } from "../src/rizom";
 
 const siteInfo: RizomLayoutProps["siteInfo"] = {
   title: "Rizom",

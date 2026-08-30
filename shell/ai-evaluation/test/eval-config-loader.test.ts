@@ -25,16 +25,16 @@ const rawYaml = {
         },
       },
     },
-    commerce: {
+    custom: {
       extends: "core",
       anchor: "organization",
       kind: "organization",
       bundles: ["core", "site"],
-      add: ["products"],
-      tags: ["posture-commerce"],
+      add: ["assessment"],
+      tags: ["custom"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content/commerce",
+          seedContentPath: "eval-content/custom",
         },
       },
     },
@@ -43,15 +43,15 @@ const rawYaml = {
 
 describe("resolveEvalSelection", () => {
   it("resolves inherited suite bundles, additions, and tags", () => {
-    expect(resolveEvalSelection(rawYaml, { suite: "commerce" })).toEqual({
+    expect(resolveEvalSelection(rawYaml, { suite: "custom" })).toEqual({
       anchor: "organization",
       kind: "organization",
       bundles: ["core", "site"],
-      add: ["products"],
-      tags: ["bundle-core", "posture-commerce"],
+      add: ["assessment"],
+      tags: ["bundle-core", "custom"],
       plugins: {
         "directory-sync": {
-          seedContentPath: "eval-content/commerce",
+          seedContentPath: "eval-content/custom",
         },
       },
     });

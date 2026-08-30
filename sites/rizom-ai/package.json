@@ -1,24 +1,40 @@
 {
   "name": "@rizom/site-rizom-ai",
   "version": "0.2.0-alpha.241",
-  "description": "Rizom AI site package for hosted Rover deployments",
+  "description": "Consolidated Rizom brand site, runtime, layouts, and chrome",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
+  "publishExports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
+    "dist",
     "src"
   ],
   "scripts": {
+    "build": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "prepack": "publish-manifest prepare"
+    "prepack": "publish-manifest prepare",
+    "prepublishOnly": "bun scripts/build.ts"
   },
   "dependencies": {
     "@rizom/site": "0.2.0-alpha.235",
-    "@rizom/site-rizom": "0.2.0-alpha.241"
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^3.6.0"
   },
   "publishPeerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.141 <0.3.0",
@@ -26,15 +42,23 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/build-tools": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/site-composition": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",
     "eslint": "^10.5.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "rolldown": "^1.0.0",
+    "rolldown-plugin-dts": "^0.27.4",
     "typescript": "^7.0.2"
   },
   "publishConfig": {

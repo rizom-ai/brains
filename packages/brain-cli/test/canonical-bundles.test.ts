@@ -19,8 +19,7 @@ const catalogIds = [
   ...canonicalBrain.interfaces.map(([id]) => id),
 ];
 
-type TargetRecipeName =
-  "headless" | "personal" | "professional" | "team" | "commerce";
+type TargetRecipeName = "headless" | "personal" | "professional" | "team";
 
 interface TargetRecipeSelection {
   bundleContract: "capability-bundles-v1";
@@ -52,11 +51,6 @@ const targetRecipes: Record<TargetRecipeName, TargetRecipeSelection> = {
     bundleContract,
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
     add: ["docs"],
-  },
-  commerce: {
-    bundleContract,
-    bundles: ["core", "media", "web", "site"],
-    add: ["products"],
   },
 };
 
@@ -172,31 +166,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "webserver",
     "web-chat",
     "chat",
-    "a2a",
-  ],
-  commerce: [
-    "prompt",
-    "profile",
-    "style-guide",
-    "image",
-    "document",
-    "note",
-    "link",
-    "topics",
-    "directory-sync",
-    "agents",
-    "auth-service",
-    "studio",
-    "dashboard",
-    "admin",
-    "site-info",
-    "site-content",
-    "site-builder",
-    "analytics",
-    "products",
-    "unified-inbox",
-    "mcp",
-    "webserver",
     "a2a",
   ],
 };
@@ -396,21 +365,6 @@ describe("canonical bundle taxonomy", () => {
       "chat",
       "web-chat",
       "email",
-      "analytics",
-    ]);
-  });
-
-  test("commerce stays site-only above its explicit product addition", () => {
-    const resolution = targetResolution("commerce");
-    expect(resolution.configByMember).toEqual({
-      dashboard: { routePath: "/dashboard" },
-    });
-    expect(resolution.permissionContributions).toEqual([webPermission]);
-    expect(resolution.agentInstructions).toEqual([]);
-    expect(resolution.evalDisable).toEqual([
-      "mcp",
-      "webserver",
-      "dashboard",
       "analytics",
     ]);
   });

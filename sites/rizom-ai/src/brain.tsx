@@ -2,7 +2,7 @@
 import type { JSX } from "react";
 import type { SiteSectionGroup } from "@rizom/site";
 import { defineSection, sectionGroup, z } from "@rizom/site";
-import { Section, renderHighlightedText } from "@rizom/site-rizom";
+import { Section, renderHighlightedText } from "./rizom";
 import {
   Band,
   CtaRow,

@@ -13,7 +13,6 @@ import { describe, expect, test } from "bun:test";
 import { preparePublishManifest } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
-const basePackageDir = join(packageDir, "../rizom");
 const sdkPackageDir = join(packageDir, "../../packages/site");
 const repoRoot = join(packageDir, "../..");
 
@@ -104,15 +103,21 @@ async function stagePublishableCopy(
 }
 
 describe("@rizom/site-rizom-ai package boundary", () => {
+  test("owns its Rizom implementation without a second public site package", async () => {
+    const manifest = JSON.parse(
+      await readFile(join(packageDir, "package.json"), "utf8"),
+    );
+
+    expect(manifest.dependencies).not.toHaveProperty("@rizom/site-rizom");
+  });
+
   test("publishable manifests install and import cleanly from packed tarballs", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "site-rizom-ai-pack-"));
 
     try {
       const sdkCopyDir = join(tempDir, "sdk-copy");
-      const baseCopyDir = join(tempDir, "base-copy");
       const workCopyDir = join(tempDir, "ai-copy");
       await stagePublishableCopy(sdkPackageDir, sdkCopyDir);
-      await stagePublishableCopy(basePackageDir, baseCopyDir);
       await stagePublishableCopy(packageDir, workCopyDir);
 
       await run(
@@ -121,15 +126,10 @@ describe("@rizom/site-rizom-ai package boundary", () => {
       );
       await run(
         ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
-        baseCopyDir,
-      );
-      await run(
-        ["bun", "pm", "pack", "--destination", tempDir, "--quiet"],
         workCopyDir,
       );
 
       const sdkTarball = await findPackedTarball(tempDir, "rizom-site-");
-      const baseTarball = await findPackedTarball(tempDir, "rizom-site-rizom-");
       const aiTarball = await findPackedTarball(
         tempDir,
         "rizom-site-rizom-ai-",
@@ -155,7 +155,6 @@ describe("@rizom/site-rizom-ai package boundary", () => {
             },
             overrides: {
               "@rizom/site": `file:${sdkTarball}`,
-              "@rizom/site-rizom": `file:${baseTarball}`,
               // Third-party deps come from the workspace install; see
               // workspaceCopy for why.
               clsx: workspaceCopy("clsx"),
@@ -176,27 +175,18 @@ describe("@rizom/site-rizom-ai package boundary", () => {
         [
           "bun",
           "-e",
-          'const site = await import("@rizom/site-rizom-ai"); console.log(site.default.routes[0].id)',
+          'const site = await import("@rizom/site-rizom-ai"); console.log(site.default.routes[0].id, typeof site.createRizomSite, typeof site.Header)',
         ],
         tempDir,
       );
 
-      expect(output.trim()).toBe("home");
+      expect(output.trim()).toBe("home function function");
 
-      const sourceBaseManifest = JSON.parse(
-        await readFile(join(basePackageDir, "package.json"), "utf8"),
-      );
       const sourceAiManifest = JSON.parse(
         await readFile(join(packageDir, "package.json"), "utf8"),
       );
       const sourceSdkManifest = JSON.parse(
         await readFile(join(sdkPackageDir, "package.json"), "utf8"),
-      );
-      const installedBaseManifest = JSON.parse(
-        await readFile(
-          join(tempDir, "node_modules/@rizom/site-rizom/package.json"),
-          "utf8",
-        ),
       );
       const installedAiManifest = JSON.parse(
         await readFile(
@@ -212,11 +202,8 @@ describe("@rizom/site-rizom-ai package boundary", () => {
       expect(installedAiManifest.dependencies["@rizom/site"]).toBe(
         sourceSdkManifest.version,
       );
-      expect(installedAiManifest.dependencies["@rizom/site-rizom"]).toBe(
-        sourceBaseManifest.version,
-      );
-      expect(installedBaseManifest.dependencies["@rizom/site"]).toBe(
-        sourceSdkManifest.version,
+      expect(installedAiManifest.dependencies).not.toHaveProperty(
+        "@rizom/site-rizom",
       );
       expect(installedAiManifest.devDependencies).toBeUndefined();
 
@@ -228,31 +215,26 @@ describe("@rizom/site-rizom-ai package boundary", () => {
       expect(sourceAiManifest.dependencies["@rizom/site"]).toBe(
         sourceSdkManifest.version,
       );
-      expect(sourceAiManifest.dependencies["@rizom/site-rizom"]).toBe(
-        sourceBaseManifest.version,
-      );
-      expect(sourceBaseManifest.dependencies["@rizom/site"]).toBe(
-        sourceSdkManifest.version,
+      expect(sourceAiManifest.dependencies).not.toHaveProperty(
+        "@rizom/site-rizom",
       );
 
       // The runtime peer range must reach the published manifest even
       // though the repo manifest omits it (it would close a workspace
       // dependency cycle through @rizom/brain).
-      expect(sourceBaseManifest.peerDependencies).toBeUndefined();
-      expect(installedBaseManifest.peerDependencies).toEqual(
-        sourceBaseManifest.publishPeerDependencies,
+      expect(sourceAiManifest.peerDependencies).toBeUndefined();
+      expect(installedAiManifest.peerDependencies).toEqual(
+        sourceAiManifest.publishPeerDependencies,
       );
       expect(
-        installedBaseManifest.peerDependencies?.["@rizom/brain"],
+        installedAiManifest.peerDependencies?.["@rizom/brain"],
       ).toBeDefined();
 
       // The in-repo "bun" source export condition must not ship: the
       // published artifact resolves to dist only.
       expect(sourceAiManifest.scripts.prepack).toBe("publish-manifest prepare");
-      expect(JSON.stringify(installedBaseManifest.exports)).not.toContain(
-        "src/",
-      );
-      expect(installedBaseManifest.publishExports).toBeUndefined();
+      expect(JSON.stringify(installedAiManifest.exports)).not.toContain("src/");
+      expect(installedAiManifest.publishExports).toBeUndefined();
     } finally {
       await rm(tempDir, { recursive: true, force: true });
     }

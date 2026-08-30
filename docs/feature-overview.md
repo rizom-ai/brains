@@ -30,7 +30,6 @@ Recipes are scaffold-time conveniences. They emit explicit YAML and have no runt
 | `personal`     | `core + media + web + chat`                                               |
 | `professional` | `core + media + automation + web + chat + site + publishing + federation` |
 | `team`         | `core + media + automation + web + chat + site + team`, plus `docs`       |
-| `commerce`     | `core + media + web + site`, plus `products`                              |
 
 ## Durable knowledge
 
@@ -215,7 +214,7 @@ External authors can provide scoped definition packages, capability packages, in
 - The product is one instance with multiple users, not multi-tenant SaaS.
 - Site and theme packages are selected explicitly.
 - Several integrations require external credentials and remain opt-in.
-- Opportunity prioritization, LinkedIn import, OAuth broker, assessment, wishlist, docs, products, Obsidian sync, and email workflows remain outside default bundles unless selected by a recipe or explicit addition.
+- Opportunity prioritization, LinkedIn import, OAuth broker, assessment, wishlist, docs, Obsidian sync, and email workflows remain outside default bundles unless selected by a recipe or explicit addition.
 
 ## Read next
 
