@@ -26,7 +26,9 @@
     ".": "./src/index.ts",
     "./account-contracts": "./src/account-contracts.ts",
     "./env-schema": "./src/env-schema.ts",
-    "./admin-contracts": "./src/admin-contracts.ts"
+    "./admin-contracts": "./src/admin-contracts.ts",
+    "./admin-response-schemas": "./src/admin-response-schemas.ts",
+    "./account-response-schemas": "./src/account-response-schemas.ts"
   },
   "files": [
     "src"
