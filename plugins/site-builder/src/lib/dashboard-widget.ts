@@ -8,11 +8,27 @@ import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactNode } from "react";
 import type { SiteWorkspaceProvider } from "./site-workspace";
 
+const publicationSchema = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("not-published") }),
+  z.object({
+    state: z.literal("published"),
+    buildId: z.string(),
+    publishedAt: z.string(),
+    routesBuilt: z.number(),
+    warnings: z.array(z.string()),
+  }),
+  z.object({ state: z.literal("unreadable"), message: z.string() }),
+]);
+
 const environmentSchema = z.object({
   environment: z.enum(["preview", "production"]),
+  publication: publicationSchema.optional(),
   active: z
     .object({
+      jobId: z.string().optional(),
       state: z.enum(["debouncing", "queued", "building"]),
+      requestedAt: z.string().optional(),
+      startedAt: z.string().optional(),
     })
     .optional(),
   lastSuccess: z
@@ -24,6 +40,7 @@ const environmentSchema = z.object({
     .optional(),
   lastFailure: z
     .object({
+      jobId: z.string().optional(),
       completedAt: z.string(),
       message: z.string(),
     })
@@ -61,12 +78,16 @@ function failureBlocks(
     {
       type: "notice",
       id: "build-failures",
-      title: "Build failures",
+      title: "Previous build failures",
       text: failures
-        .map(
-          (failure) =>
-            `${failure.environment}: ${boundedDetail(failure.lastFailure?.message ?? "Build failed without details.")}`,
-        )
+        .map((failure) => {
+          const previous = failure.lastFailure;
+          const attempt = previous?.jobId ? ` · ${previous.jobId}` : "";
+          const completed = previous?.completedAt
+            ? ` · ${previous.completedAt}`
+            : "";
+          return `${failure.environment}${attempt}${completed}: ${boundedDetail(previous?.message ?? "Build failed without details.")}`;
+        })
         .join("\n"),
       tone: "error",
     },
@@ -194,23 +215,43 @@ interface SiteHealthWidgetProps {
 
 function environmentState(environment: EnvironmentHealth): string {
   if (environment.active) return environment.active.state;
+  if (environment.publication?.state === "unreadable") return "unknown";
   if (environment.lastCancellation) return "cancelled";
   if (environment.lastFailure) return "failed";
-  if (environment.lastSuccess) return "current";
+  if (environment.publication?.state === "published") return "published";
+  if (environment.lastSuccess) return "rendered";
   return "not built";
 }
 
 function environmentDetail(environment: EnvironmentHealth): string {
+  if (environment.active) {
+    return [environment.active.state, environment.active.jobId]
+      .filter((value): value is string => value !== undefined)
+      .join(" · ");
+  }
+  if (environment.publication?.state === "unreadable") {
+    return environment.publication.message;
+  }
   if (environment.lastCancellation) return environment.lastCancellation.message;
-  if (environment.lastFailure) return environment.lastFailure.message;
+  if (environment.lastFailure) {
+    const retained =
+      environment.publication?.state === "published"
+        ? ` Published generation ${environment.publication.buildId} remains active.`
+        : "";
+    return `${environment.lastFailure.message}${retained}`;
+  }
+  if (environment.publication?.state === "published") {
+    const publication = environment.publication;
+    return `${publication.routesBuilt} published routes · ${publication.buildId} · ${publication.publishedAt}`;
+  }
   if (environment.lastSuccess) {
     const warningLabel =
       environment.lastSuccess.warnings.length > 0
         ? ` · ${environment.lastSuccess.warnings.length} warning`
         : "";
-    return `${environment.lastSuccess.routesBuilt} routes${warningLabel}`;
+    return `${environment.lastSuccess.routesBuilt} routes rendered${warningLabel}`;
   }
-  return "No completed build in this runtime";
+  return "No published generation";
 }
 
 function EnvironmentMetric(props: {
@@ -295,20 +336,22 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
     ]),
     failures.length > 0
       ? h("section", { class: "pipeline-failures" }, [
-          h("h4", {}, "Needs attention"),
-          ...failures.map((failure) =>
-            h(
+          h("h4", {}, "Previous build failures"),
+          ...failures.map((failure) => {
+            const previous = failure.lastFailure;
+            const attempt = previous?.jobId ? ` · ${previous.jobId}` : "";
+            return h(
               "div",
               {
                 class: "pipeline-failure",
                 key: failure.environment,
               },
               [
-                h("strong", {}, failure.environment),
-                h("span", {}, failure.lastFailure?.message),
+                h("strong", {}, `${failure.environment}${attempt}`),
+                h("span", {}, previous?.message),
               ],
-            ),
-          ),
+            );
+          }),
         ])
       : null,
     links.length > 0
