@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.338
+
+### Patch Changes
+
+- [#195](https://github.com/rizom-ai/brains/pull/195) [`41bbca4`](https://github.com/rizom-ai/brains/commit/41bbca479421b3319ab7d3a8c3485b27db83a5b1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Site build status truthful: reconcile active attempts from the durable job queue whenever Studio or Dashboard loads, record unchanged-input jobs as skipped instead of successful renders, keep previous failures attached to their own attempts, and report the generation selected by each active output manifest.
+
 ## 0.2.0-alpha.337
 
 ## 0.2.0-alpha.336

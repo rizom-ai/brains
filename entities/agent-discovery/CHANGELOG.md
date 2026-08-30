@@ -1,5 +1,23 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.338
+
+### Patch Changes
+
+- [#195](https://github.com/rizom-ai/brains/pull/195) [`ac076f0`](https://github.com/rizom-ai/brains/commit/ac076f03f911380851703f37a901c7540c29675f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Read the People tab in the console's main-plus-aside grammar and name the proximity map's center for its actual subject. People hoists its totals into the workspace head, leads with the member roster, and follows with the peer roster beside the Brain Anchor and peer actions instead of stacking full-width blocks. Provenance reads as "This brain" or the peer's domain rather than a raw `did:web` identifier. The proximity map labels its center from the map data through one shared helper, so the anonymous public card no longer tells visitors the brain is "you".
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.338
+  - @brains/atproto-contracts@0.2.0-alpha.338
+  - @brains/content-formatters@0.2.0-alpha.338
+  - @brains/contracts@0.2.0-alpha.338
+  - @brains/http-signatures@0.2.0-alpha.338
+  - @brains/ui-library@0.2.0-alpha.338
+  - @brains/utils@0.2.0-alpha.338
+  - @brains/auth-service@0.2.0-alpha.338
+  - @brains/plugins@0.2.0-alpha.338
+  - @brains/templates@0.2.0-alpha.338
+
 ## 0.2.0-alpha.337
 
 ### Patch Changes
