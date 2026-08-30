@@ -1,10 +1,7 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
+import { prepareAsset } from "@brains/assets";
+import { imageAdapter, parseDataUrl } from "@brains/image";
 
 /** Function to fetch an image URL and return base64 data URL */
 export type ImageFetcher = (url: string) => Promise<string>;
@@ -47,28 +44,23 @@ export async function getOrCreateImageEntity(
 
   const dataUrl = await fetcher(sourceUrl);
 
-  const { base64 } = parseDataUrl(dataUrl);
-  const format = detectImageFormat(base64);
-  const dimensions = detectImageDimensions(base64);
-
-  if (!format || !dimensions) {
-    throw new Error("Could not detect image format or dimensions");
-  }
+  const parsedImage = parseDataUrl(dataUrl);
+  const preparedAsset = prepareAsset(parsedImage.bytes);
+  const imageData = imageAdapter.createImageEntity({
+    assetRef: preparedAsset.ref,
+    bytes: parsedImage.bytes,
+    declaredMediaType: parsedImage.mediaType,
+    title: params.title,
+    alt: params.alt,
+    sourceUrl,
+  });
 
   const result = await entityService.createEntity({
     entity: {
       id: params.id,
-      entityType: "image",
-      content: dataUrl,
-      metadata: {
-        title: params.title,
-        alt: params.alt,
-        format,
-        width: dimensions.width,
-        height: dimensions.height,
-        sourceUrl,
-      },
+      ...imageData,
     },
+    preparedAsset,
   });
 
   logger.debug("Created image entity from URL", {

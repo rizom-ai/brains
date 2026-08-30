@@ -300,6 +300,86 @@ describe("ChatInterface artifacts", () => {
     );
   });
 
+  it("posts SQLite-backed native Discord image files", async () => {
+    const bytes = Buffer.from("asset-image-bytes");
+    const digest = new Bun.CryptoHasher("sha256")
+      .update(bytes)
+      .digest("hex") as string;
+    const ref = `asset://sha256/${digest}` as const;
+    await suite.harness
+      .getMockShell()
+      .getEntityService()
+      .createEntity({
+        entity: {
+          id: "image-asset-native",
+          entityType: "image",
+          content: ref,
+          metadata: {
+            filename: "asset-image.png",
+            format: "png",
+            mediaType: "image/png",
+            sizeBytes: bytes.byteLength,
+            width: 1,
+            height: 1,
+          },
+          visibility: "shared",
+        },
+        preparedAsset: {
+          ref,
+          digest,
+          sizeBytes: bytes.byteLength,
+          bytes,
+        },
+      });
+    suite.harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    suite.agentService.chat.mockResolvedValueOnce({
+      text: "Generated the image.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-asset",
+          title: "SQLite image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=image-asset-native",
+            filename: "asset-image.png",
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    await suite.harness.installPlugin(createPlugin());
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [
+          expect.objectContaining({
+            data: expect.any(ArrayBuffer),
+            filename: "asset-image.png",
+            mimeType: "image/png",
+          }),
+        ],
+      }),
+    );
+    const posted = thread.post.mock.calls.find(
+      ([message]) => typeof message !== "string" && message.files?.length === 1,
+    )?.[0];
+    if (typeof posted === "string") throw new Error("Expected file post");
+    const postedData = posted?.files?.[0]?.data;
+    if (!(postedData instanceof ArrayBuffer)) {
+      throw new Error("Expected ArrayBuffer file data");
+    }
+    expect(Buffer.from(postedData)).toEqual(bytes);
+  });
+
   it("does not post restricted native Discord artifact files for trusted users", async () => {
     suite.harness.addEntities([
       {

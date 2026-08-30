@@ -1,3 +1,4 @@
+import { createDataUrl, resolveImageBytes } from "@brains/image";
 import type {
   AttachmentProvider,
   AttachmentProviderMetadata,
@@ -90,9 +91,16 @@ export function createMediaContentHelpers(
         entityType: "image",
         id: imageId,
       });
-      return image?.content.startsWith("data:image/")
-        ? image.content
-        : undefined;
+      if (!image?.content) return undefined;
+      try {
+        const resolved = await resolveImageBytes(image, context.entityService);
+        return createDataUrl(
+          Buffer.from(resolved.bytes).toString("base64"),
+          resolved.format,
+        );
+      } catch {
+        return undefined;
+      }
     },
   };
 }

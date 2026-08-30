@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { createPluginHarness } from "../../src/test/harness";
 import { MessageInterfacePlugin } from "../../src/message-interface/message-interface-plugin";
 import type {
+  NativeArtifactDelivery,
   ToolActivityEvent,
   ToolStatusUpdate,
 } from "../../src/message-interface";
+import type { StructuredChatCard } from "../../src/contracts/agent";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import { z } from "@brains/utils/zod";
 
@@ -128,6 +131,15 @@ class TestMessageInterface extends MessageInterfacePlugin<
   public testIsLikelyTextContent(bytes: Uint8Array): boolean {
     return this.isLikelyTextContent(bytes);
   }
+
+  public testResolveNativeArtifactDelivery(
+    cards: StructuredChatCard[],
+  ): Promise<NativeArtifactDelivery> {
+    return this.resolveNativeArtifactDelivery({
+      cards,
+      userPermissionLevel: "trusted",
+    });
+  }
 }
 
 function createProgressEvent(
@@ -185,6 +197,106 @@ describe("MessageInterfacePlugin", () => {
 
   afterEach(async () => {
     await plugin.shutdown?.();
+  });
+
+  describe("native artifact delivery", () => {
+    it("reads SQLite-backed image bytes explicitly", async () => {
+      const harness = createPluginHarness<TestMessageInterface>();
+      const bytes = Buffer.from("generic-asset-image");
+      const digest = new Bun.CryptoHasher("sha256")
+        .update(bytes)
+        .digest("hex") as string;
+      const ref = `asset://sha256/${digest}` as const;
+      await harness
+        .getMockShell()
+        .getEntityService()
+        .createEntity({
+          entity: {
+            id: "generic-asset-image",
+            entityType: "image",
+            content: ref,
+            metadata: {
+              format: "png",
+              mediaType: "image/png",
+              sizeBytes: bytes.byteLength,
+              width: 1,
+              height: 1,
+            },
+            visibility: "shared",
+          },
+          preparedAsset: {
+            ref,
+            digest,
+            sizeBytes: bytes.byteLength,
+            bytes,
+          },
+        });
+      await harness.installPlugin(plugin);
+
+      const result = await plugin.testResolveNativeArtifactDelivery([
+        {
+          kind: "attachment",
+          id: "asset-card",
+          title: "Asset image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=generic-asset-image",
+            source: {
+              entityType: "image",
+              entityId: "generic-asset-image",
+            },
+          },
+        },
+      ]);
+
+      expect(result.files).toHaveLength(1);
+      expect(result.files[0]).toMatchObject({
+        cardId: "asset-card",
+        filename: "generic-asset-image.png",
+        mimeType: "image/png",
+      });
+      expect(result.files[0]?.data).toEqual(bytes);
+      harness.reset();
+    });
+
+    it("skips an image whose referenced asset is missing", async () => {
+      const harness = createPluginHarness<TestMessageInterface>();
+      harness.addEntities([
+        {
+          id: "missing-asset-image",
+          entityType: "image",
+          content: `asset://sha256/${"a".repeat(64)}`,
+          metadata: {
+            format: "png",
+            mediaType: "image/png",
+            sizeBytes: 10,
+            width: 1,
+            height: 1,
+          },
+          visibility: "shared",
+        },
+      ]);
+      await harness.installPlugin(plugin);
+
+      const result = await plugin.testResolveNativeArtifactDelivery([
+        {
+          kind: "attachment",
+          id: "missing-card",
+          title: "Missing image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=missing-asset-image",
+            source: {
+              entityType: "image",
+              entityId: "missing-asset-image",
+            },
+          },
+        },
+      ]);
+
+      expect(result.files).toEqual([]);
+      harness.reset();
+    });
   });
 
   describe("progress event handling", () => {

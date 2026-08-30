@@ -36,6 +36,11 @@ function createCapturedService(): CapturedService {
     ): Promise<T | null> {
       return null;
     },
+    readAsset: async () => new Uint8Array(),
+    statAsset: async () => null,
+    verifyAsset: async () => {
+      throw new Error("not configured");
+    },
     async listEntities<T extends BaseEntity>(
       request: ListEntitiesRequest,
     ): Promise<T[]> {

@@ -5,6 +5,7 @@
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/scheduler": "workspace:*",
     "@brains/utils": "workspace:*"

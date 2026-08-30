@@ -1,3 +1,4 @@
+import { resolveImageBytes } from "@brains/image";
 import {
   formatContentDispositionHeader,
   getArtifactEntityFilename,
@@ -94,8 +95,13 @@ export async function handleImageAttachmentRequest(
     return new Response("Image content is not an image", { status: 415 });
   }
 
-  const parsed = parseArtifactDataUrl("image", image.content);
-  if (!parsed) {
+  let resolved;
+  try {
+    resolved = await resolveImageBytes(
+      { content: image.content, metadata: image.metadata ?? {} },
+      deps.entityService,
+    );
+  } catch {
     return new Response("Image content is not an image", { status: 415 });
   }
 
@@ -103,12 +109,12 @@ export async function handleImageAttachmentRequest(
     image.metadata,
     imageId,
     "image",
-    parsed.mimeType,
+    resolved.mediaType,
   );
   return createBinaryAttachmentResponse({
     requestUrl: url,
-    data: parsed.data,
-    mediaType: parsed.mimeType,
+    data: Uint8Array.from(resolved.bytes).buffer,
+    mediaType: resolved.mediaType,
     filename,
   });
 }

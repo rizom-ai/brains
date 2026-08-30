@@ -31,6 +31,7 @@ import {
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
 } from "./progress-message-coordinator";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import {
   extractCaptureableUrls,
@@ -47,7 +48,7 @@ import {
 } from "./artifact-access";
 import {
   getArtifactEntityFilename,
-  parseArtifactDataUrl,
+  resolveArtifactEntityData,
   resolveArtifactEntityRefFromCard,
 } from "./artifact-entity";
 
@@ -188,10 +189,21 @@ export abstract class MessageInterfacePlugin<
       if (!canReceiveNativeArtifactFile(input.userPermissionLevel)) continue;
       if (typeof access.entity.content !== "string") continue;
 
-      const parsed = parseArtifactDataUrl(
-        entityRef.entityType,
-        access.entity.content,
-      );
+      let parsed;
+      try {
+        parsed = await resolveArtifactEntityData(
+          entityRef.entityType,
+          access.entity.content,
+          access.entity.metadata,
+          context.entityService,
+        );
+      } catch (error) {
+        this.logger.warn("Skipping unreadable native artifact", {
+          cardId: card.id,
+          error: getErrorMessage(error),
+        });
+        continue;
+      }
       if (!parsed) continue;
       if (
         input.maxBytes !== undefined &&

@@ -13,7 +13,10 @@ import {
 
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 const TINY_PDF = Buffer.from("%PDF-1.7\n", "utf-8");
-const COVER_DATA_URL = "data:image/png;base64,AAAA";
+const COVER_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const COVER_BYTES = Buffer.from(COVER_BASE64, "base64");
+const COVER_DATA_URL = `data:image/png;base64,${COVER_BASE64}`;
 
 interface Widget extends BaseEntity {
   metadata: { title: string; slug: string };
@@ -65,6 +68,7 @@ function createContext(
   return {
     entityService: createMockEntityService({
       entityTypes: ["widget", "image"],
+      returns: { readAsset: COVER_BYTES },
       getEntityImpl: async (request) => {
         if (request.entityType === "widget" && request.id === "widget-1") {
           return createWidget();
@@ -74,7 +78,14 @@ function createContext(
             ...createWidget(),
             entityType: "image",
             id: "cover-1",
-            content: COVER_DATA_URL,
+            content: `asset://sha256/${"a".repeat(64)}`,
+            metadata: {
+              format: "png",
+              mediaType: "image/png",
+              sizeBytes: COVER_BYTES.byteLength,
+              width: 1,
+              height: 1,
+            },
           };
         }
         if (request.entityType === "image" && request.id === "not-inline") {
@@ -279,7 +290,7 @@ describe("createOgImageProvider", () => {
     ).toBeUndefined();
   });
 
-  it("resolves referenced image entities to their data URL", async () => {
+  it("resolves SQLite-backed image entities to a data URL", async () => {
     let resolved: string | undefined;
     const provider = createOgImageProvider({
       ...WIDGET_OG_CONFIG,

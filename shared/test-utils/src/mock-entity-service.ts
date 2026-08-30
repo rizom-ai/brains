@@ -1,5 +1,7 @@
 import { mock } from "bun:test";
 import type {
+  AssetStat,
+  AssetVerification,
   BaseEntity,
   EntityMutationResult,
   SearchResult,
@@ -18,6 +20,9 @@ export interface MockEntityServiceReturns {
   listEntities?: BaseEntity[];
   search?: SearchResult[];
   countEntities?: number;
+  readAsset?: Uint8Array;
+  statAsset?: AssetStat | null;
+  verifyAsset?: AssetVerification;
 }
 
 const mutationResult = (
@@ -109,6 +114,16 @@ export function createMockEntityService(
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
     search: genericSpy<IEntityService["search"]>(searchMock),
+    readAsset: mock(() =>
+      Promise.resolve(Uint8Array.from(returns.readAsset ?? [])),
+    ),
+    statAsset: mock(() => Promise.resolve(returns.statAsset ?? null)),
+    verifyAsset: mock((ref) => {
+      if (!returns.verifyAsset) {
+        throw new Error(`Asset verification not configured for ${ref}`);
+      }
+      return Promise.resolve(returns.verifyAsset);
+    }),
 
     createEntity: mock(() =>
       Promise.resolve(mutationResult(returns.createEntity)),

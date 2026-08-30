@@ -22,6 +22,12 @@ class TestEntityService implements PublishExecuteEntityService {
     async (_request: { entity: BaseEntity }): Promise<void> => {},
   );
 
+  public async readAsset(
+    _ref: Parameters<PublishExecuteEntityService["readAsset"]>[0],
+  ): Promise<Uint8Array> {
+    return Buffer.from(TINY_PNG_BASE64, "base64");
+  }
+
   public setGetEntityResult(entity: BaseEntity | null): void {
     this.getEntityHandler = async (): Promise<BaseEntity | null> => entity;
   }
@@ -130,11 +136,13 @@ const sampleImage: BaseEntity = {
   id: "image-123",
   entityType: "image",
   visibility: "public",
-  content: `data:image/png;base64,${TINY_PNG_BASE64}`,
+  content: `asset://sha256/${"a".repeat(64)}`,
   metadata: {
     title: "Test Image",
     alt: "Test image",
     format: "png",
+    mediaType: "image/png",
+    sizeBytes: Buffer.from(TINY_PNG_BASE64, "base64").byteLength,
     width: 1,
     height: 1,
   },

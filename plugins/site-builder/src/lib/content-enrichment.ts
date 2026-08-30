@@ -1,4 +1,10 @@
-import { extractCoverImageId, extractOgImageId } from "@brains/image";
+import {
+  createDataUrl,
+  extractCoverImageId,
+  extractOgImageId,
+  isAssetImageContent,
+  resolveImageBytes,
+} from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
@@ -129,8 +135,13 @@ export async function enrichWithUrls(
   const coverImageId = extractCoverImageId(entity);
   const coverImageFields = await resolveImageFields(coverImageId, options);
 
-  const ogImageId = extractOgImageId(entity) ?? coverImageId;
-  const ogImage = await resolveImageForHead(ogImageId, options);
+  const explicitOgImageId = extractOgImageId(entity);
+  const coverImageUrl = coverImageFields.coverImageUrl;
+  const ogImage = explicitOgImageId
+    ? await resolveImageForHead(explicitOgImageId, options)
+    : coverImageUrl && !coverImageUrl.startsWith("data:")
+      ? toAbsoluteUrl(coverImageUrl, options.siteUrl)
+      : undefined;
 
   const enrichedEntity: EnrichedEntity = {
     ...enriched,
@@ -222,6 +233,18 @@ async function resolveCoverImage(
   });
   const imageCheck = imageEntitySchema.safeParse(image);
   if (!imageCheck.success) return undefined;
+
+  if (isAssetImageContent(imageCheck.data.content)) {
+    const resolved = await resolveImageBytes(imageCheck.data, entityService);
+    return {
+      url: createDataUrl(
+        Buffer.from(resolved.bytes).toString("base64"),
+        resolved.format,
+      ),
+      width: resolved.width,
+      height: resolved.height,
+    };
+  }
 
   return {
     url: imageCheck.data.content,

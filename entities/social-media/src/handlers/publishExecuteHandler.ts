@@ -1,3 +1,5 @@
+import type { AssetRef } from "@brains/assets";
+import { resolveImageBytes } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -47,6 +49,7 @@ export interface PublishExecuteEntityService {
     entityType: string;
     id: string;
   }): Promise<BaseEntity | null>;
+  readAsset(ref: AssetRef): Promise<Uint8Array>;
   updateEntity(request: { entity: BaseEntity }): Promise<unknown>;
 }
 
@@ -406,20 +409,11 @@ export class PublishExecuteHandler {
         return undefined;
       }
 
-      // Image content is stored as data URL: data:image/png;base64,...
-      const dataUrl = image.content;
-      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-
-      if (!match?.[1] || !match[2]) {
-        this.logger.warn("Invalid image data URL format", { imageId });
-        return undefined;
-      }
-
-      const mimeType = match[1];
-      const base64Data = match[2];
-      const data = Buffer.from(base64Data, "base64");
-
-      return { data, mimeType };
+      const resolved = await resolveImageBytes(image, this.entityService);
+      return {
+        data: Buffer.from(resolved.bytes),
+        mimeType: resolved.mediaType,
+      };
     } catch (error) {
       this.logger.warn("Failed to fetch cover image", { imageId, error });
       return undefined;

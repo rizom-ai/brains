@@ -1,3 +1,4 @@
+import { prepareAsset } from "@brains/assets";
 import type { BaseEntity, IEntityService } from "@brains/plugins";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
@@ -31,16 +32,33 @@ import {
 import { pathExists } from "./fs-utils";
 import { OversizedFileError } from "./oversized-file-error";
 import type { PendingDeleteTarget } from "./pending-delete-registry";
+import {
+  inspectImageBytes,
+  resolveImageBytes,
+  tryParseDataUrl,
+} from "@brains/image";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   IEntityService,
-  "serializeEntity" | "hasEntityType"
+  "serializeEntity" | "hasEntityType" | "readAsset"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
+
+function decodeDocumentContent(content: string): Buffer {
+  const match = content.match(/^data:application\/pdf;base64,(.+)$/i);
+  return Buffer.from(match?.[1] ?? content, "base64");
+}
+
+function getComparableImageRef(content: string): string | undefined {
+  const normalized = content.trim();
+  if (normalized.startsWith("asset://sha256/")) return normalized;
+  const parsed = tryParseDataUrl(normalized);
+  return parsed ? prepareAsset(parsed.bytes).ref : undefined;
+}
 
 /**
  * Handles file I/O operations for directory sync
@@ -96,17 +114,21 @@ export class FileOperations {
 
     let content: string;
     let metadata: Record<string, unknown> | undefined;
-    if (isImageFile(filePath) || isDocumentFile(filePath)) {
+    let preparedAsset: RawEntity["preparedAsset"];
+    if (isImageFile(filePath)) {
       const buffer = await readFile(fullPath);
-      const base64 = buffer.toString("base64");
-      const ext = extname(filePath);
-      const mimeType = isDocumentFile(filePath)
-        ? getDocumentMimeTypeForExtension(ext)
-        : getMimeTypeForExtension(ext);
-      content = `data:${mimeType};base64,${base64}`;
-      if (isDocumentFile(filePath)) {
-        metadata = await this.readDocumentSidecar(fullPath, filePath);
-      }
+      const inspected = inspectImageBytes(
+        buffer,
+        getMimeTypeForExtension(extname(filePath)),
+      );
+      preparedAsset = prepareAsset(buffer);
+      content = preparedAsset.ref;
+      metadata = { ...inspected };
+    } else if (isDocumentFile(filePath)) {
+      const buffer = await readFile(fullPath);
+      const mimeType = getDocumentMimeTypeForExtension(extname(filePath));
+      content = `data:${mimeType};base64,${buffer.toString("base64")}`;
+      metadata = await this.readDocumentSidecar(fullPath, filePath);
     } else {
       content = await readFile(fullPath, "utf-8");
     }
@@ -115,6 +137,7 @@ export class FileOperations {
       entityType,
       id,
       content,
+      ...(preparedAsset ? { preparedAsset } : {}),
       created,
       updated,
     };
@@ -164,39 +187,12 @@ export class FileOperations {
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
-    // The durable outbox keeps only the latest mutation per (type, id).
-    // Image extensions are content-derived, so converge that stable namespace
-    // by removing every obsolete representation before writing the latest one.
-    if (isImage) {
-      await Promise.all(
-        this.getEntityDeletePaths(entity.entityType, entity.id)
-          .filter((candidate) => candidate !== filePath)
-          .map(async (candidate) => {
-            try {
-              await unlink(candidate);
-            } catch (error) {
-              if (
-                typeof error === "object" &&
-                error !== null &&
-                "code" in error &&
-                error.code === "ENOENT"
-              ) {
-                return;
-              }
-              throw error;
-            }
-          }),
-      );
-    }
-
     if (isImage || isDocument) {
-      const dataUrlPattern = isImage
-        ? /^data:image\/[a-z+]+;base64,(.+)$/i
-        : /^data:application\/pdf;base64,(.+)$/i;
-      const match = entity.content.match(dataUrlPattern);
-      const contentToWrite = match?.[1]
-        ? Buffer.from(match[1], "base64")
-        : Buffer.from(entity.content, "base64");
+      const contentToWrite = isImage
+        ? Buffer.from(
+            (await resolveImageBytes(entity, this.entityService)).bytes,
+          )
+        : decodeDocumentContent(entity.content);
 
       let binaryUnchanged = false;
       if (await pathExists(filePath)) {
@@ -218,6 +214,30 @@ export class FileOperations {
 
       if (isDocument) {
         await this.writeDocumentSidecar(entity, filePath);
+      }
+
+      // Resolve and write the authoritative bytes before removing obsolete
+      // extensions. A missing/corrupt asset must never destroy a good export.
+      if (isImage) {
+        await Promise.all(
+          this.getEntityDeletePaths(entity.entityType, entity.id)
+            .filter((candidate) => candidate !== filePath)
+            .map(async (candidate) => {
+              try {
+                await unlink(candidate);
+              } catch (error) {
+                if (
+                  typeof error === "object" &&
+                  error !== null &&
+                  "code" in error &&
+                  error.code === "ENOENT"
+                ) {
+                  return;
+                }
+                throw error;
+              }
+            }),
+        );
       }
 
       if (binaryUnchanged) {
@@ -371,6 +391,13 @@ export class FileOperations {
    * Uses stored contentHash from existing entity for efficiency
    */
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
+    if (
+      existing.entityType === "image" &&
+      newEntity.preparedAsset &&
+      getComparableImageRef(existing.content) === newEntity.preparedAsset.ref
+    ) {
+      return false;
+    }
     const newHash = computeContentHash(newEntity.content);
     return existing.contentHash !== newHash;
   }

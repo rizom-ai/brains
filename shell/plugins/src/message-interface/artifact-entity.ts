@@ -1,3 +1,4 @@
+import { assetRefSchema, type AssetRef } from "@brains/entity-service";
 import type { AttachmentCard } from "../contracts/agent";
 
 export type ArtifactEntityType = "document" | "image";
@@ -10,6 +11,10 @@ export interface ArtifactEntityRef {
 export interface ParsedArtifactDataUrl {
   mimeType: string;
   data: ArrayBuffer;
+}
+
+export interface ArtifactAssetReader {
+  readAsset(ref: AssetRef): Promise<Uint8Array>;
 }
 
 export function resolveArtifactEntityRefFromCard(
@@ -71,6 +76,37 @@ export function parseArtifactDataUrl(
     return undefined;
   }
   return parsed;
+}
+
+/** Resolve an artifact's bytes while retaining inline-image compatibility. */
+export async function resolveArtifactEntityData(
+  entityType: ArtifactEntityType,
+  content: string,
+  metadata: Record<string, unknown>,
+  assets: ArtifactAssetReader,
+): Promise<ParsedArtifactDataUrl | undefined> {
+  const inline = parseArtifactDataUrl(entityType, content);
+  if (inline) return inline;
+  if (entityType !== "image") return undefined;
+
+  const assetRef = assetRefSchema.safeParse(content.trim());
+  const mediaType = metadata["mediaType"];
+  if (
+    !assetRef.success ||
+    typeof mediaType !== "string" ||
+    !/^image\/(?:png|jpeg|gif|webp)$/i.test(mediaType)
+  ) {
+    return undefined;
+  }
+
+  const bytes = await assets.readAsset(assetRef.data);
+  return {
+    mimeType: mediaType.toLowerCase(),
+    data: bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ) as ArrayBuffer,
+  };
 }
 
 export function getArtifactEntityFilename(

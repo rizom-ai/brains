@@ -4,8 +4,10 @@
   "version": "0.2.0-alpha.338",
   "description": "Multi-provider social media posting with queue-based publishing",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"

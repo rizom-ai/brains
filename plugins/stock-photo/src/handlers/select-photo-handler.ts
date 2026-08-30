@@ -3,7 +3,8 @@ import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { imageAdapter } from "@brains/image";
+import { prepareAsset } from "@brains/assets";
+import { imageAdapter, parseDataUrl } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -83,9 +84,13 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     });
 
     const dataUrl = await this.deps.fetchImage(data.imageUrl);
+    const parsedImage = parseDataUrl(dataUrl);
+    const preparedAsset = prepareAsset(parsedImage.bytes);
     const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
     const imageData = imageAdapter.createImageEntity({
-      dataUrl,
+      assetRef: preparedAsset.ref,
+      bytes: parsedImage.bytes,
+      declaredMediaType: parsedImage.mediaType,
       title: imageTitle,
       alt: data.alt ?? imageTitle,
     });
@@ -104,6 +109,7 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
           sourceUrl: data.imageUrl,
         },
       },
+      preparedAsset,
     });
 
     const result: SelectPhotoJobResult = {

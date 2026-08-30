@@ -4,7 +4,7 @@ import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import { tryParseDataUrl } from "@brains/image";
+import { resolveImageBytes } from "@brains/image";
 import type { IEntityService } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
@@ -23,14 +23,14 @@ export type BuildImageMap = SiteImageMap;
  *   const img = imageService.get("my-cover-image");
  */
 export class ImageBuildService {
-  private entityService: Pick<IEntityService, "getEntity">;
+  private entityService: Pick<IEntityService, "getEntity" | "readAsset">;
   private logger: Logger;
   private imageMap: BuildImageMap = {};
   private imagesDir: string;
   private optimizer: ImageOptimizer;
 
   constructor(
-    entityService: Pick<IEntityService, "getEntity">,
+    entityService: Pick<IEntityService, "getEntity" | "readAsset">,
     logger: Logger,
     imagesDir: string,
   ) {
@@ -91,16 +91,11 @@ export class ImageBuildService {
       return;
     }
 
-    const parsed = tryParseDataUrl(image.content);
-    if (!parsed) {
-      this.logger.warn("Could not extract base64 from image", { imageId });
-      return;
-    }
-
-    const buffer = Buffer.from(parsed.base64, "base64");
+    const resolved = await resolveImageBytes(image, this.entityService);
+    const buffer = Buffer.from(resolved.bytes);
 
     const format =
-      getImageFormatMetadata(image.metadata).format ?? parsed.format;
+      getImageFormatMetadata(image.metadata).format ?? resolved.format;
     const originalFileName = `${imageId}.${format}`;
     const originalFilePath = join(this.imagesDir, originalFileName);
     await fs.writeFile(originalFilePath, buffer, { signal });

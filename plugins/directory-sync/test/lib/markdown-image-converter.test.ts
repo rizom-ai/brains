@@ -424,14 +424,16 @@ slug: test-post
 
       await converter.convert(content, "test-post");
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          metadata: expect.objectContaining({
-            alt: "A beautiful landscape photo",
-            sourceUrl: "https://example.com/landscape.png",
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: expect.objectContaining({
+            metadata: expect.objectContaining({
+              alt: "A beautiful landscape photo",
+              sourceUrl: "https://example.com/landscape.png",
+            }),
           }),
         }),
-      });
+      );
     });
 
     test("should generate title from alt if provided", async () => {
@@ -444,13 +446,15 @@ slug: test-post
 
       await converter.convert(content, "test-post");
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          metadata: expect.objectContaining({
-            title: "Sunset over mountains",
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: expect.objectContaining({
+            metadata: expect.objectContaining({
+              title: "Sunset over mountains",
+            }),
           }),
         }),
-      });
+      );
     });
 
     test("should generate fallback title for images without alt", async () => {
@@ -463,13 +467,15 @@ slug: test-post
 
       await converter.convert(content, "test-post");
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          metadata: expect.objectContaining({
-            title: expect.stringContaining("Inline image"),
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: expect.objectContaining({
+            metadata: expect.objectContaining({
+              title: expect.stringContaining("Inline image"),
+            }),
           }),
         }),
-      });
+      );
     });
   });
 });

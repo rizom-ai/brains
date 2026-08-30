@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.338",
   "description": "Plugin for AI-powered image generation and management",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",

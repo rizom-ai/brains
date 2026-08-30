@@ -1,3 +1,4 @@
+import { assetRefSchema } from "@brains/assets";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { ContentVisibility, ICoreEntityService } from "../types";
@@ -127,7 +128,23 @@ export class ContentResolver {
           ...(visibilityScope !== undefined && { visibilityScope }),
         });
         if (image?.content) {
-          imageMap.set(imageId, image.content);
+          const assetRef = assetRefSchema.safeParse(image.content.trim());
+          if (assetRef.success) {
+            const mediaType = image.metadata["mediaType"];
+            if (
+              typeof mediaType !== "string" ||
+              !mediaType.startsWith("image/")
+            ) {
+              throw new Error("Asset-backed image has no valid media type");
+            }
+            const bytes = await entityService.readAsset(assetRef.data);
+            imageMap.set(
+              imageId,
+              `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
+            );
+          } else {
+            imageMap.set(imageId, image.content);
+          }
         } else {
           this.logger.warn("Image entity not found", { imageId });
         }

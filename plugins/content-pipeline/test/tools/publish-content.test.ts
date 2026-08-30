@@ -12,6 +12,9 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
 import { preparePublishContent } from "../../src/tools/publish-content";
 
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 /**
  * Minimal entity adapter for test-only entity types where the registry only
  * needs to know the type exists so `getEntity` / `createEntity` work.
@@ -86,14 +89,26 @@ This is the body.`;
     expect(result.imageData).toBeUndefined();
   });
 
-  it("should fetch image data when coverImageId is present", async () => {
+  it("should fetch SQLite-backed image data when coverImageId is present", async () => {
+    const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
+    const digest = new Bun.CryptoHasher("sha256")
+      .update(bytes)
+      .digest("hex") as string;
+    const ref = `asset://sha256/${digest}` as const;
     await context.entityService.createEntity({
       entity: {
         id: "cover-image",
         entityType: "image",
-        content: "data:image/png;base64,aGVsbG8=",
-        metadata: {},
+        content: ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1,
+          height: 1,
+        },
       },
+      preparedAsset: { ref, digest, sizeBytes: bytes.byteLength, bytes },
     });
 
     const content = `---
@@ -108,7 +123,7 @@ Post with image.`;
 
     expect(result.bodyContent).toBe("Post with image.");
     expect(result.imageData?.mimeType).toBe("image/png");
-    expect(result.imageData?.data.toString("utf8")).toBe("hello");
+    expect(result.imageData?.data.toString("base64")).toBe(TINY_PNG_BASE64);
   });
 
   it("should fetch structured document attachment data", async () => {

@@ -1,3 +1,4 @@
+import { resolveImageBytes } from "@brains/image";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -135,13 +136,15 @@ async function fetchPublishImageData(
   });
   if (!image?.content) return undefined;
 
-  const parsed = parseBase64DataUrl(image.content);
-  if (!parsed?.mimeType.startsWith("image/")) return undefined;
-
-  return {
-    data: parsed.data,
-    mimeType: parsed.mimeType,
-  };
+  try {
+    const resolved = await resolveImageBytes(image, context.entityService);
+    return {
+      data: Buffer.from(resolved.bytes),
+      mimeType: resolved.mediaType,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 async function fetchPublishDocumentData(

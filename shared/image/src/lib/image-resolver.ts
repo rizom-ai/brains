@@ -3,6 +3,7 @@ import { updateFrontmatterField } from "@brains/utils/markdown";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import type { Image, ResolvedImage } from "../schemas/image";
+import { createDataUrl, resolveImageBytes } from "./image-utils";
 
 // Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is
 // the inner YAML, so callers can parse just that slice and skip the body.
@@ -29,12 +30,16 @@ export async function resolveImage(
     return undefined;
   }
 
+  const resolved = await resolveImageBytes(image, entityService);
   return {
-    url: image.content,
+    url: createDataUrl(
+      Buffer.from(resolved.bytes).toString("base64"),
+      resolved.format,
+    ),
     alt: image.metadata.alt ?? "",
     title: image.metadata.title ?? "",
-    width: image.metadata.width,
-    height: image.metadata.height,
+    width: resolved.width,
+    height: resolved.height,
   };
 }
 
