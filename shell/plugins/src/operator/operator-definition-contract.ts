@@ -86,14 +86,20 @@ export type BoundDashboardWidget<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined =
     AnyAccountSettingsDefinition | undefined,
 > = DashboardWidgetBinding<TDefinition> &
-  OperatorBindingBrand<TConfig, TState, TAccountSettings>;
-
-const dashboardWidgetLoaders = new WeakMap<
-  object,
-  (
-    context: OperatorBaseContext<unknown, object, undefined>,
-  ) => unknown | Promise<unknown>
->();
+  OperatorBindingBrand<TConfig, TState, TAccountSettings> & {
+    /**
+     * The widget's data loader.
+     *
+     * Held on the binding rather than in a side table keyed by binding
+     * identity. A WeakMap cannot express that its value type depends on its
+     * key, so storing and reading the loader each needed an assertion — and
+     * the read one was a real claim, since the erased loader takes a context
+     * this binding's TConfig/TState/TAccountSettings do not match.
+     */
+    readonly load: (
+      context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
+    ) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
+  };
 
 export function getDashboardWidgetLoader<
   TDefinition extends AnyDashboardWidgetDefinition,
@@ -105,15 +111,15 @@ export function getDashboardWidgetLoader<
 ): (
   context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
 ) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>> {
-  const loader = dashboardWidgetLoaders.get(binding);
-  if (!loader) {
+  // The type says `load` is present, but a hand-written object claiming to be
+  // a binding will not have it. The check is what rejects those.
+  const load: unknown = binding.load;
+  if (typeof load !== "function") {
     throw new Error(
       `Dashboard widget "${binding.definition.id}" was not bound by defineDashboardWidget().bind()`,
     );
   }
-  return loader as (
-    context: OperatorBaseContext<TConfig, TState, TAccountSettings>,
-  ) => z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
+  return binding.load;
 }
 
 export function defineDashboardWidget<
@@ -147,17 +153,11 @@ export function defineDashboardWidget<
     kind: "rizom-dashboard-widget",
     ...definition,
     bind(_context, load) {
-      const binding = Object.freeze({
+      return freeze({
         kind: "rizom-dashboard-widget-binding" as const,
         definition: widget,
+        load,
       });
-      dashboardWidgetLoaders.set(
-        binding,
-        load as (
-          context: OperatorBaseContext<unknown, object, undefined>,
-        ) => unknown | Promise<unknown>,
-      );
-      return binding;
     },
   };
   return Object.freeze(widget);

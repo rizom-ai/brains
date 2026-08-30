@@ -1,5 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import { parseWithSchema } from "@brains/utils/parse-schema";
 import type {
   AnyEntityDefinition,
   EntityOf,
@@ -129,7 +130,17 @@ export function defineJob<
         kind: "rizom-service-job-binding",
         definition: job,
       });
-      jobHandlers.set(binding, handler as ServiceJobHandler<unknown, unknown>);
+      // Erase here, where TInputSchema is known. A handler taking
+      // Context<TInput> is not assignable to one taking Context<unknown> —
+      // that is contravariance, and asserting it away would let an unvalidated
+      // input reach the handler. Parsing through the job's own input schema is
+      // what makes the erased signature true.
+      jobHandlers.set(binding, async (context) =>
+        handler({
+          ...context,
+          input: parseWithSchema<TInputSchema>(job.input, context.input),
+        }),
+      );
       return binding;
     },
   };

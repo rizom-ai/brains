@@ -1,6 +1,7 @@
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { routeMethods } from "../interface/interface-definition-contract";
+import { freeze } from "@brains/utils/freeze";
 import type {
   AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
@@ -116,11 +117,12 @@ export function defineDaemon(
 ): InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition {
   assertIdentifier(definition.id, "Daemon id");
   const { required = false, ...daemon } = definition;
-  return Object.freeze({
+  const result: InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition = {
     kind: "rizom-interface-daemon",
     ...daemon,
     required,
-  }) as InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition;
+  };
+  return freeze(result);
 }
 
 export function defineInterface<
