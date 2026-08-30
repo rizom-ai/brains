@@ -484,6 +484,10 @@ describe("public authoring 0.2 golden packages", () => {
 
     expect(site).not.toContain("plugin:");
     expect(messages).toContain("messages.receiveAuthenticated(");
+    expect(messages).toContain("subjectPattern:");
+    expect(messages).toContain("available:");
+    expect(messages).toContain("defineSubscription({");
+    expect(messages).toContain("runtimeState({");
     expect(messages).toContain("async edit(");
     expect(messages).not.toContain("supportsMessageEditing");
     expect(messages).not.toContain("registerDescriptor");

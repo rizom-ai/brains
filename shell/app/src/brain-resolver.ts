@@ -173,7 +173,7 @@ function instantiateInterfaces(
 ): Plugin[] {
   const interfaces: Plugin[] = [];
 
-  for (const [id, ctor, envMapper] of definition.interfaces) {
+  for (const [id, source, envMapper] of definition.interfaces) {
     if (!isActive(selection.activeIds, id)) continue;
 
     const baseConfig = envMapper(env);
@@ -186,7 +186,14 @@ function instantiateInterfaces(
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(withBundle, override) : withBundle;
     try {
-      interfaces.push(new ctor(merged));
+      if (typeof source === "object" && "declared" in source) {
+        // A package may declare more than one plugin; an interface package
+        // that declares one is the common case, not the contract.
+        const declared = source.declared(merged);
+        interfaces.push(...(Array.isArray(declared) ? declared : [declared]));
+      } else {
+        interfaces.push(new source(merged));
+      }
     } catch (error) {
       if (isPluginConfigValidationError(error)) {
         logger?.warn(`Skipping interface "${id}": missing required config`);

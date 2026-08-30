@@ -1,4 +1,8 @@
-import { defineMessageInterface, z } from "@rizom/brain/interfaces";
+import {
+  defineMessageInterface,
+  defineSubscription,
+  z,
+} from "@rizom/brain/interfaces";
 import { CampfireClient } from "./campfire-client.js";
 
 export default defineMessageInterface({
@@ -6,7 +10,7 @@ export default defineMessageInterface({
   config: z.object({
     baseUrl: z.url().default("http://127.0.0.1:4020"),
     workspace: z.string().default("reading-club"),
-    token: z.string().min(1),
+    token: z.string().optional(),
   }),
 
   // The channel declaration owns display metadata and recipient validation.
@@ -14,11 +18,39 @@ export default defineMessageInterface({
     type: "campfire",
     displayName: "Campfire",
     subjectLabel: "Room",
+    // A room id is what a person types; the recipient below is the payload a
+    // caller hands deliver.
+    subjectPattern: { source: "^[a-z0-9-]+$", flags: "i" },
     recipient: z.object({ roomId: z.string() }),
   },
 
-  setup({ config }) {
-    return new CampfireClient(config.baseUrl, config.workspace, config.token);
+  // Configured without a token the room still exists and still receives, it
+  // just cannot be delivered to.
+  available: ({ config }) => Boolean(config.token),
+
+  // Something has to be able to ask the interface that delivered a message
+  // for the message back.
+  subscriptions: ({ state: client }) => [
+    defineSubscription({
+      topic: "campfire:source-read",
+      payload: z.object({ messageId: z.string() }),
+      handle: ({ payload }) => client.read(payload.messageId),
+    }),
+  ],
+
+  async setup({ config, runtimeState }) {
+    // Where the last read got to, so a restart resumes rather than replays.
+    const cursor = runtimeState({
+      namespace: "cursor",
+      schema: z.strictObject({ lastMessageId: z.string() }),
+    });
+    const client = new CampfireClient(
+      config.baseUrl,
+      config.workspace,
+      config.token ?? "",
+    );
+    await cursor.get("room");
+    return Object.assign(client, { cursor });
   },
 
   async listen({ state: client, signal, health, messages }) {

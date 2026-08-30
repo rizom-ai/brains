@@ -10,6 +10,7 @@ import type {
   InterfaceRouteInput,
   InterfaceSchema,
   MessageInterfaceDefinitionInput,
+  MessageSubscriptionDefinition,
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   RouteMethod,
@@ -63,6 +64,19 @@ export function protocol(
   definition: Omit<ProtocolSecurityDefinition, "kind">,
 ): ProtocolSecurityDefinition {
   return Object.freeze({ kind: "protocol", ...definition });
+}
+
+/**
+ * A request this interface answers, with its payload schema.
+ *
+ * Written as a helper rather than a bare object so `handle` sees the parsed
+ * payload typed, the same way `defineRoute` types a body.
+ */
+export function defineSubscription<TPayloadSchema extends InterfaceSchema>(
+  definition: MessageSubscriptionDefinition<TPayloadSchema>,
+): MessageSubscriptionDefinition<TPayloadSchema> {
+  assertIdentifier(definition.topic.split(":")[0] ?? "", "Subscription topic");
+  return definition;
 }
 
 export function defineRoute<

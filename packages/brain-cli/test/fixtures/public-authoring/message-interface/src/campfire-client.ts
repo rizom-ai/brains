@@ -104,6 +104,16 @@ export class CampfireClient {
     });
   }
 
+  /** The message this interface delivered, fetched back on request. */
+  async read(messageId: string): Promise<{ id: string; text: string }> {
+    const response = await this.request(
+      `/messages/${encodeURIComponent(messageId)}`,
+    );
+    return z
+      .object({ id: z.string(), text: z.string() })
+      .parse(await response.json());
+  }
+
   async attachments(
     messageId: string,
   ): Promise<readonly z.output<typeof attachment>[]> {

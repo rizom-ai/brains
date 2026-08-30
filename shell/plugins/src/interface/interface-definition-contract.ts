@@ -1,10 +1,20 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type { Logger } from "@brains/utils/logger";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
 } from "../operator/account-settings-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
+import type {
+  ChannelDeliverySensitivity,
+  ChannelDeliveryThreading,
+  ChannelSubjectPattern,
+} from "../channel-registry";
+import type {
+  IRuntimeStateStore,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
 
 export const routeMethods = [
   "GET",
@@ -111,6 +121,20 @@ export interface InterfaceDaemonDefinition {
     readonly signal: AbortSignal;
     readonly health: InterfaceDaemonHealth;
   }): Promise<void>;
+  /**
+   * Health asked for, rather than announced.
+   *
+   * `ready` and `warning` are pushed at moments the daemon chooses, which
+   * cannot express a state that changes underneath it — a mailbox listener is
+   * connected or reconnecting right now, and only it knows. Answering here
+   * overrides the pushed status. Named consumer: @brains/email.
+   */
+  check?(): InterfaceDaemonReport | Promise<InterfaceDaemonReport>;
+}
+
+export interface InterfaceDaemonReport {
+  readonly status: "healthy" | "warning" | "error";
+  readonly message: string;
 }
 
 export interface AccountInterfaceDaemonDefinition<
@@ -166,12 +190,82 @@ export interface MessageChannelDefinition<
   readonly type: string;
   readonly displayName: string;
   readonly subjectLabel: string;
+  /**
+   * What a valid subject on this channel looks like.
+   *
+   * `recipient` types the payload a caller hands `deliver`; this validates the
+   * subject a person types. An email channel accepts an address and nothing
+   * else, and the runtime should refuse the rest before a delivery is
+   * attempted. Named consumer: @brains/email.
+   */
+  readonly subjectPattern?: ChannelSubjectPattern | undefined;
   readonly recipient: TRecipientSchema;
+}
+
+/**
+ * A request this interface answers on the message bus.
+ *
+ * An interface that delivered a message is the only thing that can fetch it
+ * back, so something has to be able to ask. The payload schema is the
+ * boundary: the runtime validates before the handler runs, and a malformed
+ * request is refused rather than reaching it. Named consumer: @brains/email,
+ * which answers EMAIL_SOURCE_READ.
+ */
+export interface MessageSubscriptionDefinition<
+  TPayloadSchema extends InterfaceSchema = InterfaceSchema,
+> {
+  readonly topic: string;
+  readonly payload: TPayloadSchema;
+  handle(context: {
+    readonly payload: z.output<TPayloadSchema>;
+  }): unknown | Promise<unknown>;
+}
+
+export type AnyMessageSubscriptionDefinition =
+  MessageSubscriptionDefinition<InterfaceSchema>;
+
+/** The narrow publish surface an interface gets, not the whole bus. */
+export interface MessageInterfacePublisher {
+  send(message: {
+    readonly type: string;
+    readonly payload: unknown;
+  }): Promise<unknown>;
 }
 
 export interface MessageOutput {
   readonly text: string;
 }
+
+/**
+ * Everything a delivery carries, as opposed to what a chat message carries.
+ *
+ * `MessageOutput` is chat-shaped — a body and nothing else — because a chat
+ * reply has nowhere to put a subject. A delivery does: it is addressed, it is
+ * idempotent, it may thread, and it may be secret. Dropping those on the way
+ * to `deliver` silently degrades an email to a bare body.
+ */
+export interface MessageDelivery {
+  readonly subject: string;
+  readonly text: string;
+  readonly idempotencyKey: string;
+  readonly html?: string | undefined;
+  readonly sensitivity?: ChannelDeliverySensitivity | undefined;
+  readonly threading?: ChannelDeliveryThreading | undefined;
+}
+
+/**
+ * What a transport reports back.
+ *
+ * A string is the provider's id for the delivery. A transport that knows why
+ * it failed returns the reason instead of throwing, which would otherwise be
+ * flattened into one generic code.
+ */
+export type MessageDeliveryOutcome =
+  | {
+      readonly status: "sent";
+      readonly providerDeliveryId?: string | undefined;
+    }
+  | { readonly status: "failed"; readonly failureCode: string };
 
 export interface MessageChannel {
   readonly id: string;
@@ -214,7 +308,50 @@ export interface MessageInterfaceDefinitionInput<
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
+        /**
+         * Bookkeeping that has to survive a restart.
+         *
+         * An interface that reads a mailbox remembers how far it got, and
+         * without that it re-reads everything on every boot. Scoped by
+         * namespace under this interface's id and validated by a schema.
+         * Named `runtimeState` rather than `state` because `state` already
+         * means what setup returns.
+         */
+        readonly runtimeState: <TValue>(
+          options: RuntimeStateScopeOptions<TValue>,
+        ) => IRuntimeStateStore<TValue>;
+        /**
+         * Handing on something that arrived from outside.
+         *
+         * A chat turn goes back through `messages.receiveAuthenticated`, but
+         * not everything an interface receives is a turn — an inbound email is
+         * an event other packages consume. Named consumer: @brains/email.
+         */
+        readonly messaging: MessageInterfacePublisher;
+        readonly logger: Logger;
       }) => TState | Promise<TState>)
+    | undefined;
+  /**
+   * Whether delivery can actually be attempted right now.
+   *
+   * A declaration either writes `deliver` or does not, decided when it is
+   * authored — but an interface whose outbound credentials are absent must
+   * still register its channel and run inbound-only, rather than advertising
+   * a delivery that fails on use. Omitted, delivery is available whenever
+   * `deliver` is declared. Named consumer: @brains/email.
+   */
+  readonly available?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => boolean | Promise<boolean>)
+    | undefined;
+  /** Requests this interface answers on the message bus. */
+  readonly subscriptions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly AnyMessageSubscriptionDefinition[])
     | undefined;
   readonly daemons?:
     | ((context: {
@@ -259,6 +396,12 @@ export interface MessageInterfaceDefinitionInput<
         readonly state: TState;
         readonly recipient: z.output<TRecipientSchema>;
         readonly message: MessageOutput;
-      }) => string | void | Promise<string | void>)
+        /** The addressed envelope, for transports that carry more than a body. */
+        readonly delivery: MessageDelivery;
+      }) =>
+        | string
+        | void
+        | MessageDeliveryOutcome
+        | Promise<string | void | MessageDeliveryOutcome>)
     | undefined;
 }

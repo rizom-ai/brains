@@ -161,6 +161,7 @@ Definitions and schema vocabulary:
 - `defineInterface`
 - `defineMessageInterface`
 - `defineRoute`
+- `defineSubscription`
 - `protocol`
 - `z`
 
