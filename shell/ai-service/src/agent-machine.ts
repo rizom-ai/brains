@@ -272,7 +272,7 @@ export const agentMachine: AgentMachine = setup({
     interfaceType: "agent",
     channelId: undefined,
     channelName: "",
-    userPermissionLevel: "public" as UserPermissionLevel,
+    userPermissionLevel: "public",
     isAnchor: false,
     actor: null,
     source: null,

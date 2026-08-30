@@ -1,5 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import { freeze } from "@brains/utils/freeze";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
@@ -360,7 +361,10 @@ export function defineStudioWorkspace<
     ...(definition.entities
       ? { entities: Object.freeze([...definition.entities]) }
       : {}),
-    actions: Object.freeze([...definition.actions]) as TActions,
+    // TActions is a const type parameter constrained to a readonly array, so
+    // the contract already treats this as immutable; freezing in place keeps
+    // the tuple type instead of asserting a copy back to it.
+    actions: freeze(definition.actions),
     bind(_context, input) {
       if (
         (workspace.entityCatalog !== undefined) !==

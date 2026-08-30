@@ -125,7 +125,7 @@ export class BlogDataSource extends BaseEntityDataSource<
       post: item,
       prevPost: navigation?.prev ?? null,
       nextPost: navigation?.next ?? null,
-      seriesPosts: null as BlogPostTransformed[] | null,
+      seriesPosts: null,
     };
   }
 

@@ -18,6 +18,7 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import { emptyPluginState } from "../base/empty-state";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -250,7 +251,7 @@ class DeclarativeServicePlugin<
             },
           },
         })
-      : (Object.freeze({}) as TState);
+      : emptyPluginState<TState>();
 
     const templates = this.templateFormatter();
     context.templates.register(this.runtimeTemplates(), this.id);
