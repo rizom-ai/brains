@@ -106,11 +106,11 @@ export class ContentService implements IContentService {
    *
    * Note: Templates MUST have a formatter to work with saved content from entities.
    */
-  async resolveContent<T = unknown>(
+  async resolveContent(
     templateName: string,
     options?: ResolutionOptions,
     pluginId?: string,
-  ): Promise<T | null> {
+  ): Promise<unknown> {
     // Apply template scoping if pluginId is provided
     const scopedTemplateName = this.applyTemplateScoping(
       templateName,
@@ -165,15 +165,15 @@ export class ContentService implements IContentService {
               // (authored fields win) instead of the two being mutually
               // exclusive. Absent → classic datasource-wins precedence.
               if (template.overlayFormatter && options?.savedContent) {
-                return (await this.applyContentOverlay(
+                return await this.applyContentOverlay(
                   scopedTemplateName,
                   template,
                   data,
                   options.savedContent,
                   scopedEntityService,
-                )) as T;
+                );
               }
-              return data as T;
+              return data;
             }
           }
         } catch (error) {
@@ -204,7 +204,7 @@ export class ContentService implements IContentService {
               `Resolved content from saved entity for ${scopedTemplateName}`,
             );
             // Use the formatter to parse the content
-            return this.parseContent(scopedTemplateName, entity.content) as T;
+            return this.parseContent(scopedTemplateName, entity.content);
           }
         } catch (error) {
           this.dependencies.logger.debug(
@@ -222,7 +222,7 @@ export class ContentService implements IContentService {
         this.dependencies.logger.debug(
           `Using fallback content for ${scopedTemplateName}`,
         );
-        return validated as T;
+        return validated;
       } catch (error) {
         this.dependencies.logger.debug(
           `Fallback content validation failed for ${scopedTemplateName}`,
@@ -410,11 +410,8 @@ export class ContentService implements IContentService {
       throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
-    // Cast template to correct type
-    const typedTemplate = template as ContentTemplate<T>;
-
     // Check if template has a DataSource configured
-    if (!typedTemplate.dataSourceId) {
+    if (!template.dataSourceId) {
       throw new Error(
         `Template ${scopedTemplateName} doesn't support content generation. Add dataSourceId to enable generation through DataSource pattern.`,
       );
@@ -422,17 +419,17 @@ export class ContentService implements IContentService {
 
     // Use DataSource pattern for generation
     const dataSource = this.dependencies.dataSourceRegistry.get(
-      typedTemplate.dataSourceId,
+      template.dataSourceId,
     );
 
     if (!dataSource) {
-      throw new Error(`DataSource ${typedTemplate.dataSourceId} not found`);
+      throw new Error(`DataSource ${template.dataSourceId} not found`);
     }
 
     if (!dataSource.generate) {
       // This DataSource doesn't support generation (e.g., fetch-only like system-stats)
       throw new Error(
-        `Template ${scopedTemplateName} uses DataSource ${typedTemplate.dataSourceId} which doesn't support content generation. This template is for data fetching only.`,
+        `Template ${scopedTemplateName} uses DataSource ${template.dataSourceId} which doesn't support content generation. This template is for data fetching only.`,
       );
     }
 
@@ -441,7 +438,10 @@ export class ContentService implements IContentService {
       ...context,
     };
 
-    return dataSource.generate(request, typedTemplate.schema);
+    // Irreducible: the result is validated against template.schema, and T is
+    // the caller's unrelated choice. The assertion sits here, on the one
+    // unchecked claim, rather than being spread over the template lookups.
+    return dataSource.generate(request, template.schema) as Promise<T>;
   }
 
   /**
@@ -463,17 +463,15 @@ export class ContentService implements IContentService {
       throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
-    // Cast template to correct type
-    const typedTemplate = template as ContentTemplate<T>;
-
-    if (!typedTemplate.formatter) {
+    if (!template.formatter) {
       throw new Error(
         `Template ${scopedTemplateName} does not have a formatter for parsing`,
       );
     }
 
     // Use the formatter to parse the content
-    return typedTemplate.formatter.parse(content);
+    // Same caveat as generateContent: the formatter parses to its own shape.
+    return template.formatter.parse(content) as T;
   }
 
   /**

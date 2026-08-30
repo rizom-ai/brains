@@ -42,14 +42,18 @@ export interface IServiceTemplatesNamespace {
   /** Format data using a template formatter */
   format: <T = unknown>(templateName: string, data: T) => string;
 
-  /** Parse content using a template parser */
-  parse: <T = unknown>(templateName: string, content: string) => T;
+  /** Parsed by the template's own formatter; callers narrow what they read. */
+  parse: (templateName: string, content: string) => unknown;
 
-  /** Resolve content from a template (may fetch or generate) */
-  resolve: <T = unknown>(
+  /**
+   * Resolve content from a template. Returns `unknown`: resolution validates
+   * against the template's own schema, which a caller-chosen type parameter
+   * has no relationship to.
+   */
+  resolve: (
     templateName: string,
     options?: ResolutionOptions,
-  ) => Promise<T | null>;
+  ) => Promise<unknown>;
 
   /** Get capabilities of a template */
   getCapabilities: (templateName: string) => {
@@ -196,20 +200,13 @@ export function createServicePluginContext(
       format: <T = unknown>(templateName: string, data: T): string => {
         return contentService.formatContent(templateName, data, { pluginId });
       },
-      parse: <T = unknown>(templateName: string, content: string): T => {
-        return contentService.parseContent(templateName, content, pluginId);
-      },
-      resolve: async <T = unknown>(
+      parse: (templateName: string, content: string): unknown =>
+        contentService.parseContent(templateName, content, pluginId),
+      resolve: async (
         templateName: string,
         options?: ResolutionOptions,
-      ): Promise<T | null> => {
-        const result = await contentService.resolveContent(
-          templateName,
-          options,
-          pluginId,
-        );
-        return result as T;
-      },
+      ): Promise<unknown> =>
+        contentService.resolveContent(templateName, options, pluginId),
       getCapabilities: (
         templateName: string,
       ): {
