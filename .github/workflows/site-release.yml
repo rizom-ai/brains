@@ -157,8 +157,10 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          npm deprecate '@rizom/site-sections@*' 'This alpha-only package is retired. Migrate to @rizom/site: https://github.com/rizom-ai/brains/blob/main/docs/external-site-authoring.md'
-          npm deprecate '@rizom/site-rizom@*' 'This alpha-only package is retired. Its implementation is part of @rizom/site-rizom-ai.'
+          # npm can update every matching version and still return E404 for the
+          # wildcard request. The registry verifier below is the fail-closed gate.
+          npm deprecate '@rizom/site-sections@*' 'This alpha-only package is retired. Migrate to @rizom/site: https://github.com/rizom-ai/brains/blob/main/docs/external-site-authoring.md' || true
+          npm deprecate '@rizom/site-rizom@*' 'This alpha-only package is retired. Its implementation is part of @rizom/site-rizom-ai.' || true
           bun scripts/verify-retired-package-deprecations.ts
 
       - name: Verify registry and tarball metadata

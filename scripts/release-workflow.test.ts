@@ -106,6 +106,12 @@ describe("site release workflow", () => {
     expect(deprecationStep).toContain("@rizom/site-sections@*");
     expect(deprecationStep).toContain("@rizom/site-rizom@*");
     expect(deprecationStep).toContain("NPM_TOKEN");
+    expect(deprecationStep.match(/npm deprecate .* \|\| true/gu)).toHaveLength(
+      2,
+    );
+    expect(deprecationStep).toContain(
+      "bun scripts/verify-retired-package-deprecations.ts",
+    );
   });
 
   test("keeps standard versioning serialized while stable publication bypasses the core wait lock", () => {
