@@ -2,28 +2,31 @@
 
 ## Status
 
-Proposed. Measured against the tree 2026-08-28.
+Phase 1 done. Counts re-measured against the tree after the rebase onto
+`origin/main`; the first draft said 29 packages, which was wrong when written
+(28) and is now 30 — main added `plugins/email-triage` and `plugins/studio`.
 
 The entity tranche is finished: 18 of 18 entity packages import only
 `@brains/sdk` plus shared publishable libraries. That work scoped to
 `entities/` and said so. It left the other two families untouched, and they
 are the larger half.
 
-**29 packages under `plugins/` and `interfaces/`. None are clean.**
+**30 packages under `plugins/` and `interfaces/`. None are clean.** Not one
+depends on `@brains/sdk`, and not one uses a declarative definition.
 
-| reaches for                                                               | packages |
-| ------------------------------------------------------------------------- | -------- |
-| `@brains/plugins`                                                         | 28       |
-| `@brains/auth-service`                                                    | 7        |
-| `@brains/console-theme`                                                   | 4        |
-| `@brains/site-composition`, `@brains/image`, `@brains/content-formatters` | 3 each   |
-| `@brains/atproto-contracts`                                               | 2        |
-| `webserver`, `topics`, `site-engine`, `scheduler`, `runtime-state`        | 1 each   |
+| reaches for                                                          | packages |
+| -------------------------------------------------------------------- | -------- |
+| `@brains/plugins`                                                    | 28       |
+| `@brains/auth-service`                                               | 7        |
+| `@brains/content-formatters`                                         | 4        |
+| `@brains/console-theme`, `@brains/site-composition`, `@brains/image` | 3 each   |
+| `@brains/atproto-contracts`                                          | 2        |
+| `webserver`, `topics`, `site-engine`, `scheduler`, `runtime-state`   | 1 each   |
 
 ## What the numbers actually mean
 
-`@brains/plugins` in 28 of 29 is not a lazy import that a find-and-replace
-fixes. It is the base class. Of the 29, **20 extend `ServicePlugin`, 3 extend
+`@brains/plugins` in 28 of 30 is not a lazy import that a find-and-replace
+fixes. It is the base class. Of the 30, **20 extend `ServicePlugin`, 3 extend
 `InterfacePlugin`, and 4 extend `MessageInterfacePlugin`** — and **not one
 uses a declarative definition.** Where the entity tranche converted packages
 that were already half-declarative, this tranche has not started.
@@ -38,23 +41,25 @@ interface. The first conversion is therefore also the first honest test of
 that API, and should be expected to find gaps the way each entity conversion
 did.
 
-## The sharper problem
+## The sharper problem, now closed
 
-`plugins/directory-sync` holds **five `as IEntityService` casts** — the only
-casts of their kind in the tranche. A cast is worse than an import: it is a
-boundary violation that typechecks, so no gate catches it and no audit of
-imports reports it.
+`plugins/directory-sync` held **five `as IEntityService` casts**. A cast is
+worse than an import: it is a boundary violation that typechecks, so no gate
+caught it and no audit of imports reported it — the package read as clean
+while the boundary was gone.
 
-`work/turso-migration` has already solved this, in `01daa20b7`: service
-plugins get `context.entityCoordination`, a handle-based durable
-bulk-mutation surface bound to the plugin id as mutation source. `begin`
-returns a batch handle; worker-side run and settle are keyed by the ref token
-from job data; `source` and `operationId` disappear from plugin code and job
-payloads entirely. Directory-sync then compiles against `EntityServiceClient`
-alone and all five casts are deleted.
+`01daa20b7` from `work/turso-migration` is cherry-picked. Service plugins get
+`context.entityCoordination`, a handle-based durable bulk-mutation surface
+bound to the plugin id as mutation source; `source` and `operationId` leave
+plugin code and job payloads. Directory-sync compiles against
+`EntityServiceClient` alone and all five casts are gone.
 
-That work is done and should be taken from that branch rather than redone.
-This plan's job is the other 28.
+`bun run casts:check` now fails on any `as I*Service` outside `shell/`, in the
+pre-commit hook and CI, so the class cannot return silently. Three further
+casts lived in `plugins/` tests and were fixed at the source. Inside `shell/`
+those interfaces are the local vocabulary, which is why the ban stops there.
+
+This plan's remaining job is the 30 packages themselves.
 
 ## Decisions
 
