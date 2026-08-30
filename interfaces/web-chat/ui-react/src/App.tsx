@@ -50,6 +50,14 @@ import {
 } from "../../src/upload-policy";
 import { getErrorMessage } from "@brains/utils/error";
 import { isPlainRecord } from "@brains/utils/predicates";
+import { z } from "@brains/utils/zod";
+
+/** The slice of the runtime-action response this component renders. */
+const runtimeActionResponseSchema = z.looseObject({
+  text: z.string().optional(),
+  cards: z.array(z.looseObject({ kind: z.string() })).optional(),
+  toolResults: z.array(z.unknown()).optional(),
+});
 
 /** `History.state` is typed `any`; narrow it before handing it to callers. */
 function historyStateRecord(): Record<string, unknown> {
@@ -344,11 +352,7 @@ export function App(): React.ReactElement {
       if (!response.ok) {
         throw new Error(`Runtime action failed: ${response.status}`);
       }
-      const data = (await response.json()) as {
-        text?: string;
-        cards?: Array<{ kind: string }>;
-        toolResults?: unknown[];
-      };
+      const data = runtimeActionResponseSchema.parse(await response.json());
       const parts: UIMessage["parts"] = [];
       if (data.text && data.text.trim().length > 0) {
         parts.push({ type: "text", text: data.text });

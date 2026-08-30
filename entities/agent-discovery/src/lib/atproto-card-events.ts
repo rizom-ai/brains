@@ -16,6 +16,7 @@ import {
   type ResolveHostname,
 } from "@brains/utils/safe-public-fetch";
 import { slugifyUrl } from "@brains/utils/string-utils";
+
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { FetchFn } from "./fetch-agent-card";
@@ -27,6 +28,18 @@ const pdsRecordResponseSchema = z.looseObject({
   uri: z.string().min(1),
   cid: z.string().min(1),
   value: z.unknown(),
+});
+
+/** The slice of a PLC directory document this module reads. */
+const plcDocumentSchema = z.looseObject({
+  service: z
+    .array(
+      z.looseObject({
+        id: z.string().optional(),
+        serviceEndpoint: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 function toAgentSkills(record: AtprotoBrainCardRecord): AgentSkill[] {
@@ -341,9 +354,7 @@ async function resolvePdsEndpoint(
     throw new Error(`PLC lookup failed with HTTP ${response.status}`);
   }
 
-  const document = (await response.json()) as {
-    service?: Array<{ id?: string; serviceEndpoint?: string }>;
-  };
+  const document = plcDocumentSchema.parse(await response.json());
   const endpoint = document.service?.find(
     (service) => service.id === "#atproto_pds",
   )?.serviceEndpoint;

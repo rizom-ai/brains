@@ -94,19 +94,19 @@ export class SiteInfoService {
    */
   public async initialize(): Promise<void> {
     try {
-      const siteInfo = (await this.entityService.getEntity({
+      const siteInfo = await this.entityService.getEntity({
         entityType: "site-info",
         id: "site-info",
-      })) as SiteInfoEntity | null;
+      });
 
       // If no site info exists, create one with default values. Re-check
       // immediately before creating defaults because startup directory sync may
       // import the singleton after the first DB miss on cold boot.
       if (!siteInfo) {
-        const recheckedSiteInfo = (await this.entityService.getEntity({
+        const recheckedSiteInfo = await this.entityService.getEntity({
           entityType: "site-info",
           id: "site-info",
-        })) as SiteInfoEntity | null;
+        });
         if (recheckedSiteInfo) return;
 
         this.logger.info("No site info found, creating default site info");

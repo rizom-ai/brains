@@ -27,8 +27,11 @@ if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
       process.exit(0);
     } catch (err) {
       const code =
-        err && typeof err === "object" && "status" in err
-          ? (err.status as number)
+        err &&
+        typeof err === "object" &&
+        "status" in err &&
+        typeof err.status === "number"
+          ? err.status
           : 1;
       process.exit(code);
     }

@@ -16,18 +16,43 @@ interface CloudflareResult {
   result?: Array<{ id: string }>;
 }
 
+/**
+ * Copied verbatim into generated projects, so this stays dependency-free and
+ * checks the payload by hand. readJsonResponse returns unknown; asserting
+ * CloudflareResult onto it meant an error body read as `success: undefined`
+ * rather than failing here.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readCloudflareResult(payload: unknown): CloudflareResult | undefined {
+  if (!isRecord(payload)) return undefined;
+  if (typeof payload["success"] !== "boolean") return undefined;
+  const result = payload["result"];
+  if (result === undefined) return { success: payload["success"] };
+  if (
+    !Array.isArray(result) ||
+    !result.every(
+      (entry): entry is { id: string } =>
+        isRecord(entry) && typeof entry["id"] === "string",
+    )
+  ) {
+    return undefined;
+  }
+  return { success: payload["success"], result };
+}
+
 async function findRecordId(
   name: string,
   type: "A" | "CNAME",
 ): Promise<string | undefined> {
   const lookupUrl = `${baseUrl}/zones/${zoneId}/dns_records?type=${type}&name=${encodeURIComponent(name)}`;
   const lookup = await fetch(lookupUrl, { headers });
-  const payload = (await readJsonResponse(
-    lookup,
-    "Cloudflare DNS lookup",
-  )) as CloudflareResult;
-  if (!lookup.ok || !payload.success) {
-    throw new Error(`Cloudflare DNS lookup failed: ${JSON.stringify(payload)}`);
+  const raw = await readJsonResponse(lookup, "Cloudflare DNS lookup");
+  const payload = readCloudflareResult(raw);
+  if (!lookup.ok || !payload?.success) {
+    throw new Error(`Cloudflare DNS lookup failed: ${JSON.stringify(raw)}`);
   }
 
   return payload.result?.[0]?.id;
@@ -53,12 +78,10 @@ async function upsertRecord(name: string): Promise<void> {
       proxied: true,
     }),
   });
-  const result = (await readJsonResponse(
-    response,
-    "Cloudflare DNS upsert",
-  )) as CloudflareResult;
-  if (!response.ok || !result.success) {
-    throw new Error(`Cloudflare DNS upsert failed: ${JSON.stringify(result)}`);
+  const raw = await readJsonResponse(response, "Cloudflare DNS upsert");
+  const result = readCloudflareResult(raw);
+  if (!response.ok || !result?.success) {
+    throw new Error(`Cloudflare DNS upsert failed: ${JSON.stringify(raw)}`);
   }
 }
 

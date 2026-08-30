@@ -9,6 +9,7 @@ import type {
   ListOptions,
 } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry, Template } from "@brains/templates";
@@ -265,10 +266,12 @@ export class ContentService implements IContentService {
       if (overlay === undefined || overlay === null) {
         return base;
       }
-      const merged = {
-        ...(base as Record<string, unknown>),
-        ...(overlay as Record<string, unknown>),
-      };
+      // Both come back from formatters as unknown; an overlay only makes sense
+      // when each side is a record.
+      if (!isPlainRecord(base) || !isPlainRecord(overlay)) {
+        return base;
+      }
+      const merged = { ...base, ...overlay };
       const validated = template.schema.parse(merged);
       this.dependencies.logger.debug(
         `Applied authored content overlay for ${scopedTemplateName}`,
