@@ -301,12 +301,7 @@ export interface EmailInterfacePackage {
 export function emailInterface(
   dependencies: EmailInterfaceDependencies = {},
 ): EmailInterfacePackage {
-  return defineMessageInterface<
-    typeof emailConfigSchema,
-    EmailState,
-    z.ZodString,
-    undefined
-  >({
+  return defineMessageInterface({
     id: "email",
     config: emailConfigSchema,
 
@@ -321,10 +316,9 @@ export function emailInterface(
       recipient: z.string().min(1),
     },
 
-    // An inbound-only posture has no key and must still boot; it registers the
-    // channel and simply cannot be delivered to.
-    available: ({ config }) => Boolean(config.apiKey && config.from),
-
+    // `setup` comes first so its return type is inferred before any slot whose
+    // context carries `state`; a destructured parameter above it would resolve
+    // that context while the state type is still unknown.
     setup: ({ config, runtimeState, messaging, logger }): EmailState => {
       const fetchImpl = dependencies.fetchImpl ?? fetch;
       const imapClientFactory =
@@ -387,6 +381,10 @@ export function emailInterface(
         supervisor,
       };
     },
+
+    // An inbound-only posture has no key and must still boot; it registers the
+    // channel and simply cannot be delivered to.
+    available: ({ config }) => Boolean(config.apiKey && config.from),
 
     daemons: ({ state }) =>
       state.supervisor

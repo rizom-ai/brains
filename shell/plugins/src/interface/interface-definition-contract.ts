@@ -305,6 +305,15 @@ export interface MessageInterfaceDefinitionInput<
   readonly config: TConfigSchema;
   readonly accountSettings?: TAccountSettings | undefined;
   readonly channel: MessageChannelDefinition<TRecipientSchema>;
+  /**
+   * What the interface holds while it runs, built once at registration.
+   *
+   * **Write this before any slot that destructures `state`.** The state type
+   * is inferred from what `setup` returns, and a destructured parameter above
+   * it resolves its context while that type is still unknown — which silently
+   * fixes `state` to an empty object rather than failing, so every later slot
+   * reports its own fields as missing.
+   */
   readonly setup?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
