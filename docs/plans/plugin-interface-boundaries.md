@@ -171,10 +171,15 @@ made the entity tranche find real defects rather than move code.
    and an inbound mailbox with no cursor re-reads from UID 0, delivering every
    message in it again as new.
 
-   One rough edge left standing: dependency injection wants a factory, and a
-   factory needs a return type annotation, which pins the generic and stops
-   `state` inferring from `setup`. `@brains/email` names its four type
-   arguments explicitly. Worth fixing before the second conversion.
+   One rough edge, found by building a repro rather than trusting the first
+   explanation. It is not the factory: a wrapped, annotated `defineMessageInterface`
+   infers `state` perfectly well. It is **property order**. A slot whose
+   context carries `state` — `available`, `daemons`, `deliver` — destructured
+   _above_ `setup` resolves that context before the state type exists, and the
+   generic's default silently wins, so every later slot reports its own fields
+   as missing. Moving `setup` first fixes it and `@brains/email` needs no
+   explicit type arguments. The contract now says so on `setup`, since the
+   failure names the wrong culprit: it points at the slots, not the ordering.
 
 3. **Convert one service plugin.** Likewise the smallest — `analytics`,
    `notifications`, `profile` or `onboarding` — as the first `plugins/`
