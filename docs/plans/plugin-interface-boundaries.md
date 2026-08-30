@@ -99,11 +99,56 @@ made the entity tranche find real defects rather than move code.
    stock-photo was casting around. `bun run casts:check` now fails on any
    `as I*Service` outside `shell/`, in the pre-commit hook and CI.
 
-2. **Convert one interface.** `chat-repl` — the lightest of the seven, with
-   four internal dependencies against `email` and `webserver`'s six and
-   `web-chat`'s eight — as the first real consumer of `defineInterface`.
-   Expect gaps: three fixtures are a weaker proof than one live interface,
-   and finding them is the point.
+2. **Convert one interface.** _Target corrected, gaps measured._ The first
+   draft picked `chat-repl` by counting entries in its `package.json`, which
+   is a proxy for nothing — and `chat-repl` extends `MessageInterfacePlugin`,
+   so it would prove `defineMessageInterface`, not `defineInterface`.
+
+   Measured by symbols actually taken from `@brains/plugins`, and by how many
+   of those the SDK is missing:
+
+   | package     | base class | symbols | missing from SDK |
+   | ----------- | ---------- | ------- | ---------------- |
+   | `email`     | message    | 4       | 1                |
+   | `webserver` | interface  | 11      | —                |
+   | `mcp`       | interface  | 13      | 6                |
+   | `a2a`       | interface  | 18      | 7                |
+   | `chat-repl` | message    | 22      | —                |
+   | `web-chat`  | message    | 47      | —                |
+   | `chat`      | message    | 55      | —                |
+
+   **`webserver` is not convertible and should leave this list.** It _is_ the
+   HTTP host: it reads `context.httpRoutes.getRoutes()` and runs
+   `Bun.serve()`, serving the routes other interfaces declare. The authoring
+   contract says the runtime owns HTTP hosting, so webserver cannot be
+   expressed as a consumer of the contract it implements. That is a question
+   about where it lives, not how it is authored.
+
+   `email` is the smallest by every honest measure and its one missing symbol,
+   `Daemon`, dissolves into `defineDaemon`. Converting it surfaced six things
+   `defineMessageInterface` cannot yet express, each verified against
+   `MessageInterfaceDefinitionInput` rather than the fixture:
+
+   1. **Channel subject validation.** Email validates an address with a regex
+      `subjectPattern`. `MessageChannelDefinition` carries `recipient`, which
+      types a _recipient payload_, not the channel subject.
+   2. **`manualDelivery`** on the channel descriptor. No slot.
+   3. **Delivery availability.** Email registers its provider only when
+      `apiKey` and `from` are configured, and an inbound-only posture must
+      still boot. `deliver` is present or absent at authoring time, with no
+      runtime availability predicate.
+   4. **Scoped runtime state.** Email keeps an IMAP UID cursor and a
+      source-locator store through `context.runtimeState.scoped`. `setup`
+      receives `config` and nothing else.
+   5. **Request/response subscription.** Email answers `EMAIL_SOURCE_READ`
+      over messaging. A message interface has no subscription slot.
+   6. **Injected dependencies.** Its tests supply `fetchImpl`, an IMAP client
+      factory, and a sleep. A declaration has no constructor.
+
+   Three and four are the load-bearing ones: without them a declared message
+   interface cannot hold state across a restart or degrade to inbound-only,
+   which is not an email quirk. Each gets a slot with email as the named
+   consumer, or email stays a class and the API is honestly not ready for it.
 
 3. **Convert one service plugin.** Likewise the smallest — `analytics`,
    `notifications`, `profile` or `onboarding` — as the first `plugins/`
