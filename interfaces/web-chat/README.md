@@ -2,6 +2,12 @@
 
 `@brains/web-chat` provides the authenticated browser chat surface and its session APIs.
 
+## Build
+
+`bun run build` invokes `scripts/build-ui.ts`, which owns the browser target,
+ESM output, minification, source maps, React deduplication, and the `@/` alias
+through `Bun.build`. Web Chat has no second Vite build path.
+
 ## State ownership
 
 - The package-local TanStack `QueryClient` owns saved-session metadata and immutable stored-history snapshots.
