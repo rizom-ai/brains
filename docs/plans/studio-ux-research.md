@@ -2,22 +2,24 @@
 
 ## Status
 
-**Design research; first iteration mocked 2026-08-30, decisions below
-awaiting acceptance.** Not an implementation plan: this settles what the
+**Design research complete; second iteration accepted 2026-08-30.** The
+accepted frames and decisions below are the Studio refactor baseline. Not an
+implementation plan: this settles what the
 consolidated Studio should look and feel like before any build phase is
 cut. The three "UX research" frames in
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
-test the hypotheses; accepted decisions then cut into thin implementation
-phases appended to [`studio-consolidation.md`](./studio-consolidation.md)
-or a successor plan.
+test the hypotheses. Accepted decisions become thin phases in
+[`studio-refactor.md`](./studio-refactor.md). Chat's surface migration is a
+separate concern tracked by
+[`studio-chat-integration.md`](./studio-chat-integration.md).
 
 ## Question
 
 The consolidation moved every operator surface into one shell, but did not
 give them one design. What is Studio's single visual and interaction
-grammar — across the entity library, the declarative workspaces, Account,
-the editor, and the arriving chat workspace — and what does it become on a
-phone?
+grammar — across the entity library, declarative workspaces, Account,
+Overview, the editor, and fixed client workspaces — and what does it become
+on a phone?
 
 ## Evidence
 
@@ -52,7 +54,7 @@ The phone editor is the quality bar: segmented Details/Write/Preview tabs
 and a pinned action bar with pipeline status. Nothing else in Studio meets
 it.
 
-## Proposed decisions (mocked 2026-08-30, awaiting acceptance)
+## Accepted decisions (mocked and accepted 2026-08-30)
 
 Each maps to a "UX research" frame in the mockups file.
 
@@ -67,24 +69,35 @@ Each maps to a "UX research" frame in the mockups file.
    nothing sits at the far screen edge, and tables own the full main
    column. Mocked on Audit, the worst offender.
 3. **Tables re-flow into the protocol's list grammar at phone width** — a
-   renderer rule, not per-workspace work: the row's key fact becomes the
-   list title, the rest the meta line, provenance and state become chips.
-   Mocked for People and Audit; every workspace gets it for free.
+   renderer rule over source-declared compact row semantics: the row's key
+   fact becomes the list title, the rest the meta line, provenance and state
+   become chips. Mocked for People and Audit. The host never guesses these
+   roles from column position or labels; unannotated tables remain safely
+   scrollable until migrated.
 4. **Phone chrome budget: two bars and two lines.** The strip collapses
    into the top bar, the workspace chips row scrolls with a visible fade,
    and the head is one line. Content starts near 160px instead of ~450px.
-5. **One primary-action rule, responsive.** The action sits trailing in the
-   head's title row on desktop and pins to a bottom bar on the phone — the
-   editor's pattern generalized. This amends the original hypothesis of a
-   single fixed placement: the research showed one _rule_, two positions.
+5. **One primary-action rule, responsive.** One explicitly declared primary
+   action sits trailing in the head's title row on desktop and pins to a
+   bottom bar on the phone — the editor's pattern generalized. The renderer
+   never hoists an arbitrary action block. This amends the original
+   hypothesis of a single fixed placement: the research showed one _rule_,
+   two positions.
 
-Not yet mocked: the editor and chat workspace under the new head grammar,
-and the Overview workspace at phone width. They follow the same rules; mock
-before implementing.
+The access chip is host-derived from active-session and permission-floor
+admission, compact table rows are source-declared, and the primary action is
+singular protocol data.
+These semantic requirements precede CSS; they are specified in
+[`studio-refactor.md`](./studio-refactor.md).
+
+The second iteration mocks the editor, Overview at phone width, and Account
+as the representative fixed client workspace. These frames resolved the first
+iteration's missing evidence and passed the implementation gate.
 
 ## Method
 
 Screen-by-screen mockups in the house mockup file, mobile and desktop side
 by side, editor as reference. Each accepted mockup becomes a recorded
-decision here; decisions then cut into implementation phases. Mockups
-first, code never ahead of an accepted mockup.
+decision here; accepted decisions then cut into the phases in
+[`studio-refactor.md`](./studio-refactor.md). Mockups first, code never ahead
+of an accepted mockup.
