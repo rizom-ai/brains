@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.336
+
+### Minor Changes
+
+- [#191](https://github.com/rizom-ai/brains/pull/191) [`e526178`](https://github.com/rizom-ai/brains/commit/e526178dea6d429a7e7725cfbda68e81eeda43c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Retire the unused Commerce initializer and product entity capability. The remaining recipes are headless, personal, professional, and team.
+
 ## 0.2.0-alpha.335
 
 ### Patch Changes
