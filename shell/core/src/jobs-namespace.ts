@@ -13,6 +13,7 @@ export function createJobsNamespace(
     getActiveBatches: batchJobManager.getActiveBatches.bind(batchJobManager),
     getBatchStatus: batchJobManager.getBatchStatus.bind(batchJobManager),
     getActiveJobs: jobQueueService.getActiveJobs.bind(jobQueueService),
+    getRecentJobs: jobQueueService.getRecentJobs.bind(jobQueueService),
     getStatus: jobQueueService.getStatus.bind(jobQueueService),
   };
 }

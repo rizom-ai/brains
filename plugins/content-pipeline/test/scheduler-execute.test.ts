@@ -6,25 +6,12 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type { SchedulerMessagePublisher } from "../src/types/scheduler";
-import { createMockLogger } from "@brains/test-utils";
+import {
+  createMockLogger,
+  createMockMessagePublisher,
+} from "@brains/test-utils";
 
 type SchedulerConfigOverrides = Partial<SchedulerConfig>;
-
-// Mock message bus
-function createMockMessageBus(): SchedulerMessagePublisher & {
-  _sentMessages: Array<{ type: string; payload: unknown }>;
-} {
-  const sentMessages: Array<{ type: string; payload: unknown }> = [];
-
-  return {
-    send: mock(async (request: { type: string; payload: unknown }) => {
-      sentMessages.push({ type: request.type, payload: request.payload });
-      return { success: true };
-    }),
-    _sentMessages: sentMessages,
-  };
-}
 
 describe("ContentScheduler - provider execution", () => {
   let scheduler: ContentScheduler;
@@ -32,7 +19,7 @@ describe("ContentScheduler - provider execution", () => {
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
-  let messageBus: ReturnType<typeof createMockMessageBus>;
+  let messageBus: ReturnType<typeof createMockMessagePublisher>;
 
   function baseConfig(overrides?: SchedulerConfigOverrides): SchedulerConfig {
     return {
@@ -51,7 +38,7 @@ describe("ContentScheduler - provider execution", () => {
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh();
-    messageBus = createMockMessageBus();
+    messageBus = createMockMessagePublisher();
     scheduler = ContentScheduler.createFresh(baseConfig());
   });
 
@@ -66,7 +53,7 @@ describe("ContentScheduler - provider execution", () => {
 
       await backend.tick();
 
-      const executeMessages = messageBus._sentMessages.filter(
+      const executeMessages = messageBus.sentMessages.filter(
         (m) => m.type === "publish:execute",
       );
       expect(executeMessages.length).toBe(0);
@@ -116,12 +103,12 @@ describe("ContentScheduler - provider execution", () => {
         id: "post-1",
       });
       expect(
-        messageBus._sentMessages.some(
+        messageBus.sentMessages.some(
           (message) => message.type === "publish:execute",
         ),
       ).toBe(false);
       expect(
-        messageBus._sentMessages.some(
+        messageBus.sentMessages.some(
           (message) => message.type === PUBLISH_MESSAGES.COMPLETED,
         ),
       ).toBe(true);
@@ -130,7 +117,7 @@ describe("ContentScheduler - provider execution", () => {
 
   describe("completePublish", () => {
     it("should emit completed event", async () => {
-      messageBus._sentMessages.length = 0;
+      messageBus.sentMessages.length = 0;
 
       scheduler.completePublish("social-post", "post-1", {
         id: "platform-123",
@@ -162,7 +149,7 @@ describe("ContentScheduler - provider execution", () => {
 
   describe("failPublish", () => {
     it("should emit failed event", async () => {
-      messageBus._sentMessages.length = 0;
+      messageBus.sentMessages.length = 0;
 
       scheduler.failPublish("social-post", "post-1", "Network error");
 
@@ -187,11 +174,11 @@ describe("ContentScheduler - provider execution", () => {
     });
 
     it("should always report willRetry=false (publishing is at-most-once)", async () => {
-      messageBus._sentMessages.length = 0;
+      messageBus.sentMessages.length = 0;
 
       scheduler.failPublish("social-post", "post-1", "Error 1");
 
-      const failedMessage = messageBus._sentMessages.find(
+      const failedMessage = messageBus.sentMessages.find(
         (m) => m.type === PUBLISH_MESSAGES.FAILED,
       );
       expect((failedMessage?.payload as { willRetry: boolean }).willRetry).toBe(

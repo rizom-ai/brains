@@ -49,25 +49,34 @@ async function stopRuntime(runtime: StartedCommand): Promise<string> {
   return combinedOutput(await runtime.completed);
 }
 
-function buildCompletionCount(runtime: StartedCommand): number {
+const publishedBuildMarker =
+  "Emitting site:build:completed event for preview environment";
+const unchangedBuildMarker =
+  "Skipping site render because inputs are unchanged";
+
+function markerCount(output: string, marker: string): number {
+  return output.split(marker).length - 1;
+}
+
+function buildSettlementCount(runtime: StartedCommand): number {
+  const output = combinedOutput(runtime.getOutput());
   return (
-    combinedOutput(runtime.getOutput()).split(
-      "Emitting site:build:completed event for preview environment",
-    ).length - 1
+    markerCount(output, publishedBuildMarker) +
+    markerCount(output, unchangedBuildMarker)
   );
 }
 
-async function waitForAdditionalBuild(
+async function waitForAdditionalBuildSettlement(
   runtime: StartedCommand,
   previousCount: number,
 ): Promise<void> {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    if (buildCompletionCount(runtime) > previousCount) return;
+    if (buildSettlementCount(runtime) > previousCount) return;
     await Bun.sleep(250);
   }
   throw new Error(
-    `Triggered preview build did not complete\n${combinedOutput(runtime.getOutput())}`,
+    `Triggered preview build did not settle\n${combinedOutput(runtime.getOutput())}`,
   );
 }
 
@@ -157,11 +166,8 @@ describe("public authoring Phase 4 packed site contract", () => {
       runtime = startRuntime(consumerDirectory);
       await runtime.waitForOutput("Brain worker runtime ready", 60_000);
 
-      await runtime.waitForOutput(
-        "Emitting site:build:completed event for preview environment",
-        60_000,
-      );
-      const completedBuilds = buildCompletionCount(runtime);
+      await runtime.waitForOutput(publishedBuildMarker, 60_000);
+      const settledBuilds = buildSettlementCount(runtime);
       let request: string;
       try {
         request = combinedOutput(
@@ -189,7 +195,7 @@ describe("public authoring Phase 4 packed site contract", () => {
         );
       }
       expect(request).toContain("Site build requested for preview");
-      await waitForAdditionalBuild(runtime, completedBuilds);
+      await waitForAdditionalBuildSettlement(runtime, settledBuilds);
 
       const outputDirectory = join(consumerDirectory, "dist", "site-preview");
       const html = await waitForBuiltFile(

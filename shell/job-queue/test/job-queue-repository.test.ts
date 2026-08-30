@@ -986,4 +986,47 @@ describe("JobQueueRepository fenced attempts", () => {
 
     expect(claimed?.id).toBe(reclaimable.id);
   });
+
+  it("returns recent jobs of every status for a type, newest first, bounded", async () => {
+    await repository.insert(
+      createTestJob({
+        id: "job-old-success",
+        type: "site-builder:site-build",
+        status: JOB_STATUS.COMPLETED,
+        createdAt: 1_000,
+        completedAt: 2_000,
+      }),
+    );
+    await repository.insert(
+      createTestJob({
+        id: "job-failed",
+        type: "site-builder:site-build",
+        status: JOB_STATUS.FAILED,
+        createdAt: 3_000,
+        completedAt: 4_000,
+      }),
+    );
+    await repository.insert(
+      createTestJob({
+        id: "job-pending",
+        type: "site-builder:site-build",
+        status: JOB_STATUS.PENDING,
+        createdAt: 5_000,
+      }),
+    );
+    await repository.insert(
+      createTestJob({
+        id: "job-other-type",
+        type: "test:job",
+        createdAt: 6_000,
+      }),
+    );
+
+    const recent = await repository.getRecentJobs(
+      ["site-builder:site-build"],
+      2,
+    );
+
+    expect(recent.map((job) => job.id)).toEqual(["job-pending", "job-failed"]);
+  });
 });

@@ -1,6 +1,7 @@
 import { SerializedStatusStore } from "@brains/plugins";
 import type {
   IRuntimeStateNamespace,
+  JobInfo,
   ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -129,6 +130,12 @@ const EMPTY_STATUS: StoredSiteBuildStatus = {
 
 const STATUS_KEY = "current";
 const STATUS_NAMESPACE = "site-builder.build-status";
+const SITE_BUILD_JOB_TYPES = ["site-builder:site-build"];
+const RECENT_JOB_SCAN_LIMIT = 10;
+
+const jobEnvironmentSchema = z.object({
+  environment: z.enum(["preview", "production"]),
+});
 
 /**
  * Persists a bounded, browser-safe projection of site-build jobs.
@@ -136,11 +143,14 @@ const STATUS_NAMESPACE = "site-builder.build-status";
  */
 export class SiteBuildStatusService {
   private readonly store: SerializedStatusStore<StoredSiteBuildStatus>;
-  private readonly jobs: Pick<ServicePluginContext["jobs"], "getStatus">;
+  private readonly jobs: Pick<
+    ServicePluginContext["jobs"],
+    "getStatus" | "getRecentJobs"
+  >;
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
-    jobs: Pick<ServicePluginContext["jobs"], "getStatus">,
+    jobs: Pick<ServicePluginContext["jobs"], "getStatus" | "getRecentJobs">,
   ) {
     this.store = new SerializedStatusStore({
       runtimeState,
@@ -160,7 +170,7 @@ export class SiteBuildStatusService {
 
   private async reconcile(
     state: StoredSiteBuildStatus,
-    clearUnrecoverableDebounce: boolean = false,
+    clearStaleDebounce: boolean = false,
   ): Promise<void> {
     const environments: SiteBuildEnvironment[] = ["preview", "production"];
     for (const environment of environments) {
@@ -168,13 +178,17 @@ export class SiteBuildStatusService {
       const active = current.active;
       if (!active) continue;
       if (!active.jobId) {
-        if (clearUnrecoverableDebounce) delete current.active;
+        // A debounced request without a job only survives inside the process
+        // that owns its timer; after a restart nothing can ever queue it.
+        if (clearStaleDebounce) delete current.active;
         continue;
       }
 
       const job = await this.jobs.getStatus(active.jobId);
       if (!job) {
-        if (clearUnrecoverableDebounce) delete current.active;
+        // The queue no longer knows this job; keeping the entry would freeze
+        // the UI on a phantom build until the next restart.
+        delete current.active;
         continue;
       }
 
@@ -193,58 +207,130 @@ export class SiteBuildStatusService {
         continue;
       }
 
-      const completedAt = new Date(
-        job.completedAt ?? job.startedAt ?? job.createdAt,
-      ).toISOString();
-      if (job.status === "failed") {
-        this.applyFailure(
-          state,
-          environment,
-          active.jobId,
-          completedAt,
-          job.lastError ?? "Site build failed",
-        );
+      this.applyTerminalJob(state, environment, job);
+    }
+
+    await this.reconcileFromQueue(state);
+  }
+
+  /**
+   * Backstop for lost lifecycle writes: even when no active entry was ever
+   * recorded, fold the queue's newest site-build job per environment into the
+   * projection — restoring in-flight builds and applying unseen terminal ones.
+   */
+  private async reconcileFromQueue(
+    state: StoredSiteBuildStatus,
+  ): Promise<void> {
+    const recent = await this.jobs.getRecentJobs(
+      SITE_BUILD_JOB_TYPES,
+      RECENT_JOB_SCAN_LIMIT,
+    );
+    const environments: SiteBuildEnvironment[] = ["preview", "production"];
+    for (const environment of environments) {
+      const latest = recent.find(
+        (job) => this.jobEnvironment(job) === environment,
+      );
+      if (!latest) continue;
+
+      if (latest.status === "pending" || latest.status === "processing") {
+        state[environment].active ??= {
+          jobId: latest.id,
+          state: latest.status === "processing" ? "building" : "queued",
+          requestedAt: new Date(latest.createdAt).toISOString(),
+          ...(latest.startedAt
+            ? { startedAt: new Date(latest.startedAt).toISOString() }
+            : {}),
+        };
         continue;
       }
 
-      const result = terminalJobResultSchema.safeParse(job.result);
-      if (result.success && result.data.cancelled) {
-        this.applyCancellation(
-          state,
-          environment,
-          active.jobId,
-          completedAt,
-          result.data.errors?.join("; ") ?? "Site build cancelled",
-        );
-      } else if (result.success && result.data.success && result.data.skipped) {
-        this.applySkipped(
-          state,
-          environment,
-          active.jobId,
-          completedAt,
-          result.data.routesBuilt,
-        );
-      } else if (result.success && result.data.success) {
-        this.applySuccess(
-          state,
-          environment,
-          active.jobId,
-          completedAt,
-          result.data.routesBuilt,
-          result.data.warnings ?? [],
-        );
-      } else {
-        const message = result.success
-          ? (result.data.errors?.join("; ") ?? "Site build failed")
-          : "Site build completed without a readable result";
-        this.applyFailure(
-          state,
-          environment,
-          active.jobId,
-          completedAt,
-          message,
-        );
+      if (state.recentBuilds.some((entry) => entry.jobId === latest.id)) {
+        continue;
       }
+      const completedAt =
+        latest.completedAt ?? latest.startedAt ?? latest.createdAt;
+      if (this.hasNewerRecordedOutcome(state[environment], completedAt)) {
+        continue;
+      }
+      this.applyTerminalJob(state, environment, latest);
+    }
+  }
+
+  private jobEnvironment(job: JobInfo): SiteBuildEnvironment | undefined {
+    const fromResult = jobEnvironmentSchema.safeParse(job.result);
+    if (fromResult.success) return fromResult.data.environment;
+    try {
+      const fromData = jobEnvironmentSchema.safeParse(JSON.parse(job.data));
+      return fromData.success ? fromData.data.environment : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private hasNewerRecordedOutcome(
+    status: Omit<SiteBuildEnvironmentStatus, "environment">,
+    completedAt: number,
+  ): boolean {
+    return [
+      status.lastSuccess,
+      status.lastFailure,
+      status.lastCancellation,
+    ].some(
+      (outcome) =>
+        outcome !== undefined && Date.parse(outcome.completedAt) >= completedAt,
+    );
+  }
+
+  private applyTerminalJob(
+    state: StoredSiteBuildStatus,
+    environment: SiteBuildEnvironment,
+    job: JobInfo,
+  ): void {
+    const completedAt = new Date(
+      job.completedAt ?? job.startedAt ?? job.createdAt,
+    ).toISOString();
+    if (job.status === "failed") {
+      this.applyFailure(
+        state,
+        environment,
+        job.id,
+        completedAt,
+        job.lastError ?? "Site build failed",
+      );
+      return;
+    }
+
+    const result = terminalJobResultSchema.safeParse(job.result);
+    if (result.success && result.data.cancelled) {
+      this.applyCancellation(
+        state,
+        environment,
+        job.id,
+        completedAt,
+        result.data.errors?.join("; ") ?? "Site build cancelled",
+      );
+    } else if (result.success && result.data.success && result.data.skipped) {
+      this.applySkipped(
+        state,
+        environment,
+        job.id,
+        completedAt,
+        result.data.routesBuilt,
+      );
+    } else if (result.success && result.data.success) {
+      this.applySuccess(
+        state,
+        environment,
+        job.id,
+        completedAt,
+        result.data.routesBuilt,
+        result.data.warnings ?? [],
+      );
+    } else {
+      const message = result.success
+        ? (result.data.errors?.join("; ") ?? "Site build failed")
+        : "Site build completed without a readable result";
+      this.applyFailure(state, environment, job.id, completedAt, message);
     }
   }
 

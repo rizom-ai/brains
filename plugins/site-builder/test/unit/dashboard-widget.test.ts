@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { SiteHealthWidget } from "../../src/lib/dashboard-widget";
+import {
+  SiteHealthWidget,
+  siteHealthDigest,
+} from "../../src/lib/dashboard-widget";
 
 const siteHealth = {
   site: {
@@ -78,6 +81,47 @@ describe("SiteHealthWidget", () => {
     expect(html).toContain("generation-837");
     expect(html).toContain("46 published routes");
     expect(html).toContain("2026-08-30T15:15:18.000Z");
+  });
+
+  it("keeps the digest tone on the current attempt while counting retained failures as attention", () => {
+    const digest = siteHealthDigest({
+      ...siteHealth,
+      environments: [
+        {
+          environment: "preview",
+          active: {
+            jobId: "job-retry",
+            state: "queued",
+            requestedAt: "2026-07-16T10:00:00.000Z",
+          },
+          lastFailure: {
+            jobId: "job-failed",
+            completedAt: "2026-07-16T09:00:00.000Z",
+            message: "Template failed",
+          },
+        },
+        {
+          environment: "production",
+          lastFailure: {
+            jobId: "job-live-failed",
+            completedAt: "2026-07-16T08:00:00.000Z",
+            message: "Publish failed",
+          },
+        },
+      ],
+    });
+
+    expect(digest.items[0]).toEqual({
+      label: "Preview",
+      value: "queued",
+      tone: "good",
+    });
+    expect(digest.items[1]).toEqual({
+      label: "Live",
+      value: "failed",
+      tone: "warn",
+    });
+    expect(digest.attention).toBe(2);
   });
 
   it("does not present a previous failure as the detail for a queued retry", () => {

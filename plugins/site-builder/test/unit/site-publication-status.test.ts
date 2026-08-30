@@ -64,6 +64,14 @@ describe("readSitePublicationStatus", () => {
     );
   });
 
+  it("reports not-published when no manifest exists", async () => {
+    const output = await outputDirectory();
+
+    expect(await readSitePublicationStatus(output, "production")).toEqual({
+      state: "not-published",
+    });
+  });
+
   it("fails visibly when the active output manifest is unreadable", async () => {
     const output = await outputDirectory();
     await writeFile(join(output, SITE_BUILD_MANIFEST_FILE), "not json");

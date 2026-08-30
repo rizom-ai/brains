@@ -283,7 +283,9 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     try {
       await update();
     } catch (error) {
-      this.logger.warn(`Failed to record site build ${state} lifecycle`, {
+      // The projection heals on the next read via queue reconciliation, so the
+      // job must not fail here — but the lost write is an operational error.
+      this.logger.error(`Failed to record site build ${state} lifecycle`, {
         error,
       });
     }
@@ -296,7 +298,11 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     try {
       await update();
     } catch (error) {
-      this.logger.warn(`Failed to record site build ${state} state`, { error });
+      // Same contract as recordLifecycle: reconciliation recovers the state,
+      // the build outcome stands, and the failure is loud in the logs.
+      this.logger.error(`Failed to record site build ${state} state`, {
+        error,
+      });
     }
   }
 

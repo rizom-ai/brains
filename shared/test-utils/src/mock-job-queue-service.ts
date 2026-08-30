@@ -28,6 +28,7 @@ export interface MockJobQueueServiceReturns {
   };
   getDiagnostics?: JobQueueDiagnostics;
   getActiveJobs?: JobInfo[];
+  getRecentJobs?: JobInfo[];
   getFailedJobs?: JobInfo[];
   getRegisteredTypes?: string[];
   cleanup?: number;
@@ -210,6 +211,14 @@ export function createMockJobQueueService(
           Array.from(jobs.values()).filter(
             (job) => job.status === "pending" || job.status === "processing",
           ),
+      ),
+    ),
+    getRecentJobs: mock((_types?: string[], limit = 20) =>
+      Promise.resolve(
+        (returns.getRecentJobs ?? Array.from(jobs.values()))
+          .slice()
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, limit),
       ),
     ),
     getFailedJobs: mock(() =>
