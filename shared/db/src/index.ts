@@ -16,6 +16,7 @@ export {
 } from "./migrate";
 
 export type {
+  SqliteBlobColumn,
   SqliteBooleanColumn,
   SqliteIntegerColumn,
   SqliteJsonColumn,

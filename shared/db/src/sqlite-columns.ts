@@ -108,6 +108,32 @@ export type SqliteJsonColumn<
   TExtraConfig
 >;
 
+export type SqliteBlobColumn<
+  TTableName extends string,
+  TName extends string,
+  TNotNull extends boolean,
+> = SQLiteColumn<
+  {
+    name: TName;
+    tableName: TTableName;
+    dataType: "buffer";
+    columnType: "SQLiteBlobBuffer";
+    data: Buffer;
+    driverParam: Buffer;
+    notNull: TNotNull;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  },
+  Record<string, never>,
+  Record<string, never>
+>;
+
 export type SqliteBooleanColumn<
   TTableName extends string,
   TName extends string,

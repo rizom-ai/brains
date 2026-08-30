@@ -1112,6 +1112,19 @@
         "typescript": "^7.0.2",
       },
     },
+    "shared/assets": {
+      "name": "@brains/assets",
+      "version": "0.2.0-alpha.334",
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/node": "^24.13.3",
+        "typescript": "^7.0.2",
+      },
+    },
     "shared/atproto-contracts": {
       "name": "@brains/atproto-contracts",
       "version": "0.2.0-alpha.335",
@@ -1680,6 +1693,7 @@
       "name": "@brains/entity-service",
       "version": "0.2.0-alpha.335",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",
@@ -2043,6 +2057,8 @@
     "@brains/app": ["@brains/app@workspace:shell/app"],
 
     "@brains/assessment": ["@brains/assessment@workspace:entities/assessment"],
+
+    "@brains/assets": ["@brains/assets@workspace:shared/assets"],
 
     "@brains/atproto": ["@brains/atproto@workspace:plugins/atproto"],
 

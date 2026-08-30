@@ -1,3 +1,4 @@
+import type { PreparedAsset } from "@brains/assets";
 import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
@@ -547,6 +548,11 @@ export interface EntityTypeConfig {
   /** Whether to generate embeddings for this entity type (default: true).
    *  Set to false for entity types with non-textual content (e.g., images). */
   embeddable?: boolean;
+  /** Whether to index serialized content in full-text search (default: true).
+   *  Set to false for binary entity types. Mutations remove stale FTS rows. */
+  fullTextSearchable?: boolean;
+  /** Durable binary storage policy. Absence means inline/text storage. */
+  binaryStorage?: "asset";
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
@@ -594,6 +600,8 @@ export interface CountEntitiesRequest {
 
 export interface CreateEntityRequest<T extends BaseEntity> {
   entity: EntityInput<T>;
+  /** Prepared bytes committed in the same transaction as their entity reference. */
+  preparedAsset?: PreparedAsset | undefined;
   options?: CreateEntityOptions | undefined;
 }
 
@@ -604,6 +612,8 @@ export interface CreateEntityFromMarkdownRequest {
 
 export interface UpdateEntityRequest<T extends BaseEntity> {
   entity: T;
+  /** Prepared bytes committed in the same transaction as their entity reference. */
+  preparedAsset?: PreparedAsset | undefined;
   options?: UpdateEntityOptions | undefined;
 }
 
@@ -616,6 +626,8 @@ export interface DeleteEntityRequest {
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
+  /** Prepared bytes committed in the same transaction as their entity reference. */
+  preparedAsset?: PreparedAsset | undefined;
   options?: EntityJobOptions | undefined;
 }
 

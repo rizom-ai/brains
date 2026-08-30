@@ -241,6 +241,18 @@
       "removalPrerequisite": "Require explicit lease settings on every supported dequeue caller and observe zero fallback use.",
       "rollbackDependency": "Older direct dequeue callers require the fallback while they remain supported.",
       "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "inline-binary-entity-content",
+      "paths": ["shell/entity-service/src/sqlite-asset-repository.ts"],
+      "symbol": "asset-backed inline-content transition",
+      "owner": "@brains/entity-service",
+      "class": "durable-data-compatibility",
+      "behavior": "Allows registered asset-backed entity types to retain inline binary content while mixed legacy/reference image migration is resumable.",
+      "currentConsumers": "Existing image rows that still contain data URLs during the image cutover and rollback window.",
+      "removalPrerequisite": "Verify every completed image stores a valid asset reference and legacy materialization telemetry remains at zero through the migration soak.",
+      "rollbackDependency": "The transitional release must read and update pre-migration image rows while the pre-cutover database remains the rollback source.",
+      "targetRelease": "post-image-migration-soak"
     }
   ],
   "exemptions": [

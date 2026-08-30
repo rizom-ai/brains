@@ -1,10 +1,11 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 ## Status
 
-Replanning.
+SQLite backend accepted for foundation implementation; production migration remains
+blocked.
 
 PR #125 implemented a filesystem-backed content-addressed asset store under
 `data/assets`. That backend is no longer the target architecture. Do not merge or deploy
@@ -14,6 +15,15 @@ The revised decision is to keep durable binary bytes in the same entity SQLite d
 as their entity references, using a dedicated content-addressed BLOB table. This preserves
 one transactional source of truth and one SQLite-safe backup/restore boundary while still
 removing base64 payloads from entity rows, FTS, ordinary reads, events, and API lists.
+
+The read-only `yeehaa.io` benchmark recorded in PR #183 passed database integrity,
+digest, transaction rollback, backup/restore, and 5/25/50/100 MiB BLOB probes. On a
+copied 1.33 GiB database, FTS optimization plus same-database BLOB migration compacted to
+323.14 MiB and reduced ordinary image-list content from 410.29 MiB to 12.04 KiB. The
+benchmark supports the foundation, not a live cutover: 4 database payloads were absent
+from the synced corpus, 8 synced payloads were absent from the database, and the
+worst-case no-autocheckpoint migration accumulated 2.03 GiB of WAL. The one-off harness
+remains on the closed benchmark branch rather than becoming maintained runtime tooling.
 
 No production instance has been migrated. The existing PR remains useful as implementation
 research: its asset-reference contracts, image byte validation, reader/writer inventory,
@@ -236,13 +246,15 @@ other file inputs may hash into a private temporary spool file, but that file is
 processing state, never authoritative durable storage. It must be removed after commit or
 failure.
 
-Before implementation, prove whether the selected SQLite/libSQL driver supports
-incremental BLOB writes within the transaction. If it does not, the implementation must:
+Bun 1.4's SQLite binding successfully inserted, checkpointed, reread, and digest-verified
+5, 25, 50, and 100 MiB BLOBs. The 100 MiB probe peaked at approximately 338 MiB RSS. The
+binding is bounded but not incrementally streamed, so the implementation must:
 
-- load the prepared bytes only at the final bounded insert;
-- enforce a limit supported by the measured runtime memory budget;
+- load prepared bytes only at the final bounded insert;
+- enforce a limit supported by the deployed runtime memory budget;
 - avoid claiming that database insertion is fully streaming;
-- lower the default asset limit if the 100 MB target cannot be inserted safely.
+- retain 100 MiB only where the runtime memory floor safely accommodates the measured
+  peak, otherwise configure a lower limit.
 
 Correctness and bounded failure take priority over preserving the earlier filesystem
 implementation's streaming assumptions.
@@ -449,38 +461,34 @@ bounded transition.
 
 ## Phase 0: revalidation and backend decision evidence
 
-Before reworking implementation:
+Backend benchmark complete. Measured against a stopped, copied local `yeehaa.io` database
+and synced image corpus:
 
-1. Keep PR #125 draft and mark the filesystem backend superseded.
-2. Rebase the useful branch work onto current `main` only after this revised plan is
-   approved; do not preserve filesystem compatibility shims by default.
-3. Benchmark the real local image corpus in four forms:
-   - current base64 plus FTS;
-   - base64 without FTS;
-   - raw BLOB assets with reference-only entity rows;
-   - filesystem CAS as historical comparison only.
-4. Measure:
-   - database and WAL size;
-   - migration peak disk;
-   - SQLite-safe backup duration/size;
-   - verified restore duration;
-   - duplicate savings;
-   - normal entity list/get behavior;
-   - explicit asset read and site-build behavior;
-   - peak memory for the largest accepted asset;
-   - concurrent writer behavior.
-5. Confirm the SQLite driver can bind the chosen maximum BLOB safely. Either prove an
-   incremental BLOB path or set a lower bounded limit.
-6. Inventory every image writer/reader and every caller of get/raw/list compatibility
-   modes.
-7. Capture production preflight metrics independently, including SVG/unsupported rows,
-   FTS image rows, duplicate payloads, references, and free disk.
-8. Add mixed legacy/reference fixtures and backup/restore fixtures.
-9. Confirm no ordinary query, event, log, or API list selects BLOB bytes.
+- current compact database: 1.31 GiB;
+- base64 with image FTS removed and FTS5 optimized: 426.23 MiB;
+- same-database BLOB assets: 323.14 MiB;
+- ordinary materialized image-list content: 410.29 MiB before, 12.04 KiB after;
+- 154 unique BLOB rows for 156 image entities;
+- atomic asset/entity rollback: passed;
+- SQLite-safe backup reopen, `quick_check`, reference, and digest verification: passed;
+- 5/25/50/100 MiB BLOB probes: passed;
+- 100 MiB probe peak RSS: approximately 338 MiB;
+- worst-case migration WAL with automatic checkpoints disabled: 2.03 GiB;
+- database/synced-corpus divergence: 4 database-only and 8 sync-only payloads.
 
-If measured SQLite behavior is unacceptable, stop and write a new decision record rather
-than silently falling back to the filesystem design. Any fallback must explain how it
-preserves equivalent source-of-truth and backup guarantees.
+Decision: proceed to Phase 1 on a fresh branch from current `main`. Filesystem CAS was not
+rebenchmarked because it cannot meet the accepted single-database source-of-truth
+requirement. Before image cutover or production migration:
+
+1. inventory reusable writer, reader, and compatibility work from PR #125;
+2. add mixed legacy/reference fixtures;
+3. confirm ordinary queries/events never select BLOB bytes;
+4. reconcile the 4/8 `yeehaa.io` digest inventory differences;
+5. capture production preflight independently;
+6. define bounded migration checkpoint frequency and required peak disk.
+
+If later SQLite behavior violates these measured guarantees, stop and write a new decision
+record rather than silently falling back to the filesystem design.
 
 ## Phase 1: SQLite asset foundation
 
@@ -573,7 +581,12 @@ resumable transaction:
 5. compute the new content hash;
 6. delete the image FTS row;
 7. preserve ID, visibility, provenance, and original timestamps;
-8. commit the asset row and entity update together.
+8. commit the asset row and entity update together;
+9. checkpoint WAL after bounded groups of committed rows so the full corpus cannot
+   accumulate the benchmark's 2.03 GiB worst-case WAL;
+10. after all image rows are removed from FTS, run FTS5 `optimize` before offline
+    `VACUUM`; deletion tombstones otherwise retain the old term segments and can enlarge
+    the index.
 
 A crash may leave a mixed legacy/reference database, which the transitional release must
 support. It may not leave a committed reference without bytes. Reruns verify and skip

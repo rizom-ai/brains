@@ -3,6 +3,7 @@ import { defineSqliteDrizzleConfig } from "@brains/db/drizzle-config";
 
 const config: Config = defineSqliteDrizzleConfig({
   schema: [
+    "./src/schema/assets.ts",
     "./src/schema/entities.ts",
     "./src/schema/entity-export-state.ts",
     "./src/schema/embeddings.ts",
