@@ -650,11 +650,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
         getEntity: (ref: {
           entityType: string;
           id: string;
-          visibilityScope?: unknown;
+          visibilityScope?: "public" | "shared" | "restricted" | undefined;
         }): Promise<MessageArtifactEntity | null | undefined> =>
-          streamContext.entityService.getEntity(
-            ref as Parameters<typeof streamContext.entityService.getEntity>[0],
-          ),
+          streamContext.entityService.getEntity(ref),
       },
     };
     const stream = createUIMessageStream<UIMessage>({

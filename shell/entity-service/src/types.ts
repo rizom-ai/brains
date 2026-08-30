@@ -511,7 +511,7 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
-    visibilityScope?: ContentVisibility;
+    visibilityScope?: ContentVisibility | undefined;
   };
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly?: boolean;
@@ -529,7 +529,7 @@ export interface SearchOptions {
   sortDirection?: "asc" | "desc";
   /** Score multipliers per entity type - applied after initial search */
   weight?: Record<string, number>;
-  visibilityScope?: ContentVisibility;
+  visibilityScope?: ContentVisibility | undefined;
   /** Include queued/failed generation stubs in search results (default: false) */
   includeUngenerated?: boolean;
   /** Minimum relevance score to return. Omit for no score cutoff. */
@@ -578,7 +578,7 @@ export interface GetEntityRequest {
    * Optional visibility scope. Undefined fails closed to "public" — callers
    * with elevated access must opt up explicitly.
    */
-  visibilityScope?: ContentVisibility;
+  visibilityScope?: ContentVisibility | undefined;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -653,7 +653,7 @@ export interface ProjectSemanticSpaceRequest {
   /** Include pairwise neighbors at or below this cosine distance. */
   maxNeighborDistance?: number;
   /** Undefined fails closed to public-only visibility. */
-  visibilityScope?: ContentVisibility;
+  visibilityScope?: ContentVisibility | undefined;
 }
 
 export interface SemanticSpacePoint extends SemanticEntityReference {

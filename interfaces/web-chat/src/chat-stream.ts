@@ -43,7 +43,10 @@ interface StreamDeps {
     getEntity: (ref: {
       entityType: string;
       id: string;
-      visibilityScope?: unknown;
+      // The scope the entity service actually accepts. Declared here rather
+      // than as `unknown`, which forced the caller to assert the ref back into
+      // the real request type.
+      visibilityScope?: "public" | "shared" | "restricted" | undefined;
     }) => Promise<MessageArtifactEntity | null | undefined>;
   };
 }

@@ -159,16 +159,22 @@ export function isPluginPackageDefinition(
   );
 }
 
+/** The brand is a symbol key the declared type does not carry; check it. */
+function hasRuntimeFactory(
+  definition: PluginPackageDefinition,
+): definition is RuntimePluginPackageDefinition {
+  return typeof Reflect.get(definition, runtimeFactory) === "function";
+}
+
 function runtimeDefinition(
   definition: PluginPackageDefinition,
 ): RuntimePluginPackageDefinition {
-  const candidate = definition as RuntimePluginPackageDefinition;
-  if (typeof candidate[runtimeFactory] !== "function") {
+  if (!hasRuntimeFactory(definition)) {
     throw new Error(
       `Plugin definition "${definition.id}" has no runtime adapter; export the result of a @rizom/brain define helper instead of a hand-written object`,
     );
   }
-  return candidate;
+  return definition;
 }
 
 export function bindPluginPackageMetadata(

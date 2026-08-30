@@ -294,11 +294,13 @@ export class EntityQueries {
   public async countEntities(
     entityType: string,
     options: {
-      publishedOnly?: boolean;
-      filter?: {
-        metadata?: Record<string, unknown>;
-        visibilityScope?: ContentVisibility;
-      };
+      publishedOnly?: boolean | undefined;
+      filter?:
+        | {
+            metadata?: Record<string, unknown> | undefined;
+            visibilityScope?: ContentVisibility | undefined;
+          }
+        | undefined;
     } = {},
     publishedStatuses?: string[],
   ): Promise<number> {

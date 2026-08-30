@@ -621,7 +621,7 @@ export class EntityService implements IEntityService {
     const entity = await this.getEntityRaw<T>({
       entityType,
       id,
-      ...(visibilityScope !== undefined && { visibilityScope }),
+      visibilityScope,
     });
     if (!entity) {
       return null;

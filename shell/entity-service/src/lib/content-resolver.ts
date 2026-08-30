@@ -124,7 +124,7 @@ export class ContentResolver {
         const image = await entityService.getEntityRaw({
           entityType: "image",
           id: imageId,
-          ...(visibilityScope !== undefined && { visibilityScope }),
+          visibilityScope,
         });
         if (image?.content) {
           imageMap.set(imageId, image.content);

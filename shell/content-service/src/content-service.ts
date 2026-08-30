@@ -366,7 +366,7 @@ export class ContentService implements IContentService {
           ) => {
             const entity = await target.getEntity({
               ...request,
-              ...(visibilityScope !== undefined && { visibilityScope }),
+              visibilityScope,
             });
             if (!publishedOnly || !entity) {
               return entity;

@@ -234,16 +234,10 @@ function resolveEvalSuite(
       Record<string, Record<string, unknown>>
     >(
       (merged, selection) =>
-        mergeRecords(merged, selection.plugins ?? {}) as Record<
-          string,
-          Record<string, unknown>
-        >,
+        mergePluginConfigs(merged, selection.plugins ?? {}),
       {},
     );
-    const plugins = mergeRecords(parentPlugins, ownPlugins) as Record<
-      string,
-      Record<string, unknown>
-    >;
+    const plugins = mergePluginConfigs(parentPlugins, ownPlugins);
 
     const selection: EvalSelection = {
       ...(anchor ? { anchor } : {}),
@@ -287,10 +281,7 @@ function applyCliOverrides(
     ...(options.remove ? { remove: options.remove } : {}),
     ...(options.plugins
       ? {
-          plugins: mergeRecords(
-            overrides.plugins ?? {},
-            options.plugins,
-          ) as Record<string, Record<string, unknown>>,
+          plugins: mergePluginConfigs(overrides.plugins ?? {}, options.plugins),
         }
       : {}),
   };
@@ -412,6 +403,25 @@ function parseSuitePlugins(
     plugins[pluginId] = pluginConfig;
   }
   return plugins;
+}
+
+/**
+ * Merge two plugin-id → plugin-config maps.
+ *
+ * mergeRecords returns a flat Record<string, unknown>, so every caller wanting
+ * the nested plugin shape used to assert it back. Each value here is known to
+ * be a config record, so the deep merge can keep that type.
+ */
+function mergePluginConfigs(
+  base: Record<string, Record<string, unknown>>,
+  override: Record<string, Record<string, unknown>>,
+): Record<string, Record<string, unknown>> {
+  const merged: Record<string, Record<string, unknown>> = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    const existing = merged[key];
+    merged[key] = existing ? mergeRecords(existing, value) : value;
+  }
+  return merged;
 }
 
 function mergeRecords(
