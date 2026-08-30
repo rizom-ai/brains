@@ -105,13 +105,24 @@ export const ToolOutput = ({
     return null;
   }
 
+  // `output` is unknown, so each renderable shape is checked rather than the
+  // remainder being asserted to be a ReactNode — bigint, symbol and function
+  // all reach the final branch and none of them are renderable.
   let body: ReactNode;
-  if (typeof output === "object" && !isValidElement(output)) {
+  if (isValidElement(output)) {
+    body = <div>{output}</div>;
+  } else if (typeof output === "object") {
     body = <pre>{JSON.stringify(output, null, 2)}</pre>;
   } else if (typeof output === "string") {
     body = <pre>{output}</pre>;
+  } else if (
+    output === undefined ||
+    typeof output === "number" ||
+    typeof output === "boolean"
+  ) {
+    body = <div>{output}</div>;
   } else {
-    body = <div>{output as ReactNode}</div>;
+    body = <pre>{String(output)}</pre>;
   }
 
   return (

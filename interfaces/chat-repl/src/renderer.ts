@@ -138,7 +138,14 @@ export class CLIMarkdownRenderer {
     };
 
     // Parse and render the markdown
-    const rendered = marked(markdown, options) as string;
+    // marked is declared string | Promise<string> because it supports async
+    // extensions. This renderer configures none, so a Promise here means the
+    // configuration changed — worth failing on rather than rendering
+    // "[object Promise]" into the terminal.
+    const rendered = marked(markdown, options);
+    if (typeof rendered !== "string") {
+      throw new Error("Markdown renderer received an async marked result");
+    }
 
     // Decode HTML entities for clean CLI display
     return this.decodeHtmlEntities(rendered);

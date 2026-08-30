@@ -114,7 +114,14 @@ export function markdownToHtml(
       })
     : defaultMarked;
 
-  let html = instance.parse(markdown) as string;
+  // See renderer.ts: marked's declared string | Promise<string> reflects async
+  // extension support this call does not enable. Fail rather than emit
+  // "[object Promise]" into rendered HTML.
+  const parsed = instance.parse(markdown);
+  if (typeof parsed !== "string") {
+    throw new Error("Markdown renderer received an async marked result");
+  }
+  let html = parsed;
 
   // Wrap attribution lines after blockquotes in <cite> for styling.
   html = html.replace(
