@@ -71,7 +71,8 @@ module.exports = {
     {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
-      comment: "Plugins can only import from shell/* and shared/* packages",
+      comment:
+        "Plugins can only import from shell/*, shared/*, and the public authoring surface (packages/brain-sdk). The SDK is the boundary this repo publishes as @rizom/brain/*, so a plugin reaching for it is the shape the plugin-interface-boundaries plan is moving every package toward — @brains/notifications is the first that imports nothing else.",
       from: {
         path: "^plugins/",
         // Covered by the companion rule below with a wider builtin allowlist
@@ -81,7 +82,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/brain-sdk/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins

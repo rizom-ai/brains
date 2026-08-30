@@ -7,6 +7,7 @@ export {
   defineEntityCatalog,
   defineJob,
   defineServicePlugin,
+  defineSubscription,
   defineTool,
   defineWorkspaceAction,
 } from "@brains/plugins";

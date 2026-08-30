@@ -186,14 +186,10 @@ function instantiateInterfaces(
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(withBundle, override) : withBundle;
     try {
-      if (typeof source === "object" && "declared" in source) {
-        // A package may declare more than one plugin; an interface package
-        // that declares one is the common case, not the contract.
-        const declared = source.declared(merged);
-        interfaces.push(...(Array.isArray(declared) ? declared : [declared]));
-      } else {
-        interfaces.push(new source(merged));
-      }
+      // A package may declare more than one plugin; an interface package that
+      // declares one is the common case, not the contract.
+      const created = source(merged);
+      interfaces.push(...(Array.isArray(created) ? created : [created]));
     } catch (error) {
       if (isPluginConfigValidationError(error)) {
         logger?.warn(`Skipping interface "${id}": missing required config`);

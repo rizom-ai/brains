@@ -2,8 +2,8 @@ import {
   defineBrain,
   type BrainDefinition,
   type CapabilityEntry,
-  type InterfaceEntry,
   type PluginConfig,
+  type PluginFactory,
 } from "@brains/app";
 import {
   bindPluginPackageMetadata,
@@ -36,7 +36,7 @@ import linkPackage from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import notePackage from "@brains/note";
-import { notificationsPlugin } from "@brains/notifications";
+import notificationsPackage from "@brains/notifications";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
@@ -103,34 +103,28 @@ export {
 };
 
 /**
- * Bridge a declaratively-defined package (`defineEntityPackage` and friends)
- * into the canonical brain's capability list.
+ * Building the plugins a declaratively-defined package installs.
  *
  * Packages resolved from a `brain.yaml` package ref get their installed
  * metadata bound by the package registry. The canonical brain imports its
- * members directly instead, so nothing binds metadata for them — this does
- * it from the workspace package name, then adapts the definition to the
- * `[id, factory, config]` capability shape.
+ * members directly instead, so nothing binds metadata for them — this does it
+ * from the workspace package name, then instantiates.
+ *
+ * Both lists come through here: a declared interface and a declared
+ * capability differ only in the tuple that carries the factory, not in how
+ * the factory is made.
  *
  * This lives in layer 3 on purpose: instantiation is the composer's job, so
  * declaratively-authored packages never need to reach for shell internals.
  */
-/** An interface that declares itself rather than exporting a class. */
-function declaredInterface(
-  id: string,
+function packageFactory(
   packageName: string,
   definition: PluginPackageDefinition,
-): InterfaceEntry {
+): PluginFactory {
   const metadata = { name: packageName, version: packageJson.version };
   bindPluginPackageMetadata(definition, metadata);
-  return [
-    id,
-    {
-      declared: (config): Plugin[] =>
-        instantiatePluginPackageDefinition(definition, config, metadata),
-    },
-    (): PluginConfig => ({}),
-  ];
+  return (config): Plugin[] =>
+    instantiatePluginPackageDefinition(definition, config, metadata);
 }
 
 function packageCapability(
@@ -138,14 +132,7 @@ function packageCapability(
   packageName: string,
   definition: PluginPackageDefinition,
 ): CapabilityEntry {
-  const metadata = { name: packageName, version: packageJson.version };
-  bindPluginPackageMetadata(definition, metadata);
-  return [
-    id,
-    (config): Plugin[] =>
-      instantiatePluginPackageDefinition(definition, config, metadata),
-    undefined,
-  ];
+  return [id, packageFactory(packageName, definition), undefined];
 }
 
 /** Canonical catalog and active capability-bundle taxonomy. */
@@ -180,7 +167,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("agents", "@brains/agent-discovery", agentDiscovery),
     packageCapability("assessment", "@brains/assessment", assessmentPackage),
     ["auth-service", authServicePlugin, undefined],
-    ["notifications", notificationsPlugin, undefined],
+    packageCapability(
+      "notifications",
+      "@brains/notifications",
+      notificationsPackage,
+    ),
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],
     ["onboarding", onboardingPlugin, undefined],
@@ -226,16 +217,36 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["unified-inbox", unifiedInboxPlugin, undefined],
   ],
   interfaces: [
-    ["mcp", MCPInterface, (): PluginConfig => ({})],
-    declaredInterface("email", "@brains/email", emailPackage),
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
-    ["web-chat", WebChatInterface, (): PluginConfig => ({})],
+    [
+      "mcp",
+      (config): Plugin => new MCPInterface(config),
+      (): PluginConfig => ({}),
+    ],
+    [
+      "email",
+      packageFactory("@brains/email", emailPackage),
+      (): PluginConfig => ({}),
+    ],
+    [
+      "webserver",
+      (config): Plugin => new WebserverInterface(config),
+      (): PluginConfig => ({}),
+    ],
+    [
+      "web-chat",
+      (config): Plugin => new WebChatInterface(config),
+      (): PluginConfig => ({}),
+    ],
     [
       "chat",
-      ChatInterface,
+      (config): Plugin => new ChatInterface(config),
       (env): PluginConfig => chatConfigFromEnv(env, { captureUrls: true }),
     ],
-    ["a2a", A2AInterface, (): PluginConfig => ({})],
+    [
+      "a2a",
+      (config): Plugin => new A2AInterface(config),
+      (): PluginConfig => ({}),
+    ],
   ],
   bundles: canonicalBundles,
   permissions: {
