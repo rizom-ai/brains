@@ -1,5 +1,13 @@
 # @brains/webserver
 
+## 0.2.0-alpha.337
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.337
+  - @brains/contracts@0.2.0-alpha.337
+
 ## 0.2.0-alpha.336
 
 ### Patch Changes

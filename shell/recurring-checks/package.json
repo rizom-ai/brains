@@ -1,7 +1,7 @@
 {
   "name": "@brains/recurring-checks",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.336",
+  "version": "0.2.0-alpha.337",
   "description": "Shell-owned recurring checks, deduplication, and delivery orchestration",
   "dependencies": {
     "@brains/job-queue": "workspace:*",
