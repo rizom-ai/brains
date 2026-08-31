@@ -261,7 +261,7 @@ describe("public authoring 0.2 golden packages", () => {
             "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
           ],
           "@fixture/reading-insights": [
-            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts",
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
           ],
         },
       },
@@ -288,6 +288,8 @@ describe("public authoring 0.2 golden packages", () => {
             compilerOptions: {
               rootDir: ".",
               declaration: false,
+              jsx: "react-jsx",
+              jsxImportSource: "react",
               types: ["bun"],
               noUnusedLocals: false,
               noUnusedParameters: false,

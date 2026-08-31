@@ -14,6 +14,7 @@ import {
   createTemplate,
   type ComponentType,
   type Template,
+  type TemplateDataSchema,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -52,6 +53,7 @@ import type {
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
+  ServiceViewSchemaMap,
   ServiceTemplateFormatter,
 } from "./service-definition-contract";
 import {
@@ -71,11 +73,14 @@ interface ErasedServiceTemplate {
   format(value: unknown): string;
 }
 
-/** A view with its schema type erased and `render` bound to that schema. */
+/**
+ * A view with its schema erased to the JSON bound it is declared with, and its
+ * author component wrapped so props are parsed before render.
+ */
 interface ErasedServiceView {
-  readonly schema: ServiceSchema;
+  readonly schema: TemplateDataSchema<JsonObject>;
   readonly description?: string | undefined;
-  render(value: unknown): string;
+  readonly component: ComponentType<JsonObject>;
 }
 
 function toolConfirmationToken(input: unknown): string | undefined {
@@ -167,7 +172,7 @@ class DeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: NormalizedServiceDefinitionInput<
@@ -611,10 +616,8 @@ class DeclarativeServicePlugin<
         {
           schema: view.schema,
           description: view.description,
-          render: (value: unknown): string =>
-            typeof view.renderers.web === "function"
-              ? view.renderers.web(view.schema.parse(value))
-              : view.renderers.web,
+          component: (props: JsonObject) =>
+            view.renderers.web(view.schema.parse(props)),
         },
       ]),
     );
@@ -656,12 +659,10 @@ class DeclarativeServicePlugin<
         result[name] = createTemplate(base);
         continue;
       }
-      const component = ((value: JsonObject) =>
-        view.render(value)) as unknown as ComponentType<JsonObject>;
       result[name] = createTemplate<JsonObject>({
         ...base,
-        schema: schema as z.ZodType<JsonObject, unknown>,
-        layout: { component },
+        schema: view.schema,
+        layout: { component: view.component },
       });
     }
     return result;
@@ -788,7 +789,7 @@ export function createDeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: NormalizedServiceDefinitionInput<

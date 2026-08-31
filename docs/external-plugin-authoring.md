@@ -44,7 +44,7 @@ The runtime owns:
 | You want to…                                 | Import                    | Start with                                                                                                        |
 | -------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Store typed content or derive another type   | `@rizom/brain/entities`   | [`defineEntity()`](../packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts)                      |
-| Add tools, resources, or durable work        | `@rizom/brain/services`   | [`defineServicePlugin()`](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts)              |
+| Add tools, resources, or durable work        | `@rizom/brain/services`   | [`defineServicePlugin()`](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx)             |
 | Add Account settings, Dashboard, or Studio   | `@rizom/brain/services`   | [`operator-surface`](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)          |
 | Add HTTP routes or a supervised event feed   | `@rizom/brain/interfaces` | [`defineInterface()`](../packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts)                |
 | Connect a conversational/outbound transport  | `@rizom/brain/interfaces` | [`defineMessageInterface()`](../packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts) |
@@ -219,7 +219,7 @@ Read them in this order:
 
 1. [Entities](../packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts)
    — schemas, inferred `EntityOf`, and a definition-to-definition projection.
-2. [Service](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts)
+2. [Service](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx)
    — parsed setup state, tools, a reusable durable job, typed entity access,
    progress, templates, and messaging.
 3. [Generic interface](../packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts)
@@ -309,7 +309,7 @@ export default defineServicePlugin({
 });
 ```
 
-The complete checked flow is in the [reading-insights service](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts).
+The complete checked flow is in the [reading-insights service](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx).
 
 Rules that are easy to miss:
 
