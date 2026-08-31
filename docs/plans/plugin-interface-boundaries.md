@@ -18,13 +18,13 @@ The entity tranche is finished: 18 of 18 entity packages import only
 `entities/` and said so. It left the other two families untouched, and they
 are the larger half.
 
-**28 packages under `plugins/` and `interfaces/`; 1 is clean.** `@brains/email`
-depends on `@brains/sdk` and declares itself; the other 27 still import
-`@brains/plugins` in `src`.
+**28 packages under `plugins/` and `interfaces/`; 2 are clean.**
+`@brains/email` and `@brains/notifications` depend on `@brains/sdk` and
+declare themselves; the other 26 still import `@brains/plugins` in `src`.
 
 | reaches for                                                          | packages |
 | -------------------------------------------------------------------- | -------- |
-| `@brains/plugins`                                                    | 28       |
+| `@brains/plugins`                                                    | 26       |
 | `@brains/auth-service`                                               | 7        |
 | `@brains/content-formatters`                                         | 4        |
 | `@brains/console-theme`, `@brains/site-composition`, `@brains/image` | 3 each   |
@@ -33,11 +33,12 @@ depends on `@brains/sdk` and declares itself; the other 27 still import
 
 ## What the numbers actually mean
 
-`@brains/plugins` in 28 of 30 is not a lazy import that a find-and-replace
-fixes. It is the base class. Of the 30, **20 extend `ServicePlugin`, 3 extend
-`InterfacePlugin`, and 4 extend `MessageInterfacePlugin`** — and **not one
-uses a declarative definition.** Where the entity tranche converted packages
-that were already half-declarative, this tranche has not started.
+`@brains/plugins` in 26 of 28 is not a lazy import that a find-and-replace
+fixes. It is the base class: **20 packages extend `ServicePlugin`, 3 extend
+`InterfacePlugin`, and 4 extend `MessageInterfacePlugin`.** Where the entity
+tranche converted packages that were already half-declarative, this one
+started from classes — which is why each conversion so far has found gaps in
+the API it converts to rather than merely moving imports.
 
 The declarative surface they would convert _to_ already exists and is
 published — `defineServicePlugin` is used by every converted entity package,
@@ -67,7 +68,7 @@ pre-commit hook and CI, so the class cannot return silently. Three further
 casts lived in `plugins/` tests and were fixed at the source. Inside `shell/`
 those interfaces are the local vocabulary, which is why the ban stops there.
 
-This plan's remaining job is the 30 packages themselves.
+This plan's remaining job is the 26 packages that are still classes.
 
 ## Decisions
 
@@ -75,9 +76,12 @@ This plan's remaining job is the 30 packages themselves.
   import is to widen the SDK until `@brains/plugins` is reachable through it.
   That would move the boundary rather than hold it. The import exists because
   the package extends a class; the fix is the declaration.
-- **Auth-service first among the tail.** Seven packages read permissions and
-  identity through it. Whatever slice they need is one capability, and
-  finding it once serves seven.
+- **Auth-service is three capabilities, not one.** Seven packages import it,
+  which looked like one shared need until the calls were counted: resolving a
+  caller, asking what this deployment is, and recording an audit event are
+  three different questions. `plugins/admin` is a fourth case entirely — it
+  administers auth-service rather than consuming it. Phase 4 carries the
+  measurement.
 - **Some of the tail is misfiled, not misused.** `console-theme`,
   `site-composition`, `content-formatters` and `image` look like shared
   publishable libraries that belong beside `@brains/sdk` in the allowed set
