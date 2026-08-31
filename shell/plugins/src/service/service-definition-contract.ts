@@ -23,6 +23,21 @@ export interface ServiceSeedDefinition {
   markdown(): string | Promise<string>;
 }
 
+/**
+ * What shape each entity type takes, read-only.
+ *
+ * A generator that renders the brain's types into another tool's vocabulary
+ * asks three questions per type: its frontmatter schema, whether it is a
+ * singleton, and its body template. The registry's full namespace also
+ * registers and extends types, which a reader has no business doing.
+ * Named consumer: @brains/obsidian-vault.
+ */
+export interface ServiceEntityShapes {
+  frontmatterSchema(entityType: string): z.ZodObject<z.ZodRawShape> | undefined;
+  isSingleton(entityType: string): boolean;
+  bodyTemplate(entityType: string): string;
+}
+
 /** The narrow publish surface a service gets, not the whole bus. */
 export interface ServicePublisher {
   send(message: {
@@ -495,6 +510,9 @@ interface ServiceDefinitionCore<
         readonly entities: JobEntityAccess;
         readonly messaging: ServicePublisher;
         readonly logger: LoggerContract;
+        /** The brain's data directory, for artifacts written beside it. */
+        readonly dataDir: string;
+        readonly entityShapes: ServiceEntityShapes;
       }) => void | Promise<void>)
     | undefined;
   readonly subscriptions?:

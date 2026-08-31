@@ -158,3 +158,43 @@ describe("declarative service ready", () => {
     expect(loads).toBe(1);
   });
 });
+
+describe("declarative service ready: generating from what the brain knows", () => {
+  it("hands ready the data directory and entity shape introspection", async () => {
+    // A generator writes artifacts describing the brain's entity types into
+    // the brain's own data directory: it needs to know where that is, and
+    // what shape each type's frontmatter takes.
+    let observed:
+      | {
+          dataDir: string;
+          schema: unknown;
+          singleton: boolean;
+          body: string;
+        }
+      | undefined;
+    const definition = defineServicePlugin({
+      id: "generator",
+      config: z.object({}),
+      ready: ({ dataDir, entityShapes, entities }) => {
+        const types = entities.getEntityTypes();
+        const first = types[0] ?? "missing";
+        observed = {
+          dataDir,
+          schema: entityShapes.frontmatterSchema(first),
+          singleton: entityShapes.isSingleton(first),
+          body: entityShapes.bodyTemplate(first),
+        };
+      },
+    });
+    const harness = createPluginHarness({ dataDir: "/tmp/generator-brain" });
+    const plugin = instantiate(definition, {}, "@fixture/generator");
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
+
+    expect(observed).toBeDefined();
+    expect(observed?.dataDir).toBe("/tmp/generator-brain");
+    expect(typeof observed?.singleton).toBe("boolean");
+    expect(typeof observed?.body).toBe("string");
+  });
+});

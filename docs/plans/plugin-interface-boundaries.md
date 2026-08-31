@@ -2,9 +2,9 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **4 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **5 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
-`@brains/atproto-registry`).
+`@brains/atproto-registry`, `@brains/obsidian-vault`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -19,8 +19,8 @@ The entity tranche is finished: 18 of 18 entity packages import only
 `entities/` and said so. It left the other two families untouched, and they
 are the larger half.
 
-**28 packages under `plugins/` and `interfaces/`; 4 are clean.** The other
-24 still import `@brains/plugins` in `src`.
+**28 packages under `plugins/` and `interfaces/`; 5 are clean.** The other
+23 still import `@brains/plugins` in `src`.
 
 | reaches for                                                          | packages |
 | -------------------------------------------------------------------- | -------- |

@@ -323,6 +323,17 @@ class DeclarativeServicePlugin<
             }),
         },
         logger: this.logger,
+        dataDir: context.dataDir,
+        // Read-only shape questions; the registry's registering half stays
+        // the runtime's.
+        entityShapes: {
+          frontmatterSchema: (entityType) =>
+            context.entities.getEffectiveFrontmatterSchema(entityType),
+          isSingleton: (entityType) =>
+            context.entities.getAdapter(entityType)?.isSingleton === true,
+          bodyTemplate: (entityType) =>
+            context.entities.getAdapter(entityType)?.getBodyTemplate() ?? "",
+        },
       });
     }
   }

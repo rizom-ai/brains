@@ -1,12 +1,10 @@
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
-import { ServicePlugin, toolSuccess, toolError } from "@brains/plugins";
-import type { ServicePluginContext, ToolResult } from "@brains/plugins";
 import {
-  type ObsidianVaultConfig,
-  type ObsidianVaultConfigInput,
-  obsidianVaultConfigSchema,
-} from "./config";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { type ObsidianVaultConfig, obsidianVaultConfigSchema } from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
 import { generateTemplate } from "./lib/template-generator";
 import { generateFileClass } from "./lib/fileclass-generator";
@@ -15,8 +13,6 @@ import {
   generatePipelineBase,
   generateSettingsBase,
 } from "./lib/base-generator";
-import packageJson from "../package.json";
-import { getErrorMessage } from "@brains/utils/error";
 
 export interface ObsidianVaultDeps {
   mkdir: (path: string, options?: { recursive: boolean }) => void;
@@ -30,166 +26,166 @@ const defaultDeps: ObsidianVaultDeps = {
   existsFile: existsSync,
 };
 
-export class ObsidianVaultPlugin extends ServicePlugin<
-  ObsidianVaultConfig,
-  ObsidianVaultConfigInput
-> {
-  private readonly deps: ObsidianVaultDeps;
+export interface ObsidianSyncReport {
+  generated: string[];
+  skipped: string[];
+  fileClasses: string[];
+  bases: string[];
+}
 
-  constructor(
-    config: ObsidianVaultConfigInput = {},
-    deps: Partial<ObsidianVaultDeps> = {},
-  ) {
-    super("obsidian-vault", packageJson, config, obsidianVaultConfigSchema);
-    this.deps = { ...defaultDeps, ...deps };
+interface ObsidianShapeReader {
+  frontmatterSchema(
+    entityType: string,
+  ): Parameters<typeof introspectSchema>[0] | undefined;
+  isSingleton(entityType: string): boolean;
+  bodyTemplate(entityType: string): string;
+}
+
+interface ObsidianSyncInput {
+  entityTypes: string[];
+  shapes: ObsidianShapeReader;
+  dataDir: string;
+  config: ObsidianVaultConfig;
+  deps: ObsidianVaultDeps;
+  log: (message: string) => void;
+}
+
+/**
+ * Render the brain's entity types into Obsidian's vocabulary: a template, a
+ * fileClass and a base per type, plus Settings and Pipeline bases. Bases are
+ * only written where missing, so a vault someone tuned stays theirs.
+ */
+export function syncObsidianArtifacts(
+  input: ObsidianSyncInput,
+): ObsidianSyncReport {
+  const { entityTypes, shapes, dataDir, config, deps, log } = input;
+
+  const baseDir = join(dataDir, config.baseFolder);
+  const templateDir = join(baseDir, "templates");
+  const fileClassDir = join(baseDir, "fileClasses");
+  const basesDir = join(baseDir, "bases");
+  deps.mkdir(templateDir, { recursive: true });
+  deps.mkdir(fileClassDir, { recursive: true });
+  deps.mkdir(basesDir, { recursive: true });
+
+  const generated: string[] = [];
+  const skipped: string[] = [];
+  const fileClasses: string[] = [];
+  const bases: string[] = [];
+  const singletonTypes: string[] = [];
+  const statusBearingTypes: {
+    entityType: string;
+    fields: ReturnType<typeof introspectSchema>;
+  }[] = [];
+
+  for (const entityType of entityTypes) {
+    const schema = shapes.frontmatterSchema(entityType);
+    if (!schema) {
+      log(`Skipping ${entityType}: no frontmatter schema`);
+      skipped.push(entityType);
+      continue;
+    }
+
+    const fields = introspectSchema(schema);
+
+    // Generate fileClass (for all entity types)
+    deps.writeFile(
+      join(fileClassDir, `${entityType}.md`),
+      generateFileClass(entityType, fields),
+    );
+    fileClasses.push(entityType);
+
+    if (shapes.isSingleton(entityType)) {
+      singletonTypes.push(entityType);
+      log(`Generated fileClass (singleton): ${entityType}`);
+      continue;
+    }
+
+    // Generate template (non-singletons only)
+    deps.writeFile(
+      join(templateDir, `${entityType}.md`),
+      generateTemplate(entityType, fields, shapes.bodyTemplate(entityType)),
+    );
+    generated.push(entityType);
+
+    // Generate base (non-singletons only, if missing)
+    const baseResult = generateBase(entityType, fields);
+    const basePath = join(basesDir, baseResult.filename);
+    if (!deps.existsFile(basePath)) {
+      deps.writeFile(basePath, baseResult.content);
+      bases.push(entityType);
+      log(`Generated base: ${baseResult.filename}`);
+    }
+
+    if (baseResult.hasStatus) {
+      statusBearingTypes.push({ entityType, fields });
+    }
+
+    log(`Generated template + fileClass: ${entityType}`);
   }
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.logger.info("Auto-syncing Obsidian templates, fileClasses, and bases");
-    await this.sync(context);
-  }
-
-  public async syncTemplates(filterTypes?: string[]): Promise<
-    ToolResult<{
-      generated: string[];
-      skipped: string[];
-      fileClasses: string[];
-      bases: string[];
-    }>
-  > {
-    return this.sync(this.getContext(), filterTypes);
-  }
-
-  private async sync(
-    context: ServicePluginContext,
-    filterTypes?: string[],
-  ): Promise<
-    ToolResult<{
-      generated: string[];
-      skipped: string[];
-      fileClasses: string[];
-      bases: string[];
-    }>
-  > {
-    try {
-      const allTypes = context.entityService.getEntityTypes();
-      const targetTypes = filterTypes
-        ? allTypes.filter((t) => filterTypes.includes(t))
-        : allTypes;
-
-      const baseDir = join(context.dataDir, this.config.baseFolder);
-      const templateDir = join(baseDir, "templates");
-      const fileClassDir = join(baseDir, "fileClasses");
-      const basesDir = join(baseDir, "bases");
-      this.deps.mkdir(templateDir, { recursive: true });
-      this.deps.mkdir(fileClassDir, { recursive: true });
-      this.deps.mkdir(basesDir, { recursive: true });
-
-      const generated: string[] = [];
-      const skipped: string[] = [];
-      const fileClasses: string[] = [];
-      const bases: string[] = [];
-      const singletonTypes: string[] = [];
-      const statusBearingTypes: {
-        entityType: string;
-        fields: ReturnType<typeof introspectSchema>;
-      }[] = [];
-
-      for (const entityType of targetTypes) {
-        const schema =
-          context.entities.getEffectiveFrontmatterSchema(entityType);
-        if (!schema) {
-          this.logger.debug(`Skipping ${entityType}: no frontmatter schema`);
-          skipped.push(entityType);
-          continue;
-        }
-
-        const fields = introspectSchema(schema);
-        const adapter = context.entities.getAdapter(entityType);
-        const isSingleton = adapter?.isSingleton === true;
-
-        // Generate fileClass (for all entity types)
-        const fileClassContent = generateFileClass(entityType, fields);
-        this.deps.writeFile(
-          join(fileClassDir, `${entityType}.md`),
-          fileClassContent,
-        );
-        fileClasses.push(entityType);
-
-        if (isSingleton) {
-          singletonTypes.push(entityType);
-          this.logger.debug(`Generated fileClass (singleton): ${entityType}`);
-          continue;
-        }
-
-        // Generate template (non-singletons only)
-        const bodyTemplate = adapter?.getBodyTemplate() ?? "";
-        const templateContent = generateTemplate(
-          entityType,
-          fields,
-          bodyTemplate,
-        );
-        this.deps.writeFile(
-          join(templateDir, `${entityType}.md`),
-          templateContent,
-        );
-        generated.push(entityType);
-
-        // Generate base (non-singletons only, if missing)
-        const baseResult = generateBase(entityType, fields);
-        const basePath = join(basesDir, baseResult.filename);
-        if (!this.deps.existsFile(basePath)) {
-          this.deps.writeFile(basePath, baseResult.content);
-          bases.push(entityType);
-          this.logger.debug(`Generated base: ${baseResult.filename}`);
-        }
-
-        if (baseResult.hasStatus) {
-          statusBearingTypes.push({ entityType, fields });
-        }
-
-        this.logger.debug(`Generated template + fileClass: ${entityType}`);
-      }
-
-      // Generate Settings.base for singletons (only if missing)
-      const settingsContent = generateSettingsBase(singletonTypes);
-      if (settingsContent) {
-        const settingsPath = join(basesDir, "Settings.base");
-        if (!this.deps.existsFile(settingsPath)) {
-          this.deps.writeFile(settingsPath, settingsContent);
-          bases.push("Settings");
-          this.logger.debug("Generated Settings.base");
-        }
-      }
-
-      // Generate Pipeline.base (only if missing)
-      const pipelineContent = generatePipelineBase(statusBearingTypes);
-      if (pipelineContent) {
-        const pipelinePath = join(basesDir, "Pipeline.base");
-        if (!this.deps.existsFile(pipelinePath)) {
-          this.deps.writeFile(pipelinePath, pipelineContent);
-          bases.push("Pipeline");
-          this.logger.debug("Generated Pipeline.base");
-        }
-      }
-
-      this.logger.info(
-        `Synced ${generated.length} templates, ${fileClasses.length} fileClasses, ${bases.length} bases (${skipped.length} skipped)`,
-      );
-
-      return toolSuccess({ generated, skipped, fileClasses, bases });
-    } catch (error) {
-      this.logger.error("Failed to sync", { error });
-      return toolError(getErrorMessage(error, "Unknown error"));
+  // Generate Settings.base for singletons (only if missing)
+  const settingsContent = generateSettingsBase(singletonTypes);
+  if (settingsContent) {
+    const settingsPath = join(basesDir, "Settings.base");
+    if (!deps.existsFile(settingsPath)) {
+      deps.writeFile(settingsPath, settingsContent);
+      bases.push("Settings");
+      log("Generated Settings.base");
     }
   }
+
+  // Generate Pipeline.base (only if missing)
+  const pipelineContent = generatePipelineBase(statusBearingTypes);
+  if (pipelineContent) {
+    const pipelinePath = join(basesDir, "Pipeline.base");
+    if (!deps.existsFile(pipelinePath)) {
+      deps.writeFile(pipelinePath, pipelineContent);
+      bases.push("Pipeline");
+      log("Generated Pipeline.base");
+    }
+  }
+
+  return { generated, skipped, fileClasses, bases };
 }
 
-export function obsidianVaultPlugin(
-  config: ObsidianVaultConfigInput = {},
-  deps?: Partial<ObsidianVaultDeps>,
-): ObsidianVaultPlugin {
-  return new ObsidianVaultPlugin(config, deps);
+/**
+ * The vault sync, as a declared service.
+ *
+ * Dependencies are closed over rather than injected through a constructor:
+ * the package default-exports `obsidianVault()`, and a test calls it with
+ * fakes.
+ */
+export function obsidianVault(
+  dependencies: Partial<ObsidianVaultDeps> = {},
+): ServicePackageDefinition<typeof obsidianVaultConfigSchema> {
+  const deps: ObsidianVaultDeps = { ...defaultDeps, ...dependencies };
+
+  return defineServicePlugin({
+    id: "obsidian-vault",
+    config: obsidianVaultConfigSchema,
+
+    // Every type must exist before its shape can be rendered, which is what
+    // `ready` is for — registration order does not matter beyond that.
+    ready: ({ config, entities, dataDir, entityShapes, logger }) => {
+      logger.info("Auto-syncing Obsidian templates, fileClasses, and bases");
+      const report = syncObsidianArtifacts({
+        entityTypes: entities.getEntityTypes(),
+        shapes: entityShapes,
+        dataDir,
+        config,
+        deps,
+        log: (message) => logger.debug(message),
+      });
+      logger.info(
+        `Synced ${report.generated.length} templates, ${report.fileClasses.length} fileClasses, ${report.bases.length} bases (${report.skipped.length} skipped)`,
+      );
+    },
+  });
 }
+
+const obsidianVaultPackage: ServicePackageDefinition<
+  typeof obsidianVaultConfigSchema
+> = obsidianVault();
+
+export default obsidianVaultPackage;

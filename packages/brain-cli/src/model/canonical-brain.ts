@@ -37,7 +37,7 @@ import { MCPInterface } from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
-import { obsidianVaultPlugin } from "@brains/obsidian-vault";
+import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import { profilePlugin } from "@brains/profile";
@@ -216,7 +216,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ),
     packageCapability("docs", "@brains/doc", docPackage),
 
-    ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
+    // autoSync was never a config key the schema accepted — it was silently
+    // stripped and the plugin always synced on ready. Dropped rather than
+    // carried as decoration.
+    packageCapability(
+      "obsidian-vault",
+      "@brains/obsidian-vault",
+      obsidianVaultPackage,
+    ),
     ["email-workflows", emailWorkflows, undefined],
     ["unified-inbox", unifiedInboxPlugin, undefined],
   ],

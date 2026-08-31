@@ -1,16 +1,17 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
-
-import { ObsidianVaultPlugin } from "../src/plugin";
-
-const generatedSchema = z.object({ generated: z.array(z.string()) });
-const generatedWithSkippedSchema = z.object({
-  generated: z.array(z.string()),
-  skipped: z.array(z.string()),
-});
-const fileClassesSchema = z.object({ fileClasses: z.array(z.string()) });
-const basesSchema = z.object({ bases: z.array(z.string()) });
+import { createPluginHarness } from "@brains/plugins/test";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import {
+  obsidianVault,
+  syncObsidianArtifacts,
+  type ObsidianSyncReport,
+} from "../src/plugin";
+import packageJson from "../package.json";
 
 const postSchema = z.object({
   title: z.string(),
@@ -54,87 +55,71 @@ function createMockDeps(): MockDeps {
   };
 }
 
-describe("ObsidianVaultPlugin", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-  let deps: ReturnType<typeof createMockDeps>;
-  let plugin: ObsidianVaultPlugin;
+const shapes = {
+  frontmatterSchema: (type: string): z.ZodObject<z.ZodRawShape> | undefined =>
+    schemas.get(type),
+  isSingleton: (type: string): boolean => type === "site-info",
+  bodyTemplate: (): string => "",
+};
 
-  beforeEach(async () => {
+describe("syncObsidianArtifacts", () => {
+  let deps: MockDeps;
+
+  beforeEach(() => {
     deps = createMockDeps();
+  });
 
-    harness = createPluginHarness({
+  function runSync(entityTypes: string[]): ObsidianSyncReport {
+    return syncObsidianArtifacts({
+      entityTypes,
+      shapes,
       dataDir: "/tmp/test-vault",
-      logContext: "obsidian-vault-test",
+      config: { baseFolder: "_obsidian" },
+      deps,
+      log: () => undefined,
     });
+  }
 
-    const registry = harness.getEntityRegistry();
-    registry.registerEntityType("post", {} as never, {} as never);
-    registry.registerEntityType("note", {} as never, {} as never);
-    registry.registerEntityType("site-info", {} as never, {} as never);
-    registry.getEffectiveFrontmatterSchema = (
-      type: string,
-    ): z.ZodObject<z.ZodRawShape> | undefined => schemas.get(type);
-    registry.getAdapter = (entityType: string): never => {
-      if (entityType === "site-info") {
-        return {
-          isSingleton: true,
-          getBodyTemplate: (): string => "",
-        } as never;
-      }
-      return { getBodyTemplate: (): string => "" } as never;
-    };
+  function writtenPaths(): unknown[] {
+    return deps.writeFile.mock.calls.map((call) => call[0]);
+  }
 
-    plugin = new ObsidianVaultPlugin({}, deps);
-    await harness.installPlugin(plugin);
+  it("generates templates for all entity types", () => {
+    const report = runSync(["post", "note", "site-info"]);
+    expect(report.generated).toContain("post");
+    expect(report.generated).toContain("note");
   });
 
-  it("should auto-sync templates during ready lifecycle", async () => {
-    await plugin.ready();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
-    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
+  it("renders only the requested types", () => {
+    const report = runSync(["post"]);
+    expect(report.generated).toEqual(["post"]);
   });
 
-  it("should not register sync-templates as a tool", () => {
-    const capabilities = harness.getCapabilities();
-    const toolNames = capabilities.tools.map((t) => t.name);
-    expect(toolNames).not.toContain("obsidian-vault_sync-templates");
+  it("skips entity types with no frontmatter schema", () => {
+    const report = runSync(["post", "image"]);
+    expect(report.skipped).toContain("image");
+    expect(report.generated).not.toContain("image");
   });
 
-  it("should generate templates for all entity types", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
-
-    const data = generatedSchema.parse(result.data);
-    expect(data.generated).toContain("post");
-    expect(data.generated).toContain("note");
-  });
-
-  it("should write template files to the correct directory", async () => {
-    await plugin.syncTemplates();
-
+  it("writes template files to the correct directory", () => {
+    runSync(["post", "note"]);
     expect(deps.mkdir).toHaveBeenCalledWith(
       "/tmp/test-vault/_obsidian/templates",
       { recursive: true },
     );
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
-    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/note.md");
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/templates/post.md",
+    );
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/templates/note.md",
+    );
   });
 
-  it("should generate valid template content", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const postCall = writeCalls.find(
+  it("generates valid template content", () => {
+    runSync(["post"]);
+    const postCall = deps.writeFile.mock.calls.find(
       (call) => call[0] === "/tmp/test-vault/_obsidian/templates/post.md",
     );
-    expect(postCall).toBeDefined();
-
     const content = String(postCall?.[1]);
     expect(content).toContain('title: "{{title}}"');
     expect(content).toContain("status: draft");
@@ -142,50 +127,13 @@ describe("ObsidianVaultPlugin", () => {
     expect(content).toContain("tags: []");
   });
 
-  it("should filter entity types when specified", async () => {
-    const result = await plugin.syncTemplates(["post"]);
-    expectSuccess(result);
-
-    const data = generatedSchema.parse(result.data);
-    expect(data.generated).toEqual(["post"]);
-    expect(data.generated).not.toContain("note");
-  });
-
-  it("should skip entity types with no frontmatter schema", async () => {
-    const registry = harness.getEntityRegistry();
-    registry.registerEntityType("image", {} as never, {} as never);
-
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
-
-    const data = generatedWithSkippedSchema.parse(result.data);
-    expect(data.skipped).toContain("image");
-    expect(data.generated).not.toContain("image");
-  });
-
-  it("should write fileClass files to the correct directory", async () => {
-    await plugin.syncTemplates();
-
-    expect(deps.mkdir).toHaveBeenCalledWith(
-      "/tmp/test-vault/_obsidian/fileClasses",
-      { recursive: true },
-    );
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
-    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/note.md");
-  });
-
-  it("should generate fileClass with enum options", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const postFileClass = writeCalls.find(
+  it("writes fileClass files with enum options", () => {
+    const report = runSync(["post", "note"]);
+    expect(report.fileClasses).toContain("post");
+    expect(report.fileClasses).toContain("note");
+    const postFileClass = deps.writeFile.mock.calls.find(
       (call) => call[0] === "/tmp/test-vault/_obsidian/fileClasses/post.md",
     );
-    expect(postFileClass).toBeDefined();
-
     const content = String(postFileClass?.[1]);
     expect(content).toContain("name: status");
     expect(content).toContain("type: Select");
@@ -194,104 +142,109 @@ describe("ObsidianVaultPlugin", () => {
     expect(content).toContain("'2': published");
   });
 
-  it("should return fileClasses in result data", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
-
-    const data = fileClassesSchema.parse(result.data);
-    expect(data.fileClasses).toContain("post");
-    expect(data.fileClasses).toContain("note");
+  it("generates .base files, Pipeline included, and reports them", () => {
+    const report = runSync(["post", "note"]);
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/bases/Posts.base",
+    );
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/bases/Notes.base",
+    );
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/bases/Pipeline.base",
+    );
+    expect(report.bases).toContain("post");
+    expect(report.bases).toContain("note");
+    expect(report.bases).toContain("Pipeline");
   });
 
-  it("should generate .base files at vault root", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Posts.base");
-    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Notes.base");
-  });
-
-  it("should generate Pipeline.base when status fields exist", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Pipeline.base");
-  });
-
-  it("should not overwrite existing .base files", async () => {
+  it("never overwrites an existing .base file", () => {
     deps.existsFile.mockImplementation(
       (path: string) => path === "/tmp/test-vault/_obsidian/bases/Posts.base",
     );
-
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).not.toContain("/tmp/test-vault/_obsidian/bases/Posts.base");
-    // Other bases should still be generated
-    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Notes.base");
+    runSync(["post", "note"]);
+    expect(writtenPaths()).not.toContain(
+      "/tmp/test-vault/_obsidian/bases/Posts.base",
+    );
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/bases/Notes.base",
+    );
   });
 
-  it("should return bases in result data", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
-
-    const data = basesSchema.parse(result.data);
-    expect(data.bases).toContain("post");
-    expect(data.bases).toContain("note");
-    expect(data.bases).toContain("Pipeline");
-  });
-
-  it("should not generate templates for singleton entity types", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).not.toContain(
+  it("treats singletons as fileClasses plus Settings.base, never templates", () => {
+    const report = runSync(["post", "site-info"]);
+    expect(writtenPaths()).not.toContain(
       "/tmp/test-vault/_obsidian/templates/site-info.md",
     );
-  });
-
-  it("should still generate fileClasses for singleton entity types", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain(
+    expect(writtenPaths()).toContain(
       "/tmp/test-vault/_obsidian/fileClasses/site-info.md",
     );
-  });
-
-  it("should not generate individual .base for singleton entity types", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    // No individual Site Infos.base
+    expect(writtenPaths()).toContain(
+      "/tmp/test-vault/_obsidian/bases/Settings.base",
+    );
     expect(
-      paths.some(
-        (p) =>
-          typeof p === "string" &&
-          p.includes("bases/") &&
-          p.includes("Site Info"),
+      writtenPaths().some(
+        (path) =>
+          typeof path === "string" &&
+          path.includes("bases/") &&
+          path.includes("Site Info"),
       ),
     ).toBe(false);
+    expect(report.generated).not.toContain("site-info");
+  });
+});
+
+describe("obsidian-vault service", () => {
+  function installVault(deps: MockDeps): {
+    harness: ReturnType<typeof createPluginHarness>;
+    plugin: Plugin;
+  } {
+    const harness = createPluginHarness({
+      dataDir: "/tmp/test-vault",
+      logContext: "obsidian-vault-test",
+    });
+    const registry = harness.getEntityRegistry();
+    registry.registerEntityType("post", {} as never, {} as never);
+    registry.registerEntityType("note", {} as never, {} as never);
+    registry.getEffectiveFrontmatterSchema = (
+      type: string,
+    ): z.ZodObject<z.ZodRawShape> | undefined => schemas.get(type);
+    registry.getAdapter = (): never =>
+      ({ getBodyTemplate: (): string => "" }) as never;
+
+    const definition = obsidianVault(deps);
+    bindPluginPackageMetadata(definition, {
+      name: packageJson.name,
+      version: packageJson.version,
+    });
+    const plugin = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: packageJson.name, version: packageJson.version },
+    )[0];
+    if (!plugin) throw new Error("Vault plugin was not created");
+    return { harness, plugin };
+  }
+
+  it("auto-syncs templates during the ready lifecycle", async () => {
+    const deps = createMockDeps();
+    const { harness, plugin } = installVault(deps);
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
+
+    const paths = deps.writeFile.mock.calls.map((call) => call[0]);
+    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
   });
 
-  it("should generate Settings.base grouping all singletons", async () => {
-    await plugin.syncTemplates();
-
-    const writeCalls = deps.writeFile.mock.calls;
-    const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Settings.base");
-  });
-
-  it("should not include singletons in generated list", async () => {
-    const result = await plugin.syncTemplates();
-    expectSuccess(result);
-    const data = generatedSchema.parse(result.data);
-    expect(data.generated).not.toContain("site-info");
+  it("registers no sync tool", async () => {
+    const deps = createMockDeps();
+    const { harness, plugin } = installVault(deps);
+    await harness.installPlugin(plugin);
+    const toolNames = harness.getCapabilities().tools.map((tool) => tool.name);
+    expect(toolNames.some((name) => name.includes("sync-templates"))).toBe(
+      false,
+    );
   });
 });
