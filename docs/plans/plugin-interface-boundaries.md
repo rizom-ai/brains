@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 4 done; **2 of 28 packages converted** (`@brains/email`,
+Phases 1 through 5 done; **2 of 28 packages converted** (`@brains/email`,
 `@brains/notifications`).
 
 The count has been wrong three times, each time because it was taken from
@@ -82,11 +82,10 @@ This plan's remaining job is the 26 packages that are still classes.
   three different questions. `plugins/admin` is a fourth case entirely — it
   administers auth-service rather than consuming it. Phase 4 carries the
   measurement.
-- **Some of the tail is misfiled, not misused.** `console-theme`,
-  `site-composition`, `content-formatters` and `image` look like shared
-  publishable libraries that belong beside `@brains/sdk` in the allowed set
-  rather than something to route around. Each gets a decision, not a
-  conversion, and the decision is recorded before any code moves.
+- **The shared-library tail is admitted, not routed around.** `console-theme`,
+  `site-composition`, `content-formatters` and `image` are shared
+  publishable libraries beside `@brains/sdk` — decided on measurement in
+  phase 5, nothing replaced, nothing moved.
 - **`plugins/knowledge-map` importing `@brains/topics` is a different smell.**
   A plugin reaching into another plugin is a dependency between two things
   that ship independently. It is called out separately because the fix may be
@@ -288,9 +287,24 @@ made the entity tranche find real defects rather than move code.
    context capability belongs to each package's own conversion in phase 6,
    where the contract each one compiles against is now already named.
 
-5. **Decide the shared libraries.** `console-theme`, `site-composition`,
-   `content-formatters`, `image`: publishable beside the SDK, or replaced.
-   Written down before any of them moves.
+5. **Decide the shared libraries.** _Done: all four admitted as publishable
+   beside the SDK_, each on its own evidence rather than as a batch:
+
+   | library              | src      | deps                                 | users | evidence                                                                                                                                                                                               |
+   | -------------------- | -------- | ------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | `content-formatters` | 18 files | contracts, utils, js-yaml, remark    | 11    | already partially SDK-published (`StructuredContentFormatter`, consumer `@brains/series`); the entity tranche shipped with entities importing it directly                                              |
+   | `site-composition`   | 14       | content-formatters, templates, utils | 5     | already partially SDK-published (`fetchSiteInfo`, `FeedItem`); its closure is entirely inside the published one                                                                                        |
+   | `console-theme`      | 6        | contracts                            | 3     | a leaf: the palette, type ramp and console surface web-chat, dashboard and studio render with — presentation vocabulary, not runtime                                                                   |
+   | `image`              | 7        | entity-service, utils, remark        | 3     | its one runtime edge is nominal — a `BaseEntity` type and `baseEntityParserSchema`, the same base-entity vocabulary the SDK publishes, and `@brains/entity-service` is already a direct SDK dependency |
+
+   The suspicious one was `image`: a "shared library" depending on
+   `shell/entity-service` looks like runtime leaking into the shared layer.
+   Measured, it isn't — the edge is the shared entity vocabulary, not the
+   service. Nothing is replaced and nothing moves.
+
+   The per-package allowed set for this tranche is therefore: `@brains/sdk`,
+   `@brains/utils`, `@brains/contracts`, `@brains/templates`,
+   `@rizom/brain-ui`, `@brains/atproto-contracts`, and these four.
 
 6. **The remaining conversions**, in dependency order, each closing its
    package's internal imports.
