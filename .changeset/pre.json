@@ -389,6 +389,7 @@
     "core--site-engine-ui-library-internal-dedup",
     "core--site-manifest-path-single-constant",
     "core--site-metadata-single-schema",
+    "core--site-template-render-version",
     "core--sqlite-asset-foundation",
     "core--status-palette-light-mode",
     "core--studio-account-workspace",

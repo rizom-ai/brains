@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.341
+
+### Patch Changes
+
+- [#199](https://github.com/rizom-ai/brains/pull/199) [`a2f6ce1`](https://github.com/rizom-ai/brains/commit/a2f6ce12f60c67068b38d4ed32a523267b2a435f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include an explicit template render version in static-site input fingerprints so output-affecting template changes invalidate retained generations.
+
 ## 0.2.0-alpha.340
 
 ### Patch Changes
