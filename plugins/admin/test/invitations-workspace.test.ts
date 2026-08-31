@@ -163,18 +163,19 @@ describe("Administration Invitations tab", () => {
     expect(initial).toMatchObject({
       view: {
         title: "Administration",
-        status: { label: "Admin only" },
         blocks: [
           { type: "stats", id: "invitation-totals" },
           { type: "tabs", defaultTab: "invitations" },
         ],
       },
     });
+    expect(initial).not.toHaveProperty("view.status");
     const layout = findAnyById(initial, "invitation-layout");
-    expect(regionIds(layout, "primary")).toEqual([
-      "invitation-query",
-      "invitations",
-    ]);
+    expect(regionIds(layout, "primary")).toEqual(["invitations"]);
+    expect(findById(initial, "invitations")).toMatchObject({
+      type: "table",
+      query: { pagination: { total: 0 } },
+    });
     expect(regionIds(layout, "aside")).toEqual([
       "create-invitation",
       "invite-peer",

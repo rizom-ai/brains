@@ -239,11 +239,6 @@ const administrationWorkspaceData = {
     title: "Administration",
     description:
       "Manage local people, invitation delivery, external provenance, and security history.",
-    status: {
-      label: "Admin only",
-      detail: "Access administration",
-      tone: "neutral",
-    },
     blocks: [
       {
         type: "stats",
@@ -417,11 +412,6 @@ const administrationInvitationsWorkspaceData = {
     title: "Administration",
     description:
       "Manage local people, invitation delivery, external provenance, and security history.",
-    status: {
-      label: "Admin only",
-      detail: "Access administration",
-      tone: "neutral",
-    },
     blocks: [
       {
         type: "stats",
@@ -454,25 +444,23 @@ const administrationInvitationsWorkspaceData = {
                 id: "invitation-layout",
                 primary: [
                   {
-                    type: "query",
-                    id: "invitation-query",
-                    controls: [
-                      {
-                        key: "state",
-                        label: "View",
-                        value: "pending",
-                        options: [
-                          { value: "pending", label: "Pending", count: 1 },
-                          { value: "history", label: "History", count: 4 },
-                        ],
-                      },
-                    ],
-                    pagination: { offset: 0, limit: 25, total: 1 },
-                  },
-                  {
                     type: "table",
                     id: "invitations",
                     empty: "No pending invitations.",
+                    query: {
+                      controls: [
+                        {
+                          key: "state",
+                          label: "View",
+                          value: "pending",
+                          options: [
+                            { value: "pending", label: "Pending", count: 1 },
+                            { value: "history", label: "History", count: 4 },
+                          ],
+                        },
+                      ],
+                      pagination: { offset: 0, limit: 25, total: 1 },
+                    },
                     columns: [
                       { key: "person", label: "Person" },
                       { key: "role", label: "Role" },
@@ -1739,6 +1727,7 @@ const server = Bun.serve({
             label: "Overview",
             rendererName: "DeclarativeOperatorWorkspace",
             priority: -100,
+            permission: "trusted",
             entityTypes: [],
             badge: 3,
           },
@@ -1748,6 +1737,7 @@ const server = Bun.serve({
             label: "Administration",
             rendererName: "DeclarativeOperatorWorkspace",
             priority: 10,
+            permission: "admin",
             urlQuery: true,
             entityTypes: [],
             badge: 2,
@@ -1758,6 +1748,7 @@ const server = Bun.serve({
             label: "Account",
             rendererName: "StudioAccountWorkspace",
             priority: 0,
+            permission: "public",
             entityTypes: [],
           },
         ],

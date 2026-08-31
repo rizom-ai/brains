@@ -194,10 +194,7 @@ export function composeInvitationTabSections(
       {
         type: "columns",
         id: "invitation-layout",
-        primary: [
-          requiredInvitationRegion(blocks, "invitation-query"),
-          requiredInvitationRegion(blocks, "invitations"),
-        ],
+        primary: [requiredInvitationRegion(blocks, "invitations")],
         aside: [requiredInvitationRegion(blocks, creationId), ...peerAside],
       },
     ],
@@ -322,10 +319,14 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
         text: "No invitation delivery channel is currently available.",
       });
     }
-    blocks.push(
-      {
-        type: "query",
-        id: "invitation-query",
+    blocks.push({
+      type: "table",
+      id: "invitations",
+      empty:
+        data.query.state === "pending"
+          ? "No pending invitations."
+          : "No invitation history yet.",
+      query: {
         controls: [
           {
             key: "state",
@@ -351,68 +352,60 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           total: data.selectedTotal,
         },
       },
-      {
-        type: "table",
-        id: "invitations",
-        empty:
-          data.query.state === "pending"
-            ? "No pending invitations."
-            : "No invitation history yet.",
-        columns: [
-          { key: "person", label: "Person" },
-          { key: "role", label: "Role" },
-          { key: "state", label: "State" },
-          { key: "destination", label: "Destination" },
-          { key: "updated", label: "Updated" },
-        ],
-        rows: data.invitations.map((invitation) => ({
-          id: invitation.id,
-          cells: {
-            person: invitation.displayName,
-            role: invitation.role,
-            state: invitation.state,
-            destination: invitation.destination,
-            updated: formatWorkspaceDate(invitation.updatedAt),
-          },
-          actions: TERMINAL_INVITATION_STATES.has(invitation.state)
-            ? []
-            : [
-                ...(invitation.deliveryAttemptId
-                  ? [
-                      {
-                        action: confirmManualDelivery,
-                        input: {
-                          invitationId: invitation.id,
-                          deliveryAttemptId: invitation.deliveryAttemptId,
-                        },
+      columns: [
+        { key: "person", label: "Person" },
+        { key: "role", label: "Role" },
+        { key: "state", label: "State" },
+        { key: "destination", label: "Destination" },
+        { key: "updated", label: "Updated" },
+      ],
+      rows: data.invitations.map((invitation) => ({
+        id: invitation.id,
+        cells: {
+          person: invitation.displayName,
+          role: invitation.role,
+          state: invitation.state,
+          destination: invitation.destination,
+          updated: formatWorkspaceDate(invitation.updatedAt),
+        },
+        actions: TERMINAL_INVITATION_STATES.has(invitation.state)
+          ? []
+          : [
+              ...(invitation.deliveryAttemptId
+                ? [
+                    {
+                      action: confirmManualDelivery,
+                      input: {
+                        invitationId: invitation.id,
+                        deliveryAttemptId: invitation.deliveryAttemptId,
                       },
-                    ]
-                  : []),
-                ...(invitation.state !== "sending"
-                  ? [
-                      {
-                        action: resendInvitation,
-                        input: { invitationId: invitation.id },
-                        capability: {
-                          id:
-                            invitation.state === "failed"
-                              ? "retry-invitation"
-                              : "resend-invitation",
-                          label:
-                            invitation.state === "failed" ? "Retry" : "Resend",
-                        },
-                        result: setupResultPresentation,
+                    },
+                  ]
+                : []),
+              ...(invitation.state !== "sending"
+                ? [
+                    {
+                      action: resendInvitation,
+                      input: { invitationId: invitation.id },
+                      capability: {
+                        id:
+                          invitation.state === "failed"
+                            ? "retry-invitation"
+                            : "resend-invitation",
+                        label:
+                          invitation.state === "failed" ? "Retry" : "Resend",
                       },
-                    ]
-                  : []),
-                {
-                  action: cancelInvitation,
-                  input: { invitationId: invitation.id },
-                },
-              ],
-        })),
-      },
-    );
+                      result: setupResultPresentation,
+                    },
+                  ]
+                : []),
+              {
+                action: cancelInvitation,
+                input: { invitationId: invitation.id },
+              },
+            ],
+      })),
+    });
     return {
       kicker: "Access administration",
       title: "Invitations",

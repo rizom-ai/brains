@@ -167,6 +167,93 @@ describe("OperatorViewRenderer", () => {
     ).not.toContain("declarative-totals");
   });
 
+  it("keeps server-backed query controls with their table collection", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Audit",
+            blocks: [
+              {
+                type: "table",
+                id: "events",
+                empty: "No events.",
+                query: {
+                  controls: [
+                    {
+                      key: "actor",
+                      label: "Actor",
+                      allLabel: "All actors",
+                      options: [{ value: "mira", label: "Mira" }],
+                    },
+                  ],
+                  pagination: { offset: 0, limit: 25, total: 1 },
+                },
+                columns: [{ key: "event", label: "Event" }],
+                rows: [{ id: "event-1", cells: { event: "Signed in" } }],
+              },
+            ],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: {},
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('class="declarative-table-collection"');
+    expect(html).toContain("All actors");
+    expect(html).toContain("1–1 of 1");
+    expect(html.indexOf("All actors")).toBeLessThan(html.indexOf("Signed in"));
+  });
+
+  it("can delegate the head without returning its totals to the body", () => {
+    const delegated = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Reading library",
+            primaryAction: {
+              actionId: "refresh",
+              label: "Refresh library",
+              input: {},
+            },
+            blocks: [
+              { type: "stats", items: [{ label: "Saved", value: 1 }] },
+              { type: "notice", tone: "neutral", text: "Ready." },
+            ],
+          },
+        },
+        renderHead: false,
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+    const selfRendered = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Reading library",
+            primaryAction: {
+              actionId: "refresh",
+              label: "Refresh library",
+              input: {},
+            },
+            blocks: [],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    expect(delegated).not.toContain("declarative-head");
+    expect(delegated).not.toContain("Saved");
+    expect(delegated).toContain("Ready.");
+    expect(selfRendered).toContain("Refresh library");
+  });
+
   it("declares a layout span per block so the host grid can differentiate width", () => {
     const html = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {

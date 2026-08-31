@@ -659,6 +659,10 @@ describe("capability-aware Studio controls", () => {
     const browse = renderCapabilityView(deniedCapabilities, "browse");
     const edit = renderCapabilityView(deniedCapabilities, "edit");
 
+    expect(browse).toContain('data-studio-page-head="true"');
+    expect(browse).toContain("1 entity");
+    expect(edit).toContain('data-studio-page-head="true"');
+    expect(edit).toContain("Post one");
     expect(browse).toContain('disabled="">New post</button>');
     expect(edit).toContain('class="capability-fields" disabled=""');
     expect(edit).toContain('class="save-btn" disabled=""');

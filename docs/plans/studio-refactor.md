@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted; Phases 0 and 1 are complete, and Phase 2 is next.** The
+**Accepted; Phases 0 through 2 are complete, and Phase 3 is next.** The
 second-iteration desktop and phone mockups are the implementation baseline.
 This is the implementation successor to
 [`studio-ux-research.md`](./studio-ux-research.md). It changes Studio's visual

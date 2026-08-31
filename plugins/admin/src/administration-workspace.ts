@@ -279,11 +279,6 @@ export async function registerAdministrationWorkspace(
           title: "Administration",
           description:
             "Manage local people, invitation delivery, external provenance, and security history.",
-          status: {
-            label: "Admin only",
-            detail: "Access administration",
-            tone: "neutral",
-          },
           blocks: [
             ...headBlocks,
             {

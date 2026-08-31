@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { RuntimeStudioOperatorView } from "@brains/plugins";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { StudioWorkspaceInfo } from "./api";
 import {
   declarativeStudioPageHead,
+  StudioPageHead,
   studioAccessRequirement,
 } from "./studio-page-head";
 
@@ -77,6 +80,32 @@ describe("Studio page-head normalization", () => {
       },
     });
     expect(view.blocks).toHaveLength(2);
+  });
+
+  it("renders one bounded head grammar with host and source semantics", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudioPageHead, {
+        model: {
+          kicker: "Access administration",
+          access: { kind: "permission", label: "Admin only" },
+          title: "Administration",
+          metadata: ["3 people", "1 needs attention"],
+          description: "Manage people and security history.",
+          status: { label: "Healthy", tone: "good" },
+          totals: [{ label: "Invitations", value: 1, tone: "warn" }],
+        },
+        action: createElement("button", { type: "button" }, "Add person"),
+      }),
+    );
+
+    expect(html).toContain('data-studio-page-head="true"');
+    expect(html).toContain("Access administration");
+    expect(html).toContain("Admin only");
+    expect(html).toContain("Administration");
+    expect(html).toContain("3 people");
+    expect(html).toContain("Healthy");
+    expect(html).toContain("Invitations");
+    expect(html).toContain("Add person");
   });
 
   it("prefers a source title and otherwise falls back to the admitted workspace", () => {

@@ -88,10 +88,7 @@ describe("Administration Audit tab", () => {
         blocks: [{ type: "tabs", defaultTab: "audit" }],
       },
     });
-    expect(findById(data, "audit-query")).toMatchObject({
-      type: "query",
-      pagination: { total: 1 },
-    });
+    expect(findById(data, "audit-query")).toBeUndefined();
     expect(findById(data, "audit-detail")).toMatchObject({
       type: "detail",
       open: {
@@ -100,6 +97,7 @@ describe("Administration Audit tab", () => {
       },
       master: {
         type: "table",
+        query: { pagination: { total: 1 } },
         rows: [
           {
             id: event.id,

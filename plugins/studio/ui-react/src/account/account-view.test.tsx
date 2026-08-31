@@ -111,13 +111,13 @@ describe("Account surface", () => {
     expect(html).not.toContain("mailbox-secret");
   });
 
-  it("uses the admin console detail layout", () => {
+  it("uses the shared Studio head and console detail layout", () => {
     const html = render();
 
-    // Surface-title hero like Admin's, with the signed-in account in the
-    // mono meta block.
-    expect(html).toContain("<h1>Account</h1>");
-    expect(html).toContain("signed in as");
+    expect(html).toContain('data-studio-page-head="true"');
+    expect(html).toContain("Signed in");
+    expect(html).toContain("Mira Reyes · Trusted");
+    expect(html).not.toContain("account-hero");
     // One detail card with the admin identity header and labeled sections,
     // not a bespoke multi-column panel grid.
     expect(html).toContain("people-detail-identity");

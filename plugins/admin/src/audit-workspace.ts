@@ -133,36 +133,34 @@ const studioAuditWorkspace = defineStudioWorkspace({
       data.users.map((user) => [user.userId, user.displayName]),
     );
     const selected = data.selectedEvent;
-    const blocks: AuditViewBlock[] = [
-      {
-        type: "query",
-        id: "audit-query",
-        controls: [
-          {
-            key: "actorUserId",
-            label: "Actor",
-            value: data.query.actorUserId,
-            allLabel: "All actors",
-            options: data.users.map((user) => ({
-              value: user.userId,
-              label: user.displayName,
-            })),
-          },
-          {
-            key: "action",
-            label: "Action",
-            value: data.query.action,
-            allLabel: "All actions",
-            options: data.actions,
-          },
-        ],
-        pagination: {
-          offset: data.query.offset,
-          limit: data.query.limit,
-          total: data.total,
-          label: "events",
+    const collectionQuery = {
+      controls: [
+        {
+          key: "actorUserId",
+          label: "Actor",
+          value: data.query.actorUserId,
+          allLabel: "All actors",
+          options: data.users.map((user) => ({
+            value: user.userId,
+            label: user.displayName,
+          })),
         },
+        {
+          key: "action",
+          label: "Action",
+          value: data.query.action,
+          allLabel: "All actions",
+          options: data.actions,
+        },
+      ],
+      pagination: {
+        offset: data.query.offset,
+        limit: data.query.limit,
+        total: data.total,
+        label: "events",
       },
+    };
+    const blocks: AuditViewBlock[] = [
       {
         type: "detail",
         id: "audit-detail",
@@ -202,6 +200,7 @@ const studioAuditWorkspace = defineStudioWorkspace({
           type: "table",
           id: "audit-events",
           empty: "No audit events match these filters.",
+          query: collectionQuery,
           columns: [
             { key: "when", label: "When" },
             { key: "actor", label: "Actor" },
