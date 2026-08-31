@@ -214,6 +214,86 @@ describe("EntityService", (): void => {
     expect(await entityService.listPendingEntityExports()).toEqual([]);
   });
 
+  test("gets many entities in one ordered, visibility-scoped read", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      sharedNoteSchema,
+      sharedNoteAdapter,
+    );
+    for (const entity of [
+      createNoteInput({ title: "One", content: "One", tags: [] }, "batch-1"),
+      createNoteInput({ title: "Two", content: "Two", tags: [] }, "batch-2"),
+    ]) {
+      await entityService.createEntity({ entity });
+    }
+
+    const found = await entityService.getEntities({
+      entityType: "note",
+      ids: ["batch-2", "missing", "batch-1", "batch-2"],
+      visibilityScope: "public",
+    });
+
+    expect(found.map(({ id }) => id)).toEqual(["batch-2", "batch-1"]);
+  });
+
+  test("lists entities matching any requested metadata partition", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      sharedNoteSchema,
+      sharedNoteAdapter,
+    );
+    const partitions: Array<[string, string]> = [
+      ["partition-a", "alpha"],
+      ["partition-b", "beta"],
+      ["partition-c", "gamma"],
+    ];
+    for (const [id, category] of partitions) {
+      await entityService.createEntity({
+        entity: {
+          ...createNoteInput({ title: id, content: id, tags: [] }, id),
+          metadata: { category },
+        },
+      });
+    }
+
+    const found = await entityService.listEntities<SharedNote>({
+      entityType: "note",
+      options: {
+        filter: {
+          metadataAnyOf: { category: ["alpha", "gamma"] },
+          visibilityScope: "public",
+        },
+      },
+    });
+
+    expect(found.map(({ id }) => id).sort()).toEqual([
+      "partition-a",
+      "partition-c",
+    ]);
+  });
+
+  test("installs the source-summary partition lookup index", async () => {
+    const client = createClient({ url: entityDbUrl });
+    try {
+      const indexes = await client.execute("PRAGMA index_list(entities)");
+      expect(indexes.rows.map((row) => row["name"])).toContain(
+        "entities_type_visibility_source_summary_idx",
+      );
+      const plan = await client.execute(`
+        EXPLAIN QUERY PLAN
+        SELECT id FROM entities
+        WHERE entityType = 'decision'
+          AND visibility IN ('public', 'shared')
+          AND json_extract(metadata, '$.sourceSummaryId') IN ('summary-1')
+      `);
+      expect(
+        plan.rows.map((row) => String(row["detail"])).join("\n"),
+      ).toContain("entities_type_visibility_source_summary_idx");
+    } finally {
+      client.close();
+    }
+  });
+
   test("rolls back entity persistence when durable export journaling fails", async () => {
     entityRegistry.registerEntityType(
       "note",

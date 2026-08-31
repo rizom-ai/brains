@@ -220,6 +220,7 @@ function createDefaultMockConversationService(): IConversationService {
     startConversation: async () => `conv-${Date.now()}`,
     addMessage: async (): Promise<void> => {},
     getMessages: async () => [],
+    getManyWithMessages: async () => [],
     countMessages: async () => 0,
     getConversation: async () => null,
     listConversations: async () => [],
@@ -541,6 +542,22 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       )
         ? (entity as T)
         : null;
+    },
+    getEntities: async (request: {
+      entityType: string;
+      ids: readonly string[];
+      visibilityScope?: BaseEntity["visibility"];
+    }): Promise<BaseEntity[]> => {
+      const visible = request.visibilityScope
+        ? new Set(getVisibleContentVisibilities(request.visibilityScope))
+        : null;
+      return [...new Set(request.ids)].flatMap((id): BaseEntity[] => {
+        const entity = entities.get(id);
+        return entity?.entityType === request.entityType &&
+          (visible === null || visible.has(entity.visibility))
+          ? [entity]
+          : [];
+      });
     },
     listEntities: async <T extends BaseEntity>(
       request: ListEntitiesRequest,
@@ -1352,6 +1369,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           conversations: {
             get: async () => null,
             getMessages: async () => [],
+            getManyWithMessages: async () => [],
           },
           resolvePrompt: async (
             _reference: string,

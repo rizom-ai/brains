@@ -15,10 +15,13 @@ import type {
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
   ConversationChangeCursor,
+  ConversationWithMessages,
+  GetManyConversationsWithMessagesRequest,
 } from "./types";
 import {
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_STARTED_CHANNEL,
+  getManyConversationsWithMessagesSchema,
 } from "./types";
 import type {
   Conversation,
@@ -31,7 +34,18 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
 import type { MessageBus } from "@brains/messaging-service";
-import { and, eq, desc, asc, sql, count, gt, or } from "drizzle-orm";
+import {
+  and,
+  eq,
+  desc,
+  asc,
+  sql,
+  count,
+  gt,
+  or,
+  inArray,
+  lte,
+} from "drizzle-orm";
 
 function nextConversationTimestamp(previous?: string): string {
   const now = Date.now();
@@ -314,6 +328,74 @@ export class ConversationService implements IConversationService {
       .limit(1);
 
     return result[0] ?? null;
+  }
+
+  async getManyWithMessages(
+    request: GetManyConversationsWithMessagesRequest,
+  ): Promise<readonly ConversationWithMessages[]> {
+    const parsed = getManyConversationsWithMessagesSchema.parse(request);
+    const ids = [...new Set(parsed.ids)];
+    if (ids.length === 0) return [];
+
+    const selectedConversations = await this.db
+      .select()
+      .from(conversations)
+      .where(inArray(conversations.id, ids));
+    const rankedMessages = this.db
+      .select({
+        id: messages.id,
+        conversationId: messages.conversationId,
+        role: messages.role,
+        content: messages.content,
+        timestamp: messages.timestamp,
+        metadata: messages.metadata,
+        rank: sql<number>`row_number() over (partition by ${messages.conversationId} order by ${messages.timestamp} desc, ${messages.id} desc)`.as(
+          "message_rank",
+        ),
+      })
+      .from(messages)
+      .where(inArray(messages.conversationId, ids))
+      .as("ranked_messages");
+    const selectedMessages = await this.db
+      .select({
+        id: rankedMessages.id,
+        conversationId: rankedMessages.conversationId,
+        role: rankedMessages.role,
+        content: rankedMessages.content,
+        timestamp: rankedMessages.timestamp,
+        metadata: rankedMessages.metadata,
+      })
+      .from(rankedMessages)
+      .where(lte(rankedMessages.rank, parsed.messageLimit))
+      .orderBy(
+        asc(rankedMessages.conversationId),
+        asc(rankedMessages.timestamp),
+        asc(rankedMessages.id),
+      );
+
+    const messagesByConversation = new Map<string, Message[]>();
+    for (const message of selectedMessages) {
+      const grouped = messagesByConversation.get(message.conversationId) ?? [];
+      grouped.push(message);
+      messagesByConversation.set(message.conversationId, grouped);
+    }
+    const conversationsById = new Map(
+      selectedConversations.map((conversation) => [
+        conversation.id,
+        conversation,
+      ]),
+    );
+    return ids.flatMap((id): ConversationWithMessages[] => {
+      const conversation = conversationsById.get(id);
+      return conversation
+        ? [
+            {
+              conversation,
+              messages: messagesByConversation.get(id) ?? [],
+            },
+          ]
+        : [];
+    });
   }
 
   /**

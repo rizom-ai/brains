@@ -64,6 +64,17 @@ const projectionIncidentInputSchema = z.strictObject({
   failedAt: z.number().int().nonnegative(),
 });
 
+interface ExistingProjectionTarget {
+  readonly content: string;
+  readonly contentHash: string;
+  readonly metadata: Record<string, unknown>;
+  readonly visibility: "public" | "shared" | "restricted";
+}
+
+function projectionTargetKey(entityType: string, entityId: string): string {
+  return JSON.stringify([entityType, entityId]);
+}
+
 const memoKeySchema = z.strictObject({
   ruleId: z.string().trim().min(1),
   ruleVersion: z.string().trim().min(1),
@@ -1797,18 +1808,38 @@ export class ProjectionStore {
         });
       }
 
-      const changedTargets = await writeIntents.reduce<
-        Promise<ProjectionChangedTarget[]>
-      >(async (pendingTargets, intent) => {
-        const targets = await pendingTargets;
+      const existingTargets = await this.prefetchWriteTargets(
+        transaction,
+        writeIntents,
+      );
+      const changedTargets: ProjectionChangedTarget[] = [];
+      for (const intent of writeIntents) {
+        const entityType =
+          intent.operation === "upsert"
+            ? intent.entity.entityType
+            : intent.entityType;
+        const entityId =
+          intent.operation === "upsert" ? intent.entity.id : intent.id;
+        const targetKey = projectionTargetKey(entityType, entityId);
         const target = await this.applyWriteIntent(
           transaction,
           intent,
           completedAt,
           key,
+          existingTargets.get(targetKey),
         );
-        return target ? [...targets, target] : targets;
-      }, Promise.resolve([]));
+        if (target) changedTargets.push(target);
+        if (intent.operation === "delete") {
+          existingTargets.delete(targetKey);
+        } else {
+          existingTargets.set(targetKey, {
+            content: intent.entity.content,
+            contentHash: computeContentHash(intent.entity.content),
+            metadata: intent.entity.metadata,
+            visibility: intent.entity.visibility,
+          });
+        }
+      }
 
       const updatedRules = await transaction
         .update(projectionWaveRules)
@@ -1871,20 +1902,25 @@ export class ProjectionStore {
     return this.transactionTail.run(() => retrySqliteWrite(write));
   }
 
-  private async applyWriteIntent(
+  private async prefetchWriteTargets(
     transaction: EntityTransaction,
-    intent: ProjectionWriteIntent,
-    changedAt: number,
-    owner: GetProjectionRuleMemoInput,
-  ): Promise<ProjectionChangedTarget | null> {
+    intents: readonly ProjectionWriteIntent[],
+  ): Promise<Map<string, ExistingProjectionTarget>> {
+    const first = intents[0];
+    if (!first) return new Map();
     const entityType =
-      intent.operation === "upsert"
-        ? intent.entity.entityType
-        : intent.entityType;
-    const entityId =
-      intent.operation === "upsert" ? intent.entity.id : intent.id;
-    const existingRows = await transaction
+      first.operation === "upsert" ? first.entity.entityType : first.entityType;
+    const ids = [
+      ...new Set(
+        intents.map((intent) =>
+          intent.operation === "upsert" ? intent.entity.id : intent.id,
+        ),
+      ),
+    ];
+    const rows = await transaction
       .select({
+        id: entities.id,
+        entityType: entities.entityType,
         content: entities.content,
         contentHash: entities.contentHash,
         metadata: entities.metadata,
@@ -1892,10 +1928,29 @@ export class ProjectionStore {
       })
       .from(entities)
       .where(
-        and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-      )
-      .limit(1);
-    const existing = existingRows[0];
+        and(eq(entities.entityType, entityType), inArray(entities.id, ids)),
+      );
+    return new Map(
+      rows.map(({ id, entityType: rowType, ...entity }) => [
+        projectionTargetKey(rowType, id),
+        entity,
+      ]),
+    );
+  }
+
+  private async applyWriteIntent(
+    transaction: EntityTransaction,
+    intent: ProjectionWriteIntent,
+    changedAt: number,
+    owner: GetProjectionRuleMemoInput,
+    existing: ExistingProjectionTarget | undefined,
+  ): Promise<ProjectionChangedTarget | null> {
+    const entityType =
+      intent.operation === "upsert"
+        ? intent.entity.entityType
+        : intent.entityType;
+    const entityId =
+      intent.operation === "upsert" ? intent.entity.id : intent.id;
 
     if (intent.operation === "delete") {
       await transaction

@@ -158,7 +158,9 @@ and conversation readers, it carries `spaces: readonly string[]`, the resolved
 brain conversation-space configuration. Rules use that value instead of
 copying shell spaces into package config. Keep model calls in `derive`; select
 only immutable input, including any existing entities needed for scoped
-reconciliation.
+reconciliation. For bounded multi-source waves, use
+`conversations.getManyWithMessages(...)`, `entities.getEntities(...)`, and
+`filter.metadataAnyOf` rather than issuing one read per source.
 
 A conversation source is an event stream rather than an entity type. Fresh
 activation establishes a current change-stream baseline and does not process

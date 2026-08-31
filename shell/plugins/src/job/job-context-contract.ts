@@ -24,6 +24,11 @@ import type { Conversation, Message } from "../contracts/conversations";
  * the brain rather than the one it was handed. Which is what
  * `conversation-memory` had to reach for, having no narrower option.
  */
+export interface EntityConversationBatch {
+  readonly conversation: Conversation;
+  readonly messages: readonly Message[];
+}
+
 export interface EntityConversationReader {
   get(conversationId: string): Promise<Conversation | null>;
   /**
@@ -35,6 +40,11 @@ export interface EntityConversationReader {
     conversationId: string,
     options?: { readonly limit?: number | undefined },
   ): Promise<Message[]>;
+  /** Fixed-query batch read for bounded projection waves. */
+  getManyWithMessages(request: {
+    readonly ids: readonly string[];
+    readonly messageLimit: number;
+  }): Promise<readonly EntityConversationBatch[]>;
 }
 
 /**

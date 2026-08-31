@@ -247,6 +247,7 @@ export {
 } from "./package-definition";
 export type {
   EntityAttachmentDeclaration,
+  EntityConversationBatch,
   EntityConversationReader,
   CreateResultAttachment,
   EntityCreateAllocation,

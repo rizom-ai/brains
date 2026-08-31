@@ -275,6 +275,9 @@ Each phase is test-first and shippable.
    independent cursor, progress, resume, and live-change coexistence.
 8. **Remove the old path.** Delete `summary-projector.ts` and its class-focused
    tests only after eval and integration parity; update the README and roadmap.
+9. **Bound database reads.** Batch conversation histories, summary entities,
+   downstream metadata partitions, and existing projection targets; add the
+   source-summary partition index and fixed query-budget regressions.
 
 ## Validation
 
@@ -295,6 +298,12 @@ Each phase is test-first and shippable.
   conversations. Model calls are bounded to the existing decision call plus
   the expected extraction chunks for each changed eligible conversation;
   downstream rules make none.
+- A 50-conversation summary wave uses one conversation-history batch and one
+  existing-summary batch. A 50-summary downstream wave uses one summary batch
+  and one target-partition query; singular reads are forbidden by the tests.
+- Applying 50 projection intents prefetches existing targets with one entity
+  query while retaining per-intent admission, ownership, FTS, export, and write
+  behavior.
 - Re-marking unchanged sources is a selected-input fingerprint memo hit and
   makes no model calls.
 - Backfill is confirmed, bounded, resumable, independent of the live cursor,

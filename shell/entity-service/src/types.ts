@@ -503,6 +503,8 @@ export interface SortField {
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
+export type MetadataFilterScalar = string | number | boolean;
+
 export interface ListOptions<TMetadata = Record<string, unknown>> {
   limit?: number;
   offset?: number;
@@ -511,6 +513,8 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** Match any listed scalar for each metadata key. */
+    metadataAnyOf?: Record<string, MetadataFilterScalar[]>;
     visibilityScope?: ContentVisibility;
   };
   /** Filter to only entities with metadata.status = "published" */
@@ -579,6 +583,22 @@ export interface GetEntityRequest {
    * with elevated access must opt up explicitly.
    */
   visibilityScope?: ContentVisibility;
+}
+
+export const getEntitiesRequestSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  ids: z.ZodArray<z.ZodString>;
+  visibilityScope: z.ZodOptional<typeof contentVisibilitySchema>;
+}> = z.object({
+  entityType: z.string().trim().min(1),
+  ids: z.array(z.string().trim().min(1)).max(500),
+  visibilityScope: contentVisibilitySchema.optional(),
+});
+
+export interface GetEntitiesRequest {
+  readonly entityType: string;
+  readonly ids: readonly string[];
+  readonly visibilityScope?: ContentVisibility;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -772,6 +792,7 @@ export interface DataSourceCapabilities {
 export interface ICoreEntityService {
   // Read-only operations
   getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
+  getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]>;
 
   /**
    * Get entity without content resolution (raw)

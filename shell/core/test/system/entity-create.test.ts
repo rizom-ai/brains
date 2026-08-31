@@ -777,6 +777,7 @@ describe("system_create tool", () => {
           }),
         },
       ],
+      getManyWithMessages: async () => [],
       countMessages: async () => 1,
       getConversation: async () => null,
       listConversations: async () => [],

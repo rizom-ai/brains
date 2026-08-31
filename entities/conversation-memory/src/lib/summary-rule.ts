@@ -32,10 +32,14 @@ import {
   type ProjectedMemoryWrite,
 } from "./memory-projection-envelope";
 import { deriveConversationMemory } from "./summary-derivation";
-import { SummarySourceReader } from "./summary-source-reader";
+import { computeSummarySourceHash } from "./summary-source-reader";
 import { evaluateSummaryEligibility } from "./summary-space-eligibility";
 import type { SummaryConfig } from "../schemas/summary-config";
-import { summaryMetadataSchema, type SummaryEntity } from "../schemas/summary";
+import {
+  summaryMetadataSchema,
+  summarySchema,
+  type SummaryEntity,
+} from "../schemas/summary";
 
 export const SUMMARY_PROJECTION_ID = "summary-derivation";
 
@@ -165,50 +169,69 @@ export async function selectSummaryProjectionInput(
   context: ProjectionInputContext,
   config: SummaryConfig,
 ): Promise<SummaryProjectionInput> {
-  const changed = trigger.inputs.filter(
-    (input) =>
-      input.sourceType === CONVERSATION_SOURCE_TYPE &&
-      input.operation === "upsert",
-  );
-  const sourceReader = new SummarySourceReader(context.conversations, config);
-
-  const [appInfo, ...selected] = await Promise.all([
+  const changedIds = [
+    ...new Set(
+      trigger.inputs
+        .filter(
+          (input) =>
+            input.sourceType === CONVERSATION_SOURCE_TYPE &&
+            input.operation === "upsert",
+        )
+        .map(({ sourceId }) => sourceId),
+    ),
+  ];
+  const [appInfo, sources, existingSummaries] = await Promise.all([
     context.appInfo(),
-    ...changed.map(async (input): Promise<SelectedConversation | null> => {
-      const conversation = await context.conversations.get(input.sourceId);
-      if (!conversation) return null;
-      if (
-        !evaluateSummaryEligibility({
-          conversation,
-          spaces: context.spaces,
-        }).eligible
-      ) {
-        return null;
-      }
-
-      const source = await sourceReader.readKnownConversation(conversation);
-      if (source.messages.length === 0) return null;
-      const candidate = await context.entities.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: conversation.id,
-        visibilityScope: config.memoryVisibility,
-      });
-      const existing =
-        candidate?.visibility === config.memoryVisibility ? candidate : null;
-      return toSelectedConversation(
-        source.conversation,
-        source.messages,
-        source.sourceHash,
-        existing,
-      );
+    context.conversations.getManyWithMessages({
+      ids: changedIds,
+      messageLimit: config.maxSourceMessages,
+    }),
+    context.entities.getEntities({
+      entityType: SUMMARY_ENTITY_TYPE,
+      ids: changedIds,
+      visibilityScope: config.memoryVisibility,
     }),
   ]);
+  const sourceById = new Map(
+    sources.map((source) => [source.conversation.id, source]),
+  );
+  const existingById = new Map(
+    existingSummaries.flatMap((candidate): Array<[string, SummaryEntity]> => {
+      const parsed = summarySchema.safeParse(candidate);
+      return parsed.success &&
+        parsed.data.visibility === config.memoryVisibility
+        ? [[parsed.data.id, parsed.data]]
+        : [];
+    }),
+  );
+  const selected = changedIds.flatMap((id): SelectedConversation[] => {
+    const source = sourceById.get(id);
+    if (!source || source.messages.length === 0) return [];
+    if (
+      !evaluateSummaryEligibility({
+        conversation: source.conversation,
+        spaces: context.spaces,
+      }).eligible
+    ) {
+      return [];
+    }
+    const messages = [...source.messages];
+    return [
+      toSelectedConversation(
+        source.conversation,
+        messages,
+        computeSummarySourceHash(
+          source.conversation,
+          messages,
+          config.projectionVersion,
+        ),
+        existingById.get(id) ?? null,
+      ),
+    ];
+  });
 
   return {
-    conversations: selected.filter(
-      (conversation): conversation is SelectedConversation =>
-        conversation !== null,
-    ),
+    conversations: selected,
     memoryVisibility: config.memoryVisibility,
     model: appInfo.ai.model,
   };
@@ -357,6 +380,7 @@ export async function deriveSummaryProjection(
         conversations: {
           get: async (): Promise<Conversation> => conversation,
           getMessages: async (): Promise<Message[]> => messages,
+          getManyWithMessages: async () => [{ conversation, messages }],
         },
         spaces: [`${conversation.interfaceType}:${conversation.channelId}`],
       },

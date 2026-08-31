@@ -125,6 +125,7 @@ const createMockConversationService = (): IConversationService => ({
   startConversation: mock(() => Promise.resolve("test-conversation-id")),
   addMessage: mock(() => Promise.resolve()),
   getMessages: mock(() => Promise.resolve([])),
+  getManyWithMessages: mock(() => Promise.resolve([])),
   countMessages: mock(() => Promise.resolve(0)),
   getConversation: mock(() => Promise.resolve(null)),
   listConversations: mock(() => Promise.resolve([])),

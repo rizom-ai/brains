@@ -69,22 +69,42 @@ function summary(content: string): BaseEntity {
 
 function context(options: {
   summary: BaseEntity;
+  summaries?: BaseEntity[];
   existing?: BaseEntity[];
   reads?: unknown[];
+  entityBatchReads?: string[][];
+  forbidSingularReads?: boolean;
 }): ProjectionInputContext {
-  return {
-    spaces: ["mcp:team"],
-    entities: createMockEntityService({
+  const summaries = options.summaries ?? [options.summary];
+  const entities = Object.assign(
+    createMockEntityService({
       entityTypes: ["summary", "decision", "action-item"],
-      getEntityImpl: async () => options.summary,
+      getEntityImpl: async () => {
+        if (options.forbidSingularReads) {
+          throw new Error("singular entity read used");
+        }
+        return options.summary;
+      },
       listEntitiesImpl: async (request) => {
         options.reads?.push(request);
         return options.existing ?? [];
       },
     }),
+    {
+      getEntities: async (request: { ids: readonly string[] }) => {
+        options.entityBatchReads?.push([...request.ids]);
+        const ids = new Set(request.ids);
+        return summaries.filter(({ id }) => ids.has(id));
+      },
+    },
+  );
+  return {
+    spaces: ["mcp:team"],
+    entities,
     conversations: {
       get: async () => null,
       getMessages: async () => [],
+      getManyWithMessages: async () => [],
     },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async () =>
@@ -95,17 +115,21 @@ function context(options: {
   };
 }
 
-const trigger = {
+const createTrigger = (
+  ids: readonly string[],
+): Parameters<
+  ReturnType<typeof createDecisionProjectionRule>["selectInput"]
+>[0] => ({
   waveId: "wave-1",
-  inputs: [
-    {
-      sourceType: "summary",
-      sourceId: "conversation-1",
-      revision: "summary-hash",
-      operation: "upsert" as const,
-    },
-  ],
-};
+  inputs: ids.map((id) => ({
+    sourceType: "summary",
+    sourceId: id,
+    revision: "summary-hash",
+    operation: "upsert",
+  })),
+});
+
+const trigger = createTrigger(["conversation-1"]);
 
 describe("conversation memory projection envelope", () => {
   it("round-trips machine data without changing the narrative body", () => {
@@ -189,7 +213,7 @@ describe("managed summary memory rules", () => {
         entityType: "decision",
         options: {
           filter: {
-            metadata: { sourceSummaryId: "conversation-1" },
+            metadataAnyOf: { sourceSummaryId: ["conversation-1"] },
             visibilityScope: "shared",
           },
         },
@@ -212,6 +236,62 @@ describe("managed summary memory rules", () => {
         },
       ]),
     );
+  });
+
+  it("uses two entity queries for a 50-summary wave", async () => {
+    const ids = Array.from(
+      { length: 50 },
+      (_, index) => `conversation-${String(index + 1).padStart(2, "0")}`,
+    );
+    const summaries = ids
+      .map((id) =>
+        summary(
+          appendMemoryProjectionEnvelope("# Conversation Summary\n", {
+            version: 1,
+            decisions: [
+              {
+                ...projectedDecision,
+                id: `${id}:decision:stable`,
+                metadata: {
+                  ...projectedDecision.metadata,
+                  conversationId: id,
+                  sourceSummaryId: id,
+                },
+              },
+            ],
+            actionItems: [],
+          }),
+        ),
+      )
+      .map((entity, index) => ({ ...entity, id: ids[index] ?? entity.id }));
+    const reads: unknown[] = [];
+    const entityBatchReads: string[][] = [];
+
+    const selected = await createDecisionProjectionRule(config).selectInput(
+      createTrigger(ids),
+      context({
+        summary: summaries[0] ?? summary(""),
+        summaries,
+        reads,
+        entityBatchReads,
+        forbidSingularReads: true,
+      }),
+      new AbortController().signal,
+    );
+
+    expect(selected["partitions"]).toHaveLength(50);
+    expect(entityBatchReads).toEqual([ids]);
+    expect(reads).toEqual([
+      {
+        entityType: "decision",
+        options: {
+          filter: {
+            metadataAnyOf: { sourceSummaryId: ids },
+            visibilityScope: "shared",
+          },
+        },
+      },
+    ]);
   });
 
   it("deletes the old partition when a valid replacement has zero items", async () => {

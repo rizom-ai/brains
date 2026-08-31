@@ -26,7 +26,7 @@ import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../schemas/conversation-memory";
-import type { SummaryEntity } from "../schemas/summary";
+import { summarySchema, type SummaryEntity } from "../schemas/summary";
 
 export const DECISION_PROJECTION_ID = "summary-decision-derivation";
 export const ACTION_ITEM_PROJECTION_ID = "summary-action-item-derivation";
@@ -108,60 +108,71 @@ async function selectManagedMemoryInput(
     ),
   ];
 
-  const partitions = await Promise.all(
-    changedSummaryIds.map(async (summaryId) => {
-      const summary = await context.entities.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: summaryId,
-        visibilityScope: config.memoryVisibility,
-      });
-      if (summary?.visibility !== config.memoryVisibility) return null;
-      const envelope = parseMemoryProjectionEnvelope(summary.content);
-      if (!envelope) return null;
+  const [summaryCandidates, existingTargets] = await Promise.all([
+    context.entities.getEntities({
+      entityType: SUMMARY_ENTITY_TYPE,
+      ids: changedSummaryIds,
+      visibilityScope: config.memoryVisibility,
+    }),
+    context.entities.listEntities<DecisionEntity | ActionItemEntity>({
+      entityType: target.type,
+      options: {
+        filter: {
+          metadataAnyOf: { sourceSummaryId: changedSummaryIds },
+          visibilityScope: config.memoryVisibility,
+        },
+      },
+    }),
+  ]);
+  const summaries = summaryCandidates.flatMap((candidate): SummaryEntity[] => {
+    const parsed = summarySchema.safeParse(candidate);
+    return parsed.success ? [parsed.data] : [];
+  });
+  const summaryById = new Map(
+    summaries.map((summary) => [summary.id, summary]),
+  );
+  const existingBySummaryId = new Map<
+    string,
+    Array<DecisionEntity | ActionItemEntity>
+  >();
+  for (const entity of existingTargets) {
+    const summaryId = entity.metadata.sourceSummaryId;
+    if (
+      entity.visibility !== config.memoryVisibility ||
+      typeof summaryId !== "string"
+    ) {
+      continue;
+    }
+    const grouped = existingBySummaryId.get(summaryId) ?? [];
+    grouped.push(entity);
+    existingBySummaryId.set(summaryId, grouped);
+  }
 
+  const partitions = changedSummaryIds.flatMap(
+    (summaryId): MemoryPartition[] => {
+      const summary = summaryById.get(summaryId);
+      if (summary?.visibility !== config.memoryVisibility) return [];
+      const envelope = parseMemoryProjectionEnvelope(summary.content);
+      if (!envelope) return [];
       const desired = (
         target.type === DECISION_ENTITY_TYPE
           ? envelope.decisions
           : envelope.actionItems
       ).filter((entity) => entity.entityType === target.type);
-      const existing = await context.entities.listEntities<
-        DecisionEntity | ActionItemEntity
-      >({
-        entityType: target.type,
-        options: {
-          filter: {
-            metadata: { sourceSummaryId: summaryId },
-            visibilityScope: config.memoryVisibility,
-          },
-        },
-      });
-
-      return {
-        summaryId,
-        desired,
-        existing: existing
-          .filter(
-            (entity) =>
-              entity.visibility === config.memoryVisibility &&
-              entity.metadata.sourceSummaryId === summaryId,
-          )
-          .map((entity) => ({
-            id: entity.id,
-            status:
-              typeof entity.metadata.status === "string"
-                ? entity.metadata.status
-                : null,
-          })),
-      };
-    }),
+      const existing = (existingBySummaryId.get(summaryId) ?? []).map(
+        (entity) => ({
+          id: entity.id,
+          status:
+            typeof entity.metadata.status === "string"
+              ? entity.metadata.status
+              : null,
+        }),
+      );
+      return [{ summaryId, desired, existing }];
+    },
   );
 
-  return {
-    partitions: partitions.filter(
-      (partition): partition is NonNullable<typeof partition> =>
-        partition !== null,
-    ),
-  };
+  return { partitions };
 }
 
 function withPreservedStatus(

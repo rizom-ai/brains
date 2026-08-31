@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { sql } from "drizzle-orm";
-import { ProjectionBatchFencedError, ProjectionStore } from "../src";
+import { drizzle } from "drizzle-orm/libsql";
+import {
+  ProjectionBatchFencedError,
+  ProjectionStore,
+  type ProjectionWriteIntent,
+} from "../src";
 import { retrySqliteWrite } from "../src/projection-store";
 import { createEntityDatabase } from "../src/db";
-import { entities } from "../src/schema/entities";
+import { entities, type InsertEntity } from "../src/schema/entities";
 import { entityExportIntents } from "../src/schema/entity-export-state";
 import {
   projectionBatchChildren,
@@ -1018,6 +1023,75 @@ describe("ProjectionStore", () => {
       }),
     );
     expect(await store.getActiveWave()).toBeNull();
+  });
+
+  it("prefetches 50 existing write targets with one entity query", async () => {
+    const queries: string[] = [];
+    const loggedDb = drizzle(connection.client, {
+      logger: {
+        logQuery(query): void {
+          queries.push(query);
+        },
+      },
+    });
+    const loggedStore = new ProjectionStore(loggedDb);
+    const ids = Array.from(
+      { length: 50 },
+      (_, index) => `topic-${String(index + 1).padStart(2, "0")}`,
+    );
+    const existingEntities: InsertEntity[] = ids.slice(0, 25).map((id) => ({
+      id,
+      entityType: "topic",
+      content: "old content",
+      contentHash: "old-hash",
+      visibility: "public",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    }));
+    await loggedDb.insert(entities).values(existingEntities);
+    await loggedStore.markDirty({
+      sourceType: "document",
+      sourceId: "doc-query-budget",
+      revision: "hash-query-budget",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await loggedStore.claimPendingWave({
+      waveId: "wave-query-budget",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await loggedStore.putWaveRules("wave-query-budget", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    queries.length = 0;
+
+    const writeIntents: ProjectionWriteIntent[] = ids.map((id) => ({
+      operation: "upsert",
+      entity: {
+        id,
+        entityType: "topic",
+        content: `# ${id}`,
+        metadata: {},
+        visibility: "public",
+      },
+    }));
+    await loggedStore.applyRuleResult({
+      waveId: "wave-query-budget",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "input-query-budget",
+      writeIntents,
+      completedAt: 30,
+    });
+
+    const targetReads = queries.filter(
+      (query) =>
+        /^select\b/i.test(query.trim()) &&
+        /\bfrom\s+["`]?entities["`]?\b/i.test(query),
+    );
+    expect(targetReads).toHaveLength(1);
   });
 
   it("tracks current projection ownership across upsert and delete intents", async () => {

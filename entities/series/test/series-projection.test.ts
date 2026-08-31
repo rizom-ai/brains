@@ -45,6 +45,7 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
     conversations: {
       get: async () => null,
       getMessages: async () => [],
+      getManyWithMessages: async () => [],
     },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async (): Promise<never> => {

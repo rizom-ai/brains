@@ -72,6 +72,7 @@ function createMemoryConversationService(): IConversationService {
     },
     getMessages: async (conversationId): Promise<StoredMessages> =>
       messages.get(conversationId) ?? [],
+    getManyWithMessages: async () => [],
     countMessages: async (conversationId): Promise<number> =>
       messages.get(conversationId)?.length ?? 0,
     getConversation: async (

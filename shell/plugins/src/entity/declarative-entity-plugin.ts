@@ -1292,6 +1292,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                         ? undefined
                         : { limit: options.limit },
                     ),
+                  getManyWithMessages: (request) =>
+                    context.conversations.getManyWithMessages(request),
                   list: (options) =>
                     context.conversations.list(
                       options === undefined

@@ -42,9 +42,11 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
     conversations: {
       get: async () => null,
       getMessages: async () => [],
+      getManyWithMessages: async () => [],
     },
     entities: {
       getEntity: service.getEntity,
+      getEntities: service.getEntities,
       listEntities: service.listEntities,
       getEntityTypes: () => ["post", "note", "topic"],
       hasEntityType: service.hasEntityType,

@@ -250,6 +250,19 @@ export function createConversationsNamespace(
       );
       return messages.map(toPublicMessage);
     },
+    getManyWithMessages: async (
+      request,
+    ): Promise<
+      readonly { conversation: Conversation; messages: readonly Message[] }[]
+    > => {
+      const batches = await shell
+        .getConversationService()
+        .getManyWithMessages(request);
+      return batches.map(({ conversation, messages }) => ({
+        conversation: toPublicConversation(conversation),
+        messages: messages.map(toPublicMessage),
+      }));
+    },
     countMessages: async (conversationId: string): Promise<number> => {
       return shell.getConversationService().countMessages(conversationId);
     },

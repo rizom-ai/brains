@@ -1,6 +1,7 @@
 ---
 "@brains/conversation-memory": minor
 "@brains/conversation-service": minor
+"@brains/entity-service": minor
 "@brains/plugins": minor
 "@brains/core": minor
 "@brains/sdk": minor
@@ -22,3 +23,7 @@ deletes. Additive rules reject delete intents.
 Conversation memory derives summaries from changed eligible conversations,
 carries a hidden versioned downstream envelope, and reconciles first-class
 decisions and action items without additional model calls.
+
+Bounded projection waves now batch conversation histories, source entities,
+metadata partitions, and existing write targets. Query-budget regressions keep
+50-source waves at fixed read-query counts instead of per-source fan-out.
