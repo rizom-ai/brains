@@ -18,6 +18,7 @@ import type {
   UnlinkExternalPeerRequest,
 } from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
+import type { AuthAdministration } from "./administration";
 import type {
   AuthAdminUserSummary,
   AuthIdentityProposalInput,
@@ -142,7 +143,7 @@ export interface AuthServiceOptions {
   logger?: Logger;
 }
 
-export class AuthService {
+export class AuthService implements AuthAdministration {
   private readonly issuer: string;
   private readonly runtime: AuthRuntime;
   private readonly requestRouter: AuthRequestRouter;

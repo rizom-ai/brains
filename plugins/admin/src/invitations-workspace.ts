@@ -1,4 +1,4 @@
-import type { AuthService } from "@brains/auth-service";
+import type { AuthAdministration } from "@brains/auth-service";
 import {
   createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
@@ -458,7 +458,7 @@ function mutationContext(caller: OperatorCaller | null): {
 }
 
 function setupResult(
-  access: Awaited<ReturnType<AuthService["createInvitation"]>>,
+  access: Awaited<ReturnType<AuthAdministration["createInvitation"]>>,
 ): z.output<typeof setupResultSchema> {
   return {
     status:

@@ -1,4 +1,5 @@
 export { AUTH_ACCOUNT_MUTATION_ACTIONS } from "./account-contracts";
+export type { AuthAdministration } from "./administration";
 export type {
   AuthAccountConnectedChannel,
   AuthAccountMutation,

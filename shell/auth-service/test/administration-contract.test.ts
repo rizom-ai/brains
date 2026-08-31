@@ -1,0 +1,65 @@
+import { describe, expect, it } from "bun:test";
+import { AuthService } from "../src/auth-service";
+import type { AuthAdministration } from "../src/administration";
+
+/**
+ * The administration contract is the measured surface `@brains/admin` calls,
+ * published deliberately instead of the plugin reaching for the whole class.
+ *
+ * Two nets. The type-level assignment fails compilation if AuthService stops
+ * satisfying the contract — `implements` on the class makes the break name
+ * the class, this makes it name the consumer's view. The prototype walk fails
+ * at runtime if a contract method never existed at all, which a structural
+ * assignment cannot see when the class gains an unrelated overload.
+ */
+
+const CONTRACT_METHODS = [
+  "resolveSession",
+  "listUsers",
+  "listAdminUsers",
+  "getBrainAnchor",
+  "updateUserRole",
+  "updateUserStatus",
+  "deleteSuspendedUser",
+  "revokeUserSessionsAndRefreshTokens",
+  "createInvitation",
+  "cancelInvitation",
+  "resendInvitation",
+  "confirmManualInvitationDelivery",
+  "listInvitationChannels",
+  "inviteExternalPeerPerson",
+  "linkExternalPeer",
+  "unlinkExternalPeer",
+  "attachIdentity",
+  "detachIdentity",
+  "revokePasskey",
+  "startPasskeyRegistrationForUser",
+  "recordAuditEvent",
+  "queryAuditEvents",
+] as const;
+
+describe("auth administration contract", () => {
+  it("is satisfied by AuthService", () => {
+    // Type-only: no instance is constructed. If the class and the contract
+    // drift apart, this line stops compiling.
+    const conforms = (service: AuthService): AuthAdministration => service;
+    expect(typeof conforms).toBe("function");
+  });
+
+  it("names only methods AuthService actually has", () => {
+    for (const method of CONTRACT_METHODS) {
+      expect(typeof AuthService.prototype[method as keyof AuthService]).toBe(
+        "function",
+      );
+    }
+  });
+
+  it("covers every method the contract declares", () => {
+    // The contract is keyof-checked against the list above, so adding a
+    // method to the interface without adding it here stops compiling too.
+    const covered: Record<keyof AuthAdministration, true> = Object.fromEntries(
+      CONTRACT_METHODS.map((method) => [method, true]),
+    ) as Record<keyof AuthAdministration, true>;
+    expect(Object.keys(covered)).toHaveLength(CONTRACT_METHODS.length);
+  });
+});

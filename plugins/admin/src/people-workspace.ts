@@ -1,4 +1,4 @@
-import type { AuthService } from "@brains/auth-service";
+import type { AuthAdministration } from "@brains/auth-service";
 import {
   createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
@@ -748,15 +748,17 @@ function mutationContext(caller: OperatorCaller | null): {
 }
 
 function personName(
-  users: Awaited<ReturnType<AuthService["listAdminUsers"]>>,
+  users: Awaited<ReturnType<AuthAdministration["listAdminUsers"]>>,
   userId: string,
 ): string {
   return users.find((user) => user.userId === userId)?.displayName ?? "person";
 }
 
 async function loadBrainAnchor(
-  authService: AuthService,
-): Promise<Awaited<ReturnType<AuthService["getBrainAnchor"]>> | undefined> {
+  authService: AuthAdministration,
+): Promise<
+  Awaited<ReturnType<AuthAdministration["getBrainAnchor"]>> | undefined
+> {
   try {
     return await authService.getBrainAnchor();
   } catch (error) {

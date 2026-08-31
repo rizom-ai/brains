@@ -8,7 +8,7 @@ import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { PermissionService } from "@brains/templates";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { NOTIFICATIONS_SEND } from "@brains/notifications";
+import { NOTIFICATIONS_SEND } from "@brains/contracts";
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   createExternalActorId,

@@ -668,6 +668,7 @@
       "dependencies": {
         "@brains/app": "workspace:*",
         "@brains/atproto-contracts": "workspace:*",
+        "@brains/auth-service": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/deploy-support": "workspace:*",
@@ -1661,7 +1662,6 @@
       "dependencies": {
         "@brains/contracts": "workspace:*",
         "@brains/db": "workspace:*",
-        "@brains/notifications": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.17.4",

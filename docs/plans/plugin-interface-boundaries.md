@@ -245,16 +245,34 @@ made the entity tranche find real defects rather than move code.
    is, for federation), and **an audit capability** (record and query). Those
    three cover six of the seven, and `chat` needs only a type.
 
-   `admin` is not a consumer of a slice — it is the administration surface
-   _for_ auth-service, reaching twenty methods across users, invitations,
-   passkeys and identities. Granting that as a capability would publish
-   auth-service's whole management API through the SDK, which is the opposite
-   of a boundary. Either it stays coupled and is excluded from the tranche
-   with that written down, or auth-service exports an admin-facing package of
-   its own. Deciding that is part of this phase, not a detail of it.
+   **The `admin` decision is made: expand the surface, deliberately.**
+   Options weighed and rejected: an SDK capability for the raw class (a hole
+   with a nicer name), a documented exception (waives the tranche's goal),
+   merging admin into `shell/auth-service` (no shell package declares a view
+   today — every workspace and widget declarer lives in `plugins/` or
+   `entities/`, and the merge would be the first to break that), and bus
+   contracts (twenty request/response topics for one in-process caller).
 
-   Order: caller first (three consumers, smallest surface), then audit (two),
-   then issuer (one), then the `admin` decision.
+   What shipped instead: `AuthAdministration` — the measured set of
+   twenty-two operations the workspaces perform, grouped people /
+   invitations / peers / identities / audit, in the class's own vocabulary
+   because inventing a second one for a single consumer is surface without
+   meaning. `AuthService implements` it nominally, so drift breaks the build
+   at the class; a conformance test breaks it from the consumer's side.
+   `@brains/admin` types against the contract and no longer names the class.
+   The type is published on `@rizom/brain/services` as
+   advanced-with-consumer — type-only, since holding the type cannot conjure
+   the service. The HTTP admin endpoints keep their separate transport-shaped
+   `AuthAdminOperations`; that adapter is not the capability.
+
+   Untangling this also surfaced a dead edge: `shell/auth-service` declared
+   `@brains/notifications` as a dependency and imported nothing from it (the
+   contract lives in `@brains/contracts`), which the SDK's new type-only
+   auth-service edge turned into a package cycle. Removed.
+
+   Still open in this phase: the caller capability (`resolveSession`,
+   `resolveBearerGrant`, `createAuthLoginResponse`), audit for studio, and
+   issuer for a2a — in that order.
 
 5. **Decide the shared libraries.** `console-theme`, `site-composition`,
    `content-formatters`, `image`: publishable beside the SDK, or replaced.
