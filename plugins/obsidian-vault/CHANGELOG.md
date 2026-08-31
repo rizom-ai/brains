@@ -1,5 +1,13 @@
 # @brains/obsidian-vault
 
+## 0.2.0-alpha.340
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.340
+  - @brains/plugins@0.2.0-alpha.340
+
 ## 0.2.0-alpha.339
 
 ### Patch Changes

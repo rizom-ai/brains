@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.340
+
+### Patch Changes
+
+- [#198](https://github.com/rizom-ai/brains/pull/198) [`00aaaf7`](https://github.com/rizom-ai/brains/commit/00aaaf7723322c8000e07e964bb81de64941a2e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Derive the docs homepage freshness label from the latest documentation entity update instead of displaying a hardcoded month.
+
 ## 0.2.0-alpha.339
 
 ### Patch Changes

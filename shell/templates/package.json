@@ -1,7 +1,7 @@
 {
   "name": "@brains/templates",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.339",
+  "version": "0.2.0-alpha.340",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",

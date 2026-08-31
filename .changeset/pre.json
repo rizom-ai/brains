@@ -292,6 +292,7 @@
     "core--directory-sync-stress-credential-check",
     "core--directory-sync-stress-direct-clone",
     "core--directory-sync-stress-harness",
+    "core--docs-homepage-freshness",
     "core--drop-themes-subpath",
     "core--durable-entity-export-outbox",
     "core--durable-job-progress",
