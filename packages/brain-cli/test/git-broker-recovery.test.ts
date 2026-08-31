@@ -394,11 +394,19 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
       60_000,
     );
 
-    const starts = await readFile(join(harness.root, "broker.starts"), "utf-8");
-    expect(starts.trim().split("\n")).toEqual([
-      String(firstBroker),
-      String(secondBroker),
-    ]);
+    const starts = await until(
+      "the replacement broker start record",
+      async () => {
+        const content = await readFile(
+          join(harness.root, "broker.starts"),
+          "utf-8",
+        ).catch(() => undefined);
+        const recorded = content?.trim().split("\n");
+        return recorded?.at(-1) === String(secondBroker) ? recorded : undefined;
+      },
+      60_000,
+    );
+    expect(starts).toEqual([String(firstBroker), String(secondBroker)]);
     expect(isAlive(webPid)).toBe(true);
     expect(isAlive(workerPid)).toBe(true);
 
