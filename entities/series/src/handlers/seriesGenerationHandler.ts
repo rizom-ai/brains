@@ -77,13 +77,14 @@ export class SeriesGenerationHandler implements JobHandler<
       data.prompt ??
       `Series name: ${series.metadata.title}\n\nContent in this series:\n${summaries.join("\n")}`;
 
-    const generated = await this.context.ai.generate<{
-      description: string;
-    }>({
-      prompt,
-      templateName: "series:description",
-      representedIdentity: "none",
-    });
+    const generated = await this.context.ai.generate(
+      {
+        prompt,
+        templateName: "series:description",
+        representedIdentity: "none",
+      },
+      z.object({ description: z.string() }),
+    );
 
     if (!generated.description) {
       return { success: false, error: "Failed to generate description" };

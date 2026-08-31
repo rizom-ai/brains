@@ -47,13 +47,15 @@ export class SummaryExtractor {
     });
 
     try {
-      const raw = await this.context.ai.generate<unknown>({
-        prompt,
-        templateName: SUMMARY_AI_TEMPLATE_NAME,
-        data: { schema: summaryExtractionResultSchema },
-        representedIdentity: "none",
-      });
-      const result = summaryExtractionResultSchema.parse(raw);
+      const result = await this.context.ai.generate(
+        {
+          prompt,
+          templateName: SUMMARY_AI_TEMPLATE_NAME,
+          data: { schema: summaryExtractionResultSchema },
+          representedIdentity: "none",
+        },
+        summaryExtractionResultSchema,
+      );
 
       const extractedEntries = result.entries.slice(0, this.config.maxEntries);
       const entries = extractedEntries

@@ -120,16 +120,19 @@ Add your conclusion here`;
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(this.context.entityService),
       );
-      const generated = await this.context.ai.generate<{
-        title: string;
-        content: string;
-        description: string;
-      }>({
-        prompt: generationPrompt,
-        templateName: "decks:generation",
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt: generationPrompt,
+          templateName: "decks:generation",
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          description: z.string(),
+        }),
+      );
 
       title = title ?? generated.title;
       content = content ?? generated.content;
@@ -147,13 +150,14 @@ Add your conclusion here`;
         message: "Generating description with AI",
       });
 
-      const descGenerated = await this.context.ai.generate<{
-        description: string;
-      }>({
-        prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: "decks:description",
-        representedIdentity: "none",
-      });
+      const descGenerated = await this.context.ai.generate(
+        {
+          prompt: `Title: ${title}\n\nContent:\n${content}`,
+          templateName: "decks:description",
+          representedIdentity: "none",
+        },
+        z.object({ description: z.string() }),
+      );
 
       description = descGenerated.description;
 

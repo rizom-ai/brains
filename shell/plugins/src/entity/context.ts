@@ -48,10 +48,11 @@ export interface EntityPluginEntitiesNamespace extends Omit<
 export function createAINamespace(shell: IShell): IEntityAINamespace {
   return {
     query: (prompt, context) => shell.query(prompt, context),
-    generate: async <T = unknown>(
+    generate: async <T>(
       config: ContentGenerationConfig,
+      schema: AIGenerationSchema<T>,
     ): Promise<T> => {
-      return shell.generateContent<T>(config);
+      return schema.parse(await shell.generateContent(config));
     },
     generateObject: async <T>(
       prompt: string,

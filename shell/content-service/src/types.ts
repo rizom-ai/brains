@@ -127,15 +127,14 @@ export interface ContentService {
   /**
    * Generate content using a template with entity-aware context.
    *
-   * NOTE: `T` is caller-chosen and nothing here validates the result against
-   * it — generation validates against the template's schema, which `T` has no
-   * declared relationship to. See generateContent's implementation.
+   * Returns unknown: generation validates against the template's schema, and
+   * callers parse the shape they need.
    */
-  generateContent<T = unknown>(
+  generateContent(
     templateName: string,
     context?: GenerationContext,
     pluginId?: string,
-  ): Promise<T>;
+  ): Promise<unknown>;
 
   /**
    * Format content using a template's formatter
@@ -150,14 +149,12 @@ export interface ContentService {
    * Parse existing content using a template's formatter
    */
   /**
-   * Parse existing content using a template's formatter.
-   *
-   * Same caveat as generateContent: `T` is caller-chosen and the formatter
-   * parses against the template's own shape.
+   * Parse existing content using a template's formatter. Returns unknown:
+   * the formatter parses to the template's own shape.
    */
-  parseContent<T = unknown>(
+  parseContent(
     templateName: string,
     content: string,
     pluginId?: string,
-  ): T;
+  ): unknown;
 }

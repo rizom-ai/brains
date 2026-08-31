@@ -10,7 +10,11 @@ import type { Logger } from "@brains/utils/logger";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { SkillAdapter } from "../adapters/skill-adapter";
-import type { SkillEntity, SkillFrontmatter } from "../schemas/skill";
+import {
+  skillFrontmatterSchema,
+  type SkillEntity,
+  type SkillFrontmatter,
+} from "../schemas/skill";
 import {
   collectTagVocabulary,
   formatVocabularyForPrompt,
@@ -154,13 +158,14 @@ export async function deriveSkills(
 
   let skills: SkillFrontmatter[];
   try {
-    const result = await context.ai.generate<{
-      skills: SkillFrontmatter[];
-    }>({
-      prompt,
-      templateName: SKILL_DERIVATION_TEMPLATE_REF,
-      representedIdentity: "brain",
-    });
+    const result = await context.ai.generate(
+      {
+        prompt,
+        templateName: SKILL_DERIVATION_TEMPLATE_REF,
+        representedIdentity: "brain",
+      },
+      z.object({ skills: z.array(skillFrontmatterSchema) }),
+    );
     skills = result.skills.slice(0, 8);
     if (result.skills.length > skills.length) {
       logger.warn("Dropped excess derived skills to preserve consolidation", {

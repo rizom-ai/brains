@@ -1,7 +1,10 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { EntityPluginContext, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { ExtractedTopicData } from "../schemas/extraction";
+import {
+  topicExtractionEnvelopeSchema,
+  type ExtractedTopicData,
+} from "../schemas/extraction";
 import {
   buildTopicExtractionPrompt,
   listExistingTopicTitles,
@@ -60,13 +63,14 @@ export class TopicExtractor {
         existingTopicTitles,
       });
 
-      const result = await this.context.ai.generate<{
-        topics: ExtractedTopicData[];
-      }>({
-        prompt,
-        templateName: "topics:extraction",
-        representedIdentity: "none",
-      });
+      const result = await this.context.ai.generate(
+        {
+          prompt,
+          templateName: "topics:extraction",
+          representedIdentity: "none",
+        },
+        topicExtractionEnvelopeSchema,
+      );
 
       const extractedData = result.topics;
 

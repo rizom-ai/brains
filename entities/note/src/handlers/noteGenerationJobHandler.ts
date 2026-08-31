@@ -57,14 +57,14 @@ export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
       message: "Generating note content with AI",
     });
 
-    const generated = await this.context.ai.generate<{
-      title: string;
-      body: string;
-    }>({
-      prompt: data.prompt,
-      templateName: "note:generation",
-      representedIdentity: "none",
-    });
+    const generated = await this.context.ai.generate(
+      {
+        prompt: data.prompt,
+        templateName: "note:generation",
+        representedIdentity: "none",
+      },
+      z.object({ title: z.string(), body: z.string() }),
+    );
 
     const title = data.title ?? generated.title;
 

@@ -9,11 +9,7 @@ import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import type { AgentEntity } from "../schemas/agent";
-import {
-  skillFrontmatterSchema,
-  type SkillEntity,
-  type SkillFrontmatter,
-} from "../schemas/skill";
+import { skillFrontmatterSchema, type SkillEntity } from "../schemas/skill";
 import { skillDerivationTemplate } from "../templates/skill-derivation-template";
 import {
   SKILL_DERIVATION_PROJECTION_ID,
@@ -133,15 +129,15 @@ async function deriveSkillIntents(
 ): Promise<readonly ProjectionWriteIntent[]> {
   if (input.topicTitles.length === 0) return [];
 
-  const generated = await context.ai.generate<{ skills: SkillFrontmatter[] }>({
-    prompt: input.prompt,
-    templateName: SKILL_DERIVATION_TEMPLATE_REF,
-    representedIdentity: "brain",
-  });
-  const skills = z
-    .array(skillFrontmatterSchema)
-    .parse(generated.skills)
-    .slice(0, 8);
+  const generated = await context.ai.generate(
+    {
+      prompt: input.prompt,
+      templateName: SKILL_DERIVATION_TEMPLATE_REF,
+      representedIdentity: "brain",
+    },
+    z.object({ skills: z.array(skillFrontmatterSchema) }),
+  );
+  const skills = generated.skills.slice(0, 8);
   const desired = new Map(
     skills.map((skill) => [
       scopedDerivedId(generateIdFromText(skill.name), input.targetVisibility),

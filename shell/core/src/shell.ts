@@ -71,11 +71,7 @@ import type {
   JudgeInput,
 } from "@brains/ai-service";
 import type { Daemon } from "@brains/plugins";
-import type {
-  BatchJobStatus,
-  IJobsNamespace,
-  IJobQueueService,
-} from "@brains/job-queue";
+import type { IJobsNamespace, IJobQueueService } from "@brains/job-queue";
 import type { IConversationService } from "@brains/conversation-service";
 import type {
   PermissionService,
@@ -86,6 +82,7 @@ import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
+import { defaultQueryResponseSchema } from "@brains/contracts";
 
 import { getRuntimeAppInfo } from "./app-info";
 import { getRuntimeReadiness } from "./runtime-health";
@@ -362,11 +359,16 @@ export class Shell implements IShell {
 
   // Content generation and query
 
-  public async generateContent<T = unknown>(
+  /**
+   * Generate content from a template. Returns unknown: the value is validated
+   * against the template's schema, and callers parse the shape they need —
+   * the plugin surface does this via ai.generate(config, schema).
+   */
+  public async generateContent(
     config: ContentGenerationConfig,
-  ): Promise<T> {
+  ): Promise<unknown> {
     this.requireInitialized("Shell content generation");
-    return generateShellContent<T>(this.services, config);
+    return generateShellContent(this.services, config);
   }
 
   public async query(
@@ -384,13 +386,15 @@ export class Shell implements IShell {
 
     const { conversationHistory, ...contextData } = queryContext;
 
-    return this.generateContent<DefaultQueryResponse>({
-      prompt,
-      templateName: SHELL_TEMPLATE_NAMES.KNOWLEDGE_QUERY,
-      ...(conversationHistory && { conversationHistory }),
-      data: contextData,
-      interfacePermissionGrant: "public",
-    });
+    return defaultQueryResponseSchema.parse(
+      await this.generateContent({
+        prompt,
+        templateName: SHELL_TEMPLATE_NAMES.KNOWLEDGE_QUERY,
+        ...(conversationHistory && { conversationHistory }),
+        data: contextData,
+        interfacePermissionGrant: "public",
+      }),
+    );
   }
 
   public registerPlugin(plugin: Plugin): void {
@@ -649,25 +653,6 @@ export class Shell implements IShell {
 
   public listInteractions(): InteractionInfo[] {
     return this.interactionRegistry.list();
-  }
-
-  // Public runtime context
-
-  public getPublicContext(): {
-    entityService: ShellServices["entityService"];
-    generateContent: <T = unknown>(
-      config: ContentGenerationConfig,
-    ) => Promise<T>;
-    getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
-  } {
-    return {
-      entityService: this.services.entityService,
-      generateContent: <T = unknown>(
-        config: ContentGenerationConfig,
-      ): Promise<T> => this.generateContent<T>(config),
-      getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> =>
-        this.services.batchJobManager.getBatchStatus(batchId),
-    };
   }
 
   // Templates, data, identity, and app metadata

@@ -190,11 +190,14 @@ export class NotePlugin extends EntityPlugin<
     context.eval.registerHandler("generateNote", async (input: unknown) => {
       const parsed: GenerateNoteEvalInput =
         generateNoteEvalInputSchema.parse(input);
-      return context.ai.generate<{ title: string; body: string }>({
-        prompt: parsed.prompt,
-        templateName: "note:generation",
-        representedIdentity: "none",
-      });
+      return context.ai.generate(
+        {
+          prompt: parsed.prompt,
+          templateName: "note:generation",
+          representedIdentity: "none",
+        },
+        z.object({ title: z.string(), body: z.string() }),
+      );
     });
 
     this.unregisterAtprotoProjection =

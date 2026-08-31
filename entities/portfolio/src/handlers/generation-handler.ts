@@ -55,14 +55,21 @@ Use the project request as the primary source of truth. If retrieved knowledge c
 /**
  * AI generation output schema
  */
-interface GeneratedProjectContent {
-  title: string;
-  description: string;
-  context: string;
-  problem: string;
-  solution: string;
-  outcome: string;
-}
+export const generatedProjectContentSchema: z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodString;
+  context: z.ZodString;
+  problem: z.ZodString;
+  solution: z.ZodString;
+  outcome: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  description: z.string(),
+  context: z.string(),
+  problem: z.string(),
+  solution: z.string(),
+  outcome: z.string(),
+});
 
 /**
  * Job handler for portfolio project generation
@@ -94,12 +101,15 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
     const voiceGuidance = formatVoiceGuidance(
       await fetchStyleGuide(this.context.entityService),
     );
-    const generated = await this.context.ai.generate<GeneratedProjectContent>({
-      prompt: buildProjectGenerationPrompt(data),
-      templateName: "portfolio:generation",
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
+    const generated = await this.context.ai.generate(
+      {
+        prompt: buildProjectGenerationPrompt(data),
+        templateName: "portfolio:generation",
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      },
+      generatedProjectContentSchema,
+    );
 
     const title = data.title ?? generated.title;
     const slug = slugify(title);

@@ -51,6 +51,7 @@ slug: systems-series
         templateName: "series:description",
         representedIdentity: "none",
       }),
+      expect.anything(),
     );
   });
 });

@@ -332,6 +332,7 @@ describe("GenerationJobHandler", () => {
         expect.objectContaining({
           representedIdentity: "anchor",
         }),
+        expect.anything(),
       );
     });
 

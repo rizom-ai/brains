@@ -47,6 +47,7 @@ import type {
 import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
+import { defaultQueryResponseSchema } from "@brains/contracts";
 import {
   getVisibleContentVisibilities,
   normalizeContentVisibility,
@@ -1276,10 +1277,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
 
     // High-level operations
-    generateContent: async <T = unknown>(
+    generateContent: async (
       config: ContentGenerationConfig,
-    ): Promise<T> => {
-      return contentService.generateContent<T>(config.templateName, {
+    ): Promise<unknown> => {
+      return contentService.generateContent(config.templateName, {
         prompt: config.prompt,
         ...(config.conversationHistory && {
           conversationHistory: config.conversationHistory,
@@ -1314,13 +1315,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       context?: QueryContext,
     ): Promise<DefaultQueryResponse> => {
       const { conversationHistory, ...contextData } = context ?? {};
-      return shell.generateContent<DefaultQueryResponse>({
-        prompt,
-        templateName: "shell:knowledge-query",
-        ...(conversationHistory && { conversationHistory }),
-        ...(context && { data: contextData }),
-        interfacePermissionGrant: "public",
-      });
+      return defaultQueryResponseSchema.parse(
+        await shell.generateContent({
+          prompt,
+          templateName: "shell:knowledge-query",
+          ...(conversationHistory && { conversationHistory }),
+          ...(context && { data: contextData }),
+          interfacePermissionGrant: "public",
+        }),
+      );
     },
 
     // Image generation

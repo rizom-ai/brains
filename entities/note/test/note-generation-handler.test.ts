@@ -73,11 +73,14 @@ describe("NoteGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.ai.generate).toHaveBeenCalledWith({
-        prompt: "Write a note",
-        templateName: "note:generation",
-        representedIdentity: "none",
-      });
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        {
+          prompt: "Write a note",
+          templateName: "note:generation",
+          representedIdentity: "none",
+        },
+        expect.anything(),
+      );
     });
 
     it("should slugify the title for the entity id and dedupe", async () => {

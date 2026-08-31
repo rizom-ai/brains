@@ -119,11 +119,14 @@ describe("GenerationJobHandler", () => {
         progressReporter,
       );
 
-      expect(context.ai.generate).toHaveBeenCalledWith({
-        prompt: "Write a systems update",
-        templateName: "newsletter:generation",
-        representedIdentity: "anchor",
-      });
+      expect(context.ai.generate).toHaveBeenCalledWith(
+        {
+          prompt: "Write a systems update",
+          templateName: "newsletter:generation",
+          representedIdentity: "anchor",
+        },
+        expect.anything(),
+      );
     });
 
     it("should fail when no content source provided", async () => {

@@ -118,16 +118,19 @@ Add your conclusion here.`;
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(this.context.entityService),
       );
-      const generated = await this.context.ai.generate<{
-        title: string;
-        content: string;
-        excerpt: string;
-      }>({
-        prompt: generationPrompt,
-        templateName: "blog:generation",
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt: generationPrompt,
+          templateName: "blog:generation",
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          excerpt: z.string(),
+        }),
+      );
 
       title = title ?? generated.title;
       content = content ?? generated.content;
@@ -145,13 +148,14 @@ Add your conclusion here.`;
         message: "Generating excerpt with AI",
       });
 
-      const excerptGenerated = await this.context.ai.generate<{
-        excerpt: string;
-      }>({
-        prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: "blog:excerpt",
-        representedIdentity: "none",
-      });
+      const excerptGenerated = await this.context.ai.generate(
+        {
+          prompt: `Title: ${title}\n\nContent:\n${content}`,
+          templateName: "blog:excerpt",
+          representedIdentity: "none",
+        },
+        z.object({ excerpt: z.string() }),
+      );
 
       excerpt = excerptGenerated.excerpt;
 

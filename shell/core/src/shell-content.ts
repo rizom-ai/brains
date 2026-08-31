@@ -1,10 +1,10 @@
 import type { ContentGenerationConfig } from "@brains/plugins";
 import type { ShellServices } from "./types/shell-types";
 
-export async function generateShellContent<T = unknown>(
+export async function generateShellContent(
   services: ShellServices,
   config: ContentGenerationConfig,
-): Promise<T> {
+): Promise<unknown> {
   const template = services.contentService.getTemplate(config.templateName);
   if (!template) {
     throw new Error(`Template not found: ${config.templateName}`);
@@ -34,8 +34,5 @@ export async function generateShellContent<T = unknown>(
     ...(config.styleGuide && { styleGuide: config.styleGuide }),
   };
 
-  return services.contentService.generateContent<T>(
-    config.templateName,
-    context,
-  );
+  return services.contentService.generateContent(config.templateName, context);
 }

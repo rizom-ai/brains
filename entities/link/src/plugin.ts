@@ -26,8 +26,8 @@ import {
 } from "./schemas/link-config";
 import { linkAdapter } from "./adapters/link-adapter";
 import {
+  linkExtractionSchema,
   linkExtractionTemplate,
-  type LinkExtractionResult,
 } from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";
 import { linkDetailTemplate } from "./templates/link-detail";
@@ -301,13 +301,16 @@ export class LinkPlugin extends EntityPlugin<
           errorType: fetchResult.errorType,
         };
       }
-      return context.ai.generate<LinkExtractionResult>({
-        templateName: "link:extraction",
-        prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
-        data: { url, hasContent: true },
-        representedIdentity: "none",
-        interfacePermissionGrant: "public",
-      });
+      return context.ai.generate(
+        {
+          templateName: "link:extraction",
+          prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
+          data: { url, hasContent: true },
+          representedIdentity: "none",
+          interfacePermissionGrant: "public",
+        },
+        linkExtractionSchema,
+      );
     });
   }
   private async createPendingLink(

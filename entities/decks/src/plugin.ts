@@ -247,16 +247,19 @@ export class DecksPlugin extends EntityPlugin<
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(context.entityService),
       );
-      return context.ai.generate<{
-        title: string;
-        content: string;
-        description: string;
-      }>({
-        prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
-        templateName: "decks:generation",
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      return context.ai.generate(
+        {
+          prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
+          templateName: "decks:generation",
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          description: z.string(),
+        }),
+      );
     });
 
     context.eval.registerHandler(
@@ -264,11 +267,14 @@ export class DecksPlugin extends EntityPlugin<
       async (input: unknown) => {
         const parsed: GenerateDescriptionEvalInput =
           generateDescriptionEvalInputSchema.parse(input);
-        return context.ai.generate<{ description: string }>({
-          prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-          templateName: "decks:description",
-          representedIdentity: "none",
-        });
+        return context.ai.generate(
+          {
+            prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+            templateName: "decks:description",
+            representedIdentity: "none",
+          },
+          z.object({ description: z.string() }),
+        );
       },
     );
   }

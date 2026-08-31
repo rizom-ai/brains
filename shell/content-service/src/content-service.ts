@@ -397,11 +397,11 @@ export class ContentService implements IContentService {
   /**
    * Generate content using a template with entity-aware context
    */
-  async generateContent<T = unknown>(
+  async generateContent(
     templateName: string,
     context: GenerationContext = {},
     pluginId?: string,
-  ): Promise<T> {
+  ): Promise<unknown> {
     // Apply template scoping if pluginId is provided
     const scopedTemplateName = this.applyTemplateScoping(
       templateName,
@@ -441,20 +441,17 @@ export class ContentService implements IContentService {
       ...context,
     };
 
-    // Irreducible: the result is validated against template.schema, and T is
-    // the caller's unrelated choice. The assertion sits here, on the one
-    // unchecked claim, rather than being spread over the template lookups.
-    return dataSource.generate(request, template.schema) as Promise<T>;
+    return dataSource.generate(request, template.schema);
   }
 
   /**
    * Parse existing content using a template's formatter
    */
-  parseContent<T = unknown>(
+  parseContent(
     templateName: string,
     content: string,
     pluginId?: string,
-  ): T {
+  ): unknown {
     // Apply template scoping if pluginId is provided
     const scopedTemplateName = this.applyTemplateScoping(
       templateName,
@@ -473,8 +470,7 @@ export class ContentService implements IContentService {
     }
 
     // Use the formatter to parse the content
-    // Same caveat as generateContent: the formatter parses to its own shape.
-    return template.formatter.parse(content) as T;
+    return template.formatter.parse(content);
   }
 
   /**

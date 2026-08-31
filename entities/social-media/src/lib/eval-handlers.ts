@@ -28,12 +28,13 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
       ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
       : (parsed.prompt ?? "Write an engaging LinkedIn post");
 
-    return context.ai.generate<{
-      content: string;
-    }>({
-      prompt: generationPrompt,
-      templateName: `social-media:${parsed.platform}`,
-    });
+    return context.ai.generate(
+      {
+        prompt: generationPrompt,
+        templateName: `social-media:${parsed.platform}`,
+      },
+      z.object({ content: z.string() }),
+    );
   });
 
   // Eval: run the full generation pipeline and verify entity persistence

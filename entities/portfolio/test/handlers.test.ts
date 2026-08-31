@@ -113,11 +113,14 @@ describe("ProjectGenerationJobHandler", () => {
       const data = { prompt: "Build something cool", year: 2023 };
       await handler.process(data, "job-123", progressReporter);
 
-      expect(context.ai.generate).toHaveBeenCalledWith({
-        prompt: buildProjectGenerationPrompt(data),
-        templateName: "portfolio:generation",
-        representedIdentity: "anchor",
-      });
+      expect(context.ai.generate).toHaveBeenCalledWith(
+        {
+          prompt: buildProjectGenerationPrompt(data),
+          templateName: "portfolio:generation",
+          representedIdentity: "anchor",
+        },
+        expect.anything(),
+      );
     });
 
     it("should create entity with correct structure", async () => {

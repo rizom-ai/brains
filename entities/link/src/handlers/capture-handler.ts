@@ -9,7 +9,7 @@ import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
 import type { LinkSource, LinkStatus } from "../schemas/link";
 import { readLinkStatus } from "../schemas/link";
-import type { LinkExtractionResult } from "../templates/extraction-template";
+import { linkExtractionSchema } from "../templates/extraction-template";
 
 /**
  * Input schema for link capture job
@@ -208,8 +208,8 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: "Extracting content with AI",
       });
 
-      const extractionResult =
-        await this.context.ai.generate<LinkExtractionResult>({
+      const extractionResult = await this.context.ai.generate(
+        {
           templateName: "link:extraction",
           prompt: fetchResult.success
             ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
@@ -217,7 +217,9 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           data: { url, hasContent: fetchResult.success },
           representedIdentity: "none",
           interfacePermissionGrant: "public",
-        });
+        },
+        linkExtractionSchema,
+      );
 
       this.logger.debug("AI extraction result", { result: extractionResult });
 

@@ -96,7 +96,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
           data.context.conversationHistory;
       }
 
-      const content = await this.contentService.generateContent<unknown>(
+      const content = await this.contentService.generateContent(
         data.templateName,
         generationContext,
       );

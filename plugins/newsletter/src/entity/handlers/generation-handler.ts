@@ -143,15 +143,15 @@ The newsletter should:
       const voiceGuidance = await fetchVoiceGuidance(
         this.context.entityService,
       );
-      const generated = await this.context.ai.generate<{
-        subject: string;
-        content: string;
-      }>({
-        prompt: finalPrompt,
-        templateName: NEWSLETTER_CHANNELS.generation,
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt: finalPrompt,
+          templateName: NEWSLETTER_CHANNELS.generation,
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({ subject: z.string(), content: z.string() }),
+      );
 
       subject = subject ?? generated.subject;
       content = generated.content;
@@ -171,15 +171,15 @@ The newsletter should:
       const voiceGuidance = await fetchVoiceGuidance(
         this.context.entityService,
       );
-      const generated = await this.context.ai.generate<{
-        subject: string;
-        content: string;
-      }>({
-        prompt,
-        templateName: NEWSLETTER_CHANNELS.generation,
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt,
+          templateName: NEWSLETTER_CHANNELS.generation,
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({ subject: z.string(), content: z.string() }),
+      );
 
       subject = subject ?? generated.subject;
       content = generated.content;

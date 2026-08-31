@@ -67,6 +67,7 @@ describe("DeckGenerationJobHandler", () => {
             voice: expect.stringContaining("Decisive and evidence-led"),
           },
         }),
+        expect.anything(),
       );
     });
 
@@ -85,6 +86,7 @@ describe("DeckGenerationJobHandler", () => {
           templateName: "decks:description",
           representedIdentity: "none",
         }),
+        expect.anything(),
       );
     });
   });

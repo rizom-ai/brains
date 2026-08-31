@@ -92,6 +92,7 @@ describe("BlogGenerationJobHandler", () => {
           templateName: "blog:generation",
           representedIdentity: "anchor",
         }),
+        expect.anything(),
       );
     });
 
@@ -102,6 +103,7 @@ describe("BlogGenerationJobHandler", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("knowledge base"),
         }),
+        expect.anything(),
       );
     });
 
@@ -116,6 +118,7 @@ describe("BlogGenerationJobHandler", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("AI Series"),
         }),
+        expect.anything(),
       );
     });
 
@@ -161,6 +164,7 @@ describe("BlogGenerationJobHandler", () => {
             /My Title.*My content|My content.*My Title/s,
           ),
         }),
+        expect.anything(),
       );
     });
 

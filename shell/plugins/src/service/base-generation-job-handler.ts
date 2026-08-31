@@ -145,10 +145,10 @@ function withoutStubLifecycleFields(
  *   }
  *
  *   protected async generate(data: NoteJobData): Promise<GeneratedContent> {
- *     const generated = await this.context.ai.generate<{ title: string; body: string }>({
- *       prompt: data.prompt,
- *       templateName: "note:generation",
- *     });
+ *     const generated = await this.context.ai.generate(
+ *       { prompt: data.prompt, templateName: "note:generation" },
+ *       z.object({ title: z.string(), body: z.string() }),
+ *     );
  *     const title = data.title ?? generated.title;
  *     return {
  *       id: title,

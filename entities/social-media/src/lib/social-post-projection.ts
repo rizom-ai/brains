@@ -119,15 +119,16 @@ async function deriveSocialPosts(
     if (signal.aborted) throw signal.reason;
     if (existingSourceIds.has(source.id)) continue;
 
-    const generated = linkedinPostSchema.parse(
-      await context.ai.generate({
+    const generated = await context.ai.generate(
+      {
         prompt: `Create an engaging linkedin post to promote this post:\n\nSource: post/${source.slug}\n\n${source.content}`,
         templateName: linkedinTemplate.name,
         representedIdentity: "anchor",
         ...(input.voiceGuidance && {
           styleGuide: { voice: input.voiceGuidance },
         }),
-      }),
+      },
+      linkedinPostSchema,
     );
     const id = `linkedin-${source.id}`;
     const slug = `linkedin-${slugify(generated.title)}`;

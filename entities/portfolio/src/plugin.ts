@@ -50,6 +50,7 @@ import { projectViewSchema } from "./templates/project-view";
 import { projectGenerationTemplate } from "./templates/generation-template";
 import {
   buildProjectGenerationPrompt,
+  generatedProjectContentSchema,
   ProjectGenerationJobHandler,
 } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
@@ -228,19 +229,15 @@ export class PortfolioPlugin extends EntityPlugin<
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(context.entityService),
       );
-      return context.ai.generate<{
-        title: string;
-        description: string;
-        context: string;
-        problem: string;
-        solution: string;
-        outcome: string;
-      }>({
-        prompt: buildProjectGenerationPrompt(parsed),
-        templateName: "portfolio:generation",
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      return context.ai.generate(
+        {
+          prompt: buildProjectGenerationPrompt(parsed),
+          templateName: "portfolio:generation",
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        generatedProjectContentSchema,
+      );
     });
   }
 
