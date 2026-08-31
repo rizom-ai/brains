@@ -221,8 +221,36 @@ made the entity tranche find real defects rather than move code.
    `interfaces:` is only the third tuple slot — a capability config versus an
    env mapper that may return null to skip.
 
-4. **Auth-service as a capability.** The seven consumers named, one slice
-   designed against all seven rather than the first one encountered.
+4. **Auth-service as capabilities.** _Measured; the premise was wrong._ The
+   phase assumed one slice would serve all seven. Every one of the seven does
+   import `getActiveAuthService` — an ambient accessor, which is why the count
+   looked uniform — but what they _call_ on it falls into four shapes:
+
+   | consumer                          | calls                                                    |
+   | --------------------------------- | -------------------------------------------------------- |
+   | `web-chat`, `dashboard`, `studio` | `resolveSession`                                         |
+   | `mcp`                             | `resolveBearerGrant`                                     |
+   | `web-chat`                        | `createAuthLoginResponse`                                |
+   | `a2a`                             | `getIssuer`, `isLoopbackIssuer`, `issuerFromRequest`     |
+   | `studio`, `admin`                 | `recordAuditEvent`, `queryAuditEvents`                   |
+   | `admin`                           | twenty methods: users, invitations, passkeys, identities |
+   | `chat`                            | nothing — it imports `AuthPrincipal` as a type           |
+
+   So: **a caller capability** (who is this request from — session, bearer
+   grant, login response), **an issuer capability** (what this deployment
+   is, for federation), and **an audit capability** (record and query). Those
+   three cover six of the seven, and `chat` needs only a type.
+
+   `admin` is not a consumer of a slice — it is the administration surface
+   _for_ auth-service, reaching twenty methods across users, invitations,
+   passkeys and identities. Granting that as a capability would publish
+   auth-service's whole management API through the SDK, which is the opposite
+   of a boundary. Either it stays coupled and is excluded from the tranche
+   with that written down, or auth-service exports an admin-facing package of
+   its own. Deciding that is part of this phase, not a detail of it.
+
+   Order: caller first (three consumers, smallest surface), then audit (two),
+   then issuer (one), then the `admin` decision.
 
 5. **Decide the shared libraries.** `console-theme`, `site-composition`,
    `content-formatters`, `image`: publishable beside the SDK, or replaced.
