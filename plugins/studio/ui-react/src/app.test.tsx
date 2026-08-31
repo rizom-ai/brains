@@ -678,10 +678,30 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain("Post one");
     expect(browse).toContain('disabled="">New post</button>');
     expect(edit).toContain('class="capability-fields" disabled=""');
-    expect(edit).toContain('class="save-btn" disabled=""');
+    expect(edit).toContain(
+      'class="save-btn studio-editor-head-save" disabled=""',
+    );
+    expect(edit).toContain(
+      'class="save-btn studio-editor-phone-save" disabled=""',
+    );
     expect(edit).not.toContain(">Delete<");
     expect(edit).not.toContain("AI selection rewrite");
     expect(edit).not.toContain("Add to queue");
+  });
+
+  it("places editor save in the desktop head and the existing phone pipeline", () => {
+    const edit = renderCapabilityView(allowedCapabilities, "edit");
+    const head = edit.slice(
+      edit.indexOf('class="studio-page-head"'),
+      edit.indexOf('class="studio-mobile-modes"'),
+    );
+
+    expect(head).toContain("studio-editor-head-save");
+    expect(head).toContain("Save changes");
+    expect(edit).toContain("studio-editor-phone-save");
+    expect(responsiveStyles).toMatch(
+      /\.studio-editor-head-save \{[^}]*display: none/,
+    );
   });
 
   it("renders controls granted by the active type capabilities", () => {
@@ -690,7 +710,9 @@ describe("capability-aware Studio controls", () => {
 
     expect(browse).not.toContain('disabled="">New post</button>');
     expect(edit).not.toContain('class="capability-fields" disabled=""');
-    expect(edit).not.toContain('class="save-btn" disabled=""');
+    expect(edit).not.toContain(
+      'class="save-btn studio-editor-head-save" disabled=""',
+    );
     expect(edit).toContain(">Delete<");
     expect(edit).toContain("AI selection rewrite");
     expect(edit).toContain("Add to queue");

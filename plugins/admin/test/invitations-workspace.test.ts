@@ -163,6 +163,11 @@ describe("Administration Invitations tab", () => {
     expect(initial).toMatchObject({
       view: {
         title: "Administration",
+        primaryAction: {
+          actionId: "create-invitation",
+          label: "Add a person",
+          form: { presentation: "disclosure" },
+        },
         blocks: [
           { type: "stats", id: "invitation-totals" },
           { type: "tabs", defaultTab: "invitations" },
@@ -176,10 +181,7 @@ describe("Administration Invitations tab", () => {
       type: "table",
       query: { pagination: { total: 0 } },
     });
-    expect(regionIds(layout, "aside")).toEqual([
-      "create-invitation",
-      "invite-peer",
-    ]);
+    expect(regionIds(layout, "aside")).toEqual(["invite-peer"]);
     const create = findAction(initial, "Add a person");
     expect(create).toMatchObject({
       actionId: "create-invitation",

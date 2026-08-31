@@ -449,6 +449,49 @@ const administrationInvitationsWorkspaceData = {
     title: "Administration",
     description:
       "Manage local people, invitation delivery, external provenance, and security history.",
+    primaryAction: {
+      actionId: "create-invitation",
+      label: "Add a person",
+      input: { idempotencyKey: "visual-request" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+        fields: [
+          {
+            name: "displayName",
+            label: "Display name",
+            control: "text",
+            required: true,
+          },
+          {
+            name: "deliveryType",
+            label: "Delivery channel",
+            control: "select",
+            required: true,
+            options: [{ value: "email", label: "Private email" }],
+          },
+          {
+            name: "deliverySubject",
+            label: "Email address",
+            control: "text",
+            required: true,
+          },
+        ],
+      },
+      result: {
+        title: "Invitation setup",
+        fields: [
+          { name: "status", label: "Status" },
+          {
+            name: "setupUrl",
+            label: "Single-use setup URL",
+            copyable: true,
+            sensitive: true,
+          },
+          { name: "expiresAt", label: "Expires" },
+        ],
+      },
+    },
     blocks: [
       {
         type: "stats",
@@ -542,50 +585,6 @@ const administrationInvitationsWorkspaceData = {
                   },
                 ],
                 aside: [
-                  {
-                    type: "card",
-                    id: "create-invitation",
-                    label: "Add a person",
-                    blocks: [
-                      {
-                        type: "text",
-                        text: "Issue a single-use passkey setup link through a confirmed delivery channel.",
-                      },
-                      {
-                        type: "action",
-                        actionId: "create-invitation",
-                        label: "Add a person",
-                        input: { idempotencyKey: "visual-request" },
-                        form: {
-                          presentation: "disclosure",
-                          submitLabel: "Create invitation",
-                          fields: [
-                            {
-                              name: "displayName",
-                              label: "Display name",
-                              control: "text",
-                              required: true,
-                            },
-                            {
-                              name: "deliveryType",
-                              label: "Delivery channel",
-                              control: "select",
-                              required: true,
-                              options: [
-                                { value: "email", label: "Private email" },
-                              ],
-                            },
-                            {
-                              name: "deliverySubject",
-                              label: "Email address",
-                              control: "text",
-                              required: true,
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
                   {
                     type: "card",
                     id: "invite-peer",
@@ -1731,6 +1730,7 @@ async function checkLayout(
 ): Promise<void> {
   const dimensions = await evaluatePage(page, () => ({
     clientWidth: document.documentElement.clientWidth,
+    clientHeight: document.documentElement.clientHeight,
     scrollWidth: document.documentElement.scrollWidth,
   }));
   if (dimensions.scrollWidth !== dimensions.clientWidth) {
@@ -1760,6 +1760,22 @@ async function checkLayout(
       throw new Error(
         `Studio content starts too low at ${width}px (${head?.y ?? "missing"})`,
       );
+    }
+    const expectsPrimaryAction =
+      surface === "studio-library" ||
+      surface.startsWith("studio-administration-invitations");
+    if (expectsPrimaryAction) {
+      const action = await elementBounds(page, ".studio-page-head-action");
+      if (
+        !action ||
+        action.y < -1 ||
+        action.y + action.height > dimensions.clientHeight + 1 ||
+        Math.abs(action.y + action.height - dimensions.clientHeight) > 2
+      ) {
+        throw new Error(
+          `Studio primary action did not pin inside the phone viewport: ${JSON.stringify(action)}`,
+        );
+      }
     }
     const railState = await evaluatePage(page, () => {
       const rail = document.querySelector(".rail");

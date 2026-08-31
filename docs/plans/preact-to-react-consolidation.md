@@ -363,6 +363,6 @@ the same Studio files.
 
 ## Related work
 
-- [Studio interface refactor](./studio-refactor.md)
+- [Studio UX research and shipped grammar](./studio-ux-research.md)
 - [Public authoring API `0.2`](./public-authoring-api-0.2.md)
 - [Alternative site renderer spike](./alternative-site-renderer-spike.md)

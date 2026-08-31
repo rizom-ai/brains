@@ -132,6 +132,7 @@ export const styles = `
   /* ── pipeline (action bar) ── */
   .pipeline { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; border-top: 2px solid var(--console-text); background: var(--console-text); color: var(--console-frame); padding: 0 20px; min-height: 58px; }
   .save-btn { font-family: var(--console-ui); font-weight: 600; font-size: 13.5px; background: var(--console-accent); color: var(--console-on-accent); border: none; border-radius: 7px; padding: 9px 22px; cursor: pointer; transition: transform .12s ease, background .15s ease; }
+  .studio-editor-phone-save { display: none; }
   .save-btn:hover { background: var(--console-accent-dim); transform: translateY(-1px); }
   .save-btn[disabled] { opacity: .6; transform: none; }
   .pipeline .btn.danger { border-color: color-mix(in srgb, var(--console-bg) 30%, transparent); color: color-mix(in srgb, var(--console-bg) 75%, transparent); }

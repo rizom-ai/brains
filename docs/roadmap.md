@@ -172,15 +172,14 @@ Plans:
 
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any Studio or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/Studio/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
-- [studio-refactor.md](./plans/studio-refactor.md) — give Studio one host-owned page-head, collection, action, and responsive grammar without changing capability ownership or Chat behavior.
 - [studio-chat-integration.md](./plans/studio-chat-integration.md) — move the authenticated browser Chat presentation into a conditional fixed Studio workspace while Web Chat retains API, streaming, session, upload, and conversation authority.
-- [studio-ux-research.md](./plans/studio-ux-research.md) — design evidence and pending decisions for Studio's visual and interaction grammar across library, workspaces, Account, Overview, editor, and fixed client workspaces.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
 
 Shipped from this section:
 
+- [Studio's responsive interface grammar](./plans/studio-ux-research.md) — one host-owned page head, collection query line, source-declared compact-row reflow, explicit primary-action placement, two-bar phone chrome, and fixed-workspace frame across library, editor, Account, Overview, and declarative workspaces;
 - Studio consolidation — the CMS was renamed to Studio; administration and Account presentation moved into its capability-gated workspace shell without moving auth authority; Overview became the operator home; Dashboard became the anonymous public brain card;
 - inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail, drafting, and confirmed sends. Deliberately non-conversational: inbound mail never reaches agent chat;
 - [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, Admin Studio and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;

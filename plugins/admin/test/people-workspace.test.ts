@@ -135,6 +135,7 @@ describe("Administration People tab", () => {
         },
       ],
     });
+    expect(initial).not.toHaveProperty("view.primaryAction");
     expect(JSON.stringify(initial)).toContain("Tess Trusted");
     expect(JSON.stringify(initial)).toContain("Brain Anchor");
     expect(JSON.stringify(initial)).toContain("Tess private address");

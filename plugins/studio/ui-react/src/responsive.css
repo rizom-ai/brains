@@ -457,6 +457,12 @@
     min-height: 64px;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   }
+  .studio-editor-head-save {
+    display: none;
+  }
+  .studio-editor-phone-save {
+    display: block;
+  }
   .save-btn,
   .pipeline .btn.danger {
     min-height: var(--console-touch);

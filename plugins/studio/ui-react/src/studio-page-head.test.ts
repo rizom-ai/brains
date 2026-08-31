@@ -107,7 +107,8 @@ describe("Studio page-head normalization", () => {
     expect(html).toContain("3 people");
     expect(html).toContain("Healthy");
     expect(html).toContain("Invitations");
-    expect(html).toContain("Add person");
+    expect(html).toContain('data-studio-primary-action="true"');
+    expect(html.match(/Add person/g)).toHaveLength(1);
   });
 
   it("compresses the phone head to one line without dropping host access", () => {
@@ -125,6 +126,15 @@ describe("Studio page-head normalization", () => {
     );
     expect(studioPageHeadStyles).toContain(
       '.studio-page-head[data-has-totals="true"] .studio-head-status',
+    );
+    expect(studioPageHeadStyles).toMatch(
+      /\.studio-page-head-action \{[^}]*position: fixed[^}]*env\(safe-area-inset-bottom\)/,
+    );
+    expect(studioPageHeadStyles).toContain(
+      ".studio-workspace-frame:has(.studio-page-head-action)",
+    );
+    expect(studioPageHeadStyles).toContain(
+      ".studio-page-head-action .declarative-action-form label",
     );
   });
 

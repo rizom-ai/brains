@@ -1,4 +1,5 @@
 import type {
+  RuntimeOperatorActionControl,
   RuntimeStudioOperatorBlock,
   RuntimeStudioWorkspaceData,
   ServicePluginContext,
@@ -192,6 +193,7 @@ export async function registerAdministrationWorkspace(
     dataProvider: async (actor, rawQuery, signal) => {
       const query = administrationQuerySchema.parse(rawQuery ?? {});
       let headBlocks: AdministrationTabBlock[] = [];
+      let primaryAction: RuntimeOperatorActionControl | undefined;
       let peopleBlocks = inactiveBlocks("People");
       let invitationBlocks = inactiveBlocks("Invitations");
       let auditBlocks = inactiveBlocks("Audit");
@@ -256,6 +258,7 @@ export async function registerAdministrationWorkspace(
           peerSections.invitations,
         );
         headBlocks = [invitationSections.totals];
+        primaryAction = invitationData.view.primaryAction;
         invitationBlocks = [...invitationSections.blocks];
       } else {
         const auditData = await loadChild(
@@ -279,6 +282,7 @@ export async function registerAdministrationWorkspace(
           title: "Administration",
           description:
             "Manage local people, invitation delivery, external provenance, and security history.",
+          ...(primaryAction ? { primaryAction } : {}),
           blocks: [
             ...headBlocks,
             {

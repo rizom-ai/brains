@@ -88,6 +88,7 @@ describe("Administration Audit tab", () => {
         blocks: [{ type: "tabs", defaultTab: "audit" }],
       },
     });
+    expect(data).not.toHaveProperty("view.primaryAction");
     expect(findById(data, "audit-query")).toBeUndefined();
     expect(findById(data, "audit-detail")).toMatchObject({
       type: "detail",

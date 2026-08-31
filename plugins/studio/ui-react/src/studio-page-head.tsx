@@ -101,7 +101,12 @@ export function StudioPageHead(props: {
           </dl>
         )}
         {props.action && (
-          <div className="studio-page-head-action">{props.action}</div>
+          <div
+            className="studio-page-head-action"
+            data-studio-primary-action="true"
+          >
+            {props.action}
+          </div>
         )}
       </div>
       {props.model.description && (

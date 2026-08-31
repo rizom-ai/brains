@@ -2,15 +2,13 @@
 
 ## Status
 
-**Design research complete; second iteration accepted 2026-08-30.** The
-accepted frames and decisions below are the Studio refactor baseline. Not an
-implementation plan: this settles what the
-consolidated Studio should look and feel like before any build phase is
-cut. The three "UX research" frames in
+**Design research complete; second iteration accepted 2026-08-30 and shipped.**
+The accepted frames and decisions below are Studio's implemented interface
+baseline, documented operationally in the
+[`@brains/studio` README](../../plugins/studio/README.md). This is not an
+implementation plan. The three "UX research" frames in
 [`../studio-consolidation-mockups.html`](../studio-consolidation-mockups.html)
-test the hypotheses. Accepted decisions become thin phases in
-[`studio-refactor.md`](./studio-refactor.md). Chat's surface migration is a
-separate concern tracked by
+test the hypotheses. Chat's surface migration is a separate concern tracked by
 [`studio-chat-integration.md`](./studio-chat-integration.md).
 
 ## Question
@@ -87,8 +85,8 @@ Each maps to a "UX research" frame in the mockups file.
 The access chip is host-derived from active-session and permission-floor
 admission, compact table rows are source-declared, and the primary action is
 singular protocol data.
-These semantic requirements precede CSS; they are specified in
-[`studio-refactor.md`](./studio-refactor.md).
+These semantic requirements now cross the published operator contract and the
+Studio host without introducing executable renderers.
 
 The second iteration mocks the editor, Overview at phone width, and Account
 as the representative fixed client workspace. These frames resolved the first
@@ -96,8 +94,7 @@ iteration's missing evidence and passed the implementation gate.
 
 ## Method
 
-Screen-by-screen mockups in the house mockup file, mobile and desktop side
-by side, editor as reference. Each accepted mockup becomes a recorded
-decision here; accepted decisions then cut into the phases in
-[`studio-refactor.md`](./studio-refactor.md). Mockups first, code never ahead
-of an accepted mockup.
+Screen-by-screen mockups in the house mockup file, mobile and desktop side by
+side, editor as reference. Each accepted mockup became a recorded decision
+here before implementation. Mockups first, code never ahead of an accepted
+mockup.

@@ -117,6 +117,7 @@ describe("Account surface", () => {
     expect(html).toContain('data-studio-page-head="true"');
     expect(html).toContain("Signed in");
     expect(html).toContain("Mira Reyes · Trusted");
+    expect(html).not.toContain('data-studio-primary-action="true"');
     expect(html).not.toContain("account-hero");
     // One detail card with the admin identity header and labeled sections,
     // not a bespoke multi-column panel grid.

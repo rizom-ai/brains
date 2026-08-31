@@ -312,6 +312,7 @@ describe("SiteBuilderPlugin", () => {
         status: { label: "Test Site" },
       },
     });
+    expect(initialWorkspace).not.toHaveProperty("view.primaryAction");
     expect(findTableById(initialWorkspace, "routes")).toMatchObject({
       rows: [
         {

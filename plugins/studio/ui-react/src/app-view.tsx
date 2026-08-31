@@ -428,7 +428,18 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               if (canEdit) save();
             }}
           >
-            <StudioPageHead model={editorHead} />
+            <StudioPageHead
+              model={editorHead}
+              action={
+                <button
+                  type="submit"
+                  className="save-btn studio-editor-head-save"
+                  disabled={!canEdit || saveState.kind === "saving"}
+                >
+                  {saveState.kind === "saving" ? "Saving…" : "Save changes"}
+                </button>
+              }
+            />
             <nav className="studio-mobile-modes" aria-label="Editor view">
               {MOBILE_EDITOR_PANES.map((pane) => (
                 <button
@@ -544,7 +555,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <footer className="pipeline">
               <button
                 type="submit"
-                className="save-btn"
+                className="save-btn studio-editor-phone-save"
                 disabled={!canEdit || saveState.kind === "saving"}
               >
                 {saveState.kind === "saving" ? "Saving…" : "Save"}
