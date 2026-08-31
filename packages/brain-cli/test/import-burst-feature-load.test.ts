@@ -389,6 +389,29 @@ describe("directory import burst with locally mocked AI features", () => {
         timeoutMs: SETTLE_TIMEOUT_MS,
         pollIntervalMs: POLL_INTERVAL_MS,
       });
+      const projectionStore = runningShell
+        .getEntityService()
+        .getProjectionStore();
+      await waitFor(
+        "startup projection work to settle",
+        SETTLE_TIMEOUT_MS,
+        async () => {
+          const [pendingInputs, activeWave, activeBatch, diagnostics] =
+            await Promise.all([
+              projectionStore.listPendingInputs(),
+              projectionStore.getActiveWave(),
+              projectionStore.hasActiveProjectionBatch(),
+              queue.getDiagnostics(),
+            ]);
+          return (
+            pendingInputs.length === 0 &&
+            activeWave === null &&
+            !activeBatch &&
+            diagnostics.totals.pending === 0 &&
+            diagnostics.totals.processing === 0
+          );
+        },
+      );
 
       const directoryPlugin = runningShell
         .getPluginManager()

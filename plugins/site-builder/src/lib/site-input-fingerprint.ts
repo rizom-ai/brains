@@ -54,6 +54,7 @@ export function computeSiteInputFingerprint(
             template
               ? {
                   renderer: String(template.renderers.web),
+                  renderVersion: template.renderVersion,
                   fullscreen: template.fullscreen ?? false,
                   runtimeScripts: template.runtimeScripts ?? [],
                   staticAssets: template.staticAssets ?? {},

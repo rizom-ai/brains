@@ -38,6 +38,8 @@ export interface TemplateInput {
   basePrompt?: string | undefined;
   useKnowledgeContext?: boolean | undefined;
   requiredPermission: "admin" | "trusted" | "public";
+  /** Stable author-owned version for output-affecting renderer behavior. */
+  renderVersion?: string | undefined;
   formatter?: unknown;
   overlayFormatter?: unknown;
   layout?:
@@ -189,6 +191,7 @@ export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   useKnowledgeContext: z.boolean().optional(),
   requiredPermission: z.enum(["admin", "trusted", "public"]),
+  renderVersion: z.string().min(1).optional(),
   formatter: z.any().optional(), // ContentFormatter instance
   overlayFormatter: z.any().optional(), // ContentFormatter for authored overlay
   layout: z
