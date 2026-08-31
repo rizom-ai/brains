@@ -42,7 +42,7 @@ import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import { profilePlugin } from "@brains/profile";
 import promptPackage from "@brains/prompt";
-import { onboardingPlugin } from "@brains/onboarding";
+import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
@@ -174,7 +174,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ),
     ["playbook", playbookPlugin, undefined],
     ["playbooks", playbooksPlugin, undefined],
-    ["onboarding", onboardingPlugin, undefined],
+    packageCapability("onboarding", "@brains/onboarding", onboardingPackage),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["admin", adminPlugin, undefined],

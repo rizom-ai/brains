@@ -2,8 +2,8 @@
 
 ## Status
 
-Phases 1 through 5 done; **2 of 28 packages converted** (`@brains/email`,
-`@brains/notifications`).
+Phases 1 through 5 done, phase 6 underway; **3 of 28 packages converted**
+(`@brains/email`, `@brains/notifications`, `@brains/onboarding`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -18,9 +18,10 @@ The entity tranche is finished: 18 of 18 entity packages import only
 `entities/` and said so. It left the other two families untouched, and they
 are the larger half.
 
-**28 packages under `plugins/` and `interfaces/`; 2 are clean.**
-`@brains/email` and `@brains/notifications` depend on `@brains/sdk` and
-declare themselves; the other 26 still import `@brains/plugins` in `src`.
+**28 packages under `plugins/` and `interfaces/`; 3 are clean.**
+`@brains/email`, `@brains/notifications` and `@brains/onboarding` depend on
+`@brains/sdk` and declare themselves; the other 25 still import
+`@brains/plugins` in `src`.
 
 | reaches for                                                          | packages |
 | -------------------------------------------------------------------- | -------- |

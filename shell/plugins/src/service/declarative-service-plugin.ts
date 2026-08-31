@@ -234,6 +234,60 @@ class DeclarativeServicePlugin<
     this.definition = definition;
     this.publicId = definition.id;
     this.scope = scope;
+    if (definition.dependsOn) {
+      this.dependencies = [...definition.dependsOn];
+    }
+  }
+
+  /** Plugin ids this service registers after; the runtime orders by these. */
+  public readonly dependencies?: string[];
+
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    const seeds =
+      this.definition.seeds?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? [];
+    for (const seed of seeds) {
+      // The existence check runs at full visibility: a seeded entity someone
+      // made restricted still counts as existing, so a seed can never
+      // overwrite or duplicate authored content.
+      const existing = await context.entityService.getEntity({
+        entityType: seed.entityType,
+        id: seed.id,
+        visibilityScope: "restricted",
+      });
+      if (existing) continue;
+      await context.entityService.createEntityFromMarkdown({
+        input: {
+          entityType: seed.entityType,
+          id: seed.id,
+          markdown: await seed.markdown(),
+        },
+      });
+    }
+
+    if (this.definition.ready) {
+      await this.definition.ready({
+        config: this.config,
+        state: this.requireState(),
+        entities: createJobEntityAccess(
+          context.entityService,
+          new Set((this.definition.entities ?? []).map(({ type }) => type)),
+          this.publicId,
+        ),
+        messaging: {
+          send: (message) =>
+            context.messaging.send({
+              type: message.type,
+              payload: message.payload,
+            }),
+        },
+        logger: this.logger,
+      });
+    }
   }
 
   /**

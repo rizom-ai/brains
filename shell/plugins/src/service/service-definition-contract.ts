@@ -10,6 +10,26 @@ import type { ChannelDeliveryProvider } from "../channel-registry";
  * A service asks "what delivers to this channel type"; registering a
  * descriptor or a provider belongs to the interface that owns the channel.
  */
+/**
+ * One entity a service declares into existence.
+ *
+ * `markdown` is a loader rather than a string so a satisfied seed costs no
+ * file read; the runtime parses it through the target type's own adapter.
+ */
+export interface ServiceSeedDefinition {
+  readonly entityType: string;
+  readonly id: string;
+  markdown(): string | Promise<string>;
+}
+
+/** The narrow publish surface a service gets, not the whole bus. */
+export interface ServicePublisher {
+  send(message: {
+    readonly type: string;
+    readonly payload: unknown;
+  }): Promise<unknown>;
+}
+
 export interface ServiceChannelReader {
   getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
 }
@@ -22,6 +42,7 @@ import type {
   ProjectionDefinition,
 } from "../entity/entity-definition-contract";
 import type {
+  JobEntityAccess,
   JobHandlerContext,
   JobTemplateFormatter,
 } from "../job/job-context-contract";
@@ -358,6 +379,15 @@ interface ServiceDefinitionCore<
    * reads an API key — belongs in `jobs`, which is a function of config.
    */
   readonly entities?: readonly AnyEntityDefinition[] | undefined;
+  /**
+   * Plugin ids this service must register after.
+   *
+   * A seeder that writes another package's entity type has to run once that
+   * type exists; the runtime already orders registration by dependency, and
+   * this names them. Named consumer: @brains/onboarding, which seeds
+   * playbooks.
+   */
+  readonly dependsOn?: readonly string[] | undefined;
   readonly projections?: readonly ProjectionDefinition[] | undefined;
   /**
    * Projection rules that read configuration.
@@ -413,6 +443,41 @@ interface ServiceDefinitionCore<
    * reach past its context for `messaging.subscribe` to answer one.
    * Named consumer: @brains/notifications.
    */
+  /**
+   * Entities that should exist before anyone authors them — including
+   * another package's types.
+   *
+   * Job-scoped writes refuse types a package does not own, and that rule
+   * holds: a seeder *declares* what should exist and the runtime performs
+   * the write, once, only when nothing with that id exists at any
+   * visibility. The markdown loads lazily, so a seed that is already
+   * satisfied costs no file read. Dispatched before `ready`, ordered behind
+   * `dependsOn`. Named consumer: @brains/onboarding, which seeds playbooks.
+   */
+  readonly seeds?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly ServiceSeedDefinition[])
+    | undefined;
+  /**
+   * Work that runs once, after every plugin has registered.
+   *
+   * `setup` runs during this package's own registration, when the types it
+   * wants to read may not exist yet. A seeder asks "is the playbook already
+   * there?" and that question has no answer until the playbook package has
+   * registered its type. The runtime dispatches this after registration
+   * completes, ordered behind `dependsOn`. Named consumer: @brains/onboarding.
+   */
+  readonly ready?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly entities: JobEntityAccess;
+        readonly messaging: ServicePublisher;
+        readonly logger: LoggerContract;
+      }) => void | Promise<void>)
+    | undefined;
   readonly subscriptions?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
