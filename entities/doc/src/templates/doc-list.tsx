@@ -15,6 +15,35 @@ export interface DocListProps {
   baseUrl: string | null;
 }
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+function formatLatestUpdate(docs: DocWithData[]): string | undefined {
+  const latestTimestamp = docs.reduce((latest, doc) => {
+    const timestamp = Date.parse(doc.updated);
+    return Number.isFinite(timestamp) && timestamp > latest
+      ? timestamp
+      : latest;
+  }, Number.NEGATIVE_INFINITY);
+
+  if (!Number.isFinite(latestTimestamp)) return undefined;
+
+  const latest = new Date(latestTimestamp);
+  return `${MONTH_NAMES[latest.getUTCMonth()]} ${latest.getUTCFullYear()}`;
+}
+
 export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
   const sortedDocs = sortDocs(docs);
   const groups = groupDocs(sortedDocs);
@@ -29,6 +58,7 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
         docsCount={docs.length}
         sectionsCount={groups.length}
         startDoc={startDoc}
+        updatedLabel={formatLatestUpdate(docs)}
       />
 
       <section

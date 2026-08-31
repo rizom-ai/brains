@@ -46,12 +46,14 @@ interface DocsListHeroProps {
   docsCount: number;
   sectionsCount: number;
   startDoc?: DocWithData | undefined;
+  updatedLabel?: string | undefined;
 }
 
 export const DocsListHero = ({
   docsCount,
   sectionsCount,
   startDoc,
+  updatedLabel,
 }: DocsListHeroProps): JSX.Element => (
   <section className="border-b border-[var(--docs-text)] py-14 md:py-24 md:pb-[72px]">
     <p className={`${docsClasses.label} mb-8`}>Handbook · Brains docs</p>
@@ -78,12 +80,14 @@ export const DocsListHero = ({
         </strong>
         Sections
       </div>
-      <div>
-        <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
-          April 2026
-        </strong>
-        Updated
-      </div>
+      {updatedLabel && (
+        <div>
+          <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
+            {updatedLabel}
+          </strong>
+          Updated
+        </div>
+      )}
     </dl>
     <div className="mt-9 flex flex-wrap gap-3.5">
       {startDoc && (
