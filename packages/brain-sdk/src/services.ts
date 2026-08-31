@@ -66,4 +66,17 @@ export type { LoggerContract } from "@brains/utils/logger";
 export type { EnvVarDecl } from "@brains/utils/env-schema";
 export type { FetchLike } from "@brains/utils/fetch-like";
 
+// Administering this brain's users: the People, Invitations, Audit and
+// Administration workspaces run over this surface. Type-only — the instance
+// still arrives through the runtime, and a package holding the type cannot
+// conjure the service. It is the measured set of operations administration
+// actually performs, and AuthService implements it nominally so the class and
+// this contract cannot drift apart silently. Named consumer: @brains/admin.
+export type {
+  AuthAdministration,
+  AuthAdminUserSummary,
+  AuthAuditEvent,
+  AppendAuthAuditEventInput,
+} from "@brains/auth-service";
+
 export { z } from "@brains/utils/zod";

@@ -2,7 +2,7 @@ import type { StudioWorkspaceRegistration } from "@brains/plugins";
 import {
   getActiveAuthService,
   type AuthAdminUserSummary,
-  type AuthService,
+  type AuthAdministration,
 } from "@brains/auth-service";
 
 export type AdminWorkspaceRegistration = Omit<
@@ -33,7 +33,7 @@ export function formatWorkspaceDate(timestamp: number): string {
   return workspaceDateFormatter.format(new Date(timestamp));
 }
 
-export function requireAuthService(): AuthService {
+export function requireAuthService(): AuthAdministration {
   const authService = getActiveAuthService();
   if (!authService) {
     throw new Error("Administration workspace requires auth-service");

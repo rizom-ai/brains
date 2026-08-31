@@ -408,6 +408,10 @@
         "z"
       ],
       "advanced-with-consumer": [
+        "AppendAuthAuditEventInput",
+        "AuthAdministration",
+        "AuthAdminUserSummary",
+        "AuthAuditEvent",
         "EntityEvalContext",
         "EnvVarDecl",
         "FetchLike",

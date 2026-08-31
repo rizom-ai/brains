@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/app": "workspace:*",
     "@brains/atproto-contracts": "workspace:*",
+    "@brains/auth-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/deploy-support": "workspace:*",
