@@ -79,4 +79,15 @@ export type {
   AppendAuthAuditEventInput,
 } from "@brains/auth-service";
 
+// Who a request is from, and the audit trail. A service plugin that serves
+// HTTP resolves the caller before acting (dashboard, studio) and records
+// what an operator did (studio); neither needs anything else auth knows.
+// Type-only, like the administration contract above.
+// Named consumers: @brains/dashboard, @brains/studio.
+export type {
+  AuthAudit,
+  AuthCaller,
+  AuthPrincipal,
+} from "@brains/auth-service";
+
 export { z } from "@brains/utils/zod";

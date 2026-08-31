@@ -19,6 +19,7 @@ import type {
 } from "./administration-service";
 import { handleAuthAdminRequest } from "./admin-endpoints";
 import type { AuthAdministration } from "./administration";
+import type { A2ASigningKey, AuthCaller, AuthFederation } from "./capabilities";
 import type {
   AuthAdminUserSummary,
   AuthIdentityProposalInput,
@@ -77,7 +78,6 @@ import type { VerifiedAccessToken } from "./token-verifier";
 import { unauthorizedHtmlResponse } from "./pages";
 import type { PasskeySetupRequired } from "./setup-flow";
 import type {
-  A2APrivateJwk,
   AuthorizationServerMetadata,
   JwksResponse,
   ProtectedResourceMetadata,
@@ -89,10 +89,7 @@ export type { PasskeySetupRequired } from "./setup-flow";
 
 const DEFAULT_ANCHOR_PROFILE_ENTITY_ID = "anchor-profile/anchor-profile";
 
-export interface A2ASigningKey {
-  privateJwk: A2APrivateJwk;
-  keyId: string;
-}
+export type { A2ASigningKey } from "./capabilities";
 
 export interface AuthServiceOptions {
   /** Runtime auth storage directory. Must not be the content/brain-data directory. */
@@ -143,7 +140,9 @@ export interface AuthServiceOptions {
   logger?: Logger;
 }
 
-export class AuthService implements AuthAdministration {
+export class AuthService
+  implements AuthAdministration, AuthCaller, AuthFederation
+{
   private readonly issuer: string;
   private readonly runtime: AuthRuntime;
   private readonly requestRouter: AuthRequestRouter;

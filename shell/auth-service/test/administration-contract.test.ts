@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { AuthService } from "../src/auth-service";
 import type { AuthAdministration } from "../src/administration";
+import type {
+  AuthAudit,
+  AuthCaller,
+  AuthFederation,
+} from "../src/capabilities";
 
 /**
  * The administration contract is the measured surface `@brains/admin` calls,
@@ -61,5 +66,25 @@ describe("auth administration contract", () => {
       CONTRACT_METHODS.map((method) => [method, true]),
     ) as Record<keyof AuthAdministration, true>;
     expect(Object.keys(covered)).toHaveLength(CONTRACT_METHODS.length);
+  });
+});
+
+describe("auth capability contracts", () => {
+  it("are satisfied by AuthService", () => {
+    // Type-only: if the class and any capability drift apart, these stop
+    // compiling.
+    const asCaller = (service: AuthService): AuthCaller => service;
+    const asAudit = (service: AuthService): AuthAudit => service;
+    const asFederation = (service: AuthService): AuthFederation => service;
+    expect(typeof asCaller).toBe("function");
+    expect(typeof asAudit).toBe("function");
+    expect(typeof asFederation).toBe("function");
+  });
+
+  it("give administration the same audit surface studio writes through", () => {
+    // AuthAdministration extends AuthAudit, so the two consumers of audit
+    // share one definition rather than drifting copies.
+    const widen = (admin: AuthAdministration): AuthAudit => admin;
+    expect(typeof widen).toBe("function");
   });
 });

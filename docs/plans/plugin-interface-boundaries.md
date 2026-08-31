@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1, 2 and 3 done; **2 of 28 packages converted** (`@brains/email`,
+Phases 1 through 4 done; **2 of 28 packages converted** (`@brains/email`,
 `@brains/notifications`).
 
 The count has been wrong three times, each time because it was taken from
@@ -270,9 +270,23 @@ made the entity tranche find real defects rather than move code.
    contract lives in `@brains/contracts`), which the SDK's new type-only
    auth-service edge turned into a package cycle. Removed.
 
-   Still open in this phase: the caller capability (`resolveSession`,
-   `resolveBearerGrant`, `createAuthLoginResponse`), audit for studio, and
-   issuer for a2a — in that order.
+   The other three shipped the same way. `AuthCaller` — who a request is
+   from: session, bearer grant, or the login response for a request carrying
+   neither. `AuthAudit` — record and query as one surface, and
+   `AuthAdministration extends AuthAudit` so what studio records and what
+   administration queries cannot drift apart. `AuthFederation` — the issuer
+   this brain speaks as, recorded peer trust, and the signing key; measuring
+   a2a also turned up `getA2ASigningKey`, which the original seven-consumer
+   audit missed. The pure issuer helpers stay free functions. All are
+   implemented nominally by `AuthService`, covered by conformance tests, and
+   published type-only as advanced-with-consumer — caller and audit on the
+   services entry for dashboard and studio, caller, federation and the
+   helpers on the interfaces entry for web-chat, mcp, chat and a2a.
+
+   **Phase 4 is done.** Consumers still reach the instance through
+   `getActiveAuthService`; retiring that ambient accessor for a granted
+   context capability belongs to each package's own conversion in phase 6,
+   where the contract each one compiles against is now already named.
 
 5. **Decide the shared libraries.** `console-theme`, `site-composition`,
    `content-formatters`, `image`: publishable beside the SDK, or replaced.

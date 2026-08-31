@@ -13,12 +13,7 @@ import type {
   AuthInvitationSummary,
   AuthSetupDeliveryInput,
 } from "./admin-contracts";
-import type {
-  AppendAuthAuditEventInput,
-  AuthAuditEvent,
-  AuthAuditQuery,
-  AuthAuditQueryResult,
-} from "./audit-store";
+import type { AuthAudit } from "./capabilities";
 import type {
   AttachAuthIdentityInput,
   AuthIdentityRecord,
@@ -49,7 +44,7 @@ import type { AuthUserRole, AuthUserStatus } from "./user-store";
  *
  * Named consumer: @brains/admin.
  */
-export interface AuthAdministration {
+export interface AuthAdministration extends AuthAudit {
   /** Who this request is from, or undefined when it carries no session. */
   resolveSession(request: Request): Promise<AuthPrincipal | undefined>;
 
@@ -129,7 +124,6 @@ export interface AuthAdministration {
     delivery?: AuthSetupDeliveryInput,
   ): Promise<UserPasskeyRegistration>;
 
-  // Audit
-  recordAuditEvent(input: AppendAuthAuditEventInput): Promise<AuthAuditEvent>;
-  queryAuditEvents(query: AuthAuditQuery): Promise<AuthAuditQueryResult>;
+  // Audit comes from AuthAudit: what administration queries is exactly what
+  // studio records, one definition rather than drifting copies.
 }
