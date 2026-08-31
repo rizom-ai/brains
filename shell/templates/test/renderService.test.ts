@@ -42,16 +42,18 @@ describe("RenderService", () => {
     expect(retrieved?.renderers.web).toBeDefined();
   });
 
-  test("should pass runtimeScripts and staticAssets through to the view template", () => {
+  test("should pass renderer metadata through to the view template", () => {
     const scriptedTemplate: Template = {
       ...testTemplate,
       name: "test-plugin:scripted",
+      renderVersion: "map-v2",
       runtimeScripts: [{ src: "/scripts/map.js", defer: true }],
       staticAssets: { "/scripts/map.js": "(function(){/* map */})();" },
     };
     templateRegistry.register(scriptedTemplate.name, scriptedTemplate);
 
     const retrieved = renderService.get("test-plugin:scripted");
+    expect(retrieved?.renderVersion).toBe("map-v2");
     expect(retrieved?.runtimeScripts).toEqual([
       { src: "/scripts/map.js", defer: true },
     ]);
