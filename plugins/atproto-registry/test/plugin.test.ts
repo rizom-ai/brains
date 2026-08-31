@@ -4,13 +4,16 @@ import {
   listCanonicalAtprotoLexiconMetadata,
   listCanonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import { atprotoRegistryPlugin, plugin } from "../src";
+import type { WebRouteDefinition } from "@brains/plugins";
+import { atprotoRegistryPlugin } from "./helpers/install";
 
-async function jsonFromRoute(
-  route: NonNullable<
-    ReturnType<ReturnType<typeof atprotoRegistryPlugin>["getWebRoutes"]>[number]
-  >,
-): Promise<unknown> {
+function webRoutes(
+  registry: ReturnType<typeof atprotoRegistryPlugin>,
+): WebRouteDefinition[] {
+  return registry.getWebRoutes?.() ?? [];
+}
+
+async function jsonFromRoute(route: WebRouteDefinition): Promise<unknown> {
   const response = await route.handler(
     new Request(`https://rizom.ai${route.path}`),
   );
@@ -22,15 +25,13 @@ async function jsonFromRoute(
 }
 
 describe("atproto registry plugin", () => {
-  it("exports a conventional external plugin factory", () => {
-    expect(plugin).toBe(atprotoRegistryPlugin);
-  });
-
   it("serves an index for every canonical Rizom ATProto lexicon", async () => {
+    const harness = createPluginHarness();
     const registry = atprotoRegistryPlugin();
-    const indexRoute = registry
-      .getWebRoutes()
-      .find((route) => route.path === "/atproto/lexicons/index.json");
+    await harness.installPlugin(registry);
+    const indexRoute = webRoutes(registry).find(
+      (route) => route.path === "/atproto/lexicons/index.json",
+    );
 
     expect(indexRoute).toBeDefined();
     if (!indexRoute) throw new Error("Missing registry index route");
@@ -63,8 +64,10 @@ describe("atproto registry plugin", () => {
   });
 
   it("serves canonical lexicon JSON by NSID", async () => {
+    const harness = createPluginHarness();
     const registry = atprotoRegistryPlugin();
-    const routes = registry.getWebRoutes();
+    await harness.installPlugin(registry);
+    const routes = webRoutes(registry);
 
     for (const lexicon of listCanonicalAtprotoLexicons()) {
       const route = routes.find(
@@ -77,16 +80,16 @@ describe("atproto registry plugin", () => {
     }
   });
 
-  it("does not expose unknown NSID routes", () => {
+  it("does not expose unknown NSID routes", async () => {
+    const harness = createPluginHarness();
     const registry = atprotoRegistryPlugin();
+    await harness.installPlugin(registry);
 
     expect(
-      registry
-        .getWebRoutes()
-        .some(
-          (route) =>
-            route.path === "/atproto/lexicons/ai.rizom.brain.unknown.json",
-        ),
+      webRoutes(registry).some(
+        (route) =>
+          route.path === "/atproto/lexicons/ai.rizom.brain.unknown.json",
+      ),
     ).toBe(false);
   });
 
@@ -98,7 +101,7 @@ describe("atproto registry plugin", () => {
     const tool = harness
       .getCapabilities()
       .tools.find(
-        (candidate) => candidate.name === "atproto-registry_check_contracts",
+        (candidate) => candidate.name === "atproto-registry_check-contracts",
       );
     expect(tool).toBeDefined();
     if (!tool) throw new Error("Missing check contracts tool");

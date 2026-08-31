@@ -457,6 +457,7 @@
         "defineDashboardWidget",
         "defineEntityCatalog",
         "defineJob",
+        "defineRoute",
         "defineServicePlugin",
         "defineStudioWorkspace",
         "defineSubscription",

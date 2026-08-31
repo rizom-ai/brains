@@ -1,3 +1,4 @@
+import type { UserPermissionLevel } from "@brains/templates";
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type {
@@ -95,6 +96,15 @@ export interface IServiceRuntimePermissionsNamespace {
   getConfiguredPrincipalSeeds(): ConfiguredPrincipalSeeds;
   /** Replace exact-principal runtime projection after loading auth.db. */
   replaceRuntimePrincipalState(state: RuntimeInterfacePrincipalState): void;
+  /**
+   * Permission level for a user on this declaration.
+   *
+   * A service that serves an authenticated route resolves its caller exactly
+   * the way an interface does — one permission service answers both. Named
+   * consumer: declarative service routes.
+   */
+  getUserLevel(declarationId: string, userId: string): UserPermissionLevel;
+  isAnchor(declarationId: string, userId: string): boolean;
 }
 
 export type ServiceEntityService = EntityServiceClient;
@@ -175,6 +185,10 @@ export function createServicePluginContext(
         permissionService.getConfiguredPrincipalSeeds(),
       replaceRuntimePrincipalState: (state): void =>
         permissionService.replaceRuntimePrincipalState(state),
+      getUserLevel: (declarationId, userId): UserPermissionLevel =>
+        permissionService.determineUserLevel(declarationId, userId),
+      isAnchor: (declarationId, userId): boolean =>
+        permissionService.isAnchor(declarationId, userId),
     },
 
     entityService,

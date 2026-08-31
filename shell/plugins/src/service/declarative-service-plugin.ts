@@ -43,6 +43,11 @@ import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { createEvalFixtures } from "../entity/eval-fixtures";
 import { createReactionContext } from "./reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
+import {
+  createRuntimeRoute,
+  type RoutePermissions,
+} from "../interface/route-runtime";
+import type { WebRouteDefinition } from "../types/web-routes";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
 import type {
@@ -242,6 +247,38 @@ class DeclarativeServicePlugin<
   /** Plugin ids this service registers after; the runtime orders by these. */
   public readonly dependencies?: string[];
 
+  private routePermissions: RoutePermissions | undefined;
+
+  public override getWebRoutes(): WebRouteDefinition[] {
+    // Routes are a function of config alone, so composition tooling can
+    // enumerate them from an uninstantiated definition. A protocol route's
+    // permission lookup resolves at request time, when registration has
+    // supplied it — an unregistered plugin can say what it serves, but not
+    // yet serve it.
+    const routeDefinitions =
+      this.definition.routes?.({ config: this.config }) ?? [];
+    return routeDefinitions.map((route) =>
+      createRuntimeRoute(route, {
+        declarationId: this.definition.id,
+        permissions: {
+          getUserLevel: (declarationId, userId) =>
+            this.requireRoutePermissions().getUserLevel(declarationId, userId),
+          isAnchor: (declarationId, userId) =>
+            this.requireRoutePermissions().isAnchor(declarationId, userId),
+        },
+      }),
+    );
+  }
+
+  private requireRoutePermissions(): RoutePermissions {
+    if (!this.routePermissions) {
+      throw new Error(
+        `Service "${this.publicId}" cannot resolve a route caller before registration`,
+      );
+    }
+    return this.routePermissions;
+  }
+
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
@@ -344,6 +381,8 @@ class DeclarativeServicePlugin<
           logger: this.logger,
         })
       : (Object.freeze({}) as TState);
+
+    this.routePermissions = context.permissions;
 
     const subscriptions =
       this.definition.subscriptions?.({

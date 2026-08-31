@@ -17,7 +17,7 @@ import { agentDiscovery } from "@brains/agent-discovery";
 import { analyticsPlugin } from "@brains/analytics";
 import assessmentPackage from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
-import { atprotoRegistryPlugin } from "@brains/atproto-registry";
+import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
 import { ChatInterface, chatConfigFromEnv } from "@brains/chat";
@@ -163,7 +163,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         initialSync: true,
       },
     ],
-    ["atproto-registry", atprotoRegistryPlugin, undefined],
+    packageCapability(
+      "atproto-registry",
+      "@brains/atproto-registry",
+      atprotoRegistryPackage,
+    ),
     packageCapability("agents", "@brains/agent-discovery", agentDiscovery),
     packageCapability("assessment", "@brains/assessment", assessmentPackage),
     ["auth-service", authServicePlugin, undefined],

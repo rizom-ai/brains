@@ -2,6 +2,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import type { AnyInterfaceRouteDefinition } from "../interface/route-contract";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 
 /**
@@ -443,6 +444,24 @@ interface ServiceDefinitionCore<
    * reach past its context for `messaging.subscribe` to answer one.
    * Named consumer: @brains/notifications.
    */
+  /**
+   * HTTP routes this service serves.
+   *
+   * The same vocabulary interfaces declare — `defineRoute`, with its
+   * security, body and response validation — because a route is a route
+   * whichever family declares it. The registry publishing canonical lexicon
+   * JSON and the dashboard serving operator pages are services with routes,
+   * not interfaces. Named consumer: @brains/atproto-registry.
+   */
+  readonly routes?:
+    | ((context: {
+        // Config alone, deliberately: composition tooling enumerates routes
+        // from an uninstantiated definition to answer "what does this brain
+        // serve", and state does not exist until registration. A route whose
+        // behaviour needs state closes over it; its existence may not.
+        readonly config: z.output<TConfigSchema>;
+      }) => readonly AnyInterfaceRouteDefinition[])
+    | undefined;
   /**
    * Entities that should exist before anyone authors them — including
    * another package's types.

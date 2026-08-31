@@ -121,7 +121,9 @@ describe("canonical professional posture", () => {
       doubleOptIn: true,
     });
     expect(pluginIds(resolved)).toContain("atproto");
-    expect(pluginIds(resolved)).toContain("atproto-registry");
+    expect(pluginIds(resolved)).toContain(
+      "@brains/atproto-registry:atproto-registry",
+    );
   });
 
   test("preserves the base professional plugin under local site overrides", () => {

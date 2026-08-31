@@ -1,4 +1,3 @@
-import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
@@ -9,18 +8,14 @@ import {
 } from "../package-definition";
 import type {
   AnyInterfaceRouteDefinition,
-  InterfaceCaller,
   InterfaceDefinitionInput,
   InterfaceJobs,
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
-import {
-  jsonError,
-  jsonResponse,
-  type WebRouteDefinition,
-} from "../types/web-routes";
+import type { WebRouteDefinition } from "../types/web-routes";
 import { createDeclarativeDaemon } from "./declarative-daemon";
+import { createRuntimeRoute } from "./route-runtime";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
 
@@ -146,57 +141,9 @@ class DeclarativeInterfacePlugin<
     definition: AnyInterfaceRouteDefinition,
     context: InterfacePluginContext,
   ): WebRouteDefinition {
-    return {
-      method: definition.method,
-      path: definition.path,
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const caller = await this.resolveCaller(definition, request, context);
-        if (definition.security.kind === "protocol" && !caller) {
-          return jsonError("Unauthorized", 401);
-        }
-
-        let body: unknown;
-        if (definition.body) {
-          let payload: unknown;
-          try {
-            payload = await request.json();
-          } catch {
-            return jsonError("Request body must be valid JSON", 400);
-          }
-          const parsed = definition.body.safeParse(payload);
-          if (!parsed.success) {
-            return jsonError("Request body is invalid", 400);
-          }
-          body = parsed.data;
-        }
-
-        const output = await definition.handle({
-          request,
-          body,
-          caller,
-        });
-        return jsonResponse(definition.response.parse(output));
-      },
-    };
-  }
-
-  private async resolveCaller(
-    definition: AnyInterfaceRouteDefinition,
-    request: Request,
-    context: InterfacePluginContext,
-  ): Promise<InterfaceCaller | null> {
-    if (definition.security.kind === "public") return null;
-    const actor = await definition.security.authenticate({ request });
-    if (!actor?.id.trim()) return null;
-    const permission: UserPermissionLevel = context.permissions.getUserLevel(
-      this.definition.id,
-      actor.id,
-    );
-    return Object.freeze({
-      actor: Object.freeze({ ...actor }),
-      permission,
-      isAnchor: context.permissions.isAnchor(this.definition.id, actor.id),
+    return createRuntimeRoute(definition, {
+      declarationId: this.definition.id,
+      permissions: context.permissions,
     });
   }
 }

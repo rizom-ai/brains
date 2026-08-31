@@ -6,6 +6,7 @@ export {
   defineDashboardWidget,
   defineEntityCatalog,
   defineJob,
+  defineRoute,
   defineServicePlugin,
   defineSubscription,
   defineTool,

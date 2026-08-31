@@ -1,5 +1,10 @@
-import type { Tool, WebRouteDefinition } from "@brains/plugins";
-import { ServicePlugin, createTool, jsonResponse } from "@brains/plugins";
+import {
+  defineRoute,
+  defineServicePlugin,
+  defineTool,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import {
   getCanonicalAtprotoLexicon,
   listCanonicalAtprotoLexiconMetadata,
@@ -10,8 +15,6 @@ import type {
   AtprotoLexicon,
   AtprotoLexiconMetadata,
 } from "@brains/atproto-contracts";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface AtprotoRegistryConfig {
@@ -39,121 +42,128 @@ export interface AtprotoLexiconRegistryIndex {
 
 const BASE_PATH = "/atproto/lexicons";
 
-export class AtprotoRegistryPlugin extends ServicePlugin<
-  AtprotoRegistryConfig,
-  AtprotoRegistryConfigInput
-> {
-  constructor(config: AtprotoRegistryConfigInput = {}) {
-    super("atproto-registry", packageJson, config, atprotoRegistryConfigSchema);
-  }
+export function getIndex(): AtprotoLexiconRegistryIndex {
+  return {
+    lexicons: listCanonicalAtprotoLexiconMetadata().map((metadata) => ({
+      ...metadata,
+      path: `${BASE_PATH}/${metadata.id}.json`,
+    })),
+  };
+}
 
-  override getWebRoutes(): WebRouteDefinition[] {
-    if (!this.config.enabled) return [];
+export function getLexicon(id: string): AtprotoLexicon | undefined {
+  return getCanonicalAtprotoLexicon(id);
+}
 
-    return [
-      {
-        path: `${BASE_PATH}/index.json`,
-        method: "GET",
-        public: true,
-        handler: (): Response => jsonResponse(this.getIndex()),
-      },
-      ...listCanonicalAtprotoLexicons().map((lexicon): WebRouteDefinition => ({
-        path: `${BASE_PATH}/${lexicon.id}.json`,
-        method: "GET",
-        public: true,
-        handler: (): Response => jsonResponse(lexicon),
-      })),
-    ];
-  }
+// Responses are canonical documents whose vocabulary the contracts package
+// owns; re-describing them in zod here would be a second source of truth
+// waiting to drift. The schemas are typed tripwires: they assert the
+// invariant that matters and keep the contract types exact.
+const indexResponseSchema: z.ZodType<AtprotoLexiconRegistryIndex> =
+  z.custom<AtprotoLexiconRegistryIndex>(
+    (value) =>
+      typeof value === "object" &&
+      value !== null &&
+      Array.isArray((value as { lexicons?: unknown }).lexicons),
+    { message: "Expected a lexicon registry index" },
+  );
+const lexiconResponseSchema: z.ZodType<AtprotoLexicon> =
+  z.custom<AtprotoLexicon>(
+    (value) =>
+      typeof value === "object" &&
+      value !== null &&
+      typeof (value as { id?: unknown }).id === "string",
+    { message: "Expected a canonical lexicon document" },
+  );
+const metadataListSchema: z.ZodType<AtprotoLexiconMetadata[]> = z.custom<
+  AtprotoLexiconMetadata[]
+>((value) => Array.isArray(value), {
+  message: "Expected lexicon metadata",
+});
 
-  getIndex(): AtprotoLexiconRegistryIndex {
-    return {
-      lexicons: listCanonicalAtprotoLexiconMetadata().map((metadata) => ({
-        ...metadata,
-        path: `${BASE_PATH}/${metadata.id}.json`,
-      })),
-    };
-  }
+const atprotoRegistryPackage: ServicePackageDefinition<
+  typeof atprotoRegistryConfigSchema
+> = defineServicePlugin({
+  id: "atproto-registry",
+  config: atprotoRegistryConfigSchema,
 
-  getLexicon(id: string): AtprotoLexicon | undefined {
-    return getCanonicalAtprotoLexicon(id);
-  }
+  routes: ({ config }) =>
+    config.enabled
+      ? [
+          defineRoute({
+            method: "GET",
+            path: `${BASE_PATH}/index.json`,
+            security: { kind: "public" },
+            response: indexResponseSchema,
+            handle: () => getIndex(),
+          }),
+          ...listCanonicalAtprotoLexicons().map((lexicon) =>
+            defineRoute({
+              method: "GET",
+              path: `${BASE_PATH}/${lexicon.id}.json`,
+              security: { kind: "public" },
+              response: lexiconResponseSchema,
+              handle: () => lexicon,
+            }),
+          ),
+        ]
+      : [],
 
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      this.createListLexiconsTool(),
-      this.createValidateLexiconTool(),
-      this.createCheckContractsTool(),
-    ];
-  }
-
-  private createListLexiconsTool(): Tool {
-    return createTool(
-      this.id,
-      "list_lexicons",
-      "List canonical Rizom AT Protocol lexicons.",
-      z.object({}),
-      async () => ({ success: true, data: this.getIndex() }),
-    );
-  }
-
-  private createValidateLexiconTool(): Tool {
-    return createTool(
-      this.id,
-      "validate_lexicon",
-      "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
-      z.strictObject({
+  tools: () => [
+    defineTool({
+      name: "list-lexicons",
+      description: "List canonical Rizom AT Protocol lexicons.",
+      input: z.object({}),
+      output: indexResponseSchema,
+      execute: async () => getIndex(),
+    }),
+    defineTool({
+      name: "validate-lexicon",
+      description:
+        "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
+      input: z.strictObject({
         nsid: z.string().describe("Canonical lexicon NSID"),
         record: z
           .record(z.string(), z.unknown())
           .describe("Record payload to validate"),
       }),
-      async (input) => {
-        const lexicon = this.getLexicon(input.nsid);
+      output: z.object({
+        valid: z.boolean(),
+        error: z.string().optional(),
+      }),
+      execute: async ({ input }) => {
+        const lexicon = getLexicon(input.nsid);
         if (!lexicon) {
-          return {
-            success: false,
-            error: `Unknown AT Protocol lexicon: ${input.nsid}`,
-          };
+          throw new Error(`Unknown AT Protocol lexicon: ${input.nsid}`);
         }
-
-        let data: { valid: boolean; error?: string };
         try {
           validateAtprotoRecord(lexicon, input.record);
-          data = { valid: true };
+          return { valid: true };
         } catch (error) {
-          data = {
+          return {
             valid: false,
             error: getErrorMessage(error, "Invalid record"),
           };
         }
-        return { success: true, data };
       },
-    );
-  }
-
-  private createCheckContractsTool(): Tool {
-    return createTool(
-      this.id,
-      "check_contracts",
-      "Check that canonical Rizom AT Protocol lexicon contracts are available.",
-      z.object({}),
-      async () => ({
-        success: true,
-        data: {
-          lexiconCount: listCanonicalAtprotoLexicons().length,
-          nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
-          metadata: listCanonicalAtprotoLexiconMetadata(),
-        },
+    }),
+    defineTool({
+      name: "check-contracts",
+      description:
+        "Check that canonical Rizom AT Protocol lexicon contracts are available.",
+      input: z.object({}),
+      output: z.object({
+        lexiconCount: z.number(),
+        nsids: z.array(z.string()),
+        metadata: metadataListSchema,
       }),
-    );
-  }
-}
+      execute: async () => ({
+        lexiconCount: listCanonicalAtprotoLexicons().length,
+        nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
+        metadata: listCanonicalAtprotoLexiconMetadata(),
+      }),
+    }),
+  ],
+});
 
-export function atprotoRegistryPlugin(
-  config: AtprotoRegistryConfigInput = {},
-): AtprotoRegistryPlugin {
-  return new AtprotoRegistryPlugin(config);
-}
-
-export const plugin: typeof atprotoRegistryPlugin = atprotoRegistryPlugin;
+export default atprotoRegistryPackage;

@@ -208,6 +208,7 @@ Definitions and schema vocabulary:
 - `defineDashboardWidget`
 - `defineEntityCatalog`
 - `defineJob`
+- `defineRoute`
 - `defineServicePlugin`
 - `defineSubscription`
 - `defineTool`
