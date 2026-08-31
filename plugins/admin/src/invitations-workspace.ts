@@ -23,6 +23,25 @@ import {
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
 
+function titleCase(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
+function invitationTone(state: string): "good" | "warn" | "neutral" | "error" {
+  switch (state) {
+    case "claimed":
+    case "sent":
+      return "good";
+    case "failed":
+      return "error";
+    case "expired":
+    case "cancelled":
+      return "warn";
+    default:
+      return "neutral";
+  }
+}
+
 const invitationQuerySchema = z.strictObject({
   state: z.enum(["pending", "history"]).optional().default("pending"),
   offset: z
@@ -367,6 +386,21 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           state: invitation.state,
           destination: invitation.destination,
           updated: formatWorkspaceDate(invitation.updatedAt),
+        },
+        compact: {
+          title: invitation.displayName,
+          metadata: [
+            titleCase(invitation.role),
+            invitation.destination,
+            formatWorkspaceDate(invitation.updatedAt),
+          ],
+          badges: [
+            {
+              label: titleCase(invitation.state),
+              tone: invitationTone(invitation.state),
+            },
+          ],
+          tone: invitationTone(invitation.state),
         },
         actions: TERMINAL_INVITATION_STATES.has(invitation.state)
           ? []

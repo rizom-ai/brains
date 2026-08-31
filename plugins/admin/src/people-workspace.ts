@@ -359,6 +359,10 @@ function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
+function signInSummary(passkeys: number, channels: number): string {
+  return `${passkeys} ${passkeys === 1 ? "passkey" : "passkeys"} · ${channels} ${channels === 1 ? "channel" : "channels"}`;
+}
+
 function defaultAnchor(
   displayName: string,
   administeredBy: number,
@@ -535,6 +539,10 @@ const peopleWorkspace = defineStudioWorkspace({
                 kind: passkey.kind,
                 created: formatWorkspaceDate(passkey.createdAt),
               },
+              compact: {
+                title: passkey.kind,
+                metadata: [`Added ${formatWorkspaceDate(passkey.createdAt)}`],
+              },
               actions:
                 selected.status === "active" && !selected.isSelf
                   ? [
@@ -580,6 +588,16 @@ const peopleWorkspace = defineStudioWorkspace({
                 channel: identity.displayName,
                 identity: identity.label,
                 assurance: identity.verified ? "Verified" : "Asserted",
+              },
+              compact: {
+                title: identity.label,
+                metadata: [identity.displayName],
+                badges: [
+                  {
+                    label: identity.verified ? "Verified" : "Asserted",
+                    tone: identity.verified ? "good" : "neutral",
+                  },
+                ],
               },
               actions: [
                 {
@@ -674,7 +692,25 @@ const peopleWorkspace = defineStudioWorkspace({
               role: titleCase(person.role),
               status: titleCase(person.status),
               brain: peerOriginLabel(person.peers[0]?.peerId),
-              signIn: `${person.passkeys.length} passkeys · ${person.identities.length} channels`,
+              signIn: signInSummary(
+                person.passkeys.length,
+                person.identities.length,
+              ),
+            },
+            compact: {
+              title: person.displayName,
+              metadata: [
+                titleCase(person.role),
+                peerOriginLabel(person.peers[0]?.peerId),
+                signInSummary(person.passkeys.length, person.identities.length),
+              ],
+              badges: [
+                {
+                  label: titleCase(person.status),
+                  tone: person.status === "active" ? "good" : "warn",
+                },
+              ],
+              tone: person.status === "suspended" ? "warn" : "neutral",
             },
             link: { detail: { itemId: person.userId } },
           })),

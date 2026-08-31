@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted; Phases 0 through 2 are complete, and Phase 3 is next.** The
+**Accepted; Phases 0 through 3 are complete, and Phase 4 is next.** The
 second-iteration desktop and phone mockups are the implementation baseline.
 This is the implementation successor to
 [`studio-ux-research.md`](./studio-ux-research.md). It changes Studio's visual
@@ -159,6 +159,13 @@ with no capability or URL-state regression.
 
 Exit condition: 390px baselines contain no clipped table cells or unreachable
 workspace chips, and keyboard navigation still reaches every row and control.
+
+Implemented inventory: People roster, person passkeys and channels, peer
+relationships, Invitations, Audit, and Site routes now declare compact rows.
+These are all built-in Studio table consumers. Dashboard's declarative table
+fixture and Obsidian `.base` generation are not Studio collections. External
+or future unannotated rows keep the bounded horizontal-scroll fallback instead
+of receiving inferred semantics.
 
 ### Phase 4 — Primary actions and fixed surfaces
 

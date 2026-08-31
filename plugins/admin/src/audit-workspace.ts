@@ -157,7 +157,6 @@ const studioAuditWorkspace = defineStudioWorkspace({
         offset: data.query.offset,
         limit: data.query.limit,
         total: data.total,
-        label: "events",
       },
     };
     const blocks: AuditViewBlock[] = [
@@ -214,6 +213,14 @@ const studioAuditWorkspace = defineStudioWorkspace({
               actor: actorName(event.actorUserId, namesById),
               action: actionLabel(event.action),
               target: targetName(event, namesById),
+            },
+            compact: {
+              title: actionLabel(event.action),
+              metadata: [
+                actorName(event.actorUserId, namesById),
+                targetName(event, namesById),
+              ],
+              badges: [{ label: formatWorkspaceDate(event.createdAt) }],
             },
             link: { detail: { itemId: event.id } },
           })),

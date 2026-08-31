@@ -106,6 +106,11 @@ describe("Administration Audit tab", () => {
               action: "Changed an account role",
               target: "Tess Trusted",
             },
+            compact: {
+              title: "Changed an account role",
+              metadata: ["Ada Admin", "Tess Trusted"],
+              badges: [{ label: expect.any(String) }],
+            },
           },
         ],
       },

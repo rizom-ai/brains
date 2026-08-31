@@ -251,6 +251,13 @@ describe("Administration Invitations tab", () => {
     const pending = await workspace.dataProvider(actor);
     expect(JSON.stringify(pending)).not.toContain(setupUrl);
     expect(findById(pending, "invitations")).toMatchObject({ type: "table" });
+    expect(findRowForPerson(pending, "Grace Hopper")).toMatchObject({
+      compact: {
+        title: "Grace Hopper",
+        metadata: ["Trusted", "Grace", expect.any(String)],
+        badges: [{ label: expect.any(String) }],
+      },
+    });
     const confirm = findAction(pending, "Confirm delivered");
     expect(confirm).toBeDefined();
     await workspace.actionHandler?.(actionRequest(confirm), actor);

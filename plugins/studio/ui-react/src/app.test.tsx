@@ -139,6 +139,19 @@ describe("editor surface styles", () => {
     expect(styles).not.toContain(".pipeline .reload");
   });
 
+  it("keeps phone Studio to two chrome bars with an accessible fading workspace rail", () => {
+    expect(responsiveStyles).toContain('body[data-console-host="studio"]');
+    expect(responsiveStyles).toContain(
+      'grid-template-areas: "nav command climate session"',
+    );
+    expect(responsiveStyles).toMatch(
+      /\.studio > \.crumbbar \{[^}]*display: none/,
+    );
+    expect(responsiveStyles).toContain("mask-image: linear-gradient");
+    expect(responsiveStyles).toContain("scroll-padding-inline");
+    expect(responsiveStyles).toContain("env(safe-area-inset-top)");
+  });
+
   it("centers the pill type switcher and keeps row meta on the title line", () => {
     // The desktop rail aligns type rows to the baseline; the 44px mobile
     // pills must center their label instead of pinning it to the top edge.

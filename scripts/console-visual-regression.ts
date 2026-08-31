@@ -284,6 +284,15 @@ const administrationWorkspaceData = {
                         status: "Active",
                         brain: "This brain",
                       },
+                      compact: {
+                        title: "Mira Reyes",
+                        metadata: [
+                          "Admin",
+                          "This brain",
+                          "2 passkeys · 1 channel",
+                        ],
+                        badges: [{ label: "Active", tone: "good" }],
+                      },
                       link: { kind: "detail", itemId: "mira" },
                     },
                     {
@@ -294,6 +303,15 @@ const administrationWorkspaceData = {
                         status: "Active",
                         brain: "grace.example",
                       },
+                      compact: {
+                        title: "Grace Hopper",
+                        metadata: [
+                          "Trusted",
+                          "grace.example",
+                          "1 passkey · 2 channels",
+                        ],
+                        badges: [{ label: "Active", tone: "good" }],
+                      },
                       link: { kind: "detail", itemId: "grace" },
                     },
                     {
@@ -303,6 +321,16 @@ const administrationWorkspaceData = {
                         role: "Public",
                         status: "Suspended",
                         brain: "This brain",
+                      },
+                      compact: {
+                        title: "Sam Lee",
+                        metadata: [
+                          "Public",
+                          "This brain",
+                          "0 passkeys · 1 channel",
+                        ],
+                        badges: [{ label: "Suspended", tone: "warn" }],
+                        tone: "warn",
                       },
                       link: { kind: "detail", itemId: "sam" },
                     },
@@ -337,6 +365,15 @@ const administrationWorkspaceData = {
                               person: "Grace Hopper",
                               verification: "Verified",
                               linked: "Aug 12, 2026",
+                            },
+                            compact: {
+                              title: "grace.example",
+                              metadata: [
+                                "Grace Hopper",
+                                "Trusted",
+                                "Aug 12, 2026",
+                              ],
+                              badges: [{ label: "Verified", tone: "good" }],
                             },
                           },
                         ],
@@ -478,6 +515,15 @@ const administrationInvitationsWorkspaceData = {
                           destination: "jordan@example.com",
                           updated: "Aug 26, 2026",
                         },
+                        compact: {
+                          title: "Jordan Rivera",
+                          metadata: [
+                            "Trusted",
+                            "jordan@example.com",
+                            "Aug 26, 2026",
+                          ],
+                          badges: [{ label: "Pending", tone: "neutral" }],
+                        },
                         actions: [
                           {
                             actionId: "resend-invitation",
@@ -583,6 +629,142 @@ const administrationInvitationsWorkspaceData = {
             id: "audit",
             label: "Audit",
             blocks: [{ type: "text", text: "Audit loads on selection." }],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const administrationAuditWorkspaceData = {
+  view: {
+    kicker: "Security history",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    blocks: [
+      {
+        type: "stats",
+        id: "audit-totals",
+        items: [
+          { label: "Matching", value: 212 },
+          { label: "Actors", value: 4 },
+        ],
+      },
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: "audit",
+        queryKey: "tab",
+        tabs: [
+          {
+            id: "people",
+            label: "People",
+            blocks: [{ type: "text", text: "People load on selection." }],
+          },
+          {
+            id: "invitations",
+            label: "Invitations",
+            count: 1,
+            blocks: [{ type: "text", text: "Invitations load on selection." }],
+          },
+          {
+            id: "audit",
+            label: "Audit",
+            blocks: [
+              {
+                type: "detail",
+                id: "audit-detail",
+                queryKey: "selected",
+                empty: "Select an event to inspect its audit record.",
+                master: {
+                  type: "table",
+                  id: "audit-events",
+                  empty: "No audit events match these filters.",
+                  query: {
+                    controls: [
+                      {
+                        key: "actorUserId",
+                        label: "Actor",
+                        allLabel: "All actors",
+                        options: [
+                          { value: "mira", label: "Mira Reyes" },
+                          { value: "system", label: "System" },
+                        ],
+                      },
+                      {
+                        key: "action",
+                        label: "Action",
+                        allLabel: "All actions",
+                        options: [
+                          { value: "role", label: "Changed an account role" },
+                          { value: "setup", label: "Created a setup link" },
+                        ],
+                      },
+                    ],
+                    pagination: {
+                      offset: 0,
+                      limit: 25,
+                      total: 212,
+                    },
+                  },
+                  columns: [
+                    { key: "when", label: "When" },
+                    { key: "actor", label: "Actor" },
+                    { key: "action", label: "Action" },
+                    { key: "target", label: "Target" },
+                  ],
+                  rows: [
+                    {
+                      id: "audit-1",
+                      cells: {
+                        when: "Aug 30, 2026",
+                        actor: "Mira Reyes",
+                        action: "Changed an account role",
+                        target: "Grace Hopper",
+                      },
+                      compact: {
+                        title: "Changed an account role",
+                        metadata: ["Mira Reyes", "Grace Hopper"],
+                        badges: [{ label: "Aug 30, 2026" }],
+                      },
+                      link: { kind: "detail", itemId: "audit-1" },
+                    },
+                    {
+                      id: "audit-2",
+                      cells: {
+                        when: "Aug 29, 2026",
+                        actor: "System",
+                        action: "Created a setup link",
+                        target: "Jordan Rivera",
+                      },
+                      compact: {
+                        title: "Created a setup link",
+                        metadata: ["System", "Jordan Rivera"],
+                        badges: [{ label: "Aug 29, 2026" }],
+                      },
+                      link: { kind: "detail", itemId: "audit-2" },
+                    },
+                    {
+                      id: "audit-3",
+                      cells: {
+                        when: "Aug 28, 2026",
+                        actor: "Mira Reyes",
+                        action: "Revoked account grants",
+                        target: "Sam Lee",
+                      },
+                      compact: {
+                        title: "Revoked account grants",
+                        metadata: ["Mira Reyes", "Sam Lee"],
+                        badges: [{ label: "Aug 28, 2026" }],
+                      },
+                      link: { kind: "detail", itemId: "audit-3" },
+                    },
+                  ],
+                },
+              },
+            ],
           },
         ],
       },
@@ -1568,6 +1750,59 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
+  if (surface.startsWith("studio-") && width <= 640) {
+    const crumbDisplay = await elementDisplay(page, ".studio > .crumbbar");
+    if (crumbDisplay !== "none") {
+      throw new Error(`Studio crumb bar exceeded the phone chrome budget`);
+    }
+    const head = await elementBounds(page, ".studio-page-head");
+    if (!head || head.y > 170) {
+      throw new Error(
+        `Studio content starts too low at ${width}px (${head?.y ?? "missing"})`,
+      );
+    }
+    const railState = await evaluatePage(page, () => {
+      const rail = document.querySelector(".rail");
+      if (!(rail instanceof HTMLElement)) return undefined;
+      if (getComputedStyle(rail).display === "none") {
+        return { visible: false, overflow: false, focusReached: true };
+      }
+      const buttons = rail.querySelectorAll<HTMLButtonElement>("button");
+      if (buttons.length === 0) {
+        return { visible: true, overflow: false, focusReached: false };
+      }
+      const last = buttons.item(buttons.length - 1);
+      const overflow = rail.scrollWidth > rail.clientWidth + 1;
+      last.focus();
+      const focusReached = document.activeElement === last;
+      last.blur();
+      rail.scrollLeft = 0;
+      return { visible: true, overflow, focusReached };
+    });
+    if (railState?.visible && !railState.overflow) {
+      throw new Error(`Studio workspace rail did not expose phone overflow`);
+    }
+    if (railState?.focusReached === false) {
+      throw new Error(
+        `Studio keyboard focus could not reach the final rail item`,
+      );
+    }
+    if (surface.startsWith("studio-administration")) {
+      const compactDisplay = await elementDisplay(
+        page,
+        ".declarative-compact-rows",
+      );
+      const annotatedTableDisplay = await elementDisplay(
+        page,
+        '.declarative-table-scroll[data-has-unannotated="false"]',
+      );
+      if (compactDisplay === "none" || annotatedTableDisplay !== "none") {
+        throw new Error(
+          `Studio administration did not reflow its annotated phone rows`,
+        );
+      }
+    }
+  }
   if (
     surface.startsWith("studio-") &&
     surface !== "studio-library" &&
@@ -1775,7 +2010,9 @@ const server = Bun.serve({
           data:
             url.searchParams.get("tab") === "invitations"
               ? administrationInvitationsWorkspaceData
-              : administrationWorkspaceData,
+              : url.searchParams.get("tab") === "audit"
+                ? administrationAuditWorkspaceData
+                : administrationWorkspaceData,
         },
       });
     if (url.pathname === "/auth/account")
@@ -1950,6 +2187,7 @@ try {
         "studio-administration",
         "studio-administration-invitations",
         "studio-administration-invitations-form",
+        "studio-administration-audit",
         "studio-account",
         "studio-editor",
         "studio-delete",
@@ -2005,7 +2243,9 @@ try {
           "studio-administration-invitations",
         )
           ? `&tab=invitations`
-          : "";
+          : surface === "studio-administration-audit"
+            ? `&tab=audit`
+            : "";
         await navigateToNetworkIdle(
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,

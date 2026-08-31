@@ -3,6 +3,7 @@ import type { RuntimeStudioOperatorView } from "@brains/plugins";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { StudioWorkspaceInfo } from "./api";
+import studioPageHeadStyles from "./studio-page-head.css" with { type: "text" };
 import {
   declarativeStudioPageHead,
   StudioPageHead,
@@ -99,6 +100,7 @@ describe("Studio page-head normalization", () => {
     );
 
     expect(html).toContain('data-studio-page-head="true"');
+    expect(html).toContain('data-has-totals="true"');
     expect(html).toContain("Access administration");
     expect(html).toContain("Admin only");
     expect(html).toContain("Administration");
@@ -106,6 +108,24 @@ describe("Studio page-head normalization", () => {
     expect(html).toContain("Healthy");
     expect(html).toContain("Invitations");
     expect(html).toContain("Add person");
+  });
+
+  it("compresses the phone head to one line without dropping host access", () => {
+    expect(studioPageHeadStyles).toContain(
+      "grid-template-columns: minmax(0, 1fr) auto",
+    );
+    expect(studioPageHeadStyles).toMatch(
+      /\.studio-page-head-kicker > :not\(\.studio-head-access\) \{[^}]*display: none/,
+    );
+    expect(studioPageHeadStyles).toMatch(
+      /\.studio-page-head-description \{[^}]*display: none/,
+    );
+    expect(studioPageHeadStyles).toMatch(
+      /\.studio-page-head h2 \{[^}]*text-overflow: ellipsis[^}]*white-space: nowrap/,
+    );
+    expect(studioPageHeadStyles).toContain(
+      '.studio-page-head[data-has-totals="true"] .studio-head-status',
+    );
   });
 
   it("prefers a source title and otherwise falls back to the admitted workspace", () => {

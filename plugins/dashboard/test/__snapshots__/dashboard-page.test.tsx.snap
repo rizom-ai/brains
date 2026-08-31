@@ -2848,6 +2848,12 @@ body::after {
 
 /* ---- tables ------------------------------------------------------------- */
 
+/* Compact rows are semantic alternates for narrow screens, not a second
+   desktop collection. Unannotated rows remain in the ordinary table. */
+.declarative-compact-rows {
+  display: none;
+}
+
 .declarative-table-scroll {
   max-width: 100%;
   overflow-x: auto;
@@ -3314,6 +3320,46 @@ body::after {
   }
 }
 
+@media (max-width: 640px) {
+  .declarative-compact-rows {
+    display: block;
+  }
+
+  .declarative-table tr[data-compact-row="true"],
+  .declarative-table-scroll[data-has-unannotated="false"] {
+    display: none;
+  }
+
+  .declarative-table-scroll[data-has-unannotated="true"] {
+    padding-bottom: 5px;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .declarative-compact-rows .declarative-list > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-height: var(--console-touch);
+    padding: 11px 2px;
+  }
+
+  .declarative-compact-rows .declarative-list-trailing {
+    justify-content: flex-end;
+  }
+
+  .declarative-compact-rows .declarative-list strong {
+    color: var(--console-text);
+    font-size: 14px;
+  }
+
+  .declarative-compact-rows .declarative-list p,
+  .declarative-compact-rows .declarative-list small {
+    margin-top: 3px;
+  }
+}
+
 /* ---- head: kicker, description, standing status ------------------------- */
 
 .declarative-head {
@@ -3663,6 +3709,22 @@ body::after {
 
 .declarative-detail-pane .declarative-links {
   gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .declarative-compact-rows
+    .declarative-list
+    > li:has(> .declarative-list-trailing .declarative-actions)
+    > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .declarative-compact-rows
+    .declarative-list-trailing:has(.declarative-actions) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+  }
 }
 
 

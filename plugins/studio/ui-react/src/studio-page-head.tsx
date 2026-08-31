@@ -52,7 +52,12 @@ export function StudioPageHead(props: {
   const totals = props.model.totals.slice(0, 4);
 
   return (
-    <header className="studio-page-head" data-studio-page-head="true">
+    <header
+      className="studio-page-head"
+      data-studio-page-head="true"
+      data-has-status={props.model.status ? "true" : "false"}
+      data-has-totals={totals.length > 0 ? "true" : "false"}
+    >
       <div className="studio-page-head-kicker">
         {props.model.kicker && <span>{props.model.kicker}</span>}
         <span

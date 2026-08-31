@@ -8,6 +8,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import operatorViewRendererStyles from "./operator-view-renderer.css" with { type: "text" };
 import { OperatorViewRenderer } from "./operator-view-renderer";
 
 const data: RuntimeStudioWorkspaceData = {
@@ -206,6 +207,77 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain("All actors");
     expect(html).toContain("1–1 of 1");
     expect(html.indexOf("All actors")).toBeLessThan(html.indexOf("Signed in"));
+  });
+
+  it("reflows only source-annotated table rows into the compact list grammar", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "People",
+            blocks: [
+              {
+                type: "table",
+                id: "people",
+                empty: "No people.",
+                columns: [
+                  { key: "person", label: "Person" },
+                  { key: "role", label: "Role" },
+                ],
+                rows: [
+                  {
+                    id: "mira",
+                    cells: { person: "Mira Reyes", role: "Admin" },
+                    compact: {
+                      title: "Mira Reyes",
+                      description: "Owns this brain",
+                      metadata: ["Admin", "This brain"],
+                      badges: [{ label: "Active", tone: "good" }],
+                      count: 3,
+                      tone: "neutral",
+                    },
+                    link: { kind: "detail", itemId: "mira" },
+                    actions: [
+                      {
+                        actionId: "review-person",
+                        label: "Review",
+                        input: { userId: "mira" },
+                      },
+                    ],
+                  },
+                  {
+                    id: "legacy",
+                    cells: { person: "Legacy row", role: "Trusted" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: {},
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('class="declarative-compact-rows"');
+    expect(html).toContain('data-compact-row="true"');
+    expect(html).toContain('data-has-unannotated="true"');
+    expect(html).toContain("Owns this brain");
+    expect(html).toContain("Admin · This brain");
+    expect(html).toContain('class="declarative-badge" data-tone="good"');
+    expect(html).toContain("Legacy row");
+    expect(html.match(/Review/g)).toHaveLength(2);
+    expect(operatorViewRendererStyles).toMatch(
+      /@media \(max-width: 640px\)[\s\S]*\.declarative-compact-rows/,
+    );
+    expect(operatorViewRendererStyles).toContain(
+      '.declarative-table-scroll[data-has-unannotated="false"]',
+    );
+    expect(operatorViewRendererStyles).toContain(
+      ".declarative-list-trailing:has(.declarative-actions)",
+    );
   });
 
   it("can delegate the head without returning its totals to the body", () => {

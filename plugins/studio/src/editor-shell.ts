@@ -93,7 +93,7 @@ ${CONSOLE_THEME_CSS}
       }
     </style>
   </head>
-  <body>
+  <body data-console-host="studio">
     ${renderConsoleStripHtml({
       surfaces: options.surfaces,
       session: {

@@ -30,6 +30,16 @@ function actorFor(
   };
 }
 
+function findById(value: unknown, id: string): unknown {
+  if (value === null || typeof value !== "object") return undefined;
+  if (Reflect.get(value, "id") === id) return value;
+  for (const child of Object.values(value)) {
+    const result = findById(child, id);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+}
+
 describe("Administration People tab", () => {
   it("owns roster detail and attributed access administration through the shared registration contract", async () => {
     const shell = createMockShell({ domain: "brain.test" });
@@ -92,6 +102,38 @@ describe("Administration People tab", () => {
           { type: "tabs", defaultTab: "people" },
         ],
       },
+    });
+    expect(findById(initial, "people-roster")).toMatchObject({
+      rows: [
+        {
+          id: admin.userId,
+          compact: {
+            title: "Ada Admin",
+            metadata: ["Admin", "This brain", "0 passkeys · 0 channels"],
+            badges: [{ label: "Active", tone: "good" }],
+          },
+        },
+        {
+          id: member.userId,
+          compact: {
+            title: "Tess Trusted",
+            metadata: ["Trusted", "This brain", "0 passkeys · 1 channel"],
+            badges: [{ label: "Active", tone: "good" }],
+          },
+        },
+      ],
+    });
+    expect(findById(initial, "person-identities")).toMatchObject({
+      rows: [
+        {
+          id: identity.id,
+          compact: {
+            title: "Tess private address",
+            metadata: ["Manual test"],
+            badges: [{ label: "Verified", tone: "good" }],
+          },
+        },
+      ],
     });
     expect(JSON.stringify(initial)).toContain("Tess Trusted");
     expect(JSON.stringify(initial)).toContain("Brain Anchor");
