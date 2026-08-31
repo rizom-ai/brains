@@ -3,7 +3,6 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  type AnyRoute,
   type AnyRouter,
   type RouteComponent,
   type RouterHistory,
@@ -102,7 +101,7 @@ export function createStudioRouter(
     collectionRoute,
     entityRoute,
     workspaceRoute,
-  ]) as AnyRoute;
+  ]);
 
   return createRouter({
     routeTree,
