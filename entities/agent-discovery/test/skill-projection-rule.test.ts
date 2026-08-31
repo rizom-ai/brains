@@ -59,6 +59,7 @@ function inputContext(
     conversations: {
       get: async () => null,
       getMessages: async () => [],
+      getManyWithMessages: async () => [],
     },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async () => ({

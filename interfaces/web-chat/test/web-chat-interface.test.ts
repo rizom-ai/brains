@@ -188,6 +188,22 @@ function makeFixedConversationService(input: {
     searchConversations: async () => [],
     getMessages: async (conversationId: string) =>
       input.messagesByConversation[conversationId] ?? [],
+    getManyWithMessages: async ({ ids, messageLimit }) =>
+      [...new Set(ids)].flatMap((id) => {
+        const conversation = input.conversations.find(
+          (entry) => entry.id === id,
+        );
+        return conversation
+          ? [
+              {
+                conversation,
+                messages: (input.messagesByConversation[id] ?? []).slice(
+                  -messageLimit,
+                ),
+              },
+            ]
+          : [];
+      }),
     countMessages: async (conversationId: string) =>
       (input.messagesByConversation[conversationId] ?? []).length,
     updateConversationMetadata:

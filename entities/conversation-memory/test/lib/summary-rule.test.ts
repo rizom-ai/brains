@@ -49,18 +49,56 @@ function messages(conversationId: string): Message[] {
 function inputContext(options: {
   conversations: Conversation[];
   reads?: string[];
+  conversationBatchReads?: string[][];
+  entityBatchReads?: string[][];
+  forbidSingularReads?: boolean;
 }): ProjectionInputContext {
-  return {
-    entities: createMockEntityService({ entityTypes: ["summary"] }),
-    spaces,
-    conversations: {
-      get: async (id): Promise<Conversation | null> =>
-        options.conversations.find((entry) => entry.id === id) ?? null,
-      getMessages: async (id): Promise<Message[]> => {
-        options.reads?.push(id);
-        return messages(id);
+  const entities = Object.assign(
+    createMockEntityService({ entityTypes: ["summary"] }),
+    {
+      getEntity: async () => {
+        if (options.forbidSingularReads) {
+          throw new Error("singular entity read used");
+        }
+        return null;
+      },
+      getEntities: async (request: { ids: readonly string[] }) => {
+        options.entityBatchReads?.push([...request.ids]);
+        return [];
       },
     },
+  );
+  const conversations = {
+    get: async (id: string): Promise<Conversation | null> => {
+      if (options.forbidSingularReads) {
+        throw new Error("singular conversation read used");
+      }
+      return options.conversations.find((entry) => entry.id === id) ?? null;
+    },
+    getMessages: async (id: string): Promise<Message[]> => {
+      if (options.forbidSingularReads) {
+        throw new Error("singular message read used");
+      }
+      options.reads?.push(id);
+      return messages(id);
+    },
+    getManyWithMessages: async (request: {
+      ids: readonly string[];
+      messageLimit: number;
+    }): Promise<Array<{ conversation: Conversation; messages: Message[] }>> => {
+      const ids = [...request.ids];
+      options.conversationBatchReads?.push(ids);
+      options.reads?.push(...ids);
+      return ids.flatMap((id) => {
+        const found = options.conversations.find((entry) => entry.id === id);
+        return found ? [{ conversation: found, messages: messages(id) }] : [];
+      });
+    },
+  };
+  return {
+    entities,
+    spaces,
+    conversations,
     resolvePrompt: async (_reference, fallback): Promise<string> => fallback,
     appInfo: async () =>
       ({ ai: { model: "test-model" } }) as Awaited<
@@ -160,6 +198,30 @@ describe("the summary derivation", () => {
     );
 
     expect(reads).toEqual(["conversation-1"]);
+  });
+
+  it("uses two batch reads for a 50-conversation wave", async () => {
+    const conversations = Array.from({ length: 50 }, (_, index) => {
+      const id = `conversation-${String(index + 1).padStart(2, "0")}`;
+      return conversation({ id, sessionId: id });
+    });
+    const ids = conversations.map(({ id }) => id);
+    const conversationBatchReads: string[][] = [];
+    const entityBatchReads: string[][] = [];
+
+    await createSummaryProjectionRule(config).selectInput(
+      trigger(ids),
+      inputContext({
+        conversations,
+        conversationBatchReads,
+        entityBatchReads,
+        forbidSingularReads: true,
+      }),
+      signal,
+    );
+
+    expect(conversationBatchReads).toEqual([ids]);
+    expect(entityBatchReads).toEqual([ids]);
   });
 
   it("abstains when woken about a conversation outside its spaces", async () => {

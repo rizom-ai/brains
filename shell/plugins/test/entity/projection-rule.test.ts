@@ -13,9 +13,11 @@ const inputContext: ProjectionInputContext = {
   conversations: {
     get: async () => null,
     getMessages: async () => [],
+    getManyWithMessages: async () => [],
   },
   entities: {
     getEntity: async () => null,
+    getEntities: async () => [],
     listEntities: async () => [],
     getEntityTypes: () => [],
     hasEntityType: () => false,

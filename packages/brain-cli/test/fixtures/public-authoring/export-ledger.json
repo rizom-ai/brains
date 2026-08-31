@@ -325,6 +325,7 @@
         "EntityAtprotoDiscovery",
         "EntityAttachmentDeclaration",
         "EntityCheckDeclaration",
+        "EntityConversationBatch",
         "EntityConversationReader",
         "EntityConversationSurvey",
         "EntityCreateAllocation",

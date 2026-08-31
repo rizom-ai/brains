@@ -4,6 +4,7 @@ import {
   type BaseEntity,
   type EntityTypeConfig,
   type GetEntityRequest,
+  type GetEntitiesRequest,
   type ContentVisibility,
   type ListEntitiesRequest,
   type ProjectionOwnedEntityRequest,
@@ -94,6 +95,7 @@ export interface ProjectionWaveTrigger {
  */
 export interface ProjectionEntityReader {
   getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
+  getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]>;
   listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
   ): Promise<T[]>;

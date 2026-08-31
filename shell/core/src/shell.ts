@@ -775,6 +775,13 @@ export class Shell implements IShell {
                 : { limit: options.limit },
             )
           ).map(toPublicMessage),
+        getManyWithMessages: async (request) =>
+          (await conversationService.getManyWithMessages(request)).map(
+            ({ conversation, messages }) => ({
+              conversation: toPublicConversation(conversation),
+              messages: messages.map(toPublicMessage),
+            }),
+          ),
       },
       resolvePrompt: (reference, fallback): Promise<string> =>
         resolvePrompt(this.services.entityService, reference, fallback),

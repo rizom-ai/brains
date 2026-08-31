@@ -111,6 +111,7 @@ Some text
       resolver = new ContentResolver(createSilentLogger());
       mockEntityService = {
         getEntity: mock(() => Promise.resolve(null)),
+        getEntities: mock(() => Promise.resolve([])),
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
         search: mock(() => Promise.resolve([])),

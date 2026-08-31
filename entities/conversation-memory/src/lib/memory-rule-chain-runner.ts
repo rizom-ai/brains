@@ -180,6 +180,14 @@ export async function runMemoryRuleChain(
         (entityType === "summary" && id === summary.id
           ? summary
           : null) as T | null,
+      getEntities: async ({
+        entityType,
+        ids,
+      }: {
+        entityType: string;
+        ids: readonly string[];
+      }) =>
+        entityType === "summary" && ids.includes(summary.id) ? [summary] : [],
       listEntities: async <T>() => [] as T[],
       getEntityTypes: () => ["summary", "decision", "action-item"],
       hasEntityType: () => true,
@@ -197,6 +205,9 @@ export async function runMemoryRuleChain(
     conversations: {
       get: async () => input.conversation,
       getMessages: async () => input.messages,
+      getManyWithMessages: async () => [
+        { conversation: input.conversation, messages: input.messages },
+      ],
     },
     resolvePrompt: async (_reference, fallback) => fallback,
     appInfo: async () => {

@@ -11,6 +11,8 @@ import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 import { MessageBus } from "@brains/messaging-service";
 import { coerceConversationMetadata } from "../src/metadata";
+import { drizzle } from "drizzle-orm/libsql";
+import { conversations, messages, summaryTracking } from "../src/schema";
 
 describe("ConversationService", () => {
   let service: ConversationService;
@@ -388,6 +390,62 @@ describe("ConversationService", () => {
       // Should get the most recent messages
       expect(result[0]?.content).toBe("Message 2");
       expect(result[1]?.content).toBe("Message 3");
+    });
+  });
+
+  describe("getManyWithMessages", () => {
+    it("loads a bounded message window for many conversations at once", async () => {
+      for (const conversationId of ["batch-1", "batch-2"]) {
+        await service.startConversation({
+          sessionId: conversationId,
+          interfaceType: "cli",
+          channelId: "test-channel",
+          metadata: testMetadata,
+        });
+        for (const content of ["First", "Second", "Third"]) {
+          await service.addMessage({
+            conversationId,
+            role: "user",
+            content: `${conversationId}: ${content}`,
+          });
+        }
+      }
+
+      const queries: string[] = [];
+      const loggedDb = drizzle(client, {
+        schema: { conversations, messages, summaryTracking },
+        logger: {
+          logQuery(query): void {
+            queries.push(query);
+          },
+        },
+      });
+      const loggedService = ConversationService.createFresh(
+        loggedDb,
+        logger,
+        messageBus,
+        config,
+      );
+      const result = await loggedService.getManyWithMessages({
+        ids: ["batch-2", "missing", "batch-1", "batch-2"],
+        messageLimit: 2,
+      });
+
+      expect(result.map(({ conversation }) => conversation.id)).toEqual([
+        "batch-2",
+        "batch-1",
+      ]);
+      expect(
+        result.map(({ messages }) =>
+          messages.map(({ content }) => content.split(": ")[1]),
+        ),
+      ).toEqual([
+        ["Second", "Third"],
+        ["Second", "Third"],
+      ]);
+      expect(
+        queries.filter((query) => /^select\b/i.test(query.trim())),
+      ).toHaveLength(2);
     });
   });
 

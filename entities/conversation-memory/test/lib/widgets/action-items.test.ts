@@ -126,6 +126,7 @@ describe("actionItemsWidgetDeclaration", () => {
       conversations: {
         get: async () => null,
         getMessages: async () => [],
+        getManyWithMessages: async () => [],
         list: async () => [],
       },
       spaces: [],

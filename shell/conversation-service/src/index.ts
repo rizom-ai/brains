@@ -7,6 +7,8 @@ export type {
   ConversationServiceConfig,
   ConversationMetadata,
   GetMessagesOptions,
+  GetManyConversationsWithMessagesRequest,
+  ConversationWithMessages,
   StartConversationRequest,
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
@@ -27,6 +29,7 @@ export {
   conversationMessageSourceSchema,
   conversationMessageMetadataSchema,
   conversationChangeCursorSchema,
+  getManyConversationsWithMessagesSchema,
   isSavableAssistantMessage,
   parseConversationMessageMetadata,
 } from "./types";

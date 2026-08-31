@@ -50,6 +50,24 @@ export interface GetMessagesOptions {
   };
 }
 
+export const getManyConversationsWithMessagesSchema: z.ZodObject<{
+  ids: z.ZodArray<z.ZodString>;
+  messageLimit: z.ZodNumber;
+}> = z.object({
+  ids: z.array(z.string().trim().min(1)).max(500),
+  messageLimit: z.number().int().positive(),
+});
+
+export interface GetManyConversationsWithMessagesRequest {
+  readonly ids: readonly string[];
+  readonly messageLimit: number;
+}
+
+export interface ConversationWithMessages {
+  readonly conversation: Conversation;
+  readonly messages: readonly Message[];
+}
+
 export interface StartConversationRequest {
   sessionId: string;
   interfaceType: string;
@@ -240,6 +258,9 @@ export interface IConversationService {
   ): Promise<Message[]>;
   countMessages(conversationId: string): Promise<number>;
   getConversation(conversationId: string): Promise<Conversation | null>;
+  getManyWithMessages(
+    request: GetManyConversationsWithMessagesRequest,
+  ): Promise<readonly ConversationWithMessages[]>;
   listConversations(
     options?: ListConversationsOptions,
   ): Promise<Conversation[]>;

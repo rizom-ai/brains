@@ -13,6 +13,7 @@ import { genericSpy } from "./generic-spy";
  */
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
+  getEntities?: BaseEntity[];
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
@@ -55,6 +56,11 @@ export interface MockEntityServiceOptions {
     entityType: string;
     id: string;
   }) => Promise<BaseEntity | null>;
+  /** Dynamic implementation for getEntities (overrides returns.getEntities) */
+  getEntitiesImpl?: (request: {
+    entityType: string;
+    ids: readonly string[];
+  }) => Promise<BaseEntity[]>;
   /**
    * Record what a test writes, rather than returning a canned result.
    *
@@ -106,6 +112,7 @@ export function createMockEntityService(
     returns = {},
     listEntitiesImpl,
     getEntityImpl,
+    getEntitiesImpl,
     createEntityImpl,
     updateEntityImpl,
   } = options;
@@ -130,12 +137,23 @@ export function createMockEntityService(
     (request: { entityType: string; id: string }): Promise<BaseEntity | null> =>
       getEntityImpl?.(request) ?? Promise.resolve(returns.getEntity ?? null),
   );
+  const getEntitiesMock = mock(
+    (request: {
+      entityType: string;
+      ids: readonly string[];
+    }): Promise<BaseEntity[]> =>
+      getEntitiesImpl?.(request) ??
+      Promise.resolve(
+        returns.getEntities ?? (returns.getEntity ? [returns.getEntity] : []),
+      ),
+  );
   const searchMock = mock((): Promise<SearchResult[]> =>
     Promise.resolve(returns.search ?? []),
   );
 
   return {
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
+    getEntities: getEntitiesMock,
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
     search: genericSpy<IEntityService["search"]>(searchMock),

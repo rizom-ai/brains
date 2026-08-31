@@ -176,6 +176,14 @@ export interface IConversationsNamespace {
     options?: GetMessagesOptions,
   ) => Promise<Message[]>;
 
+  /** Read bounded histories for many conversations in fixed query count. */
+  getManyWithMessages: (request: {
+    readonly ids: readonly string[];
+    readonly messageLimit: number;
+  }) => Promise<
+    readonly { conversation: Conversation; messages: readonly Message[] }[]
+  >;
+
   /** Count messages in a conversation without loading them */
   countMessages: (conversationId: string) => Promise<number>;
 }

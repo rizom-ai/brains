@@ -10,7 +10,10 @@ import type {
   JobMessagePublisher,
 } from "../job/job-context-contract";
 import type { Conversation } from "../contracts/conversations";
-export type { EntityConversationReader } from "../job/job-context-contract";
+export type {
+  EntityConversationBatch,
+  EntityConversationReader,
+} from "../job/job-context-contract";
 import type {
   AtprotoBrainCardConflictPayload,
   AtprotoBrainCardDiscoveredPayload,
