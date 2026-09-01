@@ -339,6 +339,22 @@ made the entity tranche find real defects rather than move code.
    declares how an approval is presented. Three named consumers, measured —
    its own slice, ahead of any of the three conversions.
 
+   **`admin` is gated on the auth instance.** Phase 4 published the auth
+   contracts type-only and said "the instance still arrives through the
+   runtime". That is not yet true: `admin`, `studio` and `dashboard` each
+   call `getActiveAuthService()`, a module-level global in
+   `@brains/auth-service`. A declarative package has no such reach, and
+   cannot grow one — `shell/plugins` importing `@brains/auth-service` is a
+   cycle, because auth-service is itself a service plugin built on the
+   plugin context.
+
+   Making the phase 4 sentence true means the narrow capability interfaces
+   (`AuthCaller`, `AuthAudit`, `AuthAdministration`) living where the plugin
+   layer can name them, with auth-service implementing them and the runtime
+   handing the instance to the context — the same move the route vocabulary
+   made when it was extracted to a leaf. The measurement is done; the work
+   is its own slice with three named consumers, ahead of admin's conversion.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so
