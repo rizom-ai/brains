@@ -56,7 +56,8 @@
     "./zod": "./src/zod.ts",
     "./zod-introspect": "./src/zod-introspect.ts",
     "./confirmation-response": "./src/confirmation-response.ts",
-    "./expect-defined": "./src/expect-defined.ts"
+    "./expect-defined": "./src/expect-defined.ts",
+    "./is-record": "./src/is-record.ts"
   },
   "private": true,
   "scripts": {

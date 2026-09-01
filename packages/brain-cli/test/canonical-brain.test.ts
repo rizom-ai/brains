@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolve, type BrainDefinition } from "@brains/app";
 import { canonicalBrain, coreBundle } from "../src/model/canonical-brain";
+import { isRecord } from "@brains/utils/is-record";
 
 const expectedCatalogIds = [
   "prompt",
@@ -73,10 +74,6 @@ function catalogIds(definition: BrainDefinition): string[] {
     ...definition.capabilities.map(([id]) => id),
     ...definition.interfaces.map(([id]) => id),
   ];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function pluginConfig(id: string): Record<string, unknown> | undefined {

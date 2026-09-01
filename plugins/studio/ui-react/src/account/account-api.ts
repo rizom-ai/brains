@@ -4,6 +4,7 @@ import type {
   AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
 import { z } from "@brains/utils/zod";
+import { isRecord } from "@brains/utils/is-record";
 
 export interface AccountMutationResponse {
   account?: AuthAccountSnapshot;
@@ -110,10 +111,6 @@ const accountMutationResponseSchema = z.custom<AccountMutationResponse>(
   isAccountMutationResponse,
   { message: "Invalid account mutation response" },
 );
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 const registrationOptionsSchema = z.custom<RegistrationOptionsJSON>(
   (value) => {

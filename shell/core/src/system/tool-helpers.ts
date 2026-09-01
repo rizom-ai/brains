@@ -15,6 +15,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
+import { isRecord } from "@brains/utils/is-record";
 
 const PLUGIN_ID = "system";
 const updateFieldsSchema = z.record(z.string(), z.unknown());
@@ -285,10 +286,6 @@ export function hasStructuredFrontmatter(
   schema: FrontmatterShapeSchema | undefined,
 ): boolean {
   return !!schema && Object.keys(schema.shape).length > 0;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /**

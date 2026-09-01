@@ -21,6 +21,7 @@ import {
   evaluateEfficiency,
   evaluateQualityThresholds,
 } from "./criteria-evaluator";
+import { isRecord } from "@brains/utils/is-record";
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
@@ -28,10 +29,6 @@ type ToolApprovalCard = Extract<AgentResponseCard, { kind: "tool-approval" }>;
 
 function isToolApprovalCard(card: AgentResponseCard): card is ToolApprovalCard {
   return card.kind === "tool-approval";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function sanitizeEvalToolArgs(
