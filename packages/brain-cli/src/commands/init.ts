@@ -480,6 +480,7 @@ function writeDeployWorkflow(dir: string, regen = false): void {
 }
 
 const SHARED_DEPLOY_SCRIPTS: readonly DeployScriptName[] = [
+  "create-predeploy-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",

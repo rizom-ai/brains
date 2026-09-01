@@ -269,10 +269,17 @@ The workflow updates DNS before Kamal deploys, because `kamal-proxy` healthcheck
 - writes the SSH key and `.kamal/secrets`
 - provisions or reuses the Hetzner server
 - updates Cloudflare DNS
-- validates the SSH key, waits for SSH readiness, releases any stale Kamal deploy lock, then runs `kamal setup --skip-push`
+- validates the SSH key and waits for SSH readiness
+- creates and verifies a rollback snapshot immediately before stale-lock handling and `kamal setup --skip-push`; failures stop deployment before replacement
 - deploys `VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}`
 - finishes with `Verify origin TLS`
 - dumps remote proxy diagnostics on failure
+
+### Pre-deploy rollback snapshot
+
+Existing stateful targets are captured under `/opt/brain-state/backups/` before replacement. The snapshot contains online, internally consistent SQLite captures; checksums and `quick_check` results; exact Git refs plus staged, unstaged, untracked, and ignored state; deployed configuration; and sanitized container metadata. It is finalized atomically only after every verification passes. A new server with no persistent state is explicitly not applicable, while ambiguous state fails closed.
+
+The default retention is five verified snapshots per target. Snapshot files are private (`0600`) and completed directories use `0700`; `.incomplete` directories are never rollback points. These snapshots remain on the same server and therefore do not replace encrypted off-host disaster recovery. Restore is deliberately manual and requires separate approval.
 
 ## Common operations
 

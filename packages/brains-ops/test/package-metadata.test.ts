@@ -134,6 +134,11 @@ describe("@rizom/ops package metadata", () => {
     ).toBeTrue();
     expect(
       filePaths.has(
+        "templates/rover-pilot/deploy/scripts/create-predeploy-backup.ts",
+      ),
+    ).toBeTrue();
+    expect(
+      filePaths.has(
         "templates/rover-pilot/.github/workflows/directory-sync-stress.yml",
       ),
     ).toBeTrue();
@@ -217,6 +222,17 @@ describe("@rizom/ops package metadata", () => {
             ".github",
             "workflows",
             "health-watchdog-smoke.yml",
+          ),
+        ),
+      ).toBeTrue();
+      expect(
+        existsSync(
+          join(
+            projectDir,
+            "demo",
+            "deploy",
+            "scripts",
+            "create-predeploy-backup.ts",
           ),
         ),
       ).toBeTrue();

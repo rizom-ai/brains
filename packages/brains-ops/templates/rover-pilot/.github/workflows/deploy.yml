@@ -196,6 +196,14 @@ jobs:
           echo "SSH never became ready for $SSH_USER@$SERVER_IP" >&2
           exit 1
 
+      - name: Create verified predeploy backup
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+          TARGET_HANDLE: ${{ matrix.handle }}
+          TARGET_VERSION: ${{ steps.user_config.outputs.image_tag }}
+          SERVICE_NAME: rover
+        run: bun deploy/scripts/create-predeploy-backup.ts
+
       - name: Release operator-confirmed stale deploy lock
         if: ${{ inputs.release_stale_lock }}
         env:

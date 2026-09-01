@@ -367,6 +367,14 @@ ${workflowSecretsEnv}
           ssh "$SSH_USER@$SERVER_IP" true >&2 || true
           exit 1
 
+      - name: Create verified predeploy backup
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+          TARGET_HANDLE: \${{ github.event.repository.name }}
+          TARGET_VERSION: \${{ github.event.workflow_run.head_sha || github.sha }}
+          SERVICE_NAME: brain
+        run: bun deploy/scripts/create-predeploy-backup.ts
+
       - name: Release stale Kamal deploy lock
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
