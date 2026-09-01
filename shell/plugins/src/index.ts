@@ -96,6 +96,10 @@ export {
 } from "./channel-registry";
 export { AuthRegistry } from "./contracts/auth";
 export type {
+  A2APeerTrustRecord,
+  A2APrivateJwk,
+  A2APublicJwk,
+  A2ASigningKey,
   AppendAuthAuditEventInput,
   AuthAudit,
   AuthAuditActionCount,
@@ -104,6 +108,8 @@ export type {
   AuthAuditQueryResult,
   AuthBearerGrant,
   AuthCaller,
+  AuthFederation,
+  AuthImplementation,
   AuthPrincipal,
   IAuthRegistry,
   VerifiedAccessToken,

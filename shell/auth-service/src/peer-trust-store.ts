@@ -1,13 +1,9 @@
+export type { A2APeerTrustRecord } from "@brains/plugins";
+import type { A2APeerTrustRecord } from "@brains/plugins";
 import { eq } from "drizzle-orm";
 import { AuthAuditStore } from "./audit-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 import { a2aPeerTrust } from "./runtime-schema";
-
-export interface A2APeerTrustRecord {
-  domain: string;
-  keyFingerprint: string;
-  grantedLevel: "public" | "trusted";
-}
 
 export interface GrantA2APeerTrustInput {
   domain: string;

@@ -1,8 +1,4 @@
-import {
-  getActiveAuthService,
-  isLoopbackIssuer,
-  issuerFromRequest,
-} from "@brains/auth-service";
+import { isLoopbackIssuer, issuerFromRequest } from "@brains/auth-service";
 import {
   JwksResolver,
   signRequest,
@@ -180,9 +176,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     );
 
     if (verified) {
-      const grant = await getActiveAuthService()?.getA2APeerTrust(
-        verified.domain,
-      );
+      const grant = await this.getContext()
+        .auth.getFederation()
+        ?.getA2APeerTrust(verified.domain);
       const permissionLevel =
         grant?.keyFingerprint === verified.keyFingerprint
           ? grant.grantedLevel
@@ -410,7 +406,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   }
 
   private createRequestSigner(): A2ARequestSigner | undefined {
-    const authService = getActiveAuthService();
+    const authService = this.getContext().auth.getFederation();
     if (!authService) return undefined;
 
     const issuer = authService.getIssuer();

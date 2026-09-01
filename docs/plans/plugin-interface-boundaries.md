@@ -348,14 +348,15 @@ made the entity tranche find real defects rather than move code.
    cycle, because auth-service is itself a service plugin built on the
    plugin context.
 
-   _Half done._ `AuthCaller` and `AuthAudit` now live in
+   _Mostly done._ `AuthCaller`, `AuthAudit` and `AuthFederation` now live in
    `shell/plugins/src/contracts/auth.ts` with the vocabulary they use, and
    the running implementation reaches packages through a shell registry as
    `context.auth`. dashboard, studio, mcp and web-chat are off the global.
-   `AuthFederation` (a2a) and `AuthAdministration` (admin) still live in
-   auth-service and move with the slices that convert those two — admin's
-   pulls types from eight of its modules, which is why it was not folded in
-   here.
+   `AuthFederation` followed, so a2a is off it too. What remains is
+   `AuthAdministration` (admin), plus two surfaces this slice did not
+   measure: chat's identity access and agent-discovery's peer-trust grant.
+   Admin's contract pulls types from eight auth-service modules, which is
+   why it was not folded in here.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking

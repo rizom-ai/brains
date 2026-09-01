@@ -2,10 +2,12 @@
 "@brains/sdk": minor
 ---
 
-The auth caller and audit trail now arrive through the runtime.
+The auth caller, audit trail and federation view now arrive through the
+runtime.
 
-`AuthCaller` and `AuthAudit` — and the vocabulary they use (`AuthPrincipal`,
-`AuthBearerGrant`, `VerifiedAccessToken`, the audit event types) — move to
+`AuthCaller`, `AuthAudit` and `AuthFederation` — and the vocabulary they use
+(`AuthPrincipal`, `AuthBearerGrant`, `VerifiedAccessToken`, the audit event
+types, the A2A trust record and signing key) — move to
 `@brains/plugins`, where a package can name them without depending on the
 service that implements them. It could not depend on it: auth-service is
 itself a service plugin built on the plugin context, so the arrow only runs
@@ -18,7 +20,9 @@ shutdown, reachable as `context.auth`. A brain with no auth-service reads
 `undefined` — the honest answer, and the one a module-level global could not
 give a package that had already imported it.
 
-`@brains/dashboard`, `@brains/studio`, `@brains/mcp` and `@brains/web-chat`
-no longer call `getActiveAuthService()`. `@brains/a2a` still does for
-federation and `@brains/admin` for administration; those two contracts move
-in the slices that convert them.
+`@brains/dashboard`, `@brains/studio`, `@brains/mcp`, `@brains/web-chat` and
+`@brains/a2a` no longer call `getActiveAuthService()`. Three consumers still
+do, each wanting a surface this slice did not measure: `@brains/admin`
+(administration), `@brains/chat` (identity access) and
+`@brains/agent-discovery` (granting peer trust). Those contracts move with
+the slices that need them.

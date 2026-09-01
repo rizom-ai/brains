@@ -1,3 +1,5 @@
+import type { JsonObject } from "@brains/contracts";
+
 /**
  * What a package may ask auth, and the vocabulary those questions use.
  *
@@ -114,6 +116,48 @@ export interface AuthAudit {
   queryAuditEvents(query: AuthAuditQuery): Promise<AuthAuditQueryResult>;
 }
 
+/** A peer domain this brain has recorded trust for. */
+export interface A2APeerTrustRecord {
+  domain: string;
+  keyFingerprint: string;
+  grantedLevel: "public" | "trusted";
+}
+
+export interface A2APublicJwk extends JsonObject {
+  kty: "OKP";
+  crv: "Ed25519";
+  x: string;
+  kid: string;
+  use: "sig";
+  alg: "EdDSA";
+}
+
+export interface A2APrivateJwk extends A2APublicJwk {
+  d: string;
+}
+
+/** The key this brain signs A2A requests with, and its published id. */
+export interface A2ASigningKey {
+  privateJwk: A2APrivateJwk;
+  keyId: string;
+}
+
+/**
+ * What this deployment is to its peers.
+ *
+ * Federation asks three things of auth: the issuer this brain speaks as, the
+ * trust it has recorded for a peer domain, and the key it signs with. The
+ * pure issuer helpers (`isLoopbackIssuer`, `issuerFromRequest`) stay free
+ * functions beside this — they need no service.
+ *
+ * Named consumer: @brains/a2a.
+ */
+export interface AuthFederation {
+  getIssuer(): string;
+  getA2APeerTrust(domain: string): Promise<A2APeerTrustRecord | undefined>;
+  getA2ASigningKey(): Promise<A2ASigningKey>;
+}
+
 /**
  * Where the running auth implementation is published.
  *
@@ -123,21 +167,25 @@ export interface AuthAudit {
  * the one a module-level global could not give a package that had already
  * imported it.
  */
+/** Everything the runtime publishes as one object. */
+export type AuthImplementation = AuthCaller & AuthAudit & AuthFederation;
+
 export interface IAuthRegistry {
-  register(implementation: AuthCaller & AuthAudit): void;
-  unregister(implementation: AuthCaller & AuthAudit): void;
+  register(implementation: AuthImplementation): void;
+  unregister(implementation: AuthImplementation): void;
   getCaller(): AuthCaller | undefined;
   getAudit(): AuthAudit | undefined;
+  getFederation(): AuthFederation | undefined;
 }
 
 export class AuthRegistry implements IAuthRegistry {
-  private implementation: (AuthCaller & AuthAudit) | undefined;
+  private implementation: AuthImplementation | undefined;
 
   public static createFresh(): AuthRegistry {
     return new AuthRegistry();
   }
 
-  public register(implementation: AuthCaller & AuthAudit): void {
+  public register(implementation: AuthImplementation): void {
     if (
       this.implementation !== undefined &&
       this.implementation !== implementation
@@ -147,7 +195,7 @@ export class AuthRegistry implements IAuthRegistry {
     this.implementation = implementation;
   }
 
-  public unregister(implementation: AuthCaller & AuthAudit): void {
+  public unregister(implementation: AuthImplementation): void {
     if (this.implementation === implementation) {
       this.implementation = undefined;
     }
@@ -158,6 +206,10 @@ export class AuthRegistry implements IAuthRegistry {
   }
 
   public getAudit(): AuthAudit | undefined {
+    return this.implementation;
+  }
+
+  public getFederation(): AuthFederation | undefined {
     return this.implementation;
   }
 }

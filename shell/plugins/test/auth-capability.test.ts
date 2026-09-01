@@ -4,9 +4,8 @@ import { createPluginHarness } from "../src/test/harness";
 import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
-  type AuthAudit,
   type AuthAuditEvent,
-  type AuthCaller,
+  type AuthImplementation,
   type AuthPrincipal,
 } from "../src";
 
@@ -32,7 +31,7 @@ const auditEvent: AuthAuditEvent = {
   createdAt: 0,
 };
 
-function stubAuth(): AuthCaller & AuthAudit {
+function stubAuth(): AuthImplementation {
   return {
     resolveSession: async () => principal,
     resolveBearerGrant: async () => undefined,
@@ -42,6 +41,20 @@ function stubAuth(): AuthCaller & AuthAudit {
       events: [auditEvent],
       actions: [],
       total: 1,
+    }),
+    getIssuer: () => "https://brain.test",
+    getA2APeerTrust: async () => undefined,
+    getA2ASigningKey: async () => ({
+      privateJwk: {
+        kty: "OKP",
+        crv: "Ed25519",
+        x: "x",
+        kid: "k",
+        use: "sig",
+        alg: "EdDSA",
+        d: "d",
+      },
+      keyId: "k",
     }),
   };
 }

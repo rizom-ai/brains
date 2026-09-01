@@ -1,3 +1,5 @@
+export type { A2APrivateJwk, A2APublicJwk } from "@brains/plugins";
+import type { A2APublicJwk } from "@brains/plugins";
 import type { JsonObject } from "@brains/contracts";
 
 export type { JsonObject, JsonPrimitive, JsonValue } from "@brains/contracts";
@@ -13,19 +15,6 @@ export interface OAuthPublicJwk extends JsonObject {
 }
 
 export interface OAuthPrivateJwk extends OAuthPublicJwk {
-  d: string;
-}
-
-export interface A2APublicJwk extends JsonObject {
-  kty: "OKP";
-  crv: "Ed25519";
-  x: string;
-  kid: string;
-  use: "sig";
-  alg: "EdDSA";
-}
-
-export interface A2APrivateJwk extends A2APublicJwk {
   d: string;
 }
 
