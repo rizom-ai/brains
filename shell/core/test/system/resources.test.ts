@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemResources } from "../../src/system/resources";
 import { createSystemResourceTemplates } from "../../src/system/resource-templates";
 import { createMockSystemServices } from "./mock-services";
@@ -54,8 +55,11 @@ describe("system resources", () => {
 
   it("entity detail resource template should not enumerate entity instances", () => {
     const templates = createSystemResourceTemplates(createMockSystemServices());
-    const detailTemplate = templates.find((t) => t.name === "entity-detail");
+    const detailTemplate = expectDefined(
+      templates.find((t) => t.name === "entity-detail"),
+      "entity-detail resource template",
+    );
 
-    expect(detailTemplate?.list).toBeUndefined();
+    expect(detailTemplate.list).toBeUndefined();
   });
 });

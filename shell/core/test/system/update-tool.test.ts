@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
 import { updateInputSchema } from "../../src/system/schemas";
@@ -423,10 +424,14 @@ describe("system_update tool", () => {
       data: { updated: "old-agent.io" },
     });
 
-    const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.metadata["status"]).toBe("archived");
-    expect(updated?.content).toContain("name: Old Agent");
-    expect(updated?.content).not.toBe(
+    const updated = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.metadata["status"]).toBe("archived");
+    expect(updated.content).toContain("name: Old Agent");
+    expect(updated.content).not.toBe(
       JSON.stringify({ fields: { status: "archived" } }),
     );
   });
@@ -443,9 +448,13 @@ describe("system_update tool", () => {
       data: { updated: "old-agent.io" },
     });
 
-    const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.visibility).toBe("restricted");
-    expect(updated?.metadata).not.toHaveProperty("visibility");
+    const updated = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.visibility).toBe("restricted");
+    expect(updated.metadata).not.toHaveProperty("visibility");
   });
 
   it("removes optional metadata fields when a field update sets them to null", async () => {
@@ -500,11 +509,12 @@ describe("system_update tool", () => {
       data: { updated: "resilience-in-distributed-systems" },
     });
 
-    const updated = services
-      .getEntities()
-      .get("resilience-in-distributed-systems");
-    expect(updated?.metadata["status"]).toBe("draft");
-    expect(updated?.metadata).not.toHaveProperty("publishedAt");
+    const updated = expectDefined(
+      services.getEntities().get("resilience-in-distributed-systems"),
+      "updated entity",
+    );
+    expect(updated.metadata["status"]).toBe("draft");
+    expect(updated.metadata).not.toHaveProperty("publishedAt");
 
     const updateRequest = services.getLastUpdateRequest();
     if (!updateRequest) throw new Error("Expected an update to be recorded");
@@ -566,9 +576,12 @@ describe("system_update tool", () => {
       success: true,
       data: { updated: "linkedin-update" },
     });
-    const updated = services.getEntities().get("linkedin-update");
-    expect(updated?.content).toContain("coverImageId: hero-banner");
-    expect(updated?.metadata).not.toHaveProperty("coverImageId");
+    const updated = expectDefined(
+      services.getEntities().get("linkedin-update"),
+      "updated entity",
+    );
+    expect(updated.content).toContain("coverImageId: hero-banner");
+    expect(updated.metadata).not.toHaveProperty("coverImageId");
   });
 
   it("writes ogImageId field updates to frontmatter", async () => {
@@ -582,9 +595,12 @@ describe("system_update tool", () => {
       success: true,
       data: { updated: "linkedin-update" },
     });
-    const updated = services.getEntities().get("linkedin-update");
-    expect(updated?.content).toContain("ogImageId: social-card");
-    expect(updated?.metadata).not.toHaveProperty("ogImageId");
+    const updated = expectDefined(
+      services.getEntities().get("linkedin-update"),
+      "updated entity",
+    );
+    expect(updated.content).toContain("ogImageId: social-card");
+    expect(updated.metadata).not.toHaveProperty("ogImageId");
   });
 
   it("clears coverImageId through system_update fields", async () => {
@@ -632,8 +648,12 @@ describe("system_update tool", () => {
       data: { updated: "old-agent.io" },
     });
 
-    const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.visibility).toBe("restricted");
+    const updated = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.visibility).toBe("restricted");
   });
 
   // Previously this cleared the entity back to public. That treated "the file
@@ -666,8 +686,12 @@ describe("system_update tool", () => {
       data: { updated: "old-agent.io" },
     });
 
-    const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.visibility).toBe("restricted");
+    const updated = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.visibility).toBe("restricted");
   });
 
   it("normalizes plain JSON objects passed via content into field updates", async () => {
@@ -682,9 +706,13 @@ describe("system_update tool", () => {
       data: { updated: "old-agent.io" },
     });
 
-    const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.metadata["status"]).toBe("archived");
-    expect(updated?.content).toContain("name: Old Agent");
+    const updated = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.metadata["status"]).toBe("archived");
+    expect(updated.content).toContain("name: Old Agent");
   });
 
   /**
@@ -714,8 +742,12 @@ describe("system_update tool", () => {
       data: { updated: "pending-agent.io" },
     });
 
-    const updated = services.getEntities().get("pending-agent.io");
-    expect(updated?.metadata["status"]).toBe("approved");
+    const updated = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.metadata["status"]).toBe("approved");
   });
 
   it("auto-approves discovered agents when the model sends blank content on a confirmed update", async () => {
@@ -733,8 +765,12 @@ describe("system_update tool", () => {
       data: { updated: "pending-agent.io" },
     });
 
-    const updated = services.getEntities().get("pending-agent.io");
-    expect(updated?.metadata["status"]).toBe("approved");
+    const updated = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.metadata["status"]).toBe("approved");
   });
 
   it("treats approval without fields as idempotent when the agent is already approved", async () => {
@@ -751,8 +787,12 @@ describe("system_update tool", () => {
       data: { updated: "approved-agent.io" },
     });
 
-    const updated = services.getEntities().get("approved-agent.io");
-    expect(updated?.metadata["status"]).toBe("approved");
+    const updated = expectDefined(
+      services.getEntities().get("approved-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.metadata["status"]).toBe("approved");
   });
 
   it("rejects a fabricated agent approval with no pending proposal", async () => {
@@ -766,8 +806,11 @@ describe("system_update tool", () => {
     expect("error" in result ? result.error : "").toContain(
       "No pending update confirmation found for this agent",
     );
-    const unchanged = services.getEntities().get("pending-agent.io");
-    expect(unchanged?.metadata["status"]).toBe("discovered");
+    const unchanged = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+      "unchanged entity",
+    );
+    expect(unchanged.metadata["status"]).toBe("discovered");
   });
 
   it("rejects an agent approval replayed with another entity's token", async () => {
@@ -780,8 +823,11 @@ describe("system_update tool", () => {
     });
 
     expect(result).toMatchObject({ success: false });
-    const unchanged = services.getEntities().get("pending-agent.io");
-    expect(unchanged?.metadata["status"]).toBe("discovered");
+    const unchanged = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+      "unchanged entity",
+    );
+    expect(unchanged.metadata["status"]).toBe("discovered");
   });
 
   it("rejects trusted updates when entity action policy requires Admin", async () => {
@@ -832,8 +878,12 @@ describe("system_update tool", () => {
         "Updating `agent` requires Admin permission; your current permission is Trusted.",
     });
 
-    const unchanged = services.getEntities().get("old-agent.io");
-    expect(unchanged?.metadata["status"]).toBe("active");
+    const unchanged = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "unchanged entity",
+    );
+    expect(unchanged.metadata["status"]).toBe("active");
   });
 
   it("requires publish permission when a publish-aware status enters the publish set", async () => {
@@ -1192,8 +1242,12 @@ describe("system_update tool", () => {
         "Full content replacement cannot be empty for this entity type. Use 'fields' for partial updates.",
     });
 
-    const updated = services.getEntities().get("old-agent.io");
-    expect(updated?.content).toContain("name: Old Agent");
-    expect(updated?.metadata["status"]).toBe("active");
+    const updated = expectDefined(
+      services.getEntities().get("old-agent.io"),
+
+      "updated entity",
+    );
+    expect(updated.content).toContain("name: Old Agent");
+    expect(updated.metadata["status"]).toBe("active");
   });
 });

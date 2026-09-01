@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { buildAgentCard } from "../src/agent-card";
 import type { AnchorProfile, BrainCharacter } from "@brains/plugins";
 
@@ -126,7 +127,9 @@ describe("Agent Card anchor-profile extension", () => {
       (e) => e.uri === ANCHOR_EXTENSION_URI,
     );
 
-    expect(anchorExt?.params?.["organization"]).toBeUndefined();
+    expect(
+      expectDefined(anchorExt, "anchor extension").params?.["organization"],
+    ).toBeUndefined();
   });
 
   test("should omit description when profile has none", () => {
@@ -158,7 +161,9 @@ describe("Agent Card anchor-profile extension", () => {
       (e) => e.uri === ANCHOR_EXTENSION_URI,
     );
 
-    expect(anchorExt?.required).toBeUndefined();
+    expect(
+      expectDefined(anchorExt, "anchor extension").required,
+    ).toBeUndefined();
   });
 
   test("should preserve existing capabilities alongside extension", () => {

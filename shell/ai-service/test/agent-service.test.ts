@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { AgentService } from "../src/agent-service";
 import type { AgentResponse } from "../src";
 import {
@@ -537,8 +538,11 @@ describe("AgentService", () => {
 
       await service.chat("New message", "test-conversation");
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const messages = callArgs?.messages ?? [];
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const messages = callArgs.messages;
 
       // Should include history plus new message
       expect(messages.length).toBe(3);
@@ -647,8 +651,11 @@ describe("AgentService", () => {
 
       await service.chat("Use that image", "test-conversation");
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.messages[0]).toEqual({
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      expect(callArgs.messages[0]).toEqual({
         role: "assistant",
         content: [
           {
@@ -657,7 +664,7 @@ describe("AgentService", () => {
           },
         ],
       });
-      expect(JSON.stringify(callArgs?.messages[0])).not.toContain(
+      expect(JSON.stringify(callArgs.messages[0])).not.toContain(
         "Entities affected this turn",
       );
     });
@@ -686,8 +693,11 @@ describe("AgentService", () => {
         ],
       });
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const messages = callArgs?.messages ?? [];
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const messages = callArgs.messages;
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: [
@@ -791,8 +801,11 @@ describe("AgentService", () => {
         kind: "upload",
         id: "upload-123",
       });
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const messages = callArgs?.messages ?? [];
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const messages = callArgs.messages;
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: [
@@ -933,8 +946,14 @@ describe("AgentService", () => {
         kind: "upload",
         id: "upload-pdf",
       });
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const lastMessage = callArgs?.messages.at(-1);
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const lastMessage = expectDefined(
+        callArgs.messages.at(-1),
+        "last message",
+      );
       expect(lastMessage).toEqual({
         role: "user",
         content: [
@@ -1028,12 +1047,18 @@ describe("AgentService", () => {
       );
 
       expect(uploadAttachmentResolver).toHaveBeenCalledTimes(2);
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const lastMessage = callArgs?.messages.at(-1);
-      expect(lastMessage?.content).toContain("Available upload refs");
-      expect(lastMessage?.content).toContain("upload-alpha");
-      expect(lastMessage?.content).toContain("upload-beta");
-      expect(Array.isArray(lastMessage?.content)).toBe(false);
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const lastMessage = expectDefined(
+        callArgs.messages.at(-1),
+        "last message",
+      );
+      expect(lastMessage.content).toContain("Available upload refs");
+      expect(lastMessage.content).toContain("upload-alpha");
+      expect(lastMessage.content).toContain("upload-beta");
+      expect(Array.isArray(lastMessage.content)).toBe(false);
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
         1,
         expect.not.objectContaining({
@@ -1079,11 +1104,17 @@ describe("AgentService", () => {
 
       await service.chat("save it as a document", "test-conversation");
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateUpload).toBeUndefined();
-      const lastMessage = callArgs?.messages.at(-1);
-      expect(lastMessage?.content).not.toContain("Available upload refs");
-      expect(lastMessage?.content).not.toContain("upload-missing");
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      expect(callArgs.options.enableCreateUpload).toBeUndefined();
+      const lastMessage = expectDefined(
+        callArgs.messages.at(-1),
+        "last message",
+      );
+      expect(lastMessage.content).not.toContain("Available upload refs");
+      expect(lastMessage.content).not.toContain("upload-missing");
     });
 
     it("passes recent upload refs as candidates without service-level clarification", async () => {
@@ -1153,19 +1184,25 @@ describe("AgentService", () => {
 
       expect(response.text).not.toContain("Which uploaded file should I use?");
       expect(mockGenerate).toHaveBeenCalledTimes(1);
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options.enableCreateUpload).toBe(true);
-      expect(callArgs?.options).not.toHaveProperty(
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      expect(callArgs.options.enableCreateUpload).toBe(true);
+      expect(callArgs.options).not.toHaveProperty(
         "enableCreateSourceAttachment",
       );
-      expect(callArgs?.options).not.toHaveProperty("disableDocumentGenerate");
-      const lastMessage = callArgs?.messages.at(-1);
-      expect(lastMessage?.role).toBe("user");
-      expect(lastMessage?.content).toContain(
+      expect(callArgs.options).not.toHaveProperty("disableDocumentGenerate");
+      const lastMessage = expectDefined(
+        callArgs.messages.at(-1),
+        "last message",
+      );
+      expect(lastMessage.role).toBe("user");
+      expect(lastMessage.content).toContain(
         "Can you generate a preview of the innovation deck carousel for me?",
       );
-      expect(lastMessage?.content).toContain('id: "upload-pdf"');
-      expect(lastMessage?.content).toContain('id: "upload-image"');
+      expect(lastMessage.content).toContain('id: "upload-pdf"');
+      expect(lastMessage.content).toContain('id: "upload-image"');
     });
 
     it("does not derive tool availability from source wording", async () => {
@@ -1183,11 +1220,14 @@ describe("AgentService", () => {
         "test-conversation",
       );
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      expect(callArgs?.options).not.toHaveProperty(
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      expect(callArgs.options).not.toHaveProperty(
         "enableCreateSourceAttachment",
       );
-      expect(callArgs?.options).not.toHaveProperty("disableDocumentGenerate");
+      expect(callArgs.options).not.toHaveProperty("disableDocumentGenerate");
     });
 
     it("lets the agent handle clarification replies instead of rewriting them", async () => {
@@ -1269,13 +1309,18 @@ describe("AgentService", () => {
 
       await service.chat("the latest one", "test-conversation");
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const messages = callArgs?.messages ?? [];
-      const lastMessage = messages.at(-1);
-      expect(lastMessage?.role).toBe("user");
-      expect(lastMessage?.content).toContain("the latest one");
-      expect(lastMessage?.content).toContain('id: "upload-first"');
-      expect(lastMessage?.content).toContain('id: "upload-second"');
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const lastMessage = expectDefined(
+        callArgs.messages.at(-1),
+        "last message",
+      );
+      expect(lastMessage.role).toBe("user");
+      expect(lastMessage.content).toContain("the latest one");
+      expect(lastMessage.content).toContain('id: "upload-first"');
+      expect(lastMessage.content).toContain('id: "upload-second"');
     });
 
     it("asks for intent when the user submits only a native file attachment", async () => {
@@ -1430,8 +1475,11 @@ describe("AgentService", () => {
         ],
       });
 
-      const callArgs = mockGenerate.mock.calls[0]?.[0];
-      const messages = callArgs?.messages ?? [];
+      const callArgs = expectDefined(
+        mockGenerate.mock.calls[0]?.[0],
+        "generate() call args",
+      );
+      const messages = callArgs.messages;
       expect(messages.at(-1)).toEqual({
         role: "user",
         content: expect.stringContaining(

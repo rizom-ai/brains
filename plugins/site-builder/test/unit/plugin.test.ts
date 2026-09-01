@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -545,7 +546,7 @@ describe("SiteBuilderPlugin", () => {
       { route?: { path: string } }
     >("plugin:site-builder:route:get", { path: "/studio/" });
 
-    expect(result?.route).toBeUndefined();
+    expect(expectDefined(result, "route:get response").route).toBeUndefined();
   });
 
   it("should not generate Studio files on site:build:completed", async () => {

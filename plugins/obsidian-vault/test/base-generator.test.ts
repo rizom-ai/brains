@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import {
   generateBase,
   generatePipelineBase,
@@ -82,8 +83,8 @@ describe("generateBase", () => {
     ];
     const result = generateBase("post", fields);
     const parsed = parseBase(result.content, viewsSchema);
-    const firstView = parsed.views[0];
-    expect(firstView?.order).not.toContain("entityType");
+    const firstView = expectDefined(parsed.views[0], "first view");
+    expect(firstView.order).not.toContain("entityType");
   });
 
   it("should add grouped-by-status view when status field exists", () => {

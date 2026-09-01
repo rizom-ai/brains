@@ -1,4 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import {
   DynamicRouteGenerator,
   type DynamicRouteGeneratorServices,
@@ -819,8 +820,11 @@ describe("DynamicRouteGenerator", () => {
       const page1Route = routeRegistry.get("/posts");
       expect(page1Route?.navigation?.show).toBe(true);
 
-      const page2Route = routeRegistry.get("/posts/page/2");
-      expect(page2Route?.navigation).toBeUndefined();
+      const page2Route = expectDefined(
+        routeRegistry.get("/posts/page/2"),
+        "/posts/page/2 route",
+      );
+      expect(page2Route.navigation).toBeUndefined();
     });
 
     test("should include baseUrl in paginated route data query", async () => {

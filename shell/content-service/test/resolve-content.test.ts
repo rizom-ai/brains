@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
@@ -544,8 +545,11 @@ describe("ContentService.resolveContent", () => {
         },
       });
       // Explicitly verify publishedOnly was NOT added
-      const request = listEntitiesSpy.mock.calls[0]?.[0];
-      expect(request?.options).not.toHaveProperty("publishedOnly");
+      const request = expectDefined(
+        listEntitiesSpy.mock.calls[0]?.[0],
+        "listEntities() request",
+      );
+      expect(request.options).not.toHaveProperty("publishedOnly");
     });
 
     it("should add publishedOnly when datasource filters on non-status metadata", async () => {
@@ -688,8 +692,11 @@ describe("ContentService.resolveContent", () => {
           filter: { metadata: { status: "draft" } },
         },
       });
-      const request = countEntitiesSpy.mock.calls[0]?.[0];
-      expect(request?.options).not.toHaveProperty("publishedOnly");
+      const request = expectDefined(
+        countEntitiesSpy.mock.calls[0]?.[0],
+        "countEntities() request",
+      );
+      expect(request.options).not.toHaveProperty("publishedOnly");
     });
 
     it("should forward getEntity calls through scoped entityService", async () => {
