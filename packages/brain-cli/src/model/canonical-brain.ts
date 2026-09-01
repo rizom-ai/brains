@@ -14,7 +14,7 @@ import {
 import { A2AInterface } from "@brains/a2a";
 import { adminPlugin } from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
-import { analyticsPlugin } from "@brains/analytics";
+import analyticsPackage from "@brains/analytics";
 import assessmentPackage from "@brains/assessment";
 import { atprotoPlugin } from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
@@ -186,7 +186,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["site-info", siteInfoPlugin, undefined],
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, undefined],
-    ["analytics", analyticsPlugin, undefined],
+    packageCapability("analytics", "@brains/analytics", analyticsPackage),
 
     packageCapability("blog", "@brains/blog", blogPackage),
     packageCapability("series", "@brains/series", seriesPackage),

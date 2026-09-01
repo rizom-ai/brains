@@ -1043,6 +1043,9 @@ class DeclarativeServicePlugin<
       visibility: definition.permission ?? "admin",
       sideEffects:
         definition.sideEffects ?? (definition.confirmation ? "writes" : "none"),
+      ...(definition.agentTool === undefined
+        ? {}
+        : { agentTool: definition.agentTool }),
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         try {
           const token = toolConfirmationToken(rawInput);

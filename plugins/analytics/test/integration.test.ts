@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mockFetch } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { Tool, ToolResponse } from "@brains/plugins";
+import type { Plugin, Tool, ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { AnalyticsPlugin } from "../src/index";
+import { analyticsPlugin } from "./helpers/install";
 import packageJson from "../package.json";
 
 const analyticsDataSchema = z.object({
@@ -70,7 +70,7 @@ async function executeTool(
 
 describe("AnalyticsPlugin Integration", () => {
   let harness: ReturnType<typeof createPluginHarness> | undefined;
-  let plugin: AnalyticsPlugin;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(() => {
@@ -88,7 +88,7 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
+      plugin = analyticsPlugin({
         cloudflare: {
           accountId: "test_account",
           apiToken: "test_token",
@@ -100,7 +100,7 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("analytics");
+      expect(plugin.id).toBe(`${packageJson.name}:analytics`);
       expect(plugin.type).toBe("service");
       expect(plugin.version).toBe(packageJson.version);
     });
@@ -119,7 +119,8 @@ describe("AnalyticsPlugin Integration", () => {
       expect(queryTool?.description).toContain("Cloudflare");
       expect(queryTool?.description).toContain("Date range options");
       expect(queryTool?.agentTool).toBe(false);
-      expect(queryTool?.directMcpExposure).toBe("basic");
+      // directMcpExposure is derived from sideEffects: "none" at the MCP layer now.
+      expect(queryTool?.directMcpExposure).toBeUndefined();
     });
   });
 
@@ -127,7 +128,7 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
+      plugin = analyticsPlugin({
         // No providers configured
       });
 
@@ -143,7 +144,7 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
+      plugin = analyticsPlugin({
         cloudflare: {
           accountId: "test_account",
           apiToken: "test_token",
@@ -463,7 +464,7 @@ describe("AnalyticsPlugin Integration", () => {
     it("should handle plugin registration and reset", async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
+      plugin = analyticsPlugin({
         cloudflare: {
           accountId: "test_account",
           apiToken: "test_token",
@@ -478,7 +479,7 @@ describe("AnalyticsPlugin Integration", () => {
       harness.reset();
 
       // After reset, can install a new plugin
-      const newPlugin = new AnalyticsPlugin({});
+      const newPlugin = analyticsPlugin({});
       const newCaps = await harness.installPlugin(newPlugin);
       expect(newCaps.tools.length).toBe(0);
     });

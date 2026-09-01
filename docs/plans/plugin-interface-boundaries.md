@@ -2,9 +2,9 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **5 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **6 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
-`@brains/atproto-registry`, `@brains/obsidian-vault`).
+`@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -308,6 +308,18 @@ made the entity tranche find real defects rather than move code.
 
 6. **The remaining conversions**, in dependency order, each closing its
    package's internal imports.
+
+   **`stock-photo` is gated on a measured API gap.** Its select job creates
+   `image` entities — another package's type — and stamps cover ids on
+   arbitrary targets. The sanctioned mechanisms both exist and both fall
+   short: `EntityGenerationLink` lets the runtime do the cross-type link,
+   but only for entity-generation-family jobs; create-route delegation runs
+   the owning package's logic, but only the agent's system tools invoke the
+   create interceptor — no package-facing path reaches it. Closing this
+   means a URL-intake job on `entities/image` (owned-type create, linkInto)
+   plus a programmatic enqueue for another type's declared generation — its
+   own slice, with stock-photo as the named consumer, not a detail of its
+   conversion.
 
 ## Validation
 

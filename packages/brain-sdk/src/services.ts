@@ -43,6 +43,14 @@ export type {
   WorkspacePreparedConfirmation,
 } from "@brains/plugins";
 
+// Insights. A service that contributes an insight authors the handler the
+// `insights` slot returns; the context hands it scoped reads and the
+// caller's visibility. Type-only. Named consumer: @brains/analytics.
+export type {
+  EntityInsightContext,
+  EntityInsightDeclaration,
+} from "@brains/plugins";
+
 // Publishing. A service that declares a publish provider has to describe
 // one, and the pipeline hands it rendered content and media rather than an
 // entity. Named consumer: @brains/social-media.

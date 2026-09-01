@@ -504,6 +504,8 @@
         "AuthCaller",
         "AuthPrincipal",
         "EntityEvalContext",
+        "EntityInsightContext",
+        "EntityInsightDeclaration",
         "EnvVarDecl",
         "FetchLike",
         "JobResult",

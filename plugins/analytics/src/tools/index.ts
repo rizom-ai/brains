@@ -1,8 +1,9 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
-import { createTool, toolSuccess, toolError } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import {
+  defineTool,
+  type ServiceToolDefinition,
+  z,
+} from "@brains/sdk/services";
 import { toISODateString, getYesterday } from "@brains/utils/date";
-import { getErrorMessage } from "@brains/utils/error";
 import type { CloudflareClient } from "../lib/cloudflare-client";
 
 /**
@@ -38,6 +39,19 @@ const queryAnalyticsParamsSchema = z.object({
     .describe("Maximum items for breakdowns (pages, referrers, countries)"),
 });
 
+const queryAnalyticsOutputSchema = z.object({
+  range: z.object({ startDate: z.string(), endDate: z.string() }),
+  summary: z.object({ pageviews: z.number(), visitors: z.number() }),
+  topPages: z.array(z.object({ path: z.string(), views: z.number() })),
+  topReferrers: z.array(z.object({ host: z.string(), visits: z.number() })),
+  devices: z.object({
+    desktop: z.number(),
+    mobile: z.number(),
+    tablet: z.number(),
+  }),
+  topCountries: z.array(z.object({ country: z.string(), visits: z.number() })),
+});
+
 type QueryAnalyticsParams = z.infer<typeof queryAnalyticsParamsSchema>;
 
 /**
@@ -62,25 +76,40 @@ function validateParams(input: QueryAnalyticsParams): string | null {
   return null;
 }
 
+function resolveRange(input: QueryAnalyticsParams): {
+  startDate: string;
+  endDate: string;
+} {
+  if (input.date) {
+    // Single specific date
+    return { startDate: input.date, endDate: input.date };
+  }
+  if (input.startDate && input.endDate) {
+    // Custom date range
+    return { startDate: input.startDate, endDate: input.endDate };
+  }
+  // Use days parameter (default: 1 = yesterday only)
+  const days = input.days ?? 1;
+  const end = getYesterday();
+  const start = new Date(end);
+  start.setDate(start.getDate() - days + 1);
+  return { startDate: toISODateString(start), endDate: toISODateString(end) };
+}
+
 /**
  * Create analytics plugin tools
  */
 export function createAnalyticsTools(
-  pluginId: string,
-  _context: ServicePluginContext,
-  cloudflareClient?: CloudflareClient,
-): Tool[] {
-  const tools: Tool[] = [];
-
+  cloudflareClient: CloudflareClient | undefined,
+): ServiceToolDefinition[] {
   if (!cloudflareClient) {
-    return tools;
+    return [];
   }
 
-  tools.push(
-    createTool(
-      pluginId,
-      "query",
-      `Query website analytics from Cloudflare.
+  return [
+    defineTool({
+      name: "query",
+      description: `Query website analytics from Cloudflare.
 
 Date range options (use only one):
 - No params: yesterday only
@@ -89,78 +118,43 @@ Date range options (use only one):
 - startDate + endDate: custom date range
 
 Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
-      queryAnalyticsParamsSchema,
-      async (input) => {
-        // Validate parameter combinations
+      input: queryAnalyticsParamsSchema,
+      output: queryAnalyticsOutputSchema,
+      sideEffects: "none",
+      // A human asks for a readout over MCP; the agent has no business
+      // querying traffic on its own initiative.
+      agentTool: false,
+      execute: async ({ input }) => {
         const validationError = validateParams(input);
         if (validationError) {
-          return toolError(validationError);
+          throw new Error(validationError);
         }
 
-        // Calculate date range based on input
-        let startDate: string;
-        let endDate: string;
-
-        if (input.date) {
-          // Single specific date
-          startDate = input.date;
-          endDate = input.date;
-        } else if (input.startDate && input.endDate) {
-          // Custom date range
-          startDate = input.startDate;
-          endDate = input.endDate;
-        } else {
-          // Use days parameter (default: 1 = yesterday only)
-          const days = input.days ?? 1;
-          const end = getYesterday();
-          const start = new Date(end);
-          start.setDate(start.getDate() - days + 1);
-          startDate = toISODateString(start);
-          endDate = toISODateString(end);
-        }
-
+        const { startDate, endDate } = resolveRange(input);
         const limit = input.limit;
 
-        try {
-          // Fetch all data from Cloudflare in parallel
-          const [stats, topPages, topReferrers, devices, topCountries] =
-            await Promise.all([
-              cloudflareClient.getWebsiteStats({ startDate, endDate }),
-              cloudflareClient.getTopPages({ startDate, endDate, limit }),
-              cloudflareClient.getTopReferrers({ startDate, endDate, limit }),
-              cloudflareClient.getDeviceBreakdown({ startDate, endDate }),
-              cloudflareClient.getTopCountries({ startDate, endDate, limit }),
-            ]);
+        // Fetch all data from Cloudflare in parallel
+        const [stats, topPages, topReferrers, devices, topCountries] =
+          await Promise.all([
+            cloudflareClient.getWebsiteStats({ startDate, endDate }),
+            cloudflareClient.getTopPages({ startDate, endDate, limit }),
+            cloudflareClient.getTopReferrers({ startDate, endDate, limit }),
+            cloudflareClient.getDeviceBreakdown({ startDate, endDate }),
+            cloudflareClient.getTopCountries({ startDate, endDate, limit }),
+          ]);
 
-          const rangeDescription =
-            startDate === endDate ? startDate : `${startDate} to ${endDate}`;
-
-          return toolSuccess(
-            {
-              range: { startDate, endDate },
-              summary: {
-                pageviews: stats.pageviews,
-                visitors: stats.visitors,
-              },
-              topPages,
-              topReferrers,
-              devices,
-              topCountries,
-            },
-            `Website analytics for ${rangeDescription}`,
-          );
-        } catch (error) {
-          const msg = getErrorMessage(error);
-          return toolError(msg);
-        }
+        return {
+          range: { startDate, endDate },
+          summary: {
+            pageviews: stats.pageviews,
+            visitors: stats.visitors,
+          },
+          topPages,
+          topReferrers,
+          devices,
+          topCountries,
+        };
       },
-      {
-        sideEffects: "none",
-        agentTool: false,
-        directMcpExposure: "basic",
-      },
-    ),
-  );
-
-  return tools;
+    }),
+  ];
 }

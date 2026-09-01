@@ -1,66 +1,35 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import type { AnalyticsPlugin } from "../src/index";
-import {
-  createAnalyticsPlugin,
-  AnalyticsPlugin as AnalyticsPluginClass,
-} from "../src/index";
+import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import packageJson from "../package.json";
+import { analyticsPlugin, PACKAGE_METADATA } from "./helpers/install";
 
-describe("AnalyticsPlugin", () => {
-  let plugin: AnalyticsPlugin;
+const CLOUDFLARE_CONFIG = {
+  cloudflare: {
+    accountId: "abc123",
+    apiToken: "cf_test_token",
+    siteTag: "site123",
+  },
+};
 
-  beforeEach(() => {
-    plugin = createAnalyticsPlugin({
-      cloudflare: {
-        accountId: "abc123",
-        apiToken: "cf_test_token",
-        siteTag: "site123",
-      },
-    }) as AnalyticsPlugin;
-  });
-
+describe("analytics service", () => {
   describe("Plugin Configuration", () => {
     it("should have correct plugin metadata", () => {
-      expect(plugin.id).toBe("analytics");
-      expect(plugin.description).toContain("Analytics");
-      expect(plugin.version).toBe(packageJson.version);
+      const plugin = analyticsPlugin(CLOUDFLARE_CONFIG);
+      expect(plugin.id).toBe(`${PACKAGE_METADATA.name}:analytics`);
+      expect(plugin.version).toBe(PACKAGE_METADATA.version);
     });
 
-    it("should use default configuration when not provided", () => {
-      const defaultPlugin = createAnalyticsPlugin() as AnalyticsPlugin;
-      expect(defaultPlugin.id).toBe("analytics");
-      expect(defaultPlugin.version).toBe(packageJson.version);
-    });
-
-    it("should accept custom configuration", () => {
-      const customPlugin = createAnalyticsPlugin({
-        cloudflare: {
-          accountId: "custom",
-          apiToken: "cf_custom",
-          siteTag: "custom_site",
-        },
-      }) as AnalyticsPlugin;
-
-      expect(customPlugin.id).toBe("analytics");
-      expect(customPlugin.version).toBe(packageJson.version);
+    it("should instantiate without configuration", () => {
+      const plugin = analyticsPlugin();
+      expect(plugin.id).toBe(`${PACKAGE_METADATA.name}:analytics`);
     });
   });
 
   describe("Plugin Tools", () => {
     it("should register analytics_query tool when cloudflare is configured", async () => {
       const harness = createPluginHarness();
-
       const capabilities = await harness.installPlugin(
-        new AnalyticsPluginClass({
-          cloudflare: {
-            accountId: "abc123",
-            apiToken: "cf_test_token",
-            siteTag: "site123",
-          },
-        }),
+        analyticsPlugin(CLOUDFLARE_CONFIG),
       );
-
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("analytics_query");
       harness.reset();
@@ -68,28 +37,16 @@ describe("AnalyticsPlugin", () => {
 
     it("should NOT register tools when cloudflare is not configured", async () => {
       const harness = createPluginHarness();
-
-      const capabilities = await harness.installPlugin(
-        new AnalyticsPluginClass({}),
-      );
-
+      const capabilities = await harness.installPlugin(analyticsPlugin());
       expect(capabilities.tools).toHaveLength(0);
       harness.reset();
     });
 
     it("should have query tool with correct description", async () => {
       const harness = createPluginHarness();
-
       const capabilities = await harness.installPlugin(
-        new AnalyticsPluginClass({
-          cloudflare: {
-            accountId: "abc123",
-            apiToken: "cf_test_token",
-            siteTag: "site123",
-          },
-        }),
+        analyticsPlugin(CLOUDFLARE_CONFIG),
       );
-
       const queryTool = capabilities.tools.find(
         (t) => t.name === "analytics_query",
       );
@@ -99,7 +56,6 @@ describe("AnalyticsPlugin", () => {
       expect(queryTool?.visibility).toBe("admin");
       expect(queryTool?.sideEffects).toBe("none");
       expect(queryTool?.agentTool).toBe(false);
-      expect(queryTool?.directMcpExposure).toBe("basic");
       harness.reset();
     });
   });

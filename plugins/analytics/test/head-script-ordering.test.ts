@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AnalyticsPlugin } from "../src/index";
+import { analyticsPlugin } from "./helpers/install";
 
 /**
  * Regression test: analytics plugin must inject its head script
@@ -21,7 +21,7 @@ describe("Analytics head script with plugin ordering", () => {
   });
 
   it("should inject head script when site-builder subscribes AFTER analytics registers", async () => {
-    const analytics = new AnalyticsPlugin({
+    const analytics = analyticsPlugin({
       cloudflare: {
         accountId: "abc",
         apiToken: "token",
@@ -40,7 +40,7 @@ describe("Analytics head script with plugin ordering", () => {
       },
     );
 
-    await analytics.ready();
+    await analytics.ready?.();
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");
@@ -59,7 +59,7 @@ describe("Analytics head script with plugin ordering", () => {
       },
     );
 
-    const analytics = new AnalyticsPlugin({
+    const analytics = analyticsPlugin({
       cloudflare: {
         accountId: "abc",
         apiToken: "token",
@@ -68,7 +68,7 @@ describe("Analytics head script with plugin ordering", () => {
     });
     await harness.installPlugin(analytics);
 
-    await analytics.ready();
+    await analytics.ready?.();
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AnalyticsPlugin } from "../src/index";
+import { analyticsPlugin } from "./helpers/install";
 
 describe("Analytics head script injection", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -23,7 +23,7 @@ describe("Analytics head script injection", () => {
       },
     );
 
-    const plugin = new AnalyticsPlugin({
+    const plugin = analyticsPlugin({
       cloudflare: {
         accountId: "abc123",
         apiToken: "cf_token",
@@ -32,7 +32,7 @@ describe("Analytics head script injection", () => {
     });
 
     await harness.installPlugin(plugin);
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");
@@ -50,9 +50,9 @@ describe("Analytics head script injection", () => {
       },
     );
 
-    const plugin = new AnalyticsPlugin({});
+    const plugin = analyticsPlugin({});
     await harness.installPlugin(plugin);
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(receivedPayload).toBeUndefined();
   });
@@ -67,7 +67,7 @@ describe("Analytics head script injection", () => {
       },
     );
 
-    const plugin = new AnalyticsPlugin({
+    const plugin = analyticsPlugin({
       cloudflare: {
         accountId: "abc123",
         apiToken: "cf_token",
@@ -84,7 +84,7 @@ describe("Analytics head script injection", () => {
     }
 
     if (installed) {
-      await plugin.ready();
+      await plugin.ready?.();
     }
 
     expect(receivedPayload).toBeUndefined();
@@ -100,7 +100,7 @@ describe("Analytics head script injection", () => {
       },
     );
 
-    const plugin = new AnalyticsPlugin({
+    const plugin = analyticsPlugin({
       cloudflare: {
         accountId: "abc123",
         apiToken: "cf_token",
@@ -109,7 +109,7 @@ describe("Analytics head script injection", () => {
     });
 
     await harness.installPlugin(plugin);
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(receivedScript).toBe(
       `<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token":"my-site-tag"}'></script>`,

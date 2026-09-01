@@ -1,9 +1,14 @@
 import { describe, it, expect, mock } from "bun:test";
+import type { EntityInsightContext } from "@brains/sdk/services";
 import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
 import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
-import { createMockEntityService } from "@brains/test-utils";
 
-const mockEntityService = createMockEntityService();
+// The insight reads nothing from the brain — its data comes from Cloudflare —
+// so the context can be inert.
+const insightContext = {
+  entities: {} as never,
+  visibilityScope: "public",
+} as EntityInsightContext;
 
 function createMockClient(
   overrides: Partial<TrafficStatsClient> = {},
@@ -29,7 +34,7 @@ describe("traffic-overview insight", () => {
   it("should return pageviews, visitors, and top pages", async () => {
     const client = createMockClient();
     const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService, "public");
+    const result = await handler(insightContext);
 
     expect(result["pageviews"]).toBe(1200);
     expect(result["visitors"]).toBe(450);
@@ -48,7 +53,7 @@ describe("traffic-overview insight", () => {
   it("should include date range in result", async () => {
     const client = createMockClient();
     const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService, "public");
+    const result = await handler(insightContext);
 
     expect(result["days"]).toBe(7);
   });
@@ -61,7 +66,7 @@ describe("traffic-overview insight", () => {
     });
 
     const handler = createTrafficOverviewInsight(client);
-    const result = await handler(mockEntityService, "public");
+    const result = await handler(insightContext);
 
     expect(result["error"]).toBe("API rate limited");
     expect(result["pageviews"]).toBeUndefined();
@@ -69,7 +74,7 @@ describe("traffic-overview insight", () => {
 
   it("should return unavailable when no client provided", async () => {
     const handler = createTrafficOverviewInsight(undefined);
-    const result = await handler(mockEntityService, "public");
+    const result = await handler(insightContext);
 
     expect(result["unavailable"]).toBe(true);
   });

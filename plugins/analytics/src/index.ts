@@ -1,16 +1,13 @@
-import type { Plugin, Tool, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import {
-  analyticsConfigSchema,
-  type AnalyticsConfig,
-  type AnalyticsConfigInput,
-} from "./config";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { analyticsConfigSchema } from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
 import { CloudflareClient } from "./lib/cloudflare-client";
 import { createTrafficOverviewInsight } from "./insights/traffic-overview";
-import packageJson from "../package.json";
 
 /**
  * Analytics plugin for querying website metrics from Cloudflare
@@ -25,67 +22,41 @@ import packageJson from "../package.json";
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
-export class AnalyticsPlugin extends ServicePlugin<
-  AnalyticsConfig,
-  AnalyticsConfigInput
-> {
-  private cloudflareClient: CloudflareClient | undefined;
+const analyticsPackage: ServicePackageDefinition<typeof analyticsConfigSchema> =
+  defineServicePlugin({
+    id: "analytics",
+    config: analyticsConfigSchema,
 
-  constructor(config: AnalyticsConfigInput = {}) {
-    super("analytics", packageJson, config, analyticsConfigSchema);
-  }
+    setup: ({ config }) => ({
+      client: config.cloudflare
+        ? new CloudflareClient(config.cloudflare)
+        : undefined,
+    }),
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.cloudflareClient = this.config.cloudflare
-      ? new CloudflareClient(this.config.cloudflare)
-      : undefined;
+    insights: ({ state }) => ({
+      "traffic-overview": createTrafficOverviewInsight(state.client),
+    }),
 
-    context.insights.register(
-      "traffic-overview",
-      createTrafficOverviewInsight(this.cloudflareClient),
-    );
-  }
+    tools: ({ state }) => createAnalyticsTools(state.client),
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const siteTag = this.config.cloudflare?.siteTag;
-    if (!siteTag) return;
+    // The beacon reaches site builds through the head-script channel, and
+    // site-builder's subscription only exists once every plugin has
+    // registered — which is what `ready` is for.
+    ready: async ({ config, messaging }) => {
+      const siteTag = config.cloudflare?.siteTag;
+      if (!siteTag) return;
 
-    await context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.headScriptRegister,
-      payload: {
-        pluginId: this.id,
-        script: generateCloudflareBeaconScript(siteTag),
-      },
-    });
-  }
+      await messaging.send({
+        type: SITE_BUILDER_CHANNELS.headScriptRegister,
+        payload: {
+          pluginId: "analytics",
+          script: generateCloudflareBeaconScript(siteTag),
+        },
+      });
+    },
+  });
 
-  protected override async getTools(): Promise<Tool[]> {
-    return createAnalyticsTools(
-      this.id,
-      this.getContext(),
-      this.cloudflareClient,
-    );
-  }
-}
-
-/**
- * Create an analytics plugin instance
- */
-export function createAnalyticsPlugin(
-  config: AnalyticsConfigInput = {},
-): Plugin {
-  return new AnalyticsPlugin(config);
-}
-
-/**
- * Convenience function matching other plugin patterns
- */
-export const analyticsPlugin: typeof createAnalyticsPlugin =
-  createAnalyticsPlugin;
+export default analyticsPackage;
 
 // Export types and schemas
 export type {

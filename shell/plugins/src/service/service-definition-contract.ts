@@ -281,6 +281,13 @@ export interface ServiceToolDefinition<
   readonly permission?: UserPermissionLevel | undefined;
   readonly sideEffects?: "none" | "writes" | "external" | undefined;
   /**
+   * Whether the LLM agent may call this tool itself. Defaults to true. Some
+   * tools exist for people — an analytics readout a human asks for over MCP
+   * is not something the agent should reach for unprompted. Named consumer:
+   * @brains/analytics.
+   */
+  readonly agentTool?: boolean | undefined;
+  /**
    * Entity access and a permission check, because most tools do something to
    * the brain's own records — and whether the caller may is only knowable
    * when they call.

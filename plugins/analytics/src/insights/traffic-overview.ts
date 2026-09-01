@@ -1,5 +1,6 @@
-import type { InsightHandler } from "@brains/plugins";
+import type { EntityInsightDeclaration } from "@brains/sdk/services";
 import { toISODateString, getYesterday, getDaysAgo } from "@brains/utils/date";
+import { getErrorMessage } from "@brains/utils/error";
 import type { CloudflareClient } from "../lib/cloudflare-client";
 
 /**
@@ -11,7 +12,8 @@ export type TrafficStatsClient = Pick<
   CloudflareClient,
   "getWebsiteStats" | "getTopPages"
 >;
-import { getErrorMessage } from "@brains/utils/error";
+
+type InsightHandler = EntityInsightDeclaration[string];
 
 const OVERVIEW_DAYS = 7;
 const TOP_PAGES_LIMIT = 10;

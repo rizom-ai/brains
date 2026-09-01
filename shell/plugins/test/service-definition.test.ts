@@ -439,6 +439,51 @@ describe("a tool and who called it", () => {
   });
 });
 
+describe("a tool the agent must not wield", () => {
+  it("carries agentTool through, so a human-only tool stays out of the agent's set", async () => {
+    const definition = defineServicePlugin({
+      id: "metrics-desk",
+      config: z.object({}),
+      setup: () => ({}),
+      tools: () => [
+        defineTool({
+          name: "readout",
+          description: "Read metrics.",
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+          agentTool: false,
+          execute: () => ({ ok: true }),
+        }),
+        defineTool({
+          name: "everyday",
+          description: "An ordinary tool.",
+          input: z.object({}),
+          output: z.object({ ok: z.boolean() }),
+          execute: () => ({ ok: true }),
+        }),
+      ],
+    });
+
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/metrics-desk", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(plugin);
+    const readout = capabilities.tools.find((tool) =>
+      tool.name.endsWith("_readout"),
+    );
+    const everyday = capabilities.tools.find((tool) =>
+      tool.name.endsWith("_everyday"),
+    );
+    expect(readout?.agentTool).toBe(false);
+    expect(everyday?.agentTool).toBeUndefined();
+  });
+});
+
 describe("what a confirmation says", () => {
   it("can name the subject, so a person sees what they are agreeing to", async () => {
     const definition = defineServicePlugin({
