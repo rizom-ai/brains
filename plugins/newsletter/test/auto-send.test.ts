@@ -1,4 +1,5 @@
 import { describe, it, expect, spyOn, afterEach } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -193,10 +194,12 @@ describe("Newsletter Auto-Send on Publish", () => {
           sender: "test",
         });
 
-      expect("success" in response && response.success).toBe(false);
-      if ("error" in response) {
-        expect(response.error).toContain("not found");
-      }
+      expect(response).toMatchObject({ success: false });
+      const failure = expectDefined(
+        "error" in response ? response : undefined,
+        "failure response carrying an error",
+      );
+      expect(failure.error).toContain("not found");
       harness.reset();
     });
   });
