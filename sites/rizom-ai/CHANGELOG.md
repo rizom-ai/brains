@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.243
+
+### Patch Changes
+
+- [#201](https://github.com/rizom-ai/brains/pull/201) [`a828c3a`](https://github.com/rizom-ai/brains/commit/a828c3a5f64295c2bb9237fbf8651960ddab19ae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compile the published Rizom site bundle with the canonical production React JSX transform and verify packed production rendering.
+
 ## 0.2.0-alpha.242
 
 ### Minor Changes
