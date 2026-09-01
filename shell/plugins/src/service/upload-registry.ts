@@ -225,8 +225,16 @@ export class RuntimeUploadStore {
         join(this.getUploadDir(uploadId), "content"),
       );
       return { record, content };
-    } catch {
-      throw new RuntimeUploadStoreError("not_found", "Upload not found");
+    } catch (error) {
+      // The metadata resolved, so the upload exists. A content file we cannot
+      // read is a damaged upload, not an absent one.
+      if (isNoEntryError(error)) {
+        throw new RuntimeUploadStoreError("not_found", "Upload not found");
+      }
+      throw new RuntimeUploadStoreError(
+        "invalid_metadata",
+        "Upload content could not be read",
+      );
     }
   }
 
@@ -253,7 +261,16 @@ export class RuntimeUploadStore {
       return parsed.data;
     } catch (error) {
       if (error instanceof RuntimeUploadStoreError) throw error;
-      throw new RuntimeUploadStoreError("not_found", "Upload not found");
+      // No metadata file means no upload. A file that is present but will not
+      // read or parse means a damaged one, and calling that "not found" sends
+      // the caller looking for a problem they do not have.
+      if (isNoEntryError(error)) {
+        throw new RuntimeUploadStoreError("not_found", "Upload not found");
+      }
+      throw new RuntimeUploadStoreError(
+        "invalid_metadata",
+        "Upload metadata could not be read",
+      );
     }
   }
 

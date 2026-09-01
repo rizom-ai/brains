@@ -1,4 +1,6 @@
 import { describe, it, expect } from "bun:test";
+import { writeFile } from "fs/promises";
+import { join } from "path";
 import {
   createDiscordChatUploadStoreScope,
   createSlackChatUploadStoreScope,
@@ -190,6 +192,43 @@ describe("ChatInterface webhook and upload routes", () => {
     expect(downloadResponse?.headers.get("Content-Disposition")).toBe(
       "attachment; filename=\"d_ck _draft_.pdf\"; filename*=UTF-8''d%C3%A9ck%20%22draft%22.pdf",
     );
+  });
+
+  it("reports unreadable stored metadata as a server fault, not a missing upload", async () => {
+    // "Upload not found" sends the caller looking for a problem on their side.
+    // Metadata we wrote and can no longer read is a problem on ours.
+    const plugin = createPlugin();
+    await suite.harness.installPlugin(plugin);
+    const uploadStore = suite.harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped(createDiscordChatUploadStoreScope());
+    const record = await uploadStore.save({
+      filename: "notes.pdf",
+      mediaType: "application/pdf",
+      content: Buffer.from("%PDF-1.7"),
+    });
+    await writeFile(
+      join(uploadStore.getUploadDir(record.id), "metadata.json"),
+      "{ not valid json",
+      "utf8",
+    );
+
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/api/webhooks/chat/discord/uploads" &&
+          candidate.method === "GET",
+      );
+    const response = await route?.handler(
+      new Request(
+        `https://brain.test/api/webhooks/chat/discord/uploads?id=${record.id}`,
+      ),
+    );
+
+    expect(response?.status).toBe(500);
+    expect(await response?.text()).toBe("Upload could not be read");
   });
 
   it("does not serve upload refs from other runtime upload scopes", async () => {

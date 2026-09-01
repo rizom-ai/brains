@@ -1,6 +1,9 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
-import type { WebRouteDefinition } from "@brains/plugins";
+import {
+  RuntimeUploadStoreError,
+  type WebRouteDefinition,
+} from "@brains/plugins";
 import { caughtError, createMockShell } from "@brains/test-utils";
 import type { ChatUploadReader } from "../src/types";
 import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
@@ -274,11 +277,11 @@ describe("ChatSdkAppHost", () => {
     expect(await response.text()).toBe("Missing upload id");
   });
 
-  it("returns 404 when the upload store cannot read the ref", async () => {
+  it("returns 404 when the store reports the ref does not exist", async () => {
     const { discordApp } = makeApp({
       uploadStore: createUploadStore(
         mock(async (): Promise<never> => {
-          throw new Error("not found");
+          throw new RuntimeUploadStoreError("not_found", "Upload not found");
         }),
       ),
     });
@@ -289,13 +292,30 @@ describe("ChatSdkAppHost", () => {
     expect(await response.text()).toBe("Upload not found");
   });
 
-  it("returns 404 when the upload store is unavailable", async () => {
+  it("returns 500 when the store fails for a reason other than absence", async () => {
+    // A store that blows up has not told us the upload is missing. Reporting
+    // 404 would blame the caller for a fault on this side.
+    const { discordApp } = makeApp({
+      uploadStore: createUploadStore(
+        mock(async () => {
+          throw new Error("disk went away");
+        }) as never,
+      ),
+    });
+    const response = await uploadRoute(discordApp).handler(
+      new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
+    );
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe("Upload could not be read");
+  });
+
+  it("returns 503 when the adapter is configured but no store was registered", async () => {
     const { discordApp } = makeApp({ uploadStore: undefined });
     const response = await uploadRoute(discordApp).handler(
       new Request("https://brain.test/api/webhooks/chat/discord/uploads?id=u1"),
     );
-    expect(response.status).toBe(404);
-    expect(await response.text()).toBe("Upload not found");
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe("Chat upload storage unavailable");
   });
 
   it("delegates initialize and shutdown to the built app", async () => {
