@@ -6,6 +6,10 @@ import { createBrokerGitSync } from "./broker-git-sync";
 import type { IGitSync } from "../../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 import type { GitLogEntry } from "../../src/types";
+import {
+  getFileHistory,
+  type GitRawRunner,
+} from "../../src/lib/broker/git-history";
 
 /** Safe accessor — throws in test if index is out of bounds */
 function at(entries: GitLogEntry[], index: number): GitLogEntry {
@@ -45,6 +49,24 @@ describe("GitSync history", () => {
 
       const result = await gitSync.log("post/nonexistent.md");
       expect(result).toEqual([]);
+    });
+
+    it("surfaces a git failure instead of reporting it as empty history", async () => {
+      // A file with no commits already returns [] via the empty-output check
+      // above, so the only thing a catch here can hide is a real git fault —
+      // a corrupt repo or missing binary reported to the caller as "no history".
+      const brokenGit: GitRawRunner = {
+        raw: async (): Promise<string> => {
+          throw new Error("fatal: not a git repository");
+        },
+      };
+
+      const outcome = await getFileHistory(brokenGit, "post.md").then(
+        (entries) => `resolved with ${entries.length} entries`,
+        (error: unknown) => (error as Error).message,
+      );
+
+      expect(outcome).toBe("fatal: not a git repository");
     });
 
     it("should return commit list for a tracked file", async () => {
