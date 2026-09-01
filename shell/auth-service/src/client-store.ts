@@ -10,6 +10,7 @@ import {
   oauthRefreshTokens,
 } from "./runtime-schema";
 import type { RegisteredOAuthClient } from "./types";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 type TokenEndpointAuthMethod =
   "none" | "client_secret_basic" | "client_secret_post";
@@ -90,15 +91,17 @@ const persistedOAuthClientSchema = z
     token_endpoint_auth_method: client.token_endpoint_auth_method ?? "none",
     grant_types: client.grant_types ?? ["authorization_code", "refresh_token"],
     response_types: client.response_types ?? ["code"],
-    ...(client.scope !== undefined ? { scope: client.scope } : {}),
+    ...definedFields({ scope: client.scope }),
     ...(client.client_name !== undefined
       ? { client_name: client.client_name }
       : {}),
     ...(client.client_uri !== undefined
       ? { client_uri: client.client_uri }
       : {}),
-    ...(client.logo_uri !== undefined ? { logo_uri: client.logo_uri } : {}),
-    ...(client.contacts !== undefined ? { contacts: client.contacts } : {}),
+    ...definedFields({
+      logo_uri: client.logo_uri,
+      contacts: client.contacts,
+    }),
     ...(client.client_secret !== undefined
       ? { client_secret: client.client_secret }
       : {}),

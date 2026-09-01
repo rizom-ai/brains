@@ -22,6 +22,7 @@ import {
   evaluateQualityThresholds,
 } from "./criteria-evaluator";
 import { isRecord } from "@brains/utils/is-record";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
@@ -372,7 +373,7 @@ export class TestRunner implements ITestRunner {
       mediaType: attachment.mediaType,
       data,
       sizeBytes: attachment.sizeBytes ?? data.byteLength,
-      ...(attachment.source !== undefined ? { source: attachment.source } : {}),
+      ...definedFields({ source: attachment.source }),
     };
   }
 

@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 export interface ArtifactDisplay {
   jobId?: string;
@@ -35,15 +36,17 @@ export function formatArtifactDisplay(data: unknown): ArtifactDisplay | null {
   const previewUrl = getStringValue(attachment, "previewUrl");
 
   return {
-    ...(jobId !== undefined ? { jobId } : {}),
+    ...definedFields({ jobId }),
     title: getStringValue(data, "title") ?? "Generated artifact",
-    ...(description !== undefined ? { description } : {}),
-    ...(mediaType !== undefined ? { mediaType } : {}),
-    ...(filename !== undefined ? { filename } : {}),
-    ...(sizeLabel !== undefined ? { sizeLabel } : {}),
-    ...(url !== undefined ? { url } : {}),
-    ...(downloadUrl !== undefined ? { downloadUrl } : {}),
-    ...(previewUrl !== undefined ? { previewUrl } : {}),
+    ...definedFields({
+      description,
+      mediaType,
+      filename,
+      sizeLabel,
+      url,
+      downloadUrl,
+      previewUrl,
+    }),
   };
 }
 

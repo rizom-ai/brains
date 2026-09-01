@@ -5,6 +5,7 @@ import { isPlainRecord } from "@brains/utils/predicates";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 export interface ToolContextInfo {
   conversationId: string;
@@ -122,7 +123,7 @@ export function toModelToolOutput(output: unknown): {
     ...(attachment.sizeBytes !== undefined
       ? { sizeBytes: attachment.sizeBytes }
       : {}),
-    ...(attachment.source !== undefined ? { source: attachment.source } : {}),
+    ...definedFields({ source: attachment.source }),
   };
 
   return {

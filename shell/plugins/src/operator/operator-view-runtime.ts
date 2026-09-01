@@ -18,6 +18,7 @@ import {
   readEnumValues,
   unwrapField,
 } from "@brains/utils/zod-introspect";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 export type RuntimeOperatorScalar = string | number | boolean | null;
 export type RuntimeOperatorTone = "good" | "warn" | "neutral" | "error";
@@ -2494,7 +2495,7 @@ function normalizeStudioBlock(
           ...(item.meta ? { meta: item.meta } : {}),
           ...(item.metadata ? { metadata: item.metadata } : {}),
           ...(item.tags ? { tags: item.tags } : {}),
-          ...(item.count !== undefined ? { count: item.count } : {}),
+          ...definedFields({ count: item.count }),
           ...(item.badges ? { badges: item.badges } : {}),
           ...(item.filterValues ? { filterValues: item.filterValues } : {}),
           ...(item.links ? { links: item.links } : {}),
@@ -2575,7 +2576,7 @@ function normalizeStudioBlock(
             ...(item.meta ? { meta: item.meta } : {}),
             ...(item.metadata ? { metadata: item.metadata } : {}),
             ...(item.tags ? { tags: item.tags } : {}),
-            ...(item.count !== undefined ? { count: item.count } : {}),
+            ...definedFields({ count: item.count }),
             ...(item.badges ? { badges: item.badges } : {}),
             ...(item.filterValues ? { filterValues: item.filterValues } : {}),
             ...(item.links ? { links: item.links } : {}),
@@ -2621,7 +2622,7 @@ function normalizeStudioBlock(
         return {
           id: tab.id,
           label: tab.label,
-          ...(tab.count !== undefined ? { count: tab.count } : {}),
+          ...definedFields({ count: tab.count }),
           blocks,
         };
       });

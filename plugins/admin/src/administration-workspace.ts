@@ -26,6 +26,7 @@ import {
   requireAuthService,
   type AdminWorkspaceSource,
 } from "./workspace-format";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 const administrationQuerySchema = z.strictObject({
   tab: z.enum(["people", "invitations", "audit"]).default("people"),
@@ -237,8 +238,10 @@ export async function registerAdministrationWorkspace(
             actor,
             {
               ...(query.state ? { state: query.state } : {}),
-              ...(query.offset !== undefined ? { offset: query.offset } : {}),
-              ...(query.limit !== undefined ? { limit: query.limit } : {}),
+              ...definedFields({
+                offset: query.offset,
+                limit: query.limit,
+              }),
             },
             signal,
           ),
@@ -268,8 +271,10 @@ export async function registerAdministrationWorkspace(
             ...(query.actorUserId ? { actorUserId: query.actorUserId } : {}),
             ...(query.action ? { action: query.action } : {}),
             ...(query.selected ? { selected: query.selected } : {}),
-            ...(query.offset !== undefined ? { offset: query.offset } : {}),
-            ...(query.limit !== undefined ? { limit: query.limit } : {}),
+            ...definedFields({
+              offset: query.offset,
+              limit: query.limit,
+            }),
           },
           signal,
         );
