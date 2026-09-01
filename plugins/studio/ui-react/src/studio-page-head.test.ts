@@ -111,24 +111,27 @@ describe("Studio page-head normalization", () => {
     expect(html.match(/Add person/g)).toHaveLength(1);
   });
 
-  it("compresses the phone head to one line without dropping host access", () => {
+  it("gives the phone head two readable lines and a floating action dock", () => {
     expect(studioPageHeadStyles).toContain(
       "grid-template-columns: minmax(0, 1fr) auto",
     );
     expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head-kicker > :not\(\.studio-head-access\) \{[^}]*display: none/,
+      /\.studio-page-head-kicker \{[^}]*display: none/,
     );
     expect(studioPageHeadStyles).toMatch(
       /\.studio-page-head-description \{[^}]*display: none/,
     );
     expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head h2 \{[^}]*text-overflow: ellipsis[^}]*white-space: nowrap/,
+      /\.studio-page-head h2 \{[^}]*white-space: normal/,
+    );
+    expect(studioPageHeadStyles).toMatch(
+      /\.studio-page-head h2 \{[^}]*-webkit-line-clamp: 2/,
     );
     expect(studioPageHeadStyles).toContain(
       '.studio-page-head[data-has-totals="true"] .studio-head-status',
     );
     expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head-action \{[^}]*position: fixed[^}]*env\(safe-area-inset-bottom\)/,
+      /\.studio-page-head-action \{[^}]*position: fixed[^}]*left: 12px[^}]*border-radius: 12px[^}]*env\(safe-area-inset-bottom\)/,
     );
     expect(studioPageHeadStyles).toContain(
       ".studio-workspace-frame:has(.studio-page-head-action)",

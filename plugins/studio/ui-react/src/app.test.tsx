@@ -20,6 +20,7 @@ import {
   Field,
   FieldAssistControls,
   fieldAssistVariant,
+  studioMobileSelection,
   typeHasPublicationField,
   TypeSwitcher,
 } from "./entity-fields";
@@ -139,7 +140,7 @@ describe("editor surface styles", () => {
     expect(styles).not.toContain(".pipeline .reload");
   });
 
-  it("keeps phone Studio to two chrome bars with an accessible fading workspace rail", () => {
+  it("keeps phone Studio to two compact chrome bars with one context picker", () => {
     expect(responsiveStyles).toContain('body[data-console-host="studio"]');
     expect(responsiveStyles).toContain(
       'grid-template-areas: "nav command climate session"',
@@ -147,21 +148,44 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toMatch(
       /\.studio > \.crumbbar \{[^}]*display: none/,
     );
-    expect(responsiveStyles).toContain("mask-image: linear-gradient");
-    expect(responsiveStyles).toContain("scroll-padding-inline");
+    expect(responsiveStyles).toMatch(
+      /\.studio-mobile-switcher \{[^}]*display: grid/,
+    );
+    expect(responsiveStyles).toMatch(/\.types \{[^}]*display: none/);
+    expect(responsiveStyles).toMatch(
+      /\.studio-mobile-switcher \{[^}]*width: 100%[^}]*min-height: var\(--console-touch\)/,
+    );
+    expect(responsiveStyles).toMatch(
+      /\.studio-mobile-switcher-label,[\s\S]*\.studio-mobile-switcher-chevron \{[^}]*pointer-events: none/,
+    );
+    expect(responsiveStyles).toContain(
+      ".studio-mobile-switcher-item[data-highlighted]",
+    );
+    expect(responsiveStyles).not.toContain("mask-image: linear-gradient");
     expect(responsiveStyles).toContain("env(safe-area-inset-top)");
+    expect(responsiveStyles).toMatch(
+      /body\[data-console-host="studio"\] \{[^}]*overflow: hidden/,
+    );
   });
 
-  it("centers the pill type switcher and keeps row meta on the title line", () => {
-    // The desktop rail aligns type rows to the baseline; the 44px mobile
-    // pills must center their label instead of pinning it to the top edge.
+  it("keeps phone library rows readable without adding another scroll region", () => {
     expect(responsiveStyles).toMatch(
-      /\.rail \.type \{[^}]*align-items: center/,
+      /\.row \{[^}]*grid-template-columns: 24px minmax\(0, 1fr\) auto/,
     );
-    // Phone rows: the updated-time sits beside the title, not as a ragged
-    // trailing line under the slug.
     expect(responsiveStyles).toMatch(
-      /\.row \{[^}]*grid-template-columns: 28px minmax\(0, 1fr\) auto/,
+      /\.row \.title small \{[^}]*white-space: normal/,
+    );
+    expect(responsiveStyles).toMatch(
+      /\.studio\[data-view="editor"\] \.studio-body \{[^}]*overflow: hidden/,
+    );
+  });
+
+  it("keeps editor errors inside the single-row phone save dock", () => {
+    expect(responsiveStyles).toMatch(
+      /\.pipeline:has\(> \.status\) \.studio-mobile-save-status \{[^}]*display: none/,
+    );
+    expect(responsiveStyles).toMatch(
+      /\.pipeline > \.status \{[^}]*-webkit-line-clamp: 2/,
     );
   });
 });
@@ -416,6 +440,48 @@ describe("TypeSwitcher", () => {
     expect(html).toContain("Site Info");
     // Active styling lands on the button for the active type only.
     expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+  });
+
+  it("validates phone context-picker values before navigation", () => {
+    expect(studioMobileSelection("type:post")).toEqual({
+      kind: "type",
+      id: "post",
+    });
+    expect(studioMobileSelection("workspace:admin:administration")).toEqual({
+      kind: "workspace",
+      id: "admin:administration",
+    });
+    expect(studioMobileSelection("workspace:")).toBeNull();
+    expect(studioMobileSelection("https://example.com")).toBeNull();
+  });
+
+  it("renders a grouped phone context picker with the current view selected", () => {
+    const administration: StudioWorkspaceInfo = {
+      id: "admin:administration",
+      pluginId: "admin",
+      label: "Administration",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 10,
+      permission: "admin",
+      entityTypes: [],
+    };
+    const html = renderToStaticMarkup(
+      createElement(TypeSwitcher, {
+        types,
+        active: null,
+        onSelect: () => {},
+        workspaces: [administration],
+        activeWorkspace: administration.id,
+        workspaceBadges: { [administration.id]: 2 },
+        onSelectWorkspace: () => {},
+      }),
+    );
+
+    expect(html).toContain('class="studio-mobile-switcher"');
+    expect(html).toContain('aria-label="Studio view"');
+    expect(html).toContain('role="combobox"');
+    expect(html).toContain("Administration · 2");
+    expect(html).toContain('<select aria-hidden="true"');
   });
 
   it("renders Account as an active Studio workspace", () => {

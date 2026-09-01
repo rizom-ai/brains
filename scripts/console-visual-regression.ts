@@ -21,6 +21,15 @@ const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
 const ARTIFACT_DIR = path.join(ROOT, "test/visual/console/artifacts");
 const UPDATE = process.argv.includes("--update");
+const SURFACE_FILTER = process.argv
+  .find((argument) => argument.startsWith("--surface="))
+  ?.slice("--surface=".length);
+const VIEWPORT_FILTER = process.argv
+  .find((argument) => argument.startsWith("--viewport="))
+  ?.slice("--viewport=".length);
+const CLIMATE_FILTER = process.argv
+  .find((argument) => argument.startsWith("--climate="))
+  ?.slice("--climate=".length);
 const FIXED_NOW = Date.parse("2026-07-11T16:40:00.000Z");
 const VIEWPORTS = [
   { width: 1440, height: 1000 },
@@ -1535,6 +1544,27 @@ async function clickText(
     throw new Error(`Could not find ${selector} containing ${text}`);
 }
 
+async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
+  const originalPath = await page.evaluate<string>("location.pathname");
+  await clickSelector(page, ".studio-mobile-switcher");
+  await waitForSelector(page, ".studio-mobile-switcher-content");
+  const expanded = await page.evaluate<boolean>(
+    'document.querySelector(".studio-mobile-switcher")?.getAttribute("aria-expanded") === "true"',
+  );
+  if (!expanded) throw new Error("Studio phone context picker did not open");
+
+  await clickText(page, '[role="option"]', "Field notes");
+  await waitForPage("Studio phone context navigation", () =>
+    page.evaluate<boolean>('location.pathname === "/studio/entities/posts"'),
+  );
+  await evaluatePage(page, () => history.back());
+  await waitForPage("Studio phone context return", () =>
+    page.evaluate<boolean>(
+      `location.pathname === ${JSON.stringify(originalPath)}`,
+    ),
+  );
+}
+
 async function fillLabel(
   page: Bun.WebView,
   labelText: string,
@@ -1732,6 +1762,9 @@ async function checkLayout(
     clientWidth: document.documentElement.clientWidth,
     clientHeight: document.documentElement.clientHeight,
     scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight,
+    rootOverflowY: getComputedStyle(document.documentElement).overflowY,
+    bodyOverflowY: getComputedStyle(document.body).overflowY,
   }));
   if (dimensions.scrollWidth !== dimensions.clientWidth) {
     throw new Error(
@@ -1755,8 +1788,17 @@ async function checkLayout(
     if (crumbDisplay !== "none") {
       throw new Error(`Studio crumb bar exceeded the phone chrome budget`);
     }
+    if (
+      dimensions.scrollHeight > dimensions.clientHeight + 1 &&
+      dimensions.rootOverflowY !== "hidden" &&
+      dimensions.bodyOverflowY !== "hidden"
+    ) {
+      throw new Error(
+        `Studio created a second phone scroll region (${dimensions.scrollHeight} > ${dimensions.clientHeight})`,
+      );
+    }
     const head = await elementBounds(page, ".studio-page-head");
-    if (!head || head.y > 170) {
+    if (!head || head.y > 132) {
       throw new Error(
         `Studio content starts too low at ${width}px (${head?.y ?? "missing"})`,
       );
@@ -1766,42 +1808,63 @@ async function checkLayout(
       surface.startsWith("studio-administration-invitations");
     if (expectsPrimaryAction) {
       const action = await elementBounds(page, ".studio-page-head-action");
+      const bottomInset = action
+        ? dimensions.clientHeight - (action.y + action.height)
+        : -1;
       if (
         !action ||
         action.y < -1 ||
-        action.y + action.height > dimensions.clientHeight + 1 ||
-        Math.abs(action.y + action.height - dimensions.clientHeight) > 2
+        action.x < 11 ||
+        action.x + action.width > dimensions.clientWidth - 11 ||
+        bottomInset < 11 ||
+        bottomInset > 14
       ) {
         throw new Error(
-          `Studio primary action did not pin inside the phone viewport: ${JSON.stringify(action)}`,
+          `Studio primary action did not float inside the phone viewport: ${JSON.stringify(action)}`,
         );
       }
     }
-    const railState = await evaluatePage(page, () => {
+    const switcherState = await evaluatePage(page, () => {
       const rail = document.querySelector(".rail");
       if (!(rail instanceof HTMLElement)) return undefined;
       if (getComputedStyle(rail).display === "none") {
         return { visible: false, overflow: false, focusReached: true };
       }
-      const buttons = rail.querySelectorAll<HTMLButtonElement>("button");
-      if (buttons.length === 0) {
+      const switcher = rail.querySelector(".studio-mobile-switcher");
+      const desktopTypes = rail.querySelector(".types");
+      if (!(switcher instanceof HTMLButtonElement)) {
         return { visible: true, overflow: false, focusReached: false };
       }
-      const last = buttons.item(buttons.length - 1);
-      const overflow = rail.scrollWidth > rail.clientWidth + 1;
-      last.focus();
-      const focusReached = document.activeElement === last;
-      last.blur();
-      rail.scrollLeft = 0;
-      return { visible: true, overflow, focusReached };
+      switcher.focus();
+      const focusReached = document.activeElement === switcher;
+      switcher.blur();
+      const railBounds = rail.getBoundingClientRect();
+      const switcherBounds = switcher.getBoundingClientRect();
+      return {
+        visible: getComputedStyle(switcher).display !== "none",
+        overflow: rail.scrollWidth > rail.clientWidth + 1,
+        focusReached,
+        desktopTypesHidden:
+          desktopTypes instanceof HTMLElement &&
+          getComputedStyle(desktopTypes).display === "none",
+        height: railBounds.height,
+        triggerWidth: switcherBounds.width,
+        availableWidth: railBounds.width - 24,
+      };
     });
-    if (railState?.visible && !railState.overflow) {
-      throw new Error(`Studio workspace rail did not expose phone overflow`);
-    }
-    if (railState?.focusReached === false) {
+    if (
+      switcherState?.visible &&
+      (switcherState.overflow ||
+        switcherState.desktopTypesHidden !== true ||
+        switcherState.height > 56 ||
+        Math.abs(switcherState.triggerWidth - switcherState.availableWidth) > 1)
+    ) {
       throw new Error(
-        `Studio keyboard focus could not reach the final rail item`,
+        `Studio phone context picker exceeded its chrome budget: ${JSON.stringify(switcherState)}`,
       );
+    }
+    if (switcherState?.focusReached === false) {
+      throw new Error(`Studio phone context picker was not keyboard reachable`);
     }
     if (surface.startsWith("studio-administration")) {
       const compactDisplay = await elementDisplay(
@@ -2189,7 +2252,13 @@ const browserBackend: Bun.WebView.Backend = {
 const failures: string[] = [];
 try {
   for (const climate of CLIMATES) {
+    if (CLIMATE_FILTER && climate !== CLIMATE_FILTER) continue;
     for (const viewport of VIEWPORTS) {
+      if (
+        VIEWPORT_FILTER &&
+        `${viewport.width}x${viewport.height}` !== VIEWPORT_FILTER
+      )
+        continue;
       for (const surface of [
         "dashboard",
         "dashboard-knowledge",
@@ -2211,6 +2280,7 @@ try {
         "studio-invalid",
         "studio-upload",
       ] as const) {
+        if (SURFACE_FILTER && surface !== SURFACE_FILTER) continue;
         // The sessions drawer only exists at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
         // Secondary editor states are pinned at desktop and phone; tablet
@@ -2266,6 +2336,13 @@ try {
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (
+          surface === "studio-overview" &&
+          viewport.width <= 640 &&
+          climate === "instrument"
+        ) {
+          await verifyStudioMobileSwitcher(page);
+        }
         if (
           surface === "dashboard-knowledge" ||
           surface === "dashboard-network"
