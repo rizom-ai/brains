@@ -118,7 +118,7 @@ export function createShellServices(options: {
     dependencies?.attachmentRegistry ?? AttachmentRegistry.createFresh();
   const runtimeUploadRegistry =
     dependencies?.runtimeUploadRegistry ??
-    RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir });
+    RuntimeUploadRegistry.createFresh({ dataDir: config.dataDir, logger });
   const runtimeStateContext = lifecycle.buildLayer(
     createRuntimeStateServiceLayer({
       config: createDatabaseConfig(config.runtimeStateDatabase),

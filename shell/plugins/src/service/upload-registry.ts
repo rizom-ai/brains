@@ -1,6 +1,8 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
 import { z } from "@brains/utils/zod";
+import { getErrorMessage } from "@brains/utils/error";
+import type { Logger } from "@brains/utils/logger";
 
 export const runtimeUploadIdPattern: RegExp =
   /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -27,6 +29,16 @@ export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
   downloadUrl: string;
 }
 
+/** True for "no such file or directory" — the only benign read failure here. */
+function isNoEntryError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "ENOENT"
+  );
+}
+
 export interface RuntimeUploadScopeOptions {
   /** Filesystem namespace below the runtime data directory, e.g. "upload". */
   namespace: string;
@@ -42,6 +54,8 @@ export interface RuntimeUploadScopeOptions {
 
 export interface RuntimeUploadRegistryOptions {
   dataDir: string;
+  /** Reports pruning faults, which must not fail a save but must be seen. */
+  logger?: Logger | undefined;
 }
 
 export interface SaveRuntimeUploadInput {
@@ -121,9 +135,11 @@ export function normalizeRuntimeUploadDataDir(contentDataDir: string): string {
 
 export class RuntimeUploadRegistry {
   private readonly dataDir: string;
+  private readonly logger: Logger | undefined;
 
   constructor(options: RuntimeUploadRegistryOptions) {
     this.dataDir = normalizeRuntimeUploadDataDir(options.dataDir);
+    this.logger = options.logger;
   }
 
   static createFresh(
@@ -133,12 +149,17 @@ export class RuntimeUploadRegistry {
   }
 
   scoped(options: RuntimeUploadScopeOptions): RuntimeUploadStore {
-    return new RuntimeUploadStore({ ...options, dataDir: this.dataDir });
+    return new RuntimeUploadStore({
+      ...options,
+      dataDir: this.dataDir,
+      ...(this.logger !== undefined && { logger: this.logger }),
+    });
   }
 }
 
 export interface RuntimeUploadStoreOptions extends RuntimeUploadScopeOptions {
   dataDir: string;
+  logger?: Logger | undefined;
 }
 
 export class RuntimeUploadStore {
@@ -147,9 +168,11 @@ export class RuntimeUploadStore {
   private readonly maxCount: number;
   private readonly createUploadId: () => string;
   private readonly getNow: () => Date;
+  private readonly logger: Logger | undefined;
 
   constructor(options: RuntimeUploadStoreOptions) {
     this.options = options;
+    this.logger = options.logger;
     this.retentionMs = options.retentionMs ?? defaultRuntimeUploadRetentionMs;
     this.maxCount = options.maxCount ?? defaultRuntimeUploadMaxCount;
     this.createUploadId =
@@ -179,7 +202,13 @@ export class RuntimeUploadStore {
       `${JSON.stringify(record, null, 2)}\n`,
       "utf8",
     );
-    await this.prune();
+    // The upload is already on disk, so a pruning fault must not fail the
+    // save. It must not vanish either: unpruned uploads grow without bound.
+    await this.prune().catch((error: unknown) => {
+      this.logger?.warn("Failed to prune runtime uploads", {
+        error: getErrorMessage(error),
+      });
+    });
 
     return record;
   }
@@ -236,38 +265,51 @@ export class RuntimeUploadStore {
     };
   }
 
+  /**
+   * Drop uploads past the retention window or the count cap.
+   *
+   * Returns quietly only when the uploads directory does not exist yet — it is
+   * created on first save. Every other failure raises: an unreadable directory
+   * or a deletion that did not happen means uploads accumulate unbounded, and
+   * a silent catch here made that indistinguishable from a successful prune.
+   */
   async prune(): Promise<void> {
     const root = this.getUploadsRoot();
+
+    let entries: string[];
     try {
-      const entries = await readdir(root);
-      const stats = await Promise.all(
-        entries.map(async (entry) => {
-          try {
-            const info = await stat(join(root, entry));
-            return info.isDirectory() ? { entry, mtimeMs: info.mtimeMs } : null;
-          } catch {
-            return null;
-          }
-        }),
-      );
-      const dirs = stats
-        .filter(
-          (value): value is { entry: string; mtimeMs: number } =>
-            value !== null,
-        )
-        .sort((a, b) => b.mtimeMs - a.mtimeMs);
-      const cutoff = this.getNow().getTime() - this.retentionMs;
-      const stale = dirs.filter(
-        (dir, index) => index >= this.maxCount || dir.mtimeMs < cutoff,
-      );
-      await Promise.all(
-        stale.map((dir) =>
-          rm(join(root, dir.entry), { recursive: true, force: true }),
-        ),
-      );
-    } catch {
-      /* uploads dir missing or unreadable — nothing to prune */
+      entries = await readdir(root);
+    } catch (error) {
+      if (isNoEntryError(error)) return;
+      throw error;
     }
+
+    const stats = await Promise.all(
+      entries.map(async (entry) => {
+        try {
+          const info = await stat(join(root, entry));
+          return info.isDirectory() ? { entry, mtimeMs: info.mtimeMs } : null;
+        } catch (error) {
+          // An upload directory can be removed between listing and stat.
+          if (isNoEntryError(error)) return null;
+          throw error;
+        }
+      }),
+    );
+    const dirs = stats
+      .filter(
+        (value): value is { entry: string; mtimeMs: number } => value !== null,
+      )
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+    const cutoff = this.getNow().getTime() - this.retentionMs;
+    const stale = dirs.filter(
+      (dir, index) => index >= this.maxCount || dir.mtimeMs < cutoff,
+    );
+    await Promise.all(
+      stale.map((dir) =>
+        rm(join(root, dir.entry), { recursive: true, force: true }),
+      ),
+    );
   }
 
   getUploadDir(uploadId: string): string {
