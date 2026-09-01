@@ -3,6 +3,7 @@ import {
   createSilentLogger,
   createTestEntity,
   createTestEntityAccess,
+  createTestJobContext,
 } from "@brains/test-utils";
 import {
   createPluginHarness,
@@ -124,32 +125,23 @@ describe("portfolio package", () => {
     const entities: JobEntityAccess = createTestEntityAccess({ entityService });
 
     const result = await projectGeneration.generate({
-      input: { prompt: "Create a case study for my API Gateway project" },
-      entityId: undefined,
-      ai: harness.getEntityContext("test").ai,
-      logger: harness.getMockShell().getLogger(),
-      entities,
-      // This generation reads no conversation; the reader is present
-      // because the context has one, not because it is used.
-      conversations: {
-        get: async () => null,
-        getMessages: async () => [],
-        getManyWithMessages: async () => [],
-      },
-      identity: harness.getEntityContext("test").identity,
-      messaging: { publish: async (): Promise<void> => {} },
-      progress: { report: async (): Promise<void> => {} },
-      signal: new AbortController().signal,
-      template: (localName: string) => `@brains/portfolio:project:${localName}`,
-      // Declared but unused: these handlers generate, they do not import.
-      uploads: {
-        read: async (): Promise<never> => {
-          throw new Error("This job reads no uploads");
+      ...createTestJobContext({
+        input: { prompt: "Create a case study for my API Gateway project" },
+        ai: harness.getEntityContext("test").ai,
+        logger: harness.getMockShell().getLogger(),
+        entities,
+        // This generation reads no conversation; the reader is present
+        // because the context has one, not because it is used.
+        conversations: {
+          get: async () => null,
+          getMessages: async () => [],
+          getManyWithMessages: async () => [],
         },
-      },
-      attachments: {
-        resolve: async (): Promise<undefined> => undefined,
-      },
+        identity: harness.getEntityContext("test").identity,
+        template: (localName: string) =>
+          `@brains/portfolio:project:${localName}`,
+      }),
+      entityId: undefined,
     });
 
     expect(result).toMatchObject({

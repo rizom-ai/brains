@@ -1537,6 +1537,12 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       },
       conversations: context.conversations,
       identity: context.identity,
+      domain: context.domain,
+      profileKinds: {
+        getResolved: () => context.profileKinds.getResolved(),
+        getSelectedDefinition: () =>
+          context.profileKinds.getSelectedDefinition(),
+      },
       // Templates declared on this entity register under this plugin's id.
       template: (localName) =>
         scopedTemplateName(this.templates, this.entityType, this.id, localName),

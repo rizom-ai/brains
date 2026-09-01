@@ -1,10 +1,10 @@
 import {
   anchorProfileBodySchema,
-  parseMarkdownWithFrontmatter,
   type AnchorProfile,
   type ProfileCategory,
   type ProfileKindDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 export interface CommonProfileExtension {

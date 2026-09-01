@@ -40,7 +40,7 @@ import notificationsPackage from "@brains/notifications";
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
-import { profilePlugin } from "@brains/profile";
+import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
 import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
@@ -144,7 +144,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   reasoningEffort: "low",
   capabilities: [
     packageCapability("prompt", "@brains/prompt", promptPackage),
-    ["profile", profilePlugin, undefined],
+    packageCapability("profile", "@brains/profile", profilePackage),
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage),
     packageCapability("image", "@brains/image-plugin", imagePackage),
     packageCapability("document", "@brains/document-plugin", documentPackage),

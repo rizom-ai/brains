@@ -29,6 +29,7 @@ export {
 export { createMockProgressReporter } from "./mock-progress-reporter";
 export { stubMethod } from "./stub-method";
 export { createTestEntityAccess } from "./entity-access";
+export { createTestJobContext } from "./job-context";
 export { fetchable, type FetchableDataSource } from "./fetchable-data-source";
 
 // Service plugin context mocks

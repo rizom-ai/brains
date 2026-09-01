@@ -1,26 +1,24 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
   brainCharacterBodySchema,
   parseMarkdownWithFrontmatter,
-  type ServicePluginContext,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import {
   STARTER_ALIAS_REGISTER,
   buildStarterCharacterBrief,
-  buildStarterCharacterPrompt,
   deriveStarterIdentity,
   generatedStarterCharacterSchema,
   isLegacyAnchorProfileContent,
   isLegacyBrainCharacterContent,
-  ProfilePlugin,
   resolveStarterIdentityIdentifier,
+  seedOrMigrateStarterIdentity,
   type GeneratedStarterCharacter,
-  type ProfileConfigInput,
-  type StarterCharacterBrief,
+  type StarterIdentityStore,
 } from "../src";
+import { profilePlugin } from "./helpers/install";
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -41,48 +39,6 @@ const generatedCharacter: GeneratedStarterCharacter = {
     "Connect available knowledge into grounded material that people can use.",
   values: ["source fidelity", "clear context", "useful synthesis"],
 };
-
-interface TestProfilePluginOptions {
-  config?: ProfileConfigInput;
-  character?: GeneratedStarterCharacter;
-  onGenerate?: (prompt: string) => void;
-  generateCharacter?: (
-    brief: StarterCharacterBrief,
-  ) => Promise<GeneratedStarterCharacter>;
-}
-
-class TestProfilePlugin extends ProfilePlugin {
-  private readonly testOptions: TestProfilePluginOptions;
-
-  constructor(options: TestProfilePluginOptions = {}) {
-    super(options.config);
-    this.testOptions = options;
-  }
-
-  protected override async generateCharacter(
-    _context: ServicePluginContext,
-    brief: StarterCharacterBrief,
-  ): Promise<GeneratedStarterCharacter> {
-    this.testOptions.onGenerate?.(buildStarterCharacterPrompt(brief));
-    if (this.testOptions.generateCharacter) {
-      return this.testOptions.generateCharacter(brief);
-    }
-    return this.testOptions.character ?? generatedCharacter;
-  }
-}
-
-function createTestProfilePlugin(
-  options: TestProfilePluginOptions = {},
-): ProfilePlugin {
-  return new TestProfilePlugin(options);
-}
-
-async function signalShellReady(
-  harness: ReturnType<typeof createHarness>,
-): Promise<void> {
-  await harness.finalizeRegistration();
-  await harness.sendMessage("system:shell:ready", {}, "shell");
-}
 
 const currentLegacyBrain = `---
 name: Brain
@@ -314,17 +270,251 @@ describe("legacy default fingerprints", () => {
   });
 });
 
-describe("starter identity lifecycle", () => {
-  test("waits for shell readiness after successful initial sync", async () => {
-    const harness = createHarness();
-    let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
+/**
+ * An in-memory identity store. Seeding is a function of what it read and
+ * what it wrote, so the assertions that used to need a shell, a harness and
+ * two message signals are now direct.
+ */
+function createIdentityStore(seed: Record<string, string> = {}): {
+  store: StarterIdentityStore;
+  contents: Map<string, string>;
+  creates: string[];
+} {
+  const contents = new Map(Object.entries(seed));
+  const creates: string[] = [];
+  const store: StarterIdentityStore = {
+    getEntity: async <T>({
+      entityType,
+      id,
+    }: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null> => {
+      const content = contents.get(id);
+      return content === undefined
+        ? null
+        : ({ id, entityType, content, metadata: {} } as T);
+    },
+    create: async (entity): Promise<void> => {
+      creates.push(entity.entityType);
+      contents.set(entity.id, entity.content);
+    },
+    update: async (entity): Promise<void> => {
+      contents.set(entity.id, entity.content);
+    },
+  };
+  return { store, contents, creates };
+}
+
+const IDENTIFIER = "domain:notes.example.com";
+
+describe("starter identity seeding", () => {
+  test("seeds both singletons when neither exists", async () => {
+    const { store, contents } = createIdentityStore();
+    let generations = 0;
+
+    const result = await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      profileKind: "team",
+      profileCategory: "team",
+      generateBrainCharacter: async () => {
+        generations += 1;
+        return generatedCharacter;
+      },
+    });
+
+    expect(result.brainCharacter).toBe("created");
+    expect(result.anchorProfile).toBe("created");
+    expect(generations).toBe(1);
+
+    const brain = contents.get("brain-character");
+    const anchor = contents.get("anchor-profile");
+    if (!brain || !anchor) throw new Error("Starter identity was not created");
+
+    const character = parseMarkdownWithFrontmatter(
+      brain,
+      brainCharacterBodySchema,
+    ).metadata;
+    const profile = parseMarkdownWithFrontmatter(anchor, rawFrontmatterSchema);
+    expect(character.name).not.toBe("Brain");
+    expect(character.role).toBe(generatedCharacter.role);
+    expect(character.values).toEqual(generatedCharacter.values);
+    expect(profile.metadata).not.toHaveProperty("kind");
+    expect(profile.metadata["name"]).toBe(`Anchor for ${character.name}`);
+    expect(profile.content).toContain("picked");
+  });
+
+  test("migrates exact defaults and is idempotent", async () => {
+    const { store, contents } = createIdentityStore({
+      "brain-character": currentLegacyBrain,
+      "anchor-profile": legacyAnchor,
+    });
+    let generations = 0;
+    const generate = async (): Promise<GeneratedStarterCharacter> => {
+      generations += 1;
+      return generatedCharacter;
+    };
+
+    await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      generateBrainCharacter: generate,
+    });
+    const migratedBrain = contents.get("brain-character");
+    const migratedAnchor = contents.get("anchor-profile");
+
+    const repeated = await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      generateBrainCharacter: generate,
+    });
+
+    expect(migratedBrain).not.toBe(currentLegacyBrain);
+    expect(migratedAnchor).not.toBe(legacyAnchor);
+    expect(contents.get("brain-character")).toBe(migratedBrain);
+    expect(contents.get("anchor-profile")).toBe(migratedAnchor);
+    expect(repeated.brainCharacter).toBe("unchanged");
+    expect(repeated.anchorProfile).toBe("unchanged");
+    expect(generations).toBe(1);
+  });
+
+  test("recognizes the personal-brain default as legacy too", async () => {
+    const { store, contents } = createIdentityStore({
+      "brain-character": personalLegacyBrain,
+    });
+
+    await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      generateBrainCharacter: async () => generatedCharacter,
+    });
+
+    expect(contents.get("brain-character")).not.toBe(personalLegacyBrain);
+  });
+
+  test("migrates a legacy anchor without generating over a customized brain", async () => {
+    const customBrain = `---
+name: Atlas
+role: Research partner
+purpose: Keep project knowledge connected
+values:
+  - context
+---
+`;
+    const { store, contents } = createIdentityStore({
+      "brain-character": customBrain,
+      "anchor-profile": legacyAnchor,
+    });
+    let generations = 0;
+
+    await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      generateBrainCharacter: async () => {
+        generations += 1;
+        throw new Error("AI should not be called");
+      },
+    });
+
+    expect(contents.get("brain-character")).toBe(customBrain);
+    expect(contents.get("anchor-profile")).toContain("name: Anchor for Atlas");
+    expect(generations).toBe(0);
+  });
+
+  test("preserves authored identity without taking the create branch", async () => {
+    const customBrain = `---
+name: Atlas
+role: Research partner
+purpose: Keep project knowledge connected
+values:
+  - context
+---
+`;
+    const customAnchor = `---
+name: Ada
+kind: person
+intro: Custom profile
+---
+Authored story.
+`;
+    const { store, contents, creates } = createIdentityStore({
+      "brain-character": customBrain,
+      "anchor-profile": customAnchor,
+    });
+    let generations = 0;
+
+    const result = await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      generateBrainCharacter: async () => {
+        generations += 1;
+        return generatedCharacter;
+      },
+    });
+
+    expect(contents.get("brain-character")).toBe(customBrain);
+    expect(contents.get("anchor-profile")).toBe(customAnchor);
+    expect(creates).toEqual([]);
+    expect(result.brainCharacter).toBe("unchanged");
+    expect(result.anchorProfile).toBe("unchanged");
+    expect(generations).toBe(0);
+  });
+
+  test("writes nothing when generation fails, and seeds on a later attempt", async () => {
+    const { store, contents } = createIdentityStore();
+    let shouldFail = true;
+    const generate = async (): Promise<GeneratedStarterCharacter> => {
+      if (shouldFail) throw new Error("Provider unavailable");
+      return generatedCharacter;
+    };
+
+    // The failure escapes: the queue retries the job rather than the flow
+    // waiting for another initial-sync signal that may never arrive.
+    expect(
+      seedOrMigrateStarterIdentity({
+        entityService: store,
+        identifier: IDENTIFIER,
+        generateBrainCharacter: generate,
       }),
-    );
+    ).rejects.toThrow("Provider unavailable");
+    expect(contents.size).toBe(0);
+
+    shouldFail = false;
+    await seedOrMigrateStarterIdentity({
+      entityService: store,
+      identifier: IDENTIFIER,
+      generateBrainCharacter: generate,
+    });
+
+    expect(contents.get("brain-character")).toBeDefined();
+    expect(contents.get("anchor-profile")).toBeDefined();
+  });
+});
+
+describe("the starter identity boot gate", () => {
+  /** Record what the plugin enqueues, in order. */
+  function captureEnqueues(
+    harness: ReturnType<typeof createHarness>,
+  ): string[] {
+    const enqueued: string[] = [];
+    const queue = harness.getMockShell().getJobQueueService();
+    const enqueue = queue.enqueue.bind(queue);
+    queue.enqueue = async (
+      request: Parameters<typeof enqueue>[0],
+    ): Promise<string> => {
+      enqueued.push(request.type);
+      return enqueue(request);
+    };
+    harness.getMockShell().getJobQueueService = (): typeof queue => queue;
+    return enqueued;
+  }
+
+  test("waits for registration to complete after a successful initial sync", async () => {
+    const harness = createHarness();
+    const enqueued = captureEnqueues(harness);
+    const plugin = profilePlugin();
+    await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
 
     await harness.sendMessage(
@@ -332,399 +522,64 @@ describe("starter identity lifecycle", () => {
       { success: true },
       "directory-sync",
     );
+    expect(enqueued).toEqual([]);
 
-    expect(generationCalls).toBe(0);
+    await plugin.ready?.();
     expect(
-      await harness.getEntityService().getEntity({
-        entityType: "brain-character",
-        id: "brain-character",
-      }),
-    ).toBeNull();
-
-    await harness.sendMessage("system:shell:ready", {}, "shell");
-
-    expect(generationCalls).toBe(1);
-    expect(
-      await harness.getEntityService().getEntity({
-        entityType: "brain-character",
-        id: "brain-character",
-      }),
-    ).not.toBeNull();
+      enqueued.filter((type) => type.includes("seed-starter-identity")).length,
+    ).toBe(1);
   });
 
-  test("seeds missing identity after successful initial sync", async () => {
-    const harness = createHarness("notes.example.com", "team");
-    let generationPrompt = "";
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: (prompt) => {
-          generationPrompt = prompt;
-        },
-      }),
-    );
-    await signalShellReady(harness);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-
-    const brain = await harness.getEntityService().getEntity({
-      entityType: "brain-character",
-      id: "brain-character",
-    });
-    const anchor = await harness.getEntityService().getEntity({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-    });
-
-    expect(brain).not.toBeNull();
-    expect(anchor).not.toBeNull();
-    if (!brain || !anchor) throw new Error("Starter identity was not created");
-
-    const character = parseMarkdownWithFrontmatter(
-      brain.content,
-      brainCharacterBodySchema,
-    ).metadata;
-    const profile = parseMarkdownWithFrontmatter(
-      anchor.content,
-      rawFrontmatterSchema,
-    );
-
-    expect(character.name).not.toBe("Brain");
-    expect(character.role).toBe(generatedCharacter.role);
-    expect(character.purpose).toBe(generatedCharacter.purpose);
-    expect(character.values).toEqual(generatedCharacter.values);
-    expect(profile.metadata).not.toHaveProperty("kind");
-    expect(profile.metadata["name"]).toBe(`Anchor for ${character.name}`);
-    expect(profile.content).toContain("picked");
-    expect(generationPrompt).toContain('"profileKind": "team"');
-    expect(generationPrompt).toContain('"profileCategory": "team"');
-  });
-
-  test("migrates exact defaults and is idempotent", async () => {
+  test("seeds when the sync signal arrives after registration", async () => {
     const harness = createHarness();
-    let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
-    await signalShellReady(harness);
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "brain-character",
-        entityType: "brain-character",
-        content: currentLegacyBrain,
-        metadata: {},
-      },
-    });
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "anchor-profile",
-        entityType: "anchor-profile",
-        content: legacyAnchor,
-        metadata: {},
-      },
-    });
+    const enqueued = captureEnqueues(harness);
+    const plugin = profilePlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
+    expect(enqueued).toEqual([]);
 
     await harness.sendMessage(
       "sync:initial:completed",
       { success: true },
       "directory-sync",
     );
-    const migratedBrain = await harness.getEntityService().getEntity({
-      entityType: "brain-character",
-      id: "brain-character",
-    });
-    const migratedAnchor = await harness.getEntityService().getEntity({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-    });
-    if (!migratedBrain || !migratedAnchor) {
-      throw new Error("Legacy identity disappeared during migration");
-    }
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    const repeatedBrain = await harness.getEntityService().getEntity({
-      entityType: "brain-character",
-      id: "brain-character",
-    });
-    const repeatedAnchor = await harness.getEntityService().getEntity({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-    });
-
-    expect(migratedBrain.content).not.toBe(currentLegacyBrain);
-    expect(migratedAnchor.content).not.toBe(legacyAnchor);
-    expect(repeatedBrain?.content).toBe(migratedBrain.content);
-    expect(repeatedAnchor?.content).toBe(migratedAnchor.content);
-    expect(generationCalls).toBe(1);
+    expect(
+      enqueued.filter((type) => type.includes("seed-starter-identity")).length,
+    ).toBe(1);
   });
 
-  test("migrates a legacy anchor without generating over its customized brain", async () => {
+  test("enqueues once, however many sync signals arrive", async () => {
     const harness = createHarness();
-    let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        generateCharacter: async () => {
-          generationCalls += 1;
-          throw new Error("AI should not be called");
-        },
-      }),
-    );
-    await signalShellReady(harness);
-    const customBrain = `---
-name: Atlas
-role: Research partner
-purpose: Keep project knowledge connected
-values:
-  - context
----
-`;
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "brain-character",
-        entityType: "brain-character",
-        content: customBrain,
-        metadata: {},
-      },
-    });
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "anchor-profile",
-        entityType: "anchor-profile",
-        content: legacyAnchor,
-        metadata: {},
-      },
-    });
+    const enqueued = captureEnqueues(harness);
+    const plugin = profilePlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
 
     await harness.sendMessage(
       "sync:initial:completed",
       { success: true },
       "directory-sync",
     );
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
 
-    const brain = await harness.getEntityService().getEntity({
-      entityType: "brain-character",
-      id: "brain-character",
-    });
-    const anchor = await harness.getEntityService().getEntity({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-    });
-    expect(brain?.content).toBe(customBrain);
-    expect(anchor?.content).toContain("name: Anchor for Atlas");
-    expect(generationCalls).toBe(0);
+    expect(
+      enqueued.filter((type) => type.includes("seed-starter-identity")).length,
+    ).toBe(1);
   });
 
-  test("preserves non-public authored identity without taking the create branch", async () => {
+  test("does nothing when the initial sync fails", async () => {
     const harness = createHarness();
-    let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
-    await signalShellReady(harness);
-
-    const customBrain = `---
-name: Atlas
-role: Research partner
-purpose: Keep project knowledge connected
-values:
-  - context
----
-`;
-    const customAnchor = `---
-name: Ada
-kind: person
-intro: Custom profile
----
-Authored story.
-`;
-    const entityService = harness.getEntityService();
-    await entityService.createEntity({
-      entity: {
-        id: "brain-character",
-        entityType: "brain-character",
-        content: customBrain,
-        metadata: {},
-      },
-    });
-    await entityService.createEntity({
-      entity: {
-        id: "anchor-profile",
-        entityType: "anchor-profile",
-        content: customAnchor,
-        metadata: {},
-        visibility: "restricted",
-      },
-    });
-    const createEntity = spyOn(entityService, "createEntity");
-    const getEntity = spyOn(entityService, "getEntity");
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-
-    const anchor = await entityService.getEntity({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-      visibilityScope: "restricted",
-    });
-    expect(anchor?.content).toBe(customAnchor);
-    expect(getEntity).toHaveBeenCalledWith({
-      entityType: "brain-character",
-      id: "brain-character",
-      visibilityScope: "restricted",
-    });
-    expect(getEntity).toHaveBeenCalledWith({
-      entityType: "anchor-profile",
-      id: "anchor-profile",
-      visibilityScope: "restricted",
-    });
-    expect(createEntity).not.toHaveBeenCalled();
-    expect(generationCalls).toBe(0);
-  });
-
-  test("preserves independently customized singletons without calling AI", async () => {
-    const harness = createHarness();
-    let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
-    await signalShellReady(harness);
-    const customBrain = currentLegacyBrain.replace(
-      "role: Knowledge assistant",
-      "role: Research partner",
-    );
-    const customAnchor = `---
-name: Ada
-kind: person
-intro: Custom profile
----
-Authored story.
-`;
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "brain-character",
-        entityType: "brain-character",
-        content: customBrain,
-        metadata: {},
-      },
-    });
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "anchor-profile",
-        entityType: "anchor-profile",
-        content: customAnchor,
-        metadata: {},
-      },
-    });
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-
-    expect(
-      (
-        await harness.getEntityService().getEntity({
-          entityType: "brain-character",
-          id: "brain-character",
-        })
-      )?.content,
-    ).toBe(customBrain);
-    expect(
-      (
-        await harness.getEntityService().getEntity({
-          entityType: "anchor-profile",
-          id: "anchor-profile",
-        })
-      )?.content,
-    ).toBe(customAnchor);
-    expect(generationCalls).toBe(0);
-  });
-
-  test("defers all mutation after AI failure and retries later", async () => {
-    const harness = createHarness();
-    let shouldFail = true;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        generateCharacter: async () => {
-          if (shouldFail) throw new Error("Provider unavailable");
-          return generatedCharacter;
-        },
-      }),
-    );
-    await signalShellReady(harness);
-
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    expect(
-      await harness.getEntityService().getEntity({
-        entityType: "brain-character",
-        id: "brain-character",
-      }),
-    ).toBeNull();
-    expect(
-      await harness.getEntityService().getEntity({
-        entityType: "anchor-profile",
-        id: "anchor-profile",
-      }),
-    ).toBeNull();
-
-    shouldFail = false;
-    await harness.sendMessage(
-      "sync:initial:completed",
-      { success: true },
-      "directory-sync",
-    );
-    expect(
-      await harness.getEntityService().getEntity({
-        entityType: "brain-character",
-        id: "brain-character",
-      }),
-    ).not.toBeNull();
-    expect(
-      await harness.getEntityService().getEntity({
-        entityType: "anchor-profile",
-        id: "anchor-profile",
-      }),
-    ).not.toBeNull();
-  });
-
-  test("does nothing when initial sync fails", async () => {
-    const harness = createHarness();
-    let generationCalls = 0;
-    await harness.installPlugin(
-      createTestProfilePlugin({
-        onGenerate: () => {
-          generationCalls += 1;
-        },
-      }),
-    );
-    await signalShellReady(harness);
+    const enqueued = captureEnqueues(harness);
+    const plugin = profilePlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
 
     await harness.sendMessage(
       "sync:initial:completed",
@@ -732,12 +587,23 @@ Authored story.
       "directory-sync",
     );
 
-    expect(
-      await harness.getEntityService().getEntity({
-        entityType: "brain-character",
-        id: "brain-character",
-      }),
-    ).toBeNull();
-    expect(generationCalls).toBe(0);
+    expect(enqueued).toEqual([]);
+  });
+
+  test("declares no starter subscription when the flow is disabled", async () => {
+    const harness = createHarness();
+    const enqueued = captureEnqueues(harness);
+    const plugin = profilePlugin({ starterIdentity: { enabled: false } });
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+
+    expect(enqueued).toEqual([]);
   });
 });

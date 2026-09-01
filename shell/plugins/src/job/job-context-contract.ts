@@ -7,6 +7,10 @@ import type {
   SearchOptions,
   SearchResult,
 } from "@brains/entity-service";
+import type {
+  ProfileKindDefinition,
+  ResolvedProfileSelection,
+} from "@brains/identity-service";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import type { IEntityAINamespace } from "../entity/ai-types";
@@ -66,6 +70,15 @@ export interface JobEntityAccess {
     entityType: string;
     options?: ListOptions;
   }): Promise<T[]>;
+  /**
+   * Counts per entity type. A read, so ownership does not restrict it; the
+   * visibility scope does, and it fails closed to public-only when omitted.
+   * Named consumer: @brains/profile, which sizes the brain's corpus before
+   * generating a starter character for it.
+   */
+  getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>>;
   getEntity<T extends BaseEntity>(request: {
     entityType: string;
     id: string;
@@ -201,6 +214,21 @@ export interface JobHandlerContext<TInput> {
    * the identity service itself.
    */
   readonly identity: { getProfile(): AnchorProfile };
+  /**
+   * The brain's canonical domain, when one is configured. A seeding flow
+   * that derives a deterministic starter identity keys the derivation off
+   * it. Named consumer: @brains/profile.
+   */
+  readonly domain: string | undefined;
+  /**
+   * The finalized profile-kind selection, read-only. A handler shaping
+   * identity content needs to know which kind this brain represents; only
+   * registration may add kinds. Named consumer: @brains/profile.
+   */
+  readonly profileKinds: {
+    getResolved(): ResolvedProfileSelection;
+    getSelectedDefinition(): ProfileKindDefinition | undefined;
+  };
   readonly messaging: JobMessagePublisher;
   readonly progress: ProgressContract;
   readonly signal: AbortSignal;

@@ -142,7 +142,7 @@ describe("canonical brain core", () => {
       ).plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
       "@brains/prompt:prompt",
-      "profile",
+      "@brains/profile:profile",
       "@brains/style-guide:style-guide",
       "@brains/note:note",
       "@brains/link:capture",

@@ -39,7 +39,6 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { createEvalFixtures } from "../entity/eval-fixtures";
 import { createReactionContext } from "./reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
@@ -120,7 +119,7 @@ function runtimeJobHandler(
   binding: ServiceJobBinding,
   context: ServicePluginContext,
   templates: ServiceTemplateFormatter,
-  owned: ReadonlySet<AnyEntityDefinition>,
+  owned: ReadonlySet<string>,
   serviceId: string,
   templateName: (localName: string) => string,
 ): JobHandler<string, unknown, unknown> {
@@ -147,13 +146,19 @@ function runtimeJobHandler(
         templates,
         entities: createJobEntityAccess(
           context.entityService,
-          new Set([...owned].map(({ type }) => type)),
+          owned,
           serviceId,
         ),
         ai: context.ai,
         logger: context.logger,
         conversations: context.conversations,
         identity: context.identity,
+        domain: context.domain,
+        profileKinds: {
+          getResolved: () => context.profileKinds.getResolved(),
+          getSelectedDefinition: () =>
+            context.profileKinds.getSelectedDefinition(),
+        },
         template: templateName,
         uploads: context.uploads.scoped({
           // The runtime's own namespace, not the interface that happened to
@@ -247,6 +252,17 @@ class DeclarativeServicePlugin<
   /** Plugin ids this service registers after; the runtime orders by these. */
   public readonly dependencies?: string[];
 
+  /** Stewardship claims actually made, so shutdown releases exactly those. */
+  private readonly stewardedTypes: string[] = [];
+
+  /** Entity types this package may write: declared, plus stewarded. */
+  private ownedTypeNames(): Set<string> {
+    return new Set([
+      ...(this.definition.entities ?? []).map(({ type }) => type),
+      ...this.stewardedTypes,
+    ]);
+  }
+
   private routePermissions: RoutePermissions | undefined;
 
   public override getWebRoutes(): WebRouteDefinition[] {
@@ -312,7 +328,7 @@ class DeclarativeServicePlugin<
         state: this.requireState(),
         entities: createJobEntityAccess(
           context.entityService,
-          new Set((this.definition.entities ?? []).map(({ type }) => type)),
+          this.ownedTypeNames(),
           this.publicId,
         ),
         messaging: {
@@ -324,6 +340,7 @@ class DeclarativeServicePlugin<
         },
         logger: this.logger,
         dataDir: context.dataDir,
+        jobs: this.jobs(),
         // Read-only shape questions; the registry's registering half stays
         // the runtime's.
         entityShapes: {
@@ -367,6 +384,17 @@ class DeclarativeServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    // Claim before anything can write: a rejected claim must fail the
+    // registration, not surface later as a permitted write.
+    for (const entityType of this.definition.stewards ?? []) {
+      context.entities.claimStewardship(entityType, this.publicId);
+      this.stewardedTypes.push(entityType);
+    }
+    for (const kind of this.definition.profileKinds?.({
+      config: this.config,
+    }) ?? []) {
+      context.profileKinds.register(kind);
+    }
     if (this.definition.accountSettings && !context.executionOnly) {
       this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
@@ -399,6 +427,7 @@ class DeclarativeServicePlugin<
       this.definition.subscriptions?.({
         config: this.config,
         state: this.state,
+        jobs: this.jobs(),
       }) ?? [];
     const topics = new Set<string>();
     for (const subscription of subscriptions) {
@@ -443,7 +472,7 @@ class DeclarativeServicePlugin<
         handler({
           entities: createJobEntityAccess(
             context.entityService,
-            new Set((this.definition.entities ?? []).map(({ type }) => type)),
+            this.ownedTypeNames(),
             this.publicId,
           ),
           visibilityScope,
@@ -498,7 +527,7 @@ class DeclarativeServicePlugin<
       });
     }
 
-    const ownedTypes = (this.definition.entities ?? []).map(({ type }) => type);
+    const ownedTypes = [...this.ownedTypeNames()];
     const evals =
       this.definition.evals?.({
         config: this.config,
@@ -543,7 +572,7 @@ class DeclarativeServicePlugin<
           binding,
           context,
           templates,
-          new Set(this.definition.entities ?? []),
+          this.ownedTypeNames(),
           this.publicId,
           (localName) => this.scopedTemplateName(localName),
         ),
@@ -604,6 +633,37 @@ class DeclarativeServicePlugin<
       throw new Error(
         `Service "${this.publicId}" account settings require auth-service and an account settings encryption key`,
       );
+    }
+    const ownedTypes = this.ownedTypeNames();
+    for (const extension of this.definition.entityExtensions?.({
+      config: this.config,
+      state: this.requireState(),
+      profileKinds: {
+        getResolved: () => context.profileKinds.getResolved(),
+        getSelectedDefinition: () =>
+          context.profileKinds.getSelectedDefinition(),
+      },
+    }) ?? []) {
+      if (!ownedTypes.has(extension.entityType)) {
+        throw new Error(
+          `Service "${this.publicId}" may only extend entity types it declares or stewards, and "${extension.entityType}" is neither`,
+        );
+      }
+      if (extension.frontmatter) {
+        context.entities.extendFrontmatterSchema(
+          extension.entityType,
+          extension.frontmatter,
+        );
+      }
+      const validate = extension.validate;
+      if (validate) {
+        context.entities.registerPersistValidator(
+          extension.entityType,
+          async (entity) => {
+            await validate(entity);
+          },
+        );
+      }
     }
     if (context.executionOnly) return;
     this.bindOperatorDefinitions(context);
@@ -731,6 +791,9 @@ class DeclarativeServicePlugin<
     this.operatorAbortController.abort(
       new Error(`Service "${this.publicId}" is shutting down`),
     );
+    for (const entityType of this.stewardedTypes.splice(0)) {
+      this.getContext().entities.releaseStewardship(entityType, this.publicId);
+    }
     await this.rollbackDashboardWidgets(
       this.getContext(),
       this.registeredDashboardWidgetIds.splice(0),
@@ -1024,7 +1087,7 @@ class DeclarativeServicePlugin<
       context: this.getContext(),
       pluginId: this.publicId,
       packageName: this.packageName,
-      entityTypes: (this.definition.entities ?? []).map(({ type }) => type),
+      entityTypes: this.ownedTypeNames(),
       logger: this.logger,
     });
   }

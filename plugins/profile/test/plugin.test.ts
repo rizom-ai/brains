@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { ProfilePlugin } from "../src";
+import { profilePlugin } from "./helpers/install";
 
 function createHarness(
   profileKind?: string,
@@ -24,12 +24,12 @@ function captureExtendedFields(
   return fields;
 }
 
-describe("ProfilePlugin composition", () => {
+describe("profile composition", () => {
   test("installs only base profile fields when no kind is selected", async () => {
     const harness = createHarness();
     const fields = captureExtendedFields(harness);
     await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
+      profilePlugin({ starterIdentity: { enabled: false } }),
     );
     await harness.finalizeRegistration();
 
@@ -42,7 +42,7 @@ describe("ProfilePlugin composition", () => {
     const harness = createHarness("professional");
     const fields = captureExtendedFields(harness);
     await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
+      profilePlugin({ starterIdentity: { enabled: false } }),
     );
     await harness.finalizeRegistration();
 
@@ -71,7 +71,7 @@ describe("ProfilePlugin composition", () => {
       });
     const fields = captureExtendedFields(harness);
     await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
+      profilePlugin({ starterIdentity: { enabled: false } }),
     );
     await harness.finalizeRegistration();
 
@@ -82,7 +82,7 @@ describe("ProfilePlugin composition", () => {
   test("rejects an unknown selected kind before profile finalization", async () => {
     const harness = createHarness("artist");
     await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
+      profilePlugin({ starterIdentity: { enabled: false } }),
     );
 
     expect(harness.finalizeRegistration()).rejects.toThrow(
@@ -102,7 +102,7 @@ describe("ProfilePlugin composition", () => {
         labels: { singular: "Duplicate", plural: "Duplicates" },
       });
     await harness.installPlugin(
-      new ProfilePlugin({ starterIdentity: { enabled: false } }),
+      profilePlugin({ starterIdentity: { enabled: false } }),
     );
 
     expect(harness.finalizeRegistration()).rejects.toThrow(

@@ -364,6 +364,7 @@ export {
   type WorkspaceActionResultDefinition,
   type WorkspaceActionResultFieldDefinition,
   type WorkspaceActionResultFieldMap,
+  type ServiceEntityExtension,
   type ServiceEvalHandler,
   type ServiceJobDefinition,
   type ServiceJobReference,

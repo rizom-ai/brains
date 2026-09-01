@@ -32,6 +32,8 @@ export function createTestEntityAccess(options: {
   };
   return {
     listEntities: (request) => service.listEntities(request),
+    getEntityCounts: (visibilityScope) =>
+      service.getEntityCounts(visibilityScope),
     getEntity: ({ entityType, id, visibilityScope }) =>
       service.getEntity({
         entityType,

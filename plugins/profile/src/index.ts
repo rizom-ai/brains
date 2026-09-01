@@ -1,10 +1,16 @@
+import profilePackage from "./plugin";
+
+export default profilePackage;
 export {
-  ProfilePlugin,
-  profilePlugin,
+  profileConfigSchema,
   type ProfileConfigInput,
   type StarterIdentityConfigInput,
 } from "./plugin";
-export { fetchAnchorProfile, fetchAnchorProfileData } from "./helpers";
+export {
+  fetchAnchorProfile,
+  fetchAnchorProfileData,
+  type AnchorProfileReader,
+} from "./helpers";
 export {
   buildStarterCharacterBrief,
   buildStarterCharacterPrompt,
@@ -14,6 +20,8 @@ export {
   type StarterCharacterBrief,
   type StarterCharacterCapability,
   type StarterCharacterContentSignal,
+  type StarterCharacterGenerator,
+  type StarterCharacterReader,
 } from "./starter-character";
 export {
   STARTER_ALIAS_REGISTER,
@@ -28,6 +36,7 @@ export {
   type StarterIdentity,
   type StarterIdentityMigrationResult,
   type StarterIdentitySource,
+  type StarterIdentityStore,
 } from "./starter-identity";
 export {
   BUILT_IN_PROFILE_KINDS,

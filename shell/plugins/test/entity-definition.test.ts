@@ -189,10 +189,11 @@ describe("entity package definitions", () => {
     const digestPlugin = runtimePlugins[1];
     if (!digestPlugin) throw new Error("Digest entity plugin was not created");
     await harness.installPlugin(digestPlugin);
-    expect(harness.getEntityService().getEntityTypes()).toEqual([
-      "bookmark",
-      "digest",
-    ]);
+    // The shell registers its own identity types before any plugin, so this
+    // asks what the package added rather than what the brain has.
+    expect(harness.getEntityService().getEntityTypes()).toEqual(
+      expect.arrayContaining(["bookmark", "digest"]),
+    );
     expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
       "@fixture/reading-entities:bookmark-digest",
     ]);

@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import type {
-  EntityGenerationResult,
-  JobEntityAccess,
-  JobHandlerContext,
-} from "@brains/plugins";
+import type { EntityGenerationResult, JobEntityAccess } from "@brains/plugins";
 import type { StyleGuideEntity } from "@brains/style-guide";
 import {
   createMockEntityPluginContext,
-  createMockProgressReporter,
   createSilentLogger,
   createTestEntityAccess,
+  createTestJobContext,
   createTestEntity,
   type MockEntityPluginContext,
 } from "@brains/test-utils";
@@ -42,27 +38,15 @@ describe("deckGeneration", () => {
   async function generate(
     input: z.output<typeof deckGeneration.input>,
   ): Promise<EntityGenerationResult> {
-    const jobContext: JobHandlerContext<typeof input> = {
+    const jobContext = createTestJobContext<typeof input>({
       input,
       ai: context.ai,
       logger: createSilentLogger("decks-generation-test"),
       entities: entityAccess(),
       conversations: context.conversations,
       identity: context.identity,
-      messaging: { publish: async (): Promise<void> => {} },
-      progress: createMockProgressReporter(),
-      signal: new AbortController().signal,
       template: (localName: string) => `@brains/decks:deck:${localName}`,
-      // Declared but unused: these handlers generate, they do not import.
-      uploads: {
-        read: async (): Promise<never> => {
-          throw new Error("This job reads no uploads");
-        },
-      },
-      attachments: {
-        resolve: async (): Promise<undefined> => undefined,
-      },
-    };
+    });
     return deckGeneration.generate({ ...jobContext, entityId: undefined });
   }
 

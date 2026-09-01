@@ -68,6 +68,7 @@ export type {
   AnyServiceToolDefinition,
   ServiceDeadline,
   ServiceDefinitionInput,
+  ServiceEntityExtension,
   ServiceEvalHandler,
   ServiceInputSchema,
   ServiceJobBinding,

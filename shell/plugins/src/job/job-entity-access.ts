@@ -87,6 +87,10 @@ export function createJobEntityAccess(
         identifier,
       )) as T | null,
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
+    getEntityCounts: (
+      requested?: ContentVisibility,
+    ): Promise<Array<{ entityType: string; count: number }>> =>
+      entityService.getEntityCounts(requested ?? visibilityScope),
     get: async <TDefinition extends EntityDefinitionShape>(
       definition: TDefinition,
       id: string,

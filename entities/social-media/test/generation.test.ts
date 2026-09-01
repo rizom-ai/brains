@@ -1,14 +1,10 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import type {
-  EntityGenerationResult,
-  JobEntityAccess,
-  JobHandlerContext,
-} from "@brains/plugins";
+import type { EntityGenerationResult, JobEntityAccess } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createMockProgressReporter,
   createSilentLogger,
   createTestEntityAccess,
+  createTestJobContext,
   createTestEntity,
   type MockEntityPluginContext,
 } from "@brains/test-utils";
@@ -58,28 +54,16 @@ describe("socialPostGeneration", () => {
   async function generate(
     input: GenerationJobData,
   ): Promise<EntityGenerationResult> {
-    const jobContext: JobHandlerContext<GenerationJobData> = {
+    const jobContext = createTestJobContext<GenerationJobData>({
       input,
       ai: context.ai,
       logger: createSilentLogger("social-generation-test"),
       entities: entityAccess(),
       conversations: context.conversations,
       identity: context.identity,
-      messaging: { publish: async (): Promise<void> => {} },
-      progress: createMockProgressReporter(),
-      signal: new AbortController().signal,
       template: (localName: string) =>
         `@brains/social-media:social-post:${localName}`,
-      // Declared but unused: these handlers generate, they do not import.
-      uploads: {
-        read: async (): Promise<never> => {
-          throw new Error("This job reads no uploads");
-        },
-      },
-      attachments: {
-        resolve: async (): Promise<undefined> => undefined,
-      },
-    };
+    });
     return socialPostGeneration.generate({
       ...jobContext,
       entityId: undefined,

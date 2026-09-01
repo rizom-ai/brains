@@ -1,14 +1,10 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import type {
-  EntityGenerationResult,
-  JobEntityAccess,
-  JobHandlerContext,
-} from "@brains/plugins";
+import type { EntityGenerationResult, JobEntityAccess } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createMockProgressReporter,
   createSilentLogger,
   createTestEntityAccess,
+  createTestJobContext,
   type MockEntityPluginContext,
 } from "@brains/test-utils";
 import type { z } from "@brains/utils/zod";
@@ -43,27 +39,15 @@ describe("projectGeneration", () => {
   async function generate(
     input: z.output<typeof projectGeneration.input>,
   ): Promise<EntityGenerationResult> {
-    const jobContext: JobHandlerContext<typeof input> = {
+    const jobContext = createTestJobContext<typeof input>({
       input,
       ai: context.ai,
       logger: createSilentLogger("portfolio-generation-test"),
       entities: entityAccess(),
       conversations: context.conversations,
       identity: context.identity,
-      messaging: { publish: async (): Promise<void> => {} },
-      progress: createMockProgressReporter(),
-      signal: new AbortController().signal,
       template: (localName: string) => `@brains/portfolio:project:${localName}`,
-      // Declared but unused: these handlers generate, they do not import.
-      uploads: {
-        read: async (): Promise<never> => {
-          throw new Error("This job reads no uploads");
-        },
-      },
-      attachments: {
-        resolve: async (): Promise<undefined> => undefined,
-      },
-    };
+    });
     return projectGeneration.generate({ ...jobContext, entityId: undefined });
   }
 

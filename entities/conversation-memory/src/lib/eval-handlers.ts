@@ -489,6 +489,12 @@ function seededEntityAccess(memory: SeededMemory[]): JobEntityAccess {
         (entity) => entity.entityType === entityType && entity.id === id,
       ) ?? null) as T | null,
     getEntityTypes: () => [...new Set(entities.map((e) => e.entityType))],
+    getEntityCounts: async () =>
+      [...new Set(entities.map((e) => e.entityType))].map((entityType) => ({
+        entityType,
+        count: entities.filter((entity) => entity.entityType === entityType)
+          .length,
+      })),
     get: async () => null,
     create: refuse,
     update: refuse,

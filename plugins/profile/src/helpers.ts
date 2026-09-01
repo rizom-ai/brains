@@ -1,16 +1,26 @@
-import {
-  parseMarkdownWithFrontmatter,
-  type ICoreEntityService,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 interface ProfileSchema<T> {
   parse(data: unknown): T;
 }
 
+/**
+ * What fetching the anchor profile actually needs: one listing call.
+ *
+ * Structural rather than the whole entity service, so a site datasource and
+ * a job handler — which are handed different readers — can both call it.
+ */
+export interface AnchorProfileReader {
+  listEntities(request: {
+    entityType: string;
+    options?: { limit?: number };
+  }): Promise<Array<{ content: string }>>;
+}
+
 /** Fetch the singleton anchor-profile markdown. */
 export async function fetchAnchorProfile(
-  entityService: ICoreEntityService,
+  entityService: AnchorProfileReader,
 ): Promise<string> {
   const entities = await entityService.listEntities({
     entityType: "anchor-profile",
@@ -25,7 +35,7 @@ export async function fetchAnchorProfile(
 
 /** Fetch and parse the singleton with a plugin-owned profile schema. */
 export async function fetchAnchorProfileData<T extends object>(
-  entityService: ICoreEntityService,
+  entityService: AnchorProfileReader,
   schema: ProfileSchema<T>,
 ): Promise<T> {
   const markdown = await fetchAnchorProfile(entityService);

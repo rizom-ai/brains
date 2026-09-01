@@ -2,9 +2,10 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **6 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **7 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
-`@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`).
+`@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
+`@brains/profile`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under

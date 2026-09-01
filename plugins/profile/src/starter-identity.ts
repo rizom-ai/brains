@@ -1,17 +1,37 @@
 import { createHash } from "node:crypto";
-import type {
-  BaseEntity,
-  ProfileCategory,
-  BrainCharacter,
-  ServiceEntityService,
-} from "@brains/plugins";
 import {
   brainCharacterBodySchema,
+  type BrainCharacter,
+  type ProfileCategory,
+} from "@brains/sdk/services";
+import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+  type BaseEntity,
+  type ContentVisibility,
+} from "@brains/sdk/entities";
+import type { LoggerContract } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+
+/**
+ * Seeding the identity singletons is two reads and two writes. Scoped entity
+ * access satisfies this; writes reach the shell-owned types only because the
+ * package stewards them.
+ */
+export interface StarterIdentityStore {
+  getEntity<T extends BaseEntity>(request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: ContentVisibility;
+  }): Promise<T | null>;
+  create(entity: {
+    id: string;
+    entityType: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  }): Promise<unknown>;
+  update(entity: BaseEntity): Promise<unknown>;
+}
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
@@ -296,38 +316,34 @@ export function createStarterAnchorProfileContent(
 }
 
 async function persistIdentityEntity(
-  entityService: ServiceEntityService,
+  entityService: StarterIdentityStore,
   existing: BaseEntity | null,
   entityType: "brain-character" | "anchor-profile",
   content: string,
 ): Promise<"created" | "migrated"> {
   if (existing) {
-    await entityService.updateEntity({
-      entity: { ...existing, content },
-    });
+    await entityService.update({ ...existing, content });
     return "migrated";
   }
 
-  await entityService.createEntity({
-    entity: {
-      id: entityType,
-      entityType,
-      content,
-      metadata: {},
-    },
+  await entityService.create({
+    id: entityType,
+    entityType,
+    content,
+    metadata: {},
   });
   return "created";
 }
 
 export async function seedOrMigrateStarterIdentity(options: {
-  entityService: ServiceEntityService;
+  entityService: StarterIdentityStore;
   identifier: string;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;
   generateBrainCharacter: (
     request: StarterCharacterGenerationRequest,
   ) => Promise<Omit<BrainCharacter, "name">>;
-  logger?: Logger | undefined;
+  logger?: LoggerContract | undefined;
 }): Promise<StarterIdentityMigrationResult> {
   const {
     entityService,

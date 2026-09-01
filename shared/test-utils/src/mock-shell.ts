@@ -86,6 +86,8 @@ import type {
 import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import {
+  AnchorProfileAdapter,
+  BrainCharacterAdapter,
   ProfileKindRegistry,
   type BrainCharacter,
   type AnchorProfile,
@@ -737,6 +739,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     (input: unknown, executionContext: unknown) => Promise<unknown>
   >();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
+  const stewardshipClaims = new Map<string, string>();
 
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
@@ -745,6 +748,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entityTypeConfigs.set(type, config ?? {});
     },
     unregisterEntityType: (type): void => {
+      stewardshipClaims.delete(type);
       entityTypes.delete(type);
       entityAdapters.delete(type);
       entityTypeConfigs.delete(type);
@@ -769,6 +773,28 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return adapter as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
+    claimEntityStewardship: (entityType: string, ownerLabel: string): void => {
+      if (!entityTypes.has(entityType)) {
+        throw new Error(
+          `"${ownerLabel}" cannot steward "${entityType}": the type is not registered`,
+        );
+      }
+      const existing = stewardshipClaims.get(entityType);
+      if (existing !== undefined && existing !== ownerLabel) {
+        throw new Error(
+          `"${ownerLabel}" cannot steward "${entityType}": "${existing}" already stewards it`,
+        );
+      }
+      stewardshipClaims.set(entityType, ownerLabel);
+    },
+    releaseEntityStewardship: (
+      entityType: string,
+      ownerLabel: string,
+    ): void => {
+      if (stewardshipClaims.get(entityType) === ownerLabel) {
+        stewardshipClaims.delete(entityType);
+      }
+    },
     validateEntity: (type: string, entity: unknown): BaseEntity => {
       const adapter = entityAdapters.get(type);
       if (adapter) return adapter.schema.parse(entity);
@@ -806,6 +832,21 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     extendFrontmatterSchema: (): void => {},
     getEffectiveFrontmatterSchema: () => undefined,
   };
+
+  // The shell registers its own identity types before any plugin runs, so a
+  // mock without them lets a plugin pass here and fail against a real brain.
+  const anchorProfileAdapter = new AnchorProfileAdapter();
+  const brainCharacterAdapter = new BrainCharacterAdapter();
+  entityRegistry.registerEntityType(
+    "anchor-profile",
+    anchorProfileAdapter.schema,
+    anchorProfileAdapter,
+  );
+  entityRegistry.registerEntityType(
+    "brain-character",
+    brainCharacterAdapter.schema,
+    brainCharacterAdapter,
+  );
 
   // --- In-memory job queue state ---
   // Enqueued jobs are remembered so status reads see what writes created; a

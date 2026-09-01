@@ -5,6 +5,7 @@ import {
   createSilentLogger,
   createTestEntity,
   createTestEntityAccess,
+  createTestJobContext,
 } from "@brains/test-utils";
 import { seriesDescriptionJob } from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
@@ -44,29 +45,19 @@ slug: systems-series
             ]
           : [],
     });
-    await seriesDescriptionJob.handle({
-      input: { seriesId: "systems-series" },
-      ai: context.ai,
-      logger: createSilentLogger("test"),
-      entities: createTestEntityAccess({
-        entityService: context.entityService,
+    await seriesDescriptionJob.handle(
+      createTestJobContext({
+        input: { seriesId: "systems-series" },
+        ai: context.ai,
+        logger: createSilentLogger("test"),
+        entities: createTestEntityAccess({
+          entityService: context.entityService,
+        }),
+        conversations: context.conversations,
+        identity: context.identity,
+        template: (localName: string) => `@brains/series:series:${localName}`,
       }),
-      conversations: context.conversations,
-      identity: context.identity,
-      progress: { report: async (): Promise<void> => {} },
-      signal: new AbortController().signal,
-      template: (localName: string) => `@brains/series:series:${localName}`,
-      // Declared but unused: these handlers generate, they do not import.
-      uploads: {
-        read: async (): Promise<never> => {
-          throw new Error("This job reads no uploads");
-        },
-      },
-      attachments: {
-        resolve: async (): Promise<undefined> => undefined,
-      },
-      messaging: { publish: async (): Promise<void> => {} },
-    });
+    );
 
     expect(context.ai.generate).toHaveBeenCalledWith(
       expect.objectContaining({

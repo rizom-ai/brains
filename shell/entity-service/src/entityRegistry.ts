@@ -23,6 +23,7 @@ export class EntityRegistry implements IEntityRegistry {
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
+  private stewardshipClaims = new Map<string, string>();
   private logger: Logger;
 
   public static createFresh(logger: Logger): EntityRegistry {
@@ -70,6 +71,7 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   unregisterEntityType(type: string): void {
+    this.stewardshipClaims.delete(type);
     this.entitySchemas.delete(type);
     this.entityAdapters.delete(type);
     this.entityConfigs.delete(type);
@@ -129,6 +131,27 @@ export class EntityRegistry implements IEntityRegistry {
    */
   hasEntityType(type: string): boolean {
     return this.entitySchemas.has(type) && this.entityAdapters.has(type);
+  }
+
+  claimEntityStewardship(entityType: string, ownerLabel: string): void {
+    if (!this.hasEntityType(entityType)) {
+      throw new Error(
+        `"${ownerLabel}" cannot steward "${entityType}": the type is not registered`,
+      );
+    }
+    const existing = this.stewardshipClaims.get(entityType);
+    if (existing !== undefined && existing !== ownerLabel) {
+      throw new Error(
+        `"${ownerLabel}" cannot steward "${entityType}": "${existing}" already stewards it`,
+      );
+    }
+    this.stewardshipClaims.set(entityType, ownerLabel);
+  }
+
+  releaseEntityStewardship(entityType: string, ownerLabel: string): void {
+    if (this.stewardshipClaims.get(entityType) === ownerLabel) {
+      this.stewardshipClaims.delete(entityType);
+    }
   }
 
   /**

@@ -17,6 +17,17 @@ import type { ChannelDeliveryProvider } from "../channel-registry";
  * `markdown` is a loader rather than a string so a satisfied seed costs no
  * file read; the runtime parses it through the target type's own adapter.
  */
+/**
+ * A frontmatter extension and/or persistence validator for one entity type
+ * in the declaring package's owned set. See `entityExtensions`.
+ */
+export interface ServiceEntityExtension {
+  readonly entityType: string;
+  readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
+  readonly validate?:
+    ((entity: BaseEntity) => void | Promise<void>) | undefined;
+}
+
 export interface ServiceSeedDefinition {
   readonly entityType: string;
   readonly id: string;
@@ -50,6 +61,11 @@ export interface ServiceChannelReader {
   getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
 }
 import type { z } from "@brains/utils/zod";
+import type {
+  ProfileKindDefinition,
+  ResolvedProfileSelection,
+} from "@brains/identity-service";
+import type { BaseEntity } from "@brains/entity-service";
 import type {
   AnyEntityDefinition,
   EntityEvalContext,
@@ -403,6 +419,18 @@ interface ServiceDefinitionCore<
    */
   readonly entities?: readonly AnyEntityDefinition[] | undefined;
   /**
+   * System entity types whose lifecycle this package manages.
+   *
+   * Stewarded types join the package's owned set for scoped entity access,
+   * so its jobs and ready hook may write them. The claim is checked at
+   * registration: the type must already be registered — a system type the
+   * shell brought up, never one this package invents — and no other package
+   * may steward it. Named consumer: @brains/profile, whose starter-identity
+   * flow seeds and migrates the shell-owned anchor-profile and
+   * brain-character singletons.
+   */
+  readonly stewards?: readonly string[] | undefined;
+  /**
    * Plugin ids this service must register after.
    *
    * A seeder that writes another package's entity type has to run once that
@@ -502,6 +530,41 @@ interface ServiceDefinitionCore<
       }) => readonly ServiceSeedDefinition[])
     | undefined;
   /**
+   * Profile kinds this package contributes to the app-scoped catalog.
+   *
+   * A kind is data — a name, a category, a field schema, labels — and the
+   * brain's configuration picks one; the registry finalizes the selection
+   * after every plugin has registered. A function of config for parity with
+   * the other declaration slots. Named consumer: @brains/profile, which
+   * declares the built-in professional, team and organization kinds.
+   */
+  readonly profileKinds?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+      }) => readonly ProfileKindDefinition[])
+    | undefined;
+  /**
+   * Frontmatter and persistence validation this package adds to entity
+   * types it stewards or declares.
+   *
+   * Evaluated after every plugin has registered and the profile-kind
+   * selection has finalized — an extension shaped by the selected kind has
+   * no answer earlier. Restricted to the package's owned set: reshaping a
+   * type is a stewardship act, not something one package does to another's.
+   * Named consumer: @brains/profile, which extends anchor-profile with the
+   * base profile fields and the selected kind's fields.
+   */
+  readonly entityExtensions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly profileKinds: {
+          getResolved(): ResolvedProfileSelection;
+          getSelectedDefinition(): ProfileKindDefinition | undefined;
+        };
+      }) => readonly ServiceEntityExtension[])
+    | undefined;
+  /**
    * Work that runs once, after every plugin has registered.
    *
    * `setup` runs during this package's own registration, when the types it
@@ -520,12 +583,25 @@ interface ServiceDefinitionCore<
         /** The brain's data directory, for artifacts written beside it. */
         readonly dataDir: string;
         readonly entityShapes: ServiceEntityShapes;
+        /**
+         * The declared jobs, for boot-time enqueueing. Work that belongs in
+         * `ready` is often only the trigger — the work itself is a job, with
+         * the queue's retries and observability. Named consumer:
+         * @brains/profile, whose ready enqueues starter-identity seeding.
+         */
+        readonly jobs: ServiceJobs;
       }) => void | Promise<void>)
     | undefined;
   readonly subscriptions?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /**
+         * The declared jobs, so a bus signal can enqueue work instead of
+         * doing it inline in the handler. Named consumer: @brains/profile,
+         * which seeds once the initial sync reports success.
+         */
+        readonly jobs: ServiceJobs;
       }) => readonly AnySubscriptionDefinition[])
     | undefined;
   readonly instructions?:

@@ -870,6 +870,12 @@ export interface IEntitiesNamespace {
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
 
+  /** Claim lifecycle stewardship of a system entity type. See `EntityRegistry.claimEntityStewardship`. */
+  claimStewardship(entityType: string, ownerLabel: string): void;
+
+  /** Release a stewardship claim. */
+  releaseStewardship(entityType: string, ownerLabel: string): void;
+
   /** Get effective frontmatter schema (base + extensions) for an entity type */
   getEffectiveFrontmatterSchema(
     type: string,
@@ -1101,6 +1107,18 @@ export interface EntityRegistry {
   ): EntityAdapter<TEntity, TMetadata>;
 
   hasEntityType(type: string): boolean;
+
+  /**
+   * Claim lifecycle stewardship of a system entity type — one the shell
+   * registered, not the claimant. A steward may write the type through
+   * scoped entity access as if it declared it. At most one steward per
+   * type; the type must already be registered when claimed. Named
+   * consumer: @brains/profile (anchor-profile, brain-character).
+   */
+  claimEntityStewardship(entityType: string, ownerLabel: string): void;
+
+  /** Release a stewardship claim, e.g. when the claiming plugin shuts down. */
+  releaseEntityStewardship(entityType: string, ownerLabel: string): void;
 
   validateEntity(type: string, entity: unknown): BaseEntity;
 

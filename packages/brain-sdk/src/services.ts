@@ -43,6 +43,39 @@ export type {
   WorkspacePreparedConfirmation,
 } from "@brains/plugins";
 
+// The shell's own lifecycle signals, for a package whose work waits on one.
+// Seeding an identity derived from imported content cannot run before the
+// import has landed, and the name of that moment is the runtime's to give.
+// Named consumer: @brains/profile.
+export { SYSTEM_CHANNELS } from "@brains/plugins";
+export type { SystemChannelName } from "@brains/plugins";
+
+// Profile kinds. A package declaring what shapes of profile this brain can
+// represent describes each as data, and reads the finalized selection back
+// where it shapes behaviour. Named consumer: @brains/profile.
+export type {
+  ProfileCategory,
+  ProfileKindDefinition,
+  ProfileKindLabels,
+  ResolvedProfileKind,
+  ResolvedProfileSelection,
+} from "@brains/plugins";
+
+// The brain's own identity records, for a package that seeds or migrates
+// them. The body schemas are the runtime's, so what a package writes and
+// what the brain accepts are the same document. Named consumer:
+// @brains/profile.
+export {
+  anchorProfileBodySchema,
+  anchorProfileKindSchema,
+  brainCharacterBodySchema,
+} from "@brains/plugins";
+export type { AnchorProfile, BrainCharacter } from "@brains/plugins";
+
+// Extending an entity type this package stewards, and validating what is
+// persisted to it. Named consumer: @brains/profile.
+export type { ServiceEntityExtension } from "@brains/plugins";
+
 // Insights. A service that contributes an insight authors the handler the
 // `insights` slot returns; the context hands it scoped reads and the
 // caller's visibility. Type-only. Named consumer: @brains/analytics.
