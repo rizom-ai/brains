@@ -40,6 +40,10 @@ import {
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
 import { createEvalFixtures } from "../entity/eval-fixtures";
+import {
+  createDeclarativeDataSource,
+  createDeclarativeEntityDataSource,
+} from "../public/entity-data-source";
 import { createReactionContext } from "./reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import {
@@ -470,6 +474,23 @@ class DeclarativeServicePlugin<
     }
 
     const templates = this.templateFormatter();
+    // Scoped like the entity-side slot, so two packages can each declare a
+    // source called "entities" without colliding.
+    for (const source of this.definition.dataSources?.({
+      config: this.config,
+      state: this.state,
+    }) ?? []) {
+      context.entities.registerDataSource(
+        source.kind === "rizom-data-source"
+          ? createDeclarativeDataSource(source, this.scope(source.id))
+          : createDeclarativeEntityDataSource(
+              source,
+              this.scope(source.id),
+              this.logger,
+            ),
+      );
+    }
+
     context.templates.register(this.runtimeTemplates(), this.id);
     this.registerPrompts();
 

@@ -6,7 +6,7 @@ import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 import { KnowledgeMap, knowledgeMapStyles } from "./knowledge-map";
 import { knowledgeMapDataSchema } from "./knowledge-map-data";
-import { KNOWLEDGE_MAP_DATASOURCE_ID } from "./constants";
+import { KNOWLEDGE_MAP_LOCAL_ID } from "./constants";
 
 /**
  * The knowledge map as a site section: the home page's proof — authored copy
@@ -323,7 +323,7 @@ export function getKnowledgeMapTemplate(): Template {
     description:
       "The brain's corpus in semantic space — topic territories, published lights, honest counts",
     schema: knowledgeMapTemplateSchema,
-    dataSourceId: KNOWLEDGE_MAP_DATASOURCE_ID,
+    dataSourceId: KNOWLEDGE_MAP_LOCAL_ID,
     overlayFormatter: knowledgeMapCopyFormatter,
     requiredPermission: "public",
     layout: {

@@ -797,3 +797,60 @@ describe("declarative dashboard widget runtime", () => {
     await shutdown;
   });
 });
+
+describe("a widget that draws itself", () => {
+  it("carries its own renderer to the host, keeping the declarative view as detail", async () => {
+    const widget = defineDashboardWidget({
+      id: "corpus-map",
+      title: "Knowledge Map",
+      group: "knowledge",
+      placement: "primary",
+      permission: "public",
+      data: z.object({ points: z.number() }),
+      // The console draws the field itself; the declarative view stays as
+      // the map's text description.
+      render: { component: "KnowledgeMapWidget", clientStyles: ".map{}" },
+      view: ({ data }) => ({
+        blocks: [
+          {
+            type: "stats",
+            items: [{ label: "Points", value: data.points, tone: "neutral" }],
+          },
+        ],
+      }),
+    });
+    const definition = defineServicePlugin({
+      id: "cartographer",
+      config: z.object({}),
+      setup: () => ({}),
+      dashboardWidgets: (context) => [
+        widget.bind(context, async () => ({ points: 12 })),
+      ],
+    });
+
+    const shell = createMockShell({
+      logger: createSilentLogger("dashboard-render"),
+    });
+    const registrations: HostRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<HostRegistration>(
+        DASHBOARD_CHANNELS.registerWidget,
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        },
+      );
+
+    const plugin = instantiate(definition);
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
+
+    const registration = registrations[0];
+    if (!registration) throw new Error("Widget was not registered");
+    expect(registration.renderer).toEqual({
+      component: "KnowledgeMapWidget",
+      clientStyles: ".map{}",
+    });
+  });
+});

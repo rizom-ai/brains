@@ -1,4 +1,8 @@
 import { permissionToVisibilityScope } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
 import type { JobInfo } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
 import { parseDefinitionEntity } from "../entity/entity-schema";
@@ -182,6 +186,24 @@ export async function createOperatorContext<
         return results.map(({ entity }) =>
           parseDefinitionEntity(definition, entity),
         );
+      },
+    },
+    corpus: {
+      async project(request): Promise<SemanticSpaceProjection> {
+        signal.throwIfAborted();
+        const projection =
+          await input.context.entityService.projectSemanticSpace(request);
+        signal.throwIfAborted();
+        return projection;
+      },
+      async listEntities({ entityType }): Promise<BaseEntity[]> {
+        signal.throwIfAborted();
+        const entities = await input.context.entityService.listEntities({
+          entityType,
+          options: { filter: { visibilityScope } },
+        });
+        signal.throwIfAborted();
+        return entities;
       },
     },
     jobs: createOperatorJobs(input.context),

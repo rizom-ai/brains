@@ -66,6 +66,7 @@ import type {
   ResolvedProfileSelection,
 } from "@brains/identity-service";
 import type { BaseEntity } from "@brains/entity-service";
+import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
 import type {
   AnyEntityDefinition,
   EntityEvalContext,
@@ -622,6 +623,25 @@ interface ServiceDefinitionCore<
           TPromptSchemas[K]
         >;
       }
+    | undefined;
+  /**
+   * Data sources this package contributes that belong to no single entity
+   * type.
+   *
+   * The entity-side slot covers a source over one type. A source that spans
+   * the corpus — the knowledge map arranges every type in semantic space —
+   * has no type to hang off, and neither does one built from a package's
+   * own configured state. The runtime scopes their ids to the package, so
+   * two packages can each declare "entities" without colliding.
+   *
+   * Named consumers: @brains/knowledge-map, @brains/dashboard,
+   * @brains/site-builder, @brains/unified-inbox.
+   */
+  readonly dataSources?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly AnyDataSourceDeclaration[])
     | undefined;
   readonly templates?:
     | {

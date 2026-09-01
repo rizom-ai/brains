@@ -3,19 +3,29 @@ import type { JSX } from "react";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  SYSTEM_CHANNELS,
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
   type DashboardWidgetRegistration,
+  type Plugin,
 } from "@brains/plugins";
-import {
-  createEntityPluginContext,
-  createMockShell,
-} from "@brains/plugins/test";
-import {
-  KNOWLEDGE_MAP_WIDGET_ID,
-  registerKnowledgeMapDashboardWidget,
-} from "../src/knowledge-map-widget";
+import { createMockShell } from "@brains/plugins/test";
+import knowledgeMapPackage, { KNOWLEDGE_MAP_WIDGET_ID } from "../src";
+import packageJson from "../package.json";
 
-describe("registerKnowledgeMapDashboardWidget", () => {
+/** The knowledge-map service, as the runtime would build it. */
+function knowledgeMapPlugin(): Plugin {
+  const metadata = { name: packageJson.name, version: packageJson.version };
+  bindPluginPackageMetadata(knowledgeMapPackage, metadata);
+  const plugin = instantiatePluginPackageDefinition(
+    knowledgeMapPackage,
+    {},
+    metadata,
+  )[0];
+  if (!plugin) throw new Error("Knowledge map plugin was not created");
+  return plugin;
+}
+
+describe("the knowledge map dashboard widget", () => {
   it("registers one normalized semantic projection once plugins are ready", async () => {
     const shell = createMockShell();
     Object.assign(shell.getEntityService(), {
@@ -68,13 +78,9 @@ describe("registerKnowledgeMapDashboardWidget", () => {
           return { success: true };
         },
       );
-    const context = createEntityPluginContext(shell, "topics");
-
-    registerKnowledgeMapDashboardWidget({ context });
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-    });
+    const plugin = knowledgeMapPlugin();
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
 
     expect(registration).toMatchObject({
       id: KNOWLEDGE_MAP_WIDGET_ID,
@@ -156,13 +162,9 @@ describe("registerKnowledgeMapDashboardWidget", () => {
           return { success: true };
         },
       );
-    const context = createEntityPluginContext(shell, "topics");
-
-    registerKnowledgeMapDashboardWidget({ context });
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-    });
+    const plugin = knowledgeMapPlugin();
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
 
     if (!registration) throw new Error("Knowledge Map was not registered");
     const renderer = registration.renderer;

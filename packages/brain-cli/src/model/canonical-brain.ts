@@ -51,7 +51,7 @@ import socialMediaPackage from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import topicsPackage from "@brains/topics";
-import { knowledgeMapPlugin } from "@brains/knowledge-map";
+import knowledgeMapPackage from "@brains/knowledge-map";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
@@ -152,7 +152,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("link", "@brains/link", linkPackage),
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage),
     packageCapability("topics", "@brains/topics", topicsPackage),
-    ["knowledge-map", knowledgeMapPlugin, undefined],
+    packageCapability(
+      "knowledge-map",
+      "@brains/knowledge-map",
+      knowledgeMapPackage,
+    ),
     packageCapability("decks", "@brains/decks", decksPackage),
     [
       "directory-sync",

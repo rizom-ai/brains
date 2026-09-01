@@ -140,12 +140,17 @@ export function createDeclarativeDashboardWidgetRegistration<
   };
   const load = getDashboardWidgetLoader(input.binding);
 
+  // A widget that declares its own component draws itself, so it needs the
+  // data behind the derived view as well.
+  const includeSource = input.includeSource === true || definition.render;
+
   return {
     id: definition.id,
     title: definition.title,
     ...(definition.description ? { description: definition.description } : {}),
     group: definition.group,
     rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+    ...(definition.render ? { renderer: definition.render } : {}),
     section: definition.placement,
     priority: definition.priority ?? 50,
     visibility: definition.permission,
@@ -214,7 +219,7 @@ export function createDeclarativeDashboardWidgetRegistration<
       return Object.freeze({
         view,
         ...(digest ? { digest } : {}),
-        ...(input.includeSource ? { source: data } : {}),
+        ...(includeSource ? { source: data } : {}),
       });
     },
     digestProvider(data): DashboardDigestProviderResult {

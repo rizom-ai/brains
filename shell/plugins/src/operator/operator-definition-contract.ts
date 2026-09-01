@@ -17,6 +17,7 @@ import type {
   OperatorQueryReader,
   OperatorSchema,
 } from "./operator-context-contract";
+import type { DashboardWidgetRenderer } from "../base/dashboard-namespace";
 import type {
   StudioWorkspaceView,
   DashboardDigest,
@@ -41,6 +42,17 @@ export interface DashboardWidgetDefinition<
   readonly priority?: number | undefined;
   readonly permission: UserPermissionLevel;
   readonly data: TDataSchema;
+  /**
+   * The widget's own component, when the declarative block vocabulary
+   * cannot say what it shows.
+   *
+   * The view and digest still derive from the same data, so the semantic
+   * blocks remain the widget's text description and its digest strip stays
+   * live — a console that cannot run the component still has something to
+   * show. Named consumer: @brains/knowledge-map, which draws the corpus as
+   * a cartographic field.
+   */
+  readonly render?: DashboardWidgetRenderer | undefined;
   readonly digest?:
     | ((context: { readonly data: z.output<TDataSchema> }) => DashboardDigest)
     | undefined;

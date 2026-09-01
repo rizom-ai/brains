@@ -30,7 +30,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "problem", template: "home:problem" },
       { id: "growth", template: "home:growth" },
       { id: "mission", template: "home:mission" },
-      { id: "knowledge", template: "knowledge-map:map", dataQuery: {} },
+      { id: "knowledge", template: "@brains/knowledge-map:map", dataQuery: {} },
       { id: "faces", template: "home:faces" },
     ],
   },

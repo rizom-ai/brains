@@ -149,6 +149,15 @@ describe("public operator definitions", () => {
         list: async () => [],
         search: async () => [],
       },
+      corpus: {
+        project: async () => ({
+          origin: { kind: "centroid" },
+          points: [],
+          neighbors: [],
+          distanceRange: { min: 0, max: 0 },
+        }),
+        listEntities: async () => [],
+      },
       jobs: {
         enqueue: async () => ({ id: "job-1", status: async () => null }),
         status: async () => null,

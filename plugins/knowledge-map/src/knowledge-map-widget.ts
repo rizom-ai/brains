@@ -1,36 +1,20 @@
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type BasePluginContext,
-} from "@brains/plugins";
-import {
-  buildKnowledgeMapData,
-  knowledgeMapDataSchema,
-} from "./knowledge-map-data";
-import { KnowledgeMapWidget, knowledgeMapStyles } from "./knowledge-map";
-
-export const KNOWLEDGE_MAP_WIDGET_ID = "topics-knowledge-map";
+import type { DashboardOperatorView } from "@brains/sdk/services";
+import type { KnowledgeMapData } from "./knowledge-map-data";
 
 function knowledgePointId(entityType: string, id: string): string {
   return `${entityType}:${id}`;
 }
 
-const knowledgeMapWidget = defineDashboardWidget({
-  id: KNOWLEDGE_MAP_WIDGET_ID,
-  title: "Knowledge Map",
-  group: "knowledge",
-  placement: "primary",
-  priority: 30,
-  permission: "public",
-  data: knowledgeMapDataSchema,
-  digest: ({ data }) => ({
-    items: [
-      { label: "Entities", value: String(data.counts.entities) },
-      { label: "Topics", value: String(data.counts.topics) },
-    ],
-  }),
-  view: ({ data }) => ({
+/**
+ * The map's text detail: what a console that cannot draw the field still
+ * shows, and what the digest strip summarises.
+ */
+export function knowledgeMapWidgetView({
+  data,
+}: {
+  data: KnowledgeMapData;
+}): DashboardOperatorView {
+  return {
     blocks: [
       {
         type: "spatial",
@@ -88,34 +72,5 @@ const knowledgeMapWidget = defineDashboardWidget({
         ],
       },
     ],
-  }),
-});
-
-/** Register the semantic corpus projection after the Dashboard host mounts. */
-export function registerKnowledgeMapDashboardWidget(params: {
-  context: BasePluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: knowledgeMapWidget,
-        // The console draws the cartographic field itself; the declarative
-        // view above stays as the map's text detail and digest.
-        render: {
-          component: KnowledgeMapWidget,
-          clientStyles: knowledgeMapStyles,
-        },
-        load: async ({ signal }) => {
-          signal.throwIfAborted();
-          const data = await buildKnowledgeMapData(context);
-          signal.throwIfAborted();
-          return data;
-        },
-      });
-      return { success: true };
-    },
-  );
+  };
 }

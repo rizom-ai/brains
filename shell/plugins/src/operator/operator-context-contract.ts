@@ -1,5 +1,10 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type {
+  BaseEntity,
+  ProjectSemanticSpaceRequest,
+  SemanticSpaceProjection,
+} from "@brains/entity-service";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type {
   AnyAccountSettingsDefinition,
@@ -34,6 +39,18 @@ export interface OperatorCaller {
 export interface OperatorQueryReader {
   /** Read the host-validated query through the exact schema declared by the workspace. */
   get<TSchema extends OperatorSchema>(schema: TSchema): z.output<TSchema>;
+}
+
+/**
+ * Corpus-wide reads: where entities sit relative to each other, and the
+ * titles to label them with. See `OperatorBaseContext.corpus`.
+ */
+export interface OperatorCorpusReader {
+  /** Coordinates only — no content crosses this call. */
+  project(
+    request: ProjectSemanticSpaceRequest,
+  ): Promise<SemanticSpaceProjection>;
+  listEntities(request: { entityType: string }): Promise<BaseEntity[]>;
 }
 
 export interface OperatorEntityReader {
@@ -119,6 +136,18 @@ export interface OperatorBaseContext<
     NonNullable<TAccountSettings>
   > | null;
   readonly entities: OperatorEntityReader;
+  /**
+   * The corpus as a whole, for a surface whose subject is its shape rather
+   * than any one type.
+   *
+   * `entities` above is definition-typed on purpose — operator data reaches
+   * the browser, and asking through a declaration is what keeps a widget
+   * from serving whatever it likes. A map of the entire brain has no
+   * declaration to ask through: `project({})` takes no type filter. Reads
+   * are capped at the caller's visibility like every other operator read.
+   * Named consumer: @brains/knowledge-map.
+   */
+  readonly corpus: OperatorCorpusReader;
   readonly jobs: OperatorJobs;
   readonly permissions: OperatorPermissions;
   readonly signal: AbortSignal;

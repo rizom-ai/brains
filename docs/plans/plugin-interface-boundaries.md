@@ -2,10 +2,10 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **8 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **9 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
-`@brains/profile`, `@brains/site-info`).
+`@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -321,6 +321,23 @@ made the entity tranche find real defects rather than move code.
    plus a programmatic enqueue for another type's declared generation — its
    own slice, with stock-photo as the named consumer, not a detail of its
    conversion.
+
+   **The chat interfaces are gated on confirmations.** `chat-repl`, `chat`
+   and `web-chat` each hand-roll the same three things: a
+   `PendingApprovalTracker` per conversation, `routeConfirmationResponse`
+   before the agent call, and `buildResponsePlan` to render the reply. The
+   declarative pipeline's `receiveAuthenticated` sends `response.text` and
+   nothing else, so converting any of them as-is would drop confirmation
+   handling — a user replying "yes" to a pending approval would be answered
+   as if it were a new question.
+
+   The shared halves already exist as functions in `@brains/plugins`; what
+   is missing is that the runtime pipeline never calls them, and that
+   rendering legitimately differs per interface (a terminal formats an
+   approval as text with `yes 1` sugar; web-chat renders a card). So the
+   slice is: the pipeline owns tracking and routing, and an interface
+   declares how an approval is presented. Three named consumers, measured —
+   its own slice, ahead of any of the three conversions.
 
 ## Validation
 

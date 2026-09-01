@@ -4,7 +4,6 @@ import { renderToStaticMarkup as render } from "react-dom/server";
 import { KnowledgeMapTemplate } from "../src/knowledge-map-template";
 import type { KnowledgeMapTemplateData } from "../src/knowledge-map-template";
 import { getKnowledgeMapTemplate } from "../src/knowledge-map-template";
-import { KnowledgeMapDataSource } from "../src/knowledge-map-datasource";
 
 /* The knowledge-map site template. The proof
    section — authored copy on the left, the live map on the right, honest
@@ -83,7 +82,9 @@ describe("KnowledgeMapTemplate", () => {
 describe("knowledge-map template registration", () => {
   test("registers with the datasource and a round-tripping overlay formatter", () => {
     const template = getKnowledgeMapTemplate();
-    expect(template.dataSourceId).toBe("knowledge-map:map");
+    // Local; the runtime scopes it to "@brains/knowledge-map:map", which
+    // is the id a site route names.
+    expect(template.dataSourceId).toBe("map");
     expect(template.requiredPermission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
 
@@ -107,13 +108,5 @@ describe("knowledge-map template registration", () => {
     expect(markdown).toContain("## Heading Lead");
     expect(markdown).toContain("### Link 1");
     expect(template.overlayFormatter?.parse(markdown)).toMatchObject(copy);
-  });
-
-  test("the datasource carries the registered id", () => {
-    // fetch itself is two lines of composition over the builder (fully
-    // tested in knowledge-map-data.test.ts) and the schema parse; what the
-    // registry depends on is the id contract.
-    const source = new KnowledgeMapDataSource();
-    expect(source.id).toBe("knowledge-map:map");
   });
 });
