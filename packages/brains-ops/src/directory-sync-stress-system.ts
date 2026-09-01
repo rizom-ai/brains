@@ -760,15 +760,30 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     }
   }
 
+  /**
+   * Observed container state, or undefined when this run has no container.
+   *
+   * Every container acceptance check (OOM, restarts, stopped status) reads the
+   * observation this returns, and skips itself when there is none. So "no
+   * container to inspect" and "could not inspect the container" must not both
+   * answer undefined: the second would let an OOM-killed run report success.
+   * Only the first is undefined; a failed read raises.
+   */
   async #readContainerState(): Promise<InspectedContainerState | undefined> {
     if (!this.#container) return undefined;
     const result = await this.#ssh(
       ["docker", "inspect", this.#container],
       false,
     );
-    if (result.exitCode !== 0) return undefined;
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `docker inspect ${this.#container} exited with code ${result.exitCode}`,
+      );
+    }
+
+    let inspections;
     try {
-      const inspections = z
+      inspections = z
         .array(
           z.object({
             RestartCount: z.number().int().nonnegative(),
@@ -780,27 +795,34 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
           }),
         )
         .parse(JSON.parse(result.stdout));
-      const inspection = inspections[0];
-      if (!inspection) return undefined;
-      const reportedRestarts = Math.max(
-        0,
-        inspection.RestartCount -
-          (this.#initialContainerState?.restartCount ?? 0),
+    } catch (error) {
+      throw new Error(
+        `Could not read docker inspect output for ${this.#container}`,
+        { cause: error },
       );
-      const manuallyRestarted =
-        this.#initialContainerState !== undefined &&
-        inspection.State.StartedAt !== this.#initialContainerState.startedAt;
-      return {
-        status: inspection.State.Status,
-        restartCount: Math.max(reportedRestarts, manuallyRestarted ? 1 : 0),
-        oomKilled:
-          inspection.State.OOMKilled &&
-          !(this.#initialContainerState?.oomKilled ?? false),
-        startedAt: inspection.State.StartedAt,
-      };
-    } catch {
-      return undefined;
     }
+
+    const inspection = inspections[0];
+    if (!inspection) {
+      throw new Error(`docker inspect reported no such container`);
+    }
+
+    const reportedRestarts = Math.max(
+      0,
+      inspection.RestartCount -
+        (this.#initialContainerState?.restartCount ?? 0),
+    );
+    const manuallyRestarted =
+      this.#initialContainerState !== undefined &&
+      inspection.State.StartedAt !== this.#initialContainerState.startedAt;
+    return {
+      status: inspection.State.Status,
+      restartCount: Math.max(reportedRestarts, manuallyRestarted ? 1 : 0),
+      oomKilled:
+        inspection.State.OOMKilled &&
+        !(this.#initialContainerState?.oomKilled ?? false),
+      startedAt: inspection.State.StartedAt,
+    };
   }
 
   async #resolveServerIp(): Promise<string> {
@@ -857,35 +879,51 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
     return undefined;
   }
 
+  /**
+   * A queue reading, or undefined when the endpoint is momentarily unreachable.
+   *
+   * Callers poll this, so a request that fails or answers non-2xx is a normal
+   * "not yet" and returns undefined. A body we cannot parse is different: the
+   * endpoint answered and its shape is not what we expect, which would
+   * otherwise present as a queue that never drains until the poll times out.
+   */
   async #readQueueSnapshot(): Promise<StressQueueSnapshot | undefined> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20_000);
+    let body: unknown;
     try {
       const response = await this.#options.fetchImpl(
         `https://${this.#options.user.domain}/health/operate`,
         { method: "GET", signal: controller.signal },
       );
       if (!response.ok) return undefined;
-      const payload = stressQueueHealthPayloadSchema.parse(
-        await response.json(),
-      );
-      const completedImports = payload.resources.queue.byType
-        .filter(
-          (entry) =>
-            entry.type === "directory-sync:directory-import" &&
-            entry.status === "completed",
-        )
-        .reduce((total, entry) => total + entry.count, 0);
-      return {
-        pending: payload.resources.queue.totals.pending,
-        processing: payload.resources.queue.totals.processing,
-        completedImports,
-      };
+      body = await response.json();
     } catch {
       return undefined;
     } finally {
       clearTimeout(timeout);
     }
+
+    const parsed = stressQueueHealthPayloadSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new Error(
+        `Unexpected /health/operate payload from ${this.#options.user.domain}`,
+        { cause: parsed.error },
+      );
+    }
+
+    const completedImports = parsed.data.resources.queue.byType
+      .filter(
+        (entry) =>
+          entry.type === "directory-sync:directory-import" &&
+          entry.status === "completed",
+      )
+      .reduce((total, entry) => total + entry.count, 0);
+    return {
+      pending: parsed.data.resources.queue.totals.pending,
+      processing: parsed.data.resources.queue.totals.processing,
+      completedImports,
+    };
   }
 
   async #waitForQueueDrain(
