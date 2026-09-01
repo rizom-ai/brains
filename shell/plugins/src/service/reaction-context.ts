@@ -52,6 +52,7 @@ export function createReactionContext(input: {
         namespace: `${input.packageName}.${options.namespace}`,
       }),
     permissions: context.permissions,
+    auth: context.auth,
     domain: context.domain,
     logger: input.logger,
   };

@@ -36,7 +36,6 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder } from "./chat-input-builder";
-import { getActiveAuthService } from "@brains/auth-service";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
@@ -129,16 +128,19 @@ export class ChatInterface extends MessageInterfacePlugin<
 
   /**
    * @param identityAccess Overridable so tests can supply a linked principal
-   * directly. Production leaves it alone and reads the auth service mounted at
-   * boot, resolved per call because mounting happens after construction.
+   * directly. Production leaves it alone and reads what the runtime published
+   * at boot, resolved per call because auth mounts after construction.
    */
   constructor(
     config: ChatConfigInput = {},
-    identityAccess: () => ChatIdentityAccess | undefined = getActiveAuthService,
+    identityAccess?: () => ChatIdentityAccess | undefined,
   ) {
     super("chat", packageJson, config, chatConfigSchema);
     this.turnController = new ChatTurnController({
-      identityAccess,
+      identityAccess:
+        identityAccess ??
+        ((): ChatIdentityAccess | undefined =>
+          this.context?.auth.getIdentities()),
       config: this.config,
       host: {
         getContext: (): InterfacePluginContext | undefined => this.context,

@@ -56,6 +56,13 @@ function stubAuth(): AuthImplementation {
       },
       keyId: "k",
     }),
+    grantA2APeerTrust: async (input) => ({
+      domain: input.domain,
+      keyFingerprint: input.keyFingerprint,
+      grantedLevel: "trusted",
+    }),
+    revokeA2APeerTrust: async () => undefined,
+    resolveIdentityAccess: async () => ({ state: "resolved", principal }),
   };
 }
 

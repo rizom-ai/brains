@@ -1,4 +1,3 @@
-import { getActiveAuthService } from "@brains/auth-service";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import { z, type EntityReactionContext } from "@brains/sdk/entities";
@@ -123,7 +122,7 @@ export function agentSetTrustLevelTool(
         ? `Grant inbound trusted A2A access to ${agent}? This pins the signing key it publishes right now.`
         : `Revoke inbound trusted A2A access from ${agent}?`,
     execute: async ({ input, caller, ...context }) => {
-      const authService = getActiveAuthService();
+      const authService = context.auth.getFederation();
       if (!authService) {
         throw new Error("Auth service is required to set inbound A2A trust.");
       }

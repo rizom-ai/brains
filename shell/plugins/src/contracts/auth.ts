@@ -116,6 +116,17 @@ export interface AuthAudit {
   queryAuditEvents(query: AuthAuditQuery): Promise<AuthAuditQueryResult>;
 }
 
+export interface GrantA2APeerTrustInput {
+  domain: string;
+  keyFingerprint: string;
+  grantedLevel: "public" | "trusted" | "admin";
+}
+
+/** Who is granting or revoking, for the audit trail. */
+export interface PeerTrustMutationContext {
+  actorUserId?: string;
+}
+
 /** A peer domain this brain has recorded trust for. */
 export interface A2APeerTrustRecord {
   domain: string;
@@ -156,6 +167,19 @@ export interface AuthFederation {
   getIssuer(): string;
   getA2APeerTrust(domain: string): Promise<A2APeerTrustRecord | undefined>;
   getA2ASigningKey(): Promise<A2ASigningKey>;
+  /**
+   * Trusting a peer is an act someone performs, so it is attributed. Named
+   * consumer: @brains/agent-discovery, whose set-trust tool grants after the
+   * person confirms and pins the key the peer publishes at that moment.
+   */
+  grantA2APeerTrust(
+    input: GrantA2APeerTrustInput,
+    context?: PeerTrustMutationContext,
+  ): Promise<A2APeerTrustRecord>;
+  revokeA2APeerTrust(
+    domain: string,
+    context?: PeerTrustMutationContext,
+  ): Promise<void>;
 }
 
 /**
@@ -168,7 +192,28 @@ export interface AuthFederation {
  * imported it.
  */
 /** Everything the runtime publishes as one object. */
-export type AuthImplementation = AuthCaller & AuthAudit & AuthFederation;
+/**
+ * Resolving a speaker who arrives on a channel rather than over HTTP.
+ *
+ * A chat message carries a platform identity, not a request with a session,
+ * so `AuthCaller` cannot answer for it. Named consumer: @brains/chat, which
+ * prefers a linked brain account over the interface's own permission rules.
+ */
+export interface AuthIdentities {
+  resolveIdentityAccess(input: {
+    type: string;
+    subject: string;
+  }): Promise<
+    | { state: "resolved"; principal: AuthPrincipal }
+    | { state: "denied" }
+    | { state: "unbound" }
+  >;
+}
+
+export type AuthImplementation = AuthCaller &
+  AuthAudit &
+  AuthFederation &
+  AuthIdentities;
 
 export interface IAuthRegistry {
   register(implementation: AuthImplementation): void;
@@ -176,6 +221,7 @@ export interface IAuthRegistry {
   getCaller(): AuthCaller | undefined;
   getAudit(): AuthAudit | undefined;
   getFederation(): AuthFederation | undefined;
+  getIdentities(): AuthIdentities | undefined;
 }
 
 export class AuthRegistry implements IAuthRegistry {
@@ -210,6 +256,10 @@ export class AuthRegistry implements IAuthRegistry {
   }
 
   public getFederation(): AuthFederation | undefined {
+    return this.implementation;
+  }
+
+  public getIdentities(): AuthIdentities | undefined {
     return this.implementation;
   }
 }

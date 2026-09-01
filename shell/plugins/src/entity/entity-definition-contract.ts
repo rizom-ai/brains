@@ -1,6 +1,7 @@
 import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
 import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
+import type { IAuthRegistry } from "../contracts/auth";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
 import type {
@@ -669,6 +670,12 @@ export interface EntityReactionContext {
    * returning false, so a caller cannot forget to check the answer.
    */
   readonly permissions: IPermissionsNamespace;
+  /**
+   * Where the running auth implementation is published. A tool that grants
+   * or revokes trust acts on auth rather than on entities. Named consumer:
+   * @brains/agent-discovery.
+   */
+  readonly auth: IAuthRegistry;
   /**
    * The brain's own domain, when it has one.
    *

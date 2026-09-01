@@ -352,11 +352,10 @@ made the entity tranche find real defects rather than move code.
    `shell/plugins/src/contracts/auth.ts` with the vocabulary they use, and
    the running implementation reaches packages through a shell registry as
    `context.auth`. dashboard, studio, mcp and web-chat are off the global.
-   `AuthFederation` followed, so a2a is off it too. What remains is
-   `AuthAdministration` (admin), plus two surfaces this slice did not
-   measure: chat's identity access and agent-discovery's peer-trust grant.
-   Admin's contract pulls types from eight auth-service modules, which is
-   why it was not folded in here.
+   `AuthFederation` and `AuthIdentities` followed, so a2a, chat and
+   agent-discovery are off it too — seven packages in total. Only admin
+   remains: its `AuthAdministration` contract names types from eight
+   auth-service modules, so it moves with the slice that converts admin.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking

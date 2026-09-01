@@ -1568,6 +1568,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private reactionContext(context: EntityPluginContext): EntityReactionContext {
     return {
       entities: this.entityAccess(context),
+      auth: context.auth,
       messaging: {
         publish: async (message): Promise<void> => {
           await context.messaging.send({
