@@ -1,9 +1,9 @@
-import type { BaseEntity, BaseDataSourceContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
 import {
   sortByPublicationDate,
   type EntityWithPublishedAt,
 } from "@brains/utils/sort";
-import type { SiteInfoCTA } from "../entity/schema";
+import type { SiteInfoCTA } from "@brains/site-composition";
 
 /**
  * Shared building blocks for site homepage/about datasources.
@@ -15,8 +15,17 @@ import type { SiteInfoCTA } from "../entity/schema";
  * `@brains/profile`.
  */
 
-/** The scoped entity service datasources receive on their fetch context. */
-type DataSourceEntityService = BaseDataSourceContext["entityService"];
+/**
+ * The one read these helpers make. Structural rather than the datasource
+ * context's whole entity service, so a site datasource and a test both
+ * satisfy it.
+ */
+interface DataSourceEntityService {
+  listEntities<T extends BaseEntity>(request: {
+    entityType: string;
+    options?: { limit?: number } | undefined;
+  }): Promise<T[]>;
+}
 
 /** Fetch the most recent published entities of a type, newest first. */
 export async function fetchRecentEntities<

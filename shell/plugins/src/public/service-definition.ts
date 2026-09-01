@@ -232,6 +232,17 @@ export function defineServicePlugin<
         undefined
       >,
 ): ServicePackageDefinition<TConfigSchema> {
+  // Both plugins scope to `${packageName}:${id}`, so a service sharing an
+  // id with a type it declares collides — and the collision surfaces at
+  // boot, inside the plugin manager, far from the declaration that caused
+  // it. Refuse it where it is written.
+  for (const entity of definition.entities ?? []) {
+    if (entity.type === definition.id) {
+      throw new Error(
+        `Service "${definition.id}" declares an entity type of the same name; give one of them a distinct id`,
+      );
+    }
+  }
   if (definition.accountSettings !== undefined) {
     const normalized: NormalizedServiceDefinitionInput<
       TConfigSchema,

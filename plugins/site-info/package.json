@@ -5,12 +5,13 @@
   "description": "Site info entity — site metadata, title, description, CTA",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

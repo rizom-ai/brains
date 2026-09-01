@@ -1,4 +1,25 @@
 import type { z } from "@brains/utils/zod";
+import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
+import type { AnchorProfile, BrainCharacter } from "./identity";
+
+/**
+ * The reads a subscription handler gets.
+ *
+ * Reads only: answering a request is not a licence to write, and an
+ * interface — which declares no entity types — could not be given writes
+ * anyway. A handler that must change something enqueues a job.
+ */
+export interface SubscriptionEntityReader {
+  getEntity<T extends BaseEntity>(request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: ContentVisibility | undefined;
+  }): Promise<T | null>;
+  listEntities<T extends BaseEntity>(request: {
+    entityType: string;
+    options?: { limit?: number } | undefined;
+  }): Promise<T[]>;
+}
 
 export type SubscriptionPayloadSchema = z.ZodType<unknown, unknown>;
 
@@ -22,6 +43,33 @@ export interface SubscriptionDefinition<
   readonly payload: TPayloadSchema;
   handle(context: {
     readonly payload: z.output<TPayloadSchema>;
+    /**
+     * Reads, because most requests are answered from the brain's own
+     * records rather than from the payload alone. Named consumers:
+     * @brains/site-info, @brains/newsletter.
+     */
+    readonly entities: SubscriptionEntityReader;
+    /**
+     * Who the brain is, for a request whose answer falls back to it — a
+     * site with no title of its own is titled after its anchor.
+     * Named consumer: @brains/site-info.
+     */
+    readonly identity: {
+      get(): BrainCharacter;
+      getProfile(): AnchorProfile;
+    };
+    /**
+     * Publishing, for a subscription that announces rather than answers.
+     * A bare "this entity changed" is not what anyone downstream needs;
+     * turning it into what the change now means is a package's own job.
+     * Named consumer: @brains/site-info.
+     */
+    readonly messaging: {
+      send(message: {
+        readonly type: string;
+        readonly payload: unknown;
+      }): Promise<unknown>;
+    };
   }): unknown | Promise<unknown>;
 }
 

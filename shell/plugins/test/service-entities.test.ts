@@ -738,3 +738,18 @@ describe("service package declaring entities", () => {
     expect(plugins.map((plugin) => plugin.type)).toEqual(["service"]);
   });
 });
+
+describe("a service id that collides with a type it declares", () => {
+  it("is refused where it is written, not at boot", () => {
+    // Both plugins scope to `${packageName}:site-info`, and the second
+    // registration fails inside the shell — far from the definition.
+    expect(() =>
+      defineServicePlugin({
+        id: "bookmark",
+        config: z.object({}),
+        entities: [bookmark],
+        setup: () => ({}),
+      }),
+    ).toThrow(/bookmark/);
+  });
+});

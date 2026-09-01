@@ -46,7 +46,7 @@ import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
-import { siteInfoPlugin } from "@brains/site-info";
+import siteInfoPackage from "@brains/site-info";
 import socialMediaPackage from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
@@ -183,7 +183,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["dashboard", dashboardPlugin, undefined],
     ["admin", adminPlugin, undefined],
 
-    ["site-info", siteInfoPlugin, undefined],
+    packageCapability("site-info", "@brains/site-info", siteInfoPackage),
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, undefined],
     packageCapability("analytics", "@brains/analytics", analyticsPackage),

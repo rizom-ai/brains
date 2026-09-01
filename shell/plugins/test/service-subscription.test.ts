@@ -136,3 +136,82 @@ describe("declarative service subscriptions", () => {
     expect(response).toEqual({ sent: true });
   });
 });
+
+describe("what a subscription handler can read", () => {
+  it("answers from the brain's own records and identity", async () => {
+    const definition = defineServicePlugin({
+      id: "metadata-desk",
+      config: z.object({}),
+      setup: () => ({}),
+      subscriptions: () => [
+        defineSubscription({
+          topic: "site:metadata:get",
+          payload: z.object({}),
+          handle: async ({ entities, identity }) => {
+            const stored = await entities.getEntity({
+              entityType: "site-info",
+              id: "site-info",
+              visibilityScope: "restricted",
+            });
+            return {
+              stored: stored !== null,
+              // Falling back to the brain's own name is the whole reason
+              // this handler needs more than its payload.
+              title: identity.getProfile().name,
+            };
+          },
+        }),
+      ],
+    });
+
+    const harness = createPluginHarness();
+    await harness.installPlugin(
+      instantiate(definition, {}, "@fixture/metadata-desk"),
+    );
+
+    const response = await harness.sendMessage("site:metadata:get", {});
+    expect(response).toMatchObject({
+      stored: false,
+      title: expect.any(String),
+    });
+  });
+});
+
+describe("a subscription that announces rather than answers", () => {
+  it("can publish, so a change on one topic becomes meaning on another", async () => {
+    const definition = defineServicePlugin({
+      id: "metadata-herald",
+      config: z.object({}),
+      setup: () => ({}),
+      subscriptions: () => [
+        defineSubscription({
+          topic: "entity:updated",
+          payload: z.object({ entityType: z.string() }),
+          handle: async ({ payload, messaging }) => {
+            if (payload.entityType !== "site-info") return;
+            await messaging.send({
+              type: "site:metadata:updated",
+              payload: { title: "Rebuilt" },
+            });
+          },
+        }),
+      ],
+    });
+
+    const harness = createPluginHarness();
+    const announced: unknown[] = [];
+    harness.subscribe("site:metadata:updated", async (message) => {
+      announced.push(message.payload);
+      return { success: true };
+    });
+    await harness.installPlugin(
+      instantiate(definition, {}, "@fixture/metadata-herald"),
+    );
+
+    await harness.sendMessage("entity:updated", { entityType: "note" });
+    expect(announced).toEqual([]);
+
+    await harness.sendMessage("entity:updated", { entityType: "site-info" });
+    expect(announced).toEqual([{ title: "Rebuilt" }]);
+  });
+});

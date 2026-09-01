@@ -448,7 +448,18 @@ class DeclarativeServicePlugin<
         try {
           return {
             success: true,
-            data: await subscription.handle({ payload: payload.data }),
+            data: await subscription.handle({
+              payload: payload.data,
+              entities: context.entityService,
+              identity: context.identity,
+              messaging: {
+                send: (message) =>
+                  context.messaging.send({
+                    type: message.type,
+                    payload: message.payload,
+                  }),
+              },
+            }),
           };
         } catch (error) {
           // A handler that cannot answer says so by throwing; the caller sees

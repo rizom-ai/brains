@@ -4,139 +4,109 @@ import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
 } from "@brains/site-composition";
-import { SiteInfoPlugin } from "../src/plugin";
+import { siteInfoPlugins, PACKAGE_METADATA } from "./helpers/install";
 
-describe("SiteInfoPlugin", () => {
+describe("site-info package", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
     harness = createPluginHarness({ dataDir: "/tmp/test-site-info" });
   });
 
-  it("should register as entity plugin", async () => {
-    const plugin = new SiteInfoPlugin();
-    await harness.installPlugin(plugin);
+  /** Install the service plugin and the entity plugin it declares. */
+  async function install(): Promise<void> {
+    for (const plugin of siteInfoPlugins()) {
+      await harness.installPlugin(plugin);
+    }
+  }
 
-    expect(plugin.type).toBe("entity");
-    expect(plugin.id).toBe("site-info");
+  it("emits a service plugin and the entity plugin for its type", () => {
+    const plugins = siteInfoPlugins();
+    expect(plugins.map((plugin) => plugin.type)).toEqual(["service", "entity"]);
+    expect(plugins.map((plugin) => plugin.id)).toEqual([
+      `${PACKAGE_METADATA.name}:site-metadata`,
+      `${PACKAGE_METADATA.name}:site-info`,
+    ]);
   });
 
-  it("should register site-info entity type", async () => {
-    const plugin = new SiteInfoPlugin();
-    await harness.installPlugin(plugin);
-
+  it("registers the site-info entity type", async () => {
+    await install();
     expect(harness.getEntityService().getEntityTypes()).toContain("site-info");
   });
 
-  it("should return zero tools", async () => {
-    const plugin = new SiteInfoPlugin();
-    const capabilities = await harness.installPlugin(plugin);
-
+  it("registers no tools", async () => {
+    const [service] = siteInfoPlugins();
+    if (!service) throw new Error("Site-info service plugin was not created");
+    const capabilities = await harness.installPlugin(service);
     expect(capabilities.tools).toHaveLength(0);
   });
 
-  it("should register datasource", async () => {
-    const plugin = new SiteInfoPlugin();
-    await harness.installPlugin(plugin);
-
-    const dataSources = harness.getDataSources();
-    const ids = Array.from(dataSources.keys());
+  it("registers its data source", async () => {
+    await install();
+    const ids = Array.from(harness.getDataSources().keys());
     expect(ids.some((id) => id.includes("site-info"))).toBe(true);
   });
 
-  it("should provide site metadata over the shared provider channel", async () => {
-    const plugin = new SiteInfoPlugin({
-      siteInfo: {
-        title: "Provider Site",
-        description: "Provided metadata",
-      },
-    });
-    await harness.installPlugin(plugin);
-
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
-
-    expect(data).toMatchObject({
-      title: "Provider Site",
-      description: "Provided metadata",
-    });
-  });
-
   it("derives metadata from the anchor when site-info is absent", async () => {
-    await harness.installPlugin(new SiteInfoPlugin());
+    await install();
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(SITE_METADATA_GET_CHANNEL, {});
 
-    expect(data).toMatchObject({
-      represents: "anchor",
-      title: "Test Owner",
-    });
+    expect(data).toMatchObject({ represents: "anchor", title: "Test Owner" });
   });
 
   it("derives missing metadata from the represented brain", async () => {
-    await harness.installPlugin(new SiteInfoPlugin());
+    await install();
     await harness.getEntityService().createEntity({
       entity: {
         id: "site-info",
         entityType: "site-info",
         content: "---\nrepresents: brain\n---\n",
-        metadata: {},
+        metadata: { represents: "brain" },
       },
     });
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(SITE_METADATA_GET_CHANNEL, {});
 
-    expect(data).toMatchObject({
-      represents: "brain",
-      title: "Test Brain",
-    });
+    expect(data).toMatchObject({ represents: "brain", title: "Test Brain" });
   });
 
-  it("defaults missing representation and metadata to the anchor", async () => {
-    await harness.installPlugin(new SiteInfoPlugin());
+  it("prefers what the site says about itself", async () => {
+    await install();
     await harness.getEntityService().createEntity({
       entity: {
         id: "site-info",
         entityType: "site-info",
-        content: "---\n---\n",
-        metadata: {},
+        content: "---\nrepresents: anchor\ntitle: Provider Site\n---\n",
+        metadata: { represents: "anchor", title: "Provider Site" },
       },
     });
 
-    const data = await harness.sendMessage(
-      SITE_METADATA_GET_CHANNEL,
-      undefined,
-    );
+    const data = await harness.sendMessage(SITE_METADATA_GET_CHANNEL, {});
 
-    expect(data).toMatchObject({
-      represents: "anchor",
-      title: "Test Owner",
-    });
+    expect(data).toMatchObject({ title: "Provider Site" });
   });
 
-  it("should emit shared metadata update events when site-info changes", async () => {
-    const plugin = new SiteInfoPlugin();
-    await harness.installPlugin(plugin);
+  it("announces what a change to the singleton now means", async () => {
+    await install();
 
-    let updateCount = 0;
-    harness.subscribe(SITE_METADATA_UPDATED_CHANNEL, () => {
-      updateCount++;
+    const announced: unknown[] = [];
+    harness.subscribe(SITE_METADATA_UPDATED_CHANNEL, (message) => {
+      announced.push(message.payload);
       return { success: true };
     });
+
+    await harness.sendMessage("entity:updated", {
+      entityType: "note",
+      entityId: "n-1",
+    });
+    expect(announced).toHaveLength(0);
 
     await harness.sendMessage("entity:updated", {
       entityType: "site-info",
       entityId: "site-info",
     });
-
-    expect(updateCount).toBe(1);
+    expect(announced).toHaveLength(1);
+    expect(announced[0]).toMatchObject({ title: "Test Owner" });
   });
 });
