@@ -28,17 +28,22 @@ function workspaceCopy(name: string): string {
   return `file:${join(repoRoot, "node_modules", name)}`;
 }
 
-async function run(command: string[], cwd: string): Promise<string> {
-  const process = Bun.spawn(command, {
+async function run(
+  command: string[],
+  cwd: string,
+  env?: Record<string, string>,
+): Promise<string> {
+  const subprocess = Bun.spawn(command, {
     cwd,
+    env: { ...process.env, ...env },
     stdout: "pipe",
     stderr: "pipe",
   });
 
   const [exitCode, stdout, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
+    subprocess.exited,
+    new Response(subprocess.stdout).text(),
+    new Response(subprocess.stderr).text(),
   ]);
 
   if (exitCode !== 0) {
@@ -181,6 +186,25 @@ describe("@rizom/site-rizom-ai package boundary", () => {
       );
 
       expect(output.trim()).toBe("home function function");
+
+      const productionRender = await run(
+        [
+          "bun",
+          "-e",
+          [
+            'import site from "@rizom/site-rizom-ai";',
+            'import { createElement } from "react";',
+            'import { renderToStaticMarkup } from "react-dom/server";',
+            "const Layout = site.layouts.default;",
+            'const siteInfo = { title: "Rizom", description: "Production render", url: "https://rizom.ai", copyright: "© 2026 Rizom", navigation: { primary: [], secondary: [] } };',
+            'console.log(renderToStaticMarkup(createElement(Layout, { sections: [], title: "Rizom", description: siteInfo.description, path: "/", siteInfo })));',
+          ].join(" "),
+        ],
+        tempDir,
+        { NODE_ENV: "production" },
+      );
+
+      expect(productionRender).toContain('id="themeToggle"');
 
       const sourceAiManifest = JSON.parse(
         await readFile(join(packageDir, "package.json"), "utf8"),
