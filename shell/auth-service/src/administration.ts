@@ -8,6 +8,9 @@ import type {
 } from "./administration-service";
 import type {
   AuthAdminUserSummary,
+  AuthAdminRole,
+  AuthAdminStatus,
+  AuthExternalPeerSummary,
   AuthBrainAnchorSummary,
   AuthInvitationChannelSummary,
   AuthInvitationSummary,
@@ -21,8 +24,6 @@ import type {
 import type { AuthMutationContext } from "./mutation-context";
 import type { UserPasskeyRegistration } from "./passkey-setup-coordinator";
 import type { AuthPrincipal } from "./principal-service";
-import type { PersonExternalPeer } from "./runtime-schema";
-import type { AuthUserRole, AuthUserStatus } from "./user-store";
 
 /**
  * What administering this brain's users takes — the deliberate surface behind
@@ -54,12 +55,12 @@ export interface AuthAdministration extends AuthAudit {
   getBrainAnchor(): Promise<AuthBrainAnchorSummary>;
   updateUserRole(
     userId: string,
-    role: AuthUserRole,
+    role: AuthAdminRole,
     context?: AuthMutationContext,
   ): Promise<AuthPrincipal>;
   updateUserStatus(
     userId: string,
-    status: AuthUserStatus,
+    status: AuthAdminStatus,
     context?: AuthMutationContext,
   ): Promise<AuthPrincipal>;
   deleteSuspendedUser(
@@ -99,11 +100,11 @@ export interface AuthAdministration extends AuthAudit {
   linkExternalPeer(
     input: LinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<PersonExternalPeer>;
+  ): Promise<AuthExternalPeerSummary>;
   unlinkExternalPeer(
     input: UnlinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<PersonExternalPeer>;
+  ): Promise<AuthExternalPeerSummary>;
 
   // Identities and passkeys
   attachIdentity(

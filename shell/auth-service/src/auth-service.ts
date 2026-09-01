@@ -22,6 +22,7 @@ import type { AuthAdministration } from "./administration";
 import type { A2ASigningKey, AuthCaller, AuthFederation } from "./capabilities";
 import type {
   AuthAdminUserSummary,
+  AuthExternalPeerSummary,
   AuthIdentityProposalInput,
   AuthIdentityReconciliationResponse,
   AuthBrainAnchorConfigKind,
@@ -475,7 +476,7 @@ export class AuthService
   async linkExternalPeer(
     input: LinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<PersonExternalPeer> {
+  ): Promise<AuthExternalPeerSummary> {
     await this.runtime.ensureStarted();
     return this.runtime
       .getAdministrationService()
@@ -485,7 +486,7 @@ export class AuthService
   async unlinkExternalPeer(
     input: UnlinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<PersonExternalPeer> {
+  ): Promise<AuthExternalPeerSummary> {
     await this.runtime.ensureStarted();
     return this.runtime
       .getAdministrationService()
