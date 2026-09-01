@@ -129,6 +129,7 @@ describe("Studio workspace permission floors", () => {
         label: "Account",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 10,
+        permission: "public",
         entityTypes: [],
         badge: 1,
       },
@@ -165,6 +166,7 @@ describe("Studio workspace permission floors", () => {
     expect(await registry.listDescriptors(actor("admin"))).toEqual([
       expect.objectContaining({
         id: "administration",
+        permission: "admin",
         aliases: [{ id: "admin:people", query: { tab: "people" } }],
       }),
     ]);

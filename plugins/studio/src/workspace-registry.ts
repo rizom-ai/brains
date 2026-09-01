@@ -211,6 +211,7 @@ export class StudioWorkspaceRegistry {
             label: workspace.label,
             rendererName: workspace.rendererName,
             priority: workspace.priority,
+            permission: workspace.permission,
             ...(workspace.urlQuery ? { urlQuery: true } : {}),
             ...(workspace.aliases ? { aliases: workspace.aliases } : {}),
             entityTypes:

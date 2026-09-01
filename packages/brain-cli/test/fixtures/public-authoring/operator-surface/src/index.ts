@@ -87,22 +87,20 @@ const readingWorkspace = defineStudioWorkspace({
   actions: [refreshDigest, addReadingItem],
 
   view({ data }) {
+    const tagQuery = {
+      controls: [
+        {
+          key: "tag",
+          label: "Tag",
+          value: data.selectedTag,
+          allLabel: "All tags",
+          options: [...new Set(data.bookmarks.flatMap((saved) => saved.tags))]
+            .sort()
+            .map((tag) => ({ value: tag, label: tag })),
+        },
+      ],
+    };
     const blocks: OperatorViewBlock<ReadingWorkspaceAction>[] = [
-      {
-        type: "query",
-        id: "reading-query",
-        controls: [
-          {
-            key: "tag",
-            label: "Tag",
-            value: data.selectedTag,
-            allLabel: "All tags",
-            options: [...new Set(data.bookmarks.flatMap((saved) => saved.tags))]
-              .sort()
-              .map((tag) => ({ value: tag, label: tag })),
-          },
-        ],
-      },
       {
         type: "stats",
         items: [
@@ -166,6 +164,7 @@ const readingWorkspace = defineStudioWorkspace({
         type: "table",
         id: "bookmarks",
         empty: "No bookmarks have been saved yet.",
+        query: tagQuery,
         columns: [
           { key: "title", label: "Title" },
           { key: "tags", label: "Tags" },
@@ -178,6 +177,17 @@ const readingWorkspace = defineStudioWorkspace({
             tags: saved.tags.join(", "),
             wordCount: saved.wordCount ?? "—",
           },
+          compact: {
+            title: saved.title,
+            metadata: [
+              saved.tags.join(" · "),
+              saved.wordCount === undefined
+                ? "Word count pending"
+                : `${saved.wordCount} words`,
+            ],
+            count: saved.wordCount,
+            tone: "neutral",
+          },
           actions: [
             {
               action: refreshDigest,
@@ -187,7 +197,14 @@ const readingWorkspace = defineStudioWorkspace({
         })),
       },
     ];
-    return { title: "Reading library", blocks };
+    return {
+      title: "Reading library",
+      primaryAction: {
+        action: refreshDigest,
+        input: { bookmarkId: data.bookmarks[0]?.id ?? "all" },
+      },
+      blocks,
+    };
   },
 });
 

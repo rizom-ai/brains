@@ -142,10 +142,10 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(audit).toMatchObject({
       view: {
         title: "Administration",
-        status: { label: "Admin only" },
         blocks: [{ type: "tabs", defaultTab: "audit" }],
       },
     });
+    expect(audit).not.toHaveProperty("view.status");
     expect(tabIds(audit)).toEqual(["people", "invitations", "audit"]);
     expect(rosterLoads).toBe(0);
 
@@ -153,13 +153,13 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(people).toMatchObject({
       view: {
         title: "Administration",
-        status: { label: "Admin only" },
         blocks: [
           { type: "stats", id: "people-summary" },
           { type: "tabs", defaultTab: "people" },
         ],
       },
     });
+    expect(people).not.toHaveProperty("view.status");
     expect(rosterLoads).toBeGreaterThan(0);
     expect(await workspace.badgeProvider?.(actor)).toBe(2);
 

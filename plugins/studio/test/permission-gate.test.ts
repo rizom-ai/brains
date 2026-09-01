@@ -257,6 +257,7 @@ describe("Studio active-session gate inversion", () => {
               label: "Account",
               rendererName: "StudioAccountWorkspace",
               priority: 0,
+              permission: "public",
               entityTypes: [],
             },
           ],

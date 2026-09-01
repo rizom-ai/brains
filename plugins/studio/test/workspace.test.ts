@@ -425,6 +425,7 @@ describe("optional Studio workspaces", () => {
         label: "Overview",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: -100,
+        permission: "trusted",
         entityTypes: [],
         badge: 0,
       },
@@ -434,6 +435,7 @@ describe("optional Studio workspaces", () => {
         label: "Account",
         rendererName: "StudioAccountWorkspace",
         priority: 0,
+        permission: "public",
         entityTypes: [],
       },
       {
@@ -442,6 +444,7 @@ describe("optional Studio workspaces", () => {
         label: "Publishing",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 40,
+        permission: "trusted",
         entityTypes: ["post"],
       },
     ]);

@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import {
   ConfirmDialog,
+  OperatorActionButton,
   OperatorViewRenderer,
   operatorViewRendererStyles,
 } from "@brains/operator-view-react";
@@ -44,6 +45,13 @@ import {
 } from "./editor-status";
 import { PublicationActions } from "./publication-actions";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
+import {
+  declarativeStudioPageHead,
+  StudioPageHead,
+  studioAccessRequirement,
+  type StudioPageHeadModel,
+} from "./studio-page-head";
 import {
   entityPublicationState,
   entityTitle,
@@ -133,7 +141,7 @@ export function StudioAppStatus(props: {
 }): ReactElement {
   return (
     <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <p
         className={
           props.error ? "status status-error boot-status" : "status boot-status"
@@ -155,7 +163,7 @@ export function StudioAccountWorkspaceView(props: {
 }): ReactElement {
   return (
     <div className="studio" data-view="account">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">Account</span>
         <span className="spacer" />
@@ -253,6 +261,39 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       workspace.pluginId === "content-pipeline" &&
       workspace.entityTypes.includes(selectedEntityType),
   );
+  const entityCount = entities?.length ?? 0;
+  const listingHead: StudioPageHeadModel = {
+    kicker: "Content library",
+    access: studioAccessRequirement("trusted"),
+    title: activeType?.label ?? entityType ?? "Library",
+    metadata: [
+      `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
+      "Sorted by updated",
+    ],
+    totals: [],
+  };
+  const editorHead: StudioPageHeadModel = {
+    kicker: collectionLabel,
+    access: studioAccessRequirement("trusted"),
+    title: heading ?? "Editor",
+    metadata: [
+      `${entryLabel} · ${
+        mode.kind === "create"
+          ? "new"
+          : mode.kind === "edit"
+            ? entityPublicationState(mode.entity)
+            : "browse"
+      }`,
+    ],
+    totals: [],
+  };
+  const declarativeHead =
+    activeWorkspace && declarativeWorkspaceData
+      ? declarativeStudioPageHead(
+          activeWorkspace,
+          declarativeWorkspaceData.view,
+        )
+      : null;
   return (
     <div
       className="studio"
@@ -260,7 +301,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">
           {editing && !entitySchema.isSingleton ? (
@@ -296,39 +337,52 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <main className="declarative-workspace">
               <p className="status status-error">{workspaceError}</p>
             </main>
-          ) : declarativeWorkspaceData ? (
-            <OperatorViewRenderer
-              data={declarativeWorkspaceData}
-              onOpenEntity={openWorkspaceEntity}
-              onLaunch={openWorkspaceLaunch}
-              onAction={performDeclarativeAction}
-              query={workspaceQuery}
-              {...(activeWorkspaceId
-                ? {
-                    onQueryChange: (query: StudioWorkspaceQuery) =>
-                      onWorkspaceQueryChange(activeWorkspaceId, query, query),
-                  }
-                : {})}
-            />
+          ) : declarativeWorkspaceData && declarativeHead ? (
+            <div className="studio-workspace-frame">
+              <StudioPageHead
+                model={declarativeHead}
+                {...(declarativeHead.primaryAction
+                  ? {
+                      action: (
+                        <OperatorActionButton
+                          action={declarativeHead.primaryAction}
+                          onAction={performDeclarativeAction}
+                        />
+                      ),
+                    }
+                  : {})}
+              />
+              <OperatorViewRenderer
+                data={declarativeWorkspaceData}
+                renderHead={false}
+                onOpenEntity={openWorkspaceEntity}
+                onLaunch={openWorkspaceLaunch}
+                onAction={performDeclarativeAction}
+                query={workspaceQuery}
+                {...(activeWorkspaceId
+                  ? {
+                      onQueryChange: (query: StudioWorkspaceQuery) =>
+                        onWorkspaceQueryChange(activeWorkspaceId, query, query),
+                    }
+                  : {})}
+              />
+            </div>
           ) : null
         ) : !editing ? (
           <main className="listing">
-            <div className="listing-head">
-              <h3>{activeType?.label ?? entityType}</h3>
-              <span className="meta">
-                {entities?.length ?? 0}{" "}
-                {entities?.length === 1 ? "entity" : "entities"} · sorted by
-                updated
-              </span>
-              <button
-                type="button"
-                className="btn"
-                disabled={!canCreate}
-                onClick={startCreate}
-              >
-                New {entryLabel.toLowerCase()}
-              </button>
-            </div>
+            <StudioPageHead
+              model={listingHead}
+              action={
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!canCreate}
+                  onClick={startCreate}
+                >
+                  New {entryLabel.toLowerCase()}
+                </button>
+              }
+            />
             {(entities ?? []).map((entity, index) => (
               <button
                 type="button"
@@ -374,6 +428,18 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               if (canEdit) save();
             }}
           >
+            <StudioPageHead
+              model={editorHead}
+              action={
+                <button
+                  type="submit"
+                  className="save-btn studio-editor-head-save"
+                  disabled={!canEdit || saveState.kind === "saving"}
+                >
+                  {saveState.kind === "saving" ? "Saving…" : "Save changes"}
+                </button>
+              }
+            />
             <nav className="studio-mobile-modes" aria-label="Editor view">
               {MOBILE_EDITOR_PANES.map((pane) => (
                 <button
@@ -489,7 +555,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <footer className="pipeline">
               <button
                 type="submit"
-                className="save-btn"
+                className="save-btn studio-editor-phone-save"
                 disabled={!canEdit || saveState.kind === "saving"}
               >
                 {saveState.kind === "saving" ? "Saving…" : "Save"}

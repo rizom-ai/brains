@@ -84,42 +84,6 @@
   margin: 0;
   padding: 26px 30px 34px;
 }
-.listing-head {
-  position: static;
-  align-items: flex-end;
-  padding-bottom: 16px;
-  border-bottom: 2px solid var(--console-text);
-}
-.listing-head::after {
-  display: none;
-}
-.listing-head h3 {
-  font-size: 34px;
-  font-variation-settings:
-    "SOFT" 70,
-    "opsz" 60;
-  font-weight: 580;
-  letter-spacing: -0.01em;
-}
-.listing-head .meta {
-  padding-bottom: 5px;
-  color: var(--console-text-muted);
-  font-size: 11.5px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.listing-head .btn {
-  min-height: 0;
-  margin-bottom: 2px;
-  border-color: var(--console-text);
-  border-radius: 7px;
-  background: var(--console-text);
-  color: var(--console-frame);
-  font-family: var(--console-ui);
-  font-size: 13px;
-  letter-spacing: 0;
-  text-transform: none;
-}
 .row {
   grid-template-columns: 44px minmax(0, 1fr) 130px 150px 120px;
   min-height: 0;

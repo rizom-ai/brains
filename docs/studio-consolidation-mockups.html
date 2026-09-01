@@ -2063,6 +2063,38 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
 .chat-main-head { display: flex; align-items: baseline; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--console-rule); }
 .chat-main-title { font-family: var(--console-display); font-size: 21px; font-weight: 560; color: var(--console-text); }
 .chat-main-meta { font-family: var(--console-mono); font-size: 9.5px; letter-spacing: .05em; color: var(--console-text-muted); }
+
+/* accepted-grammar candidates: editor, Overview phone, and fixed clients */
+.ux-editor-shell { display: flex; flex-direction: column; min-height: 560px; }
+.ux-editor-head { padding: 24px 28px 17px; border-bottom: 2px solid var(--console-text); }
+.ux-editor-body { flex: 1 1 auto; display: grid; grid-template-columns: 280px minmax(0,1fr); min-height: 390px; }
+.ux-editor-aside { padding: 20px 22px; border-right: 1px solid var(--console-rule-strong); background: var(--console-card-soft); }
+.ux-editor-aside .field { padding: 12px 0 14px; }
+.ux-editor-main { display: flex; flex-direction: column; min-width: 0; }
+.ux-editor-tabs { display: flex; align-items: center; gap: 4px; padding: 11px 22px; border-bottom: 1px solid var(--console-rule-strong); }
+.ux-editor-tabs .ux-meta { margin-left: auto; }
+.ux-manuscript { flex: 1 1 auto; padding: 26px 32px; font-family: var(--console-mono); font-size: 12.5px; line-height: 1.8; color: var(--console-text-dim); background: linear-gradient(90deg, transparent 95%, var(--console-rule) 95%); background-size: 28px 100%; }
+.ux-manuscript b { color: var(--console-text); font-weight: 550; }
+.ux-editor-track { display: flex; align-items: center; gap: 13px; min-height: 46px; padding: 9px 22px; border-top: 1px solid var(--console-rule-strong); background: var(--console-card-soft); font-family: var(--console-mono); font-size: 9px; color: var(--console-text-muted); }
+.ux-editor-track .ok { color: var(--console-ok); }
+.ux-editor-track .ux-spacer { min-width: 10px; }
+.ux-fixed-grid { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(280px,.9fr); gap: 18px; margin-top: 18px; }
+.ux-settings { border-top: 1px solid var(--console-rule-strong); }
+.ux-setting { display: flex; align-items: center; gap: 16px; padding: 14px 2px; border-bottom: 1px solid var(--console-rule); }
+.ux-setting > div { flex: 1 1 auto; min-width: 0; }
+.ux-setting strong { display: block; color: var(--console-text); font-size: 13.5px; font-weight: 560; }
+.ux-setting small { display: block; margin-top: 2px; color: var(--console-text-muted); font-size: 11.5px; }
+.ux-setting .btn { flex: 0 0 auto; font-size: 11.5px; padding: 6px 11px; }
+.phone-seg { display: flex; gap: 3px; padding: 0 14px 10px; }
+.phone-seg span { flex: 1 1 0; padding: 5px 4px; border: 1px solid var(--console-rule-strong); color: var(--console-text-muted); font-family: var(--console-mono); font-size: 8.5px; text-align: center; }
+.phone-seg span:first-child { border-radius: 6px 0 0 6px; }
+.phone-seg span:last-child { border-radius: 0 6px 6px 0; }
+.phone-seg span.on { background: var(--console-text); color: var(--console-frame); border-color: var(--console-text); }
+.phone-copy { flex: 1 1 auto; padding: 13px 14px; overflow: hidden; color: var(--console-text-dim); font-size: 11px; line-height: 1.65; }
+.phone-copy b { color: var(--console-text); font-weight: 560; }
+.phone-copy .mono { font-family: var(--console-mono); font-size: 9.5px; line-height: 1.8; }
+.phone-overview-group { padding: 0 14px 7px; font-family: var(--console-mono); font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--console-text-muted); }
+.phone-overview-group + .phone-rows { flex: 0 0 auto; padding-bottom: 10px; }
 </style></head><body>
 
 <p class="label">Studio — Overview workspace (operator home · trusted/admin)</p>
@@ -2207,9 +2239,9 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
     </div>
   </div>
   <div class="phone-note">
-    <p><b>Sessions are the workspace's spine, not a casualty of the move.</b> The client's existing session rail — titles, rename, delete, new conversation — mounts as the workspace's left column on desktop and stays the drawer on the phone. Nothing about session handling is redesigned; it relocates.</p>
-    <p><b>"Discuss in chat" creates a titled conversation.</b> The handoff starts (or resumes) a session named from the item, so the discussion is findable later in the list — context isn't a mode, it's a conversation like any other.</p>
-    <p><b>The strip slims to Dashboard / Studio.</b> Chat is trusted-only, so its strip entry retires; the public card's Chat door leads through sign-in to this workspace. Anonymous public-scope chat stays a separate decision.</p>
+    <p><b>Sessions are the workspace's spine, not a casualty of the move.</b> The familiar session rail — titles, rename, delete, new conversation — becomes the workspace's left column on desktop and stays the drawer on the phone. URL identity and restoration change underneath it; the interaction model does not.</p>
+    <p><b>"Discuss in chat" creates a titled conversation.</b> The handoff starts or resumes the actor's session for that item, so the discussion is findable later in the list — context is not a mode, it is a conversation like any other.</p>
+    <p><b>The strip slims to Dashboard / Studio.</b> Chat is trusted-only, so its separate strip entry retires. Dashboard gains no public Chat door in this integration; anonymous or sign-in-only Chat discovery remains a separate product decision.</p>
   </div>
 </div>
 
@@ -2272,7 +2304,7 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
     <div class="phone-cap">People at 390px · list re-flow + pinned action</div>
     <div class="phone-screen">
       <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Studio</span></div>
-      <div class="phone-chips"><span>Overview<i>2</i></span><span>Chat</span><span class="on">Administration<i>1</i></span><span>Inbox<i>14</i></span><span>Publish</span></div>
+      <div class="phone-chips"><span>Overview<i>2</i></span><span class="on">Administration<i>1</i></span><span>Inbox<i>14</i></span><span>Publish</span><span>Account</span></div>
       <div class="phone-headrow"><span class="t">Administration</span><span class="ux-meta">People</span><span class="ux-chip" data-tone="warn">1</span></div>
       <div class="phone-rows">
         <div class="row"><div><strong>Mira Reyes</strong><small>Admin · Active · 2 passkeys</small></div><span class="ux-chip">this brain</span></div>
@@ -2287,7 +2319,7 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
     <div class="phone-cap">Audit at 390px · same rules, zero side-scroll</div>
     <div class="phone-screen">
       <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Studio</span></div>
-      <div class="phone-chips"><span>Overview<i>2</i></span><span>Chat</span><span class="on">Administration<i>1</i></span><span>Inbox<i>14</i></span><span>Publish</span></div>
+      <div class="phone-chips"><span>Overview<i>2</i></span><span class="on">Administration<i>1</i></span><span>Inbox<i>14</i></span><span>Publish</span><span>Account</span></div>
       <div class="phone-headrow"><span class="t">Administration</span><span class="ux-meta">Audit</span><span class="ux-chip">212</span></div>
       <div class="phone-rows">
         <div class="row"><div><strong>Unlinked an external peer</strong><small>Mira Reyes → Grace Hopper · 24 Aug 14:31</small></div></div>
@@ -2300,8 +2332,112 @@ body { background: #6b6459; font-family: var(--console-ui); font-size: 14px; lin
   </div>
   <div class="phone-note">
     <p><b>Chrome budget: two bars and two lines.</b> Strip collapses into the top bar, the chips row scrolls with a visible fade, and the head is one line — title, tab, attention chip. Content starts at roughly 160px instead of 450px.</p>
-    <p><b>Tables re-flow into the list grammar</b> the protocol already has: the row's key fact becomes the title, the rest becomes the meta line, chips carry provenance or state. A renderer rule at phone width, not per-workspace work — Audit gets it for free.</p>
-    <p><b>The primary action pins to the bottom bar</b> — the editor's pattern, generalized. On desktop the same action sits trailing in the head's title row; one grammar, one responsive rule.</p>
+    <p><b>Tables re-flow only from declared compact rows.</b> The source names the title, metadata, and badges using the list grammar; the host never guesses from column position. Unannotated tables keep an honest scrolling fallback.</p>
+    <p><b>The explicitly declared primary action pins to the bottom bar.</b> On desktop that same control sits trailing in the head's title row; in-flow and disclosure actions stay where their source placed them.</p>
+  </div>
+</div>
+
+<p class="label">UX research — editor under the shared head (desktop)</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+  <div class="rail-group"><a href="#">Overview<span class="n">2</span></a></div>
+  <div class="rail-group"><div class="rail-title">Collections</div><a href="#" class="on">Field notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a><a href="#">Mail items<span class="n">9</span></a></div>
+  <div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Content sync</a><a href="#">Administration<span class="n">1</span></a><a href="#">Account</a></div>
+</nav><main class="ux-editor-shell">
+  <header class="ux-editor-head">
+    <div class="ux-head-row"><span class="ux-kicker">Field note</span><span class="ux-chip" data-tone="lock">trusted</span></div>
+    <div class="ux-head-row"><span class="ux-title ux-title--m">Urban sensor platforms</span><span class="ux-meta">draft · changed 2 minutes ago</span><span class="ux-spacer"></span><button class="btn">Save changes</button></div>
+    <p class="ux-desc">Working notes from the cooperative infrastructure workshop.</p>
+  </header>
+  <div class="ux-editor-body">
+    <aside class="ux-editor-aside">
+      <div class="ux-band-cap" style="margin-bottom:10px">Details</div>
+      <label class="field"><span class="field-label">Title <em class="req">required</em></span><input type="text" value="Urban sensor platforms" readonly></label>
+      <label class="field"><span class="field-label">Status <em class="kind">select</em></span><select><option>Draft</option></select></label>
+      <label class="field"><span class="field-label">Topics <em class="kind">3 linked</em></span><input type="text" value="cities, sensors, commons" readonly></label>
+      <label class="field field-inline"><span class="field-label">Public after publish</span><input type="checkbox" checked></label>
+    </aside>
+    <section class="ux-editor-main">
+      <div class="ux-editor-tabs"><span class="seg"><button class="mode">Details</button><button class="mode mode-active">Write</button><button class="mode">Preview</button></span><span class="ux-meta">Markdown · 486 words</span></div>
+      <div class="ux-manuscript"><b># Urban sensor platforms</b><br><br>The workshop kept returning to one question: who gets to read the city back to itself?<br><br>Shared sensor infrastructure is useful only when its governance is as legible as its data.<br><br><b>## Working principles</b><br><br>— local custody before central aggregation<br>— public protocols, bounded retention<br>— maintenance treated as civic knowledge</div>
+      <footer class="ux-editor-track"><span class="ok">● saved in brain</span><span>export pending</span><span>repository main</span><span class="ux-spacer"></span><span>primary action lives in the head</span></footer>
+    </section>
+  </div>
+</main></div>
+
+<p class="label">UX research — fixed client workspace under the shared head (Account)</p>
+<div class="frame" data-climate="instrument"><nav class="rail">
+  <div class="rail-group"><a href="#">Overview<span class="n">2</span></a></div>
+  <div class="rail-group"><div class="rail-title">Collections</div><a href="#">Field notes<span class="n">4</span></a><a href="#">Links<span class="n">2</span></a></div>
+  <div class="rail-group"><div class="rail-title">Operations</div><a href="#">Inbox<span class="n">14</span></a><a href="#">Administration<span class="n">1</span></a><a href="#" class="on">Account</a></div>
+</nav><main class="declarative-workspace">
+  <div class="ux-band" style="border-top:0;padding-top:4px">
+    <div class="ux-head-row"><span class="ux-kicker">Your access</span><span class="ux-chip" data-tone="lock">signed-in session</span></div>
+    <div class="ux-head-row"><span class="ux-title ux-title--l">Account</span><span class="ux-meta">Mira Reyes · admin</span></div>
+    <p class="ux-desc">Profile, passkeys, sessions, and settings for this brain.</p>
+  </div>
+  <div class="ux-fixed-grid">
+    <section><div class="ux-band-cap" style="margin-bottom:9px">Identity</div><div class="ux-settings">
+      <div class="ux-setting"><div><strong>Mira Reyes</strong><small>mira@example.com · active administrator</small></div><button class="btn ghost">Edit profile</button></div>
+      <div class="ux-setting"><div><strong>Connected channels</strong><small>Email verified · no external peer identity</small></div><button class="btn ghost">Review</button></div>
+      <div class="ux-setting"><div><strong>Interface preferences</strong><small>Instrument climate · compact density</small></div><button class="btn ghost">Change</button></div>
+    </div></section>
+    <section><div class="ux-band-cap" style="margin-bottom:9px">Security</div><div class="ux-settings">
+      <div class="ux-setting"><div><strong>2 passkeys</strong><small>Last used today at 14:31</small></div><button class="btn ghost">Add</button></div>
+      <div class="ux-setting"><div><strong>3 active sessions</strong><small>This browser · phone · tablet</small></div><button class="btn ghost">Manage</button></div>
+      <div class="ux-setting"><div><strong>Recovery</strong><small>No setup link is retained</small></div></div>
+    </div></section>
+  </div>
+  <div class="ux-note"><p><b>A fixed client uses the same frame without becoming declarative.</b> Account has several local actions and therefore no invented page-level primary action; its active-session access chip is host-derived rather than source-authored security copy.</p></div>
+</main></div>
+
+<p class="label">UX research — phone completion: Overview, editor, fixed Account</p>
+<div class="frame phone-row" data-climate="instrument">
+  <div class="phone">
+    <div class="phone-cap">Overview · attention before telemetry</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Studio</span></div>
+      <div class="phone-chips"><span class="on">Overview<i>2</i></span><span>Field notes<i>4</i></span><span>Inbox<i>14</i></span><span>Administration<i>1</i></span></div>
+      <div class="phone-headrow"><span class="t">Overview</span><span class="ux-chip" data-tone="warn">2 need you</span></div>
+      <div class="phone-overview-group">Needs attention</div>
+      <div class="phone-rows">
+        <div class="row"><div><strong>Newsletter dispatch failed</strong><small>Publishing · 2 retries left</small></div><span class="ux-chip" data-tone="warn">open</span></div>
+        <div class="row"><div><strong>Invitation expiring</strong><small>Jordan Rivera · in 2 days</small></div><span class="ux-chip" data-tone="warn">open</span></div>
+      </div>
+      <div class="phone-overview-group">While you were away</div>
+      <div class="phone-rows">
+        <div class="row"><div><strong>9 mail items triaged</strong><small>2 high priority · 1 needs reply</small></div></div>
+        <div class="row"><div><strong>Site preview built</strong><small>31 routes · no failures</small></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="phone-cap">Editor · shared head, proven pinned action</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">‹</span><span class="phone-title">Field notes</span></div>
+      <div class="phone-headrow"><span class="t">Urban sensor…</span><span class="ux-chip" data-tone="lock">trusted</span></div>
+      <div class="phone-seg"><span>Details</span><span class="on">Write</span><span>Preview</span></div>
+      <div class="phone-copy"><div class="mono"><b># Urban sensor platforms</b><br><br>The workshop kept returning to one question: who gets to read the city back to itself?<br><br><b>## Working principles</b><br><br>— local custody before central aggregation<br>— public protocols<br>— bounded retention</div></div>
+      <div class="phone-pin"><button class="btn">Save changes</button><span class="meta">draft<br>export pending</span></div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="phone-cap">Account · fixed client, no false primary</div>
+    <div class="phone-screen">
+      <div class="phone-bar"><span class="phone-menu">☰</span><span class="phone-title">Studio</span></div>
+      <div class="phone-chips"><span>Overview<i>2</i></span><span class="on">Account</span><span>Field notes<i>4</i></span><span>Inbox<i>14</i></span></div>
+      <div class="phone-headrow"><span class="t">Account</span><span class="ux-chip" data-tone="lock">signed in</span></div>
+      <div class="phone-rows">
+        <div class="row"><div><strong>Mira Reyes</strong><small>mira@example.com · admin</small></div><span class="ux-chip">profile</span></div>
+        <div class="row"><div><strong>2 passkeys</strong><small>Last used today at 14:31</small></div><span class="ux-chip">manage</span></div>
+        <div class="row"><div><strong>3 active sessions</strong><small>Browser · phone · tablet</small></div><span class="ux-chip">review</span></div>
+        <div class="row"><div><strong>Interface preferences</strong><small>Instrument · compact</small></div><span class="ux-chip">change</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-note">
+    <p><b>Overview spends its first screen on decisions, not telemetry.</b> System and network facts follow attention and activity rather than pushing both below the fold.</p>
+    <p><b>The editor remains the quality bar.</b> Its segmented mode control and pinned save action survive; only the title and access state adopt the shared head.</p>
+    <p><b>Fixed clients share chrome, not protocols.</b> Account keeps its browser ceremonies and local action rows. With no singular page action, the phone deliberately has no bottom action bar.</p>
   </div>
 </div>
 

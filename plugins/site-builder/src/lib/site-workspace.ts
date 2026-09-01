@@ -378,6 +378,7 @@ const siteWorkspace = defineStudioWorkspace({
               rows: data.routes.slice(0, ROUTE_PREVIEW_COUNT).map((route) => ({
                 id: route.id,
                 cells: { title: route.title, path: route.path },
+                compact: { title: route.title, metadata: [route.path] },
               })),
             },
             ...routeRemainder,

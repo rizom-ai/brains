@@ -66,6 +66,7 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain('class="climate-chip"');
     expect(html).toContain('class="session-chip"');
     expect(html).toContain('href="/logout?return_to=%2Fstudio"');
+    expect(html).toContain('<body data-console-host="studio">');
     expect(html).toContain('data-studio-base-path="/studio"');
     expect(html).toContain("Sign out");
   });

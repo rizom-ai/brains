@@ -24,6 +24,8 @@ import {
   type AccountMutationResponse,
 } from "./account-api";
 import accountStyles from "./account-view.css" with { type: "text" };
+import pageHeadStyles from "../studio-page-head.css" with { type: "text" };
+import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
 
 export interface AccountBootstrap {
   displayName: string;
@@ -211,22 +213,20 @@ export function AccountApp({
       <style>
         {detailStyles}
         {accountStyles}
+        {pageHeadStyles}
       </style>
       <div className="account-shell">
-        <header className="account-hero">
-          <div>
-            <h1>Account</h1>
-            <p>identity · passkeys · sessions</p>
-          </div>
-          <div className="account-hero-meta">
-            <span>
-              signed in as <strong>{title}</strong>
-            </span>
-            <span>
-              permission <strong>{role}</strong>
-            </span>
-          </div>
-        </header>
+        <StudioPageHead
+          model={{
+            kicker: "Your identity",
+            access: studioAccessRequirement("public"),
+            title: "Account",
+            metadata: [`${title} · ${roleLabel(role)}`],
+            description:
+              "Manage identity, passkeys, connected channels, and signed-in sessions.",
+            totals: [],
+          }}
+        />
         <p
           className={`account-status${error ? " is-error" : ""}`}
           role="status"

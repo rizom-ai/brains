@@ -31,6 +31,16 @@ function actorFor(
   };
 }
 
+function findById(value: unknown, id: string): unknown {
+  if (value === null || typeof value !== "object") return undefined;
+  if (Reflect.get(value, "id") === id) return value;
+  for (const child of Object.values(value)) {
+    const result = findById(child, id);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+}
+
 describe("Administration peer relationships", () => {
   it("fails loudly when a required peer composition block disappears", () => {
     expect(() => selectPeerTabSections([])).toThrow(
@@ -114,9 +124,19 @@ describe("Administration peer relationships", () => {
       ),
       actor,
     );
-    expect(JSON.stringify(await workspace.dataProvider(actor))).toContain(
-      "did:web:tess.example",
-    );
+    const linked = await workspace.dataProvider(actor);
+    expect(JSON.stringify(linked)).toContain("did:web:tess.example");
+    expect(findById(linked, "peers")).toMatchObject({
+      rows: [
+        {
+          compact: {
+            title: "tess.example",
+            metadata: ["Tess Trusted", "Trusted", expect.any(String)],
+            badges: [{ label: "Unverified", tone: "warn" }],
+          },
+        },
+      ],
+    });
 
     const invite = findAction(peerInvitation, "Invite peer person");
     const invited = await invitations.actionHandler?.(

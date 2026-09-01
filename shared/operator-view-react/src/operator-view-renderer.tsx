@@ -394,7 +394,7 @@ function actionClassName(
   return subordinate ? "btn ghost" : "btn";
 }
 
-function ActionButton(props: {
+export function OperatorActionButton(props: {
   action: RuntimeOperatorActionControl;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   subordinate?: boolean;
@@ -561,7 +561,7 @@ function Actions(props: {
   return (
     <div className="declarative-actions">
       {props.actions.map((action, index) => (
-        <ActionButton
+        <OperatorActionButton
           key={`${action.actionId}:${action.capabilityId ?? "static"}:${index}`}
           action={action}
           onAction={props.onAction}
@@ -818,64 +818,123 @@ function TableBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
   openId?: string | undefined;
 }): ReactElement {
-  if (props.block.rows.length === 0) {
-    return <p className="declarative-empty">{props.block.empty}</p>;
-  }
   const hasActions = props.block.rows.some(
     (row) => (row.actions?.length ?? 0) > 0,
   );
+  const compactRows: readonly RuntimeListItem[] = props.block.rows.flatMap(
+    (row): RuntimeListItem[] => {
+      if (!row.compact) return [];
+      return [
+        {
+          id: row.id,
+          title: row.compact.title,
+          ...(row.compact.description
+            ? { description: row.compact.description }
+            : {}),
+          ...(row.compact.metadata ? { metadata: row.compact.metadata } : {}),
+          ...(row.compact.badges ? { badges: row.compact.badges } : {}),
+          ...(row.compact.count !== undefined
+            ? { count: row.compact.count }
+            : {}),
+          ...(row.compact.tone ? { tone: row.compact.tone } : {}),
+          ...(row.link ? { link: row.link } : {}),
+          ...(row.actions ? { actions: row.actions } : {}),
+        },
+      ];
+    },
+  );
+  const hasUnannotatedRows = props.block.rows.some((row) => !row.compact);
+  const table =
+    props.block.rows.length === 0 ? (
+      <p className="declarative-empty">{props.block.empty}</p>
+    ) : (
+      <>
+        {compactRows.length > 0 && (
+          <div className="declarative-compact-rows">
+            <ListItems
+              items={compactRows}
+              onAction={props.onAction}
+              onOpenEntity={props.onOpenEntity}
+              onLaunch={props.onLaunch}
+              openId={props.openId}
+            />
+          </div>
+        )}
+        <div
+          className="declarative-table-scroll operator-table-scroll"
+          {...(compactRows.length > 0
+            ? {
+                "data-has-unannotated": hasUnannotatedRows ? "true" : "false",
+              }
+            : {})}
+        >
+          <table className="declarative-table operator-table">
+            <thead>
+              <tr>
+                {props.block.columns.map((column) => (
+                  <th key={column.key} data-align={column.align ?? "start"}>
+                    {column.label}
+                  </th>
+                ))}
+                {hasActions && <th data-align="end">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {props.block.rows.map((row) => (
+                <tr
+                  key={row.id}
+                  {...(row.compact ? { "data-compact-row": "true" } : {})}
+                  {...(props.openId === row.id
+                    ? { "aria-current": "true" }
+                    : {})}
+                >
+                  {props.block.columns.map((column, index) => {
+                    const value = displayCell(row.cells[column.key]);
+                    return (
+                      <td key={column.key} data-align={column.align ?? "start"}>
+                        {index === 0 && row.link ? (
+                          <OperatorLink
+                            target={row.link}
+                            onOpenEntity={props.onOpenEntity}
+                            onLaunch={props.onLaunch}
+                          >
+                            {value}
+                          </OperatorLink>
+                        ) : (
+                          value
+                        )}
+                      </td>
+                    );
+                  })}
+                  {hasActions && (
+                    <td data-align="end">
+                      <Actions
+                        actions={row.actions ?? []}
+                        onAction={props.onAction}
+                        subordinate
+                      />
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  if (!props.block.query) return table;
   return (
-    <div className="declarative-table-scroll operator-table-scroll">
-      <table className="declarative-table operator-table">
-        <thead>
-          <tr>
-            {props.block.columns.map((column) => (
-              <th key={column.key} data-align={column.align ?? "start"}>
-                {column.label}
-              </th>
-            ))}
-            {hasActions && <th data-align="end">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {props.block.rows.map((row) => (
-            <tr
-              key={row.id}
-              {...(props.openId === row.id ? { "aria-current": "true" } : {})}
-            >
-              {props.block.columns.map((column, index) => {
-                const value = displayCell(row.cells[column.key]);
-                return (
-                  <td key={column.key} data-align={column.align ?? "start"}>
-                    {index === 0 && row.link ? (
-                      <OperatorLink
-                        target={row.link}
-                        onOpenEntity={props.onOpenEntity}
-                        onLaunch={props.onLaunch}
-                      >
-                        {value}
-                      </OperatorLink>
-                    ) : (
-                      value
-                    )}
-                  </td>
-                );
-              })}
-              {hasActions && (
-                <td data-align="end">
-                  <Actions
-                    actions={row.actions ?? []}
-                    onAction={props.onAction}
-                    subordinate
-                  />
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="declarative-table-collection">
+      <QueryBlock
+        block={props.block.query}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+      />
+      {table}
     </div>
   );
 }
@@ -979,7 +1038,10 @@ function ProgressBlock(props: {
 }
 
 function QueryBlock(props: {
-  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "query" }>;
+  block: Pick<
+    Extract<RuntimeStudioOperatorPanelBlock, { type: "query" }>,
+    "controls" | "pagination"
+  >;
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
@@ -1320,6 +1382,8 @@ function PanelBlock(props: {
           onAction={props.onAction}
           onOpenEntity={props.onOpenEntity}
           onLaunch={props.onLaunch}
+          query={props.query}
+          onQueryChange={props.onQueryChange}
         />
       );
     case "matrix":
@@ -1334,7 +1398,9 @@ function PanelBlock(props: {
     case "spatial":
       return <SpatialBlock block={props.block} />;
     case "action":
-      return <ActionButton action={props.block} onAction={props.onAction} />;
+      return (
+        <OperatorActionButton action={props.block} onAction={props.onAction} />
+      );
     case "actions":
       return <Actions actions={props.block.items} onAction={props.onAction} />;
   }
@@ -1395,6 +1461,8 @@ function DetailBlock(props: {
         onAction={props.onAction}
         onOpenEntity={props.onOpenEntity}
         onLaunch={props.onLaunch}
+        query={query}
+        onQueryChange={onQueryChange}
         openId={requested}
       />
     );
@@ -1725,6 +1793,8 @@ export interface OperatorViewRendererProps {
   resolveLink?:
     ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
   renderAllTabs?: boolean | undefined;
+  /** Studio may render the normalized head while this renderer keeps the body. */
+  renderHead?: boolean | undefined;
 }
 
 export function OperatorViewRenderer(
@@ -1737,12 +1807,14 @@ export function OperatorViewRenderer(
   const totals =
     props.renderAllTabs !== true && lead?.type === "stats" ? lead : null;
   const bodyBlocks = totals ? blocks.slice(1) : blocks;
-  const { kicker, description, status } = props.data.view;
+  const { kicker, description, status, primaryAction } = props.data.view;
   const hasHead =
     Boolean(title) ||
     Boolean(kicker) ||
+    Boolean(description) ||
     totals !== null ||
-    status !== undefined;
+    status !== undefined ||
+    primaryAction !== undefined;
 
   return (
     <OperatorRendererHostContext.Provider
@@ -1752,7 +1824,7 @@ export function OperatorViewRenderer(
       }}
     >
       <main className="declarative-workspace operator-view">
-        {hasHead && (
+        {props.renderHead !== false && hasHead && (
           <header className="declarative-head">
             <div className="declarative-head-copy">
               {kicker && <span className="declarative-kicker">{kicker}</span>}
@@ -1771,6 +1843,12 @@ export function OperatorViewRenderer(
               )}
               {totals && (
                 <StatsBlock block={totals} className="declarative-totals" />
+              )}
+              {primaryAction && (
+                <OperatorActionButton
+                  action={primaryAction}
+                  onAction={props.onAction}
+                />
               )}
             </div>
           </header>

@@ -690,6 +690,166 @@ describe("declarative Studio workspace runtime", () => {
   });
 });
 
+describe("Studio interface semantics", () => {
+  it("normalizes one primary action and collection-owned compact table data", () => {
+    const result = safeParseRuntimeStudioOperatorView(
+      {
+        title: "People",
+        primaryAction: {
+          action: refresh,
+          input: { id: "all" },
+        },
+        blocks: [
+          {
+            type: "table",
+            id: "people",
+            empty: "No people.",
+            query: {
+              controls: [
+                {
+                  key: "status",
+                  label: "Status",
+                  value: "active",
+                  allLabel: "All statuses",
+                  options: [
+                    { value: "active", label: "Active", count: 2 },
+                    { value: "suspended", label: "Suspended", count: 1 },
+                  ],
+                },
+              ],
+              pagination: {
+                offset: 0,
+                limit: 25,
+                total: 3,
+                label: "people",
+              },
+            },
+            columns: [
+              { key: "person", label: "Person" },
+              { key: "role", label: "Role" },
+            ],
+            rows: [
+              {
+                id: "person-1",
+                cells: { person: "Mira Reyes", role: "Admin" },
+                compact: {
+                  title: "Mira Reyes",
+                  metadata: ["Admin", "Active", "2 passkeys"],
+                  badges: [{ label: "this brain", tone: "neutral" }],
+                  tone: "good",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      { actions: [refresh], permission: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        title: "People",
+        primaryAction: {
+          actionId: "refresh",
+          label: "Refresh",
+          input: { id: "all" },
+        },
+        blocks: [
+          {
+            type: "table",
+            query: {
+              controls: [{ key: "status", value: "active" }],
+              pagination: { offset: 0, limit: 25, total: 3, label: "people" },
+            },
+            rows: [
+              {
+                id: "person-1",
+                compact: {
+                  title: "Mira Reyes",
+                  metadata: ["Admin", "Active", "2 passkeys"],
+                  badges: [{ label: "this brain", tone: "neutral" }],
+                  tone: "good",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects ambiguous primary actions and malformed compact rows", () => {
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        {
+          primaryAction: [
+            { action: refresh, input: { id: "first" } },
+            { action: refresh, input: { id: "second" } },
+          ],
+          blocks: [],
+        },
+        { actions: [refresh], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: false,
+      issues: [{ path: ["primaryAction"] }],
+    });
+
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "table",
+              id: "people",
+              empty: "No people.",
+              columns: [{ key: "person", label: "Person" }],
+              rows: [
+                {
+                  id: "person-1",
+                  cells: { person: "Mira Reyes" },
+                  compact: { title: "" },
+                },
+              ],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: false,
+      issues: [{ path: ["blocks", 0, "rows", 0, "compact", "title"] }],
+    });
+
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "table",
+              id: "people",
+              empty: "No people.",
+              query: {
+                controls: [
+                  { key: "status", label: "Status", options: [] },
+                  { key: "status", label: "State", options: [] },
+                ],
+              },
+              columns: [{ key: "person", label: "Person" }],
+              rows: [],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: false,
+      issues: [{ path: ["blocks", 0, "query", "controls", 1, "key"] }],
+    });
+  });
+});
+
 describe("workspace action forms and results", () => {
   const invite = defineWorkspaceAction({
     name: "invite",

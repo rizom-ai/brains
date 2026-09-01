@@ -56,10 +56,10 @@ them apart is itself maintained code: the containment assertions in
 - Shipping two renderer pipelines or a pipeline selector, even temporarily.
 - Reworking the operator view contract. The protocol is unchanged; only the
   number of hosts implementing it changes.
-- Migrating the `plugins/admin` browser apps. They are deleted by
-  [`studio-consolidation.md`](./studio-consolidation.md) Phase 6; the package
-  remains only as a headless administration-workspace provider, so converting
-  those apps first would be discarded work.
+- Migrating the `plugins/admin` browser apps. The shipped Studio migration
+  deleted them; the package remains only as a headless
+  administration-workspace provider, so converting those apps first would be
+  discarded work.
 
 ## Measured behaviour
 
@@ -283,9 +283,9 @@ The payoff phase, and the reason the earlier ones are worth doing.
   consumed by the dashboard widget host and the Studio/Studio workspace host.
 - `shared/ui-library`'s widget primitives become importable by the workspace
   host; the Studio-side reimplementations are deleted.
-- Coordinate with [`studio-consolidation.md`](./studio-consolidation.md) Phase 7,
-  which re-homes operator widget content into a Studio Overview workspace.
-  With one runtime that re-homing is a move rather than a port.
+- Coordinate with the Studio Overview migration, which re-homes operator
+  widget content into an operator workspace. With one runtime that re-homing
+  is a move rather than a port.
 
 ### Phase 6 — Remove the containment scaffolding ✅
 
@@ -321,13 +321,11 @@ alpha candidate, so the registry and packed matrices are run once against a
 React-line candidate instead of twice. Phases 5 and 6 are internal-only and can
 follow stable `0.2.0` at any time.
 
-Against `studio-consolidation.md`: land Phases 1–4 **before** its Phase 7, so
-that moving operator content into Studio Overview does not mean porting it
-across runtimes, and before its Phase 8 rebuilds the dashboard as the public
-card — otherwise that rebuild happens in Preact and is flipped immediately
-after. If studio consolidation has already begun, sequence after its Phase 1
-rename rather than concurrently, since that rename rewrites the same Studio files
-Phase 5 touches.
+Against the shipped Studio/Dashboard sequence: Phases 1–4 had to land before
+operator content moved into Studio Overview and before Dashboard became the
+public card, so neither surface was rebuilt in Preact and immediately flipped.
+The Studio rename likewise preceded the shared-host phase because both rewrote
+the same Studio files.
 
 ## Risks
 
@@ -365,6 +363,6 @@ Phase 5 touches.
 
 ## Related work
 
-- [Studio consolidation](./studio-consolidation.md)
+- [Studio UX research and shipped grammar](./studio-ux-research.md)
 - [Public authoring API `0.2`](./public-authoring-api-0.2.md)
 - [Alternative site renderer spike](./alternative-site-renderer-spike.md)
