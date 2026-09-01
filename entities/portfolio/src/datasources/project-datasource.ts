@@ -7,7 +7,11 @@ import type {
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { Project, ProjectContent } from "../schemas/project";
+import {
+  projectSchema,
+  type Project,
+  type ProjectContent,
+} from "../schemas/project";
 import {
   projectFrontmatterSchema,
   projectWithDataSchema,
@@ -72,8 +76,9 @@ export class ProjectDataSource extends BaseEntityDataSource<
   readonly description: string =
     "Fetches and transforms project entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<Project> = {
     entityType: "project",
+    entitySchema: projectSchema,
     defaultSort: [
       { field: "year" as const, direction: "desc" as const },
       { field: "title" as const, direction: "asc" as const },

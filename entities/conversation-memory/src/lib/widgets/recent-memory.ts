@@ -1,6 +1,10 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { SummaryEntity, SummaryTimeRange } from "../../schemas/summary";
+import {
+  summarySchema,
+  type SummaryEntity,
+  type SummaryTimeRange,
+} from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummaryAdapter } from "../../adapters/summary-adapter";
 
@@ -94,9 +98,12 @@ function toRow(entry: ExpandedEntry): SummaryEntryRow {
 export async function buildRecentConversationMemoryData(
   context: EntityPluginContext,
 ): Promise<RecentConversationMemoryData> {
-  const summaries = await context.entityService.listEntities<SummaryEntity>({
-    entityType: SUMMARY_ENTITY_TYPE,
-  });
+  const summaries = await context.entityService.listEntities(
+    {
+      entityType: SUMMARY_ENTITY_TYPE,
+    },
+    summarySchema,
+  );
 
   const expanded = summaries.flatMap(expandSummary);
   expanded.sort((a, b) => b.timeRange.end.localeCompare(a.timeRange.end));

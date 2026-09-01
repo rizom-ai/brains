@@ -5,6 +5,7 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
+import { topicEntitySchema } from "../../src/schemas/topic";
 import type { TopicEntity } from "../../src/types";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 import { reconcileTopics } from "../../src/lib/topic-reconciliation";
@@ -80,10 +81,13 @@ describe("reconcileTopics", () => {
 
     expect(result).toMatchObject({ merged: 1, distinct: 0, scannedPairs: 1 });
     expect(result.deletedIds).toEqual(["human-agent-collaboration"]);
-    const remaining = await context.entityService.listEntities<TopicEntity>({
-      entityType: "topic",
-      options: { filter: { visibilityScope: "public" } },
-    });
+    const remaining = await context.entityService.listEntities(
+      {
+        entityType: "topic",
+        options: { filter: { visibilityScope: "public" } },
+      },
+      topicEntitySchema,
+    );
     expect(remaining.map((topic) => topic.id)).toEqual([
       "human-ai-collaboration",
     ]);
@@ -128,10 +132,13 @@ describe("reconcileTopics", () => {
     });
 
     expect(result).toMatchObject({ merged: 0, distinct: 1, scannedPairs: 1 });
-    const remaining = await context.entityService.listEntities<TopicEntity>({
-      entityType: "topic",
-      options: { filter: { visibilityScope: "public" } },
-    });
+    const remaining = await context.entityService.listEntities(
+      {
+        entityType: "topic",
+        options: { filter: { visibilityScope: "public" } },
+      },
+      topicEntitySchema,
+    );
     expect(remaining.map((topic) => topic.id).sort()).toEqual([
       "biomimicry",
       "biosecurity",

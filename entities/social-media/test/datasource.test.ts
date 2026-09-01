@@ -1,18 +1,19 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SocialPostDataSource } from "../src/datasources/social-post-datasource";
 import type { SocialPost } from "../src/schemas/social-post";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import {
   createMockLogger,
-  createMockEntityService,
+  createMockShell,
   createTestEntity,
 } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 
 describe("SocialPostDataSource", () => {
   let datasource: SocialPostDataSource;
-  let mockEntityService: IEntityService;
+  let shell: MockShell;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
@@ -22,6 +23,7 @@ describe("SocialPostDataSource", () => {
     slug: string,
     status: "draft" | "queued" | "published" | "failed",
     body: string,
+    opts: { publishedAt?: string; created?: string } = {},
   ): SocialPost => {
     const content = `---
 title: ${title}
@@ -33,33 +35,43 @@ ${body}`;
     return createTestEntity<SocialPost>("social-post", {
       id,
       content,
+      ...(opts.created && { created: opts.created, updated: opts.created }),
       metadata: {
         title,
         slug,
         platform: "linkedin",
         status,
+        ...(opts.publishedAt && { publishedAt: opts.publishedAt }),
       },
     });
   };
 
   beforeEach(() => {
     mockLogger = createMockLogger();
-    mockEntityService = createMockEntityService();
-    mockContext = { entityService: mockEntityService };
+    shell = createMockShell();
+    mockContext = { entityService: shell.getEntityService() };
 
     datasource = new SocialPostDataSource(mockLogger);
   });
 
   describe("fetch by id (slug)", () => {
     it("should fetch a single post by slug", async () => {
-      const mockPost = createMockSocialPost(
-        "post-1",
-        "My LinkedIn Post",
-        "linkedin-my-linkedin-post-20260114",
-        "published",
-        "This is my LinkedIn post content.",
-      );
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([mockPost]);
+      shell.addEntities([
+        createMockSocialPost(
+          "post-1",
+          "My LinkedIn Post",
+          "my-linkedin-post",
+          "published",
+          "This is my LinkedIn post content.",
+        ),
+        createMockSocialPost(
+          "post-2",
+          "Other Post",
+          "other-post",
+          "published",
+          "Other content.",
+        ),
+      ]);
 
       const schema = z.object({
         post: z.object({
@@ -81,18 +93,9 @@ ${body}`;
       expect(result.post.id).toBe("post-1");
       expect(result.post.body).toContain("This is my LinkedIn post content");
       expect(result.post.frontmatter.platform).toBe("linkedin");
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "social-post",
-        options: {
-          filter: { metadata: { slug: "my-linkedin-post" } },
-          limit: 1,
-        },
-      });
     });
 
     it("should throw error when post not found", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-
       const schema = z.object({ post: z.any() });
 
       void expect(
@@ -106,159 +109,185 @@ ${body}`;
   });
 
   describe("fetch list", () => {
-    it("should fetch all posts sorted by created date", async () => {
-      const posts = [
-        createMockSocialPost(
-          "post-1",
-          "Post One",
-          "linkedin-post-one-20260114",
-          "published",
-          "Post 1 content",
-        ),
-        createMockSocialPost(
-          "post-2",
-          "Post Two",
-          "linkedin-post-two-20260114",
-          "queued",
-          "Post 2 content",
-        ),
-      ];
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
+    const listSchema = z.object({
+      posts: z.array(z.object({ id: z.string() })),
+      totalCount: z.number(),
+    });
 
-      const schema = z.object({
-        posts: z.array(z.object({ id: z.string() })),
-        totalCount: z.number(),
-      });
+    it("should sort published posts first, newest publish date leading", async () => {
+      // Sort contract: publishedAt desc with nullsFirst (unpublished posts
+      // lead), then created desc as the tie-breaker.
+      shell.addEntities([
+        createMockSocialPost(
+          "post-older-published",
+          "Older Published",
+          "older-published",
+          "published",
+          "Older",
+          {
+            publishedAt: "2026-01-01T10:00:00.000Z",
+            created: "2026-01-01T09:00:00.000Z",
+          },
+        ),
+        createMockSocialPost(
+          "post-newer-published",
+          "Newer Published",
+          "newer-published",
+          "published",
+          "Newer",
+          {
+            publishedAt: "2026-01-03T10:00:00.000Z",
+            created: "2026-01-01T08:00:00.000Z",
+          },
+        ),
+        createMockSocialPost(
+          "post-draft",
+          "Draft Post",
+          "draft-post",
+          "draft",
+          "Draft",
+          { created: "2026-01-02T10:00:00.000Z" },
+        ),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "social-post", query: {} },
-        schema,
+        listSchema,
         mockContext,
       );
 
-      expect(result.posts).toHaveLength(2);
-      expect(result.totalCount).toBe(2);
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "social-post",
-        options: {
-          sortFields: [
-            { field: "publishedAt", direction: "desc", nullsFirst: true },
-            { field: "created", direction: "desc" },
-          ],
-          limit: 100,
-          offset: 0,
-        },
-      });
+      expect(result.totalCount).toBe(3);
+      expect(result.posts.map((post) => post.id)).toEqual([
+        "post-draft",
+        "post-newer-published",
+        "post-older-published",
+      ]);
     });
 
     it("should filter by status", async () => {
-      const posts = [
+      shell.addEntities([
         createMockSocialPost(
           "post-1",
           "Queued Post",
-          "linkedin-queued-post-20260114",
+          "queued-post",
           "queued",
           "Queued post content",
         ),
-      ];
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
-
-      const schema = z.object({
-        posts: z.array(z.object({ id: z.string() })),
-        totalCount: z.number(),
-      });
+        createMockSocialPost(
+          "post-2",
+          "Published Post",
+          "published-post",
+          "published",
+          "Published content",
+          { publishedAt: "2026-01-01T10:00:00.000Z" },
+        ),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "social-post", query: { status: "queued" } },
-        schema,
+        listSchema,
+        mockContext,
+      );
+
+      expect(result.posts.map((post) => post.id)).toEqual(["post-1"]);
+    });
+
+    it("should return an empty list when no posts exist", async () => {
+      const result = await datasource.fetch(
+        { entityType: "social-post" },
+        listSchema,
+        mockContext,
+      );
+
+      expect(result.posts).toHaveLength(0);
+      expect(result.totalCount).toBe(0);
+    });
+
+    it("should respect the limit option", async () => {
+      shell.addEntities(
+        Array.from({ length: 5 }, (_, i) =>
+          createMockSocialPost(
+            `post-${i + 1}`,
+            `Post ${i + 1}`,
+            `post-${i + 1}`,
+            "published",
+            "Content",
+            {
+              publishedAt: `2026-01-0${i + 1}T10:00:00.000Z`,
+            },
+          ),
+        ),
+      );
+
+      const result = await datasource.fetch(
+        { entityType: "social-post", query: { limit: 2 } },
+        listSchema,
+        mockContext,
+      );
+
+      expect(result.posts.map((post) => post.id)).toEqual(["post-5", "post-4"]);
+    });
+
+    it("should filter by platform", async () => {
+      shell.addEntities([
+        createMockSocialPost(
+          "post-1",
+          "LinkedIn Post",
+          "linkedin-post",
+          "published",
+          "LinkedIn content",
+          { publishedAt: "2026-01-01T10:00:00.000Z" },
+        ),
+      ]);
+
+      const result = await datasource.fetch(
+        { entityType: "social-post", query: { platform: "linkedin" } },
+        listSchema,
         mockContext,
       );
 
       expect(result.posts).toHaveLength(1);
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "social-post",
-        options: {
-          filter: { metadata: { status: "queued" } },
-          sortFields: [
-            { field: "publishedAt", direction: "desc", nullsFirst: true },
-            { field: "created", direction: "desc" },
-          ],
-          limit: 100,
-          offset: 0,
-        },
-      });
-    });
-
-    it("should sort by queue order when sortByQueue is true", async () => {
-      const posts = [
-        createMockSocialPost(
-          "post-1",
-          "Post One",
-          "linkedin-post-one-20260114",
-          "queued",
-          "Post 1 content",
-        ),
-        createMockSocialPost(
-          "post-2",
-          "Post Two",
-          "linkedin-post-two-20260114",
-          "queued",
-          "Post 2 content",
-        ),
-      ];
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
-
-      const schema = z.object({
-        posts: z.array(z.object({ id: z.string() })),
-        totalCount: z.number(),
-      });
-
-      await datasource.fetch(
-        { entityType: "social-post", query: { sortByQueue: true } },
-        schema,
-        mockContext,
-      );
-
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "social-post",
-        options: {
-          sortFields: [{ field: "queueOrder", direction: "asc" }],
-          limit: 100,
-          offset: 0,
-        },
-      });
     });
   });
 
   describe("pagination", () => {
-    it("should return pagination info when page is specified", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([
-        createMockSocialPost(
-          "post-1",
-          "Post One",
-          "linkedin-post-one-20260114",
-          "published",
-          "Post 1 content",
-        ),
-      ]);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(25);
+    const paginatedSchema = z.object({
+      posts: z.array(z.object({ id: z.string() })),
+      totalCount: z.number(),
+      pagination: z
+        .object({
+          currentPage: z.number(),
+          totalPages: z.number(),
+          totalItems: z.number(),
+          pageSize: z.number(),
+        })
+        .nullable(),
+    });
 
-      const schema = z.object({
-        posts: z.array(z.object({ id: z.string() })),
-        totalCount: z.number(),
-        pagination: z
-          .object({
-            currentPage: z.number(),
-            totalPages: z.number(),
-            totalItems: z.number(),
-            pageSize: z.number(),
-          })
-          .nullable(),
-      });
+    /** Seed post-1..post-N, published ascending by index. */
+    function seedNumberedPosts(count: number): void {
+      shell.addEntities(
+        Array.from({ length: count }, (_, i) =>
+          createMockSocialPost(
+            `post-${i + 1}`,
+            `Post ${i + 1}`,
+            `post-${i + 1}`,
+            "published",
+            `Post ${i + 1} content`,
+            {
+              publishedAt: `2026-01-${String(i + 1).padStart(2, "0")}T10:00:00.000Z`,
+            },
+          ),
+        ),
+      );
+    }
+
+    it("should return pagination info when page is specified", async () => {
+      seedNumberedPosts(25);
 
       const result = await datasource.fetch(
         { entityType: "social-post", query: { page: 1, pageSize: 10 } },
-        schema,
+        paginatedSchema,
         mockContext,
       );
 
@@ -269,84 +298,20 @@ ${body}`;
       expect(result.pagination?.pageSize).toBe(10);
     });
 
-    it("should calculate correct offset for page 2", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(25);
+    it("should return the second page of posts for page 2", async () => {
+      seedNumberedPosts(25);
 
-      const schema = z.object({
-        posts: z.array(z.any()),
-        totalCount: z.number(),
-        pagination: z.any().nullable(),
-      });
-
-      await datasource.fetch(
+      const result = await datasource.fetch(
         { entityType: "social-post", query: { page: 2, pageSize: 10 } },
-        schema,
+        paginatedSchema,
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "social-post",
-        options: {
-          sortFields: [
-            { field: "publishedAt", direction: "desc", nullsFirst: true },
-            { field: "created", direction: "desc" },
-          ],
-          limit: 10,
-          offset: 10,
-        },
-      });
-    });
-  });
-
-  describe("nextInQueue", () => {
-    it("should fetch the next queued post", async () => {
-      const posts = [
-        createMockSocialPost(
-          "post-1",
-          "Next Post",
-          "linkedin-next-post-20260114",
-          "queued",
-          "Next post content",
-        ),
-      ];
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
-
-      const schema = z.object({
-        post: z.object({ id: z.string() }).nullable(),
-      });
-
-      const result = await datasource.fetch(
-        { entityType: "social-post", query: { nextInQueue: true } },
-        schema,
-        mockContext,
-      );
-
-      expect(result.post?.id).toBe("post-1");
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "social-post",
-        options: {
-          filter: { metadata: { status: "queued" } },
-          sortFields: [{ field: "queueOrder", direction: "asc" }],
-          limit: 1,
-        },
-      });
-    });
-
-    it("should return null when queue is empty", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-
-      const schema = z.object({
-        post: z.object({ id: z.string() }).nullable(),
-      });
-
-      const result = await datasource.fetch(
-        { entityType: "social-post", query: { nextInQueue: true } },
-        schema,
-        mockContext,
-      );
-
-      expect(result.post).toBeNull();
+      // Sorted newest-first, so page 2 starts at post-15.
+      expect(result.posts).toHaveLength(10);
+      expect(result.posts[0]?.id).toBe("post-15");
+      expect(result.posts[9]?.id).toBe("post-6");
+      expect(result.pagination?.currentPage).toBe(2);
     });
   });
 });

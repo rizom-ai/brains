@@ -6,7 +6,7 @@ import type {
   EntityDataSourceConfig,
   IEntityService,
 } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
+import { linkSchema, type LinkEntity } from "../schemas/link";
 import type { Logger } from "@brains/utils/logger";
 import { LinkAdapter } from "../adapters/link-adapter";
 import type { LinkSummary } from "../templates/link-list/schema";
@@ -31,7 +31,7 @@ interface LinkListData {
  * avoiding a redundant second DB round-trip.
  */
 export class LinksDataSource extends BaseEntityDataSource<
-  BaseEntity,
+  LinkEntity,
   LinkSummary,
   LinkListData
 > {
@@ -39,8 +39,9 @@ export class LinksDataSource extends BaseEntityDataSource<
   readonly name = "Links Entity DataSource";
   readonly description = "Fetches and transforms link entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<LinkEntity> = {
     entityType: "link",
+    entitySchema: linkSchema,
     defaultSort: [{ field: "capturedAt" as const, direction: "desc" as const }],
     defaultLimit: 1000,
     lookupField: "id" as const,
@@ -54,7 +55,7 @@ export class LinksDataSource extends BaseEntityDataSource<
     this.logger.debug("LinksDataSource initialized");
   }
 
-  protected transformEntity(entity: BaseEntity): LinkSummary {
+  protected transformEntity(entity: LinkEntity): LinkSummary {
     const { frontmatter, summary } = this.adapter.parseLinkContent(
       entity.content,
     );
@@ -100,13 +101,16 @@ export class LinksDataSource extends BaseEntityDataSource<
     item: LinkSummary;
     navigation: NavigationResult<LinkSummary> | null;
   }> {
-    const allEntities = await entityService.listEntities<BaseEntity>({
-      entityType: this.config.entityType,
-      options: {
-        limit: this.config.navigationLimit ?? 1000,
-        sortFields: this.config.defaultSort,
+    const allEntities = await entityService.listEntities(
+      {
+        entityType: this.config.entityType,
+        options: {
+          limit: this.config.navigationLimit ?? 1000,
+          sortFields: this.config.defaultSort,
+        },
       },
-    });
+      linkSchema,
+    );
 
     const currentIndex = allEntities.findIndex((e) => e.id === id);
     if (currentIndex === -1) {

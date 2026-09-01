@@ -17,7 +17,6 @@ import {
   assertValidPlaybookBody,
   playbookAdapter,
   type PlaybookBody,
-  type PlaybookEntity as RegisteredPlaybookEntity,
   type PlaybookState,
   type PlaybookTransition,
 } from "./entity";
@@ -700,10 +699,9 @@ export class PlaybooksPlugin extends ServicePlugin<
 
   private async listPlaybooks(): Promise<ParsedPlaybook[]> {
     if (!this.ctx) return [];
-    const entities =
-      await this.ctx.entityService.listEntities<RegisteredPlaybookEntity>({
-        entityType: "playbook",
-      });
+    const entities = await this.ctx.entityService.listEntities({
+      entityType: "playbook",
+    });
 
     return entities.flatMap((entity): ParsedPlaybook[] => {
       const parsed = playbookEntitySchema.safeParse(entity);
@@ -875,12 +873,11 @@ export class PlaybooksPlugin extends ServicePlugin<
     playbookId: string,
   ): Promise<ParsedPlaybook | undefined> {
     if (!this.ctx) return undefined;
-    const entity =
-      await this.ctx.entityService.getEntity<RegisteredPlaybookEntity>({
-        entityType: "playbook",
-        id: playbookId,
-        visibilityScope: permissionToVisibilityScope("admin"),
-      });
+    const entity = await this.ctx.entityService.getEntity({
+      entityType: "playbook",
+      id: playbookId,
+      visibilityScope: permissionToVisibilityScope("admin"),
+    });
     const parsed = playbookEntitySchema.safeParse(entity);
     if (!parsed.success) return undefined;
     const { body } = playbookAdapter.parsePlaybookContent(parsed.data.content);

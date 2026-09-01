@@ -1,10 +1,8 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryDataSource } from "../../src/datasources/summary-datasource";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
+import { createSilentLogger, createMockShell } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";
@@ -24,12 +22,14 @@ const entry: SummaryEntry = {
 
 describe("SummaryDataSource", () => {
   let datasource: SummaryDataSource;
+  let shell: MockShell;
   let entityService: IEntityService;
   let context: BaseDataSourceContext;
   const adapter = new SummaryAdapter();
 
   beforeEach(() => {
-    entityService = createMockEntityService();
+    shell = createMockShell();
+    entityService = shell.getEntityService();
     context = { entityService };
     datasource = new SummaryDataSource(createSilentLogger());
   });
@@ -50,9 +50,7 @@ describe("SummaryDataSource", () => {
         timeRange: entry.timeRange,
       },
     });
-    const getEntitySpy = spyOn(entityService, "getEntity").mockResolvedValue(
-      summary,
-    );
+    shell.addEntities([summary]);
 
     const result = await datasource.fetch(
       { entityType: "summary", query: { conversationId: "conv-123" } },
@@ -60,20 +58,13 @@ describe("SummaryDataSource", () => {
       context,
     );
 
-    expect(getEntitySpy).toHaveBeenCalledWith({
-      entityType: "summary",
-      id: "conv-123",
-    });
     expect(result.conversationId).toBe("conv-123");
     expect(result.messageCount).toBe(2);
     expect(result.entries[0]?.title).toBe("Eval Plan");
   });
 
   it("fetches summary list data", async () => {
-    const listEntitiesSpy = spyOn(
-      entityService,
-      "listEntities",
-    ).mockResolvedValue([
+    shell.addEntities([
       createMockSummaryEntity({ content: adapter.createContentBody([entry]) }),
     ]);
 
@@ -83,18 +74,12 @@ describe("SummaryDataSource", () => {
       context,
     );
 
-    expect(listEntitiesSpy).toHaveBeenCalledWith({
-      entityType: "summary",
-      options: { limit: 10 },
-    });
     expect(result.totalCount).toBe(1);
     expect(result.summaries[0]?.messageCount).toBe(2);
     expect(result.summaries[0]?.latestEntry).toBe("Eval Plan");
   });
 
   it("throws when requested summary is missing", () => {
-    spyOn(entityService, "getEntity").mockResolvedValue(null);
-
     expect(
       datasource.fetch(
         { entityType: "summary", query: { id: "missing" } },

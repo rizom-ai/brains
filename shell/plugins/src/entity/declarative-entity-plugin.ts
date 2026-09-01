@@ -9,6 +9,7 @@ import {
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
+import { parseWithSchema } from "@brains/utils/parse-schema";
 import { z } from "@brains/utils/zod";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
 import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
@@ -54,7 +55,17 @@ export function parseDefinitionEntity<TDefinition extends AnyEntityDefinition>(
   definition: TDefinition,
   input: unknown,
 ): EntityOf<TDefinition> {
-  return entitySchema(definition).parse(input) as EntityOf<TDefinition>;
+  // The erased schema proves the base shape; the definition's own pieces
+  // prove the two definition-typed fields, so no assertion is needed.
+  const parsed = entitySchema(definition).parse(input);
+  return {
+    ...parsed,
+    entityType: definition.type,
+    metadata: parseWithSchema<TDefinition["metadata"]>(
+      definition.metadata,
+      parsed.metadata,
+    ),
+  };
 }
 
 function encodeParts(

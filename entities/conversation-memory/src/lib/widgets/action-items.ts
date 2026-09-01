@@ -6,7 +6,10 @@ import {
 } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import type { ActionItemEntity } from "../../schemas/conversation-memory";
+import {
+  actionItemSchema,
+  type ActionItemEntity,
+} from "../../schemas/conversation-memory";
 import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatAge } from "./format";
 
@@ -113,9 +116,12 @@ export async function buildActionItemsWidgetData(
   context: EntityPluginContext,
   now: Date = new Date(),
 ): Promise<ActionItemsWidgetData> {
-  const items = await context.entityService.listEntities<ActionItemEntity>({
-    entityType: ACTION_ITEM_ENTITY_TYPE,
-  });
+  const items = await context.entityService.listEntities(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+    },
+    actionItemSchema,
+  );
 
   const sorted = [...items].sort((a, b) => {
     const statusDiff =

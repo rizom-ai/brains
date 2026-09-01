@@ -11,6 +11,7 @@ import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import {
+  skillEntitySchema,
   skillFrontmatterSchema,
   type SkillEntity,
   type SkillFrontmatter,
@@ -198,6 +199,7 @@ export async function deriveSkills(
   >({
     context,
     targetType: SKILL_ENTITY_TYPE,
+    entitySchema: skillEntitySchema,
     desired: desired.values(),
     getId: skillId,
     toEntityInput: (skill, id) => ({

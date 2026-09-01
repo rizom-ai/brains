@@ -2,11 +2,12 @@ import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { PublishResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ProviderRegistry } from "./provider-registry";
-import type { PublishableMetadata } from "./schemas/publishable";
+import {
+  publishableEntitySchema,
+  type PublishableEntity,
+} from "./schemas/publishable";
 import { preparePublishContent } from "./tools/publish-content";
 import { markEntityPublished } from "./publish-state-updater";
-
-type PublishableEntity = BaseEntity<PublishableMetadata>;
 
 export interface PublishEntityInput {
   entityType: string;
@@ -157,22 +158,24 @@ export class PublishExecutor implements PublishEntityExecutor {
     slug?: string,
   ): Promise<PublishableEntity | null> {
     if (id) {
-      return this.deps.context.entityService.getEntity<PublishableEntity>({
-        entityType,
-        id,
-      });
+      return this.deps.context.entityService.getEntity(
+        { entityType, id },
+        publishableEntitySchema,
+      );
     }
 
     if (!slug) return null;
 
-    const entities =
-      await this.deps.context.entityService.listEntities<PublishableEntity>({
+    const entities = await this.deps.context.entityService.listEntities(
+      {
         entityType,
         options: {
           filter: { metadata: { slug } },
           limit: 1,
         },
-      });
+      },
+      publishableEntitySchema,
+    );
     return entities[0] ?? null;
   }
 }

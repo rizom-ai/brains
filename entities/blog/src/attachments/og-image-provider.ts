@@ -5,7 +5,10 @@ import {
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { BlogPost } from "../schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostSchema,
+} from "../schemas/blog-post";
 import {
   BLOG_OG_IMAGE_ATTACHMENT_TYPE,
   blogOgImageTemplate,
@@ -15,6 +18,7 @@ import {
 export const createBlogOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<BlogPost, BlogOgImageTemplateData>({
     sourceEntityType: "post",
+    entitySchema: blogPostSchema,
     attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
     template: blogOgImageTemplate,
     themeMode: "light",

@@ -265,7 +265,7 @@ async function handleEntityChange(
 
     const entity =
       payload.entity ??
-      (await context.entityService.getEntity<BaseEntity>({
+      (await context.entityService.getEntity({
         entityType: payload.entityType,
         id: payload.entityId,
       }));

@@ -5,7 +5,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { DeckEntity } from "../src/schemas/deck";
+import { deckSchema, type DeckEntity } from "../src/schemas/deck";
 
 const sampleDraftDeck: DeckEntity = {
   id: "deck-1",
@@ -162,10 +162,13 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
         entityId: "deck-1",
       });
 
-      const updatedDeck = await entityService.getEntity<DeckEntity>({
-        entityType: "deck",
-        id: "deck-1",
-      });
+      const updatedDeck = await entityService.getEntity(
+        {
+          entityType: "deck",
+          id: "deck-1",
+        },
+        deckSchema,
+      );
       expect(updatedDeck?.metadata.status).toBe("published");
     });
   });

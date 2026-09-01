@@ -1,4 +1,8 @@
-import type { BaseEntity, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  BaseDataSourceContext,
+  EntitySchema,
+} from "@brains/plugins";
 import {
   sortByPublicationDate,
   type EntityWithPublishedAt,
@@ -24,12 +28,17 @@ export async function fetchRecentEntities<
   D,
 >(
   entityService: DataSourceEntityService,
-  params: { entityType: string; count: number; parse: (entity: E) => D },
+  params: {
+    entityType: string;
+    entitySchema: EntitySchema<E>;
+    count: number;
+    parse: (entity: E) => D;
+  },
 ): Promise<D[]> {
-  const entities = await entityService.listEntities<E>({
-    entityType: params.entityType,
-    options: { limit: 20 },
-  });
+  const entities = await entityService.listEntities(
+    { entityType: params.entityType, options: { limit: 20 } },
+    params.entitySchema,
+  );
   return entities
     .sort(sortByPublicationDate)
     .slice(0, params.count)

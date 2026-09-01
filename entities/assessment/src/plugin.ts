@@ -186,10 +186,13 @@ export class SwotAssessmentPlugin extends EntityPlugin<
         progressReporter,
       );
 
-      const entity = await context.entityService.getEntity<SwotEntity>({
-        entityType: "swot",
-        id: "swot",
-      });
+      const entity = await context.entityService.getEntity(
+        {
+          entityType: "swot",
+          id: "swot",
+        },
+        swotEntitySchema,
+      );
       if (!entity) {
         throw new Error("Expected SWOT entity to be created during eval");
       }
@@ -207,10 +210,13 @@ export class SwotAssessmentPlugin extends EntityPlugin<
             signal,
           }): Promise<z.input<typeof swotWidgetDataSchema>> => {
             signal.throwIfAborted();
-            const swot = await context.entityService.getEntity<SwotEntity>({
-              entityType: "swot",
-              id: "swot",
-            });
+            const swot = await context.entityService.getEntity(
+              {
+                entityType: "swot",
+                id: "swot",
+              },
+              swotEntitySchema,
+            );
             signal.throwIfAborted();
             if (!swot) return { status: "generating" };
             const { frontmatter } = swotAdapter.parseSwotContent(swot.content);

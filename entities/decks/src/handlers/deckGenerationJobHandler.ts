@@ -47,6 +47,22 @@ export const deckGenerationResultSchema: ReturnType<
 
 export type DeckGenerationResult = z.output<typeof deckGenerationResultSchema>;
 
+/** Shape the deck generation template returns. */
+export const generatedDeckSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+  description: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  content: z.string(),
+  description: z.string(),
+});
+
+/** Shape the deck description template returns. */
+export const generatedDeckDescriptionSchema: z.ZodObject<{
+  description: z.ZodString;
+}> = z.object({ description: z.string() });
+
 /**
  * Job handler for deck generation
  * Handles AI-powered content generation and entity creation
@@ -127,11 +143,7 @@ Add your conclusion here`;
           representedIdentity: "anchor",
           ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
         },
-        z.object({
-          title: z.string(),
-          content: z.string(),
-          description: z.string(),
-        }),
+        generatedDeckSchema,
       );
 
       title = title ?? generated.title;
@@ -156,7 +168,7 @@ Add your conclusion here`;
           templateName: "decks:description",
           representedIdentity: "none",
         },
-        z.object({ description: z.string() }),
+        generatedDeckDescriptionSchema,
       );
 
       description = descGenerated.description;

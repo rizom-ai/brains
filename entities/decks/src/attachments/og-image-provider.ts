@@ -5,7 +5,7 @@ import {
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { DeckEntity } from "../schemas/deck";
-import { deckFrontmatterSchema } from "../schemas/deck";
+import { deckFrontmatterSchema, deckSchema } from "../schemas/deck";
 import {
   DECK_OG_IMAGE_ATTACHMENT_TYPE,
   deckOgImageTemplate,
@@ -15,6 +15,7 @@ import {
 export const createDeckOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<DeckEntity, DeckOgImageTemplateData>({
     sourceEntityType: "deck",
+    entitySchema: deckSchema,
     attachmentType: DECK_OG_IMAGE_ATTACHMENT_TYPE,
     template: deckOgImageTemplate,
     themeMode: "dark",

@@ -10,7 +10,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
+import { blogPostSchema, type BlogPostFrontmatter } from "../schemas/blog-post";
 
 /**
  * Input schema for blog generation job
@@ -25,6 +25,22 @@ export interface BlogGenerationJobData {
   seriesIndex?: number | undefined;
   skipAi?: boolean | undefined;
 }
+
+/** Shape the blog generation template returns. */
+export const generatedBlogPostSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+  excerpt: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  content: z.string(),
+  excerpt: z.string(),
+});
+
+/** Shape the blog excerpt template returns. */
+export const generatedExcerptSchema: z.ZodObject<{
+  excerpt: z.ZodString;
+}> = z.object({ excerpt: z.string() });
 
 export const blogGenerationJobSchema: z.ZodType<BlogGenerationJobData> =
   z.object({
@@ -125,11 +141,7 @@ Add your conclusion here.`;
           representedIdentity: "anchor",
           ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
         },
-        z.object({
-          title: z.string(),
-          content: z.string(),
-          excerpt: z.string(),
-        }),
+        generatedBlogPostSchema,
       );
 
       title = title ?? generated.title;
@@ -154,7 +166,7 @@ Add your conclusion here.`;
           templateName: "blog:excerpt",
           representedIdentity: "none",
         },
-        z.object({ excerpt: z.string() }),
+        generatedExcerptSchema,
       );
 
       excerpt = excerptGenerated.excerpt;
@@ -175,10 +187,10 @@ Add your conclusion here.`;
     // Handle series indexing
     let finalSeriesIndex = seriesIndex;
     if (seriesName && !seriesIndex) {
-      const seriesPosts =
-        await this.context.entityService.listEntities<BlogPost>({
-          entityType: "post",
-        });
+      const seriesPosts = await this.context.entityService.listEntities(
+        { entityType: "post" },
+        blogPostSchema,
+      );
       const postsInSeries = seriesPosts.filter(
         (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
       );

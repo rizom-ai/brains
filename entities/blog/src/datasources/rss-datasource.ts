@@ -7,7 +7,10 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { BlogPost } from "../schemas/blog-post";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostSchema,
+} from "../schemas/blog-post";
 import type { BlogPostWithData } from "./blog-datasource";
 import { generateRSSFeed, type RSSFeedConfig } from "../rss/feed-generator";
 
@@ -54,12 +57,15 @@ export class RSSDataSource implements DataSource {
     const entityService = context.entityService;
 
     // Fetch all published posts
-    const allPosts: BlogPost[] = await entityService.listEntities({
-      entityType: "post",
-      options: {
-        limit: 1000,
+    const allPosts: BlogPost[] = await entityService.listEntities(
+      {
+        entityType: "post",
+        options: {
+          limit: 1000,
+        },
       },
-    });
+      blogPostSchema,
+    );
 
     // Filter only published posts and parse frontmatter
     const publishedPosts: BlogPostWithData[] = allPosts

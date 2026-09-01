@@ -166,10 +166,13 @@ export class WishlistPlugin extends EntityPlugin<
         definition: topWishesWidget,
         load: async ({ signal }) => {
           signal.throwIfAborted();
-          const wishes = await context.entityService.listEntities<WishEntity>({
-            entityType: "wish",
-            options: { limit: 10 },
-          });
+          const wishes = await context.entityService.listEntities(
+            {
+              entityType: "wish",
+              options: { limit: 10 },
+            },
+            wishSchema,
+          );
           signal.throwIfAborted();
           sortWishesByDemand(wishes);
           return {

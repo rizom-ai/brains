@@ -8,8 +8,8 @@ import {
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { SkillAdapter } from "../adapters/skill-adapter";
-import type { AgentEntity } from "../schemas/agent";
-import { skillFrontmatterSchema, type SkillEntity } from "../schemas/skill";
+import { agentEntitySchema } from "../schemas/agent";
+import { skillEntitySchema, skillFrontmatterSchema } from "../schemas/skill";
 import { skillDerivationTemplate } from "../templates/skill-derivation-template";
 import {
   SKILL_DERIVATION_PROJECTION_ID,
@@ -67,14 +67,20 @@ async function selectSkillInput(
         entityType: "topic",
         options: { filter: { visibilityScope: targetVisibility } },
       }),
-      context.entities.listEntities<AgentEntity>({
-        entityType: "agent",
-        options: { filter: { visibilityScope: targetVisibility } },
-      }),
-      context.entities.listEntities<SkillEntity>({
-        entityType: SKILL_ENTITY_TYPE,
-        options: { filter: { visibilityScope: targetVisibility } },
-      }),
+      context.entities.listEntities(
+        {
+          entityType: "agent",
+          options: { filter: { visibilityScope: targetVisibility } },
+        },
+        agentEntitySchema,
+      ),
+      context.entities.listEntities(
+        {
+          entityType: SKILL_ENTITY_TYPE,
+          options: { filter: { visibilityScope: targetVisibility } },
+        },
+        skillEntitySchema,
+      ),
       context.appInfo(),
       context.resolvePrompt(
         SKILL_DERIVATION_TEMPLATE_REF,

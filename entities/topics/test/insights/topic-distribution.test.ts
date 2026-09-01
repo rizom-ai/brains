@@ -4,12 +4,9 @@ import {
   createTopicDistributionInsight,
   type TopicDistributionEntry,
 } from "../../src/insights/topic-distribution";
-import type {
-  BaseEntity,
-  ContentVisibility,
-  IEntityService,
-} from "@brains/plugins";
-import { createMockEntityService } from "@brains/test-utils";
+import type { BaseEntity, ContentVisibility } from "@brains/plugins";
+import { createMockShell } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
 const topicDistributionSchema = z.array(
@@ -36,12 +33,10 @@ function makeTopicEntity(
   };
 }
 
-function topicService(topics: BaseEntity[]): IEntityService {
-  return createMockEntityService({
-    entityTypes: ["topic"],
-    listEntitiesImpl: async (request) =>
-      request.entityType === "topic" ? topics : [],
-  });
+function topicShell(topics: BaseEntity[]): MockShell {
+  const shell = createMockShell();
+  shell.addEntities(topics);
+  return shell;
 }
 
 function getTopicDistribution(
@@ -52,51 +47,55 @@ function getTopicDistribution(
 
 describe("topic-distribution insight", () => {
   it("should return topics with titles", async () => {
-    const topics = [
+    const shell = topicShell([
       makeTopicEntity("education", "Education"),
       makeTopicEntity("typescript", "TypeScript"),
-    ];
+    ]);
 
     const handler = createTopicDistributionInsight();
-    const entityService = topicService(topics);
-    const result = await handler(entityService, "public");
-    const dist = getTopicDistribution(result);
+    const result = await handler(shell.getEntityService(), "public");
 
-    expect(entityService.listEntities).toHaveBeenCalledWith({
-      entityType: "topic",
-      options: { filter: { visibilityScope: "public" } },
-    });
-    expect(dist).toEqual([
+    expect(getTopicDistribution(result)).toEqual([
       { topic: "education", title: "Education" },
       { topic: "typescript", title: "TypeScript" },
     ]);
   });
 
-  it("should return empty when no topics exist", async () => {
+  it("should return empty when no visible topics exist", async () => {
+    // A restricted topic registers the type but stays outside public scope.
+    const shell = topicShell([
+      makeTopicEntity("private-topic", "Private Topic", "restricted"),
+    ]);
+
     const handler = createTopicDistributionInsight();
-    const result = await handler(topicService([]), "public");
+    const result = await handler(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result)).toEqual([]);
   });
 
-  it("should pass the caller visibility scope to topic listing", async () => {
-    const handler = createTopicDistributionInsight();
-    const entityService = topicService([
+  it("should scope topic listing to the caller visibility", async () => {
+    const shell = topicShell([
+      makeTopicEntity("public-topic", "Public Topic", "public"),
       makeTopicEntity("shared-topic", "Shared Topic", "shared"),
+      makeTopicEntity("restricted-topic", "Restricted Topic", "restricted"),
     ]);
+    const handler = createTopicDistributionInsight();
 
-    await handler(entityService, "shared");
+    const sharedResult = await handler(shell.getEntityService(), "shared");
+    expect(
+      getTopicDistribution(sharedResult).map((entry) => entry.topic),
+    ).toEqual(["public-topic", "shared-topic"]);
 
-    expect(entityService.listEntities).toHaveBeenCalledWith({
-      entityType: "topic",
-      options: { filter: { visibilityScope: "shared" } },
-    });
+    const publicResult = await handler(shell.getEntityService(), "public");
+    expect(
+      getTopicDistribution(publicResult).map((entry) => entry.topic),
+    ).toEqual(["public-topic"]);
   });
 
   it("should return empty when topic entity type is not registered", async () => {
     const handler = createTopicDistributionInsight();
     const result = await handler(
-      createMockEntityService({ entityTypes: [] }),
+      createMockShell().getEntityService(),
       "public",
     );
 

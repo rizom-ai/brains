@@ -79,17 +79,20 @@ export interface LinkMetadata {
   [key: string]: unknown;
   title: string;
   status: LinkStatus;
+  capturedAt: string;
 }
 
 type LinkMetadataSchema = z.ZodObject<{
   title: z.ZodString;
   status: z.ZodType<LinkStatus, LinkStatus>;
+  capturedAt: z.ZodString;
 }>;
 
 export const linkMetadataSchema: LinkMetadataSchema =
   linkFrontmatterSchema.pick({
     title: true,
     status: true,
+    capturedAt: true,
   });
 
 /**

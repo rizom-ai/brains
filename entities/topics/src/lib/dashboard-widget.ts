@@ -8,7 +8,7 @@ import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
 import { toTopicContentProjection } from "./topic-presenter";
-import type { TopicEntity } from "../schemas/topic";
+import { topicEntitySchema } from "../schemas/topic";
 
 const topicsWidgetDataSchema = z.object({
   items: z.array(
@@ -65,13 +65,16 @@ export function registerTopicsDashboardWidget(params: {
         definition: topicsWidget,
         load: async ({ signal }) => {
           signal.throwIfAborted();
-          const topics = await context.entityService.listEntities<TopicEntity>({
-            entityType: TOPIC_ENTITY_TYPE,
-            options: {
-              limit: 10,
-              sortFields: [{ field: "updated", direction: "desc" }],
+          const topics = await context.entityService.listEntities(
+            {
+              entityType: TOPIC_ENTITY_TYPE,
+              options: {
+                limit: 10,
+                sortFields: [{ field: "updated", direction: "desc" }],
+              },
             },
-          });
+            topicEntitySchema,
+          );
           signal.throwIfAborted();
           return {
             items: topics.map((topic) => {

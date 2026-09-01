@@ -121,7 +121,11 @@ This is a test article summary.`;
       const entity = createMockLinkEntity({
         id: "test-id",
         content: mockLinkContent.simple,
-        metadata: { status: "draft", title: "Test Article" },
+        metadata: {
+          status: "draft",
+          title: "Test Article",
+          capturedAt: "2025-01-30T10:00:00.000Z",
+        },
       });
 
       const markdown = adapter.toMarkdown(entity);
@@ -138,17 +142,28 @@ This is a test article summary.`;
       expect(partialEntity.entityType).toBe("link");
       expect(partialEntity.metadata?.status).toBe("draft");
       expect(partialEntity.metadata?.title).toBe("Test Article");
+      expect(partialEntity.metadata?.capturedAt).toBe(
+        "2025-01-30T10:00:00.000Z",
+      );
     });
 
     it("should extract metadata from entity", () => {
       const entity = createMockLinkEntity({
         id: "test-id",
         content: mockLinkContent.simple,
-        metadata: { status: "draft", title: "Test Article" },
+        metadata: {
+          status: "draft",
+          title: "Test Article",
+          capturedAt: "2025-01-30T10:00:00.000Z",
+        },
       });
 
       const metadata = adapter.extractMetadata(entity);
-      expect(metadata).toEqual({ status: "draft", title: "Test Article" });
+      expect(metadata).toEqual({
+        status: "draft",
+        title: "Test Article",
+        capturedAt: "2025-01-30T10:00:00.000Z",
+      });
     });
   });
 });
@@ -275,6 +290,7 @@ describe("LinkPlugin with Harness", () => {
       expect(pendingEntity?.metadata).toEqual({
         status: "pending",
         title: "anthropic.com",
+        capturedAt: expect.any(String),
       });
       expect(pendingEntity?.content).toContain(
         "Pending link capture for https://anthropic.com/research.",

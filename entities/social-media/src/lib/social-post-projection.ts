@@ -9,7 +9,7 @@ import { formatVoiceGuidance, parseStyleGuideContent } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
-import type { SocialPost } from "../schemas/social-post";
+import { socialPostSchema } from "../schemas/social-post";
 import {
   linkedinPostSchema,
   linkedinTemplate,
@@ -68,9 +68,12 @@ async function selectSocialPostInput(
     appInfo,
   ] = await Promise.all([
     context.entities.listEntities({ entityType: "post" }),
-    context.entities.listEntities<SocialPost>({
-      entityType: "social-post",
-    }),
+    context.entities.listEntities(
+      {
+        entityType: "social-post",
+      },
+      socialPostSchema,
+    ),
     context.entities.getEntity({
       entityType: "style-guide",
       id: "style-guide",

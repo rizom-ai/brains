@@ -24,7 +24,7 @@ import { deckGenerationTemplate } from "./templates/generation-template";
 import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
-import type { DeckEntity } from "./schemas/deck";
+import { deckSchema, type DeckEntity } from "./schemas/deck";
 import { DECK_CAROUSEL_ATTACHMENT_TYPE } from "./attachments/carousel-template";
 import {
   DeckCarouselAttachmentProvider,
@@ -153,10 +153,13 @@ export class DecksPlugin extends EntityPlugin<
       if (entityType !== "deck") return { success: true };
 
       try {
-        const deck = await context.entityService.getEntity<DeckEntity>({
-          entityType: "deck",
-          id: entityId,
-        });
+        const deck = await context.entityService.getEntity(
+          {
+            entityType: "deck",
+            id: entityId,
+          },
+          deckSchema,
+        );
         if (!deck) {
           await context.messaging.send({
             type: PUBLISH_CHANNELS.reportFailure,

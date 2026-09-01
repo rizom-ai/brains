@@ -7,7 +7,7 @@ import type {
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import type { Series } from "../schemas/series";
+import { seriesSchema, type Series } from "../schemas/series";
 import {
   seriesFrontmatterSchema,
   seriesWithDataSchema,
@@ -122,9 +122,12 @@ export class SeriesDataSource implements DataSource {
     outputSchema: DataSourceSchema<T>,
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
-    const seriesEntities = await entityService.listEntities<Series>({
-      entityType: "series",
-    });
+    const seriesEntities = await entityService.listEntities(
+      {
+        entityType: "series",
+      },
+      seriesSchema,
+    );
 
     // Count entities per series across ALL entity types
     const entityCounts = await this.countEntitiesPerSeries(entityService);
@@ -150,12 +153,15 @@ export class SeriesDataSource implements DataSource {
     seriesEntity?: Series,
   ): Promise<T> {
     if (!seriesEntity) {
-      const candidates = await entityService.listEntities<Series>({
-        entityType: "series",
-        options: {
-          filter: { metadata: { title: seriesName } },
+      const candidates = await entityService.listEntities(
+        {
+          entityType: "series",
+          options: {
+            filter: { metadata: { title: seriesName } },
+          },
         },
-      });
+        seriesSchema,
+      );
       seriesEntity = candidates[0];
     }
 
@@ -190,12 +196,15 @@ export class SeriesDataSource implements DataSource {
     outputSchema: DataSourceSchema<T>,
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
-    const candidates = await entityService.listEntities<Series>({
-      entityType: "series",
-      options: {
-        filter: { metadata: { slug: seriesSlug } },
+    const candidates = await entityService.listEntities(
+      {
+        entityType: "series",
+        options: {
+          filter: { metadata: { slug: seriesSlug } },
+        },
       },
-    });
+      seriesSchema,
+    );
 
     const seriesEntity = candidates[0];
     if (!seriesEntity) {

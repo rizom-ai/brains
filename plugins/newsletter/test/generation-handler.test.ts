@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   GenerationJobHandler,
+  generatedNewsletterSchema,
   generationJobSchema,
   type GenerationJobData,
 } from "../src/entity/handlers/generation-handler";
@@ -125,7 +126,7 @@ describe("GenerationJobHandler", () => {
           templateName: "newsletter:generation",
           representedIdentity: "anchor",
         },
-        expect.anything(),
+        generatedNewsletterSchema,
       );
     });
 

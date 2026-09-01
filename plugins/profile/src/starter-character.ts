@@ -223,7 +223,7 @@ async function collectContentSignals(
 
   const signals: StarterCharacterContentSignal[] = [];
   for (const [entityType] of candidateTypes) {
-    const entities = await entityService.listEntities<BaseEntity>({
+    const entities = await entityService.listEntities({
       entityType,
       options: {
         limit: MAX_CONTENT_SIGNALS,
@@ -276,7 +276,7 @@ export async function buildStarterCharacterBrief(options: {
     ? collectPathSignals(anchorMetadata, ANCHOR_SIGNAL_PATHS)
     : [];
 
-  const styleEntity = await entityService.getEntity<BaseEntity>({
+  const styleEntity = await entityService.getEntity({
     entityType: "style-guide",
     id: "style-guide",
     visibilityScope: "restricted",

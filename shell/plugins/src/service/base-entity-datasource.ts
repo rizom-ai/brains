@@ -5,6 +5,7 @@ import type {
   BaseDataSourceContext,
   EntityServiceClient,
   BaseEntity,
+  EntitySchema,
   ListOptions,
   SortField,
   PaginationInfo,
@@ -70,9 +71,13 @@ export interface NavigationResult<T> {
 /**
  * Configuration for a BaseEntityDataSource.
  */
-export interface EntityDataSourceConfig {
+export interface EntityDataSourceConfig<
+  TEntity extends BaseEntity = BaseEntity,
+> {
   /** Entity type to query (e.g., "post", "deck", "project") */
   entityType: string;
+  /** Schema for entities of `entityType`; reads are parsed with it. */
+  entitySchema: EntitySchema<TEntity>;
   /** Default sort order for list and navigation queries */
   defaultSort: SortField[];
   /** Default limit for list queries (defaults to 100) */
@@ -118,7 +123,7 @@ export abstract class BaseEntityDataSource<
   abstract readonly name: string;
   abstract readonly description: string;
 
-  protected abstract readonly config: EntityDataSourceConfig;
+  protected abstract readonly config: EntityDataSourceConfig<TEntity>;
 
   constructor(logger: Logger) {
     this.logger = logger;
@@ -251,15 +256,18 @@ export abstract class BaseEntityDataSource<
 
     // Run list and count queries in parallel when pagination is needed
     const [entities, totalItems] = await Promise.all([
-      entityService.listEntities<TEntity>({
-        entityType: this.config.entityType,
-        options: {
-          limit: itemsPerPage,
-          offset,
-          sortFields: this.config.defaultSort,
-          ...listOptions,
+      entityService.listEntities(
+        {
+          entityType: this.config.entityType,
+          options: {
+            limit: itemsPerPage,
+            offset,
+            sortFields: this.config.defaultSort,
+            ...listOptions,
+          },
         },
-      }),
+        this.config.entitySchema,
+      ),
       needsPagination
         ? entityService.countEntities({
             entityType: this.config.entityType,
@@ -288,13 +296,16 @@ export abstract class BaseEntityDataSource<
     sortFields?: SortField[],
   ): Promise<NavigationResult<TTransformed>> {
     const limit = this.config.navigationLimit ?? 1000;
-    const allEntities = await entityService.listEntities<TEntity>({
-      entityType: this.config.entityType,
-      options: {
-        limit,
-        sortFields: sortFields ?? this.config.defaultSort,
+    const allEntities = await entityService.listEntities(
+      {
+        entityType: this.config.entityType,
+        options: {
+          limit,
+          sortFields: sortFields ?? this.config.defaultSort,
+        },
       },
-    });
+      this.config.entitySchema,
+    );
 
     const currentIndex = allEntities.findIndex((e) => e.id === entity.id);
     const prevEntity =
@@ -318,10 +329,10 @@ export abstract class BaseEntityDataSource<
     entityService: EntityServiceClient,
   ): Promise<TEntity> {
     if (this.config.lookupField === "id") {
-      const entity = await entityService.getEntity<TEntity>({
-        entityType: this.config.entityType,
-        id: id,
-      });
+      const entity = await entityService.getEntity(
+        { entityType: this.config.entityType, id },
+        this.config.entitySchema,
+      );
       if (!entity) {
         throw new Error(`${this.config.entityType} not found: ${id}`);
       }
@@ -329,13 +340,16 @@ export abstract class BaseEntityDataSource<
     }
 
     // Default: lookup by slug in metadata
-    const entities = await entityService.listEntities<TEntity>({
-      entityType: this.config.entityType,
-      options: {
-        filter: { metadata: { slug: id } },
-        limit: 1,
+    const entities = await entityService.listEntities(
+      {
+        entityType: this.config.entityType,
+        options: {
+          filter: { metadata: { slug: id } },
+          limit: 1,
+        },
       },
-    });
+      this.config.entitySchema,
+    );
 
     const entity = entities[0];
     if (!entity) {

@@ -62,6 +62,7 @@ import {
   type CreateEntityRequest,
   type UpdateEntityRequest,
   type UpsertEntityRequest,
+  type EntitySchema,
   type GetEntityRequest,
   type ListEntitiesRequest,
   type EntityMutationResult,
@@ -404,6 +405,117 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const messageBus = messageBusSurface as MessageBus;
 
   // --- Entity Service (stateful) ---
+  // Overloaded like the real service: without a schema reads return the
+  // stored BaseEntity view; with one they parse, so T is proven not asserted.
+  async function getEntityFake(
+    request: GetEntityRequest,
+  ): Promise<BaseEntity | null>;
+  async function getEntityFake<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntityFake(
+    request: GetEntityRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
+    const entity = entities.get(request.id);
+    if (entity?.entityType !== request.entityType) return null;
+    const visible =
+      request.visibilityScope === undefined ||
+      getVisibleContentVisibilities(request.visibilityScope).includes(
+        entity.visibility,
+      );
+    if (!visible) return null;
+    return schema ? schema.parse(entity) : entity;
+  }
+
+  // Mirrors the real query layer's ORDER BY: system fields come from the
+  // entity, everything else from metadata; NULLs sort smallest (SQLite),
+  // and nullsFirst forces them ahead regardless of direction.
+  function sortFieldValue(entity: BaseEntity, field: string): unknown {
+    if (field === "id" || field === "created" || field === "updated") {
+      return entity[field];
+    }
+    return entity.metadata[field];
+  }
+
+  function compareBySortFields(
+    left: BaseEntity,
+    right: BaseEntity,
+    sortFields: NonNullable<
+      NonNullable<ListEntitiesRequest["options"]>["sortFields"]
+    >,
+  ): number {
+    for (const { field, direction, nullsFirst } of sortFields) {
+      const a = sortFieldValue(left, field);
+      const b = sortFieldValue(right, field);
+      const aNull = a === null || a === undefined;
+      const bNull = b === null || b === undefined;
+      if (aNull || bNull) {
+        if (aNull && bNull) continue;
+        if (nullsFirst) return aNull ? -1 : 1;
+        // SQLite: NULL is smaller than every value.
+        const nullCmp = aNull ? -1 : 1;
+        if (direction === "desc") return -nullCmp;
+        return nullCmp;
+      }
+      const cmp =
+        typeof a === "number" && typeof b === "number"
+          ? a - b
+          : String(a) < String(b)
+            ? -1
+            : String(a) > String(b)
+              ? 1
+              : 0;
+      if (cmp !== 0) return direction === "desc" ? -cmp : cmp;
+    }
+    return 0;
+  }
+
+  function filterEntitiesFake(request: ListEntitiesRequest): BaseEntity[] {
+    const scope = request.options?.filter?.visibilityScope;
+    const visible = scope
+      ? new Set(getVisibleContentVisibilities(scope))
+      : null;
+    let results = Array.from(entities.values()).filter(
+      (e) =>
+        e.entityType === request.entityType &&
+        (visible === null || visible.has(e.visibility)),
+    );
+    if (request.options?.publishedOnly) {
+      results = results.filter((e) => e.metadata["status"] === "published");
+    }
+    if (request.options?.filter?.metadata) {
+      const filterEntries = Object.entries(request.options.filter.metadata);
+      results = results.filter((e) =>
+        filterEntries.every(([key, value]) => e.metadata[key] === value),
+      );
+    }
+    return results;
+  }
+
+  async function listEntitiesFake(
+    request: ListEntitiesRequest,
+  ): Promise<BaseEntity[]>;
+  async function listEntitiesFake<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntitiesFake(
+    request: ListEntitiesRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity[]> {
+    const sortFields = request.options?.sortFields ?? [
+      { field: "updated", direction: "desc" as const },
+    ];
+    const offset = request.options?.offset ?? 0;
+    const limit = request.options?.limit;
+    const results = filterEntitiesFake(request)
+      .sort((left, right) => compareBySortFields(left, right, sortFields))
+      .slice(offset, limit === undefined ? undefined : offset + limit);
+    return schema ? results.map((entity) => schema.parse(entity)) : results;
+  }
+
   const defaultEntityService: IEntityService = {
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
@@ -528,43 +640,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       );
       return true;
     },
-    getEntity: async <T extends BaseEntity>(request: {
-      entityType: string;
-      id: string;
-      visibilityScope?: BaseEntity["visibility"];
-    }): Promise<T | null> => {
-      const entity = entities.get(request.id);
-      if (entity?.entityType !== request.entityType) return null;
-      if (request.visibilityScope === undefined) return entity as T;
-      return getVisibleContentVisibilities(request.visibilityScope).includes(
-        entity.visibility,
-      )
-        ? (entity as T)
-        : null;
-    },
-    listEntities: async <T extends BaseEntity>(
-      request: ListEntitiesRequest,
-    ): Promise<T[]> => {
-      const scope = request.options?.filter?.visibilityScope;
-      const visible = scope
-        ? new Set(getVisibleContentVisibilities(scope))
-        : null;
-      let results = Array.from(entities.values()).filter(
-        (e) =>
-          e.entityType === request.entityType &&
-          (visible === null || visible.has(e.visibility)),
-      );
-      if (request.options?.publishedOnly) {
-        results = results.filter((e) => e.metadata["status"] === "published");
-      }
-      if (request.options?.filter?.metadata) {
-        const filterEntries = Object.entries(request.options.filter.metadata);
-        results = results.filter((e) =>
-          filterEntries.every(([key, value]) => e.metadata[key] === value),
-        );
-      }
-      return results as T[];
-    },
+    getEntity: getEntityFake,
+    listEntities: listEntitiesFake,
     search: async () => [],
     searchWithDistances: async () => [],
     getEntityTypes: () => Array.from(entityTypes),
@@ -621,7 +698,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return acknowledged;
     },
     getWeightMap: () => ({}),
-    countEntities: async () => 0,
+    countEntities: async (request) => filterEntitiesFake(request).length,
     getEntityCounts: async (
       visibilityScope?: BaseEntity["visibility"],
     ): Promise<Array<{ entityType: string; count: number }>> => {
@@ -641,9 +718,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     // The fake stores serialized entities directly, so there is no separate
     // unresolved form to return.
-    getEntityRaw: async <T extends BaseEntity>(
-      request: GetEntityRequest,
-    ): Promise<T | null> => defaultEntityService.getEntity<T>(request),
+    getEntityRaw: getEntityFake,
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
     // it reports an empty, ready index rather than pretending to search one.

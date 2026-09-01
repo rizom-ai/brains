@@ -13,7 +13,10 @@ import { socialPostAdapter } from "../adapters/social-post-adapter";
 import { getTemplateName } from "../templates";
 
 /** Shape the social generation templates produce; ai.generate parses through it. */
-const generatedPostSchema = z.object({
+export const generatedPostSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
   title: z.string(),
   content: z.string(),
 });

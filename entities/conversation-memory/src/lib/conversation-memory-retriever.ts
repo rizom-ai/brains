@@ -1,10 +1,12 @@
 import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import type {
-  ActionItemEntity,
-  DecisionEntity,
+import {
+  actionItemSchema,
+  decisionSchema,
+  type DecisionEntity,
 } from "../schemas/conversation-memory";
-import type { SummaryEntity } from "../schemas/summary";
+import { summarySchema, type SummaryEntity } from "../schemas/summary";
+import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import {
   ACTION_ITEM_ENTITY_TYPE,
@@ -26,8 +28,14 @@ const MAX_SUMMARY_CONTEXT_ENTRIES = 3;
 const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
 const summaryAdapter = new SummaryAdapter();
 
-type ConversationMemorySearchEntity =
-  SummaryEntity | DecisionEntity | ActionItemEntity;
+export const conversationMemorySearchEntitySchema: ReturnType<
+  typeof z.union<
+    [typeof summarySchema, typeof decisionSchema, typeof actionItemSchema]
+  >
+> = z.union([summarySchema, decisionSchema, actionItemSchema]);
+type ConversationMemorySearchEntity = z.output<
+  typeof conversationMemorySearchEntitySchema
+>;
 
 export interface RetrieveConversationMemoryInput {
   query?: string | undefined;
@@ -153,17 +161,17 @@ export class ConversationMemoryRetriever {
     const candidateLimit = limit * CANDIDATE_MULTIPLIER;
 
     if (query.length > 0) {
-      const results =
-        await this.context.entityService.search<ConversationMemorySearchEntity>(
-          {
-            query,
-            options: {
-              types: MEMORY_ENTITY_TYPES,
-              limit: candidateLimit,
-              ...(visibilityScope ? { visibilityScope } : {}),
-            },
+      const results = await this.context.entityService.search(
+        {
+          query,
+          options: {
+            types: MEMORY_ENTITY_TYPES,
+            limit: candidateLimit,
+            ...(visibilityScope ? { visibilityScope } : {}),
           },
-        );
+        },
+        conversationMemorySearchEntitySchema,
+      );
       return results.map((result) => ({
         entity: result.entity,
         score: result.score,
@@ -173,7 +181,7 @@ export class ConversationMemoryRetriever {
 
     const entityGroups = await Promise.all(
       MEMORY_ENTITY_TYPES.map((entityType) =>
-        this.context.entityService.listEntities<ConversationMemorySearchEntity>(
+        this.context.entityService.listEntities(
           {
             entityType,
             options: {
@@ -182,6 +190,7 @@ export class ConversationMemoryRetriever {
               ...(visibilityScope ? { filter: { visibilityScope } } : {}),
             },
           },
+          conversationMemorySearchEntitySchema,
         ),
       ),
     );

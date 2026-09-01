@@ -6,7 +6,7 @@ import type {
   DataSourceSchema,
   EntityDataSourceConfig,
 } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
+import { topicEntitySchema, type TopicEntity } from "../schemas/topic";
 import type { Logger } from "@brains/utils/logger";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { toTopicDetail, toTopicSummary } from "../lib/topic-presenter";
@@ -21,7 +21,7 @@ import type {
  * Handles both list and detail views for topics.
  */
 export class TopicsDataSource extends BaseEntityDataSource<
-  BaseEntity,
+  TopicEntity,
   TopicSummary,
   TopicListData
 > {
@@ -30,8 +30,9 @@ export class TopicsDataSource extends BaseEntityDataSource<
   readonly description: string =
     "Fetches and transforms topic entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<TopicEntity> = {
     entityType: TOPIC_ENTITY_TYPE,
+    entitySchema: topicEntitySchema,
     defaultSort: [{ field: "updated" as const, direction: "desc" as const }],
     defaultLimit: 100,
     lookupField: "id" as const,
@@ -42,7 +43,7 @@ export class TopicsDataSource extends BaseEntityDataSource<
     this.logger.debug("TopicsDataSource initialized");
   }
 
-  protected transformEntity(entity: BaseEntity): TopicSummary {
+  protected transformEntity(entity: TopicEntity): TopicSummary {
     return toTopicSummary(entity);
   }
 

@@ -13,7 +13,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { extractDomain, type FetchFn } from "../lib/fetch-agent-card";
-import type { AgentEntity } from "../schemas/agent";
+import { agentEntitySchema } from "../schemas/agent";
 
 const trustLevelSchema = z.enum(["public", "trusted"]);
 
@@ -60,10 +60,13 @@ async function resolveAgentDomain(
   agent: string,
 ): Promise<{ domain: string } | null> {
   const id = normalizeAgentLookup(agent);
-  const entity = await context.entityService.getEntity<AgentEntity>({
-    entityType: AGENT_ENTITY_TYPE,
-    id,
-  });
+  const entity = await context.entityService.getEntity(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+      id,
+    },
+    agentEntitySchema,
+  );
   if (!entity) return null;
 
   const domain = normalizeAgentLookup(

@@ -341,7 +341,7 @@ export class LinkPlugin extends EntityPlugin<
         id: entityId,
         entityType: "link",
         content,
-        metadata: { status: "pending", title: fallbackTitle },
+        metadata: { status: "pending", title: fallbackTitle, capturedAt: now },
         ...(visibility !== undefined ? { visibility } : {}),
         created: now,
         updated: now,

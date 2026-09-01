@@ -9,7 +9,7 @@ import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import type { BlogPost } from "../schemas/blog-post";
+import { blogPostSchema, type BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
 import {
@@ -87,8 +87,9 @@ export class BlogDataSource extends BaseEntityDataSource<
   readonly description =
     "Fetches and transforms blog post entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<BlogPost> = {
     entityType: "post",
+    entitySchema: blogPostSchema,
     defaultSort: [
       { field: "publishedAt" as const, direction: "desc" as const },
     ],
@@ -192,13 +193,16 @@ export class BlogDataSource extends BaseEntityDataSource<
     outputSchema: DataSourceSchema<T>,
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
-    const publishedPosts = await entityService.listEntities<BlogPost>({
-      entityType: this.config.entityType,
-      options: {
-        limit: 1,
-        sortFields: [{ field: "publishedAt", direction: "desc" }],
+    const publishedPosts = await entityService.listEntities(
+      {
+        entityType: this.config.entityType,
+        options: {
+          limit: 1,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
       },
-    });
+      blogPostSchema,
+    );
 
     if (publishedPosts.length === 0) {
       this.logger.info("No published blog posts found for homepage");
@@ -259,14 +263,17 @@ export class BlogDataSource extends BaseEntityDataSource<
     seriesName: string,
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<BlogPostTransformed[]> {
-    const entities = await entityService.listEntities<BlogPost>({
-      entityType: this.config.entityType,
-      options: {
-        limit: 100,
-        filter: { metadata: { seriesName } },
-        sortFields: [{ field: "seriesIndex", direction: "asc" }],
+    const entities = await entityService.listEntities(
+      {
+        entityType: this.config.entityType,
+        options: {
+          limit: 100,
+          filter: { metadata: { seriesName } },
+          sortFields: [{ field: "seriesIndex", direction: "asc" }],
+        },
       },
-    });
+      blogPostSchema,
+    );
     return entities.map(parsePostData);
   }
 

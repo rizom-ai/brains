@@ -4,6 +4,7 @@ import type {
   AttachmentResolveRequest,
   BaseEntity,
   EntityPluginContext,
+  EntitySchema,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
@@ -37,6 +38,8 @@ export interface MediaAttachmentProviderConfig<
 > {
   /** Entity type this provider derives its artifact from, e.g. `post`. */
   sourceEntityType: string;
+  /** Schema for entities of `sourceEntityType`; lookups are parsed with it. */
+  entitySchema: EntitySchema<TEntity>;
   /** Semantic attachment type this provider answers to. */
   attachmentType: string;
   template: MediaPageTemplate;
@@ -153,10 +156,13 @@ function createMediaAttachmentProvider<
         return undefined;
       }
 
-      const entity = await context.entityService.getEntity<TEntity>({
-        entityType: config.sourceEntityType,
-        id: request.sourceEntityId,
-      });
+      const entity = await context.entityService.getEntity(
+        {
+          entityType: config.sourceEntityType,
+          id: request.sourceEntityId,
+        },
+        config.entitySchema,
+      );
       if (!entity) return undefined;
 
       const content = await config.buildContent(

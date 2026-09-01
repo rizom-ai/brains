@@ -4,10 +4,10 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type {
-  ResolvedSiteInfoBody,
-  SiteInfoEntity,
-  SiteInfoBody,
+import {
+  siteInfoSchema,
+  type ResolvedSiteInfoBody,
+  type SiteInfoBody,
 } from "../schemas/site-info-schema";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 
@@ -137,10 +137,13 @@ export class SiteInfoService {
   public async getSiteInfo(): Promise<ResolvedSiteInfoBody> {
     try {
       // Always load fresh from database to avoid stale cache issues
-      const siteInfo = await this.entityService.getEntity<SiteInfoEntity>({
-        entityType: "site-info",
-        id: "site-info",
-      });
+      const siteInfo = await this.entityService.getEntity(
+        {
+          entityType: "site-info",
+          id: "site-info",
+        },
+        siteInfoSchema,
+      );
 
       if (siteInfo) {
         return this.resolveIdentityFallbacks(

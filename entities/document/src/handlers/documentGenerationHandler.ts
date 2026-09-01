@@ -16,6 +16,7 @@ import {
   countPdfPages,
   createPdfDataUrl,
   documentAdapter,
+  documentSchema,
   type DocumentEntity,
 } from "@brains/document";
 import { renderPdf as defaultRenderPdf } from "@brains/media-renderer";
@@ -346,11 +347,13 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     dedupKey: string,
     preferredDocumentId?: string,
   ): Promise<DocumentEntity | undefined> {
-    const documents =
-      await this.context.entityService.listEntities<DocumentEntity>({
+    const documents = await this.context.entityService.listEntities(
+      {
         entityType: "document",
         options: { filter: { metadata: { dedupKey } } },
-      });
+      },
+      documentSchema,
+    );
     if (documents.length > 1) {
       this.logger.warn("Multiple documents share dedupKey; using first", {
         dedupKey,
@@ -422,11 +425,13 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         continue;
       }
 
-      const document =
-        await this.context.entityService.getEntity<DocumentEntity>({
+      const document = await this.context.entityService.getEntity(
+        {
           entityType: "document",
           id: reference.id,
-        });
+        },
+        documentSchema,
+      );
       if (!document || !isSameSourceAttachment(document, data)) {
         filtered.push(reference);
       }

@@ -1,18 +1,19 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { LinksDataSource } from "../src/datasources/links-datasource";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { LinkStatus, LinkEntity } from "../src/schemas/link";
 import {
   createMockLogger,
-  createMockEntityService,
+  createMockShell,
   createTestEntity,
 } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 
 describe("LinksDataSource", () => {
   let datasource: LinksDataSource;
-  let mockEntityService: IEntityService;
+  let shell: MockShell;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
@@ -44,14 +45,15 @@ Summary for ${title}`;
       metadata: {
         title,
         status,
+        capturedAt,
       },
     });
   };
 
   beforeEach(() => {
     mockLogger = createMockLogger();
-    mockEntityService = createMockEntityService();
-    mockContext = { entityService: mockEntityService };
+    shell = createMockShell();
+    mockContext = { entityService: shell.getEntityService() };
 
     datasource = new LinksDataSource(mockLogger);
   });
@@ -62,10 +64,8 @@ Summary for ${title}`;
       totalCount: z.number(),
     });
 
-    it("should show only published links when context entityService is scoped to published", async () => {
-      // When publishedOnly is true, the context.entityService is a scoped wrapper
-      // that automatically filters. Mock returns only published links.
-      const publishedLinks = [
+    it("should return seeded links with parsed summaries", async () => {
+      shell.addEntities([
         createMockLink(
           "link-1",
           "Published Link",
@@ -78,11 +78,7 @@ Summary for ${title}`;
           "published",
           "2025-01-04T10:00:00.000Z",
         ),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        publishedLinks,
-      );
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "link" },
@@ -98,7 +94,7 @@ Summary for ${title}`;
     });
 
     it("should include all link statuses when entityService returns all", async () => {
-      const links = [
+      shell.addEntities([
         createMockLink(
           "link-1",
           "Published Link",
@@ -117,9 +113,7 @@ Summary for ${title}`;
           "pending",
           "2025-01-03T10:00:00.000Z",
         ),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(links);
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "link" },
@@ -135,17 +129,39 @@ Summary for ${title}`;
       expect(statuses).toContain("pending");
     });
 
-    it("should request DB-level sorting by capturedAt desc", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+    it("should sort links by capturedAt descending", async () => {
+      shell.addEntities([
+        createMockLink(
+          "link-old",
+          "Oldest Link",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+        ),
+        createMockLink(
+          "link-new",
+          "Newest Link",
+          "published",
+          "2025-01-03T10:00:00.000Z",
+        ),
+        createMockLink(
+          "link-mid",
+          "Middle Link",
+          "published",
+          "2025-01-02T10:00:00.000Z",
+        ),
+      ]);
 
-      await datasource.fetch({ entityType: "link" }, listSchema, mockContext);
+      const result = await datasource.fetch(
+        { entityType: "link" },
+        listSchema,
+        mockContext,
+      );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "link",
-        options: expect.objectContaining({
-          sortFields: [{ field: "capturedAt", direction: "desc" }],
-        }),
-      });
+      expect(result.links.map((l: { id: string }) => l.id)).toEqual([
+        "link-new",
+        "link-mid",
+        "link-old",
+      ]);
     });
   });
 

@@ -5,6 +5,12 @@ import {
   type EntityCount,
   type WebRouteDefinition,
 } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntitySchema,
+  EntitySearchRequest,
+  SearchResult,
+} from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
@@ -294,33 +300,50 @@ describe("DashboardPlugin", () => {
       });
 
       const entityService = shell.getEntityService();
-      entityService.search = (async () => [
-        {
-          entity: {
-            id: "verdigris-pigments",
-            entityType: "note",
-            title: "Verdigris pigments",
-            content: "",
-            created: "",
-            updated: "",
-            contentHash: "",
-          },
-          score: 1,
-          excerpt: "",
-        },
-        {
-          entity: {
-            id: "untitled-note",
-            entityType: "note",
-            content: "",
-            created: "",
-            updated: "",
-            contentHash: "",
-          },
-          score: 0.5,
-          excerpt: "",
-        },
-      ]) as typeof entityService.search;
+      const titledNote = {
+        id: "verdigris-pigments",
+        entityType: "note",
+        title: "Verdigris pigments",
+        content: "",
+        created: "",
+        updated: "",
+        visibility: "public" as const,
+        metadata: {},
+        contentHash: "",
+      };
+      const untitledNote = {
+        id: "untitled-note",
+        entityType: "note",
+        content: "",
+        created: "",
+        updated: "",
+        visibility: "public" as const,
+        metadata: {},
+        contentHash: "",
+      };
+      function searchStub(
+        request: EntitySearchRequest,
+      ): Promise<SearchResult<BaseEntity>[]>;
+      function searchStub<T extends BaseEntity>(
+        request: EntitySearchRequest,
+        schema: EntitySchema<T>,
+      ): Promise<SearchResult<T>[]>;
+      async function searchStub(
+        _request: EntitySearchRequest,
+        schema?: EntitySchema<BaseEntity>,
+      ): Promise<SearchResult<BaseEntity>[]> {
+        const results = [
+          { entity: titledNote, score: 1, excerpt: "" },
+          { entity: untitledNote, score: 0.5, excerpt: "" },
+        ];
+        return schema
+          ? results.map((result) => ({
+              ...result,
+              entity: schema.parse(result.entity),
+            }))
+          : results;
+      }
+      entityService.search = searchStub;
 
       const route = plugin
         .getWebRoutes()

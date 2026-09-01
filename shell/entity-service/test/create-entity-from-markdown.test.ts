@@ -88,10 +88,13 @@ This content must be preserved exactly.`;
 
     expect(result.entityId).toBe("approved-markdown-doc");
 
-    const stored = await ctx.entityService.getEntity<MarkdownDoc>({
-      entityType: "markdown-doc",
-      id: "approved-markdown-doc",
-    });
+    const stored = await ctx.entityService.getEntity(
+      {
+        entityType: "markdown-doc",
+        id: "approved-markdown-doc",
+      },
+      markdownDocSchema,
+    );
     expect(stored?.content).toBe(markdown);
     expect(stored?.headline).toBe("Approved Markdown Doc");
     expect(stored?.metadata).toEqual({
@@ -119,11 +122,14 @@ Restricted body.`;
       },
     });
 
-    const stored = await ctx.entityService.getEntity<MarkdownDoc>({
-      entityType: "markdown-doc",
-      id: "restricted-markdown-doc",
-      visibilityScope: "restricted",
-    });
+    const stored = await ctx.entityService.getEntity(
+      {
+        entityType: "markdown-doc",
+        id: "restricted-markdown-doc",
+        visibilityScope: "restricted",
+      },
+      markdownDocSchema,
+    );
     expect(stored?.visibility).toBe("restricted");
     expect(stored?.content).toContain("visibility: restricted");
     expect(stored?.content).toContain("Restricted body.");

@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   buildProjectGenerationPrompt,
+  generatedProjectContentSchema,
   ProjectGenerationJobHandler,
   projectGenerationJobSchema,
 } from "../src/handlers/generation-handler";
@@ -119,7 +120,7 @@ describe("ProjectGenerationJobHandler", () => {
           templateName: "portfolio:generation",
           representedIdentity: "anchor",
         },
-        expect.anything(),
+        generatedProjectContentSchema,
       );
     });
 

@@ -1,6 +1,5 @@
 import {
   computeProjectionInputFingerprint,
-  type BaseEntity,
   type EntityPluginContext,
   type JobHandler,
 } from "@brains/plugins";
@@ -8,7 +7,11 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { SwotAdapter } from "../adapters/swot-adapter";
-import { type SwotEntity, type SwotItem } from "../schemas/swot";
+import {
+  swotEntitySchema,
+  type SwotEntity,
+  type SwotItem,
+} from "../schemas/swot";
 import {
   swotDerivationJobSchema,
   swotDraftGenerationSchema,
@@ -425,10 +428,13 @@ export class SwotDerivationHandler implements JobHandler<
       namespace: "assessment.swot-input-fingerprint",
       schema: z.string(),
     });
-    const existing = await this.context.entityService.getEntity<SwotEntity>({
-      entityType: "swot",
-      id: "swot",
-    });
+    const existing = await this.context.entityService.getEntity(
+      {
+        entityType: "swot",
+        id: "swot",
+      },
+      swotEntitySchema,
+    );
     if (
       existing &&
       (await fingerprintStore.get(SWOT_INPUT_FINGERPRINT_KEY)) === fingerprint
@@ -534,11 +540,11 @@ export class SwotDerivationHandler implements JobHandler<
   }> {
     const [agents, skills, draftPrompt, refinementPrompt, appInfo] =
       await Promise.all([
-        this.context.entityService.listEntities<BaseEntity>({
+        this.context.entityService.listEntities({
           entityType: "agent",
           options: { limit: 1000 },
         }),
-        this.context.entityService.listEntities<BaseEntity>({
+        this.context.entityService.listEntities({
           entityType: "skill",
           options: { limit: 1000 },
         }),

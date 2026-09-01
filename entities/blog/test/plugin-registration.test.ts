@@ -6,7 +6,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { BlogPost } from "../src/schemas/blog-post";
+import { blogPostSchema } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
@@ -203,10 +203,13 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         authContext: { userPermissionLevel: "trusted" },
       });
 
-      const updatedPost = await entityService.getEntity<BlogPost>({
-        entityType: "post",
-        id: "post-1",
-      });
+      const updatedPost = await entityService.getEntity(
+        {
+          entityType: "post",
+          id: "post-1",
+        },
+        blogPostSchema,
+      );
       expect(updatedPost?.metadata.status).toBe("draft");
       expect(messages[0]?.payload).toMatchObject({
         entityType: "post",
@@ -234,10 +237,13 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         entityId: "post-1",
       });
 
-      const updatedPost = await entityService.getEntity<BlogPost>({
-        entityType: "post",
-        id: "post-1",
-      });
+      const updatedPost = await entityService.getEntity(
+        {
+          entityType: "post",
+          id: "post-1",
+        },
+        blogPostSchema,
+      );
       expect(updatedPost?.metadata.status).toBe("published");
     });
 

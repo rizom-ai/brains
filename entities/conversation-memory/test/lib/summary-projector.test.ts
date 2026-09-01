@@ -1,4 +1,5 @@
 import { describe, it, expect, spyOn } from "bun:test";
+import { summarySchema } from "../../src/schemas/summary";
 import { createExternalActorId } from "@brains/contracts";
 import type {
   Conversation,
@@ -824,11 +825,14 @@ describe("SummaryProjector", () => {
 
     await projector.projectConversation("conv-1");
 
-    expect(getEntitySpy).toHaveBeenCalledWith({
-      entityType: "summary",
-      id: "conv-1",
-      visibilityScope: "shared",
-    });
+    expect(getEntitySpy).toHaveBeenCalledWith(
+      {
+        entityType: "summary",
+        id: "conv-1",
+        visibilityScope: "shared",
+      },
+      summarySchema,
+    );
   });
 
   it("ignores lower-visibility summaries returned within the configured read scope", async () => {

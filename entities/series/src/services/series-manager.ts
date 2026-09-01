@@ -3,7 +3,11 @@ import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import type { Series, SeriesFrontmatter } from "../schemas/series";
+import {
+  seriesSchema,
+  type Series,
+  type SeriesFrontmatter,
+} from "../schemas/series";
 import { getSeriesName } from "../lib/series-metadata";
 
 /**
@@ -28,9 +32,12 @@ export class SeriesManager {
     const seriesNames = await this.collectSeriesNames();
     this.logger.debug(`Found ${seriesNames.size} unique series`);
 
-    const existingSeries = await this.entityService.listEntities<Series>({
-      entityType: "series",
-    });
+    const existingSeries = await this.entityService.listEntities(
+      {
+        entityType: "series",
+      },
+      seriesSchema,
+    );
     const existingMap = new Map(existingSeries.map((s) => [s.id, s]));
 
     const processedIds = new Set<string>();
@@ -100,10 +107,13 @@ export class SeriesManager {
 
   private async ensureSeriesExists(seriesName: string): Promise<void> {
     const seriesId = slugify(seriesName);
-    const existing = await this.entityService.getEntity<Series>({
-      entityType: "series",
-      id: seriesId,
-    });
+    const existing = await this.entityService.getEntity(
+      {
+        entityType: "series",
+        id: seriesId,
+      },
+      seriesSchema,
+    );
 
     if (existing) {
       return;
@@ -127,10 +137,13 @@ export class SeriesManager {
 
   async cleanupOrphanedSeries(seriesName: string): Promise<void> {
     const seriesId = slugify(seriesName);
-    const series = await this.entityService.getEntity<Series>({
-      entityType: "series",
-      id: seriesId,
-    });
+    const series = await this.entityService.getEntity(
+      {
+        entityType: "series",
+        id: seriesId,
+      },
+      seriesSchema,
+    );
     if (!series) return;
 
     // Check all entity types for references to this series

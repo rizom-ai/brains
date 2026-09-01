@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   GenerationJobHandler,
+  generatedPostSchema,
   generationJobSchema,
   type GenerationJobData,
 } from "../../src/handlers/generationHandler";
@@ -332,7 +333,7 @@ describe("GenerationJobHandler", () => {
         expect.objectContaining({
           representedIdentity: "anchor",
         }),
-        expect.anything(),
+        generatedPostSchema,
       );
     });
 

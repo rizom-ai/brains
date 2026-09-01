@@ -269,10 +269,13 @@ export class PortfolioPlugin extends EntityPlugin<
       if (entityType !== "project") return { success: true };
 
       try {
-        const project = await context.entityService.getEntity<Project>({
-          entityType: "project",
-          id: entityId,
-        });
+        const project = await context.entityService.getEntity(
+          {
+            entityType: "project",
+            id: entityId,
+          },
+          projectSchema,
+        );
         if (!project) {
           await context.messaging.send({
             type: PUBLISH_CHANNELS.reportFailure,

@@ -4,10 +4,10 @@ import type {
   SemanticSpacePoint,
 } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import type {
-  AgentEntity,
-  AgentFrontmatter,
-  AgentSkill,
+import {
+  agentEntitySchema,
+  type AgentFrontmatter,
+  type AgentSkill,
 } from "../schemas/agent";
 import { AGENT_ENTITY_TYPE } from "./constants";
 import {
@@ -56,9 +56,12 @@ export async function buildProximityMapData(
   context: ProximityMapDataContext,
 ): Promise<ProximityMapData> {
   const [agents, projection] = await Promise.all([
-    context.entityService.listEntities<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-    }),
+    context.entityService.listEntities(
+      {
+        entityType: AGENT_ENTITY_TYPE,
+      },
+      agentEntitySchema,
+    ),
     context.semantic.project({
       types: [AGENT_ENTITY_TYPE],
       origin: BRAIN_CHARACTER_REFERENCE,

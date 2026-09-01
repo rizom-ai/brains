@@ -2,7 +2,7 @@ import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
-import type { Image, ResolvedImage } from "../schemas/image";
+import { imageSchema, type ResolvedImage } from "../schemas/image";
 
 // Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is
 // the inner YAML, so callers can parse just that slice and skip the body.
@@ -20,10 +20,10 @@ export async function resolveImage(
   imageId: string,
   entityService: ICoreEntityService,
 ): Promise<ResolvedImage | undefined> {
-  const image = await entityService.getEntity<Image>({
-    entityType: "image",
-    id: imageId,
-  });
+  const image = await entityService.getEntity(
+    { entityType: "image", id: imageId },
+    imageSchema,
+  );
 
   if (!image) {
     return undefined;

@@ -19,22 +19,25 @@ import {
   DecisionAdapter,
 } from "../adapters/conversation-memory-adapters";
 import { SummaryAdapter } from "../adapters/summary-adapter";
-import type {
-  ActionItemEntity,
-  ActionItemMetadata,
-  DecisionEntity,
-  DecisionMetadata,
-  MemoryActorReference,
+import {
+  actionItemSchema,
+  decisionSchema,
+  type ActionItemEntity,
+  type ActionItemMetadata,
+  type DecisionEntity,
+  type DecisionMetadata,
+  type MemoryActorReference,
 } from "../schemas/conversation-memory";
 import {
   summaryProjectionDecisionSchema,
   type SummaryProjectionDecision,
 } from "../schemas/extraction";
-import type {
-  SummaryEntity,
-  SummaryEntry,
-  SummaryMetadata,
-  SummaryParticipant,
+import {
+  summarySchema,
+  type SummaryEntity,
+  type SummaryEntry,
+  type SummaryMetadata,
+  type SummaryParticipant,
 } from "../schemas/summary";
 import type { SummaryConfig } from "../schemas/summary-config";
 import {
@@ -158,12 +161,14 @@ export class SummaryProjector {
       };
     }
 
-    const existingCandidate =
-      await this.context.entityService.getEntity<SummaryEntity>({
+    const existingCandidate = await this.context.entityService.getEntity(
+      {
         entityType: SUMMARY_ENTITY_TYPE,
         id: conversationId,
         visibilityScope: this.config.memoryVisibility,
-      });
+      },
+      summarySchema,
+    );
     const existing =
       existingCandidate?.visibility === this.config.memoryVisibility
         ? existingCandidate
@@ -364,20 +369,26 @@ export class SummaryProjector {
     const limit = this.config.maxEntries * 4;
     const visibilityScope = this.config.memoryVisibility;
     const [decisions, actionItems] = await Promise.all([
-      this.context.entityService.listEntities<DecisionEntity>({
-        entityType: DECISION_ENTITY_TYPE,
-        options: {
-          filter: { metadata: { conversationId }, visibilityScope },
-          limit,
+      this.context.entityService.listEntities(
+        {
+          entityType: DECISION_ENTITY_TYPE,
+          options: {
+            filter: { metadata: { conversationId }, visibilityScope },
+            limit,
+          },
         },
-      }),
-      this.context.entityService.listEntities<ActionItemEntity>({
-        entityType: ACTION_ITEM_ENTITY_TYPE,
-        options: {
-          filter: { metadata: { conversationId }, visibilityScope },
-          limit,
+        decisionSchema,
+      ),
+      this.context.entityService.listEntities(
+        {
+          entityType: ACTION_ITEM_ENTITY_TYPE,
+          options: {
+            filter: { metadata: { conversationId }, visibilityScope },
+            limit,
+          },
         },
-      }),
+        actionItemSchema,
+      ),
     ]);
 
     await Promise.all([

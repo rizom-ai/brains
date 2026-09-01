@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { NoteGenerationJobHandler } from "../src/handlers/noteGenerationJobHandler";
+import {
+  NoteGenerationJobHandler,
+  generatedNoteSchema,
+} from "../src/handlers/noteGenerationJobHandler";
 import {
   createSilentLogger,
   createMockEntityPluginContext,
@@ -79,7 +82,7 @@ describe("NoteGenerationJobHandler", () => {
           templateName: "note:generation",
           representedIdentity: "none",
         },
-        expect.anything(),
+        generatedNoteSchema,
       );
     });
 

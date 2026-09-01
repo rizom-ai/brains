@@ -1,8 +1,4 @@
-import type {
-  BaseEntity,
-  ServicePluginContext,
-  ToolContext,
-} from "@brains/plugins";
+import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
@@ -103,7 +99,7 @@ export async function ensurePublishAssets({
     };
   }
 
-  const entities = await context.entityService.listEntities<BaseEntity>({
+  const entities = await context.entityService.listEntities({
     entityType: input.entityType,
     options: {
       ...(input.status && {

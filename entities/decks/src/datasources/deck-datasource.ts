@@ -8,7 +8,11 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { resolveEntityCoverImage } from "@brains/image";
-import type { DeckEntity, DeckWithData } from "../schemas/deck";
+import {
+  deckSchema,
+  type DeckEntity,
+  type DeckWithData,
+} from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";
 import {
   deckViewSchema,
@@ -38,8 +42,9 @@ export class DeckDataSource extends BaseEntityDataSource<
   readonly description: string =
     "Fetches and transforms deck entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<DeckEntity> = {
     entityType: "deck",
+    entitySchema: deckSchema,
     defaultSort: [
       { field: "publishedAt" as const, direction: "desc" as const },
     ],

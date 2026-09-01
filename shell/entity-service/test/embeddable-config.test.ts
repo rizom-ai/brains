@@ -4,7 +4,6 @@ import {
   noteAdapter,
   imageSchema,
   imageAdapter,
-  type ImageEntity,
   createNoteInput,
 } from "./helpers/test-schemas";
 import {
@@ -110,10 +109,13 @@ describe("EntityTypeConfig embeddable flag", () => {
 
     const result = await ctx.entityService.createEntity({ entity: imageData });
 
-    const entity = await ctx.entityService.getEntity<ImageEntity>({
-      entityType: "image",
-      id: result.entityId,
-    });
+    const entity = await ctx.entityService.getEntity(
+      {
+        entityType: "image",
+        id: result.entityId,
+      },
+      imageSchema,
+    );
     expect(entity).not.toBeNull();
 
     expect(ctx.jobQueueService.enqueue).not.toHaveBeenCalled();
@@ -131,10 +133,13 @@ describe("EntityTypeConfig embeddable flag", () => {
       entity: imageData,
     });
 
-    const entity = await ctx.entityService.getEntity<ImageEntity>({
-      entityType: "image",
-      id: entityId,
-    });
+    const entity = await ctx.entityService.getEntity(
+      {
+        entityType: "image",
+        id: entityId,
+      },
+      imageSchema,
+    );
     expect(entity).not.toBeNull();
     if (!entity) throw new Error("Entity should exist");
 

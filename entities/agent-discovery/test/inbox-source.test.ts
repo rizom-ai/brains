@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
+import { agentEntitySchema } from "../src/schemas/agent";
 import { AgentSightingsInboxSource } from "../src/inbox-source";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { createTestAgent } from "./fixtures/agent";
@@ -120,18 +121,20 @@ describe("agent sightings Inbox source", () => {
       permissionLevel: "admin",
     });
 
-    const connected = await harness
-      .getEntityService()
-      .getEntity<ReturnType<typeof createTestAgent>>({
+    const connected = await harness.getEntityService().getEntity(
+      {
         entityType: "agent",
         id: "connect.example",
-      });
-    const dismissed = await harness
-      .getEntityService()
-      .getEntity<ReturnType<typeof createTestAgent>>({
+      },
+      agentEntitySchema,
+    );
+    const dismissed = await harness.getEntityService().getEntity(
+      {
         entityType: "agent",
         id: "dismiss.example",
-      });
+      },
+      agentEntitySchema,
+    );
     expect(connected?.metadata["status"]).toBe("approved");
     expect(dismissed?.metadata["status"]).toBe("archived");
     if (!connected || !dismissed) throw new Error("Expected saved agents");

@@ -3,7 +3,7 @@ import {
   buildBatchPrompt,
   extractTopicsBatched,
 } from "../../src/lib/topic-batch-extractor";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, ListEntitiesRequest } from "@brains/plugins";
 import {
   createEntityPluginContext,
   createMockShell,
@@ -122,10 +122,12 @@ describe("extractTopicsBatched", () => {
 
     let topicListCalls = 0;
     const originalListEntities = entityService.listEntities.bind(entityService);
-    spyOn(entityService, "listEntities").mockImplementation(async (request) => {
-      if (request.entityType === "topic") topicListCalls++;
-      return originalListEntities(request);
-    });
+    spyOn(entityService, "listEntities").mockImplementation(
+      async (request: ListEntitiesRequest) => {
+        if (request.entityType === "topic") topicListCalls++;
+        return originalListEntities(request);
+      },
+    );
 
     spyOn(context.ai, "generate").mockResolvedValue({
       topics: [

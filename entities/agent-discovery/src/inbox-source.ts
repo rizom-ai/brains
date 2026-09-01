@@ -34,7 +34,7 @@ export class AgentSightingsInboxSource implements InboxSource {
   }
 
   async list(): Promise<InboxItem[]> {
-    const entities = await this.context.entityService.listEntities<AgentEntity>(
+    const entities = await this.context.entityService.listEntities(
       {
         entityType: AGENT_ENTITY_TYPE,
         options: {
@@ -43,6 +43,7 @@ export class AgentSightingsInboxSource implements InboxSource {
           filter: { metadata: { status: "discovered" } },
         },
       },
+      agentEntitySchema,
     );
 
     return inboxItemListSchema.parse(
@@ -110,19 +111,19 @@ export class AgentSightingsInboxSource implements InboxSource {
   }
 
   private async getSighting(itemId: string): Promise<AgentEntity> {
-    const entity = await this.context.entityService.getEntity<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-      id: itemId,
-    });
+    const entity = await this.context.entityService.getEntity(
+      { entityType: AGENT_ENTITY_TYPE, id: itemId },
+      agentEntitySchema,
+    );
     if (!entity) throw new Error("Agent sighting not found");
-    return agentEntitySchema.parse(entity);
+    return entity;
   }
 }
 
 type ParsedSighting = ReturnType<AgentAdapter["parseEntity"]>;
 
 function parseSighting(entity: AgentEntity): ParsedSighting | undefined {
-  const parsed = agentAdapter.parseEntity(agentEntitySchema.parse(entity));
+  const parsed = agentAdapter.parseEntity(entity);
   return parsed.frontmatter.status === "discovered" &&
     (parsed.frontmatter.introducedBy?.length ?? 0) > 0
     ? parsed

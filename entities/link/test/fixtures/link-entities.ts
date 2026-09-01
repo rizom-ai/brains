@@ -83,7 +83,11 @@ export const mockLinkEntity = (
   createTestEntity<LinkEntity>("link", {
     id: "link-1",
     content,
-    metadata: { status: "draft", title: "Test Article" },
+    metadata: {
+      status: "draft",
+      title: "Test Article",
+      capturedAt: "2025-01-30T10:00:00.000Z",
+    },
     created: "2025-01-30T10:00:00.000Z",
     updated: "2025-01-30T10:00:00.000Z",
   });
@@ -99,7 +103,11 @@ export function createMockLinkEntity(
     content: overrides.content,
     ...(overrides.created && { created: overrides.created }),
     ...(overrides.updated && { updated: overrides.updated }),
-    metadata: overrides.metadata ?? { status: "draft", title: "Test Link" },
+    metadata: overrides.metadata ?? {
+      status: "draft",
+      title: "Test Link",
+      capturedAt: "2025-01-30T10:00:00.000Z",
+    },
   });
 }
 

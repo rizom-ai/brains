@@ -140,11 +140,11 @@ export class EntityQueries {
   /**
    * List entities by type with pagination
    */
-  public async listEntities<T extends BaseEntity>(
+  public async listEntities(
     entityType: string,
     options: ListOptions = {},
     publishedStatuses?: string[],
-  ): Promise<T[]> {
+  ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
     const { limit, offset, sortFields, filter, publishedOnly } =
       validatedOptions;
@@ -172,7 +172,7 @@ export class EntityQueries {
     const result = limit !== undefined ? await query.limit(limit) : await query;
 
     // Convert from database format to entities
-    const entityList = await this.serializer.convertToEntities<T>(
+    const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
     );

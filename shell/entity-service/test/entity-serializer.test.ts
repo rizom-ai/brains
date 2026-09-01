@@ -58,33 +58,37 @@ function createSerializer(): EntitySerializer {
 describe("EntitySerializer.reconstructEntity", () => {
   it("prefers DB metadata over parsed-markdown metadata", () => {
     const serializer = createSerializer();
-    const entity = serializer.reconstructEntity<TestEntity>({
-      id: "t1",
-      entityType: "test",
-      // Stale frontmatter says discovered; DB metadata says approved.
-      content: `---\nstatus: discovered\n---\n\nsome body\n`,
-      contentHash: "h",
-      visibility: "public",
-      created: 0,
-      updated: 0,
-      metadata: { status: "approved" },
-    });
+    const entity = testEntitySchema.parse(
+      serializer.reconstructEntity({
+        id: "t1",
+        entityType: "test",
+        // Stale frontmatter says discovered; DB metadata says approved.
+        content: `---\nstatus: discovered\n---\n\nsome body\n`,
+        contentHash: "h",
+        visibility: "public",
+        created: 0,
+        updated: 0,
+        metadata: { status: "approved" },
+      }),
+    );
 
     expect(entity.metadata.status).toBe("approved");
   });
 
   it("uses DB metadata on every shared field when the two disagree", () => {
     const serializer = createSerializer();
-    const entity = serializer.reconstructEntity<TestEntity>({
-      id: "t1",
-      entityType: "test",
-      content: `---\nstatus: discovered\ntitle: Old Title\n---\n\nbody\n`,
-      contentHash: "h",
-      visibility: "public",
-      created: 0,
-      updated: 0,
-      metadata: { status: "approved", title: "New Title" },
-    });
+    const entity = testEntitySchema.parse(
+      serializer.reconstructEntity({
+        id: "t1",
+        entityType: "test",
+        content: `---\nstatus: discovered\ntitle: Old Title\n---\n\nbody\n`,
+        contentHash: "h",
+        visibility: "public",
+        created: 0,
+        updated: 0,
+        metadata: { status: "approved", title: "New Title" },
+      }),
+    );
 
     expect(entity.metadata).toEqual({
       status: "approved",
@@ -94,16 +98,18 @@ describe("EntitySerializer.reconstructEntity", () => {
 
   it("preserves body-parsed top-level fields that DB metadata does not carry", () => {
     const serializer = createSerializer();
-    const entity = serializer.reconstructEntity<TestEntity>({
-      id: "t1",
-      entityType: "test",
-      content: `---\nstatus: approved\n---\n\nAbout text here.\n`,
-      contentHash: "h",
-      visibility: "public",
-      created: 0,
-      updated: 0,
-      metadata: { status: "approved" },
-    });
+    const entity = testEntitySchema.parse(
+      serializer.reconstructEntity({
+        id: "t1",
+        entityType: "test",
+        content: `---\nstatus: approved\n---\n\nAbout text here.\n`,
+        contentHash: "h",
+        visibility: "public",
+        created: 0,
+        updated: 0,
+        metadata: { status: "approved" },
+      }),
+    );
 
     expect(entity.about).toBe("About text here.");
     expect(entity.metadata.status).toBe("approved");

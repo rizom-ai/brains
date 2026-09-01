@@ -5,7 +5,7 @@ import {
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { Project } from "../schemas/project";
-import { projectFrontmatterSchema } from "../schemas/project";
+import { projectFrontmatterSchema, projectSchema } from "../schemas/project";
 import {
   PROJECT_PRINTABLE_ATTACHMENT_TYPE,
   projectPrintableTemplate,
@@ -15,6 +15,7 @@ import {
 export const createProjectPrintableProvider: PrintableProviderFactory =
   createPrintableProvider<Project, ProjectPrintableTemplateData>({
     sourceEntityType: "project",
+    entitySchema: projectSchema,
     attachmentType: PROJECT_PRINTABLE_ATTACHMENT_TYPE,
     template: projectPrintableTemplate,
     themeMode: "light",

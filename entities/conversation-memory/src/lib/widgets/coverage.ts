@@ -6,7 +6,7 @@ import {
   type EntityPluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { SummaryEntity } from "../../schemas/summary";
+import { summarySchema, type SummaryEntity } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummarySourceReader } from "../summary-source-reader";
@@ -102,12 +102,15 @@ export async function buildSummaryCoverageData(params: {
 }): Promise<SummaryDashboardData> {
   const { context, config } = params;
 
-  const summaries = await context.entityService.listEntities<SummaryEntity>({
-    entityType: SUMMARY_ENTITY_TYPE,
-    options: {
-      sortFields: [{ field: "updated", direction: "desc" }],
+  const summaries = await context.entityService.listEntities(
+    {
+      entityType: SUMMARY_ENTITY_TYPE,
+      options: {
+        sortFields: [{ field: "updated", direction: "desc" }],
+      },
     },
-  });
+    summarySchema,
+  );
 
   if (context.spaces.length === 0) {
     return {

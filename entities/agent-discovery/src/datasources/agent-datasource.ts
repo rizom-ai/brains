@@ -10,7 +10,11 @@ import type {
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import { agentFrontmatterSchema, agentWithDataSchema } from "../schemas/agent";
+import {
+  agentEntitySchema,
+  agentFrontmatterSchema,
+  agentWithDataSchema,
+} from "../schemas/agent";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
@@ -111,8 +115,9 @@ export class AgentDataSource extends BaseEntityDataSource<
   readonly description: string =
     "Fetches and transforms agent entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<AgentEntity> = {
     entityType: AGENT_ENTITY_TYPE,
+    entitySchema: agentEntitySchema,
     defaultSort: [
       { field: "discoveredAt" as const, direction: "desc" as const },
     ],

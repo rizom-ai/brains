@@ -280,11 +280,11 @@ export async function buildCapabilityProfiles(
   networkProfiles: CapabilityProfile[];
 }> {
   const [agents, skills] = await Promise.all([
-    context.entityService.listEntities<BaseEntity>({
+    context.entityService.listEntities({
       entityType: "agent",
       options: { limit: 1000 },
     }),
-    context.entityService.listEntities<BaseEntity>({
+    context.entityService.listEntities({
       entityType: "skill",
       options: { limit: 1000 },
     }),

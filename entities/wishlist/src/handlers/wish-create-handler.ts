@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { WishAdapter } from "../adapters/wish-adapter";
-import type { WishEntity } from "../schemas/wish";
+import { wishSchema } from "../schemas/wish";
 import { findExistingWish } from "../lib/wish-dedup";
 
 export interface WishCreateData {
@@ -48,9 +48,9 @@ export class WishCreateHandler {
     const existing = await findExistingWish(
       {
         search: (request) =>
-          this.context.entityService.search<WishEntity>(request),
+          this.context.entityService.search(request, wishSchema),
         getEntity: (request) =>
-          this.context.entityService.getEntity<WishEntity>(request),
+          this.context.entityService.getEntity(request, wishSchema),
         similarityThreshold: 0.85,
       },
       { title, description },

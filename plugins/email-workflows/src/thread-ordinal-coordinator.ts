@@ -109,18 +109,21 @@ export class MailThreadOrdinalCoordinator {
     const nextByThread = new Map<string, number>();
     let offset = 0;
     while (offset < total) {
-      const entities = await this.entityService.listEntities<MailItemEntity>({
-        entityType: "mail-item",
-        options: {
-          limit: Math.min(this.pageSize, total - offset),
-          offset,
-          sortFields: [
-            { field: "receivedAt", direction: "asc" },
-            { field: "id", direction: "asc" },
-          ],
-          filter: { visibilityScope: "restricted" },
+      const entities = await this.entityService.listEntities(
+        {
+          entityType: "mail-item",
+          options: {
+            limit: Math.min(this.pageSize, total - offset),
+            offset,
+            sortFields: [
+              { field: "receivedAt", direction: "asc" },
+              { field: "id", direction: "asc" },
+            ],
+            filter: { visibilityScope: "restricted" },
+          },
         },
-      });
+        mailItemSchema,
+      );
       if (entities.length === 0) break;
       for (const rawEntity of entities) {
         const entity = mailItemSchema.parse(rawEntity);
@@ -166,17 +169,20 @@ export class MailThreadOrdinalCoordinator {
   }
 
   private async nextOrdinal(threadKey: string): Promise<number> {
-    const [latest] = await this.entityService.listEntities<MailItemEntity>({
-      entityType: "mail-item",
-      options: {
-        limit: 1,
-        sortFields: [{ field: "threadOrdinal", direction: "desc" }],
-        filter: {
-          metadata: { threadKey },
-          visibilityScope: "restricted",
+    const [latest] = await this.entityService.listEntities(
+      {
+        entityType: "mail-item",
+        options: {
+          limit: 1,
+          sortFields: [{ field: "threadOrdinal", direction: "desc" }],
+          filter: {
+            metadata: { threadKey },
+            visibilityScope: "restricted",
+          },
         },
       },
-    });
+      mailItemSchema,
+    );
     return (latest?.metadata.threadOrdinal ?? 0) + 1;
   }
 

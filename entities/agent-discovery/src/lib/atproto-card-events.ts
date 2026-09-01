@@ -20,7 +20,12 @@ import { slugifyUrl } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { FetchFn } from "./fetch-agent-card";
-import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
+import {
+  agentEntitySchema,
+  type AgentEntity,
+  type AgentSkill,
+  type AgentStatus,
+} from "../schemas/agent";
 
 const agentAdapter = new AgentAdapter();
 const CARD_UNAVAILABLE_FAILURE_THRESHOLD = 3;
@@ -118,10 +123,13 @@ export async function upsertAgentFromCard(
     );
   }
   const agentId = domainIdFromUrl(siteUrl);
-  const existing = await context.entityService.getEntity<AgentEntity>({
-    entityType: "agent",
-    id: agentId,
-  });
+  const existing = await context.entityService.getEntity(
+    {
+      entityType: "agent",
+      id: agentId,
+    },
+    agentEntitySchema,
+  );
   if (
     existing?.metadata.repoDid &&
     existing.metadata.repoDid !== input.repoDid
@@ -558,9 +566,12 @@ export async function refreshKnownAgentCards(
     unchanged: 0,
     failed: 0,
   };
-  const agents = await context.entityService.listEntities<AgentEntity>({
-    entityType: "agent",
-  });
+  const agents = await context.entityService.listEntities(
+    {
+      entityType: "agent",
+    },
+    agentEntitySchema,
+  );
   const rawFetch = getFetch(fetchFn);
   const resolvedFetch = createSafePublicFetch({
     fetchFn: rawFetch,
@@ -655,9 +666,12 @@ export function registerAtprotoBrainCardHandlers(
       const parsed = atprotoBrainCardUnavailablePayloadSchema.parse(
         message.payload,
       );
-      const agents = await context.entityService.listEntities<AgentEntity>({
-        entityType: "agent",
-      });
+      const agents = await context.entityService.listEntities(
+        {
+          entityType: "agent",
+        },
+        agentEntitySchema,
+      );
       const matching = agents.filter(
         (agent) => agent.metadata.repoDid === parsed.repoDid,
       );

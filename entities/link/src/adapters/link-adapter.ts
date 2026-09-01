@@ -71,6 +71,7 @@ export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
       metadata: {
         title: frontmatter.title,
         status: frontmatter.status,
+        capturedAt: frontmatter.capturedAt,
       },
     };
   }

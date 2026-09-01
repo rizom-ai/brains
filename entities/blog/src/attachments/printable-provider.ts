@@ -5,7 +5,10 @@ import {
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { BlogPost } from "../schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostSchema,
+} from "../schemas/blog-post";
 import {
   BLOG_PRINTABLE_ATTACHMENT_TYPE,
   blogPrintableTemplate,
@@ -15,6 +18,7 @@ import {
 export const createBlogPrintableProvider: PrintableProviderFactory =
   createPrintableProvider<BlogPost, BlogPrintableTemplateData>({
     sourceEntityType: "post",
+    entitySchema: blogPostSchema,
     attachmentType: BLOG_PRINTABLE_ATTACHMENT_TYPE,
     template: blogPrintableTemplate,
     themeMode: "light",

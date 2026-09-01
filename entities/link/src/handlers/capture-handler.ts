@@ -187,7 +187,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
               id: entityId,
               entityType: "link",
               content,
-              metadata: { status: "pending", title },
+              metadata: { status: "pending", title, capturedAt },
             },
           });
           return {
@@ -265,7 +265,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
             id: entityId,
             entityType: "link",
             content,
-            metadata: { status: "pending", title },
+            metadata: { status: "pending", title, capturedAt },
           },
         });
 
@@ -308,7 +308,11 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           id: entityId,
           entityType: "link",
           content,
-          metadata: { status: "draft", title: extractionResult.title },
+          metadata: {
+            status: "draft",
+            title: extractionResult.title,
+            capturedAt,
+          },
         },
       });
 

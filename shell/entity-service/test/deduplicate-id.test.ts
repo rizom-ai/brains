@@ -6,7 +6,6 @@ import {
   noteSchema,
   noteAdapter,
   createNoteInput,
-  type Note,
 } from "./helpers/test-schemas";
 import {
   setupEntityService,
@@ -60,14 +59,20 @@ describe("deduplicateId option", () => {
     });
     expect(second.entityId).toBe("my-note-2");
 
-    const entity1 = await ctx.entityService.getEntity<Note>({
-      entityType: "note",
-      id: "my-note",
-    });
-    const entity2 = await ctx.entityService.getEntity<Note>({
-      entityType: "note",
-      id: "my-note-2",
-    });
+    const entity1 = await ctx.entityService.getEntity(
+      {
+        entityType: "note",
+        id: "my-note",
+      },
+      noteSchema,
+    );
+    const entity2 = await ctx.entityService.getEntity(
+      {
+        entityType: "note",
+        id: "my-note-2",
+      },
+      noteSchema,
+    );
     expect(entity1).not.toBeNull();
     expect(entity2).not.toBeNull();
   });
@@ -94,9 +99,12 @@ describe("deduplicateId option", () => {
     });
     expect(third.entityId).toBe("my-note-3");
 
-    const entities = await ctx.entityService.listEntities<Note>({
-      entityType: "note",
-    });
+    const entities = await ctx.entityService.listEntities(
+      {
+        entityType: "note",
+      },
+      noteSchema,
+    );
     expect(entities).toHaveLength(3);
   });
 

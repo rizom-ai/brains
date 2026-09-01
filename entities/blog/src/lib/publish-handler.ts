@@ -3,8 +3,10 @@ import type { EntityPluginContext, ToolContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter, SYSTEM_CHANNELS } from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
-import type { BlogPost } from "../schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostSchema,
+} from "../schemas/blog-post";
 import { blogPostAdapter } from "../adapters/blog-post-adapter";
 
 export function registerWithPublishPipeline(
@@ -59,10 +61,10 @@ export function subscribeToPublishExecute(
         "publish",
         authContext ?? { userPermissionLevel: "admin" },
       );
-      const post = await context.entityService.getEntity<BlogPost>({
-        entityType: "post",
-        id: entityId,
-      });
+      const post = await context.entityService.getEntity(
+        { entityType: "post", id: entityId },
+        blogPostSchema,
+      );
 
       if (!post) {
         await context.messaging.send({
