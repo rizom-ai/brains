@@ -23,8 +23,10 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
 import {
+  assertProductionReactBundle,
   findInternalDeclarationImports,
   formatDeclarationLeakError,
+  productionReactJsx,
 } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
@@ -142,12 +144,6 @@ if (envSchemaResult.exitCode !== 0) {
 console.log("Building @rizom/brain...");
 
 // Native modules, lazy-loaded SDKs, and the JSX runtime.
-const productionJsx = {
-  runtime: "automatic",
-  importSource: "react",
-  development: false,
-} as const;
-
 const sharedExternals = [
   "@libsql/client",
   "libsql",
@@ -185,7 +181,7 @@ async function bundle(opts: {
     format: "esm",
     minify: true,
     sourcemap: opts.sourcemap,
-    jsx: productionJsx,
+    jsx: productionReactJsx,
     external: sharedExternals,
     naming: `${opts.name}.js`,
   });
@@ -195,6 +191,11 @@ async function bundle(opts: {
       console.error(log);
     }
     process.exit(1);
+  }
+  for (const output of result.outputs) {
+    if (output.path.endsWith(".js")) {
+      assertProductionReactBundle(await output.text(), output.path);
+    }
   }
 }
 
@@ -245,7 +246,7 @@ async function bundleLibraries(): Promise<void> {
     minify: true,
     splitting: true,
     sourcemap: "linked",
-    jsx: productionJsx,
+    jsx: productionReactJsx,
     external: sharedExternals,
     naming: {
       entry: "[name].js",
@@ -259,6 +260,11 @@ async function bundleLibraries(): Promise<void> {
       console.error(log);
     }
     process.exit(1);
+  }
+  for (const output of result.outputs) {
+    if (output.path.endsWith(".js")) {
+      assertProductionReactBundle(await output.text(), output.path);
+    }
   }
 }
 

@@ -5,6 +5,10 @@ export {
   type DeclarationLeakOptions,
 } from "./declaration-leaks";
 export {
+  assertProductionReactBundle,
+  productionReactJsx,
+} from "./production-react-bundle";
+export {
   preparePublishManifest,
   restorePublishManifest,
   type PreparePublishManifestOptions,
