@@ -354,8 +354,22 @@ made the entity tranche find real defects rather than move code.
    `context.auth`. dashboard, studio, mcp and web-chat are off the global.
    `AuthFederation` and `AuthIdentities` followed, so a2a, chat and
    agent-discovery are off it too — seven packages in total. Only admin
-   remains: its `AuthAdministration` contract names types from eight
-   auth-service modules, so it moves with the slice that converts admin.
+   remains, and the reason is sharper than "many types": seventeen of the
+   eighteen types `AuthAdministration` names are plain interfaces that move
+   without trouble. The eighteenth is `PersonExternalPeer`, a
+   drizzle-inferred table row returned by `linkExternalPeer` and
+   `unlinkExternalPeer`.
+
+   Admin discards both return values, so the contract could have said
+   `Promise<void>` — but `admin-endpoints.ts` serves the row over HTTP, so
+   the class must keep returning it, and TypeScript will not let a method
+   returning the row satisfy one returning `void`. Moving the contract
+   therefore means deciding what those two methods hand back: a browser-safe
+   peer summary in `admin-contracts.ts` (with the drizzle row checked
+   against it so the two cannot drift), or leaving the HTTP payload as the
+   only caller that needs the row. That is a decision about auth-service's
+   own surface, not a mechanical move, which is why it is not folded into
+   the capability slice.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking
