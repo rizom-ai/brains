@@ -396,6 +396,7 @@
     "core--studio-audit-workspace",
     "core--studio-authoring-cutover",
     "core--studio-gate-inversion",
+    "core--studio-interface-semantics",
     "core--studio-invitations-workspace",
     "core--studio-overview-workspace",
     "core--supervised-worker-split",

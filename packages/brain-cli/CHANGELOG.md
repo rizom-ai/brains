@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.342
+
+### Minor Changes
+
+- [#203](https://github.com/rizom-ai/brains/pull/203) [`edd7b41`](https://github.com/rizom-ai/brains/commit/edd7b41e1f47d25d99b3758d3f370d04e8911dfa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Extend Studio's declarative operator contract with collection-owned query controls, source-declared compact table rows, and one explicit top-level primary action. Expose each admitted workspace's host-enforced permission floor, render one Studio-owned page head across declarative and fixed surfaces, co-locate Audit and Invitations controls with their tables, reflow annotated collections behind a two-bar phone chrome, and place each explicit primary action in the desktop head or phone action bar without provider-authored security text or heuristic action hoisting.
+
 ## 0.2.0-alpha.341
 
 ### Patch Changes
