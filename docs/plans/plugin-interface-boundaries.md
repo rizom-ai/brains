@@ -352,8 +352,40 @@ made the entity tranche find real defects rather than move code.
    (`AuthCaller`, `AuthAudit`, `AuthAdministration`) living where the plugin
    layer can name them, with auth-service implementing them and the runtime
    handing the instance to the context — the same move the route vocabulary
-   made when it was extracted to a leaf. The measurement is done; the work
-   is its own slice with three named consumers, ahead of admin's conversion.
+   made when it was extracted to a leaf. The interfaces name types from
+   eight auth-service modules (audit events, principals, invitation and peer
+   summaries, mutation contexts), so those move with them into a leaf both
+   sides can depend on. The measurement is done; the work is its own slice
+   with three named consumers, ahead of admin's conversion.
+
+   **`site-content` is gated on batch work it does not own.** Its generate
+   tool decides which sections can generate by asking
+   `templates.getCapabilities(name)` about templates other packages
+   registered, then enqueues a batch of the shell's own
+   `SHELL_CHANNELS.contentGeneration` job type. The declarative `jobs`
+   surface enqueues jobs the package itself declared, one at a time; neither
+   half of what site-content does is expressible. Closing it means a
+   template-capability read and a declared batch enqueue — related to
+   stock-photo's gap (both are a package asking the runtime to run work it
+   does not own) and worth deciding together.
+
+   **`unified-inbox` needs three smaller additions**: the `inbox` and
+   `inboxFollowUps` readers in `setup`, a declared interaction (the console
+   link it registers on ready), and its digest registration. None is
+   contentious; they are listed here so the next slice can carry them
+   together rather than discovering them one at a time.
+
+### What the remaining tranche actually is
+
+Nine conversions in, the pattern is clear and worth stating: the rest is
+**not nineteen mechanical conversions**. It is roughly four capability
+slices — cross-type create (stock-photo), the confirmation pipeline (three
+chat interfaces), the auth instance (admin, studio, dashboard), and
+batch/foreign work (site-content) — each with named consumers, and the
+conversions sit behind them. Every conversion so far has found gaps rather
+than moved imports, exactly as this plan predicted; what has changed is
+that the remaining gaps are now measured up front instead of one package at
+a time.
 
 ## Validation
 
