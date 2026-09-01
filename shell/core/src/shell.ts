@@ -41,6 +41,7 @@ import {
   resolvePrompt,
   type IAttachmentsNamespace,
   type IChannelRegistry,
+  type IAuthRegistry,
   type IInboxFollowUpRegistry,
   type IInboxRegistry,
   type IOperationalHealthRegistry,
@@ -693,6 +694,10 @@ export class Shell implements IShell {
 
   public getProfileKindRegistry(): IProfileKindRegistry {
     return this.services.profileKindRegistry;
+  }
+
+  public getAuthRegistry(): IAuthRegistry {
+    return this.services.authRegistry;
   }
 
   public getChannelRegistry(): IChannelRegistry {

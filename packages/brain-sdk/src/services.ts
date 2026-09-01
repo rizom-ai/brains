@@ -121,6 +121,13 @@ export type {
   AppendAuthAuditEventInput,
 } from "@brains/auth-service";
 
+// Where the running auth implementation is published. A console surface
+// resolves the caller behind its own routes and records what an operator
+// did; asking the runtime is what replaces reaching for a module-level
+// global in auth-service. Named consumers: @brains/dashboard,
+// @brains/studio, @brains/web-chat, @brains/mcp.
+export type { IAuthRegistry } from "@brains/plugins";
+
 // Who a request is from, and the audit trail. A service plugin that serves
 // HTTP resolves the caller before acting (dashboard, studio) and records
 // what an operator did (studio); neither needs anything else auth knows.

@@ -94,6 +94,20 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export { AuthRegistry } from "./contracts/auth";
+export type {
+  AppendAuthAuditEventInput,
+  AuthAudit,
+  AuthAuditActionCount,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+  AuthBearerGrant,
+  AuthCaller,
+  AuthPrincipal,
+  IAuthRegistry,
+  VerifiedAccessToken,
+} from "./contracts/auth";
 export {
   InboxFollowUpRegistry,
   resolvedInboxFollowUpSchema,

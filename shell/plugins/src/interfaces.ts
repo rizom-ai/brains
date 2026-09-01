@@ -58,6 +58,7 @@ import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
+import type { IAuthRegistry } from "./contracts/auth";
 import type {
   AnchorProfile,
   BrainCharacter,
@@ -247,6 +248,8 @@ export interface IShell {
   getIdentity(): BrainCharacter;
   getProfile(): AnchorProfile;
   getProfileKindRegistry(): IProfileKindRegistry;
+  /** Where the running auth implementation is published; see contracts/auth. */
+  getAuthRegistry(): IAuthRegistry;
   getChannelRegistry(): IChannelRegistry;
   getInboxRegistry(): IInboxRegistry;
   getInboxFollowUpRegistry(): IInboxFollowUpRegistry;

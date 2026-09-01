@@ -1,3 +1,4 @@
+export type { AuthBearerGrant, AuthPrincipal } from "@brains/plugins";
 import type { ActorRef } from "@brains/contracts";
 import type {
   AuthIdentityStore,
@@ -11,30 +12,18 @@ import type {
   CreateAuthSessionResult,
 } from "./session-store";
 import { getBearerToken, verifyAccessToken } from "./token-verifier";
-import type { VerifiedAccessToken } from "./token-verifier";
+import type {
+  AuthBearerGrant,
+  AuthPrincipal,
+  VerifiedAccessToken,
+} from "@brains/plugins";
 import type { JwksResponse } from "./types";
 import type { AuthUserStore } from "./user-store";
-
-export interface AuthPrincipal {
-  userId: string;
-  personId: string;
-  displayName: string;
-  role: "admin" | "trusted" | "public";
-  status: "active" | "invited" | "suspended";
-  permissionLevel: "admin" | "trusted" | "public";
-  isAnchor: boolean;
-  canonicalId?: string;
-}
 
 export type AuthIdentityAccessResolution =
   | { state: "resolved"; principal: AuthPrincipal }
   | { state: "denied" }
   | { state: "unbound" };
-
-export interface AuthBearerGrant {
-  principal: AuthPrincipal;
-  token: VerifiedAccessToken;
-}
 
 export interface AuthPrincipalServiceOptions {
   issuer: string;

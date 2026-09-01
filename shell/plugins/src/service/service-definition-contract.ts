@@ -2,6 +2,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import type { IAuthRegistry } from "../contracts/auth";
 import type { AnyInterfaceRouteDefinition } from "../interface/route-contract";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 
@@ -591,6 +592,14 @@ interface ServiceDefinitionCore<
          * @brains/profile, whose ready enqueues starter-identity seeding.
          */
         readonly jobs: ServiceJobs;
+        /**
+         * Where the running auth implementation is published, or undefined
+         * in a brain without one. A console surface resolves the caller
+         * behind its own routes; asking the runtime is what replaces
+         * reaching for a module-level global in auth-service.
+         * Named consumers: @brains/admin, @brains/studio, @brains/dashboard.
+         */
+        readonly auth: IAuthRegistry;
       }) => void | Promise<void>)
     | undefined;
   readonly subscriptions?:

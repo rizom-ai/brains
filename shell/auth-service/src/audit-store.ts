@@ -1,45 +1,20 @@
+export type {
+  AppendAuthAuditEventInput,
+  AuthAuditActionCount,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+} from "@brains/plugins";
+import type {
+  AppendAuthAuditEventInput,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+} from "@brains/plugins";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { authAuditEvents } from "./runtime-schema";
-
-export interface AppendAuthAuditEventInput {
-  actorUserId?: string;
-  action: string;
-  targetType?: string;
-  targetId?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface AuthAuditEvent {
-  id: string;
-  actorUserId?: string;
-  action: string;
-  targetType?: string;
-  targetId?: string;
-  metadata?: Record<string, unknown>;
-  createdAt: number;
-}
-
-export interface AuthAuditQuery {
-  actorUserId?: string | undefined;
-  action?: string | undefined;
-  selectedId?: string | undefined;
-  offset: number;
-  limit: number;
-}
-
-export interface AuthAuditActionCount {
-  action: string;
-  count: number;
-}
-
-export interface AuthAuditQueryResult {
-  events: AuthAuditEvent[];
-  selectedEvent?: AuthAuditEvent | undefined;
-  actions: AuthAuditActionCount[];
-  total: number;
-}
 
 export class AuthAuditStore {
   private readonly db: AuthRuntimeDB;

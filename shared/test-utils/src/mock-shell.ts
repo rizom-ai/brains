@@ -10,6 +10,7 @@ import {
   createRuntimeUploadsNamespace,
 } from "@brains/plugins";
 import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
+import { AuthRegistry } from "@brains/plugins";
 import type {
   IShell,
   Plugin,
@@ -258,6 +259,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   });
   const runtimeState = createMemoryRuntimeStateNamespace();
   const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
+  const authRegistry = AuthRegistry.createFresh();
   const channelRegistry = new ChannelRegistry();
   const inboxRegistry = new InboxRegistry();
   const inboxFollowUpRegistry = new InboxFollowUpRegistry();
@@ -1247,6 +1249,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       description: "Test profile for unit tests",
     }),
     getProfileKindRegistry: () => profileKindRegistry,
+    getAuthRegistry: () => authRegistry,
     getChannelRegistry: () => channelRegistry,
     getInboxRegistry: () => inboxRegistry,
     getInboxFollowUpRegistry: () => inboxFollowUpRegistry,

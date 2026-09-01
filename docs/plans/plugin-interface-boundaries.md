@@ -348,15 +348,14 @@ made the entity tranche find real defects rather than move code.
    cycle, because auth-service is itself a service plugin built on the
    plugin context.
 
-   Making the phase 4 sentence true means the narrow capability interfaces
-   (`AuthCaller`, `AuthAudit`, `AuthAdministration`) living where the plugin
-   layer can name them, with auth-service implementing them and the runtime
-   handing the instance to the context — the same move the route vocabulary
-   made when it was extracted to a leaf. The interfaces name types from
-   eight auth-service modules (audit events, principals, invitation and peer
-   summaries, mutation contexts), so those move with them into a leaf both
-   sides can depend on. The measurement is done; the work is its own slice
-   with three named consumers, ahead of admin's conversion.
+   _Half done._ `AuthCaller` and `AuthAudit` now live in
+   `shell/plugins/src/contracts/auth.ts` with the vocabulary they use, and
+   the running implementation reaches packages through a shell registry as
+   `context.auth`. dashboard, studio, mcp and web-chat are off the global.
+   `AuthFederation` (a2a) and `AuthAdministration` (admin) still live in
+   auth-service and move with the slices that convert those two — admin's
+   pulls types from eight of its modules, which is why it was not folded in
+   here.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking

@@ -31,7 +31,6 @@ import {
   type ConsoleJumpEntityHit,
 } from "./console-jump";
 import type { DashboardAssetUrls } from "./render/types";
-import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
 export interface DashboardConfig {
@@ -235,8 +234,9 @@ export class DashboardPlugin extends ServicePlugin<
           }
 
           const ctx = this.ctx;
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
+          const principal = await this.getContext()
+            .auth.getCaller()
+            ?.resolveSession(request);
           const sessionPermission = principal?.permissionLevel ?? "public";
           // The card is invariant across sessions. Public providers always see
           // an anonymous Public caller, and non-public providers never run.
@@ -350,8 +350,9 @@ export class DashboardPlugin extends ServicePlugin<
         method: "GET",
         public: true,
         handler: async (request: Request): Promise<Response> => {
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
+          const principal = await this.getContext()
+            .auth.getCaller()
+            ?.resolveSession(request);
           if (!principal) {
             return Response.json(
               { error: "Authentication required" },

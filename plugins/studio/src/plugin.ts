@@ -1,4 +1,3 @@
-import { getActiveAuthService } from "@brains/auth-service";
 import type {
   StudioOverviewContributionRegistration,
   StudioOverviewContributionUnregistration,
@@ -289,15 +288,14 @@ export class StudioPlugin extends ServicePlugin<
       routePath: this.config.routePath,
       getContext: () => this.getContext(),
       resolveAuthPrincipal: (request) =>
-        getActiveAuthService()?.resolveSession(request) ??
+        this.getContext().auth.getCaller()?.resolveSession(request) ??
         Promise.resolve(undefined),
       getEntityDisplay: () =>
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),
       workspaceRegistry: this.workspaceRegistry,
       recordAuditEvent: async (event) => {
-        const authService = getActiveAuthService();
-        if (authService) await authService.recordAuditEvent(event);
+        await this.getContext().auth.getAudit()?.recordAuditEvent(event);
       },
     });
     return [...legacySurfaceRedirects(this.config.routePath), ...editorRoutes];

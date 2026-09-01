@@ -10,7 +10,6 @@ import {
 import type { Daemon, DaemonHealth, IMCPTransport } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
-import { getActiveAuthService } from "@brains/auth-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
 import { createMCPTools } from "./tools";
 import { setupJobProgressListener } from "./handlers";
@@ -107,7 +106,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       return this.httpServer;
     }
 
-    const authService = getActiveAuthService();
+    const authService = this.getContext().auth.getCaller();
 
     this.httpServer = StreamableHTTPServer.createFresh({
       port: this.config.httpPort,
@@ -280,7 +279,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       transportUserId,
     );
 
-    const activeAuthService = getActiveAuthService();
+    const activeAuthService = this.getContext().auth.getCaller();
     const hasHttpAuth =
       this.config.transport === "http" &&
       (this.config.authToken ? true : activeAuthService !== undefined);

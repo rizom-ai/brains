@@ -15,6 +15,7 @@ import { MessageBus } from "@brains/messaging-service";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -102,6 +103,7 @@ export function createShellServices(options: {
     new ProfileKindRegistry(config.profileKind);
   const channelRegistry =
     dependencies?.channelRegistry ?? new ChannelRegistry();
+  const authRegistry = AuthRegistry.createFresh();
   const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
   const inboxFollowUpRegistry =
     dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry(logger);
@@ -304,6 +306,7 @@ export function createShellServices(options: {
     profileService,
     canonicalIdentityService,
     profileKindRegistry,
+    authRegistry,
     channelRegistry,
     inboxRegistry,
     inboxFollowUpRegistry,

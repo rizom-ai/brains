@@ -513,6 +513,7 @@
         "EntityInsightDeclaration",
         "EnvVarDecl",
         "FetchLike",
+        "IAuthRegistry",
         "JobResult",
         "LoggerContract",
         "PROGRESS_STEPS",

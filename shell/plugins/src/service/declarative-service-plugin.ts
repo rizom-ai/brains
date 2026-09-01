@@ -345,6 +345,7 @@ class DeclarativeServicePlugin<
         logger: this.logger,
         dataDir: context.dataDir,
         jobs: this.jobs(),
+        auth: this.requireShell().getAuthRegistry(),
         // Read-only shape questions; the registry's registering half stays
         // the runtime's.
         entityShapes: {
@@ -1051,9 +1052,15 @@ class DeclarativeServicePlugin<
     return result;
   }
 
-  private registerPrompts(): void {
+  /** The shell this service registered against. */
+  private requireShell(): IShell {
     const shell = this.scopedShell;
     if (!shell) throw new Error(`Service "${this.publicId}" has no shell`);
+    return shell;
+  }
+
+  private registerPrompts(): void {
+    const shell = this.requireShell();
     const prompts = this.definition.prompts as
       Record<string, ServicePromptDefinition<ServiceSchema>> | undefined;
     for (const [name, definition] of Object.entries(prompts ?? {})) {

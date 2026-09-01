@@ -54,6 +54,7 @@ import type {
   IPluginsNamespace,
   IProfileKindsNamespace,
 } from "./context-types";
+import type { IAuthRegistry } from "../contracts/auth";
 
 export interface ISemanticNamespace {
   project(
@@ -139,6 +140,8 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /** App-scoped semantic profile-kind catalog and selected resolution. */
   readonly profileKinds: IProfileKindsNamespace;
+  /** Where the running auth implementation is published; see contracts/auth. */
+  readonly auth: IAuthRegistry;
 
   /** Public card skills shared by every publication channel. */
   readonly publicSkills: IPublicSkillsNamespace;
@@ -280,6 +283,7 @@ export function createBasePluginContext(
 
     identity: createIdentityNamespace(shell, getAppInfo),
     profileKinds: createProfileKindsNamespace(shell, pluginId),
+    auth: shell.getAuthRegistry(),
     channels: createChannelsNamespace(shell),
     publicSkills: createPublicSkillsNamespace(shell),
     inbox: createInboxNamespace(shell, pluginId),

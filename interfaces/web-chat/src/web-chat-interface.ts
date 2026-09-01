@@ -8,7 +8,6 @@ import {
   chatContextHandoffRequestSchema,
 } from "@brains/contracts/chat";
 import {
-  getActiveAuthService,
   requireSameOriginJson,
   type AuthPrincipal,
 } from "@brains/auth-service";
@@ -124,9 +123,6 @@ export interface WebChatDeps {
   resolvePermissionLevel?: PermissionLevelResolver;
 }
 
-const defaultResolveAuthPrincipal: BrowserPrincipalResolver = async (request) =>
-  getActiveAuthService()?.resolveSession(request);
-
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
   WebChatConfigInput
@@ -135,6 +131,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private readonly activeStreams = new Map<string, ActiveStream>();
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
+  /** Injected in tests; otherwise the runtime's registered auth. */
   private readonly resolveAuthPrincipal: BrowserPrincipalResolver;
   private readonly resolveCallerPermissionLevel:
     PermissionLevelResolver | undefined;
@@ -142,7 +139,10 @@ export class WebChatInterface extends MessageInterfacePlugin<
   constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
     this.resolveAuthPrincipal =
-      deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
+      deps.resolveAuthPrincipal ??
+      ((request): Promise<AuthPrincipal | undefined> =>
+        this.getContext().auth.getCaller()?.resolveSession(request) ??
+        Promise.resolve(undefined));
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
     this.resolveAuthSession =
       deps.resolveAuthSession ??
@@ -1046,7 +1046,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private createAuthLoginRequiredResponse(request: Request): Response {
-    const authService = getActiveAuthService();
+    const authService = this.getContext().auth.getCaller();
     if (authService) return authService.createAuthLoginResponse(request);
 
     return new Response("Authentication required", {
