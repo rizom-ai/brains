@@ -17,6 +17,9 @@ describe("WebserverInterface", () => {
 
     harness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-test"),
+      // A domain is what gives the context a previewUrl; without one the
+      // preview surface never registers and the assertions below say nothing.
+      domain: "test.example",
     });
 
     await harness.installPlugin(plugin);
@@ -29,11 +32,16 @@ describe("WebserverInterface", () => {
   it("should register successfully", () => {
     expect(plugin.id).toBe("webserver");
     expect(plugin.type).toBe("interface");
+    expect(plugin.version).toBeDefined();
   });
 
-  it("should initialize with custom config", () => {
-    // Test passes if constructor doesn't throw and plugin registers successfully
-    expect(plugin).toBeDefined();
+  it("registers a preview interaction when preview is enabled", () => {
+    expect(
+      harness
+        .getMockShell()
+        .listInteractions()
+        .map((interaction) => interaction.id),
+    ).toContain("preview");
   });
 
   it("should allow preview to be disabled for core-style usage", async () => {
@@ -44,10 +52,18 @@ describe("WebserverInterface", () => {
     });
     const coreHarness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-core-test"),
+      domain: "test.example",
     });
 
     await coreHarness.installPlugin(corePlugin);
-    expect(corePlugin).toBeDefined();
+
+    // The point of enablePreview: false is that no preview surface appears.
+    expect(
+      coreHarness
+        .getMockShell()
+        .listInteractions()
+        .map((interaction) => interaction.id),
+    ).not.toContain("preview");
 
     coreHarness.reset();
   });
@@ -62,12 +78,5 @@ describe("WebserverInterface", () => {
     expect(defaultPlugin).toBeDefined();
 
     defaultHarness.reset();
-  });
-
-  it("should be properly configured", () => {
-    // Plugin should be registered and configured
-    expect(plugin.id).toBe("webserver");
-    expect(plugin.type).toBe("interface");
-    expect(plugin.version).toBeDefined();
   });
 });
