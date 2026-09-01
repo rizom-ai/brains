@@ -173,6 +173,9 @@ describe("initPilotRepo", () => {
       true,
     );
     expect(
+      existsSync(join(repo, "deploy", "scripts", "create-predeploy-backup.ts")),
+    ).toBe(true);
+    expect(
       existsSync(join(repo, "deploy", "scripts", "install-health-watchdog.ts")),
     ).toBe(true);
     expect(
@@ -452,6 +455,11 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "VERSION: ${{ steps.user_config.outputs.image_tag }}",
     );
+    expect(deployWorkflow).toContain("TARGET_HANDLE: ${{ matrix.handle }}");
+    expect(deployWorkflow).toContain(
+      "TARGET_VERSION: ${{ steps.user_config.outputs.image_tag }}",
+    );
+    expect(deployWorkflow).toContain("SERVICE_NAME: rover");
     expect(deployWorkflow).toContain(
       'bunx brains-ops render "$GITHUB_WORKSPACE"',
     );
@@ -477,6 +485,12 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}",
     );
+    const backupIndex = deployWorkflow.indexOf(
+      "bun deploy/scripts/create-predeploy-backup.ts",
+    );
+    const lockIndex = deployWorkflow.indexOf(
+      "kamal lock release -c deploy/kamal/deploy.yml",
+    );
     const deployIndex = deployWorkflow.indexOf(
       "kamal setup --skip-push -c deploy/kamal/deploy.yml",
     );
@@ -486,7 +500,9 @@ describe("initPilotRepo", () => {
     const operationalVerifyIndex = deployWorkflow.indexOf(
       'bunx brains-ops verify-user "$GITHUB_WORKSPACE" "$HANDLE"',
     );
-    expect(deployIndex).toBeGreaterThan(-1);
+    expect(backupIndex).toBeGreaterThan(-1);
+    expect(lockIndex).toBeGreaterThan(backupIndex);
+    expect(deployIndex).toBeGreaterThan(lockIndex);
     expect(watchdogIndex).toBeGreaterThan(deployIndex);
     expect(operationalVerifyIndex).toBeGreaterThan(watchdogIndex);
     expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
@@ -670,6 +686,14 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("users/<handle>/.env");
     expect(operatorPlaybook).toContain("final aggregation step");
     expect(operatorPlaybook).toContain("deploy/scripts/");
+    expect(operatorPlaybook).toContain(
+      "## Verified pre-deploy rollback snapshots",
+    );
+    expect(operatorPlaybook).toContain(
+      "/opt/brain-state/backups/predeploy-<handle>-<target>-<UTC timestamp>/",
+    );
+    expect(operatorPlaybook).toContain("default retention is five");
+    expect(operatorPlaybook).toContain("no automatic restore");
     expect(operatorPlaybook).toContain("`@rizom/ops` in `package.json`");
     expect(operatorPlaybook).toContain(
       "## Hosted site and theme package contract",

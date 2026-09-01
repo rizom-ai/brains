@@ -33,6 +33,7 @@ const starterFilePaths = [
   "deploy/Dockerfile",
   "deploy/kamal/deploy.yml",
   "deploy/scripts/helpers.ts",
+  "deploy/scripts/create-predeploy-backup.ts",
   "deploy/scripts/install-health-watchdog.ts",
   "deploy/scripts/provision-server.ts",
   "deploy/scripts/update-dns.ts",
