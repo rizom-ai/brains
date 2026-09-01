@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- [#206](https://github.com/rizom-ai/brains/pull/206) [`5e7d4d9`](https://github.com/rizom-ai/brains/commit/5e7d4d9880451d1c18ddbf4878315e638e01fae1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Gate stateful deployments on a canonical verified rollback snapshot covering online SQLite captures, exact Git checkout state, deployed configuration, and sanitized container metadata.
+
 ## 0.2.0-alpha.342
 
 ## 0.2.0-alpha.341

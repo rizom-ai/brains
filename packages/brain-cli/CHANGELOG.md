@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- [#205](https://github.com/rizom-ai/brains/pull/205) [`5c2a8e3`](https://github.com/rizom-ai/brains/commit/5c2a8e35478c5d3d6fe26873d48bd2ff0a53e8f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish a new immutable Brain artifact for fleet images built on the required Bun 1.4 runtime.
+
+- [#206](https://github.com/rizom-ai/brains/pull/206) [`5e7d4d9`](https://github.com/rizom-ai/brains/commit/5e7d4d9880451d1c18ddbf4878315e638e01fae1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Gate stateful deployments on a canonical verified rollback snapshot covering online SQLite captures, exact Git checkout state, deployed configuration, and sanitized container metadata.
+
 ## 0.2.0-alpha.342
 
 ### Minor Changes
