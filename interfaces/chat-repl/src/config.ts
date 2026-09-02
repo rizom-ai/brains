@@ -1,27 +1,18 @@
 import { z } from "@brains/utils/zod";
 
-export interface CLIThemeConfig {
-  primaryColor: string;
-  accentColor: string;
-}
+type CLIThemeConfigSchema = z.ZodObject<{
+  primaryColor: z.ZodDefault<z.ZodString>;
+  accentColor: z.ZodDefault<z.ZodString>;
+}>;
 
-export interface CLIConfig {
-  theme: CLIThemeConfig;
-}
-
-export interface CLIConfigInput {
-  theme?:
-    | {
-        primaryColor?: string | undefined;
-        accentColor?: string | undefined;
-      }
-    | undefined;
-}
+type CLIConfigSchema = z.ZodObject<{
+  theme: z.ZodDefault<CLIThemeConfigSchema>;
+}>;
 
 /**
  * CLI configuration schema
  */
-export const cliConfigSchema: z.ZodType<CLIConfig, CLIConfigInput> = z.object({
+export const cliConfigSchema: CLIConfigSchema = z.object({
   theme: z
     .object({
       primaryColor: z
@@ -39,3 +30,7 @@ export const cliConfigSchema: z.ZodType<CLIConfig, CLIConfigInput> = z.object({
       accentColor: "#ff6600",
     }),
 });
+
+export type CLIConfig = z.output<typeof cliConfigSchema>;
+export type CLIConfigInput = z.input<typeof cliConfigSchema>;
+export type CLIThemeConfig = CLIConfig["theme"];

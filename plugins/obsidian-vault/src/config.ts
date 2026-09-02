@@ -1,16 +1,14 @@
 import { z } from "@brains/utils/zod";
 
-export interface ObsidianVaultConfig {
-  baseFolder: string;
-}
+type ObsidianVaultConfigSchema = z.ZodObject<{
+  baseFolder: z.ZodDefault<z.ZodString>;
+}>;
 
-export interface ObsidianVaultConfigInput {
-  baseFolder?: string | undefined;
-}
-
-export const obsidianVaultConfigSchema: z.ZodType<
-  ObsidianVaultConfig,
-  ObsidianVaultConfigInput
-> = z.object({
+export const obsidianVaultConfigSchema: ObsidianVaultConfigSchema = z.object({
   baseFolder: z.string().default("_obsidian"),
 });
+
+export type ObsidianVaultConfig = z.output<typeof obsidianVaultConfigSchema>;
+export type ObsidianVaultConfigInput = z.input<
+  typeof obsidianVaultConfigSchema
+>;

@@ -1,51 +1,30 @@
 import { z } from "@brains/utils/zod";
 
-export interface AtprotoJetstreamConfig {
-  enabled: boolean;
-  endpoint: string;
-  replayWindowSeconds: number;
-  denyDids: string[];
-  denyDomains: string[];
-  skillKeywords: string[];
-  queueLimit: number;
-  concurrency: number;
-  perDidCooldownSeconds: number;
-  fetchBudgetPerMinute: number;
-  newAgentsPerHour: number;
-  pendingCandidateCeiling: number;
-  staleCandidateRetentionDays: number;
-  requestTimeoutMs: number;
-  maxResponseBytes: number;
-  maxRedirects: number;
-  retryAttempts: number;
-  heartbeatIntervalHours: number;
-}
+type AtprotoJetstreamConfigSchema = z.ZodObject<
+  {
+    enabled: z.ZodDefault<z.ZodBoolean>;
+    endpoint: z.ZodDefault<z.ZodURL>;
+    replayWindowSeconds: z.ZodDefault<z.ZodNumber>;
+    denyDids: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    denyDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    skillKeywords: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    queueLimit: z.ZodDefault<z.ZodNumber>;
+    concurrency: z.ZodDefault<z.ZodNumber>;
+    perDidCooldownSeconds: z.ZodDefault<z.ZodNumber>;
+    fetchBudgetPerMinute: z.ZodDefault<z.ZodNumber>;
+    newAgentsPerHour: z.ZodDefault<z.ZodNumber>;
+    pendingCandidateCeiling: z.ZodDefault<z.ZodNumber>;
+    staleCandidateRetentionDays: z.ZodDefault<z.ZodNumber>;
+    requestTimeoutMs: z.ZodDefault<z.ZodNumber>;
+    maxResponseBytes: z.ZodDefault<z.ZodNumber>;
+    maxRedirects: z.ZodDefault<z.ZodNumber>;
+    retryAttempts: z.ZodDefault<z.ZodNumber>;
+    heartbeatIntervalHours: z.ZodDefault<z.ZodNumber>;
+  },
+  z.core.$strict
+>;
 
-export interface AtprotoJetstreamConfigInput {
-  enabled?: boolean | undefined;
-  endpoint?: string | undefined;
-  replayWindowSeconds?: number | undefined;
-  denyDids?: string[] | undefined;
-  denyDomains?: string[] | undefined;
-  skillKeywords?: string[] | undefined;
-  queueLimit?: number | undefined;
-  concurrency?: number | undefined;
-  perDidCooldownSeconds?: number | undefined;
-  fetchBudgetPerMinute?: number | undefined;
-  newAgentsPerHour?: number | undefined;
-  pendingCandidateCeiling?: number | undefined;
-  staleCandidateRetentionDays?: number | undefined;
-  requestTimeoutMs?: number | undefined;
-  maxResponseBytes?: number | undefined;
-  maxRedirects?: number | undefined;
-  retryAttempts?: number | undefined;
-  heartbeatIntervalHours?: number | undefined;
-}
-
-export const atprotoJetstreamConfigSchema: z.ZodType<
-  AtprotoJetstreamConfig,
-  AtprotoJetstreamConfigInput
-> = z
+export const atprotoJetstreamConfigSchema: AtprotoJetstreamConfigSchema = z
   .object({
     enabled: z
       .boolean()
@@ -95,78 +74,74 @@ export const atprotoJetstreamConfigSchema: z.ZodType<
   })
   .strict();
 
+export type AtprotoJetstreamConfig = z.output<
+  typeof atprotoJetstreamConfigSchema
+>;
+export type AtprotoJetstreamConfigInput = z.input<
+  typeof atprotoJetstreamConfigSchema
+>;
+
 const defaultJetstreamConfig = atprotoJetstreamConfigSchema.parse({});
 
-export interface AtprotoConfig {
-  enabled: boolean;
-  pdsEndpoint: string;
-  identifier?: string | undefined;
-  repoDid?: string | undefined;
-  appPassword?: string | undefined;
-  anchorDid?: string | undefined;
-  brainDid?: string | undefined;
-  accountDid?: string | undefined;
-  lexiconAuthority: boolean;
-  jetstream: AtprotoJetstreamConfig;
-}
+type AtprotoConfigSchema = z.ZodObject<{
+  enabled: z.ZodDefault<z.ZodBoolean>;
+  pdsEndpoint: z.ZodDefault<z.ZodURL>;
+  identifier: z.ZodOptional<z.ZodString>;
+  repoDid: z.ZodOptional<z.ZodString>;
+  appPassword: z.ZodOptional<z.ZodString>;
+  anchorDid: z.ZodOptional<z.ZodString>;
+  brainDid: z.ZodOptional<z.ZodString>;
+  accountDid: z.ZodOptional<z.ZodString>;
+  lexiconAuthority: z.ZodDefault<z.ZodBoolean>;
+  jetstream: z.ZodDefault<AtprotoJetstreamConfigSchema>;
+}>;
 
-export interface AtprotoConfigInput {
-  enabled?: boolean | undefined;
-  pdsEndpoint?: string | undefined;
-  identifier?: string | undefined;
-  repoDid?: string | undefined;
-  appPassword?: string | undefined;
-  anchorDid?: string | undefined;
-  brainDid?: string | undefined;
-  accountDid?: string | undefined;
-  lexiconAuthority?: boolean | undefined;
-  jetstream?: AtprotoJetstreamConfigInput | undefined;
-}
+export const atprotoConfigSchema: AtprotoConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  pdsEndpoint: z
+    .url()
+    .default("https://bsky.social")
+    .describe("AT Protocol PDS service endpoint"),
+  identifier: z
+    .string()
+    .optional()
+    .describe("PDS login identifier, usually a handle or account DID"),
+  repoDid: z
+    .string()
+    .optional()
+    .describe("DID of the PDS repo that owns records"),
+  appPassword: z
+    .string()
+    .optional()
+    .describe(
+      "App password for prototype authentication; supply via ${ENV_VAR} interpolation, never a committed literal",
+    ),
+  anchorDid: z
+    .string()
+    .optional()
+    .describe(
+      "Optional Anchor DID referenced from records; defaults to did:web:<site-host>:anchor with web, otherwise accountDid or the PDS repo DID",
+    ),
+  brainDid: z
+    .string()
+    .optional()
+    .describe(
+      "Optional public brain DID referenced from records; defaults to did:web:<site-host> with web, otherwise the PDS repo DID",
+    ),
+  accountDid: z
+    .string()
+    .optional()
+    .describe(
+      "Owner's atproto account DID (did:plc:…). When set, the brain serves it at /.well-known/atproto-did so the owner's handle can verify against this domain (HTTP method) — member handles under the fleet domain",
+    ),
+  lexiconAuthority: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Publish canonical ai.rizom.brain.* schemas from this PDS repo; enable only for the DNS-designated lexicon authority account",
+    ),
+  jetstream: atprotoJetstreamConfigSchema.default(defaultJetstreamConfig),
+});
 
-export const atprotoConfigSchema: z.ZodType<AtprotoConfig, AtprotoConfigInput> =
-  z.object({
-    enabled: z.boolean().default(true),
-    pdsEndpoint: z
-      .url()
-      .default("https://bsky.social")
-      .describe("AT Protocol PDS service endpoint"),
-    identifier: z
-      .string()
-      .optional()
-      .describe("PDS login identifier, usually a handle or account DID"),
-    repoDid: z
-      .string()
-      .optional()
-      .describe("DID of the PDS repo that owns records"),
-    appPassword: z
-      .string()
-      .optional()
-      .describe(
-        "App password for prototype authentication; supply via ${ENV_VAR} interpolation, never a committed literal",
-      ),
-    anchorDid: z
-      .string()
-      .optional()
-      .describe(
-        "Optional Anchor DID referenced from records; defaults to did:web:<site-host>:anchor with web, otherwise accountDid or the PDS repo DID",
-      ),
-    brainDid: z
-      .string()
-      .optional()
-      .describe(
-        "Optional public brain DID referenced from records; defaults to did:web:<site-host> with web, otherwise the PDS repo DID",
-      ),
-    accountDid: z
-      .string()
-      .optional()
-      .describe(
-        "Owner's atproto account DID (did:plc:…). When set, the brain serves it at /.well-known/atproto-did so the owner's handle can verify against this domain (HTTP method) — member handles under the fleet domain",
-      ),
-    lexiconAuthority: z
-      .boolean()
-      .default(false)
-      .describe(
-        "Publish canonical ai.rizom.brain.* schemas from this PDS repo; enable only for the DNS-designated lexicon authority account",
-      ),
-    jetstream: atprotoJetstreamConfigSchema.default(defaultJetstreamConfig),
-  });
+export type AtprotoConfig = z.output<typeof atprotoConfigSchema>;
+export type AtprotoConfigInput = z.input<typeof atprotoConfigSchema>;
