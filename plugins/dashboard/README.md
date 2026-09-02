@@ -1,6 +1,6 @@
 # @brains/dashboard
 
-Public brain card fed by public declarative data.
+Public brain card fed by public declarative data. The Knowledge tab presents public topic projections as a quiet semantic atlas with ranked territory detail rather than exposing internal diagnostics.
 
 The Dashboard route is anonymous-facing and always renders exactly four tabs:
 **Overview**, **Knowledge**, **Network**, and **System**. Overview explains the

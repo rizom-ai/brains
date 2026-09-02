@@ -268,6 +268,60 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
     });
   }
 
+  function setupKnowledgeAtlas(root) {
+    var controls = Array.prototype.slice.call(
+      root.querySelectorAll("[data-knowledge-zone-ref]"),
+    );
+    var zones = Array.prototype.slice.call(
+      root.querySelectorAll("[data-knowledge-zone]"),
+    );
+    if (!controls.length || !zones.length) return;
+    var fallback = controls[0].getAttribute("data-knowledge-zone-ref") || "";
+
+    function activate(id) {
+      controls.forEach(function (control) {
+        var active = control.getAttribute("data-knowledge-zone-ref") === id;
+        control.classList.toggle("is-active", active);
+        control.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      zones.forEach(function (zone) {
+        zone.classList.toggle(
+          "is-active",
+          zone.getAttribute("data-knowledge-zone") === id,
+        );
+      });
+    }
+
+    function controlFrom(event) {
+      var target = event.target;
+      var control = target && target.closest
+        ? target.closest("[data-knowledge-zone-ref]")
+        : null;
+      return control && control.closest("[data-knowledge-atlas]") === root
+        ? control
+        : null;
+    }
+
+    root.addEventListener("pointerover", function (event) {
+      var control = controlFrom(event);
+      var id = control && control.getAttribute("data-knowledge-zone-ref");
+      if (id) activate(id);
+    });
+    root.addEventListener("focusin", function (event) {
+      var control = controlFrom(event);
+      var id = control && control.getAttribute("data-knowledge-zone-ref");
+      if (id) activate(id);
+    });
+    root.addEventListener("pointerleave", function () {
+      activate(fallback);
+    });
+    root.addEventListener("focusout", function (event) {
+      if (!root.contains(event.relatedTarget)) activate(fallback);
+    });
+
+    activate(fallback);
+  }
+
   var tabRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-tabs]"));
   if (tabRoots.length) {
     document.documentElement.classList.add("dashboard-tabs-ready");
@@ -279,4 +333,9 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
 
   var spatialRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-spatial]"));
   spatialRoots.forEach(setupSpatial);
+
+  var knowledgeAtlasRoots = Array.prototype.slice.call(
+    document.querySelectorAll("[data-knowledge-atlas]"),
+  );
+  knowledgeAtlasRoots.forEach(setupKnowledgeAtlas);
 })();`;

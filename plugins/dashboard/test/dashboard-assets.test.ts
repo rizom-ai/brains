@@ -41,6 +41,8 @@ describe("DashboardAssetRegistry", () => {
 
     expect(script).not.toContain("console.climate");
     expect(script).toContain("/api/console/jump");
+    expect(script).toContain("setupKnowledgeAtlas");
+    expect(script).toContain("data-knowledge-zone-ref");
   });
 
   it("serves immutable typed theme assets and supports ETag revalidation", async () => {
