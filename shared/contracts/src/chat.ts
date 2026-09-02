@@ -754,6 +754,12 @@ type ChatProtocolPayload =
       transient?: boolean | undefined;
     }
   | {
+      type: "data-tool-result";
+      id?: string | undefined;
+      data: ChatToolResult;
+      transient?: boolean | undefined;
+    }
+  | {
       type: "data-actions";
       id?: string | undefined;
       data: Extract<ChatCard, { kind: "actions" }>;
@@ -901,6 +907,12 @@ export const chatProtocolEventSchema: z.ZodType<ChatProtocolEvent> =
       type: z.literal("data-status"),
       id: chatIdSchema.optional(),
       data: chatToolStatusEventSchema,
+      transient: z.boolean().optional(),
+    }),
+    z.looseObject({
+      type: z.literal("data-tool-result"),
+      id: chatIdSchema.optional(),
+      data: chatToolResultSchema,
       transient: z.boolean().optional(),
     }),
     z.looseObject({

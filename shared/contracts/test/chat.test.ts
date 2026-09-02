@@ -165,6 +165,7 @@ describe("public headless Chat contract", () => {
       'data: {"type":"start","messageId":"assistant-1"}\n',
       '\ndata: {"type":"text-start","id":"text-1"}\n\n',
       'data: {"type":"text-delta","id":"text-1","delta":"Hello"}\n\n',
+      'data: {"type":"data-tool-result","id":"tool-1","data":{"toolName":"note_search","data":{"count":1}}}\n\n',
       'data: {"type":"finish","finishReason":"stop"}\n\n',
       "data: [DONE]\n\n",
     ];
@@ -187,6 +188,11 @@ describe("public headless Chat contract", () => {
       { type: "start", messageId: "assistant-1" },
       { type: "text-start", id: "text-1" },
       { type: "text-delta", id: "text-1", delta: "Hello" },
+      {
+        type: "data-tool-result",
+        id: "tool-1",
+        data: { toolName: "note_search", data: { count: 1 } },
+      },
       { type: "finish", finishReason: "stop" },
     ]);
 

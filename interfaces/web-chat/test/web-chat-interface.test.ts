@@ -3,6 +3,7 @@ import {
   createExternalActorId,
 } from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/auth-service";
+import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
   IAgentService,
@@ -1643,6 +1644,90 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(403);
     expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("keeps the live message stream compatible with the public decoder", async () => {
+    const agent = createSpyAgentService({
+      text: "Decoded response",
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Decode this response" }],
+            },
+          ],
+        }),
+      }),
+    );
+    if (!response) throw new Error("Missing Chat stream response");
+
+    const events = [];
+    for await (const event of readChatProtocolEvents(response)) {
+      events.push(event);
+    }
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "text-delta",
+        delta: "Decoded response",
+      }),
+    );
+    expect(events.at(-1)).toEqual(
+      expect.objectContaining({ type: "text-end" }),
+    );
+  });
+
+  it("keeps streamed tool results compatible with the public decoder", async () => {
+    const agent = createSpyAgentService({
+      text: "Found one note",
+      toolResults: [{ toolName: "note_search", data: { count: 1 } }],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Find the note" }],
+            },
+          ],
+        }),
+      }),
+    );
+    if (!response) throw new Error("Missing Chat stream response");
+
+    const events = [];
+    for await (const event of readChatProtocolEvents(response)) {
+      events.push(event);
+    }
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "data-tool-result",
+        data: expect.objectContaining({ toolName: "note_search" }),
+      }),
+    );
   });
 
   it("streams approval cards as AI SDK native tool chunks", async () => {

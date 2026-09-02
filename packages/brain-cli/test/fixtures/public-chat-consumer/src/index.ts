@@ -18,6 +18,12 @@ export const protocolEvent = chatProtocolEventSchema.parse({
   delta: "Hello",
 });
 
+export const toolResultProtocolEvent = chatProtocolEventSchema.parse({
+  type: "data-tool-result",
+  id: "fixture-tool-result",
+  data: { toolName: "note_search", data: { count: 1 } },
+});
+
 export const readConsumerChatEvents = readChatProtocolEvents;
 
 export const messageRequest = chatMessageRequestSchema.parse({
