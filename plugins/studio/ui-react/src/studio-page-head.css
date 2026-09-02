@@ -319,8 +319,16 @@
   }
 
   .studio-page-head-metadata > span:not(:first-child),
-  .studio-page-head-totals > div:not(:first-child),
   .studio-page-head[data-has-totals="true"] .studio-head-status {
+    display: none;
+  }
+
+  /* The phone head keeps the leading total and anything asking for attention.
+     Dropping every total but the first cost Inbox its warn-toned "High
+     priority" count — the one number triage is actually for — so tone, not
+     position, decides what survives the narrow head. */
+  .studio-page-head-totals
+    > div:not(:first-child):not([data-tone="warn"]):not([data-tone="error"]) {
     display: none;
   }
 
