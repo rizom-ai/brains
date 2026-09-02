@@ -83,28 +83,40 @@ Two further defects that are the same root cause:
    The gaps are behavioural: the hand-rolled focus trap in
    `confirm-dialog.tsx`, the `<details>`-based phone overflow menu, the pane
    switcher, filter toggles, the boolean switch. Radix is unstyled, so it
-   composes with StyleX as readily as with CVA. `@radix-ui/react-select` is
-   already a Studio dependency.
+   composes with StyleX as readily as with CVA, and the phone workspace
+   picker already runs on `@radix-ui/react-select`.
 
-4. **`console.css` declares no colour literals.** Both climates alias
+   `WidgetTabs` is the one thing keeping the split from being real:
+   `operator-view-renderer.tsx` imports it from `@brains/ui-library`, so the
+   app still depends on the site library for its tab behaviour. Radix Tabs
+   replaces it, and that import is what closes the boundary.
+
+4. **One Radix packaging convention: the unified `radix-ui` package.** It is
+   already how web-chat depends on Radix (`^1.6.0`), while Studio uses the
+   scoped `@radix-ui/react-select` (`^2.3.3`). Two conventions for the same
+   dependency is how the button problem started; the app settles on one before
+   it adds Dialog, DropdownMenu, Tabs, and Switch to the pile. Scoped packages
+   in app code migrate to the unified one as each primitive lands.
+
+5. **`console.css` declares no colour literals.** Both climates alias
    `--color-*`; the values come from a theme. This is the reason the palette
    currently exists twice: instrument hardcodes one and paper restates another
    as `var()` fallbacks that never resolve, because no console shell injects a
    theme.
 
-5. **Each brain's console follows its own theme, with `@rizom/theme-default`
+6. **Each brain's console follows its own theme, with `@rizom/theme-default`
    as the built-in fallback.** `shell/app/src/resolver/site.ts` already
    composes the string via `withThemeBase`; the console shells never receive
    it. The fallback is what keeps a brain with no site configured from
    rendering an unstyled console.
 
-6. **Climate stays the console's name for the theme switch.** It already sets
+7. **Climate stays the console's name for the theme switch.** It already sets
    both attributes — `data-climate` for console CSS, `data-theme` for
    theme-base — so paper is light and instrument is dark with no mapping
    layer. Instrument stops being a fixed identity and follows the brain's dark
    palette.
 
-7. **Shared console chrome stays plain CSS.** The strip, the palette aliases,
+8. **Shared console chrome stays plain CSS.** The strip, the palette aliases,
    and the command palette live in `@brains/console-theme` and are consumed by
    all three surfaces regardless of engine. They are chrome and tokens, not
    components, and rewriting them buys nothing.
@@ -180,8 +192,11 @@ Each phase ships behind the visual harness and leaves the console renderable.
    because it is the one rule StyleX will not beat.
 6. **Add the interactive primitives.** Dialog replaces the hand-rolled focus
    trap, DropdownMenu the `<details>` menu, Switch the faux-toggle checkbox,
-   and the phone action sheet becomes a real sheet with a scrim, a title, and
-   a close control.
+   Tabs replaces `WidgetTabs` — which drops the app's last `ui-library`
+   import and is what actually closes the product boundary — and the phone
+   action sheet becomes a real sheet with a scrim, a title, and a close
+   control. Each lands on the unified `radix-ui` package, taking
+   `@radix-ui/react-select` with it.
 
 ## Coverage debt
 
