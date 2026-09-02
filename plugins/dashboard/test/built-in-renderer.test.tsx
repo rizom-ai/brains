@@ -210,7 +210,7 @@ describe("built-in widget renderers", () => {
         rendererName: RENDERER_NAME,
         dataProvider: async () => ({}),
         renderer: {
-          component: "<svg />" as never,
+          component: "<svg />",
         },
       }),
     ).toThrow();

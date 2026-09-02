@@ -127,6 +127,12 @@ export { waitUntil, type WaitUntilOptions } from "./wait-until";
 export { spyOnEntityGet, spyOnEntityCreate } from "./spy-on-entity-service";
 export { genericSpy } from "./generic-spy";
 
+// Check a caught value is an Error rather than asserting it into one
+export { caughtError } from "./caught-error";
+
+// Narrow a tool result to a branch of ToolResponse by parsing, not asserting
+export { expectToolSuccess, expectToolError } from "./tool-response";
+
 // Semantic renderer-output comparison
 export {
   normalizeRendererHtml,

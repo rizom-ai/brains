@@ -819,44 +819,23 @@ describe("ContentService.resolveContent", () => {
     it("should properly proxy class-based entityService (regression for prototype methods)", async () => {
       // Regression test: When using object spread {...baseService} on a class instance,
       // prototype methods are NOT copied. This test uses a class-based mock to catch this.
-      class MockEntityServiceClass {
-        getEntity = mock((_request: { entityType: string; id: string }) =>
-          Promise.resolve(null),
-        );
-        listEntities = mock(
-          (_request: { entityType: string; options?: unknown }) =>
-            Promise.resolve([]),
-        );
-        countEntities = mock(
-          (_request: { entityType: string; options?: unknown }) =>
-            Promise.resolve(0),
-        );
-        search = mock((_request: { query: string; options?: unknown }) =>
-          Promise.resolve([]),
-        );
-        // Methods on prototype (simulating real class behavior)
-        getEntityTypes(): string[] {
-          return ["post", "deck"];
-        }
-        hasEntityType(type: string): boolean {
-          return ["post", "deck"].includes(type);
-        }
-      }
-
-      const classBasedService = new MockEntityServiceClass();
+      // Every member reaches this object through the prototype chain, which is
+      // the shape a class instance has and the shape `{...service}` destroys.
+      // Building it from the real mock rather than a partial class keeps it a
+      // genuine entity service, so no assertion is needed to hand it over.
+      const entityTypeAwareProto = Object.create(
+        mockDependencies.entityService,
+      );
+      entityTypeAwareProto.getEntityTypes = (): string[] => ["post", "deck"];
+      entityTypeAwareProto.hasEntityType = (type: string): boolean =>
+        ["post", "deck"].includes(type);
+      const classBasedService: typeof mockDependencies.entityService =
+        Object.create(entityTypeAwareProto);
 
       // Create new ContentService with class-based entity service
       const classDependencies: ContentServiceDependencies = {
         ...mockDependencies,
-        // Deliberately a partial class instance. The regression under test is
-        // that createScopedEntityService proxies prototype methods, which a
-        // spread of a class instance loses — so the stand-in has to be a class,
-        // and completing IEntityService on it would bury the point. The proxy
-        // forwards the whole interface, so narrowing the dependency is not
-        // available either.
-        entityService:
-          // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
-          classBasedService as unknown as typeof mockDependencies.entityService,
+        entityService: classBasedService,
       };
       const classContentService = new ContentService(classDependencies);
 
@@ -871,7 +850,7 @@ describe("ContentService.resolveContent", () => {
       const mockDataSource: Partial<DataSource> = {
         id: "shell:class-source",
         fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc = context.entityService as MockEntityServiceClass;
+          const svc = context.entityService;
           // Call prototype method - this MUST work through the proxy
           const types = svc.getEntityTypes();
           const hasPost = svc.hasEntityType("post");

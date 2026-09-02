@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   type AtprotoBrainCardRecord,
@@ -11,6 +12,16 @@ import {
   plugin,
   type AtprotoPdsClientLike,
 } from "../src";
+
+/**
+ * What the plugin's own did.json routes must put on the wire. Parsing rather
+ * than asserting means a document that stops carrying a service entry fails
+ * here, instead of the endpoint assertion reading back `undefined`.
+ */
+const servedDidDocumentSchema = z.looseObject({
+  id: z.string(),
+  service: z.array(z.looseObject({ serviceEndpoint: z.string() })),
+});
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -200,10 +211,9 @@ describe("atproto plugin", () => {
       "application/did+json",
     );
 
-    const brainBody = (await brainResponse?.json()) as {
-      id: string;
-      service: Array<{ serviceEndpoint: string }>;
-    };
+    const brainBody = servedDidDocumentSchema.parse(
+      await brainResponse?.json(),
+    );
     expect(brainBody.id).toBe("did:web:brain.example.com");
     expect(brainBody.service[0]?.serviceEndpoint).toBe(
       "https://pds.example.com",

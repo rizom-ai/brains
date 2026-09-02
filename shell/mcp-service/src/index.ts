@@ -5,6 +5,8 @@ export type {
   ToolSideEffects,
   ToolContext,
   ToolResponse,
+  ToolSuccessResponse,
+  ToolErrorResponse,
   Tool,
   DirectMcpExposure,
   MCPProtocolMode,

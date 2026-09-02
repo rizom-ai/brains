@@ -17,7 +17,8 @@ export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
   entityService: ServiceEntityService;
   fetchImage: FetchImageFn;
-  jobs: ServicePluginContext["jobs"];
+  /** Only enqueue is used; asking for the whole job service would be a claim these tools do not make. */
+  jobs: Pick<ServicePluginContext["jobs"], "enqueue">;
 }
 
 const searchInputSchema = z.object({

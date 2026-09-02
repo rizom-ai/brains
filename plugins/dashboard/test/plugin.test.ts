@@ -14,6 +14,7 @@ import type {
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
+import { consoleJumpResponseSchema } from "../src/console-jump";
 import { createPluginHarness } from "@brains/plugins/test";
 
 describe("DashboardPlugin", () => {
@@ -247,9 +248,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{ id: string; items: Array<{ href: string }> }>;
-      };
+      const data = consoleJumpResponseSchema.parse(await response?.json());
       const tabs = data.groups.find((group) => group.id === "tabs");
       expect(tabs?.items.map((item) => item.href)).toEqual([
         "/dashboard#overview",
@@ -355,12 +354,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{
-          id: string;
-          items: Array<Record<string, string>>;
-        }>;
-      };
+      const data = consoleJumpResponseSchema.parse(await response?.json());
       const entities = data.groups.find((group) => group.id === "entities");
       expect(entities?.items).toEqual([
         {
@@ -390,9 +384,9 @@ describe("DashboardPlugin", () => {
 
       const shell = harness.getMockShell();
       const entityService = shell.getEntityService();
-      entityService.search = (async () => {
+      entityService.search = async (): Promise<never> => {
         throw new Error("index warming");
-      }) as typeof entityService.search;
+      };
 
       const route = plugin
         .getWebRoutes()
@@ -406,9 +400,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{ id: string }>;
-      };
+      const data = consoleJumpResponseSchema.parse(await response?.json());
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );

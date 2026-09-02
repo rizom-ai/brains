@@ -98,17 +98,15 @@ Main content here
         id: "old-topic",
         content: "Test body",
         metadata: {
-          ...({
-            sources: [
-              {
-                slug: "s",
-                title: "t",
-                type: "post",
-                entityId: "e",
-                contentHash: "h",
-              },
-            ],
-          } as Record<string, unknown>),
+          sources: [
+            {
+              slug: "s",
+              title: "t",
+              type: "post",
+              entityId: "e",
+              contentHash: "h",
+            },
+          ],
         },
       });
 

@@ -57,8 +57,10 @@ beforeEach(() => {
 
 afterEach(() => {
   window.close();
-  delete (globalThis as Record<string, unknown>)["window"];
-  delete (globalThis as Record<string, unknown>)["document"];
+  // `delete` on globalThis needs the property to be optional; Reflect does the
+  // same removal without asserting the global object into a bag of unknowns.
+  Reflect.deleteProperty(globalThis, "window");
+  Reflect.deleteProperty(globalThis, "document");
 });
 
 describe("dashboard tab behavior", () => {

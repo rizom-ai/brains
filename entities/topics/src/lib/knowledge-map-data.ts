@@ -87,7 +87,7 @@ export type KnowledgeMapData = z.infer<typeof knowledgeMapDataSchema>;
 
 /* Structural slices of the plugin context — only what the builder needs,
    so tests can stub it without the full plugin machinery. */
-interface ProjectedPoint {
+export interface ProjectedPoint {
   entityId: string;
   entityType: string;
   coordinates: [number, number];
