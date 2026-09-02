@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.344
+
+### Patch Changes
+
+- [`f574291`](https://github.com/rizom-ai/brains/commit/f574291f157b5488ffd97ee408f07b60528a3268) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore System as the final public Dashboard tab with responsive public-health, runtime, surface, semantic projection, and render-check summaries while keeping private diagnostics and operator activity out of the card.
+
 ## 0.2.0-alpha.343
 
 ### Patch Changes

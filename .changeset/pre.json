@@ -269,6 +269,7 @@
     "core--cross-process-durable-work",
     "core--dashboard-paper-theme-mode",
     "core--dashboard-public-card",
+    "core--dashboard-public-system-tab",
     "core--dashboard-theme-asset-route",
     "core--dashboard-widget-namespace",
     "core--declarative-dashboard-runtime",
