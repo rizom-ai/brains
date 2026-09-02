@@ -351,6 +351,8 @@ export class EmailInterface extends MessageInterfacePlugin<
         await readEmailSource(config, this.imapClientFactory, locator, signal),
       );
     } catch {
+      // One fixed outcome for every failure: a caller must not learn from
+      // it whether the message exists or the mailbox refused us.
       return { kind: "unavailable" };
     }
   }

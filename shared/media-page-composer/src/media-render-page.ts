@@ -165,6 +165,8 @@ async function resolveServableFile(
     }
     return null;
   } catch {
+    // Anything that stops us resolving a servable file means there is nothing
+    // to serve, which the caller answers as 404.
     return null;
   }
 }

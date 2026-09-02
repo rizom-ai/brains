@@ -782,6 +782,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
         sizeBytes: new TextEncoder().encode(content).byteLength,
       };
     } catch {
+      // A source read that fails answers one fixed outcome carrying no
+      // detail, so a caller cannot learn from it whether an item exists.
       return inboxContextUnavailable();
     }
   }

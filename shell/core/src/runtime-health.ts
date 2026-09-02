@@ -121,6 +121,8 @@ async function readLinuxProcessSignals(
       zombieCount: zombies,
     };
   } catch {
+    // /proc is Linux-specific; unavailable metrics stay explicit nulls
+    // rather than invented counts.
     return { fileDescriptors, processCount: null, zombieCount: null };
   }
 }

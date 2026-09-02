@@ -68,6 +68,8 @@ async function probeHealth(
     );
     return response.ok ? "ready" : "failed";
   } catch {
+    // A probe: unreachable is indistinguishable from unhealthy for this
+    // caller, and both are reported as failed.
     return "failed";
   }
 }
@@ -96,6 +98,8 @@ async function probeMcpAuthGate(
 
     return response.status === 401 || response.ok ? "ready" : "failed";
   } catch {
+    // Same probe contract as above: unreachable and unhealthy both report
+    // failed, because neither means the gate is serving.
     return "failed";
   }
 }

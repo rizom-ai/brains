@@ -188,6 +188,8 @@ function useAttachmentJobStatus(
           scheduleNextPoll(2000);
         }
       } catch {
+        // Polling: any failure is retried with backoff and gives up after
+        // MAX_TRANSIENT_FAILURES, so the reason is not needed here.
         handleTransientFailure();
       }
     }

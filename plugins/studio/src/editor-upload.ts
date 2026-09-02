@@ -86,6 +86,8 @@ export async function handleUpload(
       },
     );
   } catch {
+    // The staged upload is discarded and the caller told the promotion
+    // failed. The reason stays server-side rather than in the response.
     await store.remove(record.id);
     return jsonResponse({ error: "Upload promotion failed" }, 502);
   }

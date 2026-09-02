@@ -58,6 +58,8 @@ export class EmailTriageProcessor {
     try {
       existing = await this.repository.get(itemId);
     } catch {
+      // Dropped for the same reason as the classification path below: nothing
+      // from mail handling may reach a log.
       return this.persistenceFailure(itemId);
     }
     if (existing) {
@@ -94,6 +96,9 @@ export class EmailTriageProcessor {
       const projection = createMailItemProjection(email, decision);
       return await this.persistProjection(projection, itemId);
     } catch {
+      // The error is dropped rather than carried into the failure path:
+      // classification runs over mail content, and "does not expose mailbox
+      // or exception content in logs" asserts none of it reaches a log.
       return this.handleClassificationFailure(email, itemId, priorFailures);
     }
   }
@@ -145,6 +150,8 @@ export class EmailTriageProcessor {
         await this.repository.create(projection);
       }
     } catch {
+      // Dropped for the same reason as the classification path above: nothing
+      // from mail handling may reach a log.
       return this.persistenceFailure(itemId);
     }
     return this.resolveAttemptState(itemId);

@@ -53,6 +53,7 @@
     "arch:check": "bun scripts/architecture-check.ts",
     "arch:graph": "bun scripts/architecture-check.ts --reporter dot | dot -T svg > dependency-graph.svg",
     "build": "turbo run build",
+    "catches:check": "bun scripts/check-silent-catches.ts",
     "changeset": "bun scripts/release-lane.ts add",
     "changeset:check": "bun scripts/release-lane.ts check",
     "changeset:publish:core": "bun scripts/publish-packages.ts core",

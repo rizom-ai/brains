@@ -29,6 +29,10 @@ bun run legacy:check
 echo "🧪 Checking tests can fail..."
 bun run tests:assertions
 
+# A wide catch that discards its error must say what it is swallowing.
+echo "🤐 Checking silent catches are explained..."
+bun run catches:check
+
 # Scan for leaked secrets
 echo "🔐 Scanning for secrets..."
 bunx varlock scan --staged

@@ -198,6 +198,9 @@ export async function createOperatorContext<
           );
           return true;
         } catch {
+          // assertEntityActionAllowed signals refusal by throwing. Adapting
+          // it to a predicate means anything unexpected also reads as "not
+          // allowed", which is the safe direction for a permission check.
           return false;
         }
       },

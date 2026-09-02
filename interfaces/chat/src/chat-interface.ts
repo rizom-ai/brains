@@ -347,6 +347,8 @@ export class ChatInterface extends MessageInterfacePlugin<
       if (channelId) this.threadRegistry.trackMessage(channelId, edited);
       return true;
     } catch {
+      // The platform rejected the edit. The boolean is the contract here;
+      // callers retry or fall back rather than inspect a reason.
       return false;
     }
   }

@@ -899,6 +899,8 @@ class SystemDirectorySyncStressDriver implements DirectorySyncStressDriver {
       if (!response.ok) return undefined;
       body = await response.json();
     } catch {
+      // Transport failure while polling: the caller retries. Only an
+      // unparseable body raises, which the doc comment above explains.
       return undefined;
     } finally {
       clearTimeout(timeout);

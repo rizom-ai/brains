@@ -77,6 +77,8 @@ export class EmailWorkflowsSourceReader {
       const parsed = emailSourceReadResponseSchema.safeParse(response.data);
       return parsed.success ? parsed.data : { kind: "unavailable" };
     } catch {
+      // Same fixed outcome as every other failure above: the caller must
+      // not be able to tell an unreadable source from an absent one.
       return { kind: "unavailable" };
     }
   }
