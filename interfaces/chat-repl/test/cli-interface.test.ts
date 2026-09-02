@@ -395,7 +395,10 @@ describe("CLIInterface", () => {
       await harness.installPlugin(cliInterface);
     });
 
-    it("should support callback registration and unregistration", () => {
+    // Only that the registration calls are safe in sequence. Proving the
+    // callbacks actually fire needs sendMessageToChannel, which is protected,
+    // and reaching it would mean the cast this repo forbids in tests.
+    it("registers and unregisters callbacks without error", () => {
       const responseHandler = mock(() => {});
       const progressHandler = mock(() => {});
 

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "exemptions": [
+    {
+      "file": "shell/ai-evaluation/test/eval-settle.test.ts",
+      "test": "resolves when the index reports ready",
+      "rule": "unasserted",
+      "reason": "Resolving is the whole claim, and the await enforces it. Paired with the sibling 'throws when the index never becomes ready'."
+    },
+    {
+      "file": "plugins/stock-photo/test/unsplash-client.test.ts",
+      "test": "should not throw on network error",
+      "rule": "unasserted",
+      "reason": "Not throwing is the claim in the title, and the await enforces it. triggerDownload returns void, so there is no result to inspect."
+    },
+    {
+      "file": "plugins/site-builder/test/unit/clean-preserve-images.test.ts",
+      "test": "should handle clean when output directory does not exist",
+      "rule": "unasserted",
+      "reason": "Tolerating a missing directory is the claim, and the await enforces it. There is no directory to inspect afterwards."
+    },
+    {
+      "file": "plugins/directory-sync/test/seed-entity-type-validation.test.ts",
+      "test": "accepts root notes and registered entity directories",
+      "rule": "unasserted",
+      "reason": "Acceptance means validateSeedContentEntityTypes does not reject. Counterpart to 'rejects every seeded type the brain did not register'."
+    },
+    {
+      "file": "plugins/directory-sync/test/seed-entity-type-validation.test.ts",
+      "test": "ignores hidden metadata and directories without sync files",
+      "rule": "unasserted",
+      "reason": "Ignoring means not rejecting, which the await enforces. Counterpart to the rejection case in the same file."
+    },
+    {
+      "file": "plugins/directory-sync/test/git/git-sync.test.ts",
+      "test": "should not fail when nothing to commit",
+      "rule": "unasserted",
+      "reason": "An empty commit must not throw. That is the claim, and the await enforces it."
+    },
+    {
+      "file": "interfaces/chat-repl/test/cli-interface.test.ts",
+      "test": "registers and unregisters callbacks without error",
+      "rule": "unasserted",
+      "reason": "Proving the callbacks fire needs sendMessageToChannel, which is protected; reaching it would require the cast this repo forbids in tests. The title was narrowed to what is actually verified."
+    },
+    {
+      "file": "packages/build-tools/test/release-groups.test.ts",
+      "test": "deployable site and theme inventory declares brain compatibility",
+      "rule": "vacuous",
+      "reason": "A manifest with no dependencies key genuinely satisfies 'react is not a dependency', so the absent-subject case is the intended pass. The peer entries above are pinned with toBeString."
+    }
+  ]
+}

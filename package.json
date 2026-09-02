@@ -90,6 +90,7 @@
     "test:packed:compat": "bun --filter @rizom/brain test:packed:compat",
     "test:scripts": "bun test scripts/",
     "test:unit": "turbo run test",
+    "tests:assertions": "bun scripts/check-test-assertions.ts",
     "typecheck": "turbo run typecheck",
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "visual:console": "bun scripts/console-visual-regression.ts",

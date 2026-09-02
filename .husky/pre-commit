@@ -25,6 +25,10 @@ bun run deps:check
 echo "🏷️  Checking legacy code inventory..."
 bun run legacy:check
 
+# Reject tests that cannot fail — vacuous assertions and empty bodies.
+echo "🧪 Checking tests can fail..."
+bun run tests:assertions
+
 # Scan for leaked secrets
 echo "🔐 Scanning for secrets..."
 bunx varlock scan --staged
