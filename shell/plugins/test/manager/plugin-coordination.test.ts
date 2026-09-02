@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+
+/** The fields this coordination test reads off a widget registration. */
+const widgetPayloadSchema = z.looseObject({
+  id: z.string(),
+  pluginId: z.string(),
+});
 import { createPluginHarness } from "@brains/plugins/test";
 
 /**
@@ -49,7 +56,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
 
   function subscribeToWidgets(): void {
     harness.subscribe("dashboard:register-widget", (message) => {
-      const payload = message.payload as { id: string; pluginId: string };
+      const payload = widgetPayloadSchema.parse(message.payload);
       registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
       return { success: true };
     });
@@ -99,7 +106,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     let widgetReceivedTime = 0;
     harness.subscribe("dashboard:register-widget", (message) => {
       widgetReceivedTime = Date.now();
-      const payload = message.payload as { id: string; pluginId: string };
+      const payload = widgetPayloadSchema.parse(message.payload);
       registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
       return { success: true };
     });

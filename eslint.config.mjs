@@ -79,6 +79,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "shell/entity-service",
   "shell/job-queue",
   "shell/mcp-service",
+  "shell/plugins",
   "shell/messaging-service",
   "shell/recurring-checks",
   "sites/rizom-ai",

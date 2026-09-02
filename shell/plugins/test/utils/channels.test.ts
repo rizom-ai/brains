@@ -145,9 +145,10 @@ describe("Typed Message Channels", () => {
       });
 
       expect(receivedMessages).toHaveLength(1);
-      expect((receivedMessages[0] as { payload: unknown }).payload).toEqual({
-        foo: "bar",
-      });
+      expect(
+        z.looseObject({ payload: z.unknown() }).parse(receivedMessages[0])
+          .payload,
+      ).toEqual({ foo: "bar" });
     });
 
     it("should return unsubscribe function for Channel-based subscribe", async () => {

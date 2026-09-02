@@ -276,7 +276,7 @@ describe("EntityPlugin", () => {
       };
       mockShell.getJobQueueService = (): ReturnType<
         typeof mockShell.getJobQueueService
-      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+      > => trackingJobQueue;
 
       const plugin = new TestEntityPlugin();
       await plugin.register(mockShell);
