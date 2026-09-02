@@ -60,6 +60,10 @@ if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; t
   echo "🔍 Running type checks..."
   bun run typecheck -- --continue
 
+  # scripts/ is outside the workspaces glob, so turbo never typechecks it.
+  echo "🔍 Type checking repo scripts..."
+  bun run typecheck:scripts
+
   # Run tests on all packages (required for monorepo correctness).
   echo "🧪 Running tests..."
   bun run test -- --continue

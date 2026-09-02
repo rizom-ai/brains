@@ -148,6 +148,11 @@ jobs:
       - name: Type check core packages
         run: bunx turbo run typecheck --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
+      # Repo scripts sit outside the workspaces glob, so turbo never reaches
+      # them. Without this they carry no type coverage at all.
+      - name: Type check repo scripts
+        run: bun run typecheck:scripts
+
   test:
     name: Test
     timeout-minutes: 20
