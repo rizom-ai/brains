@@ -1,9 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
 
-const packageJson = (await Bun.file("package.json").json()) as {
-  scripts?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-};
+const packageJson = z
+  .looseObject({
+    scripts: z.record(z.string(), z.string()).optional(),
+    devDependencies: z.record(z.string(), z.string()).optional(),
+  })
+  .parse(await Bun.file("package.json").json());
 
 describe("auth database migrations", () => {
   it("uses the repository-standard Drizzle Kit migration pipeline", async () => {

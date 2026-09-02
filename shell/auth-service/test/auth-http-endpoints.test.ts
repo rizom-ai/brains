@@ -9,6 +9,7 @@ import {
 } from "../src/client-metadata-document";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 import type { RegisteredOAuthClient } from "../src";
+import { z } from "@brains/utils/zod";
 
 /**
  * Characterization tests for AuthService HTTP routing and error envelopes
@@ -69,8 +70,10 @@ function tokenRequest(body: Record<string, string>): Request {
   });
 }
 
+// Only the client id is read, so the parameter asks for that much: the
+// registration response can then be parsed rather than asserted whole.
 function authorizeParams(
-  client: RegisteredOAuthClient,
+  client: Pick<RegisteredOAuthClient, "client_id">,
   challenge: string,
   overrides: Record<string, string> = {},
 ): URLSearchParams {
@@ -633,14 +636,7 @@ describe("client ID metadata documents", () => {
     });
     const session = await service.createAuthSession();
     const params = authorizeParams(
-      {
-        client_id: clientId,
-        client_id_issued_at: 0,
-        redirect_uris: [metadataRedirectUri],
-        token_endpoint_auth_method: "none",
-        grant_types: ["authorization_code", "refresh_token"],
-        response_types: ["code"],
-      },
+      { client_id: clientId },
       await pkceChallenge(verifier),
     );
 
@@ -705,14 +701,7 @@ describe("client ID metadata documents", () => {
       }),
     });
     const params = authorizeParams(
-      {
-        client_id: clientId,
-        client_id_issued_at: 0,
-        redirect_uris: [],
-        token_endpoint_auth_method: "none",
-        grant_types: ["authorization_code"],
-        response_types: ["code"],
-      },
+      { client_id: clientId },
       await pkceChallenge("v"),
     );
     const session = await service.createAuthSession();
@@ -772,7 +761,9 @@ describe("dynamic client registration", () => {
       }),
     );
     expect(registration.status).toBe(201);
-    const client = (await registration.json()) as RegisteredOAuthClient;
+    const client = z
+      .looseObject({ client_id: z.string() })
+      .parse(await registration.json());
     const session = await service.createAuthSession();
     const params = authorizeParams(client, await pkceChallenge("v"));
 

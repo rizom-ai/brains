@@ -17,6 +17,14 @@ import {
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
 
+/** The account snapshot fields these tests read off the wire. */
+const accountSnapshotSchema = z.looseObject({
+  account: z.looseObject({
+    displayName: z.string(),
+    profileEntityId: z.string().optional(),
+  }),
+});
+
 async function createService(): Promise<{
   service: AuthService;
   storageDir: string;
@@ -635,9 +643,7 @@ describe("auth account API", () => {
       accountRequest("/auth/account", session.cookie),
     );
     expect(snapshotResponse.status).toBe(200);
-    const snapshot = (await snapshotResponse.json()) as {
-      account: { displayName: string; profileEntityId?: string };
-    };
+    const snapshot = accountSnapshotSchema.parse(await snapshotResponse.json());
     expect(snapshot.account.displayName).toBe("Ada Lovelace");
     expect(snapshot.account.profileEntityId).toBe(
       "anchor-profile/anchor-profile",
@@ -659,11 +665,13 @@ describe("auth account API", () => {
 
     // ...while a non-Anchor member still renames themselves freely.
     const memberSession = await service.createAuthSession(member.userId);
-    const memberSnapshot = (await (
-      await service.handleRequest(
-        accountRequest("/auth/account", memberSession.cookie),
-      )
-    ).json()) as { account: { profileEntityId?: string } };
+    const memberSnapshot = accountSnapshotSchema.parse(
+      await (
+        await service.handleRequest(
+          accountRequest("/auth/account", memberSession.cookie),
+        )
+      ).json(),
+    );
     expect(memberSnapshot.account.profileEntityId).toBeUndefined();
     const renamed = await service.handleRequest(
       accountRequest("/auth/account/mutations", memberSession.cookie, {

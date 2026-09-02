@@ -15,8 +15,31 @@ import {
   resolveReleaseWorkflowMode,
   runWithScopedReleasePackages,
 } from "../src/release-lanes";
+import { z } from "@brains/utils/zod";
+import { caughtError } from "@brains/test-utils";
 
 const repositoryRoot = join(import.meta.dir, "../../..");
+
+/**
+ * The manifest fields these release checks read.
+ *
+ * `@manypkg/get-packages` types `packageJson` with a handful of known fields
+ * and no index signature, so reading `scripts` or `publishPeerDependencies`
+ * used to mean asserting the whole manifest into a bag of unknowns — which
+ * also erased the fields the type did describe. Parsing keeps every read
+ * checked, and a manifest whose `scripts` stopped being strings fails here.
+ */
+const manifestSchema = z.looseObject({
+  name: z.string(),
+  private: z.boolean().optional(),
+  scripts: z.record(z.string(), z.string()).optional(),
+  publishPeerDependencies: z.record(z.string(), z.string()).optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  devDependencies: z.record(z.string(), z.string()).optional(),
+  peerDependencies: z.record(z.string(), z.string()).optional(),
+  optionalDependencies: z.record(z.string(), z.string()).optional(),
+  repository: z.looseObject({ url: z.string() }).optional(),
+});
 
 async function releasePlanFor(
   name: string,
@@ -67,8 +90,7 @@ test("deployable site and theme inventory declares brain compatibility", async (
   const packages = await getPackages(repositoryRoot);
   const deployablePackages = packages.packages
     .filter(({ packageJson }) => {
-      const scripts = (packageJson as { scripts?: Record<string, string> })
-        .scripts;
+      const { scripts } = manifestSchema.parse(packageJson);
       return (
         packageJson.private !== true &&
         scripts?.["prepack"] === "publish-manifest prepare" &&
@@ -87,17 +109,15 @@ test("deployable site and theme inventory declares brain compatibility", async (
     ],
   );
   for (const { packageJson } of deployablePackages) {
-    const manifest = packageJson as Record<string, unknown>;
-    const peers = manifest["publishPeerDependencies"] as
-      Record<string, unknown> | undefined;
+    const manifest = manifestSchema.parse(packageJson);
+    const peers = manifest.publishPeerDependencies;
     expect(peers?.["@rizom/brain"]).toBeString();
 
     // The external authoring contract has the host runtime provide one React
     // tree and renderer; deployable sites publish both as peers rather than
     // installing private copies next to the host.
     if (packageJson.name.startsWith("@rizom/site-")) {
-      const dependencies = manifest["dependencies"] as
-        Record<string, unknown> | undefined;
+      const dependencies = manifest.dependencies;
       expect(peers?.["react"]).toBeString();
       expect(peers?.["react-dom"]).toBeString();
       expect(dependencies?.["react"]).toBeUndefined();
@@ -105,16 +125,15 @@ test("deployable site and theme inventory declares brain compatibility", async (
     }
   }
 
-  const extractedCanary = packages.packages.find(
+  const canaryPackage = packages.packages.find(
     ({ packageJson }) => packageJson.name === "@rizom/site-smoke-canary",
-  )?.packageJson as Record<string, unknown> | undefined;
-  expect(extractedCanary?.["private"]).toBe(true);
-  expect(extractedCanary?.["scripts"]).toBeUndefined();
-  expect(
-    (extractedCanary?.["repository"] as Record<string, unknown> | undefined)?.[
-      "url"
-    ],
-  ).toBe("git+https://github.com/rizom-ai/site-smoke-canary.git");
+  );
+  const extractedCanary = manifestSchema.parse(canaryPackage?.packageJson);
+  expect(extractedCanary.private).toBe(true);
+  expect(extractedCanary.scripts).toBeUndefined();
+  expect(extractedCanary.repository?.url).toBe(
+    "git+https://github.com/rizom-ai/site-smoke-canary.git",
+  );
 });
 
 test("public packages do not depend on private workspace packages", async () => {
@@ -127,14 +146,11 @@ test("public packages do not depend on private workspace packages", async () => 
   const offenders = packages.packages
     .filter(({ packageJson }) => packageJson.private !== true)
     .flatMap(({ packageJson }) => {
-      const manifest = packageJson as Record<string, unknown>;
-      return [
-        "dependencies",
-        "peerDependencies",
-        "optionalDependencies",
-      ].flatMap((field) => {
-        const dependencies = manifest[field] as
-          Record<string, string> | undefined;
+      const manifest = manifestSchema.parse(packageJson);
+      return (
+        ["dependencies", "peerDependencies", "optionalDependencies"] as const
+      ).flatMap((field) => {
+        const dependencies = manifest[field];
         return Object.keys(dependencies ?? {})
           .filter((name) => privateNames.has(name))
           .map((name) => `${packageJson.name} ${field} ${name}`);
@@ -156,8 +172,7 @@ test("publishable packages do not restore their manifest mid-publish", async () 
   const packages = await getPackages(repositoryRoot);
   const offenders = packages.packages
     .filter(({ packageJson }) => {
-      const scripts = (packageJson as { scripts?: Record<string, string> })
-        .scripts;
+      const { scripts } = manifestSchema.parse(packageJson);
       return (
         packageJson.private !== true &&
         scripts?.["postpack"]?.startsWith("publish-manifest restore") === true
@@ -207,9 +222,9 @@ test("fixed release group packages never depend on the site lane", async () => {
     if (!fixedPackages.has(packageJson.name)) {
       continue;
     }
-    const manifest = packageJson as Record<string, unknown>;
+    const manifest = manifestSchema.parse(packageJson);
     for (const field of ["dependencies", "peerDependencies"] as const) {
-      const deps = manifest[field] as Record<string, string> | undefined;
+      const deps = manifest[field];
       for (const dependencyName of Object.keys(deps ?? {})) {
         if (isSiteReleasePackage(dependencyName)) {
           offenders.push(`${packageJson.name} ${field} ${dependencyName}`);
@@ -346,18 +361,17 @@ test("publish scope restores opposite-lane manifests after failure", async () =>
         ],
         "site",
         async () => {
-          const hidden = JSON.parse(
-            await readFile(join(coreDir, "package.json"), "utf8"),
-          ) as Record<string, unknown>;
-          expect(hidden["private"]).toBe(true);
+          const hidden = manifestSchema.parse(
+            JSON.parse(await readFile(join(coreDir, "package.json"), "utf8")),
+          );
+          expect(hidden.private).toBe(true);
           throw new Error("publish failed");
         },
       );
     } catch (error) {
       publishError = error;
     }
-    expect(publishError).toBeInstanceOf(Error);
-    expect((publishError as Error).message).toBe("publish failed");
+    expect(caughtError(publishError).message).toBe("publish failed");
     expect(await readFile(join(coreDir, "package.json"), "utf8")).toBe(
       coreManifest,
     );
