@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -155,8 +156,11 @@ describe("ProjectGenerationJobHandler", () => {
       expect(reportCalls.length).toBeGreaterThanOrEqual(4);
 
       // Check progress increases
+      const progressNotificationSchema = z.looseObject({
+        progress: z.number(),
+      });
       const progressValues = reportCalls.map(
-        (call: unknown[]) => (call[0] as { progress: number }).progress,
+        (call) => progressNotificationSchema.parse(call[0]).progress,
       );
       for (let i = 1; i < progressValues.length; i++) {
         const current = progressValues[i];

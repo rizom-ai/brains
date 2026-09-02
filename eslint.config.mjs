@@ -37,18 +37,27 @@ const NO_UNSAFE_TEST_CAST = {
 const TEST_CAST_FREE_PACKAGES = [
   "entities/image",
   "entities/note",
+  "entities/portfolio",
   "entities/wishlist",
   "interfaces/a2a",
   "interfaces/chat-repl",
   "interfaces/mcp",
+  "plugins/admin",
   "plugins/atproto-registry",
+  "plugins/email-workflows",
   "plugins/playbooks",
   "plugins/profile",
   "shared/atproto-contracts",
+  "shared/http-signatures",
   "shared/media-page-composer",
   "shared/site-composition",
+  "shared/site-engine",
+  "shared/theme-default",
+  "shared/theme-rizom-ai",
   "shell/job-queue",
+  "shell/mcp-service",
   "shell/recurring-checks",
+  "sites/rizom-ai",
 ];
 
 const NO_SLEEP_SYNCHRONIZATION = {

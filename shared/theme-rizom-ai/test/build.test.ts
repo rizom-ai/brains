@@ -1,5 +1,17 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
+import { z } from "@brains/utils/zod";
+
+/** The built module re-exports the CSS under both names. */
+const distModuleSchema = z.object({
+  default: z.string(),
+  themeCSS: z.string(),
+  themeCSSOnly: z.string(),
+});
+const srcModuleSchema = z.object({
+  default: z.string(),
+  themeCSSOnly: z.string(),
+});
 
 const packageDir = join(import.meta.dir, "..");
 
@@ -17,15 +29,10 @@ describe("dist build", () => {
     expect(build.exitCode).toBe(0);
 
     const distPath = join(packageDir, "dist", "index.js");
-    const dist = (await import(distPath)) as {
-      default: string;
-      themeCSS: string;
-      themeCSSOnly: string;
-    };
-    const src = (await import(join(packageDir, "src", "index.ts"))) as {
-      default: string;
-      themeCSSOnly: string;
-    };
+    const dist = distModuleSchema.parse(await import(distPath));
+    const src = srcModuleSchema.parse(
+      await import(join(packageDir, "src", "index.ts")),
+    );
 
     expect(dist.default).toBe(src.default);
     expect(dist.themeCSS).toBe(dist.default);

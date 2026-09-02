@@ -10,7 +10,11 @@ import {
 } from "@modelcontextprotocol/client";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import { createMockLogger, createSilentLogger } from "@brains/test-utils";
+import {
+  createMockLogger,
+  createSilentLogger,
+  genericSpy,
+} from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 
@@ -30,7 +34,7 @@ interface ProtocolToolHandlerContext {
 }
 
 interface InspectableRegisteredTool {
-  annotations?: ToolAnnotations;
+  annotations?: ToolAnnotations | undefined;
   handler: (
     params: Record<string, unknown>,
     context: ProtocolToolHandlerContext,
@@ -72,9 +76,42 @@ interface InspectableMcpServer {
   _registeredPrompts: Record<string, unknown>;
 }
 
+/**
+ * Parsed rather than asserted: a cast would read `undefined` and report
+ * nothing when the SDK moves these fields, which is the failure this
+ * inspection exists to catch.
+ */
+const inspectableMcpServerSchema: z.ZodType<InspectableMcpServer> =
+  z.looseObject({
+    _registeredTools: z.record(
+      z.string(),
+      z.looseObject({
+        annotations: z.custom<ToolAnnotations>().optional(),
+        handler: z.custom<InspectableRegisteredTool["handler"]>(
+          (value) => typeof value === "function",
+          "registered tool handler must be callable",
+        ),
+      }),
+    ),
+    _registeredResources: z.record(z.string(), z.unknown()),
+    _registeredResourceTemplates: z.record(
+      z.string(),
+      z.looseObject({
+        resourceTemplate: z.looseObject({
+          completeCallback: z.custom<
+            InspectableResourceTemplate["completeCallback"]
+          >(
+            (value) => typeof value === "function",
+            "resource template completeCallback must be callable",
+          ),
+        }),
+      }),
+    ),
+    _registeredPrompts: z.record(z.string(), z.unknown()),
+  });
+
 function inspectMcpServer(server: McpServer): InspectableMcpServer {
-  // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
-  return server as unknown as InspectableMcpServer;
+  return inspectableMcpServerSchema.parse(server);
 }
 
 function listProtocolToolNames(server: McpServer): string[] {
@@ -119,9 +156,9 @@ describe("MCPService", () => {
   beforeEach(() => {
     // Create mock message bus with all required methods
     const unsubscribeFn = mock(() => {});
-    const sendMock = mock(() =>
-      Promise.resolve({ success: true, data: "test" }),
-    ) as IMessageBus["send"];
+    const sendMock = genericSpy<IMessageBus["send"]>(
+      mock(() => Promise.resolve({ success: true, data: "test" })),
+    );
     mockMessageBus = {
       send: sendMock,
       subscribe: mock(() => unsubscribeFn),
@@ -1645,7 +1682,7 @@ describe("MCPService", () => {
           },
         ]);
 
-        // eslint-disable-next-line @typescript-eslint/await-thenable
+        // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
         await expect(
           client.getPrompt({ name: "create", arguments: {} }),
         ).rejects.toThrow();

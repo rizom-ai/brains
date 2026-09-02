@@ -15,10 +15,16 @@ const topicDistributionSchema = z.array(
 
 const adapter = new TopicAdapter();
 
+/**
+ * Fixed timestamps rather than `new Date()`: listings default to `updated`
+ * descending, so wall-clock stamps make the expected order depend on whether
+ * the clock ticked between two fixtures.
+ */
 function makeTopicEntity(
   id: string,
   title: string,
   visibility: ContentVisibility = "public",
+  updated = "2026-01-01T00:00:00.000Z",
 ): BaseEntity {
   const content = adapter.createTopicBody({ title, content: "" });
   return {
@@ -28,8 +34,8 @@ function makeTopicEntity(
     contentHash: "x",
     visibility,
     metadata: {},
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
+    created: updated,
+    updated,
   };
 }
 

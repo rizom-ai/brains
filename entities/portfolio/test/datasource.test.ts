@@ -104,7 +104,9 @@ Outcome for ${title}`;
         expect(parsed.projects).toHaveLength(1);
         expect(parsed.projects[0]?.url).toBeNull();
         expect(parsed.projects[0]?.typeLabel).toBeNull();
-        expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+        expect(
+          z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
+        ).toBeNull();
         expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
       } finally {
         harness.reset();

@@ -60,9 +60,9 @@ describe("PreparedSiteBuild", () => {
     const input = createPreparedBuild();
     input.site.url = undefined;
     const prepared = createPreparedSiteBuildSnapshot(input);
-    const roundTripped = JSON.parse(
-      JSON.stringify(prepared),
-    ) as PreparedSiteBuild;
+    const roundTripped = preparedSiteBuildSchema.parse(
+      JSON.parse(JSON.stringify(prepared)),
+    );
 
     expect(roundTripped).toEqual(prepared);
     expect(prepared.site).not.toHaveProperty("url");
@@ -83,7 +83,11 @@ describe("PreparedSiteBuild", () => {
     const input = createPreparedBuild();
     const section = input.routes[0]?.sections[0];
     if (!section) throw new Error("Expected fixture section");
-    section.data["publishedAt"] = new Date("2026-07-22T00:00:00.000Z") as never;
+    // Object.assign injects the non-JSON value the guard must reject, without
+    // asserting it into the JsonObject slot.
+    Object.assign(section.data, {
+      publishedAt: new Date("2026-07-22T00:00:00.000Z"),
+    });
 
     expect(() => createPreparedSiteBuildSnapshot(input)).toThrow(
       "Unsupported non-JSON value at $.routes[0].sections[0].data.publishedAt: Date",
