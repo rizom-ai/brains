@@ -163,8 +163,38 @@ describe("editor surface styles", () => {
     );
     expect(responsiveStyles).not.toContain("mask-image: linear-gradient");
     expect(responsiveStyles).toContain("env(safe-area-inset-top)");
+  });
+
+  it("locks the phone document only for the editor's app shell", () => {
+    // The editor holds its pane switcher and save bar still while the panes
+    // scroll, so it owns the viewport. Reading surfaces must not: locking them
+    // pins the mobile browser's collapsible URL bar open.
     expect(responsiveStyles).toMatch(
+      /html:has\(body\[data-console-host="studio"\] \.studio\[data-view="editor"\]\) \{[^}]*overflow: hidden/,
+    );
+    expect(responsiveStyles).toMatch(
+      /body\[data-console-host="studio"\]:has\(\.studio\[data-view="editor"\]\) \{[^}]*overflow: hidden/,
+    );
+    expect(responsiveStyles).toMatch(
+      /body\[data-console-host="studio"\]:not\(:has\(\.studio\[data-view="editor"\]\)\) \{[^}]*min-height: 100%/,
+    );
+    // No blanket lock may survive alongside those two scoped ones.
+    expect(responsiveStyles).not.toMatch(
       /body\[data-console-host="studio"\] \{[^}]*overflow: hidden/,
+    );
+  });
+
+  it("hands the phone scroll to the document on reading surfaces", () => {
+    expect(responsiveStyles).toMatch(
+      /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*align-content: start/,
+    );
+    expect(responsiveStyles).toMatch(
+      /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*overflow: visible/,
+    );
+    expect(responsiveStyles).toMatch(/\.listing \{[^}]*overflow: visible/);
+    // The context picker has to survive a document scroll to stay reachable.
+    expect(responsiveStyles).toMatch(
+      /\.studio:not\(\[data-view="editor"\]\) \.rail \{[^}]*position: sticky/,
     );
   });
 

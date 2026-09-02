@@ -226,7 +226,10 @@
 }
 
 @media (max-width: 640px) {
+  /* The document is the phone scroll region on reading surfaces, so the
+     workspace frame stops owning one of its own. */
   .studio-workspace-frame {
+    overflow: visible;
     padding: 14px 16px calc(28px + env(safe-area-inset-bottom));
   }
 

@@ -2,6 +2,14 @@
   min-width: 0;
   overflow: auto;
 }
+
+/* Account is a reading surface: on phones the document owns the scroll, so the
+   pane must not open a nested one inside it. */
+@media (max-width: 640px) {
+  .account-studio-pane {
+    overflow: visible;
+  }
+}
 .card {
   border: 1px solid var(--console-rule);
   border-radius: 10px;

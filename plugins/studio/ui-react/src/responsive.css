@@ -196,12 +196,24 @@
 }
 
 @media (max-width: 640px) {
-  html:has(body[data-console-host="studio"]) {
+  /* Two phone layout contracts. The editor is an app shell: its pane switcher
+     and save bar hold position while the panes scroll, so it locks the
+     document. Every reading surface scrolls the document instead — locking
+     those holds the mobile browser's URL bar permanently open, which costs
+     more viewport than the chrome budget ever saves, and trades native
+     overscroll for a painted scrollbar gutter. */
+  html:has(body[data-console-host="studio"] .studio[data-view="editor"]) {
     overflow: hidden;
   }
   body[data-console-host="studio"] {
     --console-strip-height: calc(52px + env(safe-area-inset-top));
+  }
+  body[data-console-host="studio"]:has(.studio[data-view="editor"]) {
     overflow: hidden;
+  }
+  body[data-console-host="studio"]:not(:has(.studio[data-view="editor"])) {
+    height: auto;
+    min-height: 100%;
   }
   body[data-console-host="studio"] .console-strip {
     grid-template-columns: minmax(0, 1fr) repeat(3, var(--console-touch));
@@ -239,8 +251,20 @@
   .studio > .crumbbar {
     display: none;
   }
-  .studio-body {
+  .studio[data-view="editor"] .studio-body {
     overflow: hidden;
+  }
+  /* Reading surfaces hand their scroll to the document, so the body grid stops
+     capping its content row and the context picker sticks instead of riding
+     the page away. */
+  .studio:not([data-view="editor"]) .studio-body {
+    grid-template-rows: auto auto;
+    /* Auto tracks stretch into a grid taller than their content, which would
+       pad the context picker out to share the leftover viewport. Content sizes
+       the rows; anything past the fold overflows into the document scroll. */
+    align-content: start;
+    min-height: 0;
+    overflow: visible;
   }
   .rail {
     overflow: visible;
@@ -248,6 +272,12 @@
     background: var(--console-card-soft);
     -webkit-mask-image: none;
     mask-image: none;
+  }
+  .studio:not([data-view="editor"]) .rail {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    border-bottom: 1px solid var(--console-rule-strong);
   }
   .types {
     display: none;
@@ -367,7 +397,7 @@
   }
   .listing {
     min-width: 0;
-    overflow-y: auto;
+    overflow: visible;
     padding: 12px 16px calc(28px + env(safe-area-inset-bottom));
   }
   .row {

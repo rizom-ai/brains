@@ -1203,3 +1203,133 @@ describe("OperatorViewRenderer pagination", () => {
     expect(first).toContain('disabled=""');
   });
 });
+
+describe("sidebar card readouts", () => {
+  // A card in the aside column is roughly 220px of content box. Every block a
+  // widget may put there has to survive that measure, because a source like
+  // site-builder's Site health emits free-form build detail, not the one-word
+  // states the rest of the fixture uses.
+
+  it("lets a long key-value wrap instead of holding it on one line", () => {
+    // white-space: nowrap here pushed a 90-character build detail straight out
+    // of the card and off the document.
+    expect(operatorViewRendererStyles).not.toMatch(
+      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*white-space: nowrap/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*overflow-wrap: anywhere/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-key-values > div \{[^}]*flex-wrap: wrap/,
+    );
+  });
+
+  it("sizes stats to the card rather than breaking a state mid-word", () => {
+    // The body grid's 128px minimum track needs 257px for two stats, which a
+    // 220px card cannot give without opening up.
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-card \.declarative-stats \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(0, 1fr\)\)/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-card \.declarative-stats dd \{[^}]*font-size: 17px/,
+    );
+  });
+
+  it("keeps the line breaks a notice authored", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-notice p \{[^}]*white-space: pre-line/,
+    );
+  });
+
+  it("renders one failure per line in a joined notice", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Site health",
+            blocks: [
+              {
+                type: "notice",
+                id: "build-failures",
+                title: "Previous build failures",
+                tone: "error",
+                text: "production · job-7f21c: Route failed.\npreview · job-7f20a: Timed out.",
+              },
+            ],
+          },
+        } as RuntimeStudioWorkspaceData,
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+    // The separator has to reach the DOM for pre-line to have anything to keep.
+    expect(html).toContain("job-7f21c");
+    expect(html).toContain("job-7f20a");
+    expect(html).toMatch(/Route failed\.\s*\n\s*preview/);
+  });
+});
+
+describe("author-supplied text cannot break the page", () => {
+  // The protocol lets a source spend 500 characters on a list title, 4,000 on a
+  // description, and 160 on each tag or badge. This renderer decides width from
+  // the block's meaning, so none of those may reach past their column.
+
+  it("breaks unbroken tokens in list text", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-list strong,[\s\S]*?\.declarative-list small \{[^}]*overflow-wrap: anywhere/,
+    );
+  });
+
+  it("lets a long pill wrap inside its own measure", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*max-width: 100%/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*overflow-wrap: anywhere/,
+    );
+    // nowrap here turned a 160-character badge into a page-width overrun.
+    expect(operatorViewRendererStyles).not.toMatch(
+      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*white-space: nowrap/,
+    );
+  });
+
+  it("keeps trailing row metadata inside the row", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-list-trailing > span:not\(\.declarative-badge\) \{[^}]*overflow-wrap: anywhere/,
+    );
+  });
+});
+
+describe("every author-text surface has a break guard", () => {
+  // Kept as one list so a new text-bearing block cannot quietly ship without
+  // deciding what happens to a string that has nowhere to break.
+  const guarded = [
+    ".declarative-spatial li strong",
+    ".declarative-spatial li span",
+    ".declarative-flow strong",
+    ".declarative-progress strong",
+    ".declarative-progress p",
+    ".declarative-meters dd",
+    ".declarative-links a",
+    ".declarative-inline-link",
+  ];
+
+  // Read the one rule that owns this contract rather than searching the whole
+  // sheet: a lazy match across blocks would happily find some other
+  // overflow-wrap and pass without the selector being guarded at all.
+  const contract =
+    /---- author text[\s\S]*?\n([^{]*)\{([^}]*)\}/.exec(
+      operatorViewRendererStyles,
+    ) ?? undefined;
+
+  it("declares the contract as a single rule", () => {
+    expect(contract).toBeDefined();
+    expect(contract?.[2]).toContain("overflow-wrap: anywhere");
+  });
+
+  for (const selector of guarded) {
+    it(`breaks unbroken tokens in ${selector}`, () => {
+      expect(contract?.[1]).toContain(selector);
+    });
+  }
+});

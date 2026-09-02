@@ -2758,14 +2758,26 @@ body::after {
   font-size: 12.5px;
 }
 
+/* Values are a right-hand readout, not a fixed-width one. Short states keep
+   their line; free-form detail (a build id, a render failure) wraps inside the
+   column instead of running out of the card and off the page. */
 .declarative-key-values dd,
 .declarative-group dd {
+  min-width: 0;
   margin: 0;
   color: var(--console-text);
   font-family: var(--console-mono);
   font-size: 12px;
-  text-align: right;
-  white-space: nowrap;
+  /* space-between already parks a short value against the right edge, so the
+     box hugs its own text and this alignment never shows. It only takes effect
+     once a long value wraps onto its own line, where ragged-left mono is the
+     readable form. */
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.declarative-key-values > div {
+  flex-wrap: wrap;
 }
 
 .declarative-group dl > div {
@@ -2805,11 +2817,15 @@ body::after {
   font-weight: 550;
 }
 
+/* A notice may carry one line per incident (site-builder joins its previous
+   build failures with newlines), so the breaks it authored have to survive. */
 .declarative-notice p {
   margin: 3px 0 0;
   color: var(--console-text-dim);
   font-size: 12.5px;
   line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .declarative-notice[data-tone="warn"] {
@@ -3077,6 +3093,14 @@ body::after {
   min-width: 0;
 }
 
+/* Titles, descriptions, and metadata carry whatever a source wrote — entity
+   ids, URLs, addresses — so they break rather than run past the column. */
+.declarative-list strong,
+.declarative-list p,
+.declarative-list small {
+  overflow-wrap: anywhere;
+}
+
 .declarative-list strong {
   color: var(--console-text);
   font-family: var(--console-display);
@@ -3131,9 +3155,11 @@ body::after {
 }
 
 .declarative-list-trailing > span:not(.declarative-badge) {
+  min-width: 0;
   color: var(--console-text-dim);
   font-family: var(--console-mono);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .declarative-tags {
@@ -3143,8 +3169,13 @@ body::after {
   margin-top: 7px;
 }
 
+/* The protocol lets a source spend 160 characters on a tag or badge. A pill
+   that refuses to wrap turns that into a page-width overrun, so the pill holds
+   its own measure and wraps inside itself instead. Short states are unchanged:
+   they never reach the wrap. */
 .declarative-tags > span,
 .declarative-badge {
+  max-width: 100%;
   padding: 2px 9px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--console-text) 7%, transparent);
@@ -3153,7 +3184,7 @@ body::after {
   font-size: 9.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .declarative-badge[data-tone="warn"] {
@@ -4011,6 +4042,29 @@ body::after {
   gap: 12px;
 }
 
+/* A card in the aside is ~220px of content box; the body grid's 128px minimum
+   track would need 257px for two stats and push the card open. Inside a card
+   the tracks share whatever width there is, and the readout is sized to fit
+   that measure rather than hyphenating a one-word state down its middle. */
+.declarative-card .declarative-stats {
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+.declarative-card .declarative-stats > div {
+  padding: 11px 12px 12px;
+}
+
+.declarative-card .declarative-stats dd {
+  font-size: 17px;
+}
+
+/* Last resort only: break a value that still cannot fit, rather than let it
+   sit on top of its neighbour. */
+.declarative-stats dd,
+.declarative-totals dd {
+  overflow-wrap: break-word;
+}
+
 .declarative-card > div + div {
   margin-top: 12px;
 }
@@ -4197,6 +4251,25 @@ body::after {
     grid-row: 2;
     justify-content: space-between;
   }
+}
+
+/* ---- author text: the renderer owns width, the source owns words --------- */
+
+/* Every selector below renders a string some plugin wrote. The protocol bounds
+   how long those may be — 160 characters for a label, 500 for a title, 4,000
+   for a description — but not their shape, so an entity id, URL, or address
+   with no break opportunity would run past its column and take the document
+   with it. Blocks that already scroll (tables) or ellipsize (action results)
+   are deliberately absent. */
+.declarative-spatial li strong,
+.declarative-spatial li span,
+.declarative-flow strong,
+.declarative-progress strong,
+.declarative-progress p,
+.declarative-meters dd,
+.declarative-links a,
+.declarative-inline-link {
+  overflow-wrap: anywhere;
 }
 
 

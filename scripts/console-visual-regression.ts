@@ -157,6 +157,29 @@ const overviewWorkspaceData = {
                 id: "overview-activity-list",
                 empty: "No recent autonomous activity.",
                 items: [
+                  // A row at the protocol's edges. Sources may legally send a
+                  // 500-character title, 20 metadata entries, and 160-character
+                  // tags and badges; the renderer decides width from the
+                  // block's meaning, so none of that may reach the page edge.
+                  {
+                    id: "unbroken-tokens",
+                    title:
+                      "Rebuilt https://preview.example.com/notes/quiet-infrastructure?build=20260711163352a7f3&environment=preview",
+                    description:
+                      "Reconciled against operator+publishing.pipeline.20260711163352@notifications.example.com after the render retry.",
+                    metadata: [
+                      "Site",
+                      "build-20260711163352a7f3-preview-reconciliation",
+                    ],
+                    tags: ["reconciliation/publishing-pipeline-preview-build"],
+                    badges: [
+                      {
+                        label: "awaiting-operator-acknowledgement",
+                        tone: "warn",
+                      },
+                    ],
+                    tone: "warn",
+                  },
                   {
                     id: "mail-triage",
                     title: "9 mail items triaged",
@@ -219,6 +242,62 @@ const overviewWorkspaceData = {
                   { label: "Channels", value: 3 },
                   { label: "Inbox sources", value: 2 },
                   { label: "Operational sources", value: 3 },
+                ],
+              },
+            ],
+          },
+          // The site-builder Site health widget, shaped exactly as
+          // plugins/site-builder emits it through sourcePanelBlocks: a stats
+          // pair, key-values carrying free-form build detail, a joined
+          // multi-failure notice, and its links. Sidebar cards elsewhere in
+          // this fixture only ever hold one-word values, which is why nothing
+          // here caught long detail strings escaping the aside column.
+          {
+            type: "card",
+            id: "source-site-builder-site-health",
+            label: "Site health",
+            tone: "warn",
+            blocks: [
+              {
+                type: "stats",
+                items: [
+                  { label: "Preview", value: "published", tone: "good" },
+                  { label: "Live", value: "failed", tone: "warn" },
+                ],
+              },
+              {
+                type: "key-values",
+                items: [
+                  {
+                    label: "Preview detail",
+                    value:
+                      "14 published routes · build-20260711-163352-a7f3 · 2026-07-11T16:33:52.458Z",
+                  },
+                  {
+                    label: "Live detail",
+                    value:
+                      "Route /notes/quiet-infrastructure failed to render: missing template binding for hero.image.",
+                  },
+                ],
+              },
+              {
+                type: "notice",
+                id: "build-failures",
+                title: "Previous build failures",
+                tone: "error",
+                text: "production · job-7f21c · 2026-07-11T16:31:02.220Z: Route /notes/quiet-infrastructure failed to render.\npreview · job-7f20a · 2026-07-11T16:22:10.004Z: Timed out after 120s.",
+              },
+              {
+                type: "links",
+                items: [
+                  {
+                    label: "Open preview",
+                    target: { external: "https://preview.example.com" },
+                  },
+                  {
+                    label: "Open in Studio",
+                    target: { launch: { target: "site" } },
+                  },
                 ],
               },
             ],
@@ -1752,6 +1831,21 @@ async function addVisualInitScript(
   });
 }
 
+/**
+ * Studio splits into two phone layout contracts: app-shell surfaces (the
+ * editor and its dialogs) hold fixed chrome around scrolling panes, while
+ * reading surfaces scroll the document like any other page.
+ */
+function isStudioAppShellSurface(surface: string): boolean {
+  return (
+    surface.startsWith("studio-") &&
+    surface !== "studio-library" &&
+    surface !== "studio-account" &&
+    surface !== "studio-overview" &&
+    !surface.startsWith("studio-administration")
+  );
+}
+
 async function checkLayout(
   page: Bun.WebView,
   surface: string,
@@ -1788,19 +1882,65 @@ async function checkLayout(
     if (crumbDisplay !== "none") {
       throw new Error(`Studio crumb bar exceeded the phone chrome budget`);
     }
-    if (
-      dimensions.scrollHeight > dimensions.clientHeight + 1 &&
-      dimensions.rootOverflowY !== "hidden" &&
-      dimensions.bodyOverflowY !== "hidden"
+    // One phone scroll region, and the right one owns it. The editor is an app
+    // shell — fixed pane switcher, pinned save bar — so it locks the document
+    // and scrolls its panes. Reading surfaces are documents: locking them
+    // would pin the mobile browser's collapsible URL bar open, costing more
+    // viewport than the chrome budget ever saves, so the document scrolls and
+    // nothing nested may scroll with it.
+    const scrollRegions = await evaluatePage(page, () =>
+      Array.from(document.querySelectorAll<HTMLElement>("*"))
+        .filter((element) => {
+          const overflowY = getComputedStyle(element).overflowY;
+          return (
+            (overflowY === "auto" || overflowY === "scroll") &&
+            element.scrollHeight > element.clientHeight + 1
+          );
+        })
+        .map((element) => element.className.toString().slice(0, 60)),
+    );
+    if (isStudioAppShellSurface(surface)) {
+      if (
+        dimensions.scrollHeight > dimensions.clientHeight + 1 &&
+        dimensions.rootOverflowY !== "hidden" &&
+        dimensions.bodyOverflowY !== "hidden"
+      ) {
+        throw new Error(
+          `Studio editor created a second phone scroll region (${dimensions.scrollHeight} > ${dimensions.clientHeight})`,
+        );
+      }
+    } else if (scrollRegions.length > 0) {
+      throw new Error(
+        `Studio nested a phone scroll region inside the document: ${JSON.stringify(scrollRegions)}`,
+      );
+    } else if (
+      dimensions.rootOverflowY === "hidden" ||
+      dimensions.bodyOverflowY === "hidden"
     ) {
       throw new Error(
-        `Studio created a second phone scroll region (${dimensions.scrollHeight} > ${dimensions.clientHeight})`,
+        `Studio locked the phone document scroll on a reading surface`,
       );
     }
     const head = await elementBounds(page, ".studio-page-head");
     if (!head || head.y > 132) {
+      const chrome = await evaluatePage(page, () =>
+        [
+          ".console-strip",
+          ".rail",
+          ".studio-mobile-switcher",
+          ".studio-body",
+          ".studio-workspace-frame",
+          ".listing",
+          ".account-studio-pane",
+        ].map((selector) => {
+          const element = document.querySelector(selector);
+          if (!(element instanceof HTMLElement)) return `${selector}: absent`;
+          const bounds = element.getBoundingClientRect();
+          return `${selector}: y=${Math.round(bounds.y)} h=${Math.round(bounds.height)} display=${getComputedStyle(element).display}`;
+        }),
+      );
       throw new Error(
-        `Studio content starts too low at ${width}px (${head?.y ?? "missing"})`,
+        `Studio content starts too low at ${width}px (${head?.y ?? "missing"})\n  ${chrome.join("\n  ")}`,
       );
     }
     const expectsPrimaryAction =
@@ -1882,13 +2022,7 @@ async function checkLayout(
       }
     }
   }
-  if (
-    surface.startsWith("studio-") &&
-    surface !== "studio-library" &&
-    surface !== "studio-account" &&
-    surface !== "studio-overview" &&
-    !surface.startsWith("studio-administration")
-  ) {
+  if (isStudioAppShellSurface(surface)) {
     const modes = await elementDisplay(page, ".studio-mobile-modes");
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`Studio responsive mode mismatch at ${width}px`);
@@ -1949,7 +2083,9 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
   fixturePng.data[offset + 2] = 92;
   fixturePng.data[offset + 3] = 255;
 }
-const fixtureImage = PNG.sync.write(fixturePng);
+// PNG.sync.write hands back a Node Buffer, whose ArrayBufferLike backing is not
+// a BodyInit. The view is the same bytes without a copy of the pixel data.
+const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 
 const pendingUploadResponses = new Set<() => void>();
 const server = Bun.serve({
