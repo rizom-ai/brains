@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mockFetch } from "@brains/test-utils";
+import { describe, expect, it } from "bun:test";
+import type { FetchLike } from "@brains/utils/fetch-like";
+import { StudioApi } from "./api";
 import {
   removeEntity,
   runDeclarativeWorkspaceAction,
@@ -7,21 +8,32 @@ import {
   uploadImage,
 } from "./mutations";
 
-const originalFetch = globalThis.fetch;
-
-afterEach(() => {
-  globalThis.fetch = originalFetch;
+// The functions under test are handed a client built on delegatingFetch,
+// which reads the per-test handler at call time, so the global fetch is never
+// touched and there is nothing to restore.
+type StubHandler = (url: string, options: RequestInit) => Promise<Response>;
+let fetchFn: FetchLike = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: FetchLike = (input, init) => fetchFn(input, init);
+const studioApi = new StudioApi({
+  basePath: "/studio",
+  fetch: delegatingFetch,
 });
+
+function stubFetch(handler: StubHandler): void {
+  fetchFn = (input, init): Promise<Response> =>
+    handler(String(input), init ?? {});
+}
 
 describe("declarative Studio workspace mutation", () => {
   it("posts the normalized action id and JSON input", async () => {
     let payload: unknown;
-    mockFetch(async (_url, options) => {
+    stubFetch(async (_url, options) => {
       payload = JSON.parse(String(options.body));
       return Response.json({ result: { refreshed: "saved-1" } });
     });
 
-    const result = await runDeclarativeWorkspaceAction({
+    const result = await runDeclarativeWorkspaceAction(studioApi, {
       workspaceId: "@fixture/reading-operator:reading-operator:library",
       action: {
         actionId: "refresh",
@@ -39,7 +51,7 @@ describe("declarative Studio workspace mutation", () => {
 
   it("carries host-owned prepared confirmation phases", async () => {
     const payloads: unknown[] = [];
-    mockFetch(async (_url, options) => {
+    stubFetch(async (_url, options) => {
       payloads.push(JSON.parse(String(options.body)));
       return Response.json({ result: { success: true } });
     });
@@ -49,11 +61,11 @@ describe("declarative Studio workspace mutation", () => {
       input: { entityType: "post", entityId: "post-1" },
     };
 
-    await runDeclarativeWorkspaceAction({
+    await runDeclarativeWorkspaceAction(studioApi, {
       workspaceId: "content-pipeline:publishing",
       action: { ...action, invocation: { mode: "prepare" } },
     });
-    await runDeclarativeWorkspaceAction({
+    await runDeclarativeWorkspaceAction(studioApi, {
       workspaceId: "content-pipeline:publishing",
       action: {
         ...action,
@@ -88,7 +100,7 @@ describe("Studio upload mutation", () => {
     let requests = 0;
     let method: string | undefined;
     let body: BodyInit | null | undefined;
-    mockFetch(async (_url, options) => {
+    stubFetch(async (_url, options) => {
       requests += 1;
       method = options.method;
       body = options.body;
@@ -96,7 +108,7 @@ describe("Studio upload mutation", () => {
     });
     const file = new File(["pixels"], "cover.png", { type: "image/png" });
 
-    const result = await uploadImage(file);
+    const result = await uploadImage(studioApi, file);
 
     if (!(body instanceof FormData)) throw new Error("Expected FormData body");
     const uploaded = body.get("file");
@@ -115,14 +127,14 @@ describe("Studio delete mutation", () => {
     let requestedUrl = "";
     let method: string | undefined;
     let payload: unknown;
-    mockFetch(async (url, options) => {
+    stubFetch(async (url, options) => {
       requestedUrl = url;
       method = options.method;
       payload = JSON.parse(String(options.body));
       return Response.json({ deleted: true });
     });
 
-    const result = await removeEntity({
+    const result = await removeEntity(studioApi, {
       entityType: "field note",
       id: "day/one",
     });
@@ -140,7 +152,7 @@ describe("Studio save mutation", () => {
   it("preserves the pinned content-hash precondition on updates", async () => {
     let method: string | undefined;
     let payload: unknown;
-    mockFetch(async (_url, options) => {
+    stubFetch(async (_url, options) => {
       method = options.method;
       payload = JSON.parse(String(options.body));
       return Response.json({
@@ -150,7 +162,7 @@ describe("Studio save mutation", () => {
       });
     });
 
-    const result = await saveEntity({
+    const result = await saveEntity(studioApi, {
       kind: "update",
       entityType: "post",
       id: "field-notes",
@@ -173,13 +185,13 @@ describe("Studio save mutation", () => {
   it("creates through the same mutation without an invented precondition", async () => {
     let method: string | undefined;
     let payload: unknown;
-    mockFetch(async (_url, options) => {
+    stubFetch(async (_url, options) => {
       method = options.method;
       payload = JSON.parse(String(options.body));
       return Response.json({ entityId: "new-note", jobId: "job-2" });
     });
 
-    await saveEntity({
+    await saveEntity(studioApi, {
       kind: "create",
       entityType: "post",
       frontmatter: { title: "New note" },

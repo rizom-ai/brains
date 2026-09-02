@@ -3,21 +3,15 @@ import {
   type QueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
-import {
-  fetchAgentTargets,
-  fetchEntities,
-  fetchEntity,
-  fetchNavigation,
-  fetchSchema,
-  fetchSyncStatus,
-  fetchWorkspace,
-  type AgentTarget,
-  type StudioNavigation,
-  type StudioWorkspaceData,
-  type EntityDetail,
-  type EntitySummary,
-  type SyncStatus,
-  type TypeSchema,
+import type {
+  StudioApi,
+  AgentTarget,
+  StudioNavigation,
+  StudioWorkspaceData,
+  EntityDetail,
+  EntitySummary,
+  SyncStatus,
+  TypeSchema,
 } from "./api";
 
 export type NavigationQueryKey = readonly ["studio", "navigation"];
@@ -83,7 +77,9 @@ export const studioKeys = {
   ],
 };
 
-export function navigationQueryOptions(): UseQueryOptions<
+export function navigationQueryOptions(
+  api: StudioApi,
+): UseQueryOptions<
   StudioNavigation,
   Error,
   StudioNavigation,
@@ -91,11 +87,12 @@ export function navigationQueryOptions(): UseQueryOptions<
 > {
   return {
     queryKey: studioKeys.navigation(),
-    queryFn: fetchNavigation,
+    queryFn: () => api.fetchNavigation(),
   };
 }
 
 export function workspaceQueryOptions(
+  api: StudioApi,
   workspaceId: string,
   query: StudioWorkspaceQuery = {},
 ): UseQueryOptions<
@@ -106,7 +103,7 @@ export function workspaceQueryOptions(
 > {
   return {
     queryKey: studioKeys.workspace(workspaceId, query),
-    queryFn: () => fetchWorkspace(workspaceId, query),
+    queryFn: () => api.fetchWorkspace(workspaceId, query),
     // Paged/filtered workspaces change query keys in place; keeping the
     // previous page mounted avoids tearing the renderer down per page, and
     // the modest staleTime stops focus/remount refetch spam. Action paths
@@ -141,33 +138,32 @@ export async function invalidateAfterUpload(
 }
 
 export function agentTargetsQueryOptions(
+  api: StudioApi,
   entityType: string,
   entityId: string,
 ): UseQueryOptions<AgentTarget[], Error, AgentTarget[], AgentTargetsQueryKey> {
   return {
     queryKey: studioKeys.agentTargets(entityType, entityId),
-    queryFn: () => fetchAgentTargets(entityType, entityId),
+    queryFn: () => api.fetchAgentTargets(entityType, entityId),
   };
 }
 
-export function syncStatusQueryOptions(): UseQueryOptions<
-  SyncStatus,
-  Error,
-  SyncStatus,
-  SyncStatusQueryKey
-> {
+export function syncStatusQueryOptions(
+  api: StudioApi,
+): UseQueryOptions<SyncStatus, Error, SyncStatus, SyncStatusQueryKey> {
   return {
     queryKey: studioKeys.syncStatus(),
-    queryFn: fetchSyncStatus,
+    queryFn: () => api.fetchSyncStatus(),
   };
 }
 
 export function entitySchemaQueryOptions(
+  api: StudioApi,
   entityType: string,
 ): UseQueryOptions<TypeSchema, Error, TypeSchema, EntitySchemaQueryKey> {
   return {
     queryKey: studioKeys.schema(entityType),
-    queryFn: () => fetchSchema(entityType),
+    queryFn: () => api.fetchSchema(entityType),
     // Collection switching explicitly refreshes schemas. Its mounted observer
     // must share that request rather than immediately issuing another.
     staleTime: Number.POSITIVE_INFINITY,
@@ -175,6 +171,7 @@ export function entitySchemaQueryOptions(
 }
 
 export function entityListQueryOptions(
+  api: StudioApi,
   entityType: string,
 ): UseQueryOptions<
   EntitySummary[],
@@ -184,17 +181,18 @@ export function entityListQueryOptions(
 > {
   return {
     queryKey: studioKeys.entities(entityType),
-    queryFn: () => fetchEntities(entityType),
+    queryFn: () => api.fetchEntities(entityType),
   };
 }
 
 export function entityDetailQueryOptions(
+  api: StudioApi,
   entityType: string,
   entityId: string,
 ): UseQueryOptions<EntityDetail, Error, EntityDetail, EntityDetailQueryKey> {
   return {
     queryKey: studioKeys.entity(entityType, entityId),
-    queryFn: () => fetchEntity(entityType, entityId),
+    queryFn: () => api.fetchEntity(entityType, entityId),
     // Opening/reloading is explicit. Mounting the observer after an explicit
     // load must not trigger a duplicate request or replace a dirty draft.
     staleTime: Number.POSITIVE_INFINITY,

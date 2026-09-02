@@ -5,6 +5,7 @@ import type {
 } from "@brains/auth-service/account-contracts";
 import { z } from "@brains/utils/zod";
 import { isRecord } from "@brains/utils/is-record";
+import type { FetchLike } from "@brains/utils/fetch-like";
 
 export interface AccountMutationResponse {
   account?: AuthAccountSnapshot;
@@ -158,46 +159,6 @@ async function parseResponse<T>(
   return schema.parse(body);
 }
 
-export async function fetchAccount(): Promise<AuthAccountSnapshot> {
-  const response = await parseResponse(
-    await fetch("/auth/account", {
-      credentials: "same-origin",
-      cache: "no-store",
-    }),
-    accountResponseSchema,
-  );
-  return response.account;
-}
-
-export async function mutatePluginSettings(
-  mutation: AuthAccountPluginSettingsMutation,
-): Promise<AuthAccountSnapshot> {
-  const response = await parseResponse(
-    await fetch("/auth/account/plugin-settings", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mutation),
-    }),
-    accountResponseSchema,
-  );
-  return response.account;
-}
-
-export async function mutateAccount(
-  mutation: AuthAccountMutation,
-): Promise<AccountMutationResponse> {
-  return parseResponse(
-    await fetch("/auth/account/mutations", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mutation),
-    }),
-    accountMutationResponseSchema,
-  );
-}
-
 function decodeBase64Url(value: string): ArrayBuffer {
   const base64 = value
     .replaceAll("-", "+")
@@ -242,51 +203,109 @@ function prepareCreationOptions(
   };
 }
 
-export async function registerPasskey(): Promise<AuthAccountSnapshot> {
-  const options = await parseResponse(
-    await fetch("/auth/account/passkeys/options", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    }),
-    registrationOptionsSchema,
-  );
-  const created = await navigator.credentials.create({
-    publicKey: prepareCreationOptions(options),
-  });
-  if (!(created instanceof PublicKeyCredential)) {
-    throw new Error("Passkey registration was cancelled");
+/**
+ * The account endpoints, on an injected transport. Production leaves fetch
+ * unset and the client uses the global; a test hands in a fake.
+ */
+export interface AccountClientDeps {
+  fetch?: FetchLike | undefined;
+}
+
+const globalFetch: FetchLike = (input, init) => fetch(input, init);
+
+export class AccountClient {
+  private readonly fetchFn: FetchLike;
+
+  constructor(deps: AccountClientDeps = {}) {
+    this.fetchFn = deps.fetch ?? globalFetch;
   }
-  if (!(created.response instanceof AuthenticatorAttestationResponse)) {
-    throw new Error("Authenticator returned an invalid passkey response");
+
+  async fetchAccount(): Promise<AuthAccountSnapshot> {
+    const response = await parseResponse(
+      await this.fetchFn("/auth/account", {
+        credentials: "same-origin",
+        cache: "no-store",
+      }),
+      accountResponseSchema,
+    );
+    return response.account;
   }
-  const response = created.response;
-  const payload = {
-    id: created.id,
-    rawId: encodeBase64Url(created.rawId),
-    type: created.type,
-    ...(created.authenticatorAttachment
-      ? { authenticatorAttachment: created.authenticatorAttachment }
-      : {}),
-    clientExtensionResults: created.getClientExtensionResults(),
-    response: {
-      clientDataJSON: encodeBase64Url(response.clientDataJSON),
-      attestationObject: encodeBase64Url(response.attestationObject),
-      transports:
-        typeof response.getTransports === "function"
-          ? response.getTransports()
-          : [],
-    },
-  };
-  const result = await parseResponse(
-    await fetch("/auth/account/passkeys/verify", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }),
-    accountResponseSchema.extend({ verified: z.literal(true) }),
-  );
-  return result.account;
+
+  async mutatePluginSettings(
+    mutation: AuthAccountPluginSettingsMutation,
+  ): Promise<AuthAccountSnapshot> {
+    const response = await parseResponse(
+      await this.fetchFn("/auth/account/plugin-settings", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mutation),
+      }),
+      accountResponseSchema,
+    );
+    return response.account;
+  }
+
+  async mutateAccount(
+    mutation: AuthAccountMutation,
+  ): Promise<AccountMutationResponse> {
+    return parseResponse(
+      await this.fetchFn("/auth/account/mutations", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mutation),
+      }),
+      accountMutationResponseSchema,
+    );
+  }
+
+  async registerPasskey(): Promise<AuthAccountSnapshot> {
+    const options = await parseResponse(
+      await this.fetchFn("/auth/account/passkeys/options", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      }),
+      registrationOptionsSchema,
+    );
+    const created = await navigator.credentials.create({
+      publicKey: prepareCreationOptions(options),
+    });
+    if (!(created instanceof PublicKeyCredential)) {
+      throw new Error("Passkey registration was cancelled");
+    }
+    if (!(created.response instanceof AuthenticatorAttestationResponse)) {
+      throw new Error("Authenticator returned an invalid passkey response");
+    }
+    const response = created.response;
+    const payload = {
+      id: created.id,
+      rawId: encodeBase64Url(created.rawId),
+      type: created.type,
+      ...(created.authenticatorAttachment
+        ? { authenticatorAttachment: created.authenticatorAttachment }
+        : {}),
+      clientExtensionResults: created.getClientExtensionResults(),
+      response: {
+        clientDataJSON: encodeBase64Url(response.clientDataJSON),
+        attestationObject: encodeBase64Url(response.attestationObject),
+        transports:
+          typeof response.getTransports === "function"
+            ? response.getTransports()
+            : [],
+      },
+    };
+    const result = await parseResponse(
+      await this.fetchFn("/auth/account/passkeys/verify", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+      accountResponseSchema.extend({ verified: z.literal(true) }),
+    );
+    return result.account;
+  }
 }
