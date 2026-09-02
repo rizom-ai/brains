@@ -142,14 +142,23 @@ describe("ButtondownClient", () => {
 
   describe("unsubscribe", () => {
     it("should unsubscribe by email", async () => {
-      mockFetch(() =>
-        Promise.resolve({
+      // Without capturing the request this passed for a client that issued no
+      // request at all, or issued the wrong one against the wrong subscriber.
+      let capturedUrl: string | undefined;
+      let capturedMethod: string | undefined;
+      mockFetch((url, options) => {
+        capturedUrl = url;
+        capturedMethod = options.method;
+        return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({}),
-        }),
-      );
+        });
+      });
 
       await client.unsubscribe("test@example.com");
+
+      expect(capturedMethod).toBe("DELETE");
+      expect(capturedUrl).toContain("/subscribers/test%40example.com");
     });
   });
 
