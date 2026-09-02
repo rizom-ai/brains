@@ -67,7 +67,8 @@ describe("App", () => {
         },
         mockShell,
       );
-      expect(app).toBeDefined();
+      // The custom config must not displace the shell it was handed.
+      expect(app.getShell()).toBe(mockShell);
     });
 
     it("should parse config with defaults", () => {
@@ -328,7 +329,7 @@ describe("App", () => {
   });
 
   describe("identity configuration", () => {
-    it("should accept identity in app config", () => {
+    it("passes a configured identity through to the shell", async () => {
       const mockShell = createMockShell();
       const customIdentity = {
         name: "Test Assistant",
@@ -336,21 +337,54 @@ describe("App", () => {
         purpose: "Help with technical tasks",
         values: ["precision", "efficiency"],
       };
-
-      const app = App.create(
-        {
-          identity: customIdentity,
+      let shellConfig: Parameters<typeof Shell.createFresh>[0] | undefined;
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
+        (config) => {
+          shellConfig = config;
+          return mockShell;
         },
-        mockShell,
       );
 
-      expect(app).toBeDefined();
+      try {
+        const app = App.create({ identity: customIdentity });
+        await app.initialize();
+
+        expect(shellConfig?.identity).toEqual(customIdentity);
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
     });
 
-    it("should work without identity config (using default)", () => {
+    it("leaves identity unset when none is configured", async () => {
+      // The shell owns the default. App must not invent one, or the shell's
+      // own default becomes unreachable.
       const mockShell = createMockShell();
-      const app = App.create({}, mockShell);
-      expect(app).toBeDefined();
+      let shellConfig: Parameters<typeof Shell.createFresh>[0] | undefined;
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(async () => undefined);
+      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
+        (config) => {
+          shellConfig = config;
+          return mockShell;
+        },
+      );
+
+      try {
+        const app = App.create({});
+        await app.initialize();
+
+        expect(shellConfig?.identity).toBeUndefined();
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
     });
   });
 });
