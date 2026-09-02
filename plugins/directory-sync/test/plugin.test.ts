@@ -16,8 +16,6 @@ import { startGitBrokerHost } from "../src/lib/broker/host";
 import { gitBrokerSocketPath } from "../src/lib/broker/server";
 import { getGitRemoteFingerprint } from "../src/lib/git-options";
 
-const syncResponseData = z.object({ jobId: z.string() });
-
 describe("DirectorySyncPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
   let plugin: DirectorySyncPlugin;
@@ -131,14 +129,12 @@ describe("DirectorySyncPlugin", () => {
         },
       );
 
-      // Should either complete immediately if no operations needed
-      // or queue a batch job (both return success: true with the new format)
-      expect(syncResult).toBeDefined();
+      // Sync either completes immediately when there is nothing to do or
+      // queues a batch job; both report success, and only the queued form
+      // carries a jobId. The previous jobId assertion sat inside an
+      // `if (parsed.success)` guard, where the schema had already guaranteed
+      // it — so it checked nothing whichever branch ran.
       expectSuccess(syncResult);
-      const parsed = syncResponseData.safeParse(syncResult.data);
-      if (parsed.success) {
-        expect(parsed.data.jobId).toBeDefined();
-      }
     });
   });
 
@@ -171,14 +167,23 @@ describe("DirectorySyncPlugin", () => {
     });
 
     it("should respond to export requests", async () => {
+      // Without an entity to export the counts are all zero, which any broken
+      // export also produces. Seed one so the numbers mean something.
+      harness.addEntities([
+        {
+          id: "note-1",
+          entityType: "note",
+          content: "# Note one",
+          metadata: {},
+        },
+      ]);
+
       const response = await harness.sendMessage<
         { entityTypes?: string[] },
-        { exported: number; failed: number }
+        { exported: number; failed: number; errors: string[] }
       >("entity:export:request", { entityTypes: ["note"] }, "test");
 
-      expect(response).toBeDefined();
-      expect(response?.exported).toBeDefined();
-      expect(response?.failed).toBeDefined();
+      expect(response).toEqual({ exported: 1, failed: 0, errors: [] });
     });
 
     it("should respond to configuration requests", async () => {
