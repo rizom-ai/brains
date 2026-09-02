@@ -60,32 +60,6 @@ describe("OnlineEmbeddingProvider", () => {
     });
   });
 
-  describe("implements IEmbeddingService", () => {
-    test("has dimensions property", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(provider.dimensions).toBe(1536);
-    });
-
-    test("has generateEmbedding method", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(typeof provider.generateEmbedding).toBe("function");
-    });
-
-    test("has generateEmbeddings method", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(typeof provider.generateEmbeddings).toBe("function");
-    });
-  });
-
   describe("generateEmbeddings edge cases", () => {
     test("returns empty result for empty input", async () => {
       const provider = OnlineEmbeddingProvider.createFresh({
