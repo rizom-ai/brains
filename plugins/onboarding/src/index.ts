@@ -80,7 +80,9 @@ const onboardingPackage: ServicePackageDefinition<
   config: onboardingConfigSchema,
 
   // Seeding waits for the packages whose types it writes.
-  dependsOn: ["playbook", "playbooks"],
+  // One package now, so both plugin ids carry its scope: the playbook type
+  // and the runs that walk it register together.
+  dependsOn: ["@brains/playbooks:playbook", "@brains/playbooks:playbooks"],
 
   // The playbooks themselves: written by the runtime, only where nothing with
   // that id exists at any visibility, so a seed never overwrites authored

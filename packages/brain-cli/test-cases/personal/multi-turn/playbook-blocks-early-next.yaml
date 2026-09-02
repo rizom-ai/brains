@@ -18,7 +18,7 @@ turns:
   - userMessage: "Start playbook onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
           argsContain:
             action: start
@@ -36,7 +36,7 @@ turns:
           shouldBeCalled: false
         - toolName: system_update
           shouldBeCalled: false
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: false
           argsContain:
             action: send-event
@@ -49,7 +49,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_manage
+    - toolName: playbooks_manage
       shouldBeCalled: true
   toolCountRange:
     max: 5

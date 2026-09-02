@@ -60,7 +60,8 @@ export function shouldStopToolLoop(input: {
   const hasPlaybookStart =
     latestStep?.toolCalls?.some(
       (call) =>
-        call.toolName === "playbook_manage" && isPlaybookStartInput(call.input),
+        call.toolName === "playbooks_manage" &&
+        isPlaybookStartInput(call.input),
     ) ?? false;
   return hasConfirmation || hasPlaybookStart;
 }

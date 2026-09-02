@@ -1,7 +1,4 @@
-import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/runtime-state";
+import type { IRuntimeStateStore } from "@brains/runtime-state";
 import { createPrefixedId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -119,8 +116,18 @@ export class PlaybookRunStore {
   private readonly store: IRuntimeStateStore<PlaybookRun>;
   private readonly writeQueue = new SerialQueue();
 
-  constructor(runtimeState: IRuntimeStateNamespace) {
-    this.store = runtimeState.scoped<PlaybookRun>({
+  /**
+   * A scope rather than the whole namespace: the store writes runs and reads
+   * them back, and nothing else it does needs the ability to open a second
+   * namespace of its own.
+   */
+  constructor(
+    scope: <TValue>(options: {
+      namespace: string;
+      schema: z.ZodType<TValue>;
+    }) => IRuntimeStateStore<TValue>,
+  ) {
+    this.store = scope<PlaybookRun>({
       namespace: playbookRunsNamespace,
       schema: playbookRunSchema,
     });

@@ -8,7 +8,7 @@
  */
 
 import type { LifecycleStarterRegistration } from "@brains/contracts";
-import type { Logger } from "@brains/utils/logger";
+import type { LoggerContract } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
 export interface LifecyclePlaybookConfig {
@@ -83,7 +83,7 @@ export interface StarterPlaybook {
 }
 
 export interface LifecycleStarterRegistryDeps {
-  logger: Logger;
+  logger: LoggerContract;
   configuredLifecycle: Record<string, LifecyclePlaybookConfig>;
   triggers: Record<string, boolean>;
   findRunByLifecycle: (

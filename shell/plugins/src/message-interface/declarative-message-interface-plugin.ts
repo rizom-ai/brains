@@ -227,6 +227,7 @@ class DeclarativeMessageInterfacePlugin<
             success: true,
             data: await subscription.handle({
               payload: payload.data,
+              source: message.source,
               entities: context.entityService,
               identity: context.identity,
               messaging: {

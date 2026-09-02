@@ -22,7 +22,6 @@ const expectedCatalogIds = [
   "assessment",
   "auth-service",
   "notifications",
-  "playbook",
   "playbooks",
   "onboarding",
   "studio",

@@ -44,7 +44,7 @@ export const mediaBundle: CapabilityBundleDefinition = defineBundle({
 
 export const automationBundle: CapabilityBundleDefinition = defineBundle({
   id: AUTOMATION_BUNDLE_ID,
-  members: ["playbook", "playbooks", "onboarding"],
+  members: ["playbooks", "onboarding"],
 });
 
 export const webBundle: CapabilityBundleDefinition = defineBundle({

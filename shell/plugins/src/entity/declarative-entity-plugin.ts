@@ -42,6 +42,7 @@ import type {
   JobHandlerContext,
 } from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
+import { stateNamespaceFor } from "../internal/state-namespace";
 import { saveProcessedEntity } from "./pending-ingestion";
 import type { ScopedRuntimeUploadStore } from "../service/upload-registry";
 import { createEvalFixtures } from "./eval-fixtures";
@@ -1583,7 +1584,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       state: (options) =>
         context.runtimeState.scoped({
           ...options,
-          namespace: `${this.packageName}.${options.namespace}`,
+          namespace: stateNamespaceFor(this.packageName, options.namespace),
         }),
       permissions: context.permissions,
       domain: context.domain,

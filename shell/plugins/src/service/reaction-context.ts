@@ -3,6 +3,7 @@ import type { LoggerContract } from "@brains/utils/logger";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 import { createJobEntityAccess } from "../job/job-entity-access";
+import { stateNamespaceFor } from "../internal/state-namespace";
 
 /**
  * The context a declared reaction — a check, an inbox action, a tool — runs
@@ -49,7 +50,7 @@ export function createReactionContext(input: {
     state: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
       context.runtimeState.scoped({
         ...options,
-        namespace: `${input.packageName}.${options.namespace}`,
+        namespace: stateNamespaceFor(input.packageName, options.namespace),
       }),
     permissions: context.permissions,
     auth: context.auth,

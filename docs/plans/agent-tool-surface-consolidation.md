@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phase 1 exposure-boundary work has replaced audience metadata with explicit `agentTool` and `directMcpExposure` routing, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbook_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers`, made Cloudflare query direct-MCP-only, and made passkey setup agent exposure contextual. Preset snapshots and release notes are captured; stale legacy-name references have been audited from active tests and runtime stop logic. The full-eval database blocker has been fixed by applying the conversation-service runtime `busy_timeout` repair from `main`. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
+In progress. Phase 1 exposure-boundary work has replaced audience metadata with explicit `agentTool` and `directMcpExposure` routing, Phase 0 now has an eval CLI surface report plus agent-specific coverage filtering, Phase 2 removed the two maintenance tool registrations, Phase 3 consolidated playbook lifecycle actions behind `playbooks_manage`, Phase 4 consolidated directory sync actions behind `directory_sync`, Phase 5 consolidated publishing actions behind `publishing_manage`, and Phase 6 has consolidated configured Buttondown subscriber operations behind `newsletter_subscribers`, made Cloudflare query direct-MCP-only, and made passkey setup agent exposure contextual. Preset snapshots and release notes are captured; stale legacy-name references have been audited from active tests and runtime stop logic. The full-eval database blocker has been fixed by applying the conversation-service runtime `busy_timeout` repair from `main`. The measured reference is Rover's current `full` personal-publishing posture. The implementation should land at the shared tool-registry and capability-package boundaries so the result also applies to the unified brain and its future `core`, `site`, and `publishing` bundles.
 
 ## Current validation
 
@@ -44,7 +44,7 @@ It also marked directory history stale even though the full eval invoked it, sho
 
 The latest full eval passed 186/191 cases. Tool-surface symptoms among the failures include:
 
-- an explicit playbook status request answered without the consolidated `playbook_manage` status action;
+- an explicit playbook status request answered without the consolidated `playbooks_manage` status action;
 - an inline playbook transformation incorrectly routed through durable `system_generate` and confirmation;
 - repeated playbook status calls returning very large definitions, state, evidence, and guidance payloads.
 
@@ -100,7 +100,7 @@ The stable base target is 20 tools:
 - `auth-service_get_passkey_setup_url`
 - `publishing_manage`
 - `directory_sync`
-- `playbook_manage`
+- `playbooks_manage`
 - `site-builder_build-site`
 
 The passkey tool should eventually be contextually exposed only while setup is required, producing a steady-state base of 19. Optional configured capabilities may add:
@@ -213,7 +213,7 @@ Exit gate: the two maintenance operations no longer register `Tool` definitions,
 
 ### Phase 3 — Consolidate playbooks
 
-Introduce `playbook_manage` with a strict union:
+Introduce `playbooks_manage` with a strict union:
 
 ```ts
 type PlaybookManageInput =
@@ -243,10 +243,10 @@ type PlaybookManageInput =
    - final-state indicator.
 3. Do not return full markdown, parsed playbook body, all historical runs, or complete guidance unless an explicit non-agent/debug option requests it.
 4. Remove `playbook_start`, `playbook_status`, and `playbook_send_event` rather than keeping compatibility aliases.
-5. Migrate playbook instructions and eval assertions to `playbook_manage`.
+5. Migrate playbook instructions and eval assertions to `playbooks_manage`.
 6. Add a contextual tool rule for inline transformation states: `system_generate` remains unavailable unless the operator explicitly asks to save or persist the result.
 
-Exit gate: the targeted onboarding and playbook evals pass repeatedly, explicit status requests always invoke `playbook_manage`, and normal status results remain compact.
+Exit gate: the targeted onboarding and playbook evals pass repeatedly, explicit status requests always invoke `playbooks_manage`, and normal status results remain compact.
 
 ### Phase 4 — Consolidate directory sync
 

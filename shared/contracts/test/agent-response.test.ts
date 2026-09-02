@@ -23,7 +23,7 @@ describe("shared agent response contract", () => {
       ],
       toolResults: [
         {
-          toolName: "playbook_manage",
+          toolName: "playbooks_manage",
           args: { action: "send-event", event: "NEXT" },
           data: { currentState: "identity" },
         },

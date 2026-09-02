@@ -15,7 +15,7 @@ Canonical replacements for removed legacy registered tool names:
 
 | Prior namespace                       | Canonical tool           |
 | ------------------------------------- | ------------------------ |
-| Playbook lifecycle/status/event tools | `playbook_manage`        |
+| Playbook lifecycle/status/event tools | `playbooks_manage`       |
 | Directory sync/status/history tools   | `directory_sync`         |
 | Publishing queue/publish tools        | `publishing_manage`      |
 | Buttondown subscriber tools           | `newsletter_subscribers` |
@@ -36,7 +36,7 @@ agent_scan_directories
 agent_set_trust_level
 auth-service_get_passkey_setup_url
 directory_sync
-playbook_manage
+playbooks_manage
 system_create
 system_delete
 system_generate
@@ -63,7 +63,7 @@ agent_scan_directories
 agent_set_trust_level
 auth-service_get_passkey_setup_url
 directory_sync
-playbook_manage
+playbooks_manage
 site-builder_build-site
 system_create
 system_delete
@@ -91,7 +91,7 @@ agent_scan_directories
 agent_set_trust_level
 auth-service_get_passkey_setup_url
 directory_sync
-playbook_manage
+playbooks_manage
 publishing_manage
 site-builder_build-site
 system_create

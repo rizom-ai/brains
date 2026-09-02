@@ -20,7 +20,7 @@ turns:
   - userMessage: "Start playbook onboarding."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
 
   - userMessage: "Tune Brain's brain identity: Brain should be a private thinking and publishing brain that helps me capture rough ideas, retrieve them, connect them, and turn notes into useful drafts. Its values are clarity, craft, usefulness, and ownership."
@@ -65,7 +65,7 @@ turns:
   - userMessage: "Start playbook first-knowledge-loop."
     successCriteria:
       expectedTools:
-        - toolName: playbook_manage
+        - toolName: playbooks_manage
           shouldBeCalled: true
           argsContain:
             action: start
@@ -134,7 +134,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_manage
+    - toolName: playbooks_manage
       shouldBeCalled: true
     - toolName: system_update
       shouldBeCalled: true

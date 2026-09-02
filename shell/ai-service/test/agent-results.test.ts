@@ -103,14 +103,14 @@ describe("extractToolResults", () => {
         toolCalls: [
           {
             toolCallId: "tool-1",
-            toolName: "playbook_manage",
+            toolName: "playbooks_manage",
             input: { action: "start", playbookId: "rover-onboarding" },
           },
         ],
         toolResults: [
           {
             toolCallId: "tool-1",
-            toolName: "playbook_manage",
+            toolName: "playbooks_manage",
             output: {
               success: true,
               data: {

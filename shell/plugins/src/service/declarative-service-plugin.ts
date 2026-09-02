@@ -78,6 +78,9 @@ import {
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
 import { normalizeSameOriginPath } from "../internal/same-origin-path";
+import { stateNamespaceFor } from "../internal/state-namespace";
+import { permissionToVisibilityScope } from "@brains/entity-service";
+import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -453,6 +456,50 @@ class DeclarativeServicePlugin<
           auth: context.auth,
           inbox: context.inbox,
           inboxFollowUps: context.inboxFollowUps,
+          corpus: {
+            search: async (request) => {
+              const results = await context.entityService.search({
+                query: request.query,
+                options: {
+                  ...(request.limit !== undefined
+                    ? { limit: request.limit }
+                    : {}),
+                  ...(request.excludeTypes
+                    ? { excludeTypes: [...request.excludeTypes] }
+                    : {}),
+                  // A package looking for evidence gets the whole corpus,
+                  // because the question is about the brain rather than
+                  // about who is asking — no caller is in scope here.
+                  visibilityScope: permissionToVisibilityScope("admin"),
+                },
+              });
+              return results.map((result) => ({
+                entityType: result.entity.entityType,
+                id: result.entity.id,
+                excerpt: result.excerpt,
+                content: result.entity.content,
+                metadata: result.entity.metadata,
+                score: result.score,
+              }));
+            },
+          },
+          judge: async (input) => ({
+            verdict: (await context.judge(input)).verdict,
+          }),
+          // Stewarded types are read just above, so the owned set is already
+          // complete by the time setup asks for it.
+          entities: createJobEntityAccess(
+            context.entityService,
+            this.ownedTypeNames(),
+            this.id,
+          ),
+          // Namespaced under the declaring package, exactly as the reaction
+          // context does it, so what setup writes is what a handler reads.
+          state: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
+            context.runtimeState.scoped({
+              ...options,
+              namespace: stateNamespaceFor(this.packageName, options.namespace),
+            }),
           logger: this.logger,
         })
       : (Object.freeze({}) as TState);
@@ -486,6 +533,7 @@ class DeclarativeServicePlugin<
             success: true,
             data: await subscription.handle({
               payload: payload.data,
+              source: message.source,
               entities: context.entityService,
               identity: context.identity,
               messaging: {

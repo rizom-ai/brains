@@ -42,7 +42,7 @@ export function getToolStatusKey(update: ToolStatusUpdate): string {
 }
 
 export function formatToolStatusLabel(toolName: string): string {
-  if (toolName.startsWith("playbook_")) return "playbook";
+  if (toolName.startsWith("playbooks_")) return "playbook";
   const withoutSystemPrefix = toolName.startsWith("system_")
     ? toolName.slice("system_".length)
     : toolName;

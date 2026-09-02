@@ -6,7 +6,7 @@ tags:
   - plugin
   - playbooks
   - bundle-core
-plugin: playbooks
+plugin: "@brains/playbooks:playbooks"
 handler: goalCheck
 input:
   run:

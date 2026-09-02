@@ -97,6 +97,11 @@ import type {
   JobTemplateFormatter,
 } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
+import type { AIGenerationSchema } from "../entity/ai-types";
+import type {
+  IRuntimeStateStore,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
 import type {
   EntityInboxDeclaration,
   EntityReactionContext,
@@ -393,6 +398,50 @@ export interface ServiceLifecycle {
   onCleanup(cleanup: () => void | Promise<void>): void;
 }
 
+/**
+ * One piece of evidence: what matched, and the record it matched in.
+ *
+ * The whole record rather than the excerpt alone, because the caller is
+ * deciding something on it — an excerpt says a document is relevant, and
+ * whether it settles a question is a different read.
+ */
+export interface ServiceCorpusHit {
+  readonly entityType: string;
+  readonly id: string;
+  readonly excerpt: string;
+  readonly content: string;
+  readonly metadata: unknown;
+  readonly score: number;
+}
+
+/**
+ * Semantic read across the whole corpus, for answering a question.
+ *
+ * `excludeTypes` is here because the package asking is usually one of the
+ * types stored: a playbook looking for evidence that its goal was met must
+ * not find the playbook that states the goal.
+ */
+export interface ServiceCorpusSearch {
+  search(request: {
+    readonly query: string;
+    readonly limit?: number | undefined;
+    readonly excludeTypes?: readonly string[] | undefined;
+  }): Promise<readonly ServiceCorpusHit[]>;
+}
+
+/**
+ * Ask the model to decide, and get the decision in a shape you named.
+ *
+ * The usage figures the shell tracks are deliberately not returned: a
+ * package that acts on a verdict has no use for the token count, and one
+ * that reports on spend is asking a different question.
+ */
+export type ServiceJudge = <TVerdict>(input: {
+  readonly instruction: string;
+  readonly material: string;
+  readonly schema: AIGenerationSchema<TVerdict>;
+}) => Promise<{ readonly verdict: TVerdict }>;
+
 export interface ServiceResourceDefinition {
   readonly uri: string;
   readonly description?: string | undefined;
@@ -526,6 +575,46 @@ interface ServiceDefinitionCore<
          */
         readonly inbox: IInboxNamespace;
         readonly inboxFollowUps: IInboxFollowUpsNamespace;
+        /**
+         * Evidence from across the corpus, for a package that has to answer
+         * a question rather than render a type it owns.
+         *
+         * Semantic and read-only, capped to what an admin may see.
+         * Deliberately not the entity service: this looks for evidence and
+         * cannot write. Named consumers: @brains/playbooks,
+         * @brains/dashboard.
+         */
+        readonly corpus: ServiceCorpusSearch;
+        /**
+         * The types this package owns, for state that has to read them long
+         * after registration.
+         *
+         * `ready` already receives this; a package whose engine reads its own
+         * definitions on an agent's request, not a caller's, needs the same
+         * handle held rather than passed per call. Scoped to owned types, so
+         * it is not a way into the rest of the brain.
+         * Named consumer: @brains/playbooks.
+         */
+        readonly entities: JobEntityAccess;
+        /**
+         * Bookkeeping that is not an entity, for the same kind of state.
+         *
+         * A run in progress is not content, nobody browses it, and it should
+         * not survive a rebuild of what it is about. The reaction context
+         * offers this per call; it is here because the thing that writes
+         * runs is built once, at registration.
+         * Named consumer: @brains/playbooks.
+         */
+        readonly state: <TValue>(
+          options: RuntimeStateScopeOptions<TValue>,
+        ) => IRuntimeStateStore<TValue>;
+        /**
+         * Put evidence to the model and get a verdict back in a shape you
+         * named. Bounded on purpose — an instruction, the material, and a
+         * schema — so what returns is a decision rather than prose the
+         * package then has to parse. Named consumer: @brains/playbooks.
+         */
+        readonly judge: ServiceJudge;
         readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
     | undefined;

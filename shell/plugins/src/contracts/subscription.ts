@@ -70,6 +70,15 @@ export interface SubscriptionDefinition<
         readonly payload: unknown;
       }): Promise<unknown>;
     };
+    /**
+     * Which plugin sent this.
+     *
+     * For a subscription that keeps a registry rather than answering a
+     * question: two packages claiming the same lifecycle starter is a
+     * conflict, and saying which one holds it needs a name.
+     * Named consumer: @brains/playbooks.
+     */
+    readonly source: string;
   }): unknown | Promise<unknown>;
 }
 

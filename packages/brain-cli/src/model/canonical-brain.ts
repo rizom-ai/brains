@@ -38,7 +38,7 @@ import { newsletter } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import obsidianVaultPackage from "@brains/obsidian-vault";
-import { playbookPlugin, playbooksPlugin } from "@brains/playbooks";
+import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
@@ -180,8 +180,8 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       "@brains/notifications",
       notificationsPackage,
     ),
-    ["playbook", playbookPlugin, undefined],
-    ["playbooks", playbooksPlugin, undefined],
+
+    packageCapability("playbooks", "@brains/playbooks", playbooksPackage),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],

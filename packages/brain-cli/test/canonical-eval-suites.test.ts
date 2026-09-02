@@ -42,8 +42,8 @@ const expectedMembers: Record<SuiteName, string> = {
   personal:
     "a2a admin agents auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
   professional:
-    "a2a admin agents analytics atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a admin agents analytics auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
+  team: "a2a admin agents analytics auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 17,

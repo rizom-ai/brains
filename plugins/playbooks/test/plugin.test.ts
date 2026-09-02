@@ -3,11 +3,7 @@ import {
   AGENT_ACTION_REQUEST_CHANNEL,
   AGENT_CONTEXT_REQUEST_CHANNEL,
 } from "@brains/contracts";
-import {
-  playbookAdapter,
-  type PlaybookBody,
-  type PlaybookFrontmatter,
-} from "../src";
+import { type PlaybookBody, type PlaybookFrontmatter } from "../src";
 import { z } from "@brains/utils/zod";
 import {
   createPluginHarness,
@@ -16,12 +12,18 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import { stubMethod } from "@brains/test-utils";
+import type { JudgeInput, PluginCapabilities } from "@brains/plugins";
+import playbooksPackage, {
   PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
   playbookRunSchema,
-  playbooksPlugin,
-  type GoalCheck,
-  type GoalCheckInput,
+  type GoalCheckResult,
 } from "../src";
+import packageJson from "../package.json";
+import { createPlaybookContent } from "./markdown";
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-playbooks-");
@@ -101,7 +103,7 @@ function addPlaybookEntity(
     {
       id,
       entityType: "playbook",
-      content: playbookAdapter.createPlaybookContent(frontmatter, body),
+      content: createPlaybookContent(frontmatter, body),
       metadata: frontmatter,
     },
   ]);
@@ -173,15 +175,50 @@ function parsePlaybookToolData(
   return playbookToolDataSchema.parse(input);
 }
 
-function goalCheck(evaluate: GoalCheck["evaluate"]): {
-  goalCheck: GoalCheck;
-} {
-  return { goalCheck: { evaluate } };
+/**
+ * Install the package, optionally deciding what the judge says.
+ *
+ * The plugin took an injected `goalCheck`; declared, it composes one from
+ * the corpus and the model, so a test that wants a particular verdict says
+ * so where the verdict comes from. That exercises the composition rather
+ * than replacing it.
+ */
+async function installPlaybooks(
+  harness: PluginHarness,
+  options: {
+    judge?: ((material: string) => Promise<GoalCheckResult>) | undefined;
+    config?: Record<string, unknown> | undefined;
+  } = {},
+): Promise<PluginCapabilities> {
+  const decide = options.judge;
+  if (decide) {
+    stubMethod(
+      harness.getMockShell(),
+      "judge",
+      async <T>(input: JudgeInput<T>) => ({
+        verdict: input.schema.parse(await decide(input.material)),
+        usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+      }),
+    );
+  }
+  const metadata = { name: packageJson.name, version: packageJson.version };
+  bindPluginPackageMetadata(playbooksPackage, metadata);
+  const plugins = instantiatePluginPackageDefinition(
+    playbooksPackage,
+    options.config ?? {},
+    metadata,
+  );
+  const capabilities = await Promise.all(
+    plugins.map((plugin) => harness.installPlugin(plugin)),
+  );
+  const service = capabilities[0];
+  if (!service) throw new Error("Playbooks service plugin was not created");
+  return service;
 }
 
 async function installHarness(): Promise<PluginHarness> {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(playbooksPlugin({}));
+  await installPlaybooks(harness);
   addPlaybookEntity(harness);
   return harness;
 }
@@ -192,7 +229,7 @@ async function startRun(
   playbookId = "rover-onboarding",
 ): Promise<string> {
   const started = await harness.executeTool(
-    "playbook_manage",
+    "playbooks_manage",
     { action: "start", playbookId, lifecycle: "onboarding" },
     { conversationId },
   );
@@ -203,7 +240,7 @@ async function startRun(
 describe("PlaybooksPlugin", () => {
   it("stores runs in runtime state", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     await startRun(harness, "conversation-uses-runtime-state");
@@ -211,7 +248,10 @@ describe("PlaybooksPlugin", () => {
     const records = await harness
       .getMockShell()
       .getRuntimeState()
-      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema })
+      .scoped({
+        namespace: "brains.playbooks.playbooks.runs",
+        schema: playbookRunSchema,
+      })
       .list();
 
     expect(records).toHaveLength(1);
@@ -238,9 +278,9 @@ describe("PlaybooksPlugin", () => {
     };
 
     const evaluate = mock(async () => ({ met: true, reason: "goal met" }));
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, { judge: evaluate });
 
-    const handler = handlers.get("playbooks:goalCheck");
+    const handler = handlers.get("@brains/playbooks:playbooks:goalCheck");
     expect(handler).toBeDefined();
     if (!handler) throw new Error("Expected goalCheck eval handler");
 
@@ -277,31 +317,31 @@ describe("PlaybooksPlugin", () => {
 
   it("keeps conversation routing out of model-visible playbook tool schemas", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness);
 
     for (const tool of capabilities.tools) {
-      if (!tool.name.startsWith("playbook_")) continue;
+      if (!tool.name.startsWith("playbooks_")) continue;
       expect(Object.keys(tool.inputSchema)).not.toContain("conversationId");
     }
   });
 
   it("exposes only the small model-facing playbook tool surface", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness);
 
     const toolNames = capabilities.tools
       .map((tool) => tool.name)
-      .filter((name) => name.startsWith("playbook_"))
+      .filter((name) => name.startsWith("playbooks_"))
       .sort();
 
-    expect(toolNames).toEqual(["playbook_manage"]);
+    expect(toolNames).toEqual(["playbooks_manage"]);
   });
 
   it("instructs named status checks to include the playbook id", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness);
     const manageTool = capabilities.tools.find(
-      (tool) => tool.name === "playbook_manage",
+      (tool) => tool.name === "playbooks_manage",
     );
 
     expect(manageTool?.description).toContain(
@@ -316,11 +356,11 @@ describe("PlaybooksPlugin", () => {
 
   it("declares playbook tool visibility and side effects", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness);
 
     const metadata = Object.fromEntries(
       capabilities.tools
-        .filter((tool) => tool.name.startsWith("playbook_"))
+        .filter((tool) => tool.name.startsWith("playbooks_"))
         .map((tool) => [
           tool.name,
           { visibility: tool.visibility, sideEffects: tool.sideEffects },
@@ -328,17 +368,17 @@ describe("PlaybooksPlugin", () => {
     );
 
     expect(metadata).toEqual({
-      playbook_manage: { visibility: "admin", sideEffects: "writes" },
+      playbooks_manage: { visibility: "admin", sideEffects: "writes" },
     });
   });
 
-  it("routes status, start, and send-event through playbook_manage", async () => {
+  it("routes status, start, and send-event through playbooks_manage", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "start", playbookId: "rover-onboarding" },
       { conversationId: "manage-conversation" },
     );
@@ -347,7 +387,7 @@ describe("PlaybooksPlugin", () => {
     expect(startedData.activeRun.currentState).toBe("welcome");
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status", runId: startedData.activeRun.id },
       { conversationId: "manage-conversation" },
     );
@@ -357,7 +397,7 @@ describe("PlaybooksPlugin", () => {
     );
 
     const advanced = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "send-event",
         runId: startedData.activeRun.id,
@@ -374,11 +414,11 @@ describe("PlaybooksPlugin", () => {
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness);
     const manageTool = capabilities.tools.find(
-      (tool) => tool.name === "playbook_manage",
+      (tool) => tool.name === "playbooks_manage",
     );
-    if (!manageTool) throw new Error("playbook_manage not found");
+    if (!manageTool) throw new Error("playbooks_manage not found");
 
     expect(manageTool.description).toContain(
       "whenever the user asks for a playbook's status",
@@ -394,14 +434,14 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
-  it("preserves an active run lifecycle when playbook_manage start is called again", async () => {
+  it("preserves an active run lifecycle when playbooks_manage start is called again", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     const conversationId = "resume-preserve-lifecycle";
     const started = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -411,7 +451,7 @@ describe("PlaybooksPlugin", () => {
     );
     expectSuccess(started);
     const restarted = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -427,13 +467,13 @@ describe("PlaybooksPlugin", () => {
 
   it("uses playbook metadata lifecycle over model-authored start lifecycle", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       lifecycle: "onboarding",
     });
 
     const started = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "start", playbookId: "rover-onboarding", lifecycle: "default" },
       { conversationId: "metadata-lifecycle" },
     );
@@ -444,16 +484,16 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
-  it("deduplicates concurrent playbook_manage start calls for the same conversation", async () => {
+  it("deduplicates concurrent playbooks_manage start calls for the same conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     const conversationId = "concurrent-start-same-conversation";
     const results = await Promise.all(
       Array.from({ length: 4 }, () =>
         harness.executeTool(
-          "playbook_manage",
+          "playbooks_manage",
           {
             action: "start",
             playbookId: "rover-onboarding",
@@ -469,13 +509,13 @@ describe("PlaybooksPlugin", () => {
         runIds.add(parsePlaybookToolData(result.data).activeRun.id);
       } else {
         expectSuccess(result);
-        throw new Error("playbook_manage start failed");
+        throw new Error("playbooks_manage start failed");
       }
     }
     expect(runIds.size).toBe(1);
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status" },
       { conversationId },
     );
@@ -485,8 +525,8 @@ describe("PlaybooksPlugin", () => {
 
   it("returns lifecycle starters for active admin web-chat playbooks", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({
+    await installPlaybooks(harness, {
+      config: {
         lifecycle: {
           onboarding: {
             trigger: "first-admin-web-chat",
@@ -497,8 +537,8 @@ describe("PlaybooksPlugin", () => {
             starterPrompt: "Start the Rover onboarding playbook.",
           },
         },
-      }),
-    );
+      },
+    });
     addPlaybookEntity(harness);
 
     const response = await harness.sendMessage<
@@ -536,7 +576,7 @@ describe("PlaybooksPlugin", () => {
 
   it("does not return metadata-triggered starters unless the trigger is enabled", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -571,7 +611,7 @@ describe("PlaybooksPlugin", () => {
 
   it("returns registered lifecycle starters without trigger config", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -642,7 +682,7 @@ describe("PlaybooksPlugin", () => {
 
   it("treats duplicate lifecycle starter registration from the same source as idempotent", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -689,7 +729,7 @@ describe("PlaybooksPlugin", () => {
 
   it("ignores conflicting lifecycle starter registration for an existing id", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -752,9 +792,9 @@ describe("PlaybooksPlugin", () => {
 
   it("derives enabled lifecycle starters from active playbook metadata", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ triggers: { "first-admin-web-chat": true } }),
-    );
+    await installPlaybooks(harness, {
+      config: { triggers: { "first-admin-web-chat": true } },
+    });
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -805,7 +845,7 @@ describe("PlaybooksPlugin", () => {
       operatingRules: ["Changed after run start."],
     });
 
-    const stale = await harness.executeTool("playbook_manage", {
+    const stale = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -819,7 +859,7 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
 
     const started = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -901,7 +941,7 @@ describe("PlaybooksPlugin", () => {
     expect(response?.cards).toBeUndefined();
     expect(response?.toolResults).toEqual([
       {
-        toolName: "playbook_manage",
+        toolName: "playbooks_manage",
         args: { action: "send-event", runId, event: "NEXT" },
         data: expect.objectContaining({
           activeRun: expect.objectContaining({ currentState: "seed" }),
@@ -910,7 +950,7 @@ describe("PlaybooksPlugin", () => {
     ]);
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status" },
       { conversationId: "web-action-next" },
     );
@@ -922,11 +962,11 @@ describe("PlaybooksPlugin", () => {
 
   it("starts and reports runs within the current conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     const first = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -939,7 +979,7 @@ describe("PlaybooksPlugin", () => {
     expect(firstRun.conversationId).toBe("conversation-one");
 
     const second = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -953,7 +993,7 @@ describe("PlaybooksPlugin", () => {
     expect(secondRun.id).not.toBe(firstRun.id);
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status", lifecycle: "onboarding" },
       { conversationId: "conversation-two" },
     );
@@ -965,11 +1005,11 @@ describe("PlaybooksPlugin", () => {
 
   it("tracks playbook transitions and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -987,7 +1027,7 @@ describe("PlaybooksPlugin", () => {
       "SKIP",
     ]);
 
-    const transitioned = await harness.executeTool("playbook_manage", {
+    const transitioned = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -999,14 +1039,14 @@ describe("PlaybooksPlugin", () => {
     expect(transitionedData.activeRun.completedStates).toEqual(["welcome"]);
     expect(transitionedData.activeRun.context).toEqual({ operatorReady: true });
 
-    const invalid = await harness.executeTool("playbook_manage", {
+    const invalid = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "SKIP",
     });
     expectError(invalid);
 
-    const finalTransition = await harness.executeTool("playbook_manage", {
+    const finalTransition = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -1019,11 +1059,11 @@ describe("PlaybooksPlugin", () => {
 
   it("reports the latest completed conversation run when no active run remains", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "start",
         playbookId: "rover-onboarding",
@@ -1035,14 +1075,14 @@ describe("PlaybooksPlugin", () => {
     const runId = parsePlaybookToolData(started.data).activeRun.id;
 
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1050,7 +1090,7 @@ describe("PlaybooksPlugin", () => {
     );
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status", playbookId: "rover-onboarding" },
       { conversationId: "web-completed-status" },
     );
@@ -1062,7 +1102,7 @@ describe("PlaybooksPlugin", () => {
     expect(statusData.currentState?.id).toBe("complete");
 
     const staleRunStatus = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       {
         action: "status",
         runId: "rover-onboarding",
@@ -1076,15 +1116,12 @@ describe("PlaybooksPlugin", () => {
 
   it("reports blocked gated NEXT with concise status guidance", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        {},
-        goalCheck(async () => ({
-          met: false,
-          reason: "No matching evidence.",
-        })),
-      ),
-    );
+    await installPlaybooks(harness, {
+      judge: async () => ({
+        met: false,
+        reason: "No matching evidence.",
+      }),
+    });
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1114,21 +1151,21 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-status-guidance");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectError(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1148,7 +1185,7 @@ describe("PlaybooksPlugin", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     }));
     Object.assign(harness.getMockShell(), { judge });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1174,13 +1211,13 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-context-judge");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
-    const advanced = await harness.executeTool("playbook_manage", {
+    const advanced = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -1207,7 +1244,7 @@ describe("PlaybooksPlugin", () => {
         throw new Error("judge unavailable");
       }),
     });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1233,21 +1270,21 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-judge-error");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectError(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1257,19 +1294,17 @@ describe("PlaybooksPlugin", () => {
     );
   });
 
+  // What the judge is shown, rather than what a stub was handed: the goal
+  // check composes the material now, so the evidence being carried through
+  // is only true if it reaches the model.
   it("includes entity details in runtime evidence for generic goal checks", async () => {
-    const evaluate = mock(async (input: GoalCheckInput) => {
-      expect(input.evidence[0]?.data).toMatchObject({
-        entityType: "note",
-        entityId: "seed-note",
-        operation: "created",
-        title: "Seed note",
-        contentPreview: "Rough idea worth remembering.",
-      });
+    const materials: string[] = [];
+    const evaluate = mock(async (material: string) => {
+      materials.push(material);
       return { met: true, reason: "The seed note was recorded." };
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, { judge: evaluate });
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1303,13 +1338,17 @@ describe("PlaybooksPlugin", () => {
       true,
     );
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.activeRun.currentState).toBe("complete");
+    // The judge was shown the entity details, not just told an entity changed.
+    expect(materials.join("\n")).toContain(
+      '"contentPreview":"Rough idea worth remembering."',
+    );
     const visibleEvidenceData = (
       data.activeRun.evidence[0] as { data?: Record<string, unknown> }
     ).data;
@@ -1323,14 +1362,16 @@ describe("PlaybooksPlugin", () => {
 
   it("auto-advances a gated NEXT after runtime evidence satisfies it", async () => {
     const evaluate = mock(async (input) => {
-      expect(input.evidence).toHaveLength(1);
+      // One piece of runtime evidence reached the judge, listed as such.
+      expect(input).toContain("## Runtime evidence");
+      expect(input).toContain("1. entity_event");
       return {
         met: true,
         reason: "The profile update was recorded as runtime evidence.",
       };
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, { judge: evaluate });
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1358,7 +1399,7 @@ describe("PlaybooksPlugin", () => {
     const conversationId = "web-runtime-evidence-gate";
     const runId = await startRun(harness, conversationId);
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1376,7 +1417,7 @@ describe("PlaybooksPlugin", () => {
       true,
     );
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1396,15 +1437,12 @@ describe("PlaybooksPlugin", () => {
 
   it("blocks gated NEXT when the goal check returns not met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        {},
-        goalCheck(async () => ({
-          met: false,
-          reason: "No matching evidence.",
-        })),
-      ),
-    );
+    await installPlaybooks(harness, {
+      judge: async () => ({
+        met: false,
+        reason: "No matching evidence.",
+      }),
+    });
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1434,7 +1472,7 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-unsatisfied-gate");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1442,14 +1480,14 @@ describe("PlaybooksPlugin", () => {
     );
 
     expectError(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "SKIP",
@@ -1459,15 +1497,12 @@ describe("PlaybooksPlugin", () => {
 
   it("advances gated NEXT when the goal check returns met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        {},
-        goalCheck(async () => ({
-          met: true,
-          reason: "The profile exists in the KB.",
-        })),
-      ),
-    );
+    await installPlaybooks(harness, {
+      judge: async () => ({
+        met: true,
+        reason: "The profile exists in the KB.",
+      }),
+    });
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1494,14 +1529,14 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-met-gate");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
       }),
     );
 
-    const advanced = await harness.executeTool("playbook_manage", {
+    const advanced = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -1525,12 +1560,15 @@ describe("PlaybooksPlugin", () => {
     const store = harness
       .getMockShell()
       .getRuntimeState()
-      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema });
+      .scoped({
+        namespace: "brains.playbooks.playbooks.runs",
+        schema: playbookRunSchema,
+      });
     const stored = await store.get(runId);
     if (!stored) throw new Error("Expected stored run");
     await store.set(runId, { ...stored, snapshot: { bogus: true } });
 
-    const transitioned = await harness.executeTool("playbook_manage", {
+    const transitioned = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -1548,7 +1586,10 @@ describe("PlaybooksPlugin", () => {
     const store = harness
       .getMockShell()
       .getRuntimeState()
-      .scoped({ namespace: "playbooks.runs", schema: playbookRunSchema });
+      .scoped({
+        namespace: "brains.playbooks.playbooks.runs",
+        schema: playbookRunSchema,
+      });
     const stored = await store.get(runId);
     if (!stored) throw new Error("Expected stored run");
     await store.set(runId, {
@@ -1557,7 +1598,7 @@ describe("PlaybooksPlugin", () => {
       snapshot: { status: "active", value: "welcome" },
     });
 
-    const transitioned = await harness.executeTool("playbook_manage", {
+    const transitioned = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -1573,14 +1614,14 @@ describe("PlaybooksPlugin", () => {
 
     const completedRunId = await startRun(harness, "conversation-completed");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId: completedRunId,
         event: "NEXT",
       }),
     );
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId: completedRunId,
         event: "NEXT",
@@ -1589,7 +1630,7 @@ describe("PlaybooksPlugin", () => {
 
     const activeRunId = await startRun(harness, "conversation-active");
 
-    const byPlaybook = await harness.executeTool("playbook_manage", {
+    const byPlaybook = await harness.executeTool("playbooks_manage", {
       action: "status",
       playbookId: "rover-onboarding",
     });
@@ -1598,7 +1639,7 @@ describe("PlaybooksPlugin", () => {
       activeRunId,
     );
 
-    const byLifecycle = await harness.executeTool("playbook_manage", {
+    const byLifecycle = await harness.executeTool("playbooks_manage", {
       action: "status",
       lifecycle: "onboarding",
     });
@@ -1613,7 +1654,7 @@ describe("PlaybooksPlugin", () => {
     const runId = await startRun(harness, "web-stale-from-state");
 
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1621,7 +1662,7 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const stale = await harness.executeTool("playbook_manage", {
+    const stale = await harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "NEXT",
@@ -1632,7 +1673,7 @@ describe("PlaybooksPlugin", () => {
     expect(stale.error).toContain("Stale playbook event");
     expect(stale.error).toContain("seed");
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1647,13 +1688,13 @@ describe("PlaybooksPlugin", () => {
     const runId = await startRun(harness, "web-concurrent-duplicate");
 
     const results = await Promise.all([
-      harness.executeTool("playbook_manage", {
+      harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
         fromState: "welcome",
       }),
-      harness.executeTool("playbook_manage", {
+      harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1666,7 +1707,7 @@ describe("PlaybooksPlugin", () => {
     );
     expect(succeeded).toHaveLength(1);
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1690,7 +1731,7 @@ describe("PlaybooksPlugin", () => {
       });
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, { judge: evaluate });
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1721,7 +1762,7 @@ describe("PlaybooksPlugin", () => {
     const conversationId = "web-evidence-operator-race";
     const runId = await startRun(harness, conversationId);
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1740,7 +1781,7 @@ describe("PlaybooksPlugin", () => {
     );
     await goalCheckStarted;
 
-    const skipPromise = harness.executeTool("playbook_manage", {
+    const skipPromise = harness.executeTool("playbooks_manage", {
       action: "send-event",
       runId,
       event: "SKIP",
@@ -1753,7 +1794,7 @@ describe("PlaybooksPlugin", () => {
     expectError(skip);
     expect(skip.error).toContain("Stale playbook event");
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1769,7 +1810,7 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-stale-action");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1798,7 +1839,7 @@ describe("PlaybooksPlugin", () => {
     expect(response?.text).toContain("I couldn't continue the playbook");
     expect(response?.text).toContain("Stale playbook event");
 
-    const status = await harness.executeTool("playbook_manage", {
+    const status = await harness.executeTool("playbooks_manage", {
       action: "status",
       runId,
     });
@@ -1813,7 +1854,7 @@ describe("PlaybooksPlugin", () => {
     await startRun(harness, "web-scoped-tools");
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status" },
       { conversationId: "web-scoped-tools" },
     );
@@ -1823,7 +1864,7 @@ describe("PlaybooksPlugin", () => {
     );
 
     const transitioned = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "send-event", event: "NEXT", context: { operatorReady: true } },
       { conversationId: "web-scoped-tools" },
     );
@@ -1838,7 +1879,7 @@ describe("PlaybooksPlugin", () => {
     await startRun(harness, "real-conversation");
 
     const status = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status", conversationId: "fake-conversation" },
       { conversationId: "real-conversation" },
     );
@@ -1853,7 +1894,7 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
 
     const missing = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "status" },
       { conversationId: "web-no-run" },
     );
@@ -1864,7 +1905,7 @@ describe("PlaybooksPlugin", () => {
     await startRun(harness, "web-ambiguous-run", "rover-onboarding-alt");
 
     const ambiguous = await harness.executeTool(
-      "playbook_manage",
+      "playbooks_manage",
       { action: "send-event", event: "NEXT" },
       { conversationId: "web-ambiguous-run" },
     );
@@ -1916,7 +1957,7 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-agent-context-completed");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",
@@ -1952,7 +1993,7 @@ describe("PlaybooksPlugin", () => {
 
   it("injects actionable run identity, required details, and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness);
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1982,7 +2023,7 @@ describe("PlaybooksPlugin", () => {
 
     const runId = await startRun(harness, "web-actionable-context");
     expectSuccess(
-      await harness.executeTool("playbook_manage", {
+      await harness.executeTool("playbooks_manage", {
         action: "send-event",
         runId,
         event: "NEXT",

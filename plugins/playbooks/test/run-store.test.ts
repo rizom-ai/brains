@@ -8,7 +8,9 @@ import {
 } from "../src/run-store";
 
 function createStore(): PlaybookRunStore {
-  return new PlaybookRunStore(createMockShell().getRuntimeState());
+  return new PlaybookRunStore((options) =>
+    createMockShell().getRuntimeState().scoped(options),
+  );
 }
 
 function evidence(id: string): PlaybookRunEvidence {

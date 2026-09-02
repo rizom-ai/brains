@@ -43,6 +43,15 @@ export type {
   AnyServiceToolDefinition,
   ServiceCheckDeclaration,
   ServiceInteractionDeclaration,
+  // What a service reads of the corpus and asks of the model, for a package
+  // whose engine composes both. Named consumer: @brains/playbooks.
+  ServiceCorpusHit,
+  ServiceCorpusSearch,
+  ServiceJudge,
+  // A tool's caller and its answer, for handlers built outside the
+  // declaration. Named consumer: @brains/playbooks.
+  ToolContext,
+  ToolResponse,
   WorkspaceActionConfirmation,
   AnyWorkspaceActionDefinition,
   WorkspaceActionDefinition,

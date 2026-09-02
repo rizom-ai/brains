@@ -2,11 +2,11 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **11 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **12 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
-`@brains/admin`).
+`@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -383,6 +383,34 @@ made the entity tranche find real defects rather than move code.
    file, and the fourth only from following the digest into the helper it
    calls. Measuring a conversion means reading what the helpers reach for,
    not only what the plugin class does.
+
+   **`playbooks` was the first conversion whose gaps were about state.**
+   Converted, and it took five additions. Four are `setup` slots, and they
+   share one shape: a package whose engine runs on the agent's schedule
+   rather than a caller's needs handles it can hold. `entities` reads its own
+   type; `state` opens the runtime-state scope its run store writes; `corpus`
+   searches for evidence; `judge` puts that evidence to the model. The fifth
+   is `source` on a subscription — a registry that refuses a second claim on
+   the same lifecycle starter has to name who holds it.
+
+   `corpus` and `judge` are worth separating. The goal check asks whether a
+   run's stated outcome actually holds, and it answers from what the brain
+   recorded rather than from what the agent said it did. That is a search
+   across every type except the package's own — a playbook must not find the
+   document that states its goal and call the goal met.
+
+   Two bugs fell out, both older than this conversion. The runtime-state
+   namespace validator rejects `@` and `/`, and three call sites built a
+   namespace as `${packageName}.${namespace}` — so a scoped package could
+   never have used runtime state at all. Playbooks was the first to try.
+   And the entity half's schemas carried a full duplicate set of "parser"
+   variants that existed only to feed the base entity schema; the codec
+   contract needs one schema, so they are gone.
+
+   Two renames, both from scoping the declaration: `playbook_manage` is now
+   `playbooks_manage`, and the `playbook` capability is folded into
+   `playbooks` — one package registers both the type and the runs that walk
+   it, so there is nothing left for a separate capability to name.
 
 ### What the remaining tranche actually is
 

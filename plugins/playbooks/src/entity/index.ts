@@ -1,46 +1,45 @@
-import type { EntityTypeConfig, Plugin } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
 import {
-  playbookAdapter,
-  type PlaybookAdapter,
+  defineEntity,
+  frontmatterInContent,
+  type EntityDefinition,
+  type EntityOf,
+} from "@brains/sdk/entities";
+import { playbookMetadataOf } from "./adapters/playbook-adapter";
+import {
+  playbookMetadataSchema,
+  type PlaybookMetadata,
+} from "./schemas/playbook";
+
+/**
+ * A playbook is written by hand and read by the agent.
+ *
+ * Its file keeps its own frontmatter, because someone opens it in a vault
+ * and the header is part of the document they see — so the codec merges
+ * metadata over what the file carries rather than replacing it. It is
+ * excluded from projection for the same reason it is not content: a
+ * playbook is operating guidance, not something the brain publishes.
+ */
+export const playbookEntity: EntityDefinition<
+  "playbook",
+  typeof playbookMetadataSchema
+> = defineEntity({
+  type: "playbook",
+  purpose:
+    "A guided multi-step workflow the assistant runs together with the user.",
+  metadata: playbookMetadataSchema,
+  config: { projectionSource: false, projectionSourceRole: "excluded" },
+  markdown: frontmatterInContent<PlaybookMetadata>(playbookMetadataOf),
+  instructions:
+    "Playbook entities describe durable, editable guided workflows for the agent. Use them as operating guidance when a playbook run is active; do not treat them as content to publish unless the user explicitly asks. To inspect a playbook's lifecycle, run status, current state, or valid events, call playbooks_manage with action=status directly; do not use system_search as a substitute.",
+});
+
+export type PlaybookEntity = EntityOf<typeof playbookEntity>;
+
+export {
+  parsePlaybookBody,
+  parsePlaybookContent,
+  playbookMetadataOf,
 } from "./adapters/playbook-adapter";
-import { playbookSchema, type PlaybookEntity } from "./schemas/playbook";
-import {
-  playbookConfigSchema,
-  type PlaybookConfig,
-  type PlaybookConfigInput,
-} from "./schemas/playbook-config";
-import packageJson from "../../package.json";
-
-const playbookEntityType = "playbook";
-
-export class PlaybookPlugin extends EntityPlugin<
-  PlaybookEntity,
-  PlaybookConfig,
-  PlaybookConfigInput
-> {
-  readonly entityType: typeof playbookEntityType = playbookEntityType;
-  readonly schema: typeof playbookSchema = playbookSchema;
-  readonly adapter: PlaybookAdapter = playbookAdapter;
-
-  constructor(config: PlaybookConfigInput = {}) {
-    super("playbook", packageJson, config, playbookConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSource: false, projectionSourceRole: "excluded" };
-  }
-
-  protected override async getInstructions(): Promise<string> {
-    return "Playbook entities describe durable, editable guided workflows for the agent. Use them as operating guidance when a playbook run is active; do not treat them as content to publish unless the user explicitly asks. To inspect a playbook's lifecycle, run status, current state, or valid events, call playbook_status directly; do not use system_search as a substitute.";
-  }
-}
-
-export function playbookPlugin(config: PlaybookConfigInput = {}): Plugin {
-  return new PlaybookPlugin(config);
-}
-
-export { PlaybookAdapter, playbookAdapter } from "./adapters/playbook-adapter";
 export {
   PlaybookBodyFormatter,
   playbookBodyFormatter,
@@ -51,25 +50,18 @@ export {
   playbookCompletionModeSchema,
   playbookFrontmatterSchema,
   playbookMetadataSchema,
-  playbookSchema,
   playbookStateSchema,
   playbookStatusSchema,
   playbookTransitionSchema,
   type PlaybookAudience,
   type PlaybookBody,
   type PlaybookCompletionMode,
-  type PlaybookEntity,
   type PlaybookFrontmatter,
   type PlaybookMetadata,
   type PlaybookState,
   type PlaybookStatus,
   type PlaybookTransition,
 } from "./schemas/playbook";
-export {
-  playbookConfigSchema,
-  type PlaybookConfig,
-  type PlaybookConfigInput,
-} from "./schemas/playbook-config";
 export {
   assertValidPlaybookBody,
   validatePlaybookBody,

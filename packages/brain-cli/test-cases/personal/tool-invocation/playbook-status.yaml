@@ -1,6 +1,6 @@
 id: tool-invocation-playbook-status
 name: Playbook Status Check
-description: Verifies that explicit playbook status requests use playbook_manage action=status.
+description: Verifies that explicit playbook status requests use playbooks_manage action=status.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -14,7 +14,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: playbook_manage
+    - toolName: playbooks_manage
       shouldBeCalled: true
       argsContain:
         action: status

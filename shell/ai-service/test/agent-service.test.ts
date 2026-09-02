@@ -4277,7 +4277,7 @@ describe("AgentService", () => {
           {
             toolCalls: [
               {
-                toolName: "playbook_manage",
+                toolName: "playbooks_manage",
                 toolCallId: "call1",
                 input: {
                   action: "start",
@@ -4288,7 +4288,7 @@ describe("AgentService", () => {
             ],
             toolResults: [
               {
-                toolName: "playbook_manage",
+                toolName: "playbooks_manage",
                 toolCallId: "call1",
                 output: {
                   success: true,
