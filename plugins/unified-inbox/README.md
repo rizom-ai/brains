@@ -18,7 +18,7 @@ The opt-in plugin provides:
   its returned workspace URL is advertised as the Admin-only `unified-inbox` interaction;
 - an access-checked open-count badge in the Studio workspace rail;
 - a read-only Admin Dashboard summary containing at most five redacted entries;
-- the bounded Admin `inbox_list` headless reader, available without browser
+- the bounded Admin `unified-inbox_list` headless reader, available without browser
   plugins;
 - a daily title-only digest that links to the mounted Studio workspace, or to Dashboard when
   Studio is absent.
@@ -52,7 +52,7 @@ Inbox item, while checks with `includeInInbox: false` remain channel-only. The d
 digest uses that channel-only mode so it never projects a summary of the Inbox back into
 itself.
 
-`inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
+`unified-inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
 brains with no webserver, Studio, or Dashboard. It returns source metadata and only the
 content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
 IDs, source-entity references, resolution actions, source detail, private source locators,

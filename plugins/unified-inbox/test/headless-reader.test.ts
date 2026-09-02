@@ -4,7 +4,7 @@ import { MCPService } from "@brains/mcp-service";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 
-import { UnifiedInboxPlugin } from "../src";
+import { createUnifiedInboxPlugin } from "./install";
 
 const textToolResponseSchema = z.object({
   content: z
@@ -14,13 +14,13 @@ const textToolResponseSchema = z.object({
 
 describe("unified inbox headless reader", () => {
   it("answers over the MCP protocol without browser plugins or sources", async () => {
-    const harness = createPluginHarness<UnifiedInboxPlugin>({
+    const harness = createPluginHarness({
       logContext: "unified-inbox-headless-test",
     });
-    const plugin = new UnifiedInboxPlugin();
+    const plugin = createUnifiedInboxPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     const shell = harness.getMockShell();
     expect(shell.hasPlugin("webserver")).toBe(false);
@@ -48,11 +48,13 @@ describe("unified inbox headless reader", () => {
     await client.connect(clientTransport);
     try {
       const tools = await client.listTools();
-      expect(tools.tools.map((tool) => tool.name)).toContain("inbox_list");
+      expect(tools.tools.map((tool) => tool.name)).toContain(
+        "unified-inbox_list",
+      );
 
       const response = textToolResponseSchema.parse(
         await client.callTool({
-          name: "inbox_list",
+          name: "unified-inbox_list",
           arguments: {},
         }),
       );

@@ -683,6 +683,15 @@ export interface EntityReactionContext {
    * domain introduces the brain to itself as a peer.
    */
   readonly domain: string | undefined;
+  /**
+   * The brain's own address, when it is reachable at one.
+   *
+   * A check that alerts someone has to tell them where to go, and a path is
+   * not somewhere you can go from an email. Undefined on a brain nobody can
+   * reach from outside, where a link would be a lie.
+   * Named consumer: @brains/unified-inbox.
+   */
+  readonly siteUrl: string | undefined;
   readonly logger: LoggerContract;
 }
 

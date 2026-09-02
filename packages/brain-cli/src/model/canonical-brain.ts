@@ -52,7 +52,7 @@ import { stockPhotoPlugin } from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import topicsPackage from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
-import { unifiedInboxPlugin } from "@brains/unified-inbox";
+import unifiedInboxPackage from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
 import { WebserverInterface } from "@brains/webserver";
 import wishlistPackage from "@brains/wishlist";
@@ -229,7 +229,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       obsidianVaultPackage,
     ),
     ["email-workflows", emailWorkflows, undefined],
-    ["unified-inbox", unifiedInboxPlugin, undefined],
+    packageCapability(
+      "unified-inbox",
+      "@brains/unified-inbox",
+      unifiedInboxPackage,
+    ),
   ],
   interfaces: [
     [

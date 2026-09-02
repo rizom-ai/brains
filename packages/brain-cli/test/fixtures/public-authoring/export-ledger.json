@@ -498,6 +498,7 @@
       "advanced-with-consumer": [
         "AnchorProfile",
         "anchorProfileBodySchema",
+        "AnyServiceToolDefinition",
         "AnyWorkspaceActionDefinition",
         "anchorProfileKindSchema",
         "AppendAuthAuditEventInput",
@@ -528,7 +529,9 @@
         "ResolvedProfileKind",
         "ResolvedProfileSelection",
         "ServiceEntityExtension",
+        "ServiceCheckDeclaration",
         "ServiceEvalHandler",
+        "ServiceInteractionDeclaration",
         "ServicePublishDeclaration",
         "SYSTEM_CHANNELS",
         "SystemChannelName"

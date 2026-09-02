@@ -1587,6 +1587,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         }),
       permissions: context.permissions,
       domain: context.domain,
+      siteUrl: context.siteUrl,
       logger: this.logger,
     };
   }

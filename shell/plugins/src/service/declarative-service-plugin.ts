@@ -77,6 +77,7 @@ import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
+import { normalizeSameOriginPath } from "../internal/same-origin-path";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -212,6 +213,8 @@ class DeclarativeServicePlugin<
   private readonly registeredDashboardWidgetIds: string[] = [];
   private accountSettingsRegistration:
     AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
+  /** Where Studio mounted each declared workspace, by its local id. */
+  private readonly studioWorkspaceUrls = new Map<string, string>();
   private studioWorkspaceBindings: readonly BoundStudioWorkspace<
     AnyStudioWorkspaceDefinition,
     z.output<TConfigSchema>,
@@ -329,6 +332,7 @@ class DeclarativeServicePlugin<
     for (const interaction of this.definition.interactions?.({
       config: this.config,
       state: this.requireState(),
+      workspaceUrl: (workspaceId) => this.studioWorkspaceUrls.get(workspaceId),
     }) ?? []) {
       context.interactions.register({
         id: interaction.id,
@@ -556,7 +560,13 @@ class DeclarativeServicePlugin<
           ...(check.includeInInbox !== undefined
             ? { includeInInbox: check.includeInInbox }
             : {}),
-          run: ({ signal }) => check.run({ ...this.reaction(), signal }),
+          run: ({ signal }) =>
+            check.run({
+              ...this.reaction(),
+              signal,
+              workspaceUrl: (workspaceId) =>
+                this.studioWorkspaceUrls.get(workspaceId),
+            }),
         }),
       );
     }
@@ -763,7 +773,17 @@ class DeclarativeServicePlugin<
           if (result === false) {
             await this.rollbackStudioWorkspaces(context, acquiredStudio);
             acquiredStudio.splice(0);
+            this.studioWorkspaceUrls.clear();
             break;
+          }
+          // Kept under the id the package wrote, not the scoped one: a link
+          // this package declares names its own workspace, and where Studio
+          // put it is the runtime's answer to give. A host that answers with
+          // somewhere else is not answering about this brain, so nothing is
+          // recorded and every link that would have used it is left unsaid.
+          const workspaceUrl = normalizeSameOriginPath(result.workspaceUrl);
+          if (workspaceUrl !== undefined) {
+            this.studioWorkspaceUrls.set(binding.definition.id, workspaceUrl);
           }
         } catch (error) {
           throw new Error(

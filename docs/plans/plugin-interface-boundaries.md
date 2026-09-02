@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **10 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **11 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
@@ -351,14 +351,33 @@ made the entity tranche find real defects rather than move code.
    stock-photo's gap (both are a package asking the runtime to run work it
    does not own) and worth deciding together.
 
-   **`unified-inbox` was measured at three additions and needs four.** The
-   `inbox`/`inboxFollowUps` readers in `setup` and the `interactions` slot
-   are done, with tests. Its digest is a recurring check whose destination
-   URL is built from `siteUrl` and `webRoutes.getRoutes()` — neither reaches
-   the `checks` context, and that is the fourth. Two further mechanical
-   steps go with it: its list tool is still a `createTool` call rather than
-   a `defineTool` declaration, and its workspace binding is typed loosely
-   enough that the `studioWorkspaces` slot rejects it.
+   **`unified-inbox` was measured at three additions and needed four.**
+   Converted. The `inbox`/`inboxFollowUps` readers in `setup` and the
+   `interactions` slot were the first three. The fourth was its digest — a
+   recurring check whose destination URL was built from `siteUrl` and
+   `webRoutes.getRoutes()`, neither of which reached the `checks` context.
+
+   The fourth is worth reading for how it was closed, because the obvious
+   shape was the wrong one. Handing checks the raw route table would have
+   preserved the behaviour exactly: the digest looked through every mounted
+   route for one the `dashboard` plugin owns, and linked there when Studio
+   was absent. But a package guessing at another package's routes is the
+   thing this plan exists to remove — a heuristic the code itself flagged as
+   provisional. What the digest actually needs is narrower and answerable:
+   where did _my own_ workspace end up. So `checks` and `interactions` both
+   gained `workspaceUrl(id)`, resolved by the runtime from what Studio
+   returned when it registered the workspace, and `siteUrl` joined the
+   reaction context to make the path absolute. Without Studio the answer is
+   `undefined`, and the digest links to the brain itself rather than
+   somewhere it hoped a console might be.
+
+   Two things fell out of the conversion that are worth stating plainly.
+   The runtime now refuses a workspace URL that is not same-origin, which
+   the package used to check for itself — a package should not have to
+   defend against its own host. And the list tool's name changed: it was
+   registered by hand as `inbox_list`, naming no plugin, and the
+   declarative surface scopes tool names, so it is `unified-inbox_list`. An
+   MCP client with the old name saved will not find it.
 
    The lesson is worth keeping: three of these were visible from the plugin
    file, and the fourth only from following the digest into the helper it

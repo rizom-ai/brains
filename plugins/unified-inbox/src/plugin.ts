@@ -1,101 +1,97 @@
 import {
-  ServicePlugin,
-  type Plugin,
-  type ServicePluginContext,
-  type Tool,
-} from "@brains/plugins";
-import { normalizeSameOriginPath } from "@brains/plugins/internal/same-origin-path";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
-import { registerUnifiedInboxDashboardWidget } from "./dashboard-widget";
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { defineDataSource } from "@brains/sdk/entities";
 import { InboxDataSource } from "./inbox-datasource";
-import { registerUnifiedInboxDigest } from "./digest";
-import { createInboxListTool } from "./inbox-tool";
-import { registerUnifiedInboxStudioWorkspace } from "./operator-studio";
 import { InboxOperatorService } from "./operator-service";
-
-type UnifiedInboxConfig = Record<string, never>;
-type UnifiedInboxConfigInput = Record<string, unknown>;
+import { unifiedInboxDigestCheck } from "./digest";
+import { inboxListTool } from "./inbox-tool";
+import { inboxWidget, loadInboxWidget } from "./dashboard-widget";
+import {
+  inboxWorkspace,
+  inboxWorkspaceHandlers,
+  runInboxAction,
+} from "./operator-studio";
 
 const unifiedInboxConfigSchema: z.ZodType<
-  UnifiedInboxConfig,
-  UnifiedInboxConfigInput
+  Record<string, never>,
+  Record<string, never>
 > = z.strictObject({});
 
-export class UnifiedInboxPlugin extends ServicePlugin<
-  UnifiedInboxConfig,
-  UnifiedInboxConfigInput
-> {
-  private dataSource: InboxDataSource | undefined;
-  private operator: InboxOperatorService | undefined;
-  private pluginContext: ServicePluginContext | undefined;
-  private studioWorkspaceUrl: string | undefined;
-  private studioRegistered = false;
+/**
+ * The inbox, as one declaration.
+ *
+ * This package owns no items. Every source registers its own, and what is
+ * declared here is the one place they are read together: a list tool, a
+ * dashboard widget, a Studio workspace, and a daily digest that says where
+ * to go. The digest asks the runtime where the workspace ended up rather
+ * than guessing at another package's routes, which is why it can name a
+ * page it does not mount.
+ */
+const unifiedInboxPackage: ServicePackageDefinition<
+  typeof unifiedInboxConfigSchema
+> = defineServicePlugin({
+  id: "unified-inbox",
+  config: unifiedInboxConfigSchema,
 
-  constructor() {
-    super("unified-inbox", packageJson, {}, unifiedInboxConfigSchema);
-  }
+  setup: ({ inbox, inboxFollowUps }) => {
+    const dataSource = new InboxDataSource(inbox);
+    return {
+      dataSource,
+      operator: new InboxOperatorService(inbox, dataSource, inboxFollowUps),
+    };
+  },
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.pluginContext = context;
-    this.dataSource = new InboxDataSource(context.inbox);
-    this.operator = new InboxOperatorService(
-      context.inbox,
-      this.dataSource,
-      context.inboxFollowUps,
-    );
-    context.entities.registerDataSource(this.dataSource);
-    registerUnifiedInboxDigest(context, this.dataSource, {
-      workspaceUrl: () => this.studioWorkspaceUrl,
-    });
-  }
+  // The projection, for anything that renders it rather than reads it: the
+  // fan-out across sources is the same one the workspace and widget use.
+  dataSources: ({ state }) => [
+    defineDataSource({
+      id: "inbox",
+      name: "Unified Inbox DataSource",
+      description: "Aggregates live source-owned operator attention",
+      fetch: async () => state.dataSource.getInboxData(),
+    }),
+  ],
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const operator = this.getOperator();
-    this.studioWorkspaceUrl = normalizeSameOriginPath(
-      await registerUnifiedInboxStudioWorkspace(context, operator),
-    );
-    this.studioRegistered = this.studioWorkspaceUrl !== undefined;
-    if (this.studioWorkspaceUrl) {
-      context.interactions.register({
-        id: "unified-inbox",
-        label: "Inbox",
-        description: "Review source-owned items that need operator attention.",
-        href: this.studioWorkspaceUrl,
-        kind: "admin",
-        priority: 20,
-        visibility: "admin",
-      });
-    }
-    await registerUnifiedInboxDashboardWidget(context, operator);
-  }
+  tools: ({ state }) => [inboxListTool(state.operator)],
 
-  protected override async onShutdown(): Promise<void> {
-    if (this.studioRegistered) {
-      await this.pluginContext?.studio.unregisterWorkspace(
-        "unified-inbox:inbox",
-      );
-      this.studioRegistered = false;
-    }
-    this.studioWorkspaceUrl = undefined;
-  }
+  checks: ({ state }) => [unifiedInboxDigestCheck(state.dataSource)],
 
-  protected override async getTools(): Promise<Tool[]> {
-    return [createInboxListTool(this.getOperator())];
-  }
+  // Only when Studio mounted the workspace: a way in that leads nowhere is
+  // worse than no way in.
+  interactions: ({ workspaceUrl }) => {
+    const href = workspaceUrl("inbox");
+    return href
+      ? [
+          {
+            id: "unified-inbox",
+            label: "Inbox",
+            description:
+              "Review source-owned items that need operator attention.",
+            href,
+            kind: "admin" as const,
+            priority: 20,
+            visibility: "admin" as const,
+          },
+        ]
+      : [];
+  },
 
-  private getOperator(): InboxOperatorService {
-    if (!this.operator) {
-      throw new Error("Unified inbox operator is not initialized");
-    }
-    return this.operator;
-  }
-}
+  dashboardWidgets: (context) => [
+    inboxWidget.bind(context, loadInboxWidget(context.state.operator)),
+  ],
 
-export function unifiedInboxPlugin(): Plugin {
-  return new UnifiedInboxPlugin();
-}
+  studioWorkspaces: (context) => {
+    const handlers = inboxWorkspaceHandlers(context.state.operator);
+    return [
+      inboxWorkspace.bind(context, {
+        load: handlers.load,
+        actions: [runInboxAction.bind(context, handlers.act, handlers.prepare)],
+      }),
+    ];
+  },
+});
+
+export default unifiedInboxPackage;

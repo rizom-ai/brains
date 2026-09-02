@@ -153,11 +153,11 @@ describe("canonical brain core", () => {
       "@brains/agent-discovery:agents",
       "@brains/agent-discovery:agent",
       "@brains/agent-discovery:skill",
-      "unified-inbox",
+      "@brains/unified-inbox:unified-inbox",
       "mcp",
       "a2a",
     ]);
-    expect(resolvedIds).toContain("unified-inbox");
+    expect(resolvedIds).toContain("@brains/unified-inbox:unified-inbox");
     expect(resolvedIds).not.toContain("webserver");
     expect(resolvedIds).not.toContain("notifications");
     expect(resolvedIds).not.toContain("atproto");

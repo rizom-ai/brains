@@ -1,13 +1,16 @@
 import {
   defineStudioWorkspace,
-  defineEntity,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
+  z,
+  type OperatorCaller,
   type OperatorCapabilityDefinition,
+  type OperatorQueryReader,
   type OperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+  type StudioWorkspaceDefinition,
+  type WorkspaceActionDefinition,
+  type WorkspacePreparedConfirmation,
+} from "@brains/sdk/services";
+import { defineEntity } from "@brains/sdk/entities";
 import type { InboxOperatorService } from "./operator-service";
 import {
   inboxDetailOutcomeSchema,
@@ -16,6 +19,7 @@ import {
   inboxWorkspaceSnapshotSchema,
   splitInboxRowId,
   type InboxDetailOutcome,
+  type InboxWorkspaceQuery,
   type InboxWorkspaceSnapshot,
 } from "./schemas";
 
@@ -24,13 +28,24 @@ const inboxCapabilitySchema = z.object({
   label: z.string().trim().min(1).max(200),
   confirmation: z.literal("prepared").optional(),
 });
-const inboxActionInputSchema = z.object({
+/** What running one source-owned action needs to know. */
+export interface InboxActionInput {
+  readonly sourceId: string;
+  readonly itemId: string;
+  readonly capability: OperatorCapabilityDefinition;
+}
+
+const inboxActionInputSchema: z.ZodType<InboxActionInput> = z.object({
   sourceId: z.string().trim().min(1).max(120),
   itemId: z.string().trim().min(1).max(500),
   capability: inboxCapabilitySchema,
 });
 
-const runInboxAction = defineWorkspaceAction({
+export const runInboxAction: WorkspaceActionDefinition<
+  "run-inbox-action",
+  z.ZodType<InboxActionInput>,
+  z.ZodType<{ kind: "completed" }>
+> = defineWorkspaceAction({
   name: "run-inbox-action",
   label: "Run inbox action",
   catalog: true,
@@ -69,7 +84,14 @@ const declarativeInboxQuerySchema = z.preprocess(
   normalizeFlatInboxQuery,
   inboxWorkspaceQuerySchema,
 );
-const declarativeInboxDataSchema = z.object({
+/** What one render of the workspace is made of. */
+export interface InboxWorkspaceData {
+  readonly query: InboxWorkspaceQuery;
+  readonly snapshot: InboxWorkspaceSnapshot;
+  readonly detail?: InboxDetailOutcome | undefined;
+}
+
+const declarativeInboxDataSchema: z.ZodType<InboxWorkspaceData> = z.object({
   query: inboxWorkspaceQuerySchema,
   snapshot: inboxWorkspaceSnapshotSchema,
   detail: inboxDetailOutcomeSchema.optional(),
@@ -222,7 +244,11 @@ export function formatReceivedAt(iso: string): string {
   return received.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
-const inboxWorkspace = defineStudioWorkspace({
+export const inboxWorkspace: StudioWorkspaceDefinition<
+  "inbox",
+  z.ZodType<InboxWorkspaceData>,
+  readonly [typeof runInboxAction]
+> = defineStudioWorkspace({
   id: "inbox",
   label: "Inbox",
   priority: 20,
@@ -430,85 +456,95 @@ const inboxWorkspace = defineStudioWorkspace({
   },
 });
 
-export async function registerUnifiedInboxStudioWorkspace(
-  context: ServicePluginContext,
+/**
+ * What the workspace does, separate from what it looks like.
+ *
+ * Handed to `inboxWorkspace.bind` where the package declares its workspaces.
+ * The binding context is the runtime's to supply, so it is passed in rather
+ * than reached for.
+ */
+export interface InboxWorkspaceHandlers {
+  load: (context: {
+    readonly query: OperatorQueryReader;
+    readonly caller: OperatorCaller | null | undefined;
+    readonly signal: AbortSignal;
+  }) => Promise<InboxWorkspaceData>;
+  act: (context: {
+    readonly input: InboxActionInput;
+    readonly caller: OperatorCaller | null | undefined;
+  }) => Promise<{ kind: "completed" }>;
+  prepare: (context: {
+    readonly input: InboxActionInput;
+  }) => Promise<WorkspacePreparedConfirmation>;
+}
+
+export function inboxWorkspaceHandlers(
   operator: InboxOperatorService,
-): Promise<string | undefined> {
-  const result = await registerBuiltInStudioWorkspace({
-    context,
-    definition: inboxWorkspace,
-    bind: (bindingContext) =>
-      inboxWorkspace.bind(bindingContext, {
-        load: async ({ query, caller, signal }) => {
-          if (!caller) throw new Error("Unified inbox requires authentication");
-          const normalized = query.get(declarativeInboxQuerySchema);
-          const actor = { permissionLevel: caller.permission };
-          const snapshot = await operator.workspace(normalized, actor);
-          const selection = normalized.selected
-            ? splitInboxRowId(normalized.selected)
-            : undefined;
-          // A source that cannot be read is answered from the snapshot, so the
-          // pane opens at once instead of waiting on a fetch that will fail.
-          const selectedEntry = selection
-            ? (snapshot.selectedEntry ??
-              snapshot.entries.find(
-                (entry) =>
-                  entry.source.sourceId === selection.sourceId &&
-                  entry.item.id === selection.itemId,
-              ))
-            : undefined;
-          const detail: InboxDetailOutcome | undefined = !selection
-            ? undefined
-            : selectedEntry?.detailAvailable === false
-              ? {
-                  kind: "detail-unavailable",
-                  error: "Original content is unavailable",
-                }
-              : await operator.detail(
-                  {
-                    type: "detail",
-                    sourceId: selection.sourceId,
-                    itemId: selection.itemId,
-                  },
-                  actor,
-                  signal,
-                );
-          return {
-            query: normalized,
-            snapshot,
-            ...(detail ? { detail } : {}),
-          };
+): InboxWorkspaceHandlers {
+  return {
+    load: async ({ query, caller, signal }): Promise<InboxWorkspaceData> => {
+      if (!caller) throw new Error("Unified inbox requires authentication");
+      const normalized = query.get(declarativeInboxQuerySchema);
+      const actor = { permissionLevel: caller.permission };
+      const snapshot = await operator.workspace(normalized, actor);
+      const selection = normalized.selected
+        ? splitInboxRowId(normalized.selected)
+        : undefined;
+      // A source that cannot be read is answered from the snapshot, so the
+      // pane opens at once instead of waiting on a fetch that will fail.
+      const selectedEntry = selection
+        ? (snapshot.selectedEntry ??
+          snapshot.entries.find(
+            (entry) =>
+              entry.source.sourceId === selection.sourceId &&
+              entry.item.id === selection.itemId,
+          ))
+        : undefined;
+      const detail: InboxDetailOutcome | undefined = !selection
+        ? undefined
+        : selectedEntry?.detailAvailable === false
+          ? {
+              kind: "detail-unavailable",
+              error: "Original content is unavailable",
+            }
+          : await operator.detail(
+              {
+                type: "detail",
+                sourceId: selection.sourceId,
+                itemId: selection.itemId,
+              },
+              actor,
+              signal,
+            );
+      return {
+        query: normalized,
+        snapshot,
+        ...(detail ? { detail } : {}),
+      };
+    },
+    act: async ({ input, caller }): Promise<{ kind: "completed" }> => {
+      if (!caller) {
+        throw new Error("Unified inbox requires authentication");
+      }
+      const outcome = await operator.act(
+        {
+          sourceId: input.sourceId,
+          itemId: input.itemId,
+          actionId: input.capability.id,
+          confirmed: true,
         },
-        actions: [
-          runInboxAction.bind(
-            bindingContext,
-            async ({ input, caller }) => {
-              if (!caller) {
-                throw new Error("Unified inbox requires authentication");
-              }
-              const outcome = await operator.act(
-                {
-                  sourceId: input.sourceId,
-                  itemId: input.itemId,
-                  actionId: input.capability.id,
-                  confirmed: true,
-                },
-                { permissionLevel: caller.permission },
-              );
-              if (outcome.kind !== "completed") {
-                throw new Error("Inbox action did not complete");
-              }
-              return outcome;
-            },
-            async ({ input }) =>
-              operator.prepareAction({
-                sourceId: input.sourceId,
-                itemId: input.itemId,
-                actionId: input.capability.id,
-              }),
-          ),
-        ],
+        { permissionLevel: caller.permission },
+      );
+      if (outcome.kind !== "completed") {
+        throw new Error("Inbox action did not complete");
+      }
+      return outcome;
+    },
+    prepare: async ({ input }) =>
+      operator.prepareAction({
+        sourceId: input.sourceId,
+        itemId: input.itemId,
+        actionId: input.capability.id,
       }),
-  });
-  return result === false ? undefined : result.workspaceUrl;
+  };
 }

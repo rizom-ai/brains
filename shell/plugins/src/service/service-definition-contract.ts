@@ -373,7 +373,19 @@ export interface ServiceCheckDeclaration {
   readonly deliverAlerts?: boolean | undefined;
   readonly includeInInbox?: boolean | undefined;
   run(
-    context: EntityReactionContext & { readonly signal: AbortSignal },
+    context: EntityReactionContext & {
+      readonly signal: AbortSignal;
+      /**
+       * Where a workspace this package declared ended up, once Studio
+       * scoped and mounted it.
+       *
+       * A check that alerts someone has to say where to go, and the id it
+       * wrote is not the id the runtime registered. Undefined when Studio
+       * is not mounted, which is the honest answer: there is no page.
+       * Named consumer: @brains/unified-inbox.
+       */
+      readonly workspaceUrl: (workspaceId: string) => string | undefined;
+    },
   ): Promise<RecurringCheckResult>;
 }
 
@@ -653,6 +665,13 @@ interface ServiceDefinitionCore<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        /**
+         * Where a workspace this package declared ended up. A console link
+         * points at a page Studio mounted, and the path is the runtime's to
+         * decide. Undefined when Studio is not mounted — a way in that
+         * leads nowhere is one worth not declaring.
+         */
+        readonly workspaceUrl: (workspaceId: string) => string | undefined;
       }) => readonly ServiceInteractionDeclaration[])
     | undefined;
   readonly instructions?:

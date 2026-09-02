@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  InboxRegistry,
-  createServicePluginContext,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
   type InboxActor,
@@ -10,11 +8,7 @@ import {
 } from "@brains/plugins";
 import { createMockShell } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import {
-  InboxDataSource,
-  InboxOperatorService,
-  registerUnifiedInboxStudioWorkspace,
-} from "../src";
+import { createUnifiedInboxPlugin } from "./install";
 
 const admin: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -81,7 +75,7 @@ async function setup(options?: {
   let open = true;
   const actors: InboxActor[] = [];
   const detailActors: InboxActor[] = [];
-  const registry = new InboxRegistry();
+  const registry = shell.getInboxRegistry();
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
@@ -100,7 +94,6 @@ async function setup(options?: {
       open = false;
     },
   });
-  registry.finalize();
   const followUps = shell.getInboxFollowUpRegistry();
   followUps.registerKind("web-chat", {
     kind: "discuss-in-chat",
@@ -133,15 +126,11 @@ async function setup(options?: {
     resolve: () => ({ href: "/private/create/path" }),
   });
   followUps.finalize();
-  const operator = new InboxOperatorService(
-    registry,
-    new InboxDataSource(registry),
-    followUps,
-  );
-  const context = createServicePluginContext(shell, "unified-inbox");
-  expect(await registerUnifiedInboxStudioWorkspace(context, operator)).toBe(
-    "/studio/workspaces/inbox",
-  );
+  registry.finalize();
+
+  const plugin = createUnifiedInboxPlugin();
+  await plugin.register(shell);
+  await plugin.finalizeRegistration?.();
   if (!workspace) throw new Error("Unified inbox workspace was not registered");
   return {
     workspace,
@@ -158,8 +147,8 @@ describe("unified inbox Studio registration", () => {
     const fixture = await setup();
 
     expect(fixture.workspace).toMatchObject({
-      id: "unified-inbox:inbox",
-      pluginId: "unified-inbox",
+      id: "@brains/unified-inbox:unified-inbox:inbox",
+      pluginId: "@brains/unified-inbox:unified-inbox",
       label: "Inbox",
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 20,

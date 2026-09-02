@@ -54,6 +54,7 @@ export function createReactionContext(input: {
     permissions: context.permissions,
     auth: context.auth,
     domain: context.domain,
+    siteUrl: context.siteUrl,
     logger: input.logger,
   };
 }

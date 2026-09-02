@@ -119,7 +119,7 @@ plugins:
       await waitUntil(
         async () => {
           const inbox = await client.callTool({
-            name: "inbox_list",
+            name: "unified-inbox_list",
             arguments: {},
           });
           expect(inbox.isError).not.toBe(true);

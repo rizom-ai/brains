@@ -37,6 +37,12 @@ export type {
   ServiceJobStatus,
   ServicePackageDefinition,
   ServiceToolDefinition,
+  // What the `tools` and `checks` slots return, and what an interaction is.
+  // A package that builds one of these in a helper needs the type to
+  // annotate that helper's return. Named consumer: @brains/unified-inbox.
+  AnyServiceToolDefinition,
+  ServiceCheckDeclaration,
+  ServiceInteractionDeclaration,
   WorkspaceActionConfirmation,
   AnyWorkspaceActionDefinition,
   WorkspaceActionDefinition,
