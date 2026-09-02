@@ -5,6 +5,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import {
+  imageTagExists,
   requiredImages,
   resolveImageBuilds,
   runResolveMissingImages,
@@ -393,9 +394,11 @@ members:
       env: {},
       runCommand: async (command, args) => {
         probed.push(`${command} ${args.join(" ")}`);
-        // Only the fleet-default image exists in the registry.
+        // Only the fleet-default image exists in the registry. Fails the way
+        // runSubprocess does, so imageTagExists can tell an unknown manifest
+        // from docker being unable to run at all.
         if (!args.join(" ").endsWith(":brain-0.2.0-alpha.160")) {
-          throw new Error("manifest unknown");
+          throw new Error(`docker ${args.join(" ")} exited with code 1`);
         }
       },
       writeOutput: (key, value) => {
@@ -427,10 +430,16 @@ members:
     ]);
   });
 
-  it("honors explicit dispatch inputs without touching the registry", async () => {
+  it("honors explicit dispatch inputs without loading the pilot registry", async () => {
+    // It does probe the image registry: that is how the tag-immutability guard
+    // knows the tag is free. What it must not do is load the pilot repo, hence
+    // the nonexistent rootDir. The previous name said "without touching the
+    // registry" and its fake threw to enforce that, but the throw was
+    // swallowed into "tag absent", so the claim went unchecked either way.
     const outputs: Record<string, string> = {};
+    const probed: string[] = [];
     const builds = await runResolveMissingImages({
-      // No pilot repo at this path — the registry must not be loaded.
+      // No pilot repo at this path — the pilot registry must not be loaded.
       rootDir: "/nonexistent",
       imageRepository: "ghcr.io/rizom-ai/rover-pilot",
       env: {
@@ -438,8 +447,10 @@ members:
         SITE_PACKAGES_INPUT: "@rizom/site-rizom-ai@0.2.0-alpha.169",
         IMAGE_CONTRACT_INPUT: "shared-fleet-v1",
       },
-      runCommand: async () => {
-        throw new Error("must not probe the registry for an explicit build");
+      runCommand: async (command, args) => {
+        probed.push(`${command} ${args.join(" ")}`);
+        // The tag is free, reported the way runSubprocess reports it.
+        throw new Error(`docker ${args.join(" ")} exited with code 1`);
       },
       writeOutput: (key, value) => {
         outputs[key] = value;
@@ -450,5 +461,48 @@ members:
     expect(builds).toHaveLength(1);
     expect(builds[0]?.tag).toBe("brain-0.2.0-alpha.169");
     expect(JSON.parse(outputs["images_json"] ?? "[]")).toHaveLength(1);
+    expect(probed).toHaveLength(1);
+    expect(probed[0]).toContain("manifest inspect");
+  });
+});
+
+describe("imageTagExists", () => {
+  it("reports absent when the registry says the manifest is unknown", async () => {
+    const exists = await imageTagExists(
+      async () => {
+        throw new Error("docker manifest inspect repo:tag exited with code 1");
+      },
+      "repo",
+      "tag",
+    );
+
+    expect(exists).toBe(false);
+  });
+
+  it("reports present when the manifest resolves", async () => {
+    const exists = await imageTagExists(async () => undefined, "repo", "tag");
+
+    expect(exists).toBe(true);
+  });
+
+  it("raises rather than reporting absent when docker itself cannot run", async () => {
+    // Answering "absent" here would let the caller's tag-immutability guard
+    // pass and overwrite a published tag, which the guard exists to prevent.
+    const spawnFailure = Object.assign(new Error("spawn docker ENOENT"), {
+      code: "ENOENT",
+    });
+
+    const outcome = await imageTagExists(
+      async () => {
+        throw spawnFailure;
+      },
+      "repo",
+      "tag",
+    ).then(
+      (value) => `reported ${value}`,
+      (error: unknown) => (error as Error).message,
+    );
+
+    expect(outcome).toBe("spawn docker ENOENT");
   });
 });

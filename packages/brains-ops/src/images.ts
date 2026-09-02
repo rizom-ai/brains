@@ -226,6 +226,35 @@ export interface RunResolveMissingImagesOptions {
  * force a single explicit build instead. Deriving and probing here means a config push builds exactly
  * what it declares — nothing reactive, nothing manual.
  */
+/**
+ * Whether the registry already holds this tag.
+ *
+ * `docker manifest inspect` exits non-zero when the manifest is unknown, so a
+ * command failure is the "absent" answer. A failure to run docker at all is
+ * not: answering false there would let resolveImageBuilds past its
+ * tag-immutability guard and overwrite a published tag, which is exactly what
+ * that guard exists to prevent. Those propagate.
+ *
+ * A non-zero exit caused by an auth or network problem is still read as
+ * absent — docker reports it the same way it reports an unknown manifest, and
+ * telling them apart means matching stderr text that shifts between versions.
+ */
+export async function imageTagExists(
+  run: RunCommand,
+  imageRepository: string,
+  tag: string,
+): Promise<boolean> {
+  try {
+    await run("docker", ["manifest", "inspect", `${imageRepository}:${tag}`]);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && /exited with code/.test(error.message)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 export async function runResolveMissingImages(
   options: RunResolveMissingImagesOptions,
 ): Promise<RequiredImage[]> {
@@ -252,18 +281,7 @@ export async function runResolveMissingImages(
     brainVersionInput,
     sitePackagesInput,
     allowTagOverwrite,
-    imageExists: async (tag) => {
-      try {
-        await run("docker", [
-          "manifest",
-          "inspect",
-          `${options.imageRepository}:${tag}`,
-        ]);
-        return true;
-      } catch {
-        return false;
-      }
-    },
+    imageExists: (tag) => imageTagExists(run, options.imageRepository, tag),
   });
 
   for (const image of builds) {
