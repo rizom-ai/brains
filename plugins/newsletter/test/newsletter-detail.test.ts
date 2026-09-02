@@ -181,9 +181,14 @@ describe("Newsletter Detail Template", () => {
       expect(newsletterDetailTemplate.requiredPermission).toBe("public");
     });
 
-    it("should have a layout component", () => {
-      expect(newsletterDetailTemplate.layout).toBeDefined();
-      expect(newsletterDetailTemplate.layout?.component).toBeDefined();
+    it("should wire a callable layout component", () => {
+      // The template factory wraps the component, so this cannot assert
+      // identity, and asserting the rendered output would mean adding
+      // react-dom to this package. Callable is what is checkable here, and it
+      // still rules out the truthy non-component that toBeDefined() allowed.
+      expect(typeof newsletterDetailTemplate.layout?.component).toBe(
+        "function",
+      );
     });
   });
 });

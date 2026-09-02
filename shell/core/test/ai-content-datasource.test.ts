@@ -173,8 +173,10 @@ describe("AIContentDataSource", () => {
       expect(aiContentDataSource.name).toBe("AI Content Generator");
     });
 
-    it("should have description", () => {
-      expect(aiContentDataSource.description).toBeDefined();
+    it("should have correct description", () => {
+      expect(aiContentDataSource.description).toBe(
+        "Generates content using AI based on templates and prompts",
+      );
     });
   });
 
