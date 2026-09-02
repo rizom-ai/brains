@@ -75,6 +75,7 @@ describe("buildConsoleJumpGroups", () => {
       "/#overview",
       "/#knowledge",
       "/#network",
+      "/#system",
     ]);
 
     const filtered = buildConsoleJumpGroups({
@@ -88,5 +89,17 @@ describe("buildConsoleJumpGroups", () => {
         .find((group) => group.id === "tabs")
         ?.items.map((item) => item.href),
     ).toEqual(["/dashboard#network"]);
+
+    const system = buildConsoleJumpGroups({
+      query: "sys",
+      dashboardPath: "/dashboard",
+      studioPath: undefined,
+      entities: [],
+    });
+    expect(
+      system
+        .find((group) => group.id === "tabs")
+        ?.items.map((item) => item.href),
+    ).toEqual(["/dashboard#system"]);
   });
 });

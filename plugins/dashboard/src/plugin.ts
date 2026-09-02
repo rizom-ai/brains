@@ -166,7 +166,7 @@ export class DashboardPlugin extends ServicePlugin<
       id: "dashboard",
       label: "Dashboard",
       description:
-        "Explore this brain's public identity, knowledge, and network.",
+        "Explore this brain's public identity, knowledge, network, and system health.",
       href: this.config.routePath,
       kind: "human",
       priority: 30,

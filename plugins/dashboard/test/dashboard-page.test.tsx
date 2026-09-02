@@ -28,10 +28,12 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("What is this");
     expect(html).toContain('href="#knowledge"');
     expect(html).toContain('href="#network"');
-    const stableHtml = html.replace(
-      /\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g,
-      "<rendered-at>",
-    );
+    const stableHtml = html
+      .replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g,
+        "<rendered-at-iso>",
+      )
+      .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g, "<rendered-at>");
     expect(
       normalizeRendererHtml(stableHtml, { ignoreImagePreloads: true }),
     ).toMatchSnapshot();
@@ -183,11 +185,11 @@ describe("renderDashboardPageHtml", () => {
     const tabIds = [...html.matchAll(/data-dashboard-tab-link="([^"]+)"/g)].map(
       (match) => match[1],
     );
-    expect(tabIds).toEqual(["overview", "knowledge", "network"]);
+    expect(tabIds).toEqual(["overview", "knowledge", "network", "system"]);
     expect(html).not.toContain('href="#publishing"');
-    expect(html).not.toContain('href="#system"');
+    expect(html).toContain('href="#system"');
     expect(html).not.toContain('data-dashboard-group="publishing"');
-    expect(html).not.toContain('data-dashboard-group="system"');
+    expect(html).toContain('data-dashboard-group="system"');
   });
 
   it("renders the public identity, contacts, holdings, and skills card", () => {
@@ -467,7 +469,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain("Activity");
   });
 
-  it("renders all three card panels in the no-JS HTML output", () => {
+  it("renders all four card panels in the no-JS HTML output", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -482,14 +484,16 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('id="overview"');
     expect(html).toContain('id="knowledge"');
     expect(html).toContain('id="network"');
+    expect(html).toContain('id="system"');
     expect(html).toContain("dashboard-tabs-ready");
     expect(html).toContain('data-ui-tabs-default="overview"');
     expect(html).toContain('data-ui-panel="knowledge"');
     expect(html).toContain('data-ui-panel="network"');
+    expect(html).toContain('data-ui-panel="system"');
     expect(html).not.toContain('hidden=""');
   });
 
-  it("omits operator activity and runtime diagnostics from the card", () => {
+  it("shows public system metadata without private runtime diagnostics", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -511,9 +515,12 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
+    expect(html).toContain('href="#system"');
+    expect(html).toContain("System health");
+    expect(html).toContain("Runtime");
+    expect(html).toContain("public metadata");
     expect(html).not.toContain("Private daemon");
     expect(html).not.toContain("41 embeddings");
-    expect(html).not.toContain('href="#system"');
   });
 
   it("should render the shared console strip from derived surfaces", () => {

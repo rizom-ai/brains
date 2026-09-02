@@ -249,6 +249,7 @@ describe("DashboardPlugin", () => {
         "/dashboard#overview",
         "/dashboard#knowledge",
         "/dashboard#network",
+        "/dashboard#system",
       ]);
       expect(
         data.groups.find((group) => group.id === "surfaces")?.items,
@@ -582,7 +583,7 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain("private console widget is hidden");
     });
 
-    it("does not query or render operator diagnostics on the public card", async () => {
+    it("keeps private operator diagnostics out of the public System tab", async () => {
       let syncStatusCalls = 0;
       harness.subscribe("sync:status:request", async () => {
         syncStatusCalls += 1;
@@ -605,7 +606,8 @@ describe("DashboardPlugin", () => {
       expect(html).not.toContain("/private/content");
       expect(html).not.toContain("Content sync");
       expect(html).not.toContain("Job queue");
-      expect(html).not.toContain("Semantic index");
+      expect(html).toContain("Semantic index");
+      expect(html).toContain("public projection");
     });
 
     it("should retain the authenticated user's actual dashboard role", async () => {

@@ -12,6 +12,7 @@ export function TabBar({
     { id: "overview", label: "Overview", count: 0 },
     { id: "knowledge", label: "Knowledge", count: knowledgeCount },
     { id: "network", label: "Network", count: networkCount },
+    { id: "system", label: "System", count: 0 },
   ];
   return (
     <nav

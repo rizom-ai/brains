@@ -12,6 +12,7 @@ import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
 import { OverviewPanel } from "./overview-panel";
 import { ProximityMapPanel } from "./proximity-map";
+import { SystemPanel } from "./system-panel";
 import {
   findCartesianMap,
   findRadialMap,
@@ -37,6 +38,10 @@ export function DashboardDocument({
   const operatorHref = input.surfaces?.find(
     (surface) => surface.id === "studio",
   )?.href;
+  const networkCount =
+    proximityMap?.points.filter((point) => point.status !== "archived")
+      .length ?? 0;
+  const now = new Date();
 
   return (
     <html lang="en" data-climate="instrument" data-theme="dark">
@@ -115,11 +120,7 @@ export function DashboardDocument({
             <Masthead title={input.title} tagline={input.profile.description} />
             <TabBar
               knowledgeCount={input.appInfo.entities}
-              networkCount={
-                proximityMap?.points.filter(
-                  (point) => point.status !== "archived",
-                ).length ?? 0
-              }
+              networkCount={networkCount}
             />
 
             <div className="canvas">
@@ -132,6 +133,15 @@ export function DashboardDocument({
                 <ProximityMapPanel
                   block={proximityMap}
                   widget={proximityWidget}
+                />
+                <SystemPanel
+                  input={input}
+                  now={now}
+                  hasKnowledgeMap={knowledgeMap !== undefined}
+                  knowledgeMapPoints={knowledgeMap?.points.length ?? 0}
+                  knowledgeMapZones={knowledgeMap?.zones.length ?? 0}
+                  hasNetworkMap={proximityMap !== undefined}
+                  networkCount={networkCount}
                 />
               </div>
               <Colophon
