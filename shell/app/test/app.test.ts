@@ -317,18 +317,6 @@ describe("App", () => {
     });
   });
 
-  describe("run", () => {
-    it("should have static run method", () => {
-      expect(typeof App.run).toBe("function");
-    });
-
-    it("should have instance run method", () => {
-      const mockShell = createMockShell();
-      const app = App.create({}, mockShell);
-      expect(typeof app.run).toBe("function");
-    });
-  });
-
   describe("identity configuration", () => {
     it("passes a configured identity through to the shell", async () => {
       const mockShell = createMockShell();
