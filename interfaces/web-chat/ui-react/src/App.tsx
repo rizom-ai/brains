@@ -15,7 +15,7 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import { Message, MessageContent } from "./ai-elements/message";
-import { createWebChatClient, getWebChatApiPaths } from "./browser-chat-client";
+import { createWebChatClient, getWebChatApiPaths } from "./web-chat-client";
 import {
   PromptInput,
   PromptInputFooter,

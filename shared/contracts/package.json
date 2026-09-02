@@ -17,9 +17,9 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./browser-chat": {
-      "types": "./src/browser-chat.ts",
-      "default": "./src/browser-chat.ts"
+    "./chat": {
+      "types": "./src/chat.ts",
+      "default": "./src/chat.ts"
     }
   },
   "main": "./src/index.ts",

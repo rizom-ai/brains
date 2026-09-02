@@ -1,4 +1,4 @@
-import { browserChatMessagesResponseSchema } from "@brains/contracts/browser-chat";
+import { chatMessagesResponseSchema } from "@brains/contracts/chat";
 import {
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
   getStoredMessageCards,
@@ -34,7 +34,7 @@ export async function handleMessagesRequest(
   });
 
   return Response.json(
-    browserChatMessagesResponseSchema.parse({
+    chatMessagesResponseSchema.parse({
       messages: messages.map((message) => {
         const attachments = getStoredMessageAttachments(
           message.metadata,

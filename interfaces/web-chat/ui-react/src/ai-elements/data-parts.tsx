@@ -23,7 +23,7 @@ import {
   type ToolPart,
 } from "./tool";
 import { getErrorMessage } from "@brains/utils/error";
-import { createWebChatClient } from "../browser-chat-client";
+import { createWebChatClient } from "../web-chat-client";
 
 export {
   attachmentStatusLabel,

@@ -1,24 +1,26 @@
 import { describe, expect, it } from "bun:test";
 import {
-  BROWSER_CHAT_API_VERSION,
-  BrowserChatApiError,
-  type BrowserChatFetch,
-  browserChatContextHandoffRequestSchema,
-  browserChatMessageRequestSchema,
-  browserChatMessagesResponseSchema,
-  browserChatProgressEventSchema,
-  browserChatSessionSchema,
-  browserChatToolStatusEventSchema,
-  browserChatUploadResponseSchema,
-  createBrowserChatApiPaths,
-  createBrowserChatClient,
-} from "../src/browser-chat";
+  CHAT_API_VERSION,
+  ChatApiError,
+  type ChatFetch,
+  chatContextHandoffRequestSchema,
+  chatMessageRequestSchema,
+  chatMessagesResponseSchema,
+  chatProgressEventSchema,
+  chatProtocolEventSchema,
+  chatSessionSchema,
+  chatToolStatusEventSchema,
+  chatUploadResponseSchema,
+  createChatApiPaths,
+  createChatClient,
+  readChatProtocolEvents,
+} from "../src/chat";
 
-describe("public browser Chat contract", () => {
+describe("public headless Chat contract", () => {
   it("derives every supported path from one configurable API root", () => {
-    const paths = createBrowserChatApiPaths("/custom/chat/");
+    const paths = createChatApiPaths("/custom/chat/");
 
-    expect(BROWSER_CHAT_API_VERSION).toBe(1);
+    expect(CHAT_API_VERSION).toBe(1);
     expect(paths).toEqual({
       stream: "/custom/chat",
       actions: "/custom/chat/actions",
@@ -26,18 +28,19 @@ describe("public browser Chat contract", () => {
       sessionArchive: "/custom/chat/sessions/archive",
       messages: "/custom/chat/messages",
       uploads: "/custom/chat/uploads",
+      contextSessions: "/custom/chat/context-sessions",
       documentAttachments: "/custom/chat/attachments/document",
       imageAttachments: "/custom/chat/attachments/image",
       jobStatus: "/custom/chat/jobs/status",
     });
-    expect(() => createBrowserChatApiPaths("https://example.com/chat")).toThrow(
-      "Browser Chat API path must be a same-origin absolute path",
+    expect(() => createChatApiPaths("https://example.com/chat")).toThrow(
+      "Chat API path must be a same-origin absolute path",
     );
   });
 
   it("bounds public session and history payloads", () => {
     expect(
-      browserChatSessionSchema.parse({
+      chatSessionSchema.parse({
         id: "session-1",
         title: "Field notes",
         lastActiveAt: "2026-09-01T16:00:00.000Z",
@@ -48,19 +51,19 @@ describe("public browser Chat contract", () => {
       lastActiveAt: "2026-09-01T16:00:00.000Z",
     });
     expect(
-      browserChatSessionSchema.safeParse({
+      chatSessionSchema.safeParse({
         id: "session-1",
         title: "x".repeat(49),
         lastActiveAt: "not-a-date",
       }).success,
     ).toBe(false);
     expect(
-      browserChatMessagesResponseSchema.safeParse({
+      chatMessagesResponseSchema.safeParse({
         messages: [{ id: "m1", role: "system", content: "hidden" }],
       }).success,
     ).toBe(false);
     expect(
-      browserChatUploadResponseSchema.safeParse({
+      chatUploadResponseSchema.safeParse({
         id: "upload-550e8400-e29b-41d4-a716-446655440000",
         ref: {
           kind: "upload",
@@ -78,7 +81,7 @@ describe("public browser Chat contract", () => {
 
   it("models message, approval, progress, and handoff domain data without view state", () => {
     expect(
-      browserChatMessageRequestSchema.parse({
+      chatMessageRequestSchema.parse({
         id: "session-1",
         messages: [
           {
@@ -98,7 +101,7 @@ describe("public browser Chat contract", () => {
       }),
     ).toMatchObject({ id: "session-1" });
     expect(
-      browserChatProgressEventSchema.parse({
+      chatProgressEventSchema.parse({
         type: "job",
         status: "processing",
         operationType: "data_processing",
@@ -111,7 +114,7 @@ describe("public browser Chat contract", () => {
       progress: { current: 1, total: 2, percentage: 50 },
     });
     expect(
-      browserChatToolStatusEventSchema.parse({
+      chatToolStatusEventSchema.parse({
         status: "tool-awaiting-approval",
         toolName: "delete_note",
         message: "presentation-specific extra",
@@ -121,7 +124,7 @@ describe("public browser Chat contract", () => {
       toolName: "delete_note",
     });
     expect(
-      browserChatContextHandoffRequestSchema.safeParse({
+      chatContextHandoffRequestSchema.safeParse({
         version: 1,
         sourceId: "unified-inbox",
         itemId: "item-1",
@@ -131,13 +134,65 @@ describe("public browser Chat contract", () => {
     ).toBe(false);
   });
 
+  it("decodes bounded protocol events without assembling UI state", async () => {
+    expect(
+      chatProtocolEventSchema.parse({
+        type: "data-progress",
+        id: "progress-1",
+        data: {
+          type: "job",
+          status: "processing",
+          operationType: "content_operations",
+          progress: { current: 2, total: 4, percentage: 50 },
+        },
+        transient: true,
+      }),
+    ).toMatchObject({ type: "data-progress", transient: true });
+
+    const chunks = [
+      'data: {"type":"start","messageId":"assistant-1"}\n',
+      '\ndata: {"type":"text-start","id":"text-1"}\n\n',
+      'data: {"type":"text-delta","id":"text-1","delta":"Hello"}\n\n',
+      'data: {"type":"finish","finishReason":"stop"}\n\n',
+      "data: [DONE]\n\n",
+    ];
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller): void {
+          for (const chunk of chunks) {
+            controller.enqueue(new TextEncoder().encode(chunk));
+          }
+          controller.close();
+        },
+      }),
+      { headers: { "Content-Type": "text/event-stream" } },
+    );
+    const events = [];
+    for await (const event of readChatProtocolEvents(response)) {
+      events.push(event);
+    }
+    expect(events).toEqual([
+      { type: "start", messageId: "assistant-1" },
+      { type: "text-start", id: "text-1" },
+      { type: "text-delta", id: "text-1", delta: "Hello" },
+      { type: "finish", finishReason: "stop" },
+    ]);
+
+    const malformed = new Response('data: {"type":"private-view-state"}\n\n');
+    expect(async () => {
+      for await (const _event of readChatProtocolEvents(malformed)) {
+        // Consume the stream to force validation.
+      }
+    }).toThrow("Chat API could not read stream (502)");
+  });
+
   it("uses the public schemas for headless client operations", async () => {
     const requests: Array<{
       url: string;
       method: string;
       body?: unknown;
     }> = [];
-    const fetchFn: BrowserChatFetch = async (input, init) => {
+    const fetchFn: ChatFetch = async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
       requests.push({
@@ -182,6 +237,9 @@ describe("public browser Chat contract", () => {
       if (url === "/custom/chat/jobs/status?id=job%2F1") {
         return Response.json({ id: "job/1", status: "completed" });
       }
+      if (url === "/custom/chat/context-sessions" && method === "POST") {
+        return Response.json({ conversationId: "context-session-1" });
+      }
       if (url === "/custom/chat/actions" && method === "POST") {
         return Response.json({
           text: "Advanced",
@@ -211,7 +269,7 @@ describe("public browser Chat contract", () => {
       }
       throw new Error(`Unexpected request: ${method} ${url}`);
     };
-    const client = createBrowserChatClient({
+    const client = createChatClient({
       apiPath: "/custom/chat",
       fetch: fetchFn,
     });
@@ -232,6 +290,14 @@ describe("public browser Chat contract", () => {
       id: "job/1",
       status: "completed",
     });
+    expect(
+      await client.openContextSession({
+        version: 1,
+        sourceId: "unified-inbox",
+        itemId: "mail/1",
+        titleSeed: "Discuss project mail",
+      }),
+    ).toEqual({ conversationId: "context-session-1" });
     expect(
       await client.runAction({
         conversationId: "session/1",
@@ -266,6 +332,16 @@ describe("public browser Chat contract", () => {
       "/custom/chat/attachments/image?id=image%2F1",
     );
     expect(requests).toContainEqual({
+      url: "/custom/chat/context-sessions",
+      method: "POST",
+      body: {
+        version: 1,
+        sourceId: "unified-inbox",
+        itemId: "mail/1",
+        titleSeed: "Discuss project mail",
+      },
+    });
+    expect(requests).toContainEqual({
       url: "/custom/chat/sessions?id=session%2F1",
       method: "PUT",
       body: { title: "Renamed" },
@@ -287,7 +363,7 @@ describe("public browser Chat contract", () => {
   });
 
   it("reports bounded HTTP failures without exposing response bodies", async () => {
-    const client = createBrowserChatClient({
+    const client = createChatClient({
       fetch: async () => new Response("private diagnostic", { status: 403 }),
     });
 
@@ -295,7 +371,7 @@ describe("public browser Chat contract", () => {
       await client.listSessions();
       throw new Error("Expected listSessions to fail");
     } catch (error) {
-      expect(error).toBeInstanceOf(BrowserChatApiError);
+      expect(error).toBeInstanceOf(ChatApiError);
       expect(error).toMatchObject({ status: 403, operation: "list sessions" });
       expect(String(error)).not.toContain("private diagnostic");
     }

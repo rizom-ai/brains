@@ -1,18 +1,26 @@
 import {
-  browserChatContextHandoffRequestSchema,
-  browserChatMessageRequestSchema,
-  createBrowserChatClient,
-  type BrowserChatClient,
-  type BrowserChatFetch,
+  chatContextHandoffRequestSchema,
+  chatMessageRequestSchema,
+  chatProtocolEventSchema,
+  createChatClient,
+  readChatProtocolEvents,
+  type ChatClient,
+  type ChatFetch,
 } from "@rizom/brain/chat";
 
-export function createConsumerChatClient(
-  fetch: BrowserChatFetch,
-): BrowserChatClient {
-  return createBrowserChatClient({ fetch });
+export function createConsumerChatClient(fetch: ChatFetch): ChatClient {
+  return createChatClient({ fetch });
 }
 
-export const messageRequest = browserChatMessageRequestSchema.parse({
+export const protocolEvent = chatProtocolEventSchema.parse({
+  type: "text-delta",
+  id: "fixture-text",
+  delta: "Hello",
+});
+
+export const readConsumerChatEvents = readChatProtocolEvents;
+
+export const messageRequest = chatMessageRequestSchema.parse({
   id: "fixture-session",
   messages: [
     {
@@ -23,7 +31,7 @@ export const messageRequest = browserChatMessageRequestSchema.parse({
   ],
 });
 
-export const handoffRequest = browserChatContextHandoffRequestSchema.parse({
+export const handoffRequest = chatContextHandoffRequestSchema.parse({
   version: 1,
   sourceId: "fixture-source",
   itemId: "fixture-item",

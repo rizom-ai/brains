@@ -26,11 +26,11 @@ describe("public headless Chat package boundary", () => {
       "utf8",
     );
     const contractSource = readFileSync(
-      join(repositoryRoot, "shared/contracts/src/browser-chat.ts"),
+      join(repositoryRoot, "shared/contracts/src/chat.ts"),
       "utf8",
     );
 
-    expect(entrySource).toContain('from "@brains/contracts/browser-chat"');
+    expect(entrySource).toContain('from "@brains/contracts/chat"');
     for (const forbidden of [
       'from "react',
       "@tanstack/",
@@ -45,6 +45,8 @@ describe("public headless Chat package boundary", () => {
       "Reducer",
       "defaultOpen",
       "StructuredChatCard",
+      "BrowserChat",
+      "browserChat",
     ]) {
       expect(entrySource).not.toContain(forbidden);
       expect(contractSource).not.toContain(forbidden);

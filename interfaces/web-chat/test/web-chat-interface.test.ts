@@ -494,13 +494,140 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls).toHaveLength(0);
   });
 
+  it("idempotently opens an actor-owned context session without persisting source detail", async () => {
+    const conversations: Conversation[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations,
+        messagesByConversation: {},
+        startConversation: async (request): Promise<string> => {
+          if (!conversations.some((item) => item.id === request.sessionId)) {
+            conversations.push(
+              makeConversation(request.sessionId, request.interfaceType, {
+                channelId: request.channelId,
+                personId: request.personId ?? null,
+                metadata: JSON.stringify(request.metadata),
+              }),
+            );
+          }
+          return request.sessionId;
+        },
+        updateConversationMetadata: async ({
+          conversationId,
+          metadata,
+        }): Promise<boolean> => {
+          const conversation = conversations.find(
+            (item) => item.id === conversationId,
+          );
+          if (!conversation) return false;
+          conversation.metadata = JSON.stringify({
+            ...JSON.parse(conversation.metadata ?? "{}"),
+            ...metadata,
+          });
+          return true;
+        },
+      }),
+    );
+    const sourceReads: string[] = [];
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    harness
+      .getMockShell()
+      .getInboxRegistry()
+      .registerSource("unified-inbox", {
+        sourceId: "mail-items",
+        displayName: "Mail Items",
+        list: async () => [],
+        resolveDetail: async (itemId) => {
+          sourceReads.push(itemId);
+          return {
+            kind: "plain",
+            text: "Private source detail must remain transient.",
+            truncated: false,
+          };
+        },
+        act: async () => {},
+      });
+    await harness.finalizeRegistration();
+
+    const openContext = async (): Promise<Response> =>
+      requireRoute(plugin, "/api/chat/context-sessions", "POST").handler(
+        new Request("http://brain/api/chat/context-sessions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "http://brain",
+          },
+          body: JSON.stringify({
+            version: 1,
+            sourceId: "mail-items",
+            itemId: "mail-1",
+            titleSeed: "Discuss project mail",
+          }),
+        }),
+      );
+
+    const first = await openContext();
+    const second = await openContext();
+    const firstPayload = (await first.json()) as { conversationId: string };
+    const secondPayload = (await second.json()) as { conversationId: string };
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(firstPayload.conversationId).toStartWith("web-context-");
+    expect(secondPayload).toEqual(firstPayload);
+    expect(conversations).toHaveLength(1);
+    expect(conversations[0]?.personId).toBe("prsn_collaborator");
+    expect(JSON.parse(conversations[0]?.metadata ?? "{}")).toMatchObject({
+      title: "Discuss project mail",
+      contextHandoff: {
+        version: 1,
+        sourceId: "mail-items",
+        itemId: "mail-1",
+        titleSeed: "Discuss project mail",
+      },
+      archivedAt: null,
+    });
+    expect(conversations[0]?.metadata).not.toContain("Private source detail");
+    expect(sourceReads).toEqual(["mail-1", "mail-1"]);
+  });
+
+  it("fails context handoff closed before creating a conversation", async () => {
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+
+    const response = await requireRoute(
+      plugin,
+      "/api/chat/context-sessions",
+      "POST",
+    ).handler(
+      new Request("http://brain/api/chat/context-sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "http://brain",
+        },
+        body: JSON.stringify({
+          version: 1,
+          sourceId: "missing-source",
+          itemId: "item-1",
+          titleSeed: "Unavailable source",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.text()).toBe("Source context is unavailable");
+  });
+
   it("exposes chat page, AI SDK endpoint, and UI asset routes", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(16);
+    expect(routes).toHaveLength(17);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -542,41 +669,46 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[8]).toMatchObject({
+      path: "/api/chat/context-sessions",
+      method: "POST",
+      public: true,
+    });
+    expect(routes[9]).toMatchObject({
       path: "/api/chat/attachments/document",
       method: "GET",
       public: true,
     });
-    expect(routes[9]).toMatchObject({
+    expect(routes[10]).toMatchObject({
       path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
-    expect(routes[10]).toMatchObject({
+    expect(routes[11]).toMatchObject({
       path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
     });
-    expect(routes[12]).toMatchObject({
+    expect(routes[13]).toMatchObject({
       path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
-    expect(routes[13]).toMatchObject({
+    expect(routes[14]).toMatchObject({
       path: "/api/chat/uploads",
       method: "GET",
       public: true,
     });
-    expect(routes[14]).toMatchObject({
+    expect(routes[15]).toMatchObject({
       path: "/api/agent/chat",
       method: "POST",
       public: true,
     });
-    expect(routes[15]).toMatchObject({
+    expect(routes[16]).toMatchObject({
       path: "/api/agent/chat/confirm",
       method: "POST",
       public: true,

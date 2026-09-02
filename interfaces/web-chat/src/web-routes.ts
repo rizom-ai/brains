@@ -1,4 +1,4 @@
-import { createBrowserChatApiPaths } from "@brains/contracts/browser-chat";
+import { createChatApiPaths } from "@brains/contracts/chat";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { uiAssetPath } from "./chat-page";
 
@@ -13,6 +13,7 @@ interface WebChatRouteHandlers {
   handleRenameSessionRequest(request: Request): Promise<Response>;
   handleArchiveSessionRequest(request: Request): Promise<Response>;
   handleMessagesRequest(request: Request): Promise<Response>;
+  handleContextSessionRequest(request: Request): Promise<Response>;
   handleDocumentAttachmentRequest(request: Request): Promise<Response>;
   handleImageAttachmentRequest(request: Request): Promise<Response>;
   handleJobStatusRequest(request: Request): Promise<Response>;
@@ -32,7 +33,7 @@ export function createWebChatRoutes({
   apiPath,
   handlers,
 }: CreateWebChatRoutesOptions): WebRouteDefinition[] {
-  const paths = createBrowserChatApiPaths(apiPath);
+  const paths = createChatApiPaths(apiPath);
   return [
     {
       path: routePath,
@@ -88,6 +89,13 @@ export function createWebChatRoutes({
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleMessagesRequest(request),
+    },
+    {
+      path: paths.contextSessions,
+      method: "POST",
+      public: true,
+      handler: (request): Promise<Response> =>
+        handlers.handleContextSessionRequest(request),
     },
     {
       path: paths.documentAttachments,

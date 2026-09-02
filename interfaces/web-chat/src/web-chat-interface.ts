@@ -3,8 +3,12 @@ import {
   createExternalActorId,
   parseAgentResponse,
 } from "@brains/contracts";
-import { browserChatActionRequestSchema } from "@brains/contracts/browser-chat";
-import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
+import { chatActionRequestSchema } from "@brains/contracts/chat";
+import {
+  getActiveAuthService,
+  requireSameOriginJson,
+  type AuthPrincipal,
+} from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   type AgentResponse,
@@ -55,6 +59,7 @@ import {
   canAccessBrowserConversation,
   type WebChatConversationAccess,
 } from "./conversation-access";
+import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
 import { deriveConsoleSurfaces } from "@brains/plugins";
 import { renderChatPage, uiAssetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
@@ -212,6 +217,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleArchiveSessionRequest(request),
         handleMessagesRequest: (request): Promise<Response> =>
           this.handleMessagesRequest(request),
+        handleContextSessionRequest: (request): Promise<Response> =>
+          this.handleContextSessionRequest(request),
         handleDocumentAttachmentRequest: (request): Promise<Response> =>
           this.handleDocumentAttachmentRequest(request),
         handleImageAttachmentRequest: (request): Promise<Response> =>
@@ -361,7 +368,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     } catch {
       return new Response("Invalid JSON body", { status: 400 });
     }
-    const parsed = browserChatActionRequestSchema.safeParse(body);
+    const parsed = chatActionRequestSchema.safeParse(body);
     if (!parsed.success) {
       return new Response("Invalid chat action request", { status: 400 });
     }
@@ -739,6 +746,31 @@ export class WebChatInterface extends MessageInterfacePlugin<
     } catch {
       return inboxContextUnavailable();
     }
+  }
+
+  private async handleContextSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const requestDenied = requireSameOriginJson(request);
+    if (requestDenied) return requestDenied;
+
+    return handleContextSessionRouteRequest(request, {
+      conversations: this.getContext().conversations,
+      resolveAccess: (nextRequest) =>
+        this.resolveConversationAccess(nextRequest),
+      interfaceType: webChatInterfaceType,
+      authorizeSource: async ({
+        sourceId,
+        itemId,
+        permissionLevel,
+        signal,
+      }): Promise<boolean> => {
+        const source = this.getContext().inbox.getSource(sourceId);
+        if (!source?.resolveDetail) return false;
+        await source.resolveDetail(itemId, { permissionLevel }, signal);
+        return true;
+      },
+    });
   }
 
   private async handleSessionsRequest(request: Request): Promise<Response> {

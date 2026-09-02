@@ -1,10 +1,10 @@
 import {
-  archiveBrowserChatSessionResponseSchema,
-  browserChatSessionsResponseSchema,
-  deleteBrowserChatSessionResponseSchema,
-  renameBrowserChatSessionRequestSchema,
-  renameBrowserChatSessionResponseSchema,
-} from "@brains/contracts/browser-chat";
+  archiveChatSessionResponseSchema,
+  chatSessionsResponseSchema,
+  deleteChatSessionResponseSchema,
+  renameChatSessionRequestSchema,
+  renameChatSessionResponseSchema,
+} from "@brains/contracts/chat";
 import {
   coerceConversationMetadata,
   type InterfacePluginContext,
@@ -58,7 +58,7 @@ export async function handleSessionsRequest(
     })),
   );
 
-  return Response.json(browserChatSessionsResponseSchema.parse({ sessions }));
+  return Response.json(chatSessionsResponseSchema.parse({ sessions }));
 }
 
 export async function handleDeleteSessionRequest(
@@ -74,9 +74,7 @@ export async function handleDeleteSessionRequest(
   if (conversation instanceof Response) return conversation;
 
   const deleted = await deps.conversations.delete(conversation.id);
-  return Response.json(
-    deleteBrowserChatSessionResponseSchema.parse({ deleted }),
-  );
+  return Response.json(deleteChatSessionResponseSchema.parse({ deleted }));
 }
 
 export async function handleRenameSessionRequest(
@@ -91,9 +89,7 @@ export async function handleRenameSessionRequest(
   const conversation = await resolveWebChatSession(request, deps, access);
   if (conversation instanceof Response) return conversation;
 
-  const parsed = renameBrowserChatSessionRequestSchema.safeParse(
-    await request.json(),
-  );
+  const parsed = renameChatSessionRequestSchema.safeParse(await request.json());
   if (!parsed.success) {
     return new Response("Invalid rename request", { status: 400 });
   }
@@ -104,7 +100,7 @@ export async function handleRenameSessionRequest(
   });
 
   return Response.json(
-    renameBrowserChatSessionResponseSchema.parse({
+    renameChatSessionResponseSchema.parse({
       renamed,
       title: parsed.data.title,
     }),
@@ -128,9 +124,7 @@ export async function handleArchiveSessionRequest(
     metadata: { archivedAt: new Date().toISOString() },
   });
 
-  return Response.json(
-    archiveBrowserChatSessionResponseSchema.parse({ archived }),
-  );
+  return Response.json(archiveChatSessionResponseSchema.parse({ archived }));
 }
 
 /**

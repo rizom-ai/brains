@@ -1,4 +1,4 @@
-import { browserChatJobStatusSchema } from "@brains/contracts/browser-chat";
+import { chatJobStatusSchema } from "@brains/contracts/chat";
 import type { InterfacePluginContext } from "@brains/plugins";
 
 type AuthSessionResolver = (request: Request) => Promise<boolean>;
@@ -29,7 +29,7 @@ export async function handleJobStatusRequest(
   }
 
   return Response.json(
-    browserChatJobStatusSchema.parse({
+    chatJobStatusSchema.parse({
       id: job.id,
       status: job.status,
       message: job.lastError ?? undefined,

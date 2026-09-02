@@ -14,24 +14,24 @@ import {
   type ToolApprovalCard,
 } from "@brains/contracts";
 import {
-  browserChatHistoryAttachmentSchema,
-  browserChatHistoryAttachmentSourceSchema,
-  browserChatHistoryMessageSchema,
-  browserChatMessagesResponseSchema,
-  type BrowserChatHistoryAttachment,
-  type BrowserChatHistoryAttachmentSource,
-  type BrowserChatHistoryMessage,
-  type BrowserChatMessagesResponse,
-} from "@brains/contracts/browser-chat";
+  chatHistoryAttachmentSchema,
+  chatHistoryAttachmentSourceSchema,
+  chatHistoryMessageSchema,
+  chatMessagesResponseSchema,
+  type ChatHistoryAttachment,
+  type ChatHistoryAttachmentSource,
+  type ChatHistoryMessage,
+  type ChatMessagesResponse,
+} from "@brains/contracts/chat";
 import type { DynamicToolUIPart, UIMessage } from "ai";
 import { stripInternalEntityMemoryNote } from "../../src/display-content";
-import { createWebChatClient } from "./browser-chat-client";
+import { createWebChatClient } from "./web-chat-client";
 import { createUploadPart, type WebChatUploadResponse } from "./uploads";
 
-const browserChatClient = createWebChatClient();
+const chatClient = createWebChatClient();
 
-export type WebChatHistoryAttachmentSource = BrowserChatHistoryAttachmentSource;
-export type WebChatHistoryAttachment = BrowserChatHistoryAttachment;
+export type WebChatHistoryAttachmentSource = ChatHistoryAttachmentSource;
+export type WebChatHistoryAttachment = ChatHistoryAttachment;
 export type WebChatHistoryAttachmentCardSource = AttachmentCardSource;
 export type WebChatHistoryAttachmentCardAttachment = AttachmentCardData;
 export type WebChatHistoryAttachmentCard = AttachmentCard;
@@ -40,13 +40,13 @@ export type WebChatHistorySourcesCard = SourcesCard;
 export type WebChatHistoryAction = ChatAction;
 export type WebChatHistoryActionsCard = ActionsCard;
 export type WebChatHistoryCard = StructuredChatCard;
-export type WebChatHistoryMessage = BrowserChatHistoryMessage;
-export type WebChatMessagesResponse = BrowserChatMessagesResponse;
+export type WebChatHistoryMessage = ChatHistoryMessage;
+export type WebChatMessagesResponse = ChatMessagesResponse;
 
-export const webChatHistoryAttachmentSourceSchema: typeof browserChatHistoryAttachmentSourceSchema =
-  browserChatHistoryAttachmentSourceSchema;
-export const webChatHistoryAttachmentSchema: typeof browserChatHistoryAttachmentSchema =
-  browserChatHistoryAttachmentSchema;
+export const webChatHistoryAttachmentSourceSchema: typeof chatHistoryAttachmentSourceSchema =
+  chatHistoryAttachmentSourceSchema;
+export const webChatHistoryAttachmentSchema: typeof chatHistoryAttachmentSchema =
+  chatHistoryAttachmentSchema;
 export const webChatHistoryAttachmentCardSchema: typeof AttachmentCardSchema =
   AttachmentCardSchema;
 export const webChatHistorySourcesCardSchema: typeof SourcesCardSchema =
@@ -55,10 +55,10 @@ export const webChatHistoryActionsCardSchema: typeof ActionsCardSchema =
   ActionsCardSchema;
 export const webChatHistoryCardSchema: typeof StructuredChatCardSchema =
   StructuredChatCardSchema;
-export const webChatHistoryMessageSchema: typeof browserChatHistoryMessageSchema =
-  browserChatHistoryMessageSchema;
-export const webChatMessagesResponseSchema: typeof browserChatMessagesResponseSchema =
-  browserChatMessagesResponseSchema;
+export const webChatHistoryMessageSchema: typeof chatHistoryMessageSchema =
+  chatHistoryMessageSchema;
+export const webChatMessagesResponseSchema: typeof chatMessagesResponseSchema =
+  chatMessagesResponseSchema;
 
 /**
  * The query cache owns an immutable history snapshot. AI SDK receives a
@@ -218,5 +218,5 @@ function toUploadResponse(
 }
 
 function getUploadUrl(uploadId: string, download = false): string {
-  return browserChatClient.getUploadUrl(uploadId, download);
+  return chatClient.getUploadUrl(uploadId, download);
 }

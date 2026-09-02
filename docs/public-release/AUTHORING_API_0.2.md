@@ -32,89 +32,92 @@ Types:
 
 ## `@rizom/brain/chat`
 
-Headless browser Chat domain and transport:
+Headless Chat domain and transport:
 
-- `BROWSER_CHAT_API_VERSION`
-- `DEFAULT_BROWSER_CHAT_API_PATH`
-- `BrowserChatApiError`
-- `createBrowserChatApiPaths`
-- `createBrowserChatClient`
+- `CHAT_API_VERSION`
+- `DEFAULT_CHAT_API_PATH`
+- `ChatApiError`
+- `createChatApiPaths`
+- `createChatClient`
+- `readChatProtocolEvents`
 
 Client and transport types:
 
-- `BrowserChatApiErrorKind`
-- `BrowserChatApiPaths`
-- `BrowserChatClient`
-- `BrowserChatClientOptions`
-- `BrowserChatFetch`
+- `ChatApiErrorKind`
+- `ChatApiPaths`
+- `ChatClient`
+- `ChatClientOptions`
+- `ChatFetch`
 
 Domain types:
 
-- `ArchiveBrowserChatSessionResponse`
-- `BrowserChatActionRequest`
-- `BrowserChatActionResponse`
-- `BrowserChatApprovalResponse`
-- `BrowserChatApprovalResponsePart`
-- `BrowserChatCard`
-- `BrowserChatContextHandoffRequest`
-- `BrowserChatContextHandoffResponse`
-- `BrowserChatEventAction`
-- `BrowserChatFilePart`
-- `BrowserChatHistoryAttachment`
-- `BrowserChatHistoryAttachmentSource`
-- `BrowserChatHistoryMessage`
-- `BrowserChatJobStatus`
-- `BrowserChatJobStatusValue`
-- `BrowserChatMessage`
-- `BrowserChatMessageRequest`
-- `BrowserChatMessageRole`
-- `BrowserChatMessagesResponse`
-- `BrowserChatProgressEvent`
-- `BrowserChatSession`
-- `BrowserChatSessionsResponse`
-- `BrowserChatSourceContext`
-- `BrowserChatTextPart`
-- `BrowserChatToolStatusEvent`
-- `BrowserChatToolStatusValue`
-- `BrowserChatUploadPart`
-- `BrowserChatUploadPartData`
-- `BrowserChatUploadRef`
-- `BrowserChatUploadResponse`
-- `DeleteBrowserChatSessionResponse`
-- `RenameBrowserChatSessionRequest`
-- `RenameBrowserChatSessionResponse`
+- `ArchiveChatSessionResponse`
+- `ChatActionRequest`
+- `ChatActionResponse`
+- `ChatApprovalResponse`
+- `ChatApprovalResponsePart`
+- `ChatCard`
+- `ChatContextHandoffRequest`
+- `ChatContextHandoffResponse`
+- `ChatEventAction`
+- `ChatFilePart`
+- `ChatHistoryAttachment`
+- `ChatHistoryAttachmentSource`
+- `ChatHistoryMessage`
+- `ChatJobStatus`
+- `ChatJobStatusValue`
+- `ChatMessage`
+- `ChatMessageRequest`
+- `ChatMessageRole`
+- `ChatMessagesResponse`
+- `ChatProgressEvent`
+- `ChatProtocolEvent`
+- `ChatSession`
+- `ChatSessionsResponse`
+- `ChatSourceContext`
+- `ChatTextPart`
+- `ChatToolStatusEvent`
+- `ChatToolStatusValue`
+- `ChatUploadPart`
+- `ChatUploadPartData`
+- `ChatUploadRef`
+- `ChatUploadResponse`
+- `DeleteChatSessionResponse`
+- `RenameChatSessionRequest`
+- `RenameChatSessionResponse`
 
 Schemas:
 
-- `archiveBrowserChatSessionResponseSchema`
-- `browserChatActionRequestSchema`
-- `browserChatActionResponseSchema`
-- `browserChatApprovalResponsePartSchema`
-- `browserChatApprovalResponseSchema`
-- `browserChatCardSchema`
-- `browserChatContextHandoffRequestSchema`
-- `browserChatContextHandoffResponseSchema`
-- `browserChatEventActionSchema`
-- `browserChatFilePartSchema`
-- `browserChatHistoryAttachmentSchema`
-- `browserChatHistoryAttachmentSourceSchema`
-- `browserChatHistoryMessageSchema`
-- `browserChatJobStatusSchema`
-- `browserChatMessageRequestSchema`
-- `browserChatMessageSchema`
-- `browserChatMessagesResponseSchema`
-- `browserChatProgressEventSchema`
-- `browserChatSessionSchema`
-- `browserChatSessionsResponseSchema`
-- `browserChatSourceContextSchema`
-- `browserChatTextPartSchema`
-- `browserChatToolStatusEventSchema`
-- `browserChatUploadPartSchema`
-- `browserChatUploadRefSchema`
-- `browserChatUploadResponseSchema`
-- `deleteBrowserChatSessionResponseSchema`
-- `renameBrowserChatSessionRequestSchema`
-- `renameBrowserChatSessionResponseSchema`
+- `archiveChatSessionResponseSchema`
+- `chatActionRequestSchema`
+- `chatActionResponseSchema`
+- `chatApprovalResponsePartSchema`
+- `chatApprovalResponseSchema`
+- `chatCardSchema`
+- `chatContextHandoffRequestSchema`
+- `chatContextHandoffResponseSchema`
+- `chatEventActionSchema`
+- `chatFilePartSchema`
+- `chatHistoryAttachmentSchema`
+- `chatHistoryAttachmentSourceSchema`
+- `chatHistoryMessageSchema`
+- `chatJobStatusSchema`
+- `chatMessageRequestSchema`
+- `chatMessageSchema`
+- `chatMessagesResponseSchema`
+- `chatProgressEventSchema`
+- `chatProtocolEventSchema`
+- `chatSessionSchema`
+- `chatSessionsResponseSchema`
+- `chatSourceContextSchema`
+- `chatTextPartSchema`
+- `chatToolStatusEventSchema`
+- `chatUploadPartSchema`
+- `chatUploadRefSchema`
+- `chatUploadResponseSchema`
+- `deleteChatSessionResponseSchema`
+- `renameChatSessionRequestSchema`
+- `renameChatSessionResponseSchema`
 
 This subpath contains only server-owned domain state, protocol schemas, bounded
 paths, and fetch-injected transport. Active selection, reducers, routing,

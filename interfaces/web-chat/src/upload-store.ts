@@ -1,7 +1,7 @@
 import {
-  createBrowserChatApiPaths,
-  DEFAULT_BROWSER_CHAT_API_PATH,
-} from "@brains/contracts/browser-chat";
+  createChatApiPaths,
+  DEFAULT_CHAT_API_PATH,
+} from "@brains/contracts/chat";
 import {
   RuntimeUploadStore,
   RuntimeUploadStoreError,
@@ -44,7 +44,7 @@ export interface WebChatUploadStoreOptions {
 const webChatUploadScope = {
   namespace: "upload",
   refKind: webChatUploadRefKind,
-  routePath: createBrowserChatApiPaths().uploads,
+  routePath: createChatApiPaths().uploads,
 } satisfies Pick<
   RuntimeUploadScopeOptions,
   "namespace" | "refKind" | "routePath"
@@ -60,10 +60,10 @@ export class WebChatUploadStore extends RuntimeUploadStore {
 }
 
 export function createWebChatUploadStoreScope(
-  apiPath: string = DEFAULT_BROWSER_CHAT_API_PATH,
+  apiPath: string = DEFAULT_CHAT_API_PATH,
 ): RuntimeUploadScopeOptions {
   return {
     ...webChatUploadScope,
-    routePath: createBrowserChatApiPaths(apiPath).uploads,
+    routePath: createChatApiPaths(apiPath).uploads,
   };
 }

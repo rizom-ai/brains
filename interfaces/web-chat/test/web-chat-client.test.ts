@@ -5,7 +5,7 @@ import {
   createWebChatClient,
   getWebChatApiPath,
   getWebChatApiPaths,
-} from "../ui-react/src/browser-chat-client";
+} from "../ui-react/src/web-chat-client";
 
 const originalDocument = globalThis.document;
 let windowInstance: Window;
@@ -23,23 +23,23 @@ afterEach(() => {
 describe("standalone Web Chat transport bootstrap", () => {
   it("publishes the configured API path without executable configuration", () => {
     const html = renderChatPage({
-      apiPath: "/custom/browser-chat",
+      apiPath: "/custom/chat-api",
       surfaces: [],
       sessionHref: "/logout",
     });
 
     expect(html).toContain(
-      'data-web-chat-root data-chat-api-path="/custom/browser-chat"',
+      'data-web-chat-root data-chat-api-path="/custom/chat-api"',
     );
     expect(html).not.toContain("window.__chatConfig");
   });
 
   it("configures the public transport from the host-owned root attribute", () => {
     windowInstance.document.body.innerHTML =
-      '<main data-web-chat-root data-chat-api-path="/custom/browser-chat"></main>';
+      '<main data-web-chat-root data-chat-api-path="/custom/chat-api"></main>';
 
-    expect(getWebChatApiPath()).toBe("/custom/browser-chat");
-    expect(getWebChatApiPaths().sessions).toBe("/custom/browser-chat/sessions");
-    expect(createWebChatClient().paths.stream).toBe("/custom/browser-chat");
+    expect(getWebChatApiPath()).toBe("/custom/chat-api");
+    expect(getWebChatApiPaths().sessions).toBe("/custom/chat-api/sessions");
+    expect(createWebChatClient().paths.stream).toBe("/custom/chat-api");
   });
 });

@@ -22,7 +22,7 @@ export const uiAssetFile: string = join(
 );
 
 export interface ChatPageOptions {
-  /** Configured root for the public browser Chat transport. */
+  /** Configured root for the public headless Chat transport. */
   apiPath: string;
   /** Console-strip doors, derived from the registered web routes. */
   surfaces: ConsoleSurface[];

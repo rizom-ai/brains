@@ -1,6 +1,6 @@
 # Web chat interface
 
-`@brains/web-chat` provides the authenticated browser chat surface and its session APIs.
+`@brains/web-chat` provides the authenticated standalone Web Chat surface and its session APIs.
 
 ## Public boundary
 
