@@ -374,11 +374,20 @@ export class DashboardPlugin extends ServicePlugin<
 
           let entities: ConsoleJumpEntityHit[] = [];
           if (query.length >= 2) {
+            // Only the search is tolerated: it degrades to no entity doors
+            // while the index warms. Shaping the rows below is ours, and a
+            // fault there is not a warming index.
+            let results;
             try {
-              const results = await ctx.entityService.search({
+              results = await ctx.entityService.search({
                 query,
                 options: { limit: 6 },
               });
+            } catch {
+              results = undefined;
+            }
+
+            if (results) {
               entities = results.map((result) => {
                 const title = Reflect.get(result.entity, "title");
                 return {
@@ -387,8 +396,6 @@ export class DashboardPlugin extends ServicePlugin<
                   title: typeof title === "string" ? title : result.entity.id,
                 };
               });
-            } catch {
-              // Search degrades to no entity doors (e.g. index warming).
             }
           }
 
