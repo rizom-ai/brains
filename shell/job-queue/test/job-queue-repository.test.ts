@@ -1029,4 +1029,103 @@ describe("JobQueueRepository fenced attempts", () => {
 
     expect(recent.map((job) => job.id)).toEqual(["job-pending", "job-failed"]);
   });
+
+  it("retires only an exact unowned active job", async () => {
+    const job = createTestJob({
+      id: "legacy-skill-projection",
+      type: "skill:project",
+      status: JOB_STATUS.PROCESSING,
+      startedAt: 1_100,
+    });
+    await repository.insert(job);
+
+    const retired = await repository.retireUnownedActiveJob({
+      jobId: job.id,
+      expectedType: "skill:project",
+      reason:
+        "Retired legacy projection job superseded by scheduler-owned projections",
+      now: 20_000,
+    });
+
+    expect(retired).toMatchObject({
+      id: job.id,
+      type: "skill:project",
+      status: JOB_STATUS.FAILED,
+      retryCount: 0,
+      completedAt: 20_000,
+      runtimeUpdatedAt: 20_000,
+      lastError:
+        "Retired legacy projection job superseded by scheduler-owned projections",
+      attemptId: null,
+      workerSlotId: null,
+      workerSessionId: null,
+      leaseExpiresAt: null,
+      attemptHeartbeatAt: null,
+      progress: null,
+    });
+  });
+
+  it("refuses to retire owned or partially progressed work", async () => {
+    const owned = createTestJob({ id: "owned", type: "skill:project" });
+    await repository.insert(owned);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000);
+    await repository.claimNextReady(
+      claimOptions({ executableTypes: ["skill:project"] }),
+    );
+
+    const progressed = createTestJob({
+      id: "progressed",
+      type: "skill:project",
+      status: JOB_STATUS.PROCESSING,
+      startedAt: 1_100,
+      progress: { progress: 1, total: 2, message: "Partial" },
+    });
+    await repository.insert(progressed);
+
+    expect(
+      await repository.retireUnownedActiveJob({
+        jobId: owned.id,
+        expectedType: "skill:project",
+        reason: "retired",
+        now: 20_000,
+      }),
+    ).toBeNull();
+    expect(
+      await repository.retireUnownedActiveJob({
+        jobId: progressed.id,
+        expectedType: "skill:project",
+        reason: "retired",
+        now: 20_000,
+      }),
+    ).toBeNull();
+  });
+
+  it("refuses a mismatched type and an already-terminal job", async () => {
+    const active = createTestJob({ id: "active", type: "topic:project" });
+    const terminal = createTestJob({
+      id: "terminal",
+      type: "skill:project",
+      status: JOB_STATUS.COMPLETED,
+      completedAt: 2_000,
+    });
+    await repository.insert(active);
+    await repository.insert(terminal);
+
+    expect(
+      await repository.retireUnownedActiveJob({
+        jobId: active.id,
+        expectedType: "skill:project",
+        reason: "retired",
+        now: 20_000,
+      }),
+    ).toBeNull();
+    expect(
+      await repository.retireUnownedActiveJob({
+        jobId: terminal.id,
+        expectedType: "skill:project",
+        reason: "retired",
+        now: 20_000,
+      }),
+    ).toBeNull();
+  });
 });
