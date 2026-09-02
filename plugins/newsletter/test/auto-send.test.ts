@@ -7,6 +7,7 @@ import {
 import { createPluginHarness } from "@brains/plugins/test";
 import { ButtondownClient } from "../src/provider/lib/buttondown-client";
 import { ButtondownPlugin } from "../src/provider/plugin";
+import { z } from "@brains/utils/zod";
 
 const originalFetch = globalThis.fetch;
 
@@ -21,7 +22,7 @@ describe("Newsletter Auto-Send on Publish", () => {
     it("should create and send newsletter when post is published and autoSendOnPublish is true", async () => {
       let capturedEmailBody: string | undefined;
       mockFetch((_url, options) => {
-        capturedEmailBody = options.body as string;
+        capturedEmailBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
           json: () =>

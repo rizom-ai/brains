@@ -265,11 +265,13 @@ Content here.`,
       });
 
       // Mock AI generate to return expected shape
-      context.ai.generate = async <T>(): Promise<T> =>
-        ({
-          subject: "Weekly Digest",
-          content: "Here are the latest posts...",
-        }) as T;
+      spyOn(context.ai, "generate").mockImplementation(
+        async (_config, schema) =>
+          schema.parse({
+            subject: "Weekly Digest",
+            content: "Here are the latest posts...",
+          }),
+      );
 
       let capturedMetadata: NewsletterMetadata | undefined;
       const originalCreate = entityService.createEntity.bind(entityService);

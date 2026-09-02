@@ -3,7 +3,18 @@ import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
 import type { IAgentService, AgentResponse } from "@brains/ai-service";
-import type { IRuntimeUploadsNamespace } from "@brains/plugins";
+import type {
+  IRuntimeUploadsNamespace,
+  RuntimeUploadRecord,
+  ScopedRuntimeUploadStore,
+} from "@brains/plugins";
+
+/** A store member this test does not stub: reaching it is the failure. */
+function notStubbed(name: string): () => never {
+  return () => {
+    throw new Error(`scoped upload store: ${name} is not stubbed`);
+  };
+}
 
 describe("TestRunner", () => {
   // Typed so chat keeps the spy it is built with. Annotating this as a plain
@@ -250,10 +261,10 @@ describe("TestRunner", () => {
       const savedUploads: unknown[] = [];
       const scopedCalls: unknown[] = [];
       const runtimeUploads: IRuntimeUploadsNamespace = {
-        scoped: (options) => {
+        scoped: (options): ScopedRuntimeUploadStore => {
           scopedCalls.push(options);
           return {
-            save: async (input: unknown) => {
+            save: async (input): Promise<RuntimeUploadRecord> => {
               savedUploads.push(input);
               return {
                 id: options.createId?.() ?? "upload-fallback",
@@ -267,7 +278,16 @@ describe("TestRunner", () => {
                 createdAt: new Date().toISOString(),
               };
             },
-          } as ReturnType<IRuntimeUploadsNamespace["scoped"]>;
+            // The runner only saves. Stubbing the rest as throwing keeps the
+            // store a real ScopedRuntimeUploadStore, so a member added to the
+            // interface fails to compile here instead of being asserted away.
+            read: notStubbed("read"),
+            readRecord: notStubbed("readRecord"),
+            toResponseBody: notStubbed("toResponseBody"),
+            prune: notStubbed("prune"),
+            getUploadDir: notStubbed("getUploadDir"),
+            remove: notStubbed("remove"),
+          };
         },
       };
       testRunner = TestRunner.createFresh(

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
+import { caughtError } from "@brains/test-utils";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 
 import { RemoteAgentService } from "../src/remote-agent-service";
@@ -149,8 +150,7 @@ describe("RemoteAgentService", () => {
         yield* TestClock.adjust(1);
         const error = yield* Effect.promise(() => request);
 
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe(
+        expect(caughtError(error).message).toBe(
           "Remote agent request timed out after 100ms",
         );
       }).pipe(Effect.provide(TestContext.TestContext)),

@@ -46,22 +46,26 @@ const TEST_CAST_FREE_PACKAGES = [
   "interfaces/a2a",
   "interfaces/chat-repl",
   "interfaces/mcp",
+  "packages/brains-ops",
   "plugins/admin",
   "plugins/atproto",
   "plugins/atproto-registry",
   "plugins/dashboard",
   "plugins/email-workflows",
+  "plugins/newsletter",
   "plugins/playbooks",
   "plugins/profile",
   "plugins/site-content",
   "plugins/stock-photo",
   "shared/atproto-contracts",
+  "shared/content-formatters",
   "shared/http-signatures",
   "shared/media-page-composer",
   "shared/site-composition",
   "shared/site-engine",
   "shared/theme-default",
   "shared/theme-rizom-ai",
+  "shell/ai-evaluation",
   "shell/job-queue",
   "shell/mcp-service",
   "shell/recurring-checks",
@@ -240,7 +244,13 @@ export default [
     // re-enables it per package as each one lands, so a package already done
     // cannot regress while the rest are outstanding. Add an entry when a
     // package hits zero; the list only grows.
-    files: TEST_CAST_FREE_PACKAGES.map((pkg) => `${pkg}/test/**/*.{ts,tsx}`),
+    // Both patterns: some packages keep their tests beside the source they
+    // cover rather than under `test/`, and a list that named only `test/`
+    // silently locked nothing in those.
+    files: TEST_CAST_FREE_PACKAGES.flatMap((pkg) => [
+      `${pkg}/test/**/*.{ts,tsx}`,
+      `${pkg}/src/**/*.test.{ts,tsx}`,
+    ]),
     plugins: { "eslint-comments": eslintComments },
     rules: {
       "@typescript-eslint/consistent-type-assertions": [
