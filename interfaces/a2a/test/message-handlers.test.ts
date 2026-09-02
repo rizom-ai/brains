@@ -29,7 +29,6 @@ function mockA2AFetch(): ReturnType<typeof mock> {
 describe("A2A call message handlers", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let fetchFn: ReturnType<typeof mockA2AFetch>;
-  const originalFetch = globalThis.fetch;
 
   beforeEach(async () => {
     harness = createPluginHarness();
@@ -54,14 +53,12 @@ describe("A2A call message handlers", () => {
       },
     ]);
     fetchFn = mockA2AFetch();
-    globalThis.fetch = Object.assign(fetchFn, {
-      preconnect: originalFetch.preconnect,
-    });
-    await harness.installPlugin(new A2AInterface());
+    // The handlers get their fetch from the interface's deps, so the fake goes
+    // in there rather than over the global.
+    await harness.installPlugin(new A2AInterface({}, { fetch: fetchFn }));
   });
 
   afterEach(async () => {
-    globalThis.fetch = originalFetch;
     await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
   });
 
