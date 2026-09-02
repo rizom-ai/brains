@@ -2,8 +2,11 @@
 
 ## Status
 
-Complete through Phase 5G; Phase 6 (gradual fleet rollout) is the remaining
-work, and MVCC remains deliberately gated. The engine spike
+Complete through Phase 5G. The 2026-09-02 pre-merge review confirmed ten
+defects, most on the supervised web-owner plus worker path that no boundary
+test exercised; Phase 5H closes them and Phase 6 flips the alpha default back
+to libSQL behind a dual-engine gate — both are merge gates. Phase 7 is the
+opt-in fleet rollout, and MVCC remains deliberately gated. The engine spike
 is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
@@ -731,34 +734,149 @@ runs converge across exclusive owner restarts; native close durability, remote
 projection incidents, queue diagnostics, worker expiry, and the renumbered
 migration chain have focused coverage.
 
-### Phase 6 — Gradual fleet rollout (remaining work)
+### Phase 5H — Pre-merge review remediation — MERGE GATE
 
-Decided 2026-09-02: Turso stays the shipped default; gradualism lives in
-deploy config, not in the code default. The engine flip is atomic per
-instance because the single-owner topology gives each instance exactly one
-process that opens the database files — an instance is entirely Turso or
-entirely libSQL, never mixed. Do not open a live Turso instance's database
-with libsql/sqlite3 tooling: the engines' WAL formats are not mutually
-visible (the split-brain the asset tests hit); checkpoint first or use the
-engine-aware client.
+The 2026-09-02 review of `origin/main..HEAD` confirmed ten defects, most
+reproduced on a supervised web-owner plus endpoint-backed worker boot. The
+existing boundary tests never caught them because their worker has no local
+database endpoint. Each slice below carries its own test; the branch does not
+merge until all are closed.
 
-1. Before shipping the release, pin `BRAINS_DB_ENGINE=libsql` in every
-   fleet instance's deploy config, so upgrading to the new version changes
-   no engine by itself.
-2. Unpin one instance at a time, each flip behind the verified predeploy
-   backup the deploy gate already requires: smoke rover first (it exists to
-   be broken), then yeehaa, then rizom.ai.
-3. Soak each instance on normal traffic for a few days before unpinning
-   the next: imports, search, projection waves, job throughput.
-4. Rollback per instance never touches code: re-pin the env var and run
+1. **Worker RPC contract parity.** The owner's request schemas are
+   `strictObject` re-declarations that omit fields the service types carry:
+   `persistenceOrigin` on job/delete options (every directory-sync import
+   upsert and delete), `preparedAsset` on create/update/upsert (asset
+   foundation), and `expectedChildren` on `prepareDurableBulkMutation`, which
+   `DurableBulkMutationRootInput` requires — so every remote
+   `beginDurableBulkMutation` is rejected. The `as z.ZodType<EntityRpcRequest,
+unknown>` cast hid the drift; the schemas also diverge from
+   entity-queries/entity-search constraints (`limit` nonnegative vs positive,
+   unbounded `minScore`, no datetime validation). Fix: one schema per request
+   shape, declared once and shared by the service types and the RPC parser
+   (zod is the source of truth; the cast goes). Test: a boundary suite that
+   boots owner + endpoint-backed worker and runs a directory import, a
+   sync-request batch, a delete, and a cleanup over the real RPC.
+2. **Owner-only calls on worker code paths.** `getRecentJobs` (site-builder's
+   `reconcileFromQueue` at register) and `getJobsByRootJobId` throw in the
+   worker, so site-builder fails to initialize there and site-build jobs never
+   execute; directory cleanup's admission callback calls
+   `hasPendingEntityExports`, rejected as owner-only, so every cleanup job
+   fails its retries. Decision: queue status reconciliation is owner work —
+   site-builder skips it under `executionOnly` registration, and the two queue
+   reads stay owner-only. `hasPendingEntityExports` is a cheap read the worker
+   genuinely needs and becomes a worker RPC operation. Both covered by the
+   boundary suite above.
+3. **Turso transaction commit failure.** `TursoTransaction.finish` sets
+   `closed` before `COMMIT`; a failed commit releases the operation lock with
+   the SQL transaction still open on the single connection, and drizzle's
+   rollback is a no-op, so every later `BEGIN` fails for the process lifetime
+   and uncommitted rows leak into later executes. Fix: mark closed only after
+   commit succeeds; on commit failure roll back, then release. Test: deferred
+   foreign-key violation at commit leaves the connection usable.
+4. **Turso client close drops admitted work.** `closeAsync` sets `closed`
+   synchronously before awaiting the operation tail, so an operation already
+   admitted but queued behind the lock rejects `CLIENT_CLOSED` while close
+   resolves — a shutdown write queued behind an entity transaction is dropped
+   despite ordered finalizers. Fix: refuse new admissions, drain admitted ones,
+   then close. Test: execute queued behind an open transaction survives
+   `closeSqliteClient`.
+5. **Endpoint severs on encode failure.** A response over the 16 MB frame
+   limit (or a non-JSON value) throws inside `send()`, which destroys the
+   socket; the client never reconnects and the worker is cut off until the
+   heartbeat kills it. Unbounded worker-side `listEntities` callers make this
+   realistic on a large brain. Fix: encode failures answer with a failure
+   envelope; `listEntities` over RPC takes an explicit bound. Test: oversized
+   handler result rejects that request only and the next request succeeds.
+6. **Outbox head-of-line blocking.** `drainAll` relays in order with no
+   per-row isolation; one undeliverable intent (unregistered handler after
+   embeddings were disabled, payload schema change on upgrade) aborts the pass
+   before the delete, so no embedding job is ever enqueued again. Fix: per-row
+   delivery; a non-transient failure parks the row with its reason and the
+   pass continues. Test: a poisoned head row does not block the rows behind it.
+7. **Search parity with main.** `instr(lower(content), lower(?))` folds
+   ASCII only (`CAFÉ` no longer matches `Café`), matches a literal substring
+   rather than tokens (`python programming` misses `Python, programming`),
+   and the lexical score is a constant, so `ORDER BY weighted_score` is a full
+   tie and pagination is unstable. Decision: entities gain a `search_text`
+   column maintained on write (NFKC, lower-cased in JS, punctuation collapsed
+   to spaces); the scan splits the query into terms and requires every term as
+   a substring of `search_text`; lexical score is the matched-term ratio with
+   `updated` as the deterministic tiebreak. Tests: unicode case folding,
+   multi-term match across punctuation, stable pagination, type weights below
+   1 still clear the system minimum score.
+8. **Embedding job coalescing.** `buildEmbeddingJobRequest` attaches the
+   `embedding:<type>:<id>:<hash>` key only when `deduplicate` is true, and the
+   outbox path passes false, so repeated same-hash mutations each spend an
+   embedding call and backfill jobs never coalesce with relayed ones. Fix:
+   always attach the key. Test: restore "embedding jobs use stable
+   deduplication keys".
+9. **Exclusive lock versus headless commands.** The Turso default opens
+   files exclusively, so `brain <cmd>` or `brain operate` beside a running
+   `brain start` fails with a raw locking error, and `formatBootError` only
+   matches libSQL's "database is locked" strings, so it prints "delete
+   ./data/". Decision: this is the single-owner principle applied to the CLI —
+   headless commands detect a running owner through its endpoint socket and
+   route through it; without an owner they open locally as today. The boot
+   hint matches Turso's locking message. Test: CLI command with an owner
+   running.
+
+Confirmed cleanup findings from the same review are fixed in the same pass,
+not deferred: the in-process double-open WAL unlink, the 30 s RPC timeout
+that commits owner work the worker treats as failed (the worker's
+`awaitIndexReady` monitor is cancelled at 30 s), edited entities vanishing from
+semantic search until re-embedded, the five copy-pasted transport literals and
+`instanceof` topology checks, per-method owner-only rejections on flat shared
+interfaces, role strings re-derived at five sites, the unconditional libSQL
+pre-open on every boot, dead `afterMigrate` and `projectionWakeup` plumbing,
+the `sqlite_master` probe per drain, O(n²) frame reassembly and double
+tree-clone per frame, the four-statement `storeEmbedding` transaction on the
+serial tail, `vector32(?)` bound five times per search, and the duplicated
+file-url, constant-time-compare, `toError`, and socket-address helpers.
+
+### Phase 6 — Engine default and dual-engine gate — MERGE GATE
+
+Decided 2026-09-02, superseding the default-Turso decision for the alpha
+channel: local files default to **libSQL** until the fleet has soaked;
+`BRAINS_DB_ENGINE=turso` opts an instance in. The safety control lives in
+code, where every instance and every outside consumer inherits it, rather
+than in deploy configuration the gates cannot see. Stable v0.2.0 flips the
+default to Turso deliberately, with its own changeset, once Phase 7 has
+production hours behind it.
+
+The gate runs both engines: today `turbo run test` runs once under the
+default and only four test files pin an engine, so whichever engine is not
+the default is almost entirely untested. CI's test job becomes an engine
+matrix (`libsql`, `turso`); pre-commit runs the database-touching packages
+under the non-default engine as well. The branch's `@rizom/brain` changeset
+is a minor, not a patch: a default-engine change and the owner topology are
+behavior changes.
+
+### Phase 7 — Gradual fleet rollout
+
+The engine flip is atomic per instance because the single-owner topology
+gives each instance exactly one process that opens the database files — an
+instance is entirely Turso or entirely libSQL, never mixed. Do not open a live
+Turso instance's database with libsql/sqlite3 tooling: the engines' WAL
+formats are not mutually visible; checkpoint first or use the engine-aware
+client.
+
+1. Upgrading to the release changes no engine: the default is libSQL.
+2. Opt in one instance at a time by setting `BRAINS_DB_ENGINE=turso` in its
+   deploy config, each flip behind the verified predeploy backup the deploy
+   gate already requires: smoke rover first (it exists to be broken), then
+   yeehaa, then rizom.ai.
+3. Soak each instance on normal traffic for a few days before the next:
+   imports, search, projection waves, job throughput, headless commands
+   beside the running owner.
+4. Rollback per instance never touches code: remove the env var and run
    `brain-rollback-entities-to-libsql`, or restore the predeploy backup if
-   anything beyond the entity database looks off. Note the first Turso open
+   anything beyond the entity database looks off. The first Turso open
    transforms the file (portable-search cutover), so after that point
-   unsetting the env var alone is not a rollback.
+   removing the env var alone is not a rollback.
 
-Release gate: stable v0.2.0 does not publish until smoke rover and at least
-one real instance have soaked on Turso — the public default must not ship
-with zero production hours.
+Release gate: stable v0.2.0 flips the default to Turso only after smoke rover
+and at least one real instance have soaked on it — the public default must
+not ship with zero production hours.
 
 ## Non-goals
 
