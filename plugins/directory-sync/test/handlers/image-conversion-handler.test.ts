@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import {
   describe,
   it,
@@ -15,6 +16,7 @@ import {
 import {
   createSilentLogger,
   createMockServicePluginContext,
+  createTestEntity,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -217,7 +219,7 @@ Some content here.
 
       // Verify file was written with updated frontmatter
       expect(writeFileSpy).toHaveBeenCalled();
-      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
       expect(writtenContent).toContain("coverImageId: test-post-cover");
       expect(writtenContent).not.toContain("coverImageUrl:");
     });
@@ -277,9 +279,9 @@ Some content here.
       writeFileSpy.mockResolvedValue(undefined);
 
       // Mock listEntities to return existing image
-      (
-        context.entityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([{ id: "existing-image-id" }]);
+      spyOn(context.entityService, "listEntities").mockResolvedValue([
+        createTestEntity("image", { id: "existing-image-id" }),
+      ]);
 
       const jobData = createValidJobData();
       const result = await handler.process(
@@ -373,7 +375,7 @@ Some content here.
       const jobData = createValidJobData({ customAlt: "Custom alt" });
       await handler.process(jobData, "job-123", progressReporter);
 
-      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
       expect(writtenContent).not.toContain("coverImageAlt:");
     });
   });

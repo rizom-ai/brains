@@ -319,8 +319,7 @@ describe("Export echo suppression", () => {
       content: "---\n---\nLate embedding update",
     });
     const entityService = harness.getEntityService();
-    entityService.getEntity = async <T extends BaseEntity>(): Promise<T> =>
-      entity as T;
+    entityService.getEntity = async (): Promise<BaseEntity> => entity;
     await dirSync.recordPendingPullDeletes(["remote-deleted.md"]);
     expect(dirSync.isPendingDelete("note", "remote-deleted")).toBe(true);
     expect(existsSync(join(testDir, "remote-deleted.md"))).toBe(false);

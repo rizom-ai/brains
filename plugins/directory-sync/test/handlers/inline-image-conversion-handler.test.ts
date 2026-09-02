@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import {
   describe,
   it,
@@ -139,7 +140,7 @@ Here is an image: ![Alt text](https://example.com/image.png)`;
       expect(mockFetcher).toHaveBeenCalled();
 
       // Check that the written content has entity:// reference
-      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
       expect(writtenContent).toContain("entity://image/");
       expect(writtenContent).not.toContain("https://example.com/image.png");
     });

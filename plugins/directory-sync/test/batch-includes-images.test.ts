@@ -1,12 +1,6 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  type mock,
-} from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
+import { z } from "@brains/utils/zod";
 import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -176,6 +170,9 @@ describe("queueSyncBatch should include images (regression)", () => {
 
   it("chunks large targeted deletion sets before enqueueing", async () => {
     const context = createMockServicePluginContext({ entityTypes: ["post"] });
+    // Spied before the call, so the recorded arguments are typed by the member
+    // rather than reached for through an assertion afterwards.
+    const enqueueBatch = spyOn(context.jobs, "enqueueBatch");
     const deletedPaths = Array.from(
       { length: 120 },
       (_, index) => `post/deleted-${index}.md`,
@@ -194,12 +191,15 @@ describe("queueSyncBatch should include images (regression)", () => {
       importOperationsCount: 0,
       totalFiles: 0,
     });
-    const enqueueBatch = context.jobs.enqueueBatch as ReturnType<typeof mock>;
-    const operations = enqueueBatch.mock.calls[0]?.[0] as
-      Array<{ data: { deletions: unknown[] } }> | undefined;
+    const operations = enqueueBatch.mock.calls[0]?.[0];
     expect(operations).toHaveLength(3);
     expect(
-      operations?.map((operation) => operation.data.deletions.length),
+      operations?.map(
+        (operation) =>
+          z
+            .looseObject({ deletions: z.array(z.unknown()) })
+            .parse(operation.data).deletions.length,
+      ),
     ).toEqual([50, 50, 20]);
   });
 

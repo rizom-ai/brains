@@ -33,7 +33,7 @@ function createContext(): ServicePluginContext {
   return {
     ...createMockServicePluginContext(),
     runtimeState: createMockShell().getRuntimeState(),
-  } as ServicePluginContext;
+  };
 }
 
 function incremental(
@@ -225,7 +225,7 @@ describe("GitReconciliationService", () => {
     const context = {
       ...createMockServicePluginContext(),
       runtimeState,
-    } as ServicePluginContext;
+    };
     await new GitReconciliationService(runtimeState).saveCheckpoint(BASELINE);
     const queueSyncBatch = mock(async () => ({
       batchId: "replayed-batch",
@@ -281,7 +281,7 @@ describe("GitReconciliationService", () => {
       const context = {
         ...createMockServicePluginContext(),
         runtimeState,
-      } as ServicePluginContext;
+      };
       const beforeCrash = new GitReconciliationService(runtimeState);
       await beforeCrash.captureCurrent(gitSync);
 

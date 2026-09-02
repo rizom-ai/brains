@@ -16,6 +16,7 @@ import type {
   IGitSync,
   ImportResult,
   ExportResult,
+  RawEntity,
 } from "../src/types";
 import type { BatchResult } from "../src/lib/batch-operations";
 
@@ -125,7 +126,13 @@ export function createMockDirectorySync(
     importEntities: mock(async () => emptyImportResult()),
     removeOrphanedEntities: mock(async () => ({ deleted: 0, errors: [] })),
     fileOps: {
-      readEntity: mock(async () => ({}) as never),
+      readEntity: mock(async (): Promise<RawEntity> => ({
+        entityType: "topic",
+        id: "test",
+        content: "",
+        created: new Date(0),
+        updated: new Date(0),
+      })),
       parseEntityFromPath: mock(() => ({ entityType: "topic", id: "test" })),
       fileExists: mock(async () => false),
     },

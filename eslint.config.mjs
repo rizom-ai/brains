@@ -59,6 +59,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "plugins/atproto-registry",
   "plugins/content-pipeline",
   "plugins/dashboard",
+  "plugins/directory-sync",
   "plugins/email-workflows",
   "plugins/newsletter",
   "plugins/obsidian-vault",
