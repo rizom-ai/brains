@@ -7,8 +7,8 @@ import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
 describe("buttondown:send channel", () => {
   const harness = createPluginHarness();
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("sends the email through the client and answers with its id", async () => {

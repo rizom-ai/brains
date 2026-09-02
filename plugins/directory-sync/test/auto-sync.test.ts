@@ -40,7 +40,7 @@ describe("DirectorySync AutoSync", () => {
   });
 
   afterEach(async () => {
-    harness.reset();
+    await harness.reset();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -209,8 +209,8 @@ describe("Export echo suppression", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }

@@ -212,7 +212,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         "failure response carrying an error",
       );
       expect(failure.error).toContain("not found");
-      harness.reset();
+      await harness.reset();
     });
   });
 });

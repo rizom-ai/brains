@@ -46,8 +46,8 @@ describe("NotePlugin", () => {
     capabilities = await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   describe("Plugin Registration", () => {

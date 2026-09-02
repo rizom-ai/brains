@@ -11,8 +11,8 @@ describe("Head script registration", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should accept head script registration via message", async () => {

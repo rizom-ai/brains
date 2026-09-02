@@ -27,8 +27,8 @@ describe("DashboardPlugin", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   describe("Plugin Registration", () => {

@@ -314,8 +314,8 @@ describe("WebChatInterface", () => {
     );
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("registers as the web-chat interface", async () => {
@@ -2625,7 +2625,7 @@ describe("WebChatInterface", () => {
       ).exists(),
     ).toBe(false);
 
-    scopedHarness.reset();
+    await scopedHarness.reset();
     await rm(root, { recursive: true, force: true });
   });
 

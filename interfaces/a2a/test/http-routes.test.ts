@@ -38,6 +38,7 @@ describe("A2A HTTP routes", () => {
   afterEach(async () => {
     await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
     await harness.getMockShell().getDaemonRegistry().stopPlugin("auth-service");
+    await harness.reset();
     await Promise.all(
       tempDirs
         .splice(0)

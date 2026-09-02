@@ -61,8 +61,8 @@ describe("DirectorySyncPlugin", () => {
     await plugin.ready();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
     if (existsSync(syncPath)) {
       rmSync(syncPath, { recursive: true, force: true });
     }
@@ -263,7 +263,7 @@ describe("DirectorySyncPlugin", () => {
 
       statusConnection.close();
       await localPlugin.shutdown?.();
-      localHarness.reset();
+      await localHarness.reset();
       await owner.stop();
       rmSync(root, { recursive: true, force: true });
     }, 60_000);
@@ -330,7 +330,7 @@ describe("DirectorySyncPlugin", () => {
           "Interrupted Git handoff recovery requires a configured repository",
       });
 
-      localHarness.reset();
+      await localHarness.reset();
       rmSync(path, { recursive: true, force: true });
     });
   });
@@ -361,7 +361,7 @@ describe("DirectorySyncPlugin", () => {
       await localHarness.installPlugin(localPlugin);
       expect(localPlugin.hasGitSync()).toBe(false);
 
-      localHarness.reset();
+      await localHarness.reset();
       if (existsSync(path)) {
         rmSync(path, { recursive: true, force: true });
       }
@@ -382,7 +382,7 @@ describe("DirectorySyncPlugin", () => {
       await localHarness.installPlugin(localPlugin);
       expect(localPlugin.hasGitSync()).toBe(false);
 
-      localHarness.reset();
+      await localHarness.reset();
       if (existsSync(path)) {
         rmSync(path, { recursive: true, force: true });
       }

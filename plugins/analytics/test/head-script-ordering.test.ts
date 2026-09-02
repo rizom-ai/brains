@@ -16,8 +16,8 @@ describe("Analytics head script with plugin ordering", () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-analytics-ordering" });
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should inject head script when site-builder subscribes AFTER analytics registers", async () => {

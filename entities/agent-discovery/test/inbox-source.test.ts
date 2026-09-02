@@ -86,7 +86,7 @@ describe("agent sightings Inbox source", () => {
     expect(detail.truncated).toBe(false);
     expect(detail.text).toContain("Introduced by: kai.brain and lumen.brain");
     expect(detail.text).toContain("Research: Maps emerging practices.");
-    harness.reset();
+    await harness.reset();
   });
 
   it("connects or dismisses a sighting through admin-only entity updates", async () => {
@@ -149,6 +149,6 @@ describe("agent sightings Inbox source", () => {
       hops: 2,
     });
     expect(await source.list()).toEqual([]);
-    harness.reset();
+    await harness.reset();
   });
 });

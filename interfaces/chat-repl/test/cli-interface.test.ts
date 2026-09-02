@@ -31,8 +31,8 @@ describe("CLIInterface", () => {
     harness = createPluginHarness<CLIInterface>();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   describe("constructor and configuration", () => {
@@ -129,7 +129,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -189,7 +189,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -263,7 +263,7 @@ describe("CLIInterface", () => {
         text: "Should not confirm.",
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       }));
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -323,7 +323,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -455,7 +455,7 @@ describe("CLIInterface", () => {
   describe("response plan rendering", () => {
     it("renders supplemental cards (sources) to the terminal", async () => {
       const responseHandler = mock(() => {});
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
       harness.setAgentService({
         chat: async (): Promise<MockAgentResponse> => ({
@@ -553,7 +553,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
       harness.setAgentService(twoApprovalsAgent(confirmMock));
       cliInterface = new CLIInterface();
@@ -576,7 +576,7 @@ describe("CLIInterface", () => {
         text: "Should not confirm.",
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       }));
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
       harness.setAgentService(twoApprovalsAgent(confirmMock));
       cliInterface = new CLIInterface();

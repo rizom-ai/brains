@@ -81,8 +81,8 @@ describe("SiteBuilderPlugin", () => {
     harness = createPluginHarness<SiteBuilderPlugin>();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should initialize with valid config", async () => {

@@ -818,8 +818,8 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     context.harness.setAgentService(context.agentService);
   });
 
-  afterEach(() => {
-    context.harness.reset();
+  afterEach(async () => {
+    await context.harness.reset();
     activeState = undefined;
   });
 

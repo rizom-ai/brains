@@ -87,7 +87,7 @@ describe("canonical Email invitation delivery", () => {
       expect(String(request?.body)).toContain("/setup?token=setup_");
     } finally {
       await auth.close();
-      harness.reset();
+      await harness.reset();
     }
   });
 });

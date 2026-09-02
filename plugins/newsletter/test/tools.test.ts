@@ -51,8 +51,8 @@ describe("Buttondown Tools", () => {
     harness = createPluginHarness();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   describe("newsletter_subscribers subscribe action", () => {

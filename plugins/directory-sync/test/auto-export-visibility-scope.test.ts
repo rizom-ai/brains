@@ -75,8 +75,8 @@ describe("auto-export visibility scope", () => {
     );
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
     if (existsSync(syncPath)) {
       rmSync(syncPath, { recursive: true, force: true });
     }

@@ -7,8 +7,8 @@ import { MockEntityAdapter } from "./fixtures";
 describe("startup durable entity-export recovery", () => {
   const harness = createPluginHarness();
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("keeps boot available and retries when the startup drain fails", async () => {

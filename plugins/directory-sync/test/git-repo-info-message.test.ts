@@ -62,7 +62,7 @@ describe("git-sync:get-repo-info message handler", () => {
     expect(result?.repo).toBe("your-org/test-content");
     expect(result?.branch).toBe("main");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("should return undefined when git is not configured", async () => {
@@ -75,7 +75,7 @@ describe("git-sync:get-repo-info message handler", () => {
 
     expect(result).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("should default branch to main when not specified", async () => {
@@ -89,6 +89,6 @@ describe("git-sync:get-repo-info message handler", () => {
     expect(result).toBeDefined();
     expect(result?.branch).toBe("main");
 
-    harness.reset();
+    await harness.reset();
   });
 });

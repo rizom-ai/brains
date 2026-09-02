@@ -78,8 +78,8 @@ describe("AnalyticsPlugin Integration", () => {
     installMockFetch([]);
   });
 
-  afterEach(() => {
-    harness?.reset();
+  afterEach(async () => {
+    await harness?.reset();
   });
 
   describe("Plugin Registration", () => {
@@ -482,7 +482,7 @@ describe("AnalyticsPlugin Integration", () => {
       expect(caps.tools.length).toBe(1);
 
       // Reset harness should not throw
-      harness.reset();
+      await harness.reset();
 
       // After reset, can install a new plugin
       const newPlugin = new AnalyticsPlugin({});

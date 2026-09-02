@@ -50,8 +50,8 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     registeredWidgets = [];
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   function subscribeToWidgets(): void {

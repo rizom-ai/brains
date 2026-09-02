@@ -25,8 +25,8 @@ describe("WebserverInterface", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should register successfully", () => {
@@ -65,7 +65,7 @@ describe("WebserverInterface", () => {
         .map((interaction) => interaction.id),
     ).not.toContain("preview");
 
-    coreHarness.reset();
+    await coreHarness.reset();
   });
 
   it("enables preview by default", async () => {
@@ -86,6 +86,6 @@ describe("WebserverInterface", () => {
         .map((interaction) => interaction.id),
     ).toContain("preview");
 
-    defaultHarness.reset();
+    await defaultHarness.reset();
   });
 });
