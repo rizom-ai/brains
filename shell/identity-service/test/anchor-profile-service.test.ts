@@ -184,8 +184,11 @@ kind: person
         throw new Error("Database error");
       };
 
-      // Should not throw
+      // "gracefully" is not just "did not throw": the service must still
+      // answer with a usable profile after the write failed.
       await profileService.initialize();
+
+      expect(profileService.getProfile().name.length).toBeGreaterThan(0);
     });
   });
 
