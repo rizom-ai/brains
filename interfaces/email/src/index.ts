@@ -4,7 +4,6 @@ import {
   authPrincipalResolveResponseSchema,
   createExternalActorId,
   emailSourceReadRequestSchema,
-  emailSourceReadResponseSchema,
   type EmailSourceReadRequest,
   type EmailSourceReadResponse,
   type InboundEmailSender,
@@ -347,8 +346,15 @@ export class EmailInterface extends MessageInterfacePlugin<
       const signal = request.data.signal
         ? AbortSignal.any([request.data.signal, timeout])
         : timeout;
-      return emailSourceReadResponseSchema.parse(
-        await readEmailSource(config, this.imapClientFactory, locator, signal),
+      // readEmailSource parses its own success path and returns
+      // EmailSourceReadResponse, which is z.output of this same schema — so
+      // the compiler already guarantees the shape and re-parsing here only
+      // re-trims strings that were trimmed one call ago.
+      return await readEmailSource(
+        config,
+        this.imapClientFactory,
+        locator,
+        signal,
       );
     } catch {
       // One fixed outcome for every failure: a caller must not learn from
