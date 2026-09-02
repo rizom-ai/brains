@@ -5,28 +5,67 @@ import type { ActorRef } from "@brains/contracts";
 import type { ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
 
-interface AppFactory {
+export interface AppFactory {
   create: typeof AppClass.create;
+  run: typeof AppClass.run;
+}
+
+/**
+ * Everything handleCLI touches outside its arguments.
+ *
+ * Production wires this to the process and console. A test hands in a fake
+ * and reads outcomes off it — what was printed, what exit code — instead of
+ * patching globals and restoring them afterwards. `exit` is typed `never` so
+ * a fake must throw rather than return; a fake that returned would let code
+ * run on past an exit into states the real process never reaches.
+ */
+export interface CliIo {
+  argv: readonly string[];
+  log: (line: string) => void;
+  error: (line: string, ...detail: unknown[]) => void;
+  exit: (code: number) => never;
+  app: AppFactory;
 }
 
 type InitializeOptions = Parameters<
   ReturnType<typeof AppClass.create>["initialize"]
 >[0];
 
-function getArgValue(args: string[], flag: string): string | undefined {
+async function productionIo(config: AppConfig): Promise<CliIo> {
+  // Imported here rather than at the top to avoid a circular dependency.
+  const { App } = await import("./app");
+
+  process.on("uncaughtException", (error) => {
+    console.error(`❌ ${config.name} crashed:`, error);
+    process.exit(1);
+  });
+  process.on("unhandledRejection", (reason) => {
+    console.error(`❌ ${config.name} unhandled rejection:`, reason);
+    process.exit(1);
+  });
+
+  return {
+    argv: process.argv.slice(2),
+    log: console.log,
+    error: console.error,
+    exit: process.exit,
+    app: App,
+  };
+}
+
+function getArgValue(
+  args: readonly string[],
+  flag: string,
+): string | undefined {
   const flagIdx = args.indexOf(flag);
   return flagIdx !== -1 ? args[flagIdx + 1] : undefined;
 }
 
-function requireArgValue(
-  args: string[],
-  flag: string,
-  message: string,
-): string {
-  const value = getArgValue(args, flag);
+function requireArgValue(io: CliIo, flag: string, message: string): string {
+  const value = getArgValue(io.argv, flag);
   if (value === undefined) {
-    console.error(message);
-    process.exit(1);
+    io.error(message);
+    io.exit(1);
   }
   return value;
 }
@@ -40,7 +79,7 @@ const cliFlagsSchema = z.record(z.string(), z.unknown());
 const jsonValueSchema = z.unknown();
 
 function parseJsonFlag<T>(
-  args: string[],
+  args: readonly string[],
   flag: string,
   defaultValue: T,
   schema: JsonFlagSchema<T>,
@@ -63,33 +102,33 @@ async function routeLogsToStderr(): Promise<void> {
 
 async function initializeHeadlessApp(
   config: AppConfig,
-  App: AppFactory,
+  io: CliIo,
   options?: InitializeOptions,
 ): Promise<ReturnType<typeof AppClass.create>> {
   await routeLogsToStderr();
 
-  const app = App.create(createHeadlessConfig(config));
+  const app = io.app.create(createHeadlessConfig(config));
   await app.initialize(options);
   return app;
 }
 
-function printToolResult(result: ToolResponse): void {
+function printToolResult(io: CliIo, result: ToolResponse): void {
   if ("needsConfirmation" in result) {
     const detail = result.preview ? `\n\n${result.preview}` : "";
-    console.log(`Confirmation needed: ${result.summary}${detail}`);
-    process.exit(0);
+    io.log(`Confirmation needed: ${result.summary}${detail}`);
+    io.exit(0);
   }
 
   if (!result.success) {
-    console.error(`❌ ${result.error}`);
-    process.exit(1);
+    io.error(`❌ ${result.error}`);
+    io.exit(1);
   }
 
   if (result.message) {
-    console.log(result.message);
+    io.log(result.message);
   }
   if (result.data !== undefined) {
-    console.log(
+    io.log(
       typeof result.data === "string"
         ? result.data
         : JSON.stringify(result.data, null, 2),
@@ -98,6 +137,7 @@ function printToolResult(result: ToolResponse): void {
 }
 
 async function invokeCliTool(
+  io: CliIo,
   handler: (
     input: unknown,
     context: { interfaceType: string; actor: ActorRef },
@@ -115,17 +155,17 @@ async function invokeCliTool(
       actor: { kind: "service", serviceId: "shell-cli" },
     });
   } catch (error) {
-    console.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
-    process.exit(1);
+    io.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
+    io.exit(1);
   }
-  printToolResult(result);
+  printToolResult(io, result);
 }
 
 /**
  * Export deployment config as JSON for shell scripts
  * This is used by deploy scripts to extract config without starting the app
  */
-function exportDeployConfig(config: AppConfig): void {
+function exportDeployConfig(io: CliIo, config: AppConfig): void {
   const deployment = config.deployment;
 
   const deployConfig = {
@@ -164,8 +204,8 @@ function exportDeployConfig(config: AppConfig): void {
     },
   };
 
-  console.log(JSON.stringify(deployConfig, null, 2));
-  process.exit(0);
+  io.log(JSON.stringify(deployConfig, null, 2));
+  io.exit(0);
 }
 
 /**
@@ -174,60 +214,47 @@ function exportDeployConfig(config: AppConfig): void {
 export async function handleCLI(
   config: AppConfig,
   runtimeOptions?: AppRuntimeOptions,
+  io?: CliIo,
 ): Promise<void> {
-  const args = process.argv.slice(2);
+  const cli = io ?? (await productionIo(config));
+  const args = cli.argv;
 
   // Handle --export-deploy-config first (no app startup needed)
   if (args.includes("--export-deploy-config")) {
-    exportDeployConfig(config);
-    return; // exportDeployConfig calls process.exit
+    exportDeployConfig(cli, config);
   }
-
-  // Set up error handling
-  process.on("uncaughtException", (error) => {
-    console.error(`❌ ${config.name} crashed:`, error);
-    process.exit(1);
-  });
-
-  process.on("unhandledRejection", (reason) => {
-    console.error(`❌ ${config.name} unhandled rejection:`, reason);
-    process.exit(1);
-  });
-
-  // Dynamically import App to avoid circular dependency
-  const { App } = await import("./app");
 
   // Handle CLI commands
   if (args.includes("--help") || args.includes("-h")) {
-    showHelp(config);
+    showHelp(cli, config);
   } else if (args.includes("--version") || args.includes("-v")) {
-    console.log(`${config.name} v${config.version}`);
-    process.exit(0);
+    cli.log(`${config.name} v${config.version}`);
+    cli.exit(0);
   } else if (args.includes("--startup-check")) {
     // Startup check: register plugins and run ready hooks, but do not start
     // daemons or job workers. Used by external plugin smoke tests.
-    const app = App.create(config);
+    const app = cli.app.create(config);
     await app.initialize({ mode: "startup-check" });
     await app.stop();
   } else if (args.includes("--list-cli-commands")) {
     // List CLI-enabled tools for dynamic help
-    await listCliCommands(config, App);
+    await listCliCommands(cli, config);
   } else if (args[0] === "diagnostics") {
     // Diagnostics mode: boot brain, run diagnostics, exit
-    await runDiagnostics(config, args.slice(1), App);
+    await runDiagnostics(cli, config, args.slice(1));
   } else if (args.includes("--cli-command")) {
     // Headless mode via CLI command name: boot, find tool by cli.name, invoke, exit
-    await runCliCommand(config, args, App);
+    await runCliCommand(cli, config);
   } else if (args.includes("--tool")) {
     // Raw tool invocation: boot, invoke by full tool name, exit
-    await runTool(config, args, App);
+    await runTool(cli, config);
   } else {
     // Default: run the app
-    console.log(`🚀 Starting ${config.name} v${config.version}...`);
+    cli.log(`🚀 Starting ${config.name} v${config.version}...`);
     if (runtimeOptions) {
-      await App.run(config, undefined, runtimeOptions);
+      await cli.app.run(config, undefined, runtimeOptions);
     } else {
-      await App.run(config);
+      await cli.app.run(config);
     }
   }
 }
@@ -235,22 +262,19 @@ export async function handleCLI(
 /**
  * List all CLI-enabled tools. Used by brain --help to discover available commands.
  */
-async function listCliCommands(
-  config: AppConfig,
-  App: AppFactory,
-): Promise<void> {
-  const app = await initializeHeadlessApp(config, App, {
+async function listCliCommands(io: CliIo, config: AppConfig): Promise<void> {
+  const app = await initializeHeadlessApp(config, io, {
     mode: "register-only",
   });
 
   const cliTools = app.getShell().getMCPService().getCliTools();
   for (const { tool } of cliTools) {
     if (tool.cli) {
-      console.log(`${tool.cli.name.padEnd(16)}${tool.description}`);
+      io.log(`${tool.cli.name.padEnd(16)}${tool.description}`);
     }
   }
 
-  process.exit(0);
+  io.exit(0);
 }
 
 /**
@@ -260,20 +284,16 @@ async function listCliCommands(
  * name and args/flags as JSON. This function discovers the matching tool
  * via getCliTools() and invokes it.
  */
-async function runCliCommand(
-  config: AppConfig,
-  args: string[],
-  App: AppFactory,
-): Promise<void> {
+async function runCliCommand(io: CliIo, config: AppConfig): Promise<void> {
   const commandName = requireArgValue(
-    args,
+    io,
     "--cli-command",
     "❌ --cli-command requires a command name",
   );
-  const cliArgs = parseJsonFlag(args, "--cli-args", [], cliArgsSchema);
-  const cliFlags = parseJsonFlag(args, "--cli-flags", {}, cliFlagsSchema);
+  const cliArgs = parseJsonFlag(io.argv, "--cli-args", [], cliArgsSchema);
+  const cliFlags = parseJsonFlag(io.argv, "--cli-flags", {}, cliFlagsSchema);
 
-  const app = await initializeHeadlessApp(config, App);
+  const app = await initializeHeadlessApp(config, io);
   const cliTools = app.getShell().getMCPService().getCliTools();
   const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 
@@ -282,16 +302,21 @@ async function runCliCommand(
       .map((t) => t.tool.cli?.name)
       .filter(Boolean)
       .join(", ");
-    console.error(`❌ Unknown command: ${commandName}`);
-    console.error(`Available commands: ${available}`);
-    process.exit(1);
+    io.error(`❌ Unknown command: ${commandName}`);
+    io.error(`Available commands: ${available}`);
+    io.exit(1);
   }
 
   const { mapArgsToInput } = await import("@brains/mcp-service");
   const toolInput = mapArgsToInput(match.tool.inputSchema, cliArgs, cliFlags);
-  await invokeCliTool(match.tool.handler, toolInput, `Command ${commandName}`);
+  await invokeCliTool(
+    io,
+    match.tool.handler,
+    toolInput,
+    `Command ${commandName}`,
+  );
 
-  process.exit(0);
+  io.exit(0);
 }
 
 /**
@@ -301,49 +326,43 @@ async function runCliCommand(
  * Skips all interface plugins (MCP, Discord, webserver) — only loads
  * entity plugins and service plugins.
  */
-async function runTool(
-  config: AppConfig,
-  args: string[],
-  App: AppFactory,
-): Promise<void> {
+async function runTool(io: CliIo, config: AppConfig): Promise<void> {
   const toolName = requireArgValue(
-    args,
+    io,
     "--tool",
     "❌ --tool requires a tool name",
   );
 
   let toolInput: unknown = {};
   try {
-    toolInput = parseJsonFlag(args, "--tool-input", {}, jsonValueSchema);
+    toolInput = parseJsonFlag(io.argv, "--tool-input", {}, jsonValueSchema);
   } catch {
-    console.error("❌ --tool-input must be valid JSON");
-    process.exit(1);
+    io.error("❌ --tool-input must be valid JSON");
+    io.exit(1);
   }
 
-  const app = await initializeHeadlessApp(config, App);
+  const app = await initializeHeadlessApp(config, io);
   const tools = app.getShell().getMCPService().listTools();
   const match = tools.find((t) => t.tool.name === toolName);
 
   if (!match) {
-    console.error(`❌ Tool not found: ${toolName}`);
-    console.error(
-      `Available tools: ${tools.map((t) => t.tool.name).join(", ")}`,
-    );
-    process.exit(1);
+    io.error(`❌ Tool not found: ${toolName}`);
+    io.error(`Available tools: ${tools.map((t) => t.tool.name).join(", ")}`);
+    io.exit(1);
   }
 
-  await invokeCliTool(match.tool.handler, toolInput, `Tool ${toolName}`);
+  await invokeCliTool(io, match.tool.handler, toolInput, `Tool ${toolName}`);
 
-  process.exit(0);
+  io.exit(0);
 }
 
 /**
  * Run diagnostics: boot brain (full, with daemons disabled), analyze, exit.
  */
 async function runDiagnostics(
+  io: CliIo,
   config: AppConfig,
-  args: string[],
-  App: AppFactory,
+  args: readonly string[],
 ): Promise<void> {
   const { ConsoleLogger, LogLevel } = await import("@brains/utils/logger");
   // Suppress plugin registration noise — only show warnings and errors
@@ -353,18 +372,18 @@ async function runDiagnostics(
   const subcommand = args[0] ?? "";
 
   if (subcommand === "usage") {
-    await runUsageDiagnostics(config);
+    await runUsageDiagnostics(io, config);
     return;
   }
 
   if (subcommand !== "search") {
-    console.error("Usage: brain diagnostics <search|usage>");
-    process.exit(1);
+    io.error("Usage: brain diagnostics <search|usage>");
+    io.exit(1);
   }
 
   // Boot in register-only mode — no daemons, no sync, no builds.
   // We only need access to the existing entity + embedding data.
-  const app = App.create(createHeadlessConfig(config));
+  const app = io.app.create(createHeadlessConfig(config));
   await app.initialize({ mode: "register-only" });
 
   const shell = app.getShell();
@@ -393,11 +412,11 @@ async function runDiagnostics(
 
   if (allEntities.length === 0) {
     await shell.shutdown();
-    console.error("No entities found");
-    process.exit(1);
+    io.error("No entities found");
+    io.exit(1);
   }
 
-  console.log(`\nAnalyzing ${allEntities.length} entities...\n`);
+  io.log(`\nAnalyzing ${allEntities.length} entities...\n`);
 
   const sampleSize = Math.min(20, allEntities.length);
   const samples = allEntities
@@ -428,52 +447,55 @@ async function runDiagnostics(
     return arr[Math.max(0, idx)] ?? 0;
   };
 
-  console.log("=== Search Distance Distribution ===\n");
-  console.log(`Queries sampled: ${samples.length}`);
-  console.log(`Total distance measurements: ${allDistances.length}`);
-  console.log(`Self-match distances: ${selfDistances.length}\n`);
+  io.log("=== Search Distance Distribution ===\n");
+  io.log(`Queries sampled: ${samples.length}`);
+  io.log(`Total distance measurements: ${allDistances.length}`);
+  io.log(`Self-match distances: ${selfDistances.length}\n`);
 
-  console.log("All distances:");
+  io.log("All distances:");
   for (const p of [0, 25, 50, 75, 90, 95, 100]) {
     const label = p === 0 ? "min" : p === 100 ? "max" : `p${p}`;
-    console.log(`  ${label.padEnd(5)} ${pct(allDistances, p).toFixed(4)}`);
+    io.log(`  ${label.padEnd(5)} ${pct(allDistances, p).toFixed(4)}`);
   }
 
-  console.log("\nSelf-match distances (query = entity title):");
-  console.log(`  min:  ${pct(selfDistances, 0).toFixed(4)}`);
-  console.log(`  p50:  ${pct(selfDistances, 50).toFixed(4)}`);
-  console.log(`  max:  ${pct(selfDistances, 100).toFixed(4)}\n`);
+  io.log("\nSelf-match distances (query = entity title):");
+  io.log(`  min:  ${pct(selfDistances, 0).toFixed(4)}`);
+  io.log(`  p50:  ${pct(selfDistances, 50).toFixed(4)}`);
+  io.log(`  max:  ${pct(selfDistances, 100).toFixed(4)}\n`);
 
   const p75 = pct(allDistances, 75);
   const p90 = pct(allDistances, 90);
   const suggested = Number(((p75 + p90) / 2).toFixed(4));
 
-  console.log(`Current threshold: 0.82`);
-  console.log(`Suggested threshold: ${suggested}`);
-  console.log(
+  io.log(`Current threshold: 0.82`);
+  io.log(`Suggested threshold: ${suggested}`);
+  io.log(
     `  (midpoint between p75=${p75.toFixed(4)} and p90=${p90.toFixed(4)})\n`,
   );
 
   await shell.shutdown();
-  process.exit(0);
+  io.exit(0);
 }
 
 /**
  * Run usage diagnostics: read the log file, aggregate ai:usage events.
  */
-async function runUsageDiagnostics(config: AppConfig): Promise<void> {
+async function runUsageDiagnostics(
+  io: CliIo,
+  config: AppConfig,
+): Promise<void> {
   const logFile = config.logFile;
   if (!logFile) {
-    console.error(
+    io.error(
       "No log file configured. Set logFile in brain.yaml to enable usage tracking.",
     );
-    process.exit(1);
+    io.exit(1);
   }
 
   const { existsSync, readFileSync } = await import("node:fs");
   if (!existsSync(logFile)) {
-    console.error(`Log file not found: ${logFile}`);
-    process.exit(1);
+    io.error(`Log file not found: ${logFile}`);
+    io.exit(1);
   }
 
   const { aggregateUsage } = await import("./usage-aggregator");
@@ -481,40 +503,36 @@ async function runUsageDiagnostics(config: AppConfig): Promise<void> {
   const report = aggregateUsage(content);
 
   if (report.events.length === 0) {
-    console.log("No ai:usage events found in log file.");
-    process.exit(0);
+    io.log("No ai:usage events found in log file.");
+    io.exit(0);
   }
 
   const total = report.totalInputTokens + report.totalOutputTokens;
 
-  console.log("=== AI Usage ===\n");
-  console.log(`Period: ${report.firstTs} → ${report.lastTs}`);
-  console.log(`Total events: ${report.events.length}`);
-  console.log(
-    `Total input tokens:  ${report.totalInputTokens.toLocaleString()}`,
-  );
-  console.log(
-    `Total output tokens: ${report.totalOutputTokens.toLocaleString()}`,
-  );
-  console.log(`Total tokens:        ${total.toLocaleString()}\n`);
+  io.log("=== AI Usage ===\n");
+  io.log(`Period: ${report.firstTs} → ${report.lastTs}`);
+  io.log(`Total events: ${report.events.length}`);
+  io.log(`Total input tokens:  ${report.totalInputTokens.toLocaleString()}`);
+  io.log(`Total output tokens: ${report.totalOutputTokens.toLocaleString()}`);
+  io.log(`Total tokens:        ${total.toLocaleString()}\n`);
 
-  console.log("By model:");
+  io.log("By model:");
   for (const [key, agg] of report.byModel.entries()) {
-    console.log(
+    io.log(
       `  ${key.padEnd(40)} ${String(agg.calls).padStart(5)} calls, ` +
         `${agg.inputTokens.toLocaleString().padStart(12)} in, ` +
         `${agg.outputTokens.toLocaleString().padStart(12)} out`,
     );
   }
 
-  process.exit(0);
+  io.exit(0);
 }
 
 /**
  * Show help information
  */
-function showHelp(config: AppConfig): void {
-  console.log(`
+function showHelp(io: CliIo, config: AppConfig): void {
+  io.log(`
 ${config.name} v${config.version}
 
 Usage:
@@ -531,5 +549,5 @@ Examples:
   brains --cli                # Start with CLI interface
   brains --export-deploy-config  # Output deployment JSON
 `);
-  process.exit(0);
+  io.exit(0);
 }
