@@ -68,14 +68,23 @@ describe("WebserverInterface", () => {
     coreHarness.reset();
   });
 
-  it("should initialize with default config", async () => {
+  it("enables preview by default", async () => {
+    // enablePreview defaults to true in the config schema; without an
+    // assertion on what that produces, the default is unguarded.
     const defaultPlugin = new WebserverInterface();
     const defaultHarness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-default-test"),
+      domain: "test.example",
     });
 
     await defaultHarness.installPlugin(defaultPlugin);
-    expect(defaultPlugin).toBeDefined();
+
+    expect(
+      defaultHarness
+        .getMockShell()
+        .listInteractions()
+        .map((interaction) => interaction.id),
+    ).toContain("preview");
 
     defaultHarness.reset();
   });

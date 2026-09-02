@@ -62,12 +62,6 @@ describe("CloudflareClient", () => {
     globalThis.fetch = originalFetch;
   });
 
-  describe("constructor", () => {
-    it("should create client with config", () => {
-      expect(client).toBeDefined();
-    });
-  });
-
   describe("getWebsiteStats", () => {
     it("should fetch website stats from Cloudflare GraphQL API", async () => {
       const mockResponse = {

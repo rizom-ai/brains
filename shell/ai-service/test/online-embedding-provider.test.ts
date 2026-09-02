@@ -16,11 +16,13 @@ describe("OnlineEmbeddingProvider", () => {
     });
 
     test("creates provider with valid config", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(provider).toBeDefined();
+      // Counterpart to the missing-key case above: a valid key is accepted.
+      expect(() =>
+        OnlineEmbeddingProvider.createFresh({
+          apiKey: "test-key",
+          logger: createSilentLogger(),
+        }),
+      ).not.toThrow();
     });
 
     test("uses text-embedding-3-small as default model", () => {
