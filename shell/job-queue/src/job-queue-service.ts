@@ -842,7 +842,7 @@ export class JobQueueService implements IJobQueueService {
     types?: string[],
     limit?: number,
   ): Promise<JobInfo[]> {
-    return this.repository.getRecentJobs(types, limit);
+    return this.requireRepository().getRecentJobs(types, limit);
   }
 
   /**

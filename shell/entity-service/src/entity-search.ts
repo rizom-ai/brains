@@ -82,6 +82,7 @@ export class EntitySearch {
   private serializer: EntitySerializer;
   private logger: Logger;
   private readonly embeddingsEnabled: boolean;
+  private readonly excludedLexicalTypes: () => string[];
 
   constructor(
     db: EntitySearchDB,
@@ -89,12 +90,28 @@ export class EntitySearch {
     serializer: EntitySerializer,
     logger: Logger,
     embeddingsEnabled = true,
+    // Lazy: types register after construction. `fullTextSearchable: false`
+    // types are excluded here because the portable scan reads entity content
+    // directly — there is no index row to skip.
+    excludedLexicalTypes: () => string[] = () => [],
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
     this.embeddingsEnabled = embeddingsEnabled;
+    this.excludedLexicalTypes = excludedLexicalTypes;
+  }
+
+  private buildLexicalExclusionConditions(): SQL[] {
+    const excluded = this.excludedLexicalTypes();
+    if (excluded.length === 0) return [];
+    return [
+      sql`${entities.entityType} NOT IN (${sql.join(
+        excluded.map((type) => sql`${type}`),
+        sql`, `,
+      )})`,
+    ];
   }
 
   /**
@@ -196,7 +213,10 @@ export class EntitySearch {
     },
   ): Promise<SearchResult<T>[]> {
     if (!query) return [];
-    const conditions: SQL[] = [buildKeywordMatch(query)];
+    const conditions: SQL[] = [
+      buildKeywordMatch(query),
+      ...this.buildLexicalExclusionConditions(),
+    ];
     if (options.types.length > 0) {
       conditions.push(inArray(entities.entityType, options.types));
     }
@@ -306,8 +326,12 @@ export class EntitySearch {
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
     // Portable literal phrase boost: 1.0 when the normalized query appears in
-    // content (ASCII case-insensitive), 0.0 otherwise.
-    const keywordBoost = sql<number>`CASE WHEN ${buildKeywordMatch(query)} THEN 1.0 ELSE 0.0 END`;
+    // content (ASCII case-insensitive) and the type is text-searchable,
+    // 0.0 otherwise.
+    const keywordBoost = sql<number>`CASE WHEN ${sql.join(
+      [buildKeywordMatch(query), ...this.buildLexicalExclusionConditions()],
+      sql` AND `,
+    )} THEN 1.0 ELSE 0.0 END`;
 
     // Combined score: (1-α)*vector + α*keyword_match
     const combinedScore = sql<number>`(${1 - alpha} * ${vectorScore}) + (${alpha} * ${keywordBoost})`;

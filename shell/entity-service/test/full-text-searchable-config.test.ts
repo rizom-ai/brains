@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { createClient, type Client } from "@libsql/client";
+import { describe, test, expect, afterEach } from "bun:test";
 import { createTestEntity } from "@brains/test-utils";
 import type { EntityTypeConfig } from "../src";
 import {
@@ -8,83 +7,59 @@ import {
 } from "./helpers/setup-entity-service";
 import { minimalTestAdapter, minimalTestSchema } from "./helpers/test-schemas";
 
+/**
+ * `fullTextSearchable: false` keeps a type's content out of keyword search.
+ * There is no separate full-text index on this engine — the portable scan
+ * reads entity content directly — so the exclusion is enforced as a search
+ * predicate rather than by skipping index rows.
+ */
 describe("EntityTypeConfig fullTextSearchable", () => {
   let ctx: EntityServiceTestContext | undefined;
-  let client: Client | undefined;
 
   afterEach(async () => {
-    client?.close();
     await ctx?.cleanup();
-    client = undefined;
     ctx = undefined;
   });
 
   async function setup(config?: EntityTypeConfig): Promise<void> {
-    ctx = await setupEntityService([
-      {
-        name: "test",
-        schema: minimalTestSchema,
-        adapter: minimalTestAdapter,
-        ...(config && { config }),
-      },
-    ]);
-    client = createClient({ url: ctx.dbConfig.url });
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+          ...(config && { config }),
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
   }
 
-  async function ftsRows(entityId: string): Promise<number> {
-    if (!client) throw new Error("Test database not initialized");
-    const result = await client.execute({
-      sql: "SELECT count(*) AS count FROM entity_fts WHERE entity_type = ? AND entity_id = ?",
-      args: ["test", entityId],
-    });
-    return Number(result.rows[0]?.["count"] ?? 0);
-  }
-
-  test("indexes entity types by default", async () => {
+  test("keyword search matches entity types by default", async () => {
     await setup();
     if (!ctx) throw new Error("Test service not initialized");
     const entity = createTestEntity("test", {
       id: "searchable",
-      content: "ordinary searchable text",
+      content: "ordinary searchable xylophone text",
     });
-
     await ctx.entityService.createEntity({ entity });
 
-    expect(await ftsRows(entity.id)).toBe(1);
+    const results = await ctx.entityService.search({ query: "xylophone" });
+
+    expect(results.map((result) => result.entity.id)).toContain(entity.id);
   });
 
-  test("skips FTS insertion independently from embedding policy", async () => {
-    await setup({
-      embeddable: false,
-      fullTextSearchable: false,
-    });
+  test("keyword search skips types excluded from full-text search", async () => {
+    await setup({ embeddable: false, fullTextSearchable: false });
     if (!ctx) throw new Error("Test service not initialized");
     const entity = createTestEntity("test", {
       id: "not-searchable",
-      content: "content excluded from FTS",
-    });
-
-    await ctx.entityService.createEntity({ entity });
-
-    expect(await ftsRows(entity.id)).toBe(0);
-  });
-
-  test("deletes a stale FTS row on an otherwise no-op update", async () => {
-    await setup({ embeddable: false, fullTextSearchable: false });
-    if (!ctx || !client) throw new Error("Test service not initialized");
-    const entity = createTestEntity("test", {
-      id: "stale-index-row",
-      content: "asset://sha256/" + "b".repeat(64),
+      content: "binary payload stand-in xylophone",
     });
     await ctx.entityService.createEntity({ entity });
-    await client.execute({
-      sql: "INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (?, ?, ?)",
-      args: [entity.id, entity.entityType, "legacy binary payload"],
-    });
 
-    const result = await ctx.entityService.updateEntity({ entity });
+    const results = await ctx.entityService.search({ query: "xylophone" });
 
-    expect(result.skipped).toBe(true);
-    expect(await ftsRows(entity.id)).toBe(0);
+    expect(results).toEqual([]);
   });
 });

@@ -28,8 +28,8 @@ Provide one Chat domain through two native presentations:
   Chat workspace;
 - when Chat is active without Studio, Web Chat continues to render the
   standalone `/chat` experience;
-- both presentations consume the same public Chat domain and transport
-  contract;
+- both presentations consume the same public headless Chat API and behavioral
+  model;
 - neither presentation imports the other's implementation or reaches into shell
   internals;
 - when Studio Chat is available, the legacy `/chat` door redirects to its
@@ -69,13 +69,10 @@ The Chat capability owns:
 ### Public headless API
 
 `@rizom/brain/chat` is the patch-stable browser-safe boundary consumed by both
-presentations. It exposes only versioned domain schemas, protocol events,
-bounded path builders, and a fetch-injected transport client. Public state is
-limited to server-owned domain state such as conversation metadata, approval
-lifecycle, durable job status, and stream events. It exposes no active-selection
-state, reducers, cache behavior, local storage, navigation, UI-message
-transforms, presentation status, error copy, React components, CSS, DOM
-renderer, package-local route handlers, shell contexts, stores, or runtime
+presentations. It exposes versioned data schemas, bounded path builders, a
+fetch-injected client, and framework-neutral state transitions needed to manage
+sessions and active conversation state. It exposes no React components, CSS,
+DOM renderer, package-local route handlers, shell contexts, stores, or runtime
 classes.
 
 The canonical source may live in an internal shared contract package, but the
@@ -88,25 +85,6 @@ schemas. Authentication and authorization remain handler-owned. A route being
 HTTP-accessible is not sufficient to make it public: only paths and behavior
 listed in the public Chat contract are supported.
 
-### Private shared UI model
-
-Presentation-neutral browser orchestration that both hosts demonstrably need
-may be extracted into a private workspace package such as
-`@brains/chat-ui-model`. Candidate responsibilities include stream lifecycle
-orchestration, approval reconciliation, history-to-AI-SDK conversion, upload
-preparation, and narrowly shared cache helpers. This package is implementation,
-not API: it is marked `private`, used through explicit `workspace:*`
-dependencies, bundled into host assets, and omitted from `@rizom/brain` package
-exports, public declarations, compatibility fixtures, and the public API
-ledger.
-
-No universal UI controller is designed in advance. Logic moves into the private
-package only after both native hosts prove the same semantics. Active selection,
-routing, navigation, loading presentation, labels, error copy, and layout remain
-host-owned even if private lower-level helpers are shared. Presence of private
-implementation code inside a distributed browser bundle does not make it a
-supported import surface.
-
 ### Studio
 
 Studio owns:
@@ -117,22 +95,18 @@ Studio owns:
 - entity and workspace context presentation;
 - integration with Studio-wide launches and attention surfaces.
 
-Studio imports the public headless contract and may directly depend on the
-private shared UI-model package for proven common orchestration. It does not
-import `interfaces/web-chat`, route handlers, Web Chat package-private hooks, or
-the standalone screen. `StudioChatWorkspace` remains a closed first-party
-workspace kind; this does not permit external plugins to inject executable
-renderers.
+Studio imports only the public headless contract source. It does not import
+`interfaces/web-chat`, route handlers, private client hooks, or the standalone
+screen. `StudioChatWorkspace` remains a closed first-party workspace kind; this
+does not permit external plugins to inject executable renderers.
 
 ### Standalone Web Chat
 
 The Web Chat interface retains its standalone presentation for Chat-only
 instances. It consumes the same public headless API but owns its own page shell
-and composition. Shared domain and transport behavior belongs in the public
-contract; proven presentation-neutral orchestration may live in the private UI
-model; host-specific view state and layout stay with each host. The two
-presentations are allowed to differ visually without duplicating authorization
-or conversation semantics.
+and composition. Shared behavior belongs in the headless model; host-specific
+layout stays with its host. The two presentations are allowed to differ
+visually without duplicating authorization or conversation semantics.
 
 ## Admission and disclosure
 
@@ -191,13 +165,12 @@ correct login flow with a return target. `/api/chat/*` paths do not move.
   client behavior.
 - Add the `@rizom/brain/chat` entry, stable export ledger entries, declaration
   checks, and an external compatibility fixture.
-- Move browser-safe session, history, streaming, upload, approval, action,
-  progress, durable-job, and handoff schemas into the canonical shared source.
-- Add a fetch-injected transport client. Keep reducers, active-conversation
-  state, cache behavior, navigation, UI-message transforms, presentation copy,
-  rendering, and browser storage out of this package.
-- Make Web Chat handlers and the existing standalone transport consume the
-  public schemas and client.
+- Move browser-safe session, history, upload, action, progress, and handoff
+  schemas into the canonical shared source.
+- Add a fetch-injected, framework-neutral client and deterministic state
+  transitions. Keep rendering and browser storage out of this package.
+- Make Web Chat handlers and the existing standalone client consume the public
+  schemas and client.
 - Keep standalone `/chat` behavior unchanged.
 
 Exit condition: a packed external consumer can use the complete supported Chat
@@ -210,12 +183,8 @@ passes unchanged behavior tests.
   Trusted/Admin and omits active Public; denied actors cannot load data.
 - Add the closed built-in `StudioChatWorkspace` only when the public Chat
   capability is active.
-- Extract only orchestration proven identical in both hosts into the private
-  `@brains/chat-ui-model` workspace package; do not export it from
-  `@rizom/brain`.
 - Build the session rail, conversation, composer, uploads, approvals, progress,
-  and actions as native Studio presentation using the public contract and any
-  proven private shared orchestration.
+  and actions as native Studio presentation using the public headless model.
 - Use Studio routing, page grammar, context, responsive rules, and lifecycle.
 - Keep standalone `/chat` available during this phase as a rollback door.
 
@@ -250,8 +219,7 @@ converge correctly, and no conversation-data migration is required.
 ## Validation
 
 - Public API export ledger, declarations, exact-version external fixture, and
-  packed compatibility test, including proof that no private UI-model subpath
-  is exported.
+  packed compatibility test.
 - Exact route/admission matrix for anonymous, active Public, Trusted, and Admin.
 - Trusted own-conversation and Admin cross-person access tests on every API used
   by either presentation.
@@ -269,12 +237,9 @@ converge correctly, and no conversation-data migration is required.
 - A mountable standalone client would make Studio Chat an application inside an
   application and block deeper UX integration. Only the headless model is
   shared.
-- Duplicating request or domain-state shapes in each presentation would make
-  the “public API” nominal rather than real. Handlers and both transports use
-  one canonical schema source; view state remains host-owned.
-- Publishing reusable UI orchestration would freeze presentation decisions into
-  a patch-stable API. Proven common orchestration stays in an unpublished
-  workspace package and is never re-exported from `@rizom/brain`.
+- Duplicating request or state shapes in each presentation would make the
+  “public API” nominal rather than real. Handlers and both clients use one
+  canonical schema source.
 - Treating a URL id as authorization can leak another person's conversation.
   Every read and mutation continues through Chat-owned access checks.
 - An unconditional workspace creates a dead door in Studio-only brains.

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { createClient, type Client } from "@libsql/client";
+import type { Client } from "@libsql/client";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { prepareAsset, type PreparedAsset } from "@brains/assets";
 import { createTestEntity } from "@brains/test-utils";
 import { fileURLToPath } from "node:url";
@@ -27,11 +28,11 @@ describe("SQLite durable assets", () => {
         },
       },
     ]);
-    client = createClient({ url: ctx.dbConfig.url });
+    client = createSqliteDatabase({ url: ctx.dbConfig.url, schema: {} }).client;
   });
 
   afterEach(async () => {
-    client.close();
+    await closeSqliteClient(client);
     await ctx.cleanup();
   });
 
@@ -77,11 +78,6 @@ describe("SQLite durable assets", () => {
     expect(listed).toHaveLength(1);
     expect(listed[0]?.content).toBe(asset.ref);
     expect(JSON.stringify(listed)).not.toContain(source.toString());
-
-    const fts = await client.execute(
-      "SELECT count(*) AS count FROM entity_fts WHERE entity_type = 'test'",
-    );
-    expect(Number(fts.rows[0]?.["count"] ?? 0)).toBe(0);
   });
 
   test("deduplicates concurrent references to identical bytes", async () => {
@@ -144,10 +140,6 @@ describe("SQLite durable assets", () => {
     ]);
     expect(await tableCount("assets")).toBe(1);
     expect(await tableCount("entities")).toBe(2);
-    const fts = await client.execute(
-      "SELECT count(*) AS count FROM entity_fts WHERE entity_type = 'test'",
-    );
-    expect(Number(fts.rows[0]?.["count"] ?? 0)).toBe(0);
   });
 
   test("rolls back a new asset when entity persistence fails", async () => {
@@ -223,7 +215,10 @@ describe("SQLite durable assets", () => {
     const backupPath = `${sourcePath}.backup`;
     await client.execute(`VACUUM INTO '${backupPath.replaceAll("'", "''")}'`);
 
-    const backup = createClient({ url: `file:${backupPath}` });
+    const backup = createSqliteDatabase({
+      url: `file:${backupPath}`,
+      schema: {},
+    }).client;
     try {
       const quickCheck = await backup.execute("PRAGMA quick_check");
       expect(quickCheck.rows[0]?.["quick_check"]).toBe("ok");
@@ -236,14 +231,21 @@ describe("SQLite durable assets", () => {
       });
       expect(restored.rows).toHaveLength(1);
       expect(restored.rows[0]?.["content"]).toBe(asset.ref);
-      const restoredBytes = restored.rows[0]?.["bytes"];
-      if (!(restoredBytes instanceof ArrayBuffer)) {
+      const restoredBytes: unknown = restored.rows[0]?.["bytes"];
+      if (
+        !(restoredBytes instanceof ArrayBuffer) &&
+        !(restoredBytes instanceof Uint8Array)
+      ) {
         throw new Error("Restored asset bytes were not a SQLite BLOB");
       }
-      expect(Buffer.from(restoredBytes)).toEqual(Buffer.from(asset.bytes));
+      const restoredBuffer =
+        restoredBytes instanceof ArrayBuffer
+          ? Buffer.from(restoredBytes)
+          : Buffer.from(restoredBytes);
+      expect(restoredBuffer).toEqual(Buffer.from(asset.bytes));
       expect(Number(restored.rows[0]?.["size_bytes"])).toBe(asset.sizeBytes);
     } finally {
-      backup.close();
+      await closeSqliteClient(backup);
     }
   });
 });
