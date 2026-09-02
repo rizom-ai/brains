@@ -12,7 +12,7 @@ import {
   type PluginPackageDefinition,
 } from "@brains/plugins";
 import { A2AInterface } from "@brains/a2a";
-import { adminPlugin } from "@brains/admin";
+import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
 import assessmentPackage from "@brains/assessment";
@@ -185,7 +185,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage),
     ["studio", studioPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
-    ["admin", adminPlugin, undefined],
+    packageCapability("admin", "@brains/admin", adminPackage),
 
     packageCapability("site-info", "@brains/site-info", siteInfoPackage),
     ["site-content", siteContentPlugin, undefined],

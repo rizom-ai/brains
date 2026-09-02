@@ -498,6 +498,7 @@
       "advanced-with-consumer": [
         "AnchorProfile",
         "anchorProfileBodySchema",
+        "AnyWorkspaceActionDefinition",
         "anchorProfileKindSchema",
         "AppendAuthAuditEventInput",
         "AuthAdministration",

@@ -1472,9 +1472,17 @@ describe("a workspace reachable under more than one name", () => {
     await plugin.register(shell);
     await plugin.finalizeRegistration?.();
 
+    // Scoped like the workspace id: an alias names a workspace this package
+    // used to publish, not a global route.
     expect(registrations[0]?.aliases).toEqual([
-      { id: "people", query: { tab: "people" } },
-      { id: "audit", query: { tab: "audit" } },
+      {
+        id: "@fixture/reading-operator:admin-desk:people",
+        query: { tab: "people" },
+      },
+      {
+        id: "@fixture/reading-operator:admin-desk:audit",
+        query: { tab: "audit" },
+      },
     ]);
   });
 });

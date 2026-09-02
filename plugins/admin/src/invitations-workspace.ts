@@ -1,26 +1,27 @@
+import type {
+  AnyWorkspaceActionDefinition,
+  StudioWorkspaceView,
+} from "@brains/sdk/services";
 import type { AuthAdministration } from "@brains/auth-service";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
+  type OperatorColumnsBlock,
+  type OperatorPanelBlock,
+  type OperatorRegionBlock,
   type OperatorView,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorColumnsBlock,
-  type RuntimeStudioOperatorPanelBlock,
-  type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
+  type StudioWorkspaceViewBlock,
 } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
+
+type ViewBlock = StudioWorkspaceViewBlock<AnyWorkspaceActionDefinition>;
+type RegionBlock = OperatorRegionBlock<AnyWorkspaceActionDefinition>;
+type ColumnsBlock = OperatorColumnsBlock<AnyWorkspaceActionDefinition>;
 import { randomUUID } from "node:crypto";
-import {
-  adminWorkspaceSource,
-  formatWorkspaceDate,
-  requireAuthService,
-  type AdminWorkspaceSource,
-} from "./workspace-format";
+import { formatWorkspaceDate, type AdminTabFactory } from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
 
@@ -43,7 +44,9 @@ function invitationTone(state: string): "good" | "warn" | "neutral" | "error" {
   }
 }
 
-const invitationQuerySchema = z.strictObject({
+// Parsed from the Administration workspace query, which is a superset of
+// every tab s fields; unknown keys belong to other tabs.
+const invitationQuerySchema = z.object({
   state: z.enum(["pending", "history"]).optional().default("pending"),
   offset: z
     .preprocess(queryInteger, z.number().int().min(0))
@@ -160,15 +163,12 @@ type InvitationBlock = OperatorViewBlock<InvitationAction>;
 type InvitationPrimaryAction = NonNullable<
   OperatorView<typeof createInvitation>["primaryAction"]
 >;
-type InvitationTotalsBlock = Extract<
-  RuntimeStudioOperatorPanelBlock,
-  { type: "stats" }
->;
+type InvitationTotalsBlock = Extract<OperatorPanelBlock, { type: "stats" }>;
 
 function requiredInvitationBlock(
-  blocks: readonly RuntimeStudioOperatorBlock[],
+  blocks: readonly ViewBlock[],
   id: string,
-): RuntimeStudioOperatorBlock {
+): ViewBlock {
   const matches = blocks.filter((block) => block.id === id);
   if (matches.length !== 1 || !matches[0]) {
     throw new Error(
@@ -179,9 +179,9 @@ function requiredInvitationBlock(
 }
 
 function requiredInvitationRegion(
-  blocks: readonly RuntimeStudioOperatorBlock[],
+  blocks: readonly ViewBlock[],
   id: string,
-): RuntimeStudioOperatorRegionBlock {
+): RegionBlock {
   const block = requiredInvitationBlock(blocks, id);
   switch (block.type) {
     case "tabs":
@@ -196,11 +196,11 @@ function requiredInvitationRegion(
 }
 
 export function composeInvitationTabSections(
-  blocks: readonly RuntimeStudioOperatorBlock[],
-  peerAside: readonly RuntimeStudioOperatorRegionBlock[],
+  blocks: readonly ViewBlock[],
+  peerAside: readonly RegionBlock[],
 ): {
   readonly totals: InvitationTotalsBlock;
-  readonly blocks: readonly RuntimeStudioOperatorColumnsBlock[];
+  readonly blocks: readonly ColumnsBlock[];
 } {
   const totals = requiredInvitationBlock(blocks, "invitation-totals");
   if (totals.type !== "stats") {
@@ -474,165 +474,165 @@ function setupResult(
   };
 }
 
-export function createInvitationsTabSource(
-  context: ServicePluginContext,
-): AdminWorkspaceSource {
-  const authService = requireAuthService(context);
+export function createInvitationsTab(
+  authService: AuthAdministration,
+): AdminTabFactory {
   const pendingManualDeliveries = new Map<string, string>();
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
-    definition: studioInvitationsWorkspace,
-    bind: (bindingContext) => {
-      const create = createInvitation.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const access = await authService.createInvitation(
-            {
-              idempotencyKey: input.idempotencyKey,
-              displayName: input.displayName,
-              role: input.role,
-              delivery: {
-                type: input.deliveryType,
-                subject: input.deliverySubject,
-                ...(input.deliveryLabel ? { label: input.deliveryLabel } : {}),
-                mode: input.deliveryMode,
-              },
+  return (bindingContext) => {
+    const create = createInvitation.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const access = await authService.createInvitation(
+          {
+            idempotencyKey: input.idempotencyKey,
+            displayName: input.displayName,
+            role: input.role,
+            delivery: {
+              type: input.deliveryType,
+              subject: input.deliverySubject,
+              ...(input.deliveryLabel ? { label: input.deliveryLabel } : {}),
+              mode: input.deliveryMode,
             },
-            mutationContext(caller),
+          },
+          mutationContext(caller),
+        );
+        if (
+          access.invitation.state === "pending" &&
+          access.registration?.deliveryAttemptId
+        ) {
+          pendingManualDeliveries.set(
+            access.invitation.id,
+            access.registration.deliveryAttemptId,
           );
-          if (
-            access.invitation.state === "pending" &&
-            access.registration?.deliveryAttemptId
-          ) {
-            pendingManualDeliveries.set(
-              access.invitation.id,
-              access.registration.deliveryAttemptId,
-            );
-          }
-          return setupResult(access);
-        },
-      );
-      const resend = resendInvitation.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const access = await authService.resendInvitation(
-            input.invitationId,
-            mutationContext(caller),
+        }
+        return setupResult(access);
+      },
+    );
+    const resend = resendInvitation.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const access = await authService.resendInvitation(
+          input.invitationId,
+          mutationContext(caller),
+        );
+        if (
+          access.invitation.state === "pending" &&
+          access.registration?.deliveryAttemptId
+        ) {
+          pendingManualDeliveries.set(
+            access.invitation.id,
+            access.registration.deliveryAttemptId,
           );
-          if (
-            access.invitation.state === "pending" &&
-            access.registration?.deliveryAttemptId
-          ) {
-            pendingManualDeliveries.set(
-              access.invitation.id,
-              access.registration.deliveryAttemptId,
-            );
-          }
-          return setupResult(access);
-        },
-      );
-      const cancel = cancelInvitation.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const invitation = await authService.cancelInvitation(
-            input.invitationId,
-            mutationContext(caller),
-          );
-          pendingManualDeliveries.delete(input.invitationId);
-          return { invitationId: invitation.id, state: invitation.state };
-        },
-        ({ input }) => ({
-          summary: "Cancel this invitation and revoke its pending setup link?",
-          revision: input.invitationId,
-        }),
-      );
-      const confirm = confirmManualDelivery.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const invitation = await authService.confirmManualInvitationDelivery(
-            input.invitationId,
-            input.deliveryAttemptId,
-            mutationContext(caller),
-          );
-          pendingManualDeliveries.delete(input.invitationId);
-          return { invitationId: invitation.id, state: invitation.state };
-        },
-      );
-      return studioInvitationsWorkspace.bind(bindingContext, {
-        actions: [create, resend, cancel, confirm],
-        load: async ({ query }) => {
-          const normalized = query.get(invitationQuerySchema);
-          const [users, channels] = await Promise.all([
-            authService.listAdminUsers(),
-            authService.listInvitationChannels(),
-          ]);
-          const availableChannels = channels.filter(
-            (channel) => channel.deliveryModes.length > 0,
-          );
-          const invitations = users.filter(
-            (user) => user.invitation !== undefined,
-          );
-          const pending = invitations.filter(
-            (user) =>
-              user.invitation &&
-              !TERMINAL_INVITATION_STATES.has(user.invitation.state),
-          );
-          const history = invitations.filter(
-            (user) =>
-              user.invitation &&
-              TERMINAL_INVITATION_STATES.has(user.invitation.state),
-          );
-          const selected = normalized.state === "pending" ? pending : history;
-          return {
-            query: normalized,
-            idempotencyKey: randomUUID(),
-            channels: availableChannels.map((channel) => ({
-              type: channel.type,
-              displayName: channel.displayName,
-              subjectLabel: channel.subjectLabel,
-              deliveryModes: channel.deliveryModes,
-            })),
-            invitations: selected
-              .slice(normalized.offset, normalized.offset + normalized.limit)
-              .flatMap((user) => {
-                const invitation = user.invitation;
-                if (!invitation) return [];
-                const destination =
-                  user.identities.find(
-                    (identity) => identity.type !== "passkey",
-                  )?.label ??
-                  user.externalPeers[0]?.peerId ??
-                  "Not recorded";
-                const deliveryAttemptId = pendingManualDeliveries.get(
-                  invitation.id,
-                );
-                return [
-                  {
-                    id: invitation.id,
-                    displayName: user.displayName,
-                    role: user.role,
-                    state: invitation.state,
-                    destination,
-                    updatedAt:
-                      invitation.claimedAt ??
-                      invitation.cancelledAt ??
-                      invitation.expiredAt ??
-                      invitation.sentAt ??
-                      invitation.updatedAt,
-                    ...(deliveryAttemptId ? { deliveryAttemptId } : {}),
-                  },
-                ];
-              }),
-            selectedTotal: selected.length,
-            pendingCount: pending.length,
-            historyCount: history.length,
-            failureCount: pending.filter(
-              (user) => user.invitation?.state === "failed",
-            ).length,
-          };
-        },
-      });
-    },
-  });
-  return adminWorkspaceSource(registration, studioInvitationsWorkspace.actions);
+        }
+        return setupResult(access);
+      },
+    );
+    const cancel = cancelInvitation.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const invitation = await authService.cancelInvitation(
+          input.invitationId,
+          mutationContext(caller),
+        );
+        pendingManualDeliveries.delete(input.invitationId);
+        return { invitationId: invitation.id, state: invitation.state };
+      },
+      ({ input }) => ({
+        summary: "Cancel this invitation and revoke its pending setup link?",
+        revision: input.invitationId,
+      }),
+    );
+    const confirm = confirmManualDelivery.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const invitation = await authService.confirmManualInvitationDelivery(
+          input.invitationId,
+          input.deliveryAttemptId,
+          mutationContext(caller),
+        );
+        pendingManualDeliveries.delete(input.invitationId);
+        return { invitationId: invitation.id, state: invitation.state };
+      },
+    );
+    return {
+      actions: [create, resend, cancel, confirm],
+      load: async ({
+        query,
+      }): Promise<StudioWorkspaceView<AnyWorkspaceActionDefinition>> => {
+        const normalized = invitationQuerySchema.parse(query);
+        const [users, channels] = await Promise.all([
+          authService.listAdminUsers(),
+          authService.listInvitationChannels(),
+        ]);
+        const availableChannels = channels.filter(
+          (channel) => channel.deliveryModes.length > 0,
+        );
+        const invitations = users.filter(
+          (user) => user.invitation !== undefined,
+        );
+        const pending = invitations.filter(
+          (user) =>
+            user.invitation &&
+            !TERMINAL_INVITATION_STATES.has(user.invitation.state),
+        );
+        const history = invitations.filter(
+          (user) =>
+            user.invitation &&
+            TERMINAL_INVITATION_STATES.has(user.invitation.state),
+        );
+        const selected = normalized.state === "pending" ? pending : history;
+        const data = {
+          query: normalized,
+          idempotencyKey: randomUUID(),
+          channels: availableChannels.map((channel) => ({
+            type: channel.type,
+            displayName: channel.displayName,
+            subjectLabel: channel.subjectLabel,
+            deliveryModes: channel.deliveryModes,
+          })),
+          invitations: selected
+            .slice(normalized.offset, normalized.offset + normalized.limit)
+            .flatMap((user) => {
+              const invitation = user.invitation;
+              if (!invitation) return [];
+              const destination =
+                user.identities.find((identity) => identity.type !== "passkey")
+                  ?.label ??
+                user.externalPeers[0]?.peerId ??
+                "Not recorded";
+              const deliveryAttemptId = pendingManualDeliveries.get(
+                invitation.id,
+              );
+              return [
+                {
+                  id: invitation.id,
+                  displayName: user.displayName,
+                  role: user.role,
+                  state: invitation.state,
+                  destination,
+                  updatedAt:
+                    invitation.claimedAt ??
+                    invitation.cancelledAt ??
+                    invitation.expiredAt ??
+                    invitation.sentAt ??
+                    invitation.updatedAt,
+                  ...(deliveryAttemptId ? { deliveryAttemptId } : {}),
+                },
+              ];
+            }),
+          selectedTotal: selected.length,
+          pendingCount: pending.length,
+          historyCount: history.length,
+          failureCount: pending.filter(
+            (user) => user.invitation?.state === "failed",
+          ).length,
+        };
+        return studioInvitationsWorkspace.view({ data });
+      },
+    };
+  };
 }
+
+/** The action definitions this tab contributes to Administration. */
+export const invitationsTabActions: readonly AnyWorkspaceActionDefinition[] =
+  studioInvitationsWorkspace.actions;

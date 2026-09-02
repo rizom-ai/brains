@@ -1,29 +1,71 @@
-import type { StudioWorkspaceRegistration } from "@brains/plugins";
+import type {
+  BoundWorkspaceAction,
+  OperatorBindingContext,
+  OperatorCaller,
+  StudioWorkspaceView,
+  StudioWorkspaceViewBlock,
+  AnyWorkspaceActionDefinition,
+} from "@brains/plugins";
 import type {
   AuthAdminUserSummary,
   AuthAdministration,
 } from "@brains/auth-service";
-import type { BasePluginContext } from "@brains/plugins";
 
-export type AdminWorkspaceRegistration = Omit<
-  StudioWorkspaceRegistration,
-  "pluginId"
->;
+/** Blocks a tab contributes; the composite refuses nested tabs. */
+export type AdminTabBlock<
+  TAction extends AnyWorkspaceActionDefinition = AnyWorkspaceActionDefinition,
+> = Exclude<StudioWorkspaceViewBlock<TAction>, { type: "tabs" }>;
 
-export interface AdminWorkspaceSource {
-  readonly registration: AdminWorkspaceRegistration;
-  readonly actionIds: readonly string[];
+/**
+ * One tab of the Administration workspace.
+ *
+ * A tab is not a workspace: it loads its own blocks and brings its own
+ * actions, and the workspace they belong to composes them. They were four
+ * separate registrations stitched together by hand until the declarative
+ * surface could express a workspace with tabs.
+ */
+export interface AdminTab {
+  load(input: {
+    /** The workspace query, already validated by the runtime. */
+    readonly query: Readonly<Record<string, unknown>>;
+    readonly caller: OperatorCaller | null;
+    readonly signal: AbortSignal;
+  }): Promise<StudioWorkspaceView<AnyWorkspaceActionDefinition>>;
+  readonly actions: readonly BoundWorkspaceAction<
+    AnyWorkspaceActionDefinition,
+    Record<string, never>,
+    AdminState,
+    undefined
+  >[];
 }
 
-export function adminWorkspaceSource(
-  registration: AdminWorkspaceRegistration,
-  actions: readonly { readonly name: string }[],
-): AdminWorkspaceSource {
-  return {
-    registration,
-    actionIds: actions.map((action) => action.name),
-  };
+/**
+ * A tab contributes flat blocks. Nesting tabs inside tabs would render as a
+ * control the console has no way to drive, so it is refused where it is
+ * written rather than discovered in the browser.
+ */
+export function tabBlocks<TAction extends AnyWorkspaceActionDefinition>(
+  blocks: readonly StudioWorkspaceViewBlock<TAction>[],
+  label: string,
+): AdminTabBlock<TAction>[] {
+  return blocks.filter((block): block is AdminTabBlock<TAction> => {
+    if (block.type === "tabs") {
+      throw new Error(`${label} tab cannot contribute nested tabs`);
+    }
+    return true;
+  });
 }
+
+/** Built once the workspace binding context exists. */
+/** What the admin package holds while it runs. */
+export interface AdminState {
+  /** Absent in a brain that installs no auth-service. */
+  readonly auth: AuthAdministration | undefined;
+}
+
+export type AdminTabFactory = (
+  context: OperatorBindingContext<Record<string, never>, AdminState, undefined>,
+) => AdminTab;
 
 const workspaceDateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -31,21 +73,6 @@ const workspaceDateFormatter = new Intl.DateTimeFormat(undefined, {
 
 export function formatWorkspaceDate(timestamp: number): string {
   return workspaceDateFormatter.format(new Date(timestamp));
-}
-
-/**
- * The running auth implementation, read from the runtime rather than a
- * module global — a brain without auth-service has none, and administration
- * cannot be built against nothing.
- */
-export function requireAuthService(
-  context: BasePluginContext,
-): AuthAdministration {
-  const authService = context.auth.getAdministration();
-  if (!authService) {
-    throw new Error("Administration workspace requires auth-service");
-  }
-  return authService;
 }
 
 export function adminUserOptions(

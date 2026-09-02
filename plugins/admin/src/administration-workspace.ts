@@ -1,33 +1,44 @@
-import type {
-  RuntimeOperatorActionControl,
-  RuntimeStudioOperatorBlock,
-  RuntimeStudioWorkspaceData,
-  ServicePluginContext,
-  StudioWorkspaceActor,
-  StudioWorkspaceRegistration,
-} from "@brains/plugins";
-import { DECLARATIVE_STUDIO_WORKSPACE_RENDERER } from "@brains/plugins";
+import {
+  defineStudioWorkspace,
+  z,
+  type AnyWorkspaceActionDefinition,
+  type StudioWorkspaceDefinition,
+  type StudioWorkspaceView,
+} from "@brains/sdk/services";
 import { queryInteger } from "@brains/utils/query";
-import { z } from "@brains/utils/zod";
-import { createAuditTabSource } from "./audit-workspace";
+import { auditTabActions, createAuditTab } from "./audit-workspace";
 import {
   composeInvitationTabSections,
-  createInvitationsTabSource,
+  createInvitationsTab,
+  invitationsTabActions,
 } from "./invitations-workspace";
 import {
-  createPeerTabSource,
+  createPeerTab,
+  peerTabActions,
   selectPeerTabSections,
 } from "./peer-tab-provider";
 import {
   composePeopleTabSections,
-  createPeopleTabSource,
+  createPeopleTab,
+  peopleTabActions,
 } from "./people-workspace";
 import {
-  requireAuthService,
-  type AdminWorkspaceSource,
+  tabBlocks,
+  type AdminTabBlock,
+  type AdminTabFactory,
 } from "./workspace-format";
 
-const administrationQuerySchema = z.strictObject({
+export const administrationQuerySchema: z.ZodType<{
+  tab: "people" | "invitations" | "audit";
+  selected?: string | undefined;
+  state?: "pending" | "history" | undefined;
+  offset?: number | undefined;
+  limit?: number | undefined;
+  peerId?: string | undefined;
+  displayName?: string | undefined;
+  actorUserId?: string | undefined;
+  action?: string | undefined;
+}> = z.strictObject({
   tab: z.enum(["people", "invitations", "audit"]).default("people"),
   selected: z.string().trim().min(1).max(200).optional(),
   state: z.enum(["pending", "history"]).optional(),
@@ -43,280 +54,114 @@ const administrationQuerySchema = z.strictObject({
   action: z.string().trim().min(1).max(200).optional(),
 });
 
-type ChildRegistration = Omit<StudioWorkspaceRegistration, "pluginId">;
-type AdministrationTabBlock = Exclude<
-  RuntimeStudioOperatorBlock,
-  { type: "tabs" }
->;
-
-function requestActionId(request: unknown): string | undefined {
-  if (request === null || typeof request !== "object") return undefined;
-  const actionId = Reflect.get(request, "actionId");
-  return typeof actionId === "string" ? actionId : undefined;
+/**
+ * What the workspace shows: the active tab's blocks, and inert placeholders
+ * for the tabs nobody asked for. Only one tab loads per request — the others
+ * would be four extra round trips to render text no one is looking at.
+ */
+interface AdministrationData {
+  readonly tab: "people" | "invitations" | "audit";
+  readonly attention: number;
+  readonly headBlocks: readonly AdminTabBlock[];
+  readonly peopleBlocks: readonly AdminTabBlock[];
+  readonly invitationBlocks: readonly AdminTabBlock[];
+  readonly auditBlocks: readonly AdminTabBlock[];
+  readonly primaryAction?: StudioWorkspaceView<AnyWorkspaceActionDefinition>["primaryAction"];
 }
 
-function isWorkspaceData(value: unknown): value is RuntimeStudioWorkspaceData {
-  if (value === null || typeof value !== "object") return false;
-  const view = Reflect.get(value, "view");
-  if (view === null || typeof view !== "object") return false;
-  return Array.isArray(Reflect.get(view, "blocks"));
+function inactiveBlocks(label: string): AdminTabBlock[] {
+  return [{ type: "text", text: `${label} loads when this tab is opened.` }];
 }
 
-function workspaceData(
-  value: unknown,
-  source: string,
-): RuntimeStudioWorkspaceData {
-  if (!isWorkspaceData(value)) {
-    throw new Error(`${source} tab returned invalid workspace data`);
-  }
-  return value;
-}
+const ADMINISTRATION_ACTIONS: readonly AnyWorkspaceActionDefinition[] = [
+  ...peopleTabActions,
+  ...invitationsTabActions,
+  ...peerTabActions,
+  ...auditTabActions,
+];
 
-function tabBlocks(
-  blocks: readonly RuntimeStudioOperatorBlock[],
-  source: string,
-): AdministrationTabBlock[] {
-  const sections: AdministrationTabBlock[] = [];
-  for (const block of blocks) {
-    if (block.type === "tabs") {
-      throw new Error(`${source} tab cannot contribute nested tabs`);
-    }
-    sections.push(block);
-  }
-  return sections;
-}
+/**
+ * People, Invitations, Peers and Audit as one workspace.
+ *
+ * They were four registrations stitched together by hand, each loaded
+ * through its own data provider and its actions routed by id. As tabs of one
+ * declared workspace the stitching disappears: the tabs are loaders, their
+ * actions are this workspace's actions, and `aliases` keeps every link that
+ * pointed at the old ids working.
+ */
+export const administrationWorkspace: StudioWorkspaceDefinition<
+  "administration",
+  z.ZodType<AdministrationData>,
+  typeof ADMINISTRATION_ACTIONS
+> = defineStudioWorkspace({
+  id: "administration",
+  label: "Administration",
+  priority: 10,
+  permission: "admin",
+  aliases: [
+    { id: "people", query: { tab: "people" } },
+    { id: "invitations", query: { tab: "invitations" } },
+    { id: "peers", query: { tab: "people" } },
+    { id: "audit", query: { tab: "audit" } },
+  ],
+  query: administrationQuerySchema,
+  // The blocks are the operator view vocabulary, which the runtime validates
+  // on the way out; re-describing them as a schema here would drift.
+  data: z.custom<AdministrationData>(),
+  actions: ADMINISTRATION_ACTIONS,
+  badge: ({ data }) => data.attention,
+  view: ({ data }) => ({
+    kicker: "Access administration",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    ...(data.primaryAction ? { primaryAction: data.primaryAction } : {}),
+    blocks: [
+      ...data.headBlocks,
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: data.tab,
+        queryKey: "tab",
+        tabs: [
+          { id: "people", label: "People", blocks: data.peopleBlocks },
+          {
+            id: "invitations",
+            label: "Invitations",
+            blocks: data.invitationBlocks,
+          },
+          { id: "audit", label: "Audit", blocks: data.auditBlocks },
+        ],
+      },
+    ],
+  }),
+});
 
-function inactiveBlocks(label: string): AdministrationTabBlock[] {
-  return [
-    {
-      type: "text",
-      text: `${label} loads when this tab is opened.`,
-    },
-  ];
-}
-
-async function loadChild(
-  child: ChildRegistration,
-  actor: StudioWorkspaceActor,
-  query: Record<string, string | number | undefined>,
-  signal: AbortSignal | undefined,
-): Promise<RuntimeStudioWorkspaceData> {
-  return workspaceData(
-    await child.dataProvider(actor, query, signal),
-    child.label,
-  );
-}
-
-async function runChildAction(
-  child: ChildRegistration,
-  request: unknown,
-  actor: StudioWorkspaceActor,
-  signal: AbortSignal | undefined,
-): Promise<unknown> {
-  if (!child.actionHandler) {
-    throw new Error(`${child.label} does not provide actions`);
-  }
-  return child.actionHandler(request, actor, signal);
-}
-
-function actionRoutes(
-  sources: readonly AdminWorkspaceSource[],
-): ReadonlyMap<string, ChildRegistration> {
-  const routes = new Map<string, ChildRegistration>();
-  for (const source of sources) {
-    for (const actionId of source.actionIds) {
-      if (routes.has(actionId)) {
-        throw new Error(
-          `Administration action "${actionId}" is declared by more than one source`,
-        );
-      }
-      if (!source.registration.actionHandler) {
-        throw new Error(
-          `Administration source "${source.registration.label}" declares actions without a handler`,
-        );
-      }
-      routes.set(actionId, source.registration);
-    }
-  }
-  return routes;
-}
-
-function administrationAttention(
+function attentionOf(
   users: readonly {
     status: "active" | "invited" | "suspended";
     invitation?: { state: string } | undefined;
   }[],
 ): number {
   const suspended = users.filter((user) => user.status === "suspended").length;
-  const pendingInvitations = users.filter(
+  const pending = users.filter(
     (user) =>
       user.invitation !== undefined &&
       !["claimed", "expired", "cancelled"].includes(user.invitation.state),
   ).length;
-  return suspended + pendingInvitations;
+  return suspended + pending;
 }
 
-export async function registerAdministrationWorkspace(
-  context: ServicePluginContext,
-): Promise<string | undefined> {
-  if (context.executionOnly || !context.studio.isAvailable()) return undefined;
-  const peopleSource = createPeopleTabSource(context);
-  const invitationsSource = createInvitationsTabSource(context);
-  const peerSource = createPeerTabSource(context);
-  const auditSource = createAuditTabSource(context);
-  const routes = actionRoutes([
-    peopleSource,
-    invitationsSource,
-    peerSource,
-    auditSource,
-  ]);
-  const people = peopleSource.registration;
-  const invitations = invitationsSource.registration;
-  const peers = peerSource.registration;
-  const audit = auditSource.registration;
-
-  const result = await context.studio.registerWorkspace({
-    id: "admin:administration",
-    label: "Administration",
-    rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
-    priority: 10,
-    permission: "admin",
-    urlQuery: true,
-    aliases: [
-      { id: "admin:people", query: { tab: "people" } },
-      { id: "admin:invitations", query: { tab: "invitations" } },
-      { id: "admin:peers", query: { tab: "people" } },
-      { id: "admin:audit", query: { tab: "audit" } },
-    ],
-    entityTypes: [],
-    accessHandler: (actor) => people.accessHandler(actor),
-    dataProvider: async (actor, rawQuery, signal) => {
-      const query = administrationQuerySchema.parse(rawQuery ?? {});
-      let headBlocks: AdministrationTabBlock[] = [];
-      let primaryAction: RuntimeOperatorActionControl | undefined;
-      let peopleBlocks = inactiveBlocks("People");
-      let invitationBlocks = inactiveBlocks("Invitations");
-      let auditBlocks = inactiveBlocks("Audit");
-
-      if (query.tab === "people") {
-        const [peopleData, peerData] = await Promise.all([
-          loadChild(
-            people,
-            actor,
-            { ...(query.selected ? { selected: query.selected } : {}) },
-            signal,
-          ),
-          loadChild(
-            peers,
-            actor,
-            {
-              ...(query.peerId ? { peerId: query.peerId } : {}),
-              ...(query.displayName ? { displayName: query.displayName } : {}),
-            },
-            signal,
-          ),
-        ]);
-        const peerSections = selectPeerTabSections(peerData.view.blocks);
-        const peopleSections = composePeopleTabSections(
-          tabBlocks(peopleData.view.blocks, "People"),
-          {
-            type: "notice",
-            id: "people-peer-note",
-            tone: "neutral",
-            title: "External brain relationships",
-            text: "A peer link records how a locally administered person relates to another brain. It does not grant or change local access.",
-          },
-          peerSections.people,
-        );
-        headBlocks = [peopleSections.totals];
-        peopleBlocks = [...peopleSections.blocks];
-      } else if (query.tab === "invitations") {
-        const [invitationData, peerData] = await Promise.all([
-          loadChild(
-            invitations,
-            actor,
-            {
-              ...(query.state ? { state: query.state } : {}),
-              ...(query.offset !== undefined ? { offset: query.offset } : {}),
-              ...(query.limit !== undefined ? { limit: query.limit } : {}),
-            },
-            signal,
-          ),
-          loadChild(
-            peers,
-            actor,
-            {
-              ...(query.peerId ? { peerId: query.peerId } : {}),
-              ...(query.displayName ? { displayName: query.displayName } : {}),
-            },
-            signal,
-          ),
-        ]);
-        const peerSections = selectPeerTabSections(peerData.view.blocks);
-        const invitationSections = composeInvitationTabSections(
-          invitationData.view.blocks,
-          peerSections.invitations,
-        );
-        headBlocks = [invitationSections.totals];
-        primaryAction = invitationData.view.primaryAction;
-        invitationBlocks = [...invitationSections.blocks];
-      } else {
-        const auditData = await loadChild(
-          audit,
-          actor,
-          {
-            ...(query.actorUserId ? { actorUserId: query.actorUserId } : {}),
-            ...(query.action ? { action: query.action } : {}),
-            ...(query.selected ? { selected: query.selected } : {}),
-            ...(query.offset !== undefined ? { offset: query.offset } : {}),
-            ...(query.limit !== undefined ? { limit: query.limit } : {}),
-          },
-          signal,
-        );
-        auditBlocks = tabBlocks(auditData.view.blocks, "Audit");
-      }
-
-      return {
-        view: {
-          kicker: "Access administration",
-          title: "Administration",
-          description:
-            "Manage local people, invitation delivery, external provenance, and security history.",
-          ...(primaryAction ? { primaryAction } : {}),
-          blocks: [
-            ...headBlocks,
-            {
-              type: "tabs",
-              id: "administration-tabs",
-              label: "Administration sections",
-              defaultTab: query.tab,
-              queryKey: "tab",
-              tabs: [
-                { id: "people", label: "People", blocks: peopleBlocks },
-                {
-                  id: "invitations",
-                  label: "Invitations",
-                  blocks: invitationBlocks,
-                },
-                { id: "audit", label: "Audit", blocks: auditBlocks },
-              ],
-            },
-          ],
-        },
-      } satisfies RuntimeStudioWorkspaceData;
-    },
-    actionHandler: async (request, actor, signal) => {
-      const actionId = requestActionId(request);
-      if (!actionId) throw new Error("Administration action id is required");
-      const source = routes.get(actionId);
-      if (!source)
-        throw new Error(`Unknown Administration action: ${actionId}`);
-      return runChildAction(source, request, actor, signal);
-    },
-    badgeProvider: async () =>
-      administrationAttention(
-        await requireAuthService(context).listAdminUsers(),
-      ),
-  });
-  return result ? result.workspaceUrl : undefined;
-}
+export { attentionOf, inactiveBlocks };
+export {
+  createAuditTab,
+  createInvitationsTab,
+  createPeerTab,
+  createPeopleTab,
+  composeInvitationTabSections,
+  composePeopleTabSections,
+  selectPeerTabSections,
+  tabBlocks,
+};
+export type { AdministrationData, AdminTabFactory };

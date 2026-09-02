@@ -78,8 +78,8 @@ describe("Administration peer relationships", () => {
     const workspace = administrationTab(registrations, "people");
     const invitations = administrationTab(registrations, "invitations");
     expect(workspace).toMatchObject({
-      id: "admin:administration",
-      pluginId: "admin",
+      id: "@brains/admin:admin:administration",
+      pluginId: "@brains/admin:admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
       urlQuery: true,

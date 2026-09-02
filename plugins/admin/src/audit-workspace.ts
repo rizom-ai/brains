@@ -1,18 +1,16 @@
+import type {
+  AnyWorkspaceActionDefinition,
+  StudioWorkspaceView,
+  AuthAdministration,
+} from "@brains/sdk/services";
 import type { AuthAuditEvent } from "@brains/auth-service";
-import {
-  createBuiltInStudioWorkspaceRegistration,
-  defineStudioWorkspace,
-  type OperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import { defineStudioWorkspace, type OperatorViewBlock } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import {
   adminUserOptions,
-  adminWorkspaceSource,
   formatWorkspaceDate,
-  requireAuthService,
-  type AdminWorkspaceSource,
+  type AdminTab,
 } from "./workspace-format";
 
 const actionLabels: Readonly<Record<string, string>> = {
@@ -48,7 +46,9 @@ function actionLabel(action: string): string {
     : `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
 }
 
-const auditWorkspaceQuerySchema = z.strictObject({
+// Parsed from the Administration workspace query, which is a superset of
+// every tab s fields; unknown keys belong to other tabs.
+const auditWorkspaceQuerySchema = z.object({
   actorUserId: z.string().trim().min(1).max(120).optional(),
   action: z.string().trim().min(1).max(200).optional(),
   selected: z.string().trim().min(1).max(120).optional(),
@@ -240,50 +240,47 @@ const studioAuditWorkspace = defineStudioWorkspace({
   },
 });
 
-export function createAuditTabSource(
-  context: ServicePluginContext,
-): AdminWorkspaceSource {
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
-    definition: studioAuditWorkspace,
-    bind: (bindingContext) =>
-      studioAuditWorkspace.bind(bindingContext, {
-        load: async ({ query }) => {
-          const authService = requireAuthService(context);
-          const normalized = query.get(auditWorkspaceQuerySchema);
-          const [audit, users] = await Promise.all([
-            authService.queryAuditEvents({
-              ...(normalized.actorUserId
-                ? { actorUserId: normalized.actorUserId }
-                : {}),
-              ...(normalized.action ? { action: normalized.action } : {}),
-              ...(normalized.selected
-                ? { selectedId: normalized.selected }
-                : {}),
-              offset: normalized.offset,
-              limit: normalized.limit,
-            }),
-            authService.listUsers(),
-          ]);
-          return {
-            query: normalized,
-            events: audit.events.map(eventRecord),
-            ...(audit.selectedEvent
-              ? { selectedEvent: eventRecord(audit.selectedEvent) }
-              : {}),
-            users: adminUserOptions(users),
-            actions: audit.actions
-              .map(({ action: value, count }) => ({
-                value,
-                label: actionLabel(value),
-                count,
-              }))
-              .sort((left, right) => left.label.localeCompare(right.label)),
-            total: audit.total,
-          };
+export function createAuditTab(authService: AuthAdministration): AdminTab {
+  return {
+    actions: [],
+    load: async ({
+      query,
+    }): Promise<StudioWorkspaceView<AnyWorkspaceActionDefinition>> => {
+      const normalized = auditWorkspaceQuerySchema.parse(query);
+      const [audit, users] = await Promise.all([
+        authService.queryAuditEvents({
+          ...(normalized.actorUserId
+            ? { actorUserId: normalized.actorUserId }
+            : {}),
+          ...(normalized.action ? { action: normalized.action } : {}),
+          ...(normalized.selected ? { selectedId: normalized.selected } : {}),
+          offset: normalized.offset,
+          limit: normalized.limit,
+        }),
+        authService.listUsers(),
+      ]);
+      return studioAuditWorkspace.view({
+        data: {
+          query: normalized,
+          events: audit.events.map(eventRecord),
+          ...(audit.selectedEvent
+            ? { selectedEvent: eventRecord(audit.selectedEvent) }
+            : {}),
+          users: adminUserOptions(users),
+          actions: audit.actions
+            .map(({ action: value, count }) => ({
+              value,
+              label: actionLabel(value),
+              count,
+            }))
+            .sort((left, right) => left.label.localeCompare(right.label)),
+          total: audit.total,
         },
-        actions: [],
-      }),
-  });
-  return adminWorkspaceSource(registration, studioAuditWorkspace.actions);
+      });
+    },
+  };
 }
+
+/** The action definitions this tab contributes to Administration. */
+export const auditTabActions: readonly AnyWorkspaceActionDefinition[] =
+  studioAuditWorkspace.actions;

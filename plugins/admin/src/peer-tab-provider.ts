@@ -1,24 +1,30 @@
+import type {
+  AnyWorkspaceActionDefinition,
+  StudioWorkspaceView,
+  AuthAdministration,
+} from "@brains/sdk/services";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
+  type OperatorRegionBlock,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
+  type StudioWorkspaceViewBlock,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+
+type ViewBlock = StudioWorkspaceViewBlock<AnyWorkspaceActionDefinition>;
+type RegionBlock = OperatorRegionBlock<AnyWorkspaceActionDefinition>;
 import {
   adminUserOptions,
-  adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
-  requireAuthService,
-  type AdminWorkspaceSource,
+  type AdminTabFactory,
 } from "./workspace-format";
 
-const peersQuerySchema = z.strictObject({
+// Parsed from the Administration workspace query, which is a superset of
+// every tab s fields; unknown keys belong to other tabs.
+const peersQuerySchema = z.object({
   peerId: z.string().trim().max(2_000).optional(),
   displayName: z.string().trim().max(200).optional(),
 });
@@ -94,9 +100,9 @@ type PeerAction = typeof invitePeer | typeof linkPeer;
 type PeerBlock = OperatorViewBlock<PeerAction>;
 
 function requiredPeerRegion(
-  blocks: readonly RuntimeStudioOperatorBlock[],
+  blocks: readonly ViewBlock[],
   id: string,
-): RuntimeStudioOperatorRegionBlock {
+): RegionBlock {
   const matches = blocks.filter((block) => block.id === id);
   if (matches.length !== 1) {
     throw new Error(`Peer tab composition requires block "${id}" exactly once`);
@@ -115,11 +121,9 @@ function requiredPeerRegion(
   }
 }
 
-export function selectPeerTabSections(
-  blocks: readonly RuntimeStudioOperatorBlock[],
-): {
-  readonly people: readonly RuntimeStudioOperatorRegionBlock[];
-  readonly invitations: readonly RuntimeStudioOperatorRegionBlock[];
+export function selectPeerTabSections(blocks: readonly ViewBlock[]): {
+  readonly people: readonly RegionBlock[];
+  readonly invitations: readonly RegionBlock[];
 } {
   const inviteId = blocks.some((block) => block.id === "invite-peer")
     ? "invite-peer"
@@ -336,93 +340,94 @@ function mutationContext(caller: OperatorCaller | null): {
   return { actorUserId: caller.actor.id };
 }
 
-export function createPeerTabSource(
-  context: ServicePluginContext,
-): AdminWorkspaceSource {
-  const authService = requireAuthService(context);
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
-    definition: peerTabProvider,
-    bind: (bindingContext) => {
-      const invite = invitePeer.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const access = await authService.inviteExternalPeerPerson(
-            {
-              peerId: input.peerId,
-              displayName: input.displayName,
-              role: input.role,
-              delivery: {
-                type: input.deliveryType,
-                subject: input.deliverySubject,
-                ...(input.deliveryLabel ? { label: input.deliveryLabel } : {}),
-                mode: input.deliveryMode,
-              },
+export function createPeerTab(
+  authService: AuthAdministration,
+): AdminTabFactory {
+  return (bindingContext) => {
+    const invite = invitePeer.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const access = await authService.inviteExternalPeerPerson(
+          {
+            peerId: input.peerId,
+            displayName: input.displayName,
+            role: input.role,
+            delivery: {
+              type: input.deliveryType,
+              subject: input.deliverySubject,
+              ...(input.deliveryLabel ? { label: input.deliveryLabel } : {}),
+              mode: input.deliveryMode,
             },
-            mutationContext(caller),
-          );
-          return {
-            status: `Created ${access.user.displayName} and linked ${access.peer.peerId}. Deliver only through ${access.registration.delivery.label}.`,
-            setupUrl: access.registration.setupUrl,
-            expiresAt: new Date(
-              access.registration.expiresAt * 1_000,
-            ).toISOString(),
-          };
-        },
-      );
-      const link = linkPeer.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.linkExternalPeer(
-            { peerId: input.peerId, userId: input.userId },
-            mutationContext(caller),
-          );
-          return { status: "External peer linked to the local person." };
-        },
-        async ({ input }) => {
-          const users = await authService.listAdminUsers();
-          const displayName =
-            users.find((user) => user.userId === input.userId)?.displayName ??
-            "person";
-          return {
-            summary: `Link ${input.peerId} to ${displayName}? Local access does not change.`,
-            revision: `${input.peerId}:${input.userId}`,
-          };
-        },
-      );
-      return peerTabProvider.bind(bindingContext, {
-        actions: [invite, link],
-        load: async ({ query }) => {
-          const normalized = query.get(peersQuerySchema);
-          const [users, channels] = await Promise.all([
-            authService.listAdminUsers(),
-            authService.listInvitationChannels(),
-          ]);
-          const people = users.filter((user) => user.status !== "invited");
-          return {
-            query: normalized,
-            peers: users.flatMap((user) =>
-              user.externalPeers.map((peer) => ({
-                peerId: peer.peerId,
-                displayName: user.displayName,
-                role: user.role,
-                verificationStatus: peer.verificationStatus,
-                createdAt: peer.createdAt,
-              })),
-            ),
-            people: adminUserOptions(people),
-            channels: channels
-              .filter((channel) => channel.deliveryModes.length > 0)
-              .map((channel) => ({
-                type: channel.type,
-                displayName: channel.displayName,
-                subjectLabel: channel.subjectLabel,
-                deliveryModes: channel.deliveryModes,
-              })),
-          };
-        },
-      });
-    },
-  });
-  return adminWorkspaceSource(registration, peerTabProvider.actions);
+          },
+          mutationContext(caller),
+        );
+        return {
+          status: `Created ${access.user.displayName} and linked ${access.peer.peerId}. Deliver only through ${access.registration.delivery.label}.`,
+          setupUrl: access.registration.setupUrl,
+          expiresAt: new Date(
+            access.registration.expiresAt * 1_000,
+          ).toISOString(),
+        };
+      },
+    );
+    const link = linkPeer.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.linkExternalPeer(
+          { peerId: input.peerId, userId: input.userId },
+          mutationContext(caller),
+        );
+        return { status: "External peer linked to the local person." };
+      },
+      async ({ input }) => {
+        const users = await authService.listAdminUsers();
+        const displayName =
+          users.find((user) => user.userId === input.userId)?.displayName ??
+          "person";
+        return {
+          summary: `Link ${input.peerId} to ${displayName}? Local access does not change.`,
+          revision: `${input.peerId}:${input.userId}`,
+        };
+      },
+    );
+    return {
+      actions: [invite, link],
+      load: async ({
+        query,
+      }): Promise<StudioWorkspaceView<AnyWorkspaceActionDefinition>> => {
+        const normalized = peersQuerySchema.parse(query);
+        const [users, channels] = await Promise.all([
+          authService.listAdminUsers(),
+          authService.listInvitationChannels(),
+        ]);
+        const people = users.filter((user) => user.status !== "invited");
+        const data = {
+          query: normalized,
+          peers: users.flatMap((user) =>
+            user.externalPeers.map((peer) => ({
+              peerId: peer.peerId,
+              displayName: user.displayName,
+              role: user.role,
+              verificationStatus: peer.verificationStatus,
+              createdAt: peer.createdAt,
+            })),
+          ),
+          people: adminUserOptions(people),
+          channels: channels
+            .filter((channel) => channel.deliveryModes.length > 0)
+            .map((channel) => ({
+              type: channel.type,
+              displayName: channel.displayName,
+              subjectLabel: channel.subjectLabel,
+              deliveryModes: channel.deliveryModes,
+            })),
+        };
+        return peerTabProvider.view({ data });
+      },
+    };
+  };
 }
+
+/** The action definitions this tab contributes to Administration. */
+export const peerTabActions: readonly AnyWorkspaceActionDefinition[] =
+  peerTabProvider.actions;

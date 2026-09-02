@@ -82,8 +82,8 @@ describe("Administration People tab", () => {
     const registrations = await captureAdminWorkspaces(shell);
     const workspace = administrationTab(registrations, "people");
     expect(workspace).toMatchObject({
-      id: "admin:administration",
-      pluginId: "admin",
+      id: "@brains/admin:admin:administration",
+      pluginId: "@brains/admin:admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
       urlQuery: true,

@@ -1,11 +1,13 @@
-import type { AuthAdminUserSummary } from "@brains/auth-service";
+import type {
+  AuthAdministration,
+  AuthAdminUserSummary,
+} from "@brains/auth-service";
 import {
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type ServicePluginContext,
+  type DashboardWidgetDefinition,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { formatWorkspaceDate, requireAuthService } from "./workspace-format";
+import { formatWorkspaceDate } from "./workspace-format";
 
 export const EXPIRING_INVITATION_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1_000;
 
@@ -39,7 +41,10 @@ const invitationsOverviewDataSchema: z.ZodType<InvitationsOverviewData> =
     failureCount: z.number().int().nonnegative(),
   });
 
-const invitationsOverviewWidget = defineDashboardWidget({
+export const invitationsOverviewWidget: DashboardWidgetDefinition<
+  "expiring-invitations",
+  typeof invitationsOverviewDataSchema
+> = defineDashboardWidget({
   id: "expiring-invitations",
   title: "Invitations",
   description: "Setup links that expire soon or need delivery attention",
@@ -169,17 +174,17 @@ export function deriveInvitationsOverview(
   };
 }
 
-export async function registerInvitationsOverview(
-  context: ServicePluginContext,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
-    definition: invitationsOverviewWidget,
-    load: async ({ signal }) => {
-      signal.throwIfAborted();
-      const users = await requireAuthService(context).listAdminUsers();
-      signal.throwIfAborted();
-      return deriveInvitationsOverview(users, Date.now());
-    },
-  });
+export function invitationsOverviewTab(
+  authService: AuthAdministration,
+): DashboardWidgetLoader {
+  return async ({ signal }) => {
+    signal.throwIfAborted();
+    const users = await authService.listAdminUsers();
+    signal.throwIfAborted();
+    return deriveInvitationsOverview(users, Date.now());
+  };
 }
+
+type DashboardWidgetLoader = (input: {
+  readonly signal: AbortSignal;
+}) => Promise<ReturnType<typeof deriveInvitationsOverview>>;

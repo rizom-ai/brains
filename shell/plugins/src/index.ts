@@ -94,6 +94,11 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export type {
+  AnyWorkspaceActionDefinition,
+  BoundWorkspaceAction,
+} from "./operator/workspace-action-definition-contract";
+export type { OperatorBindingContext } from "./operator/operator-context-contract";
 export { AuthRegistry } from "./contracts/auth-registry";
 export type {
   AuthImplementation,
@@ -380,6 +385,8 @@ export {
   type OperatorView,
   type OperatorCardBlock,
   type OperatorColumnsBlock,
+  type OperatorDetailBlock,
+  type OperatorPanelBlock,
   type OperatorRegionBlock,
   type OperatorViewStatus,
   type OperatorViewBlock,

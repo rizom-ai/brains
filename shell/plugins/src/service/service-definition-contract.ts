@@ -485,6 +485,12 @@ interface ServiceDefinitionCore<
          * changing the router. Named consumer: @brains/notifications.
          */
         readonly channels: ServiceChannelReader;
+        /**
+         * Where the running auth implementation is published, so a package
+         * whose surfaces all need it can capture it once into state instead
+         * of resolving it per call. Named consumer: @brains/admin.
+         */
+        readonly auth: IAuthRegistry;
         readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
     | undefined;

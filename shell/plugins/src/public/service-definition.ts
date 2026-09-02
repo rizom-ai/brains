@@ -49,6 +49,8 @@ export type {
   OperatorEntityCatalogDefinition,
   OperatorView,
   OperatorCardBlock,
+  OperatorDetailBlock,
+  OperatorPanelBlock,
   OperatorColumnsBlock,
   OperatorRegionBlock,
   OperatorViewStatus,

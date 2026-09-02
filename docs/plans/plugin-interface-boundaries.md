@@ -2,10 +2,11 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **9 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **10 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
-`@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`).
+`@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
+`@brains/admin`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -338,34 +339,6 @@ made the entity tranche find real defects rather than move code.
    slice is: the pipeline owns tracking and routing, and an interface
    declares how an approval is presented. Three named consumers, measured —
    its own slice, ahead of any of the three conversions.
-
-   **`admin` is gated on the auth instance.** Phase 4 published the auth
-   contracts type-only and said "the instance still arrives through the
-   runtime". That is not yet true: `admin`, `studio` and `dashboard` each
-   call `getActiveAuthService()`, a module-level global in
-   `@brains/auth-service`. A declarative package has no such reach, and
-   cannot grow one — `shell/plugins` importing `@brains/auth-service` is a
-   cycle, because auth-service is itself a service plugin built on the
-   plugin context.
-
-   _Mostly done._ `AuthCaller`, `AuthAudit` and `AuthFederation` now live in
-   `shell/plugins/src/contracts/auth.ts` with the vocabulary they use, and
-   the running implementation reaches packages through a shell registry as
-   `context.auth`. dashboard, studio, mcp and web-chat are off the global.
-   `AuthFederation` and `AuthIdentities` followed, so a2a, chat and
-   agent-discovery are off it too — seven packages in total. Only admin
-   _Done._ All four contracts — caller, audit, federation, identities — plus
-   `AuthAdministration` and the browser-safe admin vocabulary now live in
-   `shell/plugins/src/contracts/`, and the running implementation reaches
-   packages through a shell registry as `context.auth`. No production code
-   calls `getActiveAuthService()`.
-
-   Getting there meant correcting three administration returns that handed
-   back drizzle-inferred table rows: the peer link/unlink pair and the
-   identity attach/detach pair now return the summaries the HTTP layer
-   already served for the same data, and role/status take the browser-safe
-   unions. admin discarded all four return values, so nothing downstream
-   changed shape.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking

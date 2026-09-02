@@ -38,6 +38,7 @@ export type {
   ServicePackageDefinition,
   ServiceToolDefinition,
   WorkspaceActionConfirmation,
+  AnyWorkspaceActionDefinition,
   WorkspaceActionDefinition,
   ServicePublishDeclaration,
   WorkspacePreparedConfirmation,

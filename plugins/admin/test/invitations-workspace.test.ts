@@ -150,8 +150,8 @@ describe("Administration Invitations tab", () => {
       "invitations",
     );
     expect(workspace).toMatchObject({
-      id: "admin:administration",
-      pluginId: "admin",
+      id: "@brains/admin:admin:administration",
+      pluginId: "@brains/admin:admin",
       rendererName: "DeclarativeOperatorWorkspace",
       permission: "admin",
       urlQuery: true,

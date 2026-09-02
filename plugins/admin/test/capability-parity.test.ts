@@ -98,10 +98,10 @@ const ADMIN_CAPABILITY_INVENTORY: Readonly<
 const ADMIN_READ_PRESENTATION: Readonly<
   Record<"audit" | "anchor" | "channels" | "users", string>
 > = {
-  audit: "admin:administration",
-  anchor: "admin:administration",
-  channels: "admin:administration",
-  users: "admin:administration",
+  audit: "@brains/admin:admin:administration",
+  anchor: "@brains/admin:admin:administration",
+  channels: "@brains/admin:admin:administration",
+  users: "@brains/admin:admin:administration",
 };
 
 describe("Admin capability parity inventory", () => {
@@ -128,10 +128,10 @@ describe("Admin capability parity inventory", () => {
       ),
     ).toBe(true);
     expect(ADMIN_READ_PRESENTATION).toEqual({
-      audit: "admin:administration",
-      anchor: "admin:administration",
-      channels: "admin:administration",
-      users: "admin:administration",
+      audit: "@brains/admin:admin:administration",
+      anchor: "@brains/admin:admin:administration",
+      channels: "@brains/admin:admin:administration",
+      users: "@brains/admin:admin:administration",
     });
   });
 

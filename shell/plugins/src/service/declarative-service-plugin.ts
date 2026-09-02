@@ -422,6 +422,7 @@ class DeclarativeServicePlugin<
             getDeliveryProvider: (channelType) =>
               context.channels.getDeliveryProvider(channelType),
           },
+          auth: context.auth,
           logger: this.logger,
         })
       : (Object.freeze({}) as TState);
@@ -710,8 +711,15 @@ class DeclarativeServicePlugin<
           publicServiceId: this.publicId,
           packageName: this.packageName,
           runtimeWorkspaceId,
+          // Scoped like the workspace id itself: a declared alias names a
+          // workspace this package used to publish, not a global route.
           ...(binding.definition.aliases
-            ? { aliases: binding.definition.aliases }
+            ? {
+                aliases: binding.definition.aliases.map((alias) => ({
+                  id: `${this.id}:${alias.id}`,
+                  query: alias.query,
+                })),
+              }
             : {}),
           config: this.config,
           state: this.requireState(),
