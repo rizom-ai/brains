@@ -1,7 +1,7 @@
 {
   "name": "@brains/a2a",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.345",
+  "version": "0.2.0-alpha.346",
   "dependencies": {
     "@a2a-js/sdk": "^0.3.13",
     "@brains/auth-service": "workspace:*",

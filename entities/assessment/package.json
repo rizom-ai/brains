@@ -1,7 +1,7 @@
 {
   "name": "@brains/assessment",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.345",
+  "version": "0.2.0-alpha.346",
   "description": "Assessment outputs and capability-profile analysis",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

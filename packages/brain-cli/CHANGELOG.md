@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.346
+
+### Minor Changes
+
+- [#210](https://github.com/rizom-ai/brains/pull/210) [`03ab79e`](https://github.com/rizom-ai/brains/commit/03ab79e0adbd6bfcef6b486ba67eaef8389007da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the prematurely published `@rizom/brain/chat` entry and restore standalone Web Chat to its prior internal transport contract.
+
 ## 0.2.0-alpha.345
 
 ### Minor Changes
