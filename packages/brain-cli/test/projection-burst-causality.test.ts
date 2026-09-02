@@ -262,7 +262,7 @@ describe("projection burst causal evidence", () => {
       let mutationCount = 0;
       entityService.upsertEntity = (async (
         request: Parameters<typeof originalUpsert>[0],
-      ) => {
+      ): ReturnType<typeof originalUpsert> => {
         const result = await originalUpsert(request);
         mutationCount++;
         if (mutationCount === SPLIT_AFTER) {
@@ -273,7 +273,7 @@ describe("projection burst causal evidence", () => {
           });
         }
         return result;
-      }) as typeof entityService.upsertEntity;
+      }) satisfies typeof originalUpsert;
 
       try {
         const result = await directorySync.sync();

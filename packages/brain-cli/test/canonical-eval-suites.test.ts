@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { App, resolve, resolveBundleSelection } from "@brains/app";
+import { caughtError } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
   resolveEvalSelection,
@@ -339,8 +340,7 @@ describe("canonical eval recipe ladder", () => {
     } finally {
       await app.stop();
     }
-    expect(initializationError).toBeInstanceOf(Error);
-    expect((initializationError as Error).message).toContain(
+    expect(caughtError(initializationError).message).toContain(
       "Seed content contains unregistered entity types: image",
     );
   }, 120_000);

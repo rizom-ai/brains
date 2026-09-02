@@ -29,6 +29,17 @@ interface BootOutcome {
   listening: boolean;
 }
 
+/**
+ * Bun types a spawned stdio slot as a stream, a file descriptor, or nothing,
+ * depending on how the process was configured. Checking is what makes this a
+ * stream; asserting it would read a file descriptor as one.
+ */
+function readableStream(
+  stream: unknown,
+): ReadableStream<Uint8Array> | undefined {
+  return stream instanceof ReadableStream ? stream : undefined;
+}
+
 async function waitForListening(
   proc: ReturnType<typeof Bun.spawn>,
   timeoutMs: number,
@@ -59,8 +70,8 @@ async function waitForListening(
     setTimeout(() => resolve({ log, listening: false }), timeoutMs),
   );
   const outcome = await Promise.race([
-    listen(proc.stdout as ReadableStream<Uint8Array>),
-    listen(proc.stderr as ReadableStream<Uint8Array>),
+    listen(readableStream(proc.stdout)),
+    listen(readableStream(proc.stderr)),
     exited,
     timedOut,
   ]);

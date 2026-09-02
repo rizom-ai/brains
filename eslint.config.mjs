@@ -49,6 +49,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "interfaces/a2a",
   "interfaces/chat-repl",
   "interfaces/mcp",
+  "packages/brain-cli",
   "packages/brains-ops",
   "packages/build-tools",
   "plugins/admin",

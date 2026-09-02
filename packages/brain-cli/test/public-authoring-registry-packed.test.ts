@@ -2,6 +2,7 @@ import { expect, it } from "bun:test";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "@brains/utils/zod";
 import {
   buildAndPackFixturePackage,
   combinedOutput,
@@ -37,12 +38,16 @@ async function packageManifest(
   consumerDirectory: string,
   packageName: string,
 ): Promise<Record<string, unknown>> {
-  return JSON.parse(
-    await readFile(
-      join(consumerDirectory, "node_modules", packageName, "package.json"),
-      "utf8",
-    ),
-  ) as Record<string, unknown>;
+  return z
+    .record(z.string(), z.unknown())
+    .parse(
+      JSON.parse(
+        await readFile(
+          join(consumerDirectory, "node_modules", packageName, "package.json"),
+          "utf8",
+        ),
+      ),
+    );
 }
 
 async function declarationText(directory: string): Promise<string> {
@@ -89,11 +94,15 @@ it.skipIf(!runRegistryEvidence)(
         "account-settings-interface",
       ]) {
         const fixtureDirectory = join(publicFixtureRoot, fixtureName);
-        const fixtureManifest = JSON.parse(
-          await readFile(join(fixtureDirectory, "package.json"), "utf8"),
-        ) as {
-          peerDependencies?: Record<string, string>;
-        };
+        const fixtureManifest = z
+          .looseObject({
+            peerDependencies: z.record(z.string(), z.string()).optional(),
+          })
+          .parse(
+            JSON.parse(
+              await readFile(join(fixtureDirectory, "package.json"), "utf8"),
+            ),
+          );
         const expectedBrainPeer =
           fixtureName === "operator-surface"
             ? operatorCompositionBrainPeerRange

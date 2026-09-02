@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { z } from "@brains/utils/zod";
 
 const repositoryRoot = join(import.meta.dir, "..", "..", "..");
 const retiredRuntime = "pre" + "act";
@@ -35,9 +36,9 @@ async function sourceViolations(): Promise<string[]> {
 async function packageViolations(): Promise<string[]> {
   const violations: string[] = [];
   for (const path of await repositoryFiles("**/package.json")) {
-    const manifest = JSON.parse(
-      await readFile(join(repositoryRoot, path), "utf8"),
-    ) as Record<string, unknown>;
+    const manifest = z
+      .record(z.string(), z.unknown())
+      .parse(JSON.parse(await readFile(join(repositoryRoot, path), "utf8")));
     for (const field of [
       "dependencies",
       "devDependencies",
