@@ -1,11 +1,12 @@
-# Plan: One control vocabulary for the console
+# Plan: One control vocabulary for the app
 
 ## Status
 
-**Not started; direction accepted 2026-09-02.** The phases below are the build
-order. Two prerequisites already shipped and are stated only because the
-phases depend on them: reading surfaces own the phone document scroll, and the
-operator-view renderer contains author-supplied text within its column.
+**Not started; direction accepted 2026-09-02, engine settled by spike the same
+day.** The phases below are the build order. Two prerequisites already shipped
+and are stated only because the phases depend on them: reading surfaces own the
+phone document scroll, and the operator-view renderer contains
+author-supplied text within its column.
 
 ## Question
 
@@ -13,8 +14,13 @@ operator-view renderer contains author-supplied text within its column.
 grammar — one page head, one primary-action rule, two-bar phone chrome. It did
 not settle its _material_ grammar. Every surface still draws its own controls,
 so the workspaces read as separately built pages that happen to sit behind the
-same rail. What is the console's single set of controls, and where do its
-colours come from?
+same rail. What is the app's single set of controls, and where do its colours
+come from?
+
+The second question turned out to be the one that ordered the first: sites and
+app are different products with different customisation contracts, so they do
+not want the same styling engine, and what they share is tokens rather than
+components.
 
 ## Evidence
 
@@ -46,48 +52,86 @@ Two further defects that are the same root cause:
 
 ## Decisions
 
-1. **The console consumes `@brains/ui-library` rather than growing a fourth
-   control layer.** The library already carries `Button`, `Card`, `Alert`,
-   `Pagination`, `EmptyState`, `Breadcrumb`, and the `WidgetTabs` that
-   `operator-view-react` already imports.
+1. **Sites and app are two products and get two component sets.** Public,
+   static, brand-themed, visitor-facing is not the same problem as
+   authenticated, dense, interactive, operator-facing. `@brains/ui-library`
+   stays the site set. The app — Studio and Chat — gets its own. Dashboard is
+   a site surface by this line, not an app one: the roadmap calls it "the
+   anonymous public brain card", it is unauthenticated, server-rendered, and
+   already imports `CardHeader` from the library.
 
-2. **Take the shadcn pattern, not the CLI.** The library is presentational and
-   has nothing for the interactive gaps — the hand-rolled focus trap in
+   What the two products share is brand identity, and that is the token
+   contract in CSS custom properties, not components. A marketing card and an
+   operator row have different jobs; forcing one component set across both was
+   the reason this looked like a choice between engines at all.
+
+2. **The app styles with StyleX; sites and Dashboard stay Tailwind.** The app's
+   pathologies are specificity and duplication — `!important` in
+   `.declarative-matrix`, chains like
+   `.declarative-detail-master .declarative-list > li:has(strong .declarative-inline-link)`,
+   buttons defined in four files, and ~4,490 lines of hand-written CSS in a
+   repo that otherwise runs `isolatedDeclarations` and
+   `exactOptionalPropertyTypes`. StyleX's deterministic merge makes that class
+   of bug impossible rather than discouraged; Tailwind would leave it a matter
+   of discipline.
+
+   Sites keep Tailwind because `themeOverride` is arbitrary operator-supplied
+   CSS (`z.string()`, composed by `resolveTheme`), which only works against
+   custom properties. StyleX could not express that contract.
+
+3. **Radix supplies the app's interactive primitives, styled with StyleX.**
+   The gaps are behavioural: the hand-rolled focus trap in
    `confirm-dialog.tsx`, the `<details>`-based phone overflow menu, the pane
-   switcher, filter toggles, the boolean switch. Those arrive as Radix
-   primitives styled with CVA _inside_ the library, which is materially what
-   `shadcn add` emits. Running the CLI would install a second component set
-   beside the library and recreate the disease.
+   switcher, filter toggles, the boolean switch. Radix is unstyled, so it
+   composes with StyleX as readily as with CVA. `@radix-ui/react-select` is
+   already a Studio dependency.
 
-3. **`console.css` declares no colour literals.** Both climates alias
+4. **`console.css` declares no colour literals.** Both climates alias
    `--color-*`; the values come from a theme. This is the reason the palette
    currently exists twice: instrument hardcodes one and paper restates another
    as `var()` fallbacks that never resolve, because no console shell injects a
    theme.
 
-4. **Each brain's console follows its own theme, with `@rizom/theme-default`
+5. **Each brain's console follows its own theme, with `@rizom/theme-default`
    as the built-in fallback.** `shell/app/src/resolver/site.ts` already
    composes the string via `withThemeBase`; the console shells never receive
    it. The fallback is what keeps a brain with no site configured from
    rendering an unstyled console.
 
-5. **Climate stays the console's name for the theme switch.** It already sets
+6. **Climate stays the console's name for the theme switch.** It already sets
    both attributes — `data-climate` for console CSS, `data-theme` for
    theme-base — so paper is light and instrument is dark with no mapping
    layer. Instrument stops being a fixed identity and follows the brain's dark
    palette.
 
-6. **Tailwind, not StyleX, for the console.** StyleX was weighed: its typed,
-   colocated styles fit this repo's discipline better than class strings, and
-   its deterministic merge would make the specificity bugs above impossible.
-   It loses on cost, not merit. It compiles source rather than emitting a
-   stylesheet, so Dashboard — which renders TSX at request time with no build
-   step — would need a compiler in front of it; it has no `Bun.build`
-   integration; and it cannot share `@brains/ui-library`, so the console
-   would need a second component library. Tailwind adopts a library that
-   exists. Phases 1–3 are engine-agnostic, so this is revisited before
-   phase 4 only if the console component set turns out not to fit the
-   library.
+7. **Shared console chrome stays plain CSS.** The strip, the palette aliases,
+   and the command palette live in `@brains/console-theme` and are consumed by
+   all three surfaces regardless of engine. They are chrome and tokens, not
+   components, and rewriting them buys nothing.
+
+## What the StyleX spike settled
+
+Run 2026-09-02 against `plugins/studio`, then reverted. StyleX 0.19.0 has no
+Bun plugin, but it does not need one: its Babel transform runs inside a
+`Bun.BunPlugin` `onLoad` hook, and `processStylexRules` turns the collected
+Babel metadata into a stylesheet. A two-variant button produced 15 atomic
+rules in 648 bytes.
+
+- **Tokens survive the transform.** Every `var(--console-*)` passes through
+  untouched, so one token contract genuinely serves both engines and climate
+  switching stays a runtime custom-property swap. This is what makes the
+  two-product split possible rather than merely tidy.
+- **No runtime injection.** Class names are baked into the JS; nothing calls
+  `insertRule`. The output is a stylesheet plus static markup.
+- **Emitted rules carry `:not(#\#)`**, an ID inside `:not()`, so they land at
+  specificity (1,1,0) — above essentially all existing console CSS
+  (`.declarative-list strong` is (0,1,1)). A migrated component therefore
+  beats the hand-written CSS it replaces, which is what lets phase 5 move one
+  surface at a time instead of switching everything at once. The `!important`
+  in `.declarative-matrix` is the one rule that still wins and must be
+  removed by hand.
+- `@stylexjs/babel-plugin`'s exported type does not satisfy `@babel/core`'s
+  `PluginItem`; the integration needs a cast.
 
 ## Unsettled
 
@@ -122,17 +166,18 @@ Each phase ships behind the visual harness and leaves the console renderable.
 3. **Delete the literals.** Both climates become aliases. Dashboard and
    web-chat shells take the same injection. Every console baseline moves; this
    is the irreversible step and wants review before regeneration.
-4. **One console stylesheet, compiled once.** A single Tailwind sheet with
-   `@source` globs resolved through package names, shared by all three
-   surfaces. Studio and web-chat emit it from their `build-ui.ts` into the
-   existing asset manifest; Dashboard, which has no build step and renders
-   at request time, inlines the compiled string the way it already inlines
-   the console sheet. Tailwind builds a stylesheet and leaves the TSX
-   untouched, which is what lets Dashboard stay unbuilt. Prove with one
-   `Button` on one surface in both climates before migrating anything.
-5. **Migrate the controls.** Surface by surface, `.btn` / `.people-button*` /
-   `.declarative-*` resolve to library components. Each surface's baseline is
-   reviewed as it moves.
+4. **StyleX in the app bundles.** The `Bun.BunPlugin` the spike proved goes
+   into Studio's and web-chat's `build-ui.ts`, emitting the collected
+   stylesheet into the existing asset manifest. Dashboard is untouched — it
+   is a site surface and keeps Tailwind and `ui-library`. Prove with one
+   button on one Studio surface in both climates before migrating anything.
+5. **Migrate the controls, one surface at a time.** `.btn`, `.save-btn`,
+   `.people-button*`, `.declarative-actions`, `.declarative-pager` and
+   `.declarative-filter` collapse into one app control set. StyleX's higher
+   specificity means a migrated surface wins over the CSS still in place
+   around it, so surfaces move independently and each baseline is reviewed as
+   it lands. The `!important` in `.declarative-matrix` is removed first,
+   because it is the one rule StyleX will not beat.
 6. **Add the interactive primitives.** Dialog replaces the hand-rolled focus
    trap, DropdownMenu the `<details>` menu, Switch the faux-toggle checkbox,
    and the phone action sheet becomes a real sheet with a scrim, a title, and
