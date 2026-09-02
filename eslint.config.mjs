@@ -47,6 +47,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "entities/topics",
   "entities/wishlist",
   "interfaces/a2a",
+  "interfaces/chat",
   "interfaces/chat-repl",
   "interfaces/mcp",
   "interfaces/web-chat",
