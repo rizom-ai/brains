@@ -229,7 +229,7 @@ describe("StreamableHTTPServer", () => {
       });
       await server.start();
 
-      // eslint-disable-next-line @typescript-eslint/await-thenable
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
       await expect(server.start()).rejects.toThrow("Server is already running");
     });
 
@@ -246,7 +246,7 @@ describe("StreamableHTTPServer", () => {
           logger: mockLogger,
           auth: { disabled: true },
         });
-        // eslint-disable-next-line @typescript-eslint/await-thenable
+        // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
         await expect(server.start()).rejects.toThrow();
         expect(mockLogger.error).toHaveBeenCalledWith(
           `Port ${first.getPort()} is already in use`,

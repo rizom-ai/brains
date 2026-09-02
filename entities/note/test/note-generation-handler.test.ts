@@ -120,9 +120,14 @@ describe("NoteGenerationJobHandler", () => {
           metadata: { title: "Taken Title" },
         }),
       );
-      spyOn(mockContext.ai, "generateObject").mockResolvedValue({
-        object: { title: "Fresh Title" },
-      } as Awaited<ReturnType<typeof mockContext.ai.generateObject>>);
+      // Parse the fixture through the caller's own schema: that produces a
+      // genuine T for the generic, and fails loudly if the fixture drifts
+      // from the shape the handler actually asks for.
+      spyOn(mockContext.ai, "generateObject").mockImplementation(
+        async (_prompt, schema) => ({
+          object: schema.parse({ title: "Fresh Title" }),
+        }),
+      );
 
       const result = await handler.process(
         { prompt: "Write a note" },

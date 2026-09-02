@@ -654,9 +654,8 @@ describe("JSON-RPC Handler", () => {
       // Task should now be completed
       const completed = taskManager.getTask(task.id);
       expect(completed?.task.status.state).toBe("completed");
-      expect(statusMessageText(completed?.task as Task)).toBe(
-        "Background result",
-      );
+      if (!completed) throw new Error("Completed task not found");
+      expect(statusMessageText(completed.task)).toBe("Background result");
     });
 
     it("should transition task to failed when agent throws in background", async () => {

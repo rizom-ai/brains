@@ -18,15 +18,12 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
 import { access, writeFile } from "node:fs/promises";
-interface EntityWithoutEmbedding {
-  id: string;
-  entityType: string;
-  content: string;
-  metadata?: Record<string, unknown>;
-  contentWeight?: number;
-  created: number;
-  updated: number;
-}
+/**
+ * This double is registered for several job types and ignores its payload,
+ * so it accepts any object rather than claiming one job types shape.
+ */
+const testJobDataSchema = z.record(z.string(), z.unknown());
+type TestJobData = z.output<typeof testJobDataSchema>;
 const defaultEnqueueOptions: JobOptions = {
   source: "test",
   metadata: { operationType: "data_processing" },
@@ -52,7 +49,7 @@ class TestJobHandler implements JobHandler<"shell:embedding"> {
   public shouldValidationFail = false;
   public shouldProcessFail = false;
   async process(
-    _data: EntityWithoutEmbedding,
+    _data: TestJobData,
     _jobId: string,
     _progressReporter: ProgressReporter,
   ): Promise<void> {
@@ -63,18 +60,19 @@ class TestJobHandler implements JobHandler<"shell:embedding"> {
   }
   async onError(
     _error: Error,
-    _data: EntityWithoutEmbedding,
+    _data: TestJobData,
     _jobId: string,
     _progressReporter: ProgressReporter,
   ): Promise<void> {
     this.onErrorCallCount++;
   }
-  validateAndParse(data: unknown): EntityWithoutEmbedding | null {
+  validateAndParse(data: unknown): TestJobData | null {
     this.validateCallCount++;
     if (this.shouldValidationFail) {
       return null;
     }
-    return data as EntityWithoutEmbedding;
+    const parsed = testJobDataSchema.safeParse(data);
+    return parsed.success ? parsed.data : null;
   }
 }
 describe("JobQueueService", () => {
@@ -87,7 +85,7 @@ describe("JobQueueService", () => {
   let reserveJobAdmission: ReturnType<typeof mock>;
   let commitJobAdmission: ReturnType<typeof mock>;
   let rollbackJobAdmission: ReturnType<typeof mock>;
-  const testEntity: EntityWithoutEmbedding = {
+  const testEntity = {
     id: "test-123",
     entityType: "note",
     content: "# Test Note\n\nThis is a test note content.",

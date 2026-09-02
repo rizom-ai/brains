@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import { createInterfacePluginContext } from "@brains/plugins/test";
 import {
   createMockShell,
@@ -165,10 +166,13 @@ describe("MCP tools", () => {
       externalToolContext("operator-1"),
     );
 
-    const firstConversation = (first as { data: { conversationId: string } })
-      .data.conversationId;
-    const secondConversation = (second as { data: { conversationId: string } })
-      .data.conversationId;
+    const conversationResponseSchema = z.object({
+      data: z.object({ conversationId: z.string() }),
+    });
+    const firstConversation =
+      conversationResponseSchema.parse(first).data.conversationId;
+    const secondConversation =
+      conversationResponseSchema.parse(second).data.conversationId;
     expect(firstConversation).toStartWith("conversation-");
     expect(secondConversation).toStartWith("conversation-");
     expect(secondConversation).not.toBe(firstConversation);

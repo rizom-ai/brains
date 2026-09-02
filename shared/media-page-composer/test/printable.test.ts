@@ -4,6 +4,7 @@ import { tmpdir } from "os";
 import { createElement as h, type JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import type { PdfRenderOptions } from "@brains/media-renderer";
 import { renderPrintablePdf, type MediaPageTemplate } from "../src";
 
 const TINY_PDF = Buffer.from("%PDF-1.7\n", "utf-8");
@@ -33,7 +34,7 @@ async function countTempDirs(prefix: string): Promise<number> {
 describe("renderPrintablePdf", () => {
   it("renders a template to a PDF through the injected renderPdf fn", async () => {
     let capturedUrl = "";
-    let capturedOptions: Record<string, unknown> | undefined;
+    let capturedOptions: PdfRenderOptions | undefined;
     let renderedHtml = "";
 
     const pdf = await renderPrintablePdf({
@@ -46,7 +47,7 @@ describe("renderPrintablePdf", () => {
       tmpPrefix: "printable-render-",
       renderPdf: async (url, options) => {
         capturedUrl = url;
-        capturedOptions = options as Record<string, unknown> | undefined;
+        capturedOptions = options;
         renderedHtml = await (await fetch(url)).text();
         return TINY_PDF;
       },

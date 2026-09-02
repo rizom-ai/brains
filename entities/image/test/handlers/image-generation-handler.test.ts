@@ -119,9 +119,9 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should generate image with derived title when title is omitted", async () => {
-      const jobData = {
+      const jobData: ImageGenerationJobData = {
         prompt: "A beautiful sunset over mountains",
-      } as ImageGenerationJobData;
+      };
 
       const result = await handler.process(
         jobData,

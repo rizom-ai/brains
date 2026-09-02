@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
 import {
   listCanonicalAtprotoLexiconMetadata,
   listCanonicalAtprotoLexicons,
@@ -35,19 +36,22 @@ describe("atproto registry plugin", () => {
     expect(indexRoute).toBeDefined();
     if (!indexRoute) throw new Error("Missing registry index route");
     expect(indexRoute.public).toBe(true);
-    const body = (await jsonFromRoute(indexRoute)) as {
-      lexicons: Array<{
-        id: string;
-        path: string;
-        status: string;
-        version: string;
-        revision: number;
-        owner: string;
-        steward: string;
-        projectionPackage: string;
-        compatibility: string;
-      }>;
-    };
+    const indexBodySchema = z.object({
+      lexicons: z.array(
+        z.object({
+          id: z.string(),
+          path: z.string(),
+          status: z.string(),
+          version: z.string(),
+          revision: z.number(),
+          owner: z.string(),
+          steward: z.string(),
+          projectionPackage: z.string(),
+          compatibility: z.string(),
+        }),
+      ),
+    });
+    const body = indexBodySchema.parse(await jsonFromRoute(indexRoute));
 
     expect(body.lexicons.map((lexicon) => lexicon.id).sort()).toEqual(
       listCanonicalAtprotoLexicons()

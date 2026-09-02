@@ -30,6 +30,27 @@ const NO_UNSAFE_TEST_CAST = {
     "Do not use `as unknown as` in a test. Use a @brains/test-utils factory, an honest narrow type, or narrow the parameter of the code under test.",
 };
 
+/**
+ * Packages whose test suites hold no type assertions. See the config block
+ * that consumes this for why the migration is per-package.
+ */
+const TEST_CAST_FREE_PACKAGES = [
+  "entities/image",
+  "entities/note",
+  "entities/wishlist",
+  "interfaces/a2a",
+  "interfaces/chat-repl",
+  "interfaces/mcp",
+  "plugins/atproto-registry",
+  "plugins/playbooks",
+  "plugins/profile",
+  "shared/atproto-contracts",
+  "shared/media-page-composer",
+  "shared/site-composition",
+  "shell/job-queue",
+  "shell/recurring-checks",
+];
+
 const NO_SLEEP_SYNCHRONIZATION = {
   selector:
     "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
@@ -183,6 +204,26 @@ export default [
       "shared/test-utils/**",
       "**/scripts/**",
     ],
+    plugins: { "eslint-comments": eslintComments },
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+      "eslint-comments/require-description": [
+        "error",
+        { ignore: ["eslint-enable"] },
+      ],
+    },
+  },
+  {
+    // Test suites that have reached zero type assertions.
+    //
+    // The ban above exempts tests while ~600 of them are migrated. This block
+    // re-enables it per package as each one lands, so a package already done
+    // cannot regress while the rest are outstanding. Add an entry when a
+    // package hits zero; the list only grows.
+    files: TEST_CAST_FREE_PACKAGES.map((pkg) => `${pkg}/test/**/*.{ts,tsx}`),
     plugins: { "eslint-comments": eslintComments },
     rules: {
       "@typescript-eslint/consistent-type-assertions": [

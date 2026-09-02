@@ -498,9 +498,7 @@ describe("NotePlugin", () => {
         id: "doomed-import",
       });
       expect(entity?.metadata).toMatchObject({ status: "failed" });
-      expect(
-        (entity?.metadata as Record<string, unknown>)["error"],
-      ).toBeDefined();
+      expect(entity?.metadata["error"]).toBeDefined();
     });
   });
 });

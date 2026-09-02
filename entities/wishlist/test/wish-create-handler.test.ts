@@ -3,9 +3,12 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { WishlistPlugin } from "../src";
 import { WishCreateHandler } from "../src/handlers/wish-create-handler";
 import type { EntityPluginContext } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils/progress";
+import {
+  createMockProgressReporter,
+  createSilentLogger,
+} from "@brains/test-utils";
 
-const noopProgress = {} as ProgressReporter;
+const noopProgress = createMockProgressReporter();
 
 describe("WishCreateHandler", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -16,15 +19,7 @@ describe("WishCreateHandler", () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-wishlist" });
     await harness.installPlugin(new WishlistPlugin({}));
     context = harness.getEntityContext("wishlist");
-    handler = new WishCreateHandler(
-      {
-        info: () => {},
-        error: () => {},
-        warn: () => {},
-        debug: () => {},
-      } as never,
-      context,
-    );
+    handler = new WishCreateHandler(createSilentLogger(), context);
   });
 
   it("should not expose any tools (all moved to system)", () => {

@@ -69,7 +69,8 @@ describe("sectionToTemplate", () => {
 
     const parsed = formatter.parse(formatter.format(value));
     expect(parsed).toEqual(value);
-    expect("note" in (parsed as Record<string, unknown>)).toBe(false);
+    const parsedRecord = z.record(z.string(), z.unknown()).parse(parsed);
+    expect(Object.hasOwn(parsedRecord, "note")).toBe(false);
   });
 
   test("accepts fields wrapped in a default, as site packages author them", () => {
