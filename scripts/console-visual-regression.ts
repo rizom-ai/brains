@@ -859,6 +859,120 @@ const administrationAuditWorkspaceData = {
   },
 };
 
+// The unified-inbox workspace, shaped as plugins/unified-inbox emits it: a
+// three-stat summary, query controls with a pager, and a master/detail split
+// whose rows carry an urgency badge, source metadata, and the verbs that clear
+// them. It is the widest block set any workspace uses and the only surface
+// where `detail` opens a reading pane, which is why it needs its own capture
+// rather than being assumed to behave like Administration.
+const inboxWorkspaceData = {
+  refreshAfterMs: 20_000,
+  view: {
+    kicker: "Live source-owned attention",
+    title: "Inbox",
+    description:
+      "Triage incoming work without creating a second copy of source state.",
+    status: {
+      label: "2 of 3 sources online",
+      detail: "some sources unavailable",
+      tone: "warn",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "inbox-summary",
+        items: [
+          { label: "Open", value: 3, caption: "across sources" },
+          {
+            label: "High priority",
+            value: 1,
+            caption: "needs attention",
+            tone: "warn",
+          },
+          { label: "Matching", value: 3, caption: "current filter" },
+        ],
+      },
+      {
+        type: "query",
+        id: "inbox-query",
+        controls: [
+          {
+            kind: "select",
+            key: "source",
+            label: "Source",
+            value: "all",
+            options: [
+              { value: "all", label: "All sources" },
+              { value: "smoke-mailbox", label: "Smoke mailbox" },
+              { value: "agent-sightings", label: "Agent sightings" },
+            ],
+          },
+          {
+            kind: "select",
+            key: "urgency",
+            label: "Urgency",
+            value: "all",
+            options: [
+              { value: "all", label: "Any urgency" },
+              { value: "high", label: "High only" },
+            ],
+          },
+        ],
+        pagination: { offset: 0, limit: 10, total: 3 },
+      },
+      {
+        type: "detail",
+        id: "inbox-detail",
+        queryKey: "selected",
+        empty: "Select an item to read its source content.",
+        master: {
+          type: "list",
+          id: "inbox-items",
+          empty: "Nothing needs attention for these filters.",
+          items: [
+            {
+              id: "smoke-mailbox::msg-4180",
+              title: "Verdigris pigment supplier cannot meet the July run",
+              description:
+                "They can cover half the order and asked whether a substitute binder is acceptable.",
+              metadata: [
+                "Smoke mailbox",
+                "2026-07-11T09:14:00.000Z",
+                "Message 3 in thread",
+              ],
+              badges: [{ label: "high priority", tone: "warn" }],
+              link: { detail: { itemId: "smoke-mailbox::msg-4180" } },
+            },
+            {
+              id: "agent-sightings::natalie-0912",
+              title: "Natalie reported a stale profile on natalie.rizom.ai",
+              description: "The published bio predates the June role change.",
+              metadata: ["Agent sightings", "2026-07-11T08:02:00.000Z"],
+              badges: [{ label: "normal priority" }],
+              link: { detail: { itemId: "agent-sightings::natalie-0912" } },
+            },
+            {
+              id: "smoke-mailbox::msg-4166",
+              title: "Invoice 2026-118 acknowledged",
+              description: "No reply needed; filed against the trust series.",
+              metadata: ["Smoke mailbox", "2026-07-10T16:40:00.000Z"],
+              badges: [{ label: "normal priority" }],
+              link: { detail: { itemId: "smoke-mailbox::msg-4166" } },
+            },
+          ],
+        },
+      },
+      {
+        type: "notice",
+        id: "inbox-source-errors",
+        title: "Ledger archive",
+        tone: "error",
+        text: "Source unavailable: the archive host refused the connection at 09:02.",
+      },
+    ],
+  },
+};
+
 const entities = [
   {
     id: "responsive-console",
@@ -1842,6 +1956,7 @@ function isStudioAppShellSurface(surface: string): boolean {
     surface !== "studio-library" &&
     surface !== "studio-account" &&
     surface !== "studio-overview" &&
+    surface !== "studio-inbox" &&
     !surface.startsWith("studio-administration")
   );
 }
@@ -2182,6 +2297,17 @@ const server = Bun.serve({
             badge: 3,
           },
           {
+            id: "unified-inbox:inbox",
+            pluginId: "unified-inbox",
+            label: "Inbox",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 20,
+            permission: "admin",
+            urlQuery: true,
+            entityTypes: [],
+            badge: 3,
+          },
+          {
             id: "admin:administration",
             pluginId: "admin",
             label: "Administration",
@@ -2212,6 +2338,17 @@ const server = Bun.serve({
           id: "studio:overview",
           rendererName: "DeclarativeOperatorWorkspace",
           data: overviewWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "unified-inbox:inbox"
+    )
+      return json({
+        workspace: {
+          id: "unified-inbox:inbox",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: inboxWorkspaceData,
         },
       });
     if (
@@ -2405,6 +2542,8 @@ try {
         "chat-drawer",
         "studio-library",
         "studio-overview",
+        "studio-inbox",
+
         "studio-administration",
         "studio-administration-invitations",
         "studio-administration-invitations-form",
@@ -2455,11 +2594,13 @@ try {
               ? "/studio/workspaces/studio%3Aaccount"
               : surface === "studio-overview"
                 ? "/studio/workspaces/studio%3Aoverview"
-                : surface.startsWith("studio-administration")
-                  ? "/studio/workspaces/admin%3Aadministration"
-                  : isStudioEditor
-                    ? "/studio/entities/posts/field-notes"
-                    : "/studio/entities/posts";
+                : surface === "studio-inbox"
+                  ? "/studio/workspaces/unified-inbox%3Ainbox"
+                  : surface.startsWith("studio-administration")
+                    ? "/studio/workspaces/admin%3Aadministration"
+                    : isStudioEditor
+                      ? "/studio/entities/posts/field-notes"
+                      : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
