@@ -52,7 +52,12 @@ describe("CLIInterface", () => {
       };
       cliInterface = new CLIInterface(config);
       await harness.installPlugin(cliInterface);
-      expect(cliInterface).toBeDefined();
+
+      // The install above throws on failure, so the claim is that a custom
+      // theme still yields a working cli plugin — same identity as the
+      // default-config case above.
+      expect(cliInterface.id).toBe("cli");
+      expect(cliInterface.packageName).toBe("@brains/chat-repl");
     });
   });
 
@@ -638,10 +643,11 @@ describe("CLIInterface", () => {
       // Register the CLI interface
       const capabilities = await harness.installPlugin(cliInterface);
 
-      // CLI uses agent-based architecture, no commands
-      // Should have tools and resources
-      expect(capabilities.tools).toBeDefined();
-      expect(capabilities.resources).toBeDefined();
+      // "registers as an interface plugin" is the plugin type; the arrays
+      // being present is true of every plugin kind.
+      expect(cliInterface.type).toBe("interface");
+      expect(Array.isArray(capabilities.tools)).toBe(true);
+      expect(Array.isArray(capabilities.resources)).toBe(true);
     });
   });
 });

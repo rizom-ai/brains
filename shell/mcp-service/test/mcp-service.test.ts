@@ -224,11 +224,6 @@ describe("MCPService", () => {
       expect(first).not.toBe(second);
       expect(first.getMcpServer()).not.toBe(second.getMcpServer());
     });
-
-    it("should initialize MCP server", () => {
-      const mcpServer = mcpService.getMcpServer();
-      expect(mcpServer).toBeDefined();
-    });
   });
 
   describe("tool registration", () => {
