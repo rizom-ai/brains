@@ -24,7 +24,11 @@ import { applySqlitePragmas } from "@brains/db";
 import { createJobQueueDatabase } from "./db";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
-import { JobQueueRepository, type AtomicJobData } from "./job-queue-repository";
+import {
+  JobQueueRepository,
+  type AtomicJobData,
+  type RetireUnownedActiveJobRequest,
+} from "./job-queue-repository";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   OperationProvenanceSchema,
@@ -472,6 +476,13 @@ export class JobQueueService implements IJobQueueService {
     attemptId?: string,
   ): Promise<boolean> {
     return this.repository.fail(jobId, error, attemptId);
+  }
+
+  /** Operator-only recovery for an exact retired job with no attempt owner. */
+  public retireUnownedActiveJob(
+    request: RetireUnownedActiveJobRequest,
+  ): Promise<JobInfo | null> {
+    return this.repository.retireUnownedActiveJob(request);
   }
 
   private async getDirectClaimOptions(): Promise<JobClaimOptions> {

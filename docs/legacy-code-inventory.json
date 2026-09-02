@@ -231,6 +231,21 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "retired-projection-job-recovery",
+      "paths": [
+        "packages/brains-ops/src/legacy-projection-job-recovery.ts",
+        "shell/job-queue/src/job-queue-repository.ts"
+      ],
+      "symbol": "recover:retire-legacy-projection-job",
+      "owner": "@brains/job-queue and @rizom/ops",
+      "class": "offline-migration",
+      "behavior": "Atomically retires one explicitly selected pre-scheduler projection job only when it has no attempt ownership, progress, or result.",
+      "currentConsumers": "Rover databases that retained active projection rows after their job handlers moved to scheduler-owned projection rules.",
+      "removalPrerequisite": "Audit supported runtime databases and observe zero active skill:project, topic:project, swot:derive, or conversation-memory:project rows through the rollback window.",
+      "rollbackDependency": "Retained alpha rollback targets can still expose the pre-scheduler rows that block an idle predeploy snapshot.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "job-queue-direct-dequeue-timeout",
       "paths": ["shell/job-queue/src/types.ts"],
       "symbol": "claimTimeoutMs direct-dequeue fallback",
