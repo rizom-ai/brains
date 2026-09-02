@@ -2,6 +2,15 @@
 
 `@brains/web-chat` provides the authenticated browser chat surface and its session APIs.
 
+## Public boundary
+
+`@rizom/brain/chat` owns the supported browser-safe domain schemas, paths, and
+fetch-injected transport client. This package's route handlers and standalone
+transport consume that canonical contract. The React application, AI SDK
+adapters, query cache, active-conversation state, routing, browser storage,
+copy, and styles remain private Web Chat presentation logic and are not
+re-exported from `@rizom/brain`.
+
 ## Build
 
 `bun run build` invokes `scripts/build-ui.ts`, which owns the browser target,

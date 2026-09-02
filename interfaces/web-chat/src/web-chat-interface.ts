@@ -1,9 +1,9 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
-  agentEventActionSchema,
   createExternalActorId,
   parseAgentResponse,
 } from "@brains/contracts";
+import { browserChatActionRequestSchema } from "@brains/contracts/browser-chat";
 import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
@@ -75,12 +75,6 @@ import {
 
 const webChatInterfaceType = "web-chat";
 const remoteAgentInterfaceType = "remote-agent";
-const chatActionRequestSchema = z
-  .object({
-    conversationId: z.string().min(1),
-    action: agentEventActionSchema,
-  })
-  .strict();
 
 const remoteAgentChatRequestSchema = z
   .object({
@@ -336,6 +330,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
     return new Response(
       renderChatPage({
+        apiPath: this.config.apiPath,
         surfaces: deriveConsoleSurfaces(
           this.getContext().webRoutes.getRoutes(),
           {
@@ -366,7 +361,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     } catch {
       return new Response("Invalid JSON body", { status: 400 });
     }
-    const parsed = chatActionRequestSchema.safeParse(body);
+    const parsed = browserChatActionRequestSchema.safeParse(body);
     if (!parsed.success) {
       return new Response("Invalid chat action request", { status: 400 });
     }
@@ -417,7 +412,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleUploadRouteRequest(request, {
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
-        this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
+        this.getContext().uploads.scoped(
+          createWebChatUploadStoreScope(this.config.apiPath),
+        ),
     });
   }
 
@@ -427,7 +424,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleUploadDownloadRouteRequest(request, {
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
-        this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
+        this.getContext().uploads.scoped(
+          createWebChatUploadStoreScope(this.config.apiPath),
+        ),
     });
   }
 
