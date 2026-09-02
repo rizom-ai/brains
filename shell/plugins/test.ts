@@ -12,6 +12,7 @@ export {
   createPluginHarness,
   expectSuccess,
   expectError,
+  confirmationArgs,
   expectConfirmation,
   type HarnessOptions,
 } from "./src/test/harness";

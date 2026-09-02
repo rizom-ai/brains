@@ -65,8 +65,12 @@ export function buildTagVocabulary(
     .slice(0, topN);
 }
 
+/**
+ * Takes only the entity service it reads from, not the whole plugin context:
+ * a caller that has one — and a test that stubs one — needs nothing else.
+ */
 export async function collectTagVocabulary(
-  context: EntityPluginContext,
+  context: Pick<EntityPluginContext, "entityService">,
   opts: {
     minCount?: number;
     topN?: number;

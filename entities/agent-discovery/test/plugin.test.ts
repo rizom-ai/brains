@@ -8,6 +8,7 @@ import {
 } from "@brains/plugins";
 import {
   createPluginHarness,
+  confirmationArgs,
   expectConfirmation,
   expectSuccess,
 } from "@brains/plugins/test";
@@ -34,6 +35,7 @@ import {
   type AgentStatus,
 } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
+import { z } from "@brains/utils/zod";
 
 function makeAgentEntity(status: AgentStatus): AgentEntity {
   return createTestAgent({
@@ -61,6 +63,45 @@ function createAgentCard(domain: string): Record<string, unknown> {
     ],
   };
 }
+
+/**
+ * The Agent Network widget view, as far as this test walks it. Parsing means a
+ * widget that stops emitting its tabs fails here rather than several optional
+ * chains later against undefined.
+ */
+const networkViewSchema = z.looseObject({
+  view: z.looseObject({
+    blocks: z.array(
+      z.looseObject({
+        type: z.string(),
+        tabs: z
+          .array(
+            z.looseObject({
+              id: z.string(),
+              blocks: z.array(
+                z.looseObject({
+                  type: z.string(),
+                  filter: z
+                    .looseObject({
+                      options: z.array(z.looseObject({ value: z.string() })),
+                    })
+                    .optional(),
+                  items: z
+                    .array(
+                      z.looseObject({
+                        filterValues: z.array(z.string()).optional(),
+                      }),
+                    )
+                    .optional(),
+                }),
+              ),
+            }),
+          )
+          .optional(),
+      }),
+    ),
+  }),
+});
 
 const tempDirs: string[] = [];
 
@@ -633,14 +674,14 @@ describe("AgentDiscoveryPlugin", () => {
     expect(confirmation.summary).toBe(
       "Verify and connect agent connect-followup.example?",
     );
-    const confirmationArgs = confirmation.args as Record<string, unknown>;
-    expect(confirmationArgs).toMatchObject({
+    const args = confirmationArgs(confirmation);
+    expect(args).toMatchObject({
       source: { kind: "url", url: "connect-followup.example" },
       confirmed: true,
     });
-    expect(typeof confirmationArgs["confirmationToken"]).toBe("string");
+    expect(typeof args["confirmationToken"]).toBe("string");
 
-    const result = await harness.executeTool("agent_connect", confirmationArgs);
+    const result = await harness.executeTool("agent_connect", args);
 
     expectSuccess(result);
     expect(result.data).toMatchObject({
@@ -740,7 +781,7 @@ describe("AgentDiscoveryPlugin", () => {
     });
     const result = await harness.executeTool(
       "agent_set_trust_level",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
       { actor: { kind: "user", userId: owner.userId } },
     );
 
@@ -809,7 +850,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_set_trust_level",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -837,7 +878,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_connect",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expect(result).toEqual({
@@ -867,7 +908,7 @@ describe("AgentDiscoveryPlugin", () => {
     expectConfirmation(confirmation);
 
     const result = await harness.executeTool("agent_connect", {
-      ...(confirmation.args as Record<string, unknown>),
+      ...confirmationArgs(confirmation),
       source: { kind: "url", url: "connect-changed.example" },
     });
 
@@ -899,7 +940,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_connect",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -939,7 +980,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_connect",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -1319,21 +1360,19 @@ describe("AgentDiscoveryPlugin", () => {
       drawsItself: boolean;
     }> = [];
 
-    harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as {
-        id: string;
-        group: string;
-        rendererName: string;
-        renderer?: { component: unknown };
-      };
-      registrations.push({
-        id: payload.id,
-        group: payload.group,
-        rendererName: payload.rendererName,
-        drawsItself: typeof payload.renderer?.component === "function",
-      });
-      return { success: true };
-    });
+    harness.subscribe<DashboardWidgetRegistration>(
+      "dashboard:register-widget",
+      async (message) => {
+        const payload = message.payload;
+        registrations.push({
+          id: payload.id,
+          group: payload.group,
+          rendererName: payload.rendererName,
+          drawsItself: typeof payload.renderer?.component === "function",
+        });
+        return { success: true };
+      },
+    );
 
     await harness.installPlugin(plugin);
     await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
@@ -1362,11 +1401,14 @@ describe("AgentDiscoveryPlugin", () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     let networkWidget: DashboardWidgetRegistration | undefined;
 
-    harness.subscribe("dashboard:register-widget", async (message) => {
-      const registration = message.payload as DashboardWidgetRegistration;
-      if (registration.id === "agent-network") networkWidget = registration;
-      return { success: true };
-    });
+    harness.subscribe<DashboardWidgetRegistration>(
+      "dashboard:register-widget",
+      async (message) => {
+        const registration = message.payload;
+        if (registration.id === "agent-network") networkWidget = registration;
+        return { success: true };
+      },
+    );
 
     await harness.installPlugin(new AgentDiscoveryPlugin());
     await harness.getEntityService().createEntity({
@@ -1387,21 +1429,7 @@ describe("AgentDiscoveryPlugin", () => {
       caller: null,
       signal: new AbortController().signal,
     });
-    const viewData = data as {
-      view: {
-        blocks: Array<{
-          type: string;
-          tabs?: Array<{
-            id: string;
-            blocks: Array<{
-              type: string;
-              filter?: { options: Array<{ value: string }> };
-              items?: Array<{ filterValues?: string[] }>;
-            }>;
-          }>;
-        }>;
-      };
-    };
+    const viewData = networkViewSchema.parse(data);
     const tabs = viewData.view.blocks.find(
       (block) => block.type === "tabs",
     )?.tabs;

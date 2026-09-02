@@ -79,7 +79,9 @@ describe("AgentDataSource", () => {
       expect(parsed.agents).toHaveLength(1);
       expect(parsed.agents[0]?.url).toBeNull();
       expect(parsed.agents[0]?.typeLabel).toBeNull();
-      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(
+        z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
+      ).toBeNull();
       expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 

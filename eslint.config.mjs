@@ -35,6 +35,7 @@ const NO_UNSAFE_TEST_CAST = {
  * that consumes this for why the migration is per-package.
  */
 const TEST_CAST_FREE_PACKAGES = [
+  "entities/agent-discovery",
   "entities/assessment",
   "entities/blog",
   "entities/conversation-memory",
@@ -42,6 +43,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "entities/link",
   "entities/note",
   "entities/portfolio",
+  "entities/social-media",
   "entities/topics",
   "entities/wishlist",
   "interfaces/a2a",
