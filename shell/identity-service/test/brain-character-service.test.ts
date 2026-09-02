@@ -193,8 +193,11 @@ values:
         throw new Error("Database error");
       };
 
-      // Should not throw
+      // "gracefully" means the service still answers after the write failed,
+      // not merely that initialize returned.
       await characterService.initialize();
+
+      expect(characterService.getCharacter().name.length).toBeGreaterThan(0);
     });
   });
 
