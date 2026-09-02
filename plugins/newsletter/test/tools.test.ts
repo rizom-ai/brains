@@ -4,17 +4,22 @@ import {
   expectSuccess,
   expectError,
 } from "@brains/plugins/test";
-import { createSilentLogger, mockFetch } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { ButtondownPlugin } from "../src/provider/plugin";
 import { createButtondownTools } from "../src/provider/tools";
+import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
 
-// Save original fetch to restore after tests
-const originalFetch = globalThis.fetch;
+// The client is built with a delegate to this, so a test can stub before or
+// after construction. Unstubbed calls fail loudly rather than reaching the
+// network.
+let fetchFn: ButtondownFetch = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: ButtondownFetch = (url, init) => fetchFn(url, init);
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
+function stubFetch(handler: ButtondownFetch): void {
+  fetchFn = handler;
+}
 
 describe("Buttondown Tools", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -52,9 +57,10 @@ describe("Buttondown Tools", () => {
 
   describe("newsletter_subscribers subscribe action", () => {
     it("should subscribe email via Buttondown API", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-123",
@@ -65,7 +71,10 @@ describe("Buttondown Tools", () => {
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+        new ButtondownPlugin(
+          { apiKey: "test-key", doubleOptIn: true },
+          { fetch: delegatingFetch },
+        ),
       );
 
       const result = await harness.executeTool("newsletter_subscribers", {
@@ -79,10 +88,11 @@ describe("Buttondown Tools", () => {
 
     it("should include name when provided", async () => {
       let capturedBody: string | undefined;
-      mockFetch((_url, options) => {
+      stubFetch((_url, options) => {
         capturedBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-123",
@@ -92,7 +102,10 @@ describe("Buttondown Tools", () => {
       });
 
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+        new ButtondownPlugin(
+          { apiKey: "test-key", doubleOptIn: true },
+          { fetch: delegatingFetch },
+        ),
       );
 
       await harness.executeTool("newsletter_subscribers", {
@@ -104,30 +117,35 @@ describe("Buttondown Tools", () => {
       expect(capturedBody).toContain("Test User");
     });
 
-    it("should handle API errors gracefully", async () => {
-      mockFetch(() =>
+    it("should surface the API's error detail", async () => {
+      // A well-formed address, so the request goes out and the stubbed 400
+      // is what the tool has to report.
+      stubFetch(() =>
         Promise.resolve({
           ok: false,
           status: 400,
-          json: () => Promise.resolve({ detail: "Invalid email" }),
+          json: () => Promise.resolve({ detail: "Subscriber limit reached" }),
         }),
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+        new ButtondownPlugin(
+          { apiKey: "test-key", doubleOptIn: true },
+          { fetch: delegatingFetch },
+        ),
       );
 
       const result = await harness.executeTool("newsletter_subscribers", {
         action: "subscribe",
-        email: "invalid",
+        email: "one-too-many@example.com",
       });
 
       expectError(result);
-      expect(result.error).toContain("Invalid email");
+      expect(result.error).toContain("Subscriber limit reached");
     });
 
     it("should detect already subscribed users", async () => {
-      mockFetch((_url, options) => {
+      stubFetch((_url, options) => {
         if (options.method === "POST") {
           return Promise.resolve({
             ok: false,
@@ -142,6 +160,7 @@ describe("Buttondown Tools", () => {
         }
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-existing",
@@ -152,7 +171,10 @@ describe("Buttondown Tools", () => {
       });
 
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+        new ButtondownPlugin(
+          { apiKey: "test-key", doubleOptIn: true },
+          { fetch: delegatingFetch },
+        ),
       );
 
       const result = await harness.executeTool("newsletter_subscribers", {
@@ -168,15 +190,19 @@ describe("Buttondown Tools", () => {
 
   describe("newsletter_subscribers unsubscribe action", () => {
     it("should unsubscribe email via Buttondown API", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () => Promise.resolve({}),
         }),
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+        new ButtondownPlugin(
+          { apiKey: "test-key", doubleOptIn: true },
+          { fetch: delegatingFetch },
+        ),
       );
 
       const result = await harness.executeTool("newsletter_subscribers", {
@@ -190,9 +216,10 @@ describe("Buttondown Tools", () => {
 
   describe("newsletter_subscribers list action", () => {
     it("should list subscribers from Buttondown API", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               results: [
@@ -213,7 +240,10 @@ describe("Buttondown Tools", () => {
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+        new ButtondownPlugin(
+          { apiKey: "test-key", doubleOptIn: true },
+          { fetch: delegatingFetch },
+        ),
       );
 
       const result = await harness.executeTool("newsletter_subscribers", {

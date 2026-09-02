@@ -7,6 +7,24 @@ export interface ButtondownConfig {
 }
 
 /**
+ * What the client needs from a response: the status check and the JSON body.
+ * A real Response satisfies this, and so does a test's bare object.
+ */
+export type ButtondownFetch = (
+  url: string,
+  init: RequestInit,
+) => Promise<Pick<Response, "ok" | "status" | "json">>;
+
+/**
+ * Runtime collaborators that are not configuration. Production leaves fetch
+ * unset and the client uses the global; a test hands in a fake and reads the
+ * requests off it instead of reassigning globalThis.fetch.
+ */
+export interface ButtondownClientDeps {
+  fetch?: ButtondownFetch | undefined;
+}
+
+/**
  * Buttondown API base URL
  */
 const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
@@ -137,9 +155,15 @@ export class ButtondownApiError extends Error {
 export class ButtondownClient {
   private config: ButtondownConfig;
   private logger: Logger;
-  constructor(config: ButtondownConfig, logger: Logger) {
+  private fetchFn: ButtondownFetch | undefined;
+  constructor(
+    config: ButtondownConfig,
+    logger: Logger,
+    deps: ButtondownClientDeps = {},
+  ) {
     this.config = config;
     this.logger = logger;
+    this.fetchFn = deps.fetch;
   }
 
   /**
@@ -156,7 +180,7 @@ export class ButtondownClient {
       method: options.method ?? "GET",
     });
 
-    const response = await fetch(url, {
+    const response = await (this.fetchFn ?? fetch)(url, {
       ...options,
       headers: {
         Authorization: `Token ${this.config.apiKey}`,

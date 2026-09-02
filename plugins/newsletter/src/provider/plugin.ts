@@ -8,7 +8,10 @@ import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { ButtondownClient } from "./lib/buttondown-client";
+import {
+  ButtondownClient,
+  type ButtondownClientDeps,
+} from "./lib/buttondown-client";
 import { createButtondownTools } from "./tools";
 import {
   handlePublishCompleted,
@@ -51,8 +54,14 @@ export class ButtondownPlugin extends ServicePlugin<
   ButtondownConfig,
   ButtondownConfigInput
 > {
-  constructor(config: ButtondownConfigInput = {}) {
+  private deps: ButtondownClientDeps;
+
+  constructor(
+    config: ButtondownConfigInput = {},
+    deps: ButtondownClientDeps = {},
+  ) {
     super("buttondown", packageJson, config, buttondownConfigSchema);
+    this.deps = deps;
   }
 
   protected override async onRegister(
@@ -68,6 +77,7 @@ export class ButtondownPlugin extends ServicePlugin<
       const client = new ButtondownClient(
         { apiKey: this.config.apiKey, doubleOptIn: this.config.doubleOptIn },
         this.logger,
+        this.deps,
       );
 
       context.messaging.subscribe<
@@ -123,6 +133,7 @@ export class ButtondownPlugin extends ServicePlugin<
       this.id,
       { apiKey: this.config.apiKey, doubleOptIn: this.config.doubleOptIn },
       this.logger,
+      this.deps,
     );
   }
 

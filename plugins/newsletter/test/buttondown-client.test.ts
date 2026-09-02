@@ -1,13 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { ButtondownClient } from "../src/provider/lib/buttondown-client";
+import { describe, it, expect, beforeEach } from "bun:test";
+import {
+  ButtondownApiError,
+  ButtondownClient,
+  type ButtondownFetch,
+} from "../src/provider/lib/buttondown-client";
 import { z } from "@brains/utils/zod";
-import { createSilentLogger, mockFetch } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
-const originalFetch = globalThis.fetch;
+// The client is built with a delegate to this, so a test can stub before or
+// after construction. Unstubbed calls fail loudly rather than reaching the
+// network.
+let fetchFn: ButtondownFetch = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: ButtondownFetch = (url, init) => fetchFn(url, init);
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
+function stubFetch(handler: ButtondownFetch): void {
+  fetchFn = handler;
+}
 
 const mockLogger = createSilentLogger();
 
@@ -18,14 +27,16 @@ describe("ButtondownClient", () => {
     client = new ButtondownClient(
       { apiKey: "test-api-key", doubleOptIn: true },
       mockLogger,
+      { fetch: delegatingFetch },
     );
   });
 
   describe("createSubscriber", () => {
     it("should create a subscriber with email", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-123",
@@ -45,10 +56,11 @@ describe("ButtondownClient", () => {
 
     it("should include name when provided", async () => {
       let capturedBody: string | undefined;
-      mockFetch((_url, options) => {
+      stubFetch((_url, options) => {
         capturedBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-123",
@@ -68,7 +80,7 @@ describe("ButtondownClient", () => {
     });
 
     it("should handle API errors", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: false,
           status: 400,
@@ -76,12 +88,20 @@ describe("ButtondownClient", () => {
         }),
       );
 
-      expect(client.createSubscriber({ email: "invalid" })).rejects.toThrow();
+      // Settled explicitly: an unawaited `.rejects` would let a resolving
+      // call pass this test.
+      const outcome = await client.createSubscriber({ email: "invalid" }).then(
+        () => "resolved",
+        (error: unknown) => error,
+      );
+
+      expect(outcome).toBeInstanceOf(ButtondownApiError);
+      expect(outcome).toMatchObject({ status: 400 });
     });
 
     it("should detect duplicates via error code and look up the existing subscriber", async () => {
       const requests: Array<{ url: string; method: string | undefined }> = [];
-      mockFetch((url, options) => {
+      stubFetch((url, options) => {
         requests.push({ url, method: options.method });
         if (options.method === "POST") {
           return Promise.resolve({
@@ -97,6 +117,7 @@ describe("ButtondownClient", () => {
         }
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-existing",
@@ -120,10 +141,11 @@ describe("ButtondownClient", () => {
   describe("getSubscriberByEmail", () => {
     it("should fetch a subscriber by email", async () => {
       let capturedUrl: string | undefined;
-      mockFetch((url) => {
+      stubFetch((url) => {
         capturedUrl = url;
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "sub-1",
@@ -146,11 +168,12 @@ describe("ButtondownClient", () => {
       // request at all, or issued the wrong one against the wrong subscriber.
       let capturedUrl: string | undefined;
       let capturedMethod: string | undefined;
-      mockFetch((url, options) => {
+      stubFetch((url, options) => {
         capturedUrl = url;
         capturedMethod = options.method;
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () => Promise.resolve({}),
         });
       });
@@ -164,9 +187,10 @@ describe("ButtondownClient", () => {
 
   describe("listSubscribers", () => {
     it("should return list of subscribers", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               results: [
@@ -195,9 +219,10 @@ describe("ButtondownClient", () => {
 
   describe("createEmail", () => {
     it("should create a draft email", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "email-123",
@@ -218,10 +243,11 @@ describe("ButtondownClient", () => {
 
     it("should send immediately when status is about_to_send", async () => {
       let capturedBody: string | undefined;
-      mockFetch((_url, options) => {
+      stubFetch((_url, options) => {
         capturedBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "email-123",
@@ -243,9 +269,10 @@ describe("ButtondownClient", () => {
 
   describe("validateCredentials", () => {
     it("should return true for valid API key", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: true,
+          status: 200,
           json: () => Promise.resolve({ results: [] }),
         }),
       );
@@ -255,10 +282,11 @@ describe("ButtondownClient", () => {
     });
 
     it("should return false for invalid API key", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: false,
           status: 401,
+          json: () => Promise.resolve({}),
         }),
       );
 

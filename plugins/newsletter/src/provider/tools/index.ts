@@ -3,7 +3,10 @@ import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { ButtondownClient } from "../lib/buttondown-client";
+import {
+  ButtondownClient,
+  type ButtondownClientDeps,
+} from "../lib/buttondown-client";
 
 const toolEmailSchema = z.string().email({ pattern: z.regexes.html5Email });
 
@@ -54,9 +57,10 @@ export function createButtondownTools(
   pluginId: string,
   config: ButtondownConfig,
   logger: Logger,
+  deps: ButtondownClientDeps = {},
 ): Tool[] {
   void pluginId;
-  const client = new ButtondownClient(config, logger);
+  const client = new ButtondownClient(config, logger, deps);
 
   return [
     createTool(
