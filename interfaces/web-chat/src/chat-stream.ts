@@ -12,18 +12,22 @@ import {
   type MessageArtifactEntity,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
 import { stripInternalEntityMemoryNote } from "./display-content";
-import { writePlanCards, writeTextPart } from "./stream-writer";
+import {
+  writePlanCards,
+  writeTextPart,
+  type StreamWriter,
+} from "./stream-writer";
 
 export interface ActiveStream {
-  writer: UIMessageStreamWriter<UIMessage>;
+  writer: StreamWriter;
 }
 
 interface StreamDeps {
   activeStreams: Map<string, ActiveStream>;
-  agent: AgentNamespace;
+  /** The two calls this stream makes, not the whole agent namespace. */
+  agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
   startProcessingInput(conversationId: string): void;
   endProcessingInput(): void;
   handleAgentResponseToolStatuses(
@@ -89,7 +93,7 @@ function hasMatchingApprovalCard(
 }
 
 async function writeUnmatchedApprovalTerminal(
-  writer: UIMessageStreamWriter<UIMessage>,
+  writer: StreamWriter,
   conversationId: string,
   approvalResponse: ApprovalResponse,
   response: Pick<AgentResponse, "cards" | "text">,
@@ -116,7 +120,7 @@ async function writeUnmatchedApprovalTerminal(
 }
 
 interface StreamedChatInput {
-  writer: UIMessageStreamWriter<UIMessage>;
+  writer: StreamWriter;
   conversationId: string;
   message: string;
   permissionLevel: UserPermissionLevel;
@@ -174,7 +178,7 @@ export async function handleStreamedChat(
 }
 
 interface StreamedConfirmationsInput {
-  writer: UIMessageStreamWriter<UIMessage>;
+  writer: StreamWriter;
   conversationId: string;
   approvalResponses: ApprovalResponse[];
   permissionLevel: UserPermissionLevel;
@@ -285,7 +289,7 @@ function buildWebChatContext(
 }
 
 export function writeText(
-  writer: UIMessageStreamWriter<UIMessage>,
+  writer: StreamWriter,
   text: string,
   prefix: string,
   createId: (prefix: string) => string,

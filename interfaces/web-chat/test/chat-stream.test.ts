@@ -56,7 +56,12 @@ function createDeps(
 ): Parameters<typeof handleStreamedChat>[1] {
   return {
     activeStreams: new Map(),
-    agent: agent as never,
+    // Both members filled in: the deps require them, and a test that supplies
+    // only one used to assert the gap away.
+    agent: {
+      chat: agent.chat ?? mock(),
+      confirmPendingAction: agent.confirmPendingAction ?? mock(),
+    },
     startProcessingInput: mock(() => {}),
     endProcessingInput: mock(() => {}),
     handleAgentResponseToolStatuses: mock(async () => {}),
@@ -105,7 +110,7 @@ describe("chat stream", () => {
 
     await handleStreamedChat(
       {
-        writer: writer as never,
+        writer,
         conversationId: "conversation-1",
         message: "Yeehaa",
         permissionLevel: "admin",
@@ -132,7 +137,7 @@ describe("chat stream", () => {
 
     await handleStreamedChat(
       {
-        writer: writer as never,
+        writer,
         conversationId: "conversation-1",
         message: "Hello",
         permissionLevel: "admin",
@@ -218,7 +223,7 @@ describe("chat stream", () => {
 
     await handleStreamedChat(
       {
-        writer: writer as never,
+        writer,
         conversationId: "conversation-1",
         message: "show me the files",
         permissionLevel: "public",
@@ -244,7 +249,7 @@ describe("chat stream", () => {
 
     await handleStreamedConfirmations(
       {
-        writer: writer as never,
+        writer,
         conversationId: "conversation-1",
         approvalResponses: [{ id: "approval:expired-call", approved: true }],
         permissionLevel: "admin",
@@ -274,7 +279,7 @@ describe("chat stream", () => {
 
     await handleStreamedConfirmations(
       {
-        writer: writer as never,
+        writer,
         conversationId: "conversation-1",
         approvalResponses: [{ id: "approval-1", approved: true }],
         permissionLevel: "admin",

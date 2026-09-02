@@ -18,6 +18,25 @@ import {
 import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
 import { WebChatInterface } from "../src";
+import { z } from "@brains/utils/zod";
+
+/**
+ * What the runtime upload endpoint puts on the wire.
+ *
+ * Parsing rather than asserting means an endpoint that stops returning `ref`
+ * or `url` fails here, instead of handing the next request an undefined it
+ * interpolates into a URL.
+ */
+const uploadResponseSchema = z.looseObject({
+  id: z.string(),
+  ref: z.looseObject({ kind: z.string(), id: z.string() }),
+  filename: z.string(),
+  mediaType: z.string(),
+  sizeBytes: z.number(),
+  createdAt: z.string(),
+  url: z.string(),
+  downloadUrl: z.string(),
+});
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
 type AgentResponse = Awaited<ReturnType<IAgentService["chat"]>>;
@@ -2214,16 +2233,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const body = (await response?.json()) as {
-      id: string;
-      ref: { kind: string; id: string };
-      filename: string;
-      mediaType: string;
-      sizeBytes: number;
-      createdAt: string;
-      url: string;
-      downloadUrl: string;
-    };
+    const body = uploadResponseSchema.parse(await response?.json());
 
     expect(response?.status).toBe(201);
     expect(body.id).toStartWith("upload-");
@@ -2278,7 +2288,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const body = (await response?.json()) as { id: string };
+    const body = uploadResponseSchema.parse(await response?.json());
 
     expect(response?.status).toBe(201);
     expect(
@@ -2312,10 +2322,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      id: string;
-      url: string;
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     const response = await downloadRoute?.handler(
       new Request(`http://brain${upload.url}`),
@@ -2344,12 +2351,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      filename: string;
-      mediaType: string;
-      sizeBytes: number;
-      url: string;
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     expect(uploadResponse?.status).toBe(201);
     expect(upload).toEqual(
@@ -2518,7 +2520,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const body = (await response?.json()) as { id: string };
+    const body = uploadResponseSchema.parse(await response?.json());
 
     expect(response?.status).toBe(201);
     // Stale dir removed, fresh upload retained.
@@ -2548,9 +2550,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     const response = await chatRoute?.handler(
       new Request("http://brain/api/chat", {
@@ -2599,9 +2599,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     const response = await chatRoute?.handler(
       new Request("http://brain/api/chat", {
