@@ -1,7 +1,7 @@
 import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
 import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
-import type { IAuthRegistry } from "../contracts/auth";
+import type { IAuthRegistry } from "../contracts/auth-registry";
 import type { IEntityAINamespace } from "./ai-types";
 import type { LoggerContract } from "@brains/utils/logger";
 import type {

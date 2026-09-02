@@ -775,7 +775,7 @@ async function loadBrainAnchor(
 export function createPeopleTabSource(
   context: ServicePluginContext,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
+  const authService = requireAuthService(context);
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peopleWorkspace,

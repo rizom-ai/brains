@@ -32,6 +32,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./contracts/agent": "./src/contracts/agent.ts",
+    "./contracts/auth-admin": "./src/contracts/auth-admin.ts",
+    "./contracts/auth-administration": "./src/contracts/auth-administration.ts",
     "./contracts/app-info": "./src/contracts/app-info.ts",
     "./contracts/conversations": "./src/contracts/conversations.ts",
     "./contracts/identity": "./src/contracts/identity.ts",

@@ -43,7 +43,6 @@ import { AuthRequestRouter } from "./auth-request-router";
 import { AuthRuntime } from "./auth-runtime";
 import type {
   AttachAuthIdentityInput,
-  AuthIdentityRecord,
   ResolveAuthIdentityInput,
 } from "./identity-store";
 
@@ -619,7 +618,7 @@ export class AuthService
   async attachIdentity(
     input: AttachAuthIdentityInput,
     context: AuthMutationContext = {},
-  ): Promise<AuthIdentityRecord> {
+  ): Promise<AuthIdentitySummary> {
     await this.runtime.ensureStarted();
     const descriptor = this.validateChannelSubject(input.type, input.subject);
     return this.runtime.getAdministrationService().attachIdentity(
@@ -636,7 +635,7 @@ export class AuthService
   async detachIdentity(
     identityId: string,
     context: AuthMutationContext = {},
-  ): Promise<AuthIdentityRecord> {
+  ): Promise<AuthIdentitySummary> {
     await this.runtime.ensureStarted();
     return this.runtime
       .getAdministrationService()
@@ -862,20 +861,10 @@ export class AuthService
         this.updateUserStatus(userId, status, { actorUserId }),
       deleteUser: (userId, actorUserId) =>
         this.deleteSuspendedUser(userId, { actorUserId }),
-      attachIdentity: async (input, actorUserId) =>
-        identitySummary(
-          await this.attachIdentity(input, { actorUserId }),
-          input.userId,
-          this.getChannelDescriptor,
-        ),
-      detachIdentity: async (identityId, actorUserId) => {
-        const identity = await this.detachIdentity(identityId, { actorUserId });
-        const user = await this.runtime
-          .getUserStore()
-          .getUserByPersonId(identity.personId);
-        if (!user) throw new Error("Identity person has no auth user");
-        return identitySummary(identity, user.id, this.getChannelDescriptor);
-      },
+      attachIdentity: (input, actorUserId) =>
+        this.attachIdentity(input, { actorUserId }),
+      detachIdentity: (identityId, actorUserId) =>
+        this.detachIdentity(identityId, { actorUserId }),
       revokePasskey: (credentialId, actorUserId) =>
         this.revokePasskey(credentialId, { actorUserId }),
       startPasskeyRegistration: (userId, actorUserId, delivery) =>
@@ -907,39 +896,4 @@ export class AuthService
   private resolveRequestIssuer(request: Request): string {
     return this.runtime.getPrincipalService().resolveRequestIssuer(request);
   }
-}
-
-function identitySummary(
-  identity: AuthIdentityRecord,
-  userId: string,
-  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
-): AuthIdentitySummary {
-  const identityLabel = identity.label?.trim();
-  const deliverySubject = identity.deliverySubject?.trim();
-  const label =
-    identityLabel &&
-    identityLabel.length > 0 &&
-    identityLabel !== getChannelDescriptor?.(identity.type)?.subjectLabel
-      ? identityLabel
-      : deliverySubject;
-  return {
-    id: identity.id,
-    personId: identity.personId,
-    userId,
-    type: identity.type,
-    visibility: identity.visibility,
-    evidence: identity.evidence.map((item) => ({
-      sourceKind: item.sourceKind,
-      ...(item.sourceId ? { sourceId: item.sourceId } : {}),
-      assurance: item.assurance,
-      ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
-    })),
-    ...(identity.issuer ? { issuer: identity.issuer } : {}),
-    ...(label ? { label } : {}),
-    ...(identity.verifiedAt !== null
-      ? { verifiedAt: identity.verifiedAt }
-      : {}),
-    ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
-    createdAt: identity.createdAt,
-  };
 }

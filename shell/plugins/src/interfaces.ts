@@ -58,7 +58,7 @@ import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
-import type { IAuthRegistry } from "./contracts/auth";
+import type { IAuthRegistry } from "./contracts/auth-registry";
 import type {
   AnchorProfile,
   BrainCharacter,

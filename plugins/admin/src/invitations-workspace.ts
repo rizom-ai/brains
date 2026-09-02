@@ -477,7 +477,7 @@ function setupResult(
 export function createInvitationsTabSource(
   context: ServicePluginContext,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
+  const authService = requireAuthService(context);
   const pendingManualDeliveries = new Map<string, string>();
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,

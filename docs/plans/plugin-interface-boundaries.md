@@ -354,19 +354,18 @@ made the entity tranche find real defects rather than move code.
    `context.auth`. dashboard, studio, mcp and web-chat are off the global.
    `AuthFederation` and `AuthIdentities` followed, so a2a, chat and
    agent-discovery are off it too — seven packages in total. Only admin
-   remains. Its contract now names only portable vocabulary except for
-   one return: `attachIdentity` and `detachIdentity` hand back
-   `AuthIdentityRecord`, a drizzle-derived row, which admin discards. The
-   HTTP adapter already declares `AuthIdentitySummary` for the same two
-   operations, so the mapping exists — moving it down into
-   `administration-service` frees the contract, and then
-   `AuthAdministration` moves to the plugin layer beside the other three.
+   _Done._ All four contracts — caller, audit, federation, identities — plus
+   `AuthAdministration` and the browser-safe admin vocabulary now live in
+   `shell/plugins/src/contracts/`, and the running implementation reaches
+   packages through a shell registry as `context.auth`. No production code
+   calls `getActiveAuthService()`.
 
-   Already corrected on the way: `linkExternalPeer`/`unlinkExternalPeer`
-   returned a drizzle row and now return `AuthExternalPeerSummary`, and
-   `updateUserRole`/`updateUserStatus` take the browser-safe
-   `AuthAdminRole`/`AuthAdminStatus` rather than indexed access on a table
-   row.
+   Getting there meant correcting three administration returns that handed
+   back drizzle-inferred table rows: the peer link/unlink pair and the
+   identity attach/detach pair now return the summaries the HTTP layer
+   already served for the same data, and role/status take the browser-safe
+   unions. admin discarded all four return values, so nothing downstream
+   changed shape.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking

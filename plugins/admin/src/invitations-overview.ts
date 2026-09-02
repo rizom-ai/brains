@@ -177,7 +177,7 @@ export async function registerInvitationsOverview(
     definition: invitationsOverviewWidget,
     load: async ({ signal }) => {
       signal.throwIfAborted();
-      const users = await requireAuthService().listAdminUsers();
+      const users = await requireAuthService(context).listAdminUsers();
       signal.throwIfAborted();
       return deriveInvitationsOverview(users, Date.now());
     },

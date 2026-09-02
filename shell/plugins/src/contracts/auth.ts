@@ -183,16 +183,6 @@ export interface AuthFederation {
 }
 
 /**
- * Where the running auth implementation is published.
- *
- * One registration per brain: auth-service registers itself when it comes
- * up and withdraws on shutdown, and a package reads what is there. A brain
- * with no auth-service reads `undefined` — which is the honest answer, and
- * the one a module-level global could not give a package that had already
- * imported it.
- */
-/** Everything the runtime publishes as one object. */
-/**
  * Resolving a speaker who arrives on a channel rather than over HTTP.
  *
  * A chat message carries a platform identity, not a request with a session,
@@ -208,58 +198,4 @@ export interface AuthIdentities {
     | { state: "denied" }
     | { state: "unbound" }
   >;
-}
-
-export type AuthImplementation = AuthCaller &
-  AuthAudit &
-  AuthFederation &
-  AuthIdentities;
-
-export interface IAuthRegistry {
-  register(implementation: AuthImplementation): void;
-  unregister(implementation: AuthImplementation): void;
-  getCaller(): AuthCaller | undefined;
-  getAudit(): AuthAudit | undefined;
-  getFederation(): AuthFederation | undefined;
-  getIdentities(): AuthIdentities | undefined;
-}
-
-export class AuthRegistry implements IAuthRegistry {
-  private implementation: AuthImplementation | undefined;
-
-  public static createFresh(): AuthRegistry {
-    return new AuthRegistry();
-  }
-
-  public register(implementation: AuthImplementation): void {
-    if (
-      this.implementation !== undefined &&
-      this.implementation !== implementation
-    ) {
-      throw new Error("An auth implementation is already registered");
-    }
-    this.implementation = implementation;
-  }
-
-  public unregister(implementation: AuthImplementation): void {
-    if (this.implementation === implementation) {
-      this.implementation = undefined;
-    }
-  }
-
-  public getCaller(): AuthCaller | undefined {
-    return this.implementation;
-  }
-
-  public getAudit(): AuthAudit | undefined {
-    return this.implementation;
-  }
-
-  public getFederation(): AuthFederation | undefined {
-    return this.implementation;
-  }
-
-  public getIdentities(): AuthIdentities | undefined {
-    return this.implementation;
-  }
 }

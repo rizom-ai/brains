@@ -94,7 +94,13 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
-export { AuthRegistry } from "./contracts/auth";
+export { AuthRegistry } from "./contracts/auth-registry";
+export type {
+  AuthImplementation,
+  IAuthRegistry,
+} from "./contracts/auth-registry";
+export type * from "./contracts/auth-admin";
+export type * from "./contracts/auth-administration";
 export type {
   A2APeerTrustRecord,
   A2APrivateJwk,
@@ -112,9 +118,7 @@ export type {
   AuthCaller,
   AuthFederation,
   AuthIdentities,
-  AuthImplementation,
   AuthPrincipal,
-  IAuthRegistry,
   VerifiedAccessToken,
 } from "./contracts/auth";
 export {

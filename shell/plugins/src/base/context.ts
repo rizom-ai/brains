@@ -54,7 +54,7 @@ import type {
   IPluginsNamespace,
   IProfileKindsNamespace,
 } from "./context-types";
-import type { IAuthRegistry } from "../contracts/auth";
+import type { IAuthRegistry } from "../contracts/auth-registry";
 
 export interface ISemanticNamespace {
   project(

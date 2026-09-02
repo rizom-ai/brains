@@ -1,9 +1,9 @@
 import type { StudioWorkspaceRegistration } from "@brains/plugins";
-import {
-  getActiveAuthService,
-  type AuthAdminUserSummary,
-  type AuthAdministration,
+import type {
+  AuthAdminUserSummary,
+  AuthAdministration,
 } from "@brains/auth-service";
+import type { BasePluginContext } from "@brains/plugins";
 
 export type AdminWorkspaceRegistration = Omit<
   StudioWorkspaceRegistration,
@@ -33,8 +33,15 @@ export function formatWorkspaceDate(timestamp: number): string {
   return workspaceDateFormatter.format(new Date(timestamp));
 }
 
-export function requireAuthService(): AuthAdministration {
-  const authService = getActiveAuthService();
+/**
+ * The running auth implementation, read from the runtime rather than a
+ * module global — a brain without auth-service has none, and administration
+ * cannot be built against nothing.
+ */
+export function requireAuthService(
+  context: BasePluginContext,
+): AuthAdministration {
+  const authService = context.auth.getAdministration();
   if (!authService) {
     throw new Error("Administration workspace requires auth-service");
   }

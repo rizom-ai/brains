@@ -314,7 +314,9 @@ export async function registerAdministrationWorkspace(
       return runChildAction(source, request, actor, signal);
     },
     badgeProvider: async () =>
-      administrationAttention(await requireAuthService().listAdminUsers()),
+      administrationAttention(
+        await requireAuthService(context).listAdminUsers(),
+      ),
   });
   return result ? result.workspaceUrl : undefined;
 }

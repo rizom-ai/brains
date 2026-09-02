@@ -249,7 +249,7 @@ export function createAuditTabSource(
     bind: (bindingContext) =>
       studioAuditWorkspace.bind(bindingContext, {
         load: async ({ query }) => {
-          const authService = requireAuthService();
+          const authService = requireAuthService(context);
           const normalized = query.get(auditWorkspaceQuerySchema);
           const [audit, users] = await Promise.all([
             authService.queryAuditEvents({

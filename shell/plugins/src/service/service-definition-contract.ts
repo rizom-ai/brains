@@ -2,7 +2,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
-import type { IAuthRegistry } from "../contracts/auth";
+import type { IAuthRegistry } from "../contracts/auth-registry";
 import type { AnyInterfaceRouteDefinition } from "../interface/route-contract";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 

@@ -21,10 +21,16 @@ shutdown, reachable as `context.auth`. A brain with no auth-service reads
 `undefined` — the honest answer, and the one a module-level global could not
 give a package that had already imported it.
 
-Seven packages no longer call `getActiveAuthService()`: dashboard, studio,
-mcp, web-chat, a2a, chat and agent-discovery. Only `@brains/admin` still
-does; its `AuthAdministration` contract names types from eight auth-service
-modules and moves with the slice that converts it.
+No production code calls `getActiveAuthService()` any more. `AuthAdministration`
+and the browser-safe admin vocabulary moved too, so `@brains/admin` reads
+`context.auth.getAdministration()`.
+
+Three administration returns changed to browser-safe vocabulary on the way:
+`linkExternalPeer`/`unlinkExternalPeer` and `attachIdentity`/`detachIdentity`
+returned drizzle-inferred table rows and now return `AuthExternalPeerSummary`
+and `AuthIdentitySummary` — the shapes the HTTP layer already served for the
+same data. `updateUserRole`/`updateUserStatus` take `AuthAdminRole`/
+`AuthAdminStatus` rather than indexed access on a row.
 
 Tool and reaction contexts carry `auth` too — a tool that grants or revokes
 peer trust acts on auth rather than on entities. Named consumer:

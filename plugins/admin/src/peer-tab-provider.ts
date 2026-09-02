@@ -339,7 +339,7 @@ function mutationContext(caller: OperatorCaller | null): {
 export function createPeerTabSource(
   context: ServicePluginContext,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
+  const authService = requireAuthService(context);
   const registration = createBuiltInStudioWorkspaceRegistration({
     context,
     definition: peerTabProvider,

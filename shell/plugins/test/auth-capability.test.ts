@@ -31,8 +31,23 @@ const auditEvent: AuthAuditEvent = {
   createdAt: 0,
 };
 
+/**
+ * The administration half is 19 operations this test never calls; a brain
+ * that has auth has all of them, so the stub says so without spelling each
+ * one out.
+ */
+const unusedAdministration = new Proxy(
+  {},
+  {
+    get: () => (): never => {
+      throw new Error("Administration is not exercised here");
+    },
+  },
+) as AuthImplementation;
+
 function stubAuth(): AuthImplementation {
   return {
+    ...unusedAdministration,
     resolveSession: async () => principal,
     resolveBearerGrant: async () => undefined,
     createAuthLoginResponse: () => new Response(null, { status: 302 }),
@@ -56,7 +71,10 @@ function stubAuth(): AuthImplementation {
       },
       keyId: "k",
     }),
-    grantA2APeerTrust: async (input) => ({
+    grantA2APeerTrust: async (input: {
+      domain: string;
+      keyFingerprint: string;
+    }) => ({
       domain: input.domain,
       keyFingerprint: input.keyFingerprint,
       grantedLevel: "trusted",
