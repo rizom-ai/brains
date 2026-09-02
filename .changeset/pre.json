@@ -267,6 +267,7 @@
     "core--context-extends-published-surface",
     "core--contracts-channel-ownership",
     "core--cross-process-durable-work",
+    "core--dashboard-knowledge-atlas",
     "core--dashboard-paper-theme-mode",
     "core--dashboard-public-card",
     "core--dashboard-public-system-tab",

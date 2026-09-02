@@ -1,5 +1,16 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.347
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.347
+  - @brains/contracts@0.2.0-alpha.347
+  - @brains/image@0.2.0-alpha.347
+  - @brains/utils@0.2.0-alpha.347
+  - @brains/plugins@0.2.0-alpha.347
+
 ## 0.2.0-alpha.346
 
 ### Patch Changes

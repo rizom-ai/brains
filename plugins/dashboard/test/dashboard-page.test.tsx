@@ -384,7 +384,13 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).toContain('data-card-map="knowledge"');
     expect(html).toContain('class="knowledge-map-field map-field"');
+    expect(html).toContain('class="knowledge-atlas-summary"');
+    expect(html).toContain("mapped sources");
+    expect(html).toContain("Territories");
     expect(html).toContain("Trust networks");
+    expect(html).toContain('data-knowledge-zone="topic:trust"');
+    expect(html).toContain('data-knowledge-zone-ref="topic:trust"');
+    expect(html).not.toContain("knowledge-point-glow");
     expect(html).toContain('data-card-map="network"');
     expect(html).toContain('class="proximity-map-field map-field"');
     expect(html).toContain("Agent One");
