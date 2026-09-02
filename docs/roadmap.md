@@ -170,6 +170,7 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
+- [studio-control-vocabulary.md](./plans/studio-control-vocabulary.md) — one control vocabulary for the console: adopt `@brains/ui-library` instead of a fourth hand-rolled button/field system, take Radix-with-CVA for the interactive gaps rather than a second component set, and let each brain's console follow its own theme so the palette stops being declared twice.
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any Studio or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/Studio/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
 - [studio-chat-integration.md](./plans/studio-chat-integration.md) — move the authenticated browser Chat presentation into a conditional fixed Studio workspace while Web Chat retains API, streaming, session, upload, and conversation authority.
