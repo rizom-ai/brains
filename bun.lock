@@ -594,6 +594,7 @@
         "@brains/chat": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/content-pipeline": "workspace:*",
+        "@brains/contracts": "workspace:*",
         "@brains/conversation-memory": "workspace:*",
         "@brains/core": "workspace:*",
         "@brains/dashboard": "workspace:*",

@@ -1,6 +1,11 @@
-# Public Authoring API `0.2`
+# Public API `0.2`
 
-This is the patch-stable authoring ledger for the `0.2.x` line. A symbol is stable only when it appears below. The machine-readable source is [`export-ledger.json`](../../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json), and the standalone packages beside that ledger are the compatibility fixtures.
+This is the patch-stable public API ledger for the `0.2.x` line, covering
+external authoring and headless browser contracts. A symbol is stable only when
+it appears below. The machine-readable source is
+[`export-ledger.json`](../../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json).
+Authoring packages beside that ledger and the separate packed headless Chat
+consumer are the compatibility fixtures.
 
 ## `@rizom/brain`
 
@@ -24,6 +29,97 @@ Types:
 - `PermissionConfig`
 - `PluginPackageDefinition`
 - `ReasoningEffort`
+
+## `@rizom/brain/chat`
+
+Headless browser Chat domain and transport:
+
+- `BROWSER_CHAT_API_VERSION`
+- `DEFAULT_BROWSER_CHAT_API_PATH`
+- `BrowserChatApiError`
+- `createBrowserChatApiPaths`
+- `createBrowserChatClient`
+
+Client and transport types:
+
+- `BrowserChatApiErrorKind`
+- `BrowserChatApiPaths`
+- `BrowserChatClient`
+- `BrowserChatClientOptions`
+- `BrowserChatFetch`
+
+Domain types:
+
+- `ArchiveBrowserChatSessionResponse`
+- `BrowserChatActionRequest`
+- `BrowserChatActionResponse`
+- `BrowserChatApprovalResponse`
+- `BrowserChatApprovalResponsePart`
+- `BrowserChatCard`
+- `BrowserChatContextHandoffRequest`
+- `BrowserChatContextHandoffResponse`
+- `BrowserChatEventAction`
+- `BrowserChatFilePart`
+- `BrowserChatHistoryAttachment`
+- `BrowserChatHistoryAttachmentSource`
+- `BrowserChatHistoryMessage`
+- `BrowserChatJobStatus`
+- `BrowserChatJobStatusValue`
+- `BrowserChatMessage`
+- `BrowserChatMessageRequest`
+- `BrowserChatMessageRole`
+- `BrowserChatMessagesResponse`
+- `BrowserChatProgressEvent`
+- `BrowserChatSession`
+- `BrowserChatSessionsResponse`
+- `BrowserChatSourceContext`
+- `BrowserChatTextPart`
+- `BrowserChatToolStatusEvent`
+- `BrowserChatToolStatusValue`
+- `BrowserChatUploadPart`
+- `BrowserChatUploadPartData`
+- `BrowserChatUploadRef`
+- `BrowserChatUploadResponse`
+- `DeleteBrowserChatSessionResponse`
+- `RenameBrowserChatSessionRequest`
+- `RenameBrowserChatSessionResponse`
+
+Schemas:
+
+- `archiveBrowserChatSessionResponseSchema`
+- `browserChatActionRequestSchema`
+- `browserChatActionResponseSchema`
+- `browserChatApprovalResponsePartSchema`
+- `browserChatApprovalResponseSchema`
+- `browserChatCardSchema`
+- `browserChatContextHandoffRequestSchema`
+- `browserChatContextHandoffResponseSchema`
+- `browserChatEventActionSchema`
+- `browserChatFilePartSchema`
+- `browserChatHistoryAttachmentSchema`
+- `browserChatHistoryAttachmentSourceSchema`
+- `browserChatHistoryMessageSchema`
+- `browserChatJobStatusSchema`
+- `browserChatMessageRequestSchema`
+- `browserChatMessageSchema`
+- `browserChatMessagesResponseSchema`
+- `browserChatProgressEventSchema`
+- `browserChatSessionSchema`
+- `browserChatSessionsResponseSchema`
+- `browserChatSourceContextSchema`
+- `browserChatTextPartSchema`
+- `browserChatToolStatusEventSchema`
+- `browserChatUploadPartSchema`
+- `browserChatUploadRefSchema`
+- `browserChatUploadResponseSchema`
+- `deleteBrowserChatSessionResponseSchema`
+- `renameBrowserChatSessionRequestSchema`
+- `renameBrowserChatSessionResponseSchema`
+
+This subpath contains only server-owned domain state, protocol schemas, bounded
+paths, and fetch-injected transport. Active selection, reducers, routing,
+navigation, cache behavior, browser storage, UI-message transforms,
+presentation copy, components, hooks, styles, and stores are not public API.
 
 ## `@rizom/brain/plugins`
 

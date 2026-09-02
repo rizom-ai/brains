@@ -8,16 +8,18 @@ import {
   type WebChatUploadResponse,
 } from "../ui-react/src/uploads";
 
+const uploadId = "upload-550e8400-e29b-41d4-a716-446655440000";
+
 function makeUploadResponse(): WebChatUploadResponse {
   return {
-    id: "upload-123",
-    ref: { kind: "upload", id: "upload-123" },
+    id: uploadId,
+    ref: { kind: "upload", id: uploadId },
     filename: "notes.md",
     mediaType: "text/markdown",
     sizeBytes: 12,
     createdAt: "2026-05-30T00:00:00.000Z",
-    url: "/api/chat/uploads?id=upload-123",
-    downloadUrl: "/api/chat/uploads?id=upload-123&download=1",
+    url: `/api/chat/uploads?id=${uploadId}`,
+    downloadUrl: `/api/chat/uploads?id=${uploadId}&download=1`,
   };
 }
 
@@ -33,8 +35,8 @@ describe("web chat message part grouping", () => {
         kind: "file",
         filename: "notes.md",
         mediaType: "text/markdown",
-        url: "/api/chat/uploads?id=upload-123",
-        downloadUrl: "/api/chat/uploads?id=upload-123&download=1",
+        url: `/api/chat/uploads?id=${uploadId}`,
+        downloadUrl: `/api/chat/uploads?id=${uploadId}&download=1`,
       },
     ]);
   });
