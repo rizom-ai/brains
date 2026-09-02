@@ -160,23 +160,33 @@ describe("MCPInterface", () => {
   });
 
   describe("lifecycle", () => {
-    it("should register with stdio transport", async () => {
+    // Routes for each transport are covered under "shared web routes"; these
+    // cover the endpoint the transport advertises, which stdio has none of.
+    it("advertises no MCP endpoint on stdio transport", async () => {
       const plugin = new MCPInterface({ transport: "stdio" });
 
-      const capabilities = await harness.installPlugin(plugin);
+      await harness.installPlugin(plugin);
 
-      // Plugin should register successfully
-      expect(capabilities).toBeDefined();
+      expect(
+        harness
+          .getMockShell()
+          .listInteractions()
+          .map((interaction) => interaction.id),
+      ).not.toContain("mcp");
     });
 
-    it("should register with http transport", async () => {
+    it("advertises the /mcp endpoint on http transport", async () => {
       installWebserverPlugin();
       const plugin = new MCPInterface({ transport: "http" });
 
-      const capabilities = await harness.installPlugin(plugin);
+      await harness.installPlugin(plugin);
 
-      // Plugin should register successfully
-      expect(capabilities).toBeDefined();
+      expect(
+        harness
+          .getMockShell()
+          .listInteractions()
+          .map((interaction) => interaction.id),
+      ).toContain("mcp");
     });
   });
 
@@ -188,20 +198,6 @@ describe("MCPInterface", () => {
 
       // Verify the plugin has daemon support through its type
       expect(plugin.type).toBe("interface");
-    });
-
-    it("should create http daemon with correct port", async () => {
-      installWebserverPlugin();
-      const plugin = new MCPInterface({
-        transport: "http",
-        httpPort: 3333,
-        authToken: "test-token",
-      });
-
-      const capabilities = await harness.installPlugin(plugin);
-
-      // Plugin should have registered with daemon support
-      expect(capabilities).toBeDefined();
     });
 
     it("should pass the configured protocol mode to the MCP transport", async () => {

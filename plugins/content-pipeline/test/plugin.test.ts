@@ -75,10 +75,6 @@ describe("ContentPipelinePlugin", () => {
   });
 
   describe("initialization", () => {
-    it("should be instantiable", () => {
-      expect(plugin).toBeDefined();
-    });
-
     it("should have correct plugin id", () => {
       expect(plugin.id).toBe("content-pipeline");
     });
