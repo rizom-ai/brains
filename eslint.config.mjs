@@ -35,6 +35,7 @@ const NO_UNSAFE_TEST_CAST = {
  * that consumes this for why the migration is per-package.
  */
 const TEST_CAST_FREE_PACKAGES = [
+  "entities/assessment",
   "entities/blog",
   "entities/conversation-memory",
   "entities/image",
@@ -51,9 +52,11 @@ const TEST_CAST_FREE_PACKAGES = [
   "plugins/analytics",
   "plugins/atproto",
   "plugins/atproto-registry",
+  "plugins/content-pipeline",
   "plugins/dashboard",
   "plugins/email-workflows",
   "plugins/newsletter",
+  "plugins/obsidian-vault",
   "plugins/playbooks",
   "plugins/profile",
   "plugins/site-content",

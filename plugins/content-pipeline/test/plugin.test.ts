@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  spyOn,
+  type Mock,
+} from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import {
   PUBLISH_ASSET_MESSAGES,
@@ -9,8 +18,15 @@ import type { DashboardWidgetProviderContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
+  type MockShell,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { createMockJobQueueService } from "@brains/test-utils";
+
+// Named off the mock shell rather than imported from @brains/job-queue:
+// plugins reach shell packages through @brains/plugins, which does not
+// re-export the job queue interface.
+type TestJobQueueService = ReturnType<MockShell["getJobQueueService"]>;
 
 function addDraftQueueEntities(
   harness: PluginTestHarness<ContentPipelinePlugin>,
@@ -27,32 +43,22 @@ function addDraftQueueEntities(
   );
 }
 
-const createMockJobQueueService = (
-  enqueue: (job: unknown) => Promise<string>,
-): never =>
-  ({
-    enqueue,
-    complete: async () => {},
-    fail: async () => {},
-    getStatus: async () => null,
-    getStats: async () => ({
-      pending: 0,
-      processing: 0,
-      failed: 0,
-      completed: 0,
-      total: 0,
-    }),
-    cleanup: async () => 0,
-    registerHandler: () => {},
-    unregisterHandler: () => {},
-    unregisterPluginHandlers: () => {},
-    getRegisteredTypes: () => [],
-    getHandler: () => undefined,
-    update: async () => {},
-    getActiveJobs: async () => [],
-    getFailedJobs: async () => [],
-    getStatusByEntityId: async () => null,
-  }) as never;
+/**
+ * A job queue whose enqueue is spied on.
+ *
+ * The local stub this replaces implemented a dozen members and asserted the
+ * literal into place, so it went stale silently as TestJobQueueService changed.
+ * The shared factory is a complete, type-checked service; only the one member
+ * the test observes is replaced.
+ */
+function jobQueueWithSpiedEnqueue(): {
+  service: TestJobQueueService;
+  enqueue: Mock<TestJobQueueService["enqueue"]>;
+} {
+  const service = createMockJobQueueService();
+  const enqueue = spyOn(service, "enqueue").mockResolvedValue("job-1");
+  return { service, enqueue };
+}
 
 describe("ContentPipelinePlugin", () => {
   let harness: PluginTestHarness<ContentPipelinePlugin>;
@@ -369,9 +375,9 @@ Post body`,
       const localHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir-direct-publish-assets",
       });
-      const enqueue = mock(async () => "job-1");
-      localHarness.getMockShell().getJobQueueService = (): never =>
-        createMockJobQueueService(enqueue);
+      const { service: jobQueue, enqueue } = jobQueueWithSpiedEnqueue();
+      localHarness.getMockShell().getJobQueueService =
+        (): TestJobQueueService => jobQueue;
       const localPlugin = new ContentPipelinePlugin({});
       await localHarness.installPlugin(localPlugin);
       localHarness
@@ -585,9 +591,9 @@ Post body`,
       const localHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir-publish-asset-events",
       });
-      const enqueue = mock(async () => "job-1");
-      localHarness.getMockShell().getJobQueueService = (): never =>
-        createMockJobQueueService(enqueue);
+      const { service: jobQueue, enqueue } = jobQueueWithSpiedEnqueue();
+      localHarness.getMockShell().getJobQueueService =
+        (): TestJobQueueService => jobQueue;
       const localPlugin = new ContentPipelinePlugin({});
       await localHarness.installPlugin(localPlugin);
       localHarness
@@ -659,7 +665,7 @@ Body`,
         entityType: "blog-post",
         provider,
         config: { executionMode: "invalid" },
-      } as never);
+      });
 
       expect(plugin.getProviderRegistry().has("blog-post")).toBe(false);
     });

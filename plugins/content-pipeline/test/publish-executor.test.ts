@@ -4,6 +4,7 @@ import {
   baseEntitySchema,
   createMockShell,
   createServicePluginContext,
+  createTestEntityAdapter,
 } from "@brains/plugins/test";
 import { ProviderRegistry } from "../src/provider-registry";
 import { PublishExecutor } from "../src/publish-executor";
@@ -16,7 +17,7 @@ describe("PublishExecutor", () => {
       .registerEntityType(
         "social-post",
         baseEntitySchema.partial().passthrough(),
-        {} as never,
+        createTestEntityAdapter("social-post"),
       );
     const context = createServicePluginContext(shell, "content-pipeline");
     const providerRegistry = ProviderRegistry.createFresh();
@@ -61,7 +62,9 @@ Body`,
 
   it("preserves an existing publishedAt when republishing a draft", async () => {
     const shell = createMockShell();
-    shell.getEntityRegistry().registerEntityType("post", z.any(), {} as never);
+    shell
+      .getEntityRegistry()
+      .registerEntityType("post", z.any(), createTestEntityAdapter("post"));
     const context = createServicePluginContext(shell, "content-pipeline");
     const providerRegistry = ProviderRegistry.createFresh();
     providerRegistry.register("post", {
@@ -108,7 +111,7 @@ Body`,
       .registerEntityType(
         "post",
         baseEntitySchema.partial().passthrough(),
-        {} as never,
+        createTestEntityAdapter("post"),
       );
     const context = createServicePluginContext(shell, "content-pipeline");
     const providerRegistry = ProviderRegistry.createFresh();

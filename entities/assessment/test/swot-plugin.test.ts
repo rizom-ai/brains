@@ -6,6 +6,14 @@ import {
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SwotAssessmentPlugin } from "../src";
+import { z } from "@brains/utils/zod";
+
+/** The fields this test reads off a dashboard widget registration. */
+const widgetRegistrationSchema = z.looseObject({
+  id: z.string(),
+  group: z.string(),
+  rendererName: z.string(),
+});
 
 describe("SwotAssessmentPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -70,11 +78,7 @@ describe("SwotAssessmentPlugin", () => {
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as {
-        id: string;
-        group: string;
-        rendererName: string;
-      };
+      const payload = widgetRegistrationSchema.parse(message.payload);
       registrations.push({
         id: payload.id,
         group: payload.group,

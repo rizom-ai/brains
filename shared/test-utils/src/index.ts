@@ -130,6 +130,12 @@ export { genericSpy } from "./generic-spy";
 // Check a caught value is an Error rather than asserting it into one
 export { caughtError } from "./caught-error";
 
+// A working adapter for a type a test only needs registered
+export {
+  createTestEntityAdapter,
+  type TestEntityAdapterOptions,
+} from "./test-entity-adapter";
+
 // Narrow a tool result to a branch of ToolResponse by parsing, not asserting
 export { expectToolSuccess, expectToolError } from "./tool-response";
 
