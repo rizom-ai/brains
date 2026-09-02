@@ -1,6 +1,9 @@
 # Web chat interface
 
-`@brains/web-chat` provides the authenticated standalone Web Chat surface and its session APIs.
+`@brains/web-chat` provides the authenticated standalone Web Chat surface and
+owns the shared Chat HTTP APIs. In Chat + Studio composition, `/chat` redirects
+to Studio's native workspace; Chat-only composition retains this package's
+standalone presentation.
 
 ## Public boundary
 
@@ -46,12 +49,11 @@ Do not persist the query cache or use it as a second active-message owner. Tests
 
 A conversation door uses `#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
 
-The interface owns the universal Inbox **Discuss in chat** follow-up at its configured
-mount for sources that support permission-checked detail. Its destination schema bounds a
-one-shot prompt plus source/item identifiers and a safe label. The browser consumes the
-handoff into a fresh conversation, keeps the reference in memory behind a removable context
-chip, and never receives the source body. Attached turns re-authorize and resolve source
-detail on the server, frame it as untrusted transient context, and omit it from stored user
-text and reusable attachment references. Detaching, starting a new conversation, or
-switching sessions clears the context; a reload does not create a durable mail-to-chat
-binding.
+The interface owns the universal Inbox **Discuss in chat** follow-up at its
+configured mount for sources that support permission-checked detail. Its
+destination schema bounds a prompt plus source/item identifiers and a safe
+label. When native Studio Chat is available, the handoff idempotently opens an
+actor-owned context session and routes Studio to it; the bounded locator remains
+inspectable after reload. Chat-only composition retains the standalone one-shot
+fallback. Both paths re-authorize and resolve source detail on the server, frame
+it as untrusted transient context, and never persist or return the source body.

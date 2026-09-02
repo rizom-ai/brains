@@ -30,6 +30,10 @@ import {
   STUDIO_ACCOUNT_WORKSPACE_RENDERER,
 } from "../../src/account-workspace";
 import {
+  STUDIO_CHAT_WORKSPACE_RENDERER,
+  studioChatWorkspacePath,
+} from "../../src/chat-workspace";
+import {
   StudioAccountWorkspaceView,
   StudioAppStatus,
   StudioAppView,
@@ -74,7 +78,11 @@ import {
   saveEntity,
   type SaveEntityInput,
 } from "./mutations";
-import { createInboxChatPrefillState } from "./operator-launch";
+import {
+  createInboxChatPrefillState,
+  createStudioChatHandoffState,
+  readStudioChatHandoffState,
+} from "./operator-launch";
 import {
   isPublishConfirmation,
   isPublishingActionError,
@@ -103,6 +111,16 @@ const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
   return { default: module.AccountApp };
 });
+
+const LazyStudioChatWorkspace = lazy(async () => {
+  const module = await import("./studio-chat-workspace");
+  return { default: module.StudioChatWorkspace };
+});
+
+export function studioChatSessionId(rawSearch: string): string | null {
+  const value = new URLSearchParams(rawSearch).get("session")?.trim();
+  return value && value.length <= 256 ? value : null;
+}
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
@@ -152,6 +170,9 @@ export function App(): ReactElement {
   });
   const routeSearch = useRouterState({
     select: (state) => state.location.searchStr,
+  });
+  const routeState = useRouterState({
+    select: (state) => state.location.state,
   });
   const studioBasePath = getStudioRouterBasePath();
   // TanStack Router exposes a pathname relative to its configured basepath.
@@ -218,6 +239,8 @@ export function App(): ReactElement {
   );
   const activeAccount =
     activeWorkspace?.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER;
+  const activeChat =
+    activeWorkspace?.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER;
   const activeDeclarativeWorkspace =
     activeWorkspace?.rendererName === "DeclarativeOperatorWorkspace";
   const storedWorkspaceQuery = activeWorkspaceId
@@ -618,6 +641,18 @@ export function App(): ReactElement {
 
   const discussInboxInChat = useCallback(
     (sourceId: string, itemId: string, label: string): void => {
+      if (
+        workspaces.some(
+          (workspace) =>
+            workspace.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER,
+        )
+      ) {
+        router.history.push(
+          studioChatWorkspacePath(studioBasePath),
+          createStudioChatHandoffState(sourceId, itemId, label),
+        );
+        return;
+      }
       const href = consoleSurfaceHref("web-chat");
       if (!href) return;
       window.history.pushState(
@@ -627,7 +662,7 @@ export function App(): ReactElement {
       );
       window.location.reload();
     },
-    [],
+    [router.history, studioBasePath, workspaces],
   );
 
   const openWorkspaceLaunch = useCallback(
@@ -1103,6 +1138,21 @@ export function App(): ReactElement {
           />
         </Suspense>
       </StudioAccountWorkspaceView>
+    );
+  }
+  if (activeChat) {
+    return (
+      <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
+        <LazyStudioChatWorkspace
+          apiPath={activeWorkspace.chatApiPath}
+          studioBasePath={studioBasePath}
+          sessionId={studioChatSessionId(routeSearch)}
+          workspaces={workspaces}
+          handoff={readStudioChatHandoffState(routeState)}
+          navigate={(href) => router.history.push(href)}
+          selectWorkspace={selectWorkspace}
+        />
+      </Suspense>
     );
   }
   if (

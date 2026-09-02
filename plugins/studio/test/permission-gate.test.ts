@@ -195,6 +195,14 @@ async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
   };
 }
 
+function enableChatCapability(shell: MockShell): void {
+  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
+  shell.getPluginPackageName = (pluginId): string | undefined =>
+    pluginId === "web-chat"
+      ? "@brains/web-chat"
+      : getPluginPackageName(pluginId);
+}
+
 async function setup(): Promise<{
   shell: MockShell;
   plugin: StudioPlugin;
@@ -208,6 +216,37 @@ async function setup(): Promise<{
 }
 
 describe("Studio active-session gate inversion", () => {
+  it("discloses Chat to Trusted operators but not active Public sessions", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const sessions = await createSessionMatrix(shell);
+    enableChatCapability(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const route = findRoute(plugin, "/studio/api/types");
+
+    const trustedResponse = await route.handler(
+      request("/studio/api/types", { cookie: sessions.trusted }),
+    );
+    const trustedPayload = (await trustedResponse.json()) as {
+      workspaces: Array<{ id: string }>;
+    };
+    const publicResponse = await route.handler(
+      request("/studio/api/types", { cookie: sessions.public }),
+    );
+    const publicPayload = (await publicResponse.json()) as {
+      workspaces: Array<{ id: string }>;
+    };
+
+    expect(trustedResponse.status).toBe(200);
+    expect(trustedPayload.workspaces.map(({ id }) => id)).toContain(
+      "web-chat:chat",
+    );
+    expect(publicResponse.status).toBe(200);
+    expect(publicPayload.workspaces.map(({ id }) => id)).not.toContain(
+      "web-chat:chat",
+    );
+  });
+
   it("inventories every API route under its exact capability floor", async () => {
     const { plugin, sessions } = await setup();
     const apiRoutes = apiRouteRequests();

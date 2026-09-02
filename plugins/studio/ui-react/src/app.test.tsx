@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import { styles } from "./app-styles";
 import { StudioAppView, type StudioAppViewProps } from "./app-view";
@@ -97,6 +98,31 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain('.studio[data-view="editor"]');
     expect(responsiveStyles).toContain(".studio-mobile-save-status");
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
+  });
+
+  it("defines the native Chat working room and sequential mobile destinations", () => {
+    expect(chatStyles).toContain(
+      "grid-template-columns: 260px minmax(420px, 1fr) 298px",
+    );
+    expect(chatStyles).toContain(".studio-chat-thread-scroll");
+    expect(chatStyles).toContain("overflow: auto");
+    expect(chatStyles).toContain("env(safe-area-inset-bottom)");
+    expect(chatStyles).toContain(
+      '.studio-chat-room[data-mobile-destination="sessions"]',
+    );
+    expect(chatStyles).toContain(
+      '.studio-chat-room[data-mobile-destination="thread"]',
+    );
+    expect(chatStyles).toContain(
+      '.studio-chat-room[data-mobile-destination="context"]',
+    );
+    expect(chatStyles).toContain("min-height: var(--console-touch, 44px)");
+    expect(chatStyles).toContain(
+      '.studio[data-view="chat"] {\n  display: grid;',
+    );
+    expect(chatStyles).toContain("grid-template-rows: minmax(0, 1fr);");
+    expect(chatStyles).not.toContain("iframe");
+    expect(chatStyles).not.toContain("data-web-chat-root");
   });
 
   it("removes the retired mail desk styles", () => {

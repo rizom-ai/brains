@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { studioChatWorkspacePath } from "../src/chat-workspace";
 import {
   studioCollectionPath,
   studioCreatePath,
@@ -27,6 +28,9 @@ describe("Studio canonical paths", () => {
     );
     expect(studioWorkspacePath("/studio", "publish desk")).toBe(
       "/studio/workspaces/publish%20desk",
+    );
+    expect(studioChatWorkspacePath("/studio", "conversation/one")).toBe(
+      "/studio/workspaces/web-chat%3Achat?session=conversation%2Fone",
     );
   });
 

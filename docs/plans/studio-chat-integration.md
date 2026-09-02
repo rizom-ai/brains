@@ -2,11 +2,13 @@
 
 ## Status
 
-**Accepted architecture; Phase 1 implemented in source, release pending.** Chat
-will become a native Studio workspace without embedding the standalone Web Chat
-application. The public headless Chat contract now precedes presentation work;
-no presentation moves before that boundary is released and its packed external
-compatibility proof passes.
+**Accepted architecture; Phase 1 and the initial native integration are
+implemented locally, release pending.** The headless Chat contract, native
+Studio workspace, durable context handoff, capability-gated admission, and
+composition-aware `/chat` redirect are in source and validated without
+embedding the standalone Web Chat application. These changes are not released;
+the latest published alpha remains unchanged until an explicitly approved
+publication.
 
 ## Shipped baseline
 
@@ -182,6 +184,29 @@ The configured Chat page path has composition-sensitive behavior:
 Query state is bounded and merged deliberately. Existing conversation hash
 doors are translated during redirect migration. Anonymous callers follow the
 correct login flow with a return target. `/api/chat/*` paths do not move.
+
+## Local implementation checkpoint
+
+The current implementation includes:
+
+- the packed, browser-safe `@rizom/brain/chat` contract and stateless protocol
+  decoder;
+- actor-owned, idempotent context sessions whose bounded locator is returned in
+  session metadata while resolved source detail remains transient;
+- the capability-gated `web-chat:chat` workspace at the Trusted permission
+  floor;
+- native Studio sessions, manuscript conversation, working-context rail,
+  composer, uploads, streaming, approvals, suggested actions, artifacts, and
+  durable progress;
+- canonical bounded `?session=` routing and native Inbox-to-Chat launch;
+- conditional `/chat` redirect with standalone Web Chat retained for Chat-only
+  composition;
+- desktop, tablet, and sequential phone visual baselines plus admission,
+  routing, redirect, transport, interaction, and accessibility-oriented layout
+  checks.
+
+The remaining phase exit checks, release publication, and post-package
+deployment validation remain explicitly approval-gated.
 
 ## Phases
 

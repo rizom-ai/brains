@@ -356,17 +356,45 @@ function normalizeChatApiPath(apiPath: string): string {
   return normalized;
 }
 
+export interface ChatContextHandoffRequest {
+  version: 1;
+  sourceId: string;
+  itemId: string;
+  titleSeed: string;
+}
+
+export const chatContextHandoffRequestSchema: z.ZodType<
+  ChatContextHandoffRequest,
+  ChatContextHandoffRequest
+> = z.strictObject({
+  version: z.literal(1),
+  sourceId: z
+    .string()
+    .trim()
+    .regex(/^[a-z][a-z0-9-]*$/)
+    .max(64),
+  itemId: z.string().trim().min(1).max(300),
+  titleSeed: z
+    .string()
+    .trim()
+    .min(1)
+    .max(160)
+    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value)),
+});
+
 export interface ChatSession {
   [key: string]: unknown;
   id: string;
   title: string;
   lastActiveAt: string;
+  contextHandoff?: ChatContextHandoffRequest | undefined;
 }
 
 export const chatSessionSchema: z.ZodType<ChatSession> = z.looseObject({
   id: chatIdSchema,
   title: chatTitleSchema,
   lastActiveAt: chatTimestampSchema,
+  contextHandoff: chatContextHandoffRequestSchema.optional(),
 });
 
 export interface ChatSessionsResponse {
@@ -894,27 +922,6 @@ export const chatProtocolEventSchema: z.ZodType<ChatProtocolEvent> =
       transient: z.boolean().optional(),
     }),
   ]);
-
-export interface ChatContextHandoffRequest {
-  version: 1;
-  sourceId: string;
-  itemId: string;
-  titleSeed: string;
-}
-
-export const chatContextHandoffRequestSchema: z.ZodType<
-  ChatContextHandoffRequest,
-  ChatContextHandoffRequest
-> = z.strictObject({
-  version: z.literal(1),
-  sourceId: z
-    .string()
-    .trim()
-    .regex(/^[a-z][a-z0-9-]*$/)
-    .max(64),
-  itemId: z.string().trim().min(1).max(300),
-  titleSeed: chatSafeText(160),
-});
 
 export interface ChatContextHandoffResponse {
   conversationId: string;

@@ -44,11 +44,23 @@ describe("public headless Chat contract", () => {
         id: "session-1",
         title: "Field notes",
         lastActiveAt: "2026-09-01T16:00:00.000Z",
+        contextHandoff: {
+          version: 1,
+          sourceId: "unified-inbox",
+          itemId: "item-1",
+          titleSeed: "Discuss field notes",
+        },
       }),
     ).toEqual({
       id: "session-1",
       title: "Field notes",
       lastActiveAt: "2026-09-01T16:00:00.000Z",
+      contextHandoff: {
+        version: 1,
+        sourceId: "unified-inbox",
+        itemId: "item-1",
+        titleSeed: "Discuss field notes",
+      },
     });
     expect(
       chatSessionSchema.safeParse({

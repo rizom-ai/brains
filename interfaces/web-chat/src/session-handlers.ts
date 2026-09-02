@@ -1,5 +1,6 @@
 import {
   archiveChatSessionResponseSchema,
+  chatContextHandoffRequestSchema,
   chatSessionsResponseSchema,
   deleteChatSessionResponseSchema,
   renameChatSessionRequestSchema,
@@ -51,11 +52,19 @@ export async function handleSessionsRequest(
     (conversation) => !isArchivedMetadata(conversation.metadata),
   );
   const sessions = await Promise.all(
-    activeConversations.map(async (conversation) => ({
-      id: conversation.id,
-      title: await getConversationTitle(conversation, deps.conversations),
-      lastActiveAt: conversation.lastActiveAt,
-    })),
+    activeConversations.map(async (conversation) => {
+      const contextHandoff = chatContextHandoffRequestSchema.safeParse(
+        coerceConversationMetadata(conversation.metadata)["contextHandoff"],
+      );
+      return {
+        id: conversation.id,
+        title: await getConversationTitle(conversation, deps.conversations),
+        lastActiveAt: conversation.lastActiveAt,
+        ...(contextHandoff.success
+          ? { contextHandoff: contextHandoff.data }
+          : {}),
+      };
+    }),
   );
 
   return Response.json(chatSessionsResponseSchema.parse({ sessions }));

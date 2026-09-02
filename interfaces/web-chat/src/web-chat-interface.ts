@@ -3,7 +3,10 @@ import {
   createExternalActorId,
   parseAgentResponse,
 } from "@brains/contracts";
-import { chatActionRequestSchema } from "@brains/contracts/chat";
+import {
+  chatActionRequestSchema,
+  chatContextHandoffRequestSchema,
+} from "@brains/contracts/chat";
 import {
   getActiveAuthService,
   requireSameOriginJson,
@@ -25,6 +28,7 @@ import {
   type UserPermissionLevel,
   type ChatAttachment,
   type ChatContext,
+  coerceConversationMetadata,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -66,6 +70,7 @@ import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-han
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
+import { resolveStudioChatRedirectPath } from "./studio-chat-redirect";
 import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
@@ -332,6 +337,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
 
     const requestUrl = new URL(request.url);
+    const studioChatPath = resolveStudioChatRedirectPath(
+      this.getContext().webRoutes.getRoutes(),
+      requestUrl,
+    );
+    if (studioChatPath) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          Location: studioChatPath,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
     const returnTo = encodeURIComponent(
       `${requestUrl.pathname}${requestUrl.search}`,
     );
@@ -596,11 +614,14 @@ export class WebChatInterface extends MessageInterfacePlugin<
       this.toConversationAccess(permissionLevel, principal),
     );
     if (accessError) return accessError;
+    const inboxContext =
+      parsed.data.inboxContext ??
+      (await this.resolveStoredContextHandoff(conversationId));
     const inboxAttachment =
-      approvalResponses.length === 0 && parsed.data.inboxContext
+      approvalResponses.length === 0 && inboxContext
         ? await this.resolveInboxAttachment(
-            parsed.data.inboxContext.sourceId,
-            parsed.data.inboxContext.itemId,
+            inboxContext.sourceId,
+            inboxContext.itemId,
             permissionLevel,
             request.signal,
           )
@@ -706,6 +727,22 @@ export class WebChatInterface extends MessageInterfacePlugin<
     });
 
     return createUIMessageStreamResponse({ stream });
+  }
+
+  private async resolveStoredContextHandoff(
+    conversationId: string,
+  ): Promise<{ sourceId: string; itemId: string } | undefined> {
+    const conversation =
+      await this.getContext().conversations.get(conversationId);
+    const parsed = chatContextHandoffRequestSchema.safeParse(
+      coerceConversationMetadata(conversation?.metadata)["contextHandoff"],
+    );
+    return parsed.success
+      ? {
+          sourceId: parsed.data.sourceId,
+          itemId: parsed.data.itemId,
+        }
+      : undefined;
   }
 
   private async resolveInboxAttachment(

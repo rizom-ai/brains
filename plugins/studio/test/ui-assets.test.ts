@@ -18,7 +18,7 @@ function readManifest(): z.output<typeof manifestSchema> {
 }
 
 describe("Studio split UI assets", () => {
-  it("emits one bounded manifest with a lazy Account chunk", () => {
+  it("emits one bounded manifest with lazy native Account and Chat chunks", () => {
     const manifest = readManifest();
     const entries = Object.entries(manifest.assets);
 
@@ -54,5 +54,19 @@ describe("Studio split UI assets", () => {
     expect(entrySource).not.toContain("/auth/account/passkeys/options");
     expect(accountSource).toContain("/auth/account/passkeys/options");
     expect(accountSource).toContain("Signed-in sessions");
+
+    const chatEntry = entries.find(([publicPath]) =>
+      /^studio-chunks\/studio-chat-workspace-[a-z0-9]+\.js$/.test(publicPath),
+    );
+    expect(chatEntry).toBeDefined();
+    if (!chatEntry) throw new Error("Missing lazy native Chat asset");
+    const chatSource = readFileSync(join(uiDirectory, chatEntry[1]), "utf8");
+
+    expect(entrySource).toContain(chatEntry[0]);
+    expect(entrySource).not.toContain("/api/chat");
+    expect(chatSource).toContain("/api/chat");
+    expect(chatSource).toContain("Working room");
+    expect(chatSource).not.toContain("data-web-chat-root");
+    expect(chatSource).not.toContain("<iframe");
   });
 });

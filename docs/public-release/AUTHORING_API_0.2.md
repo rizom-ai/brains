@@ -86,6 +86,10 @@ Domain types:
 - `RenameChatSessionRequest`
 - `RenameChatSessionResponse`
 
+`ChatSession.contextHandoff` is optional bounded domain metadata. It contains
+only the versioned source locator and title seed accepted by
+`ChatContextHandoffRequest`; resolved source detail is never returned.
+
 Schemas:
 
 - `archiveChatSessionResponseSchema`

@@ -8,6 +8,7 @@ import type {
   IAgentService,
   IConversationService,
   InboxSource,
+  RegisteredWebRoute,
   WebRouteDefinition,
   WebRouteMethod,
 } from "@brains/plugins";
@@ -449,6 +450,72 @@ describe("WebChatInterface", () => {
     ]);
   });
 
+  it("resolves durable context-session metadata for native Studio messages", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("stored-context", "web-chat", {
+            metadata: JSON.stringify({
+              contextHandoff: {
+                version: 1,
+                sourceId: "mail-items",
+                itemId: "mail-1",
+                titleSeed: "Project question",
+              },
+            }),
+          }),
+        ],
+        messagesByConversation: { "stored-context": [] },
+      }),
+    );
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const sourceReads: string[] = [];
+    harness
+      .getMockShell()
+      .getInboxRegistry()
+      .registerSource("email-workflows", {
+        sourceId: "mail-items",
+        displayName: "Mail Items",
+        list: async () => [],
+        resolveDetail: async (itemId) => {
+          sourceReads.push(itemId);
+          return {
+            kind: "plain",
+            text: "Durable context detail",
+            truncated: false,
+          };
+        },
+        act: async () => {},
+      });
+    await harness.finalizeRegistration();
+
+    const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "stored-context",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What should I do?" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(sourceReads).toEqual(["mail-1"]);
+    expect(agent.chatCalls[0]?.context?.attachments?.[0]).toMatchObject({
+      filename: "inbox-source.txt",
+      content: expect.stringContaining("Durable context detail"),
+    });
+  });
+
   it("fails closed when attached Inbox context cannot be resolved", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
@@ -590,6 +657,27 @@ describe("WebChatInterface", () => {
     });
     expect(conversations[0]?.metadata).not.toContain("Private source detail");
     expect(sourceReads).toEqual(["mail-1", "mail-1"]);
+
+    const sessionsResponse = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "GET",
+    ).handler(new Request("http://brain/api/chat/sessions"));
+    expect(await sessionsResponse.json()).toEqual({
+      sessions: [
+        {
+          id: firstPayload.conversationId,
+          title: "Discuss project mail",
+          lastActiveAt: "2026-05-24T00:01:00.000Z",
+          contextHandoff: {
+            version: 1,
+            sourceId: "mail-items",
+            itemId: "mail-1",
+            titleSeed: "Discuss project mail",
+          },
+        },
+      ],
+    });
   });
 
   it("fails context handoff closed before creating a conversation", async () => {
@@ -1396,6 +1484,37 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(401);
     expect(text).toContain("Authentication required");
+  });
+
+  it("redirects authenticated Chat to the configured native Studio workspace", async () => {
+    const shell = harness.getMockShell();
+    const getPluginWebRoutes = shell.getPluginWebRoutes.bind(shell);
+    shell.getPluginWebRoutes = (): RegisteredWebRoute[] => [
+      ...getPluginWebRoutes(),
+      {
+        pluginId: "studio",
+        fullPath: "/operator/api/types",
+        definition: {
+          path: "/operator/api/types",
+          method: "GET",
+          public: true,
+          handler: (_request: Request): Response => new Response(),
+        },
+      },
+    ];
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/chat", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/chat?session=conversation%2Fone&ignored=yes"),
+    );
+
+    expect(response?.status).toBe(308);
+    expect(response?.headers.get("location")).toBe(
+      "/operator/workspaces/web-chat%3Achat?session=conversation%2Fone",
+    );
+    expect(response?.headers.get("cache-control")).toBe("no-store");
   });
 
   it("serves the chat page for Trusted users", async () => {
