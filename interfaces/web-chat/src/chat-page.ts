@@ -1,4 +1,5 @@
 import { join } from "path";
+import { escapeHtml } from "@brains/utils/string-utils";
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_PALETTE_SCRIPT,
@@ -21,6 +22,8 @@ export const uiAssetFile: string = join(
 );
 
 export interface ChatPageOptions {
+  /** Configured root for the public browser Chat transport. */
+  apiPath: string;
   /** Console-strip doors, derived from the registered web routes. */
   surfaces: ConsoleSurface[];
   /** Sign-out link for the session chip (the page is authenticated-only). */
@@ -47,5 +50,5 @@ ${visualRefreshStyles}</style></head><body>${renderConsoleStripHtml({
       sessionHref: options.sessionHref,
       ...(options.principal ? { principal: options.principal } : {}),
     },
-  })}<main id="root" data-web-chat-root>Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+  })}<main id="root" data-web-chat-root data-chat-api-path="${escapeHtml(options.apiPath)}">Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
 }

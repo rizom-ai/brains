@@ -1,45 +1,26 @@
-import { z } from "@brains/utils/zod";
+import {
+  browserChatUploadRefSchema,
+  browserChatUploadResponseSchema,
+  type BrowserChatUploadRef,
+  type BrowserChatUploadResponse,
+} from "@brains/contracts/browser-chat";
 import type { FileUIPart, UIMessage } from "ai";
 import { defaultWebChatUploadFilename } from "../../src/upload-policy";
+import { getWebChatApiPaths } from "./browser-chat-client";
 import { getErrorMessage } from "@brains/utils/error";
 
-export const uploadEndpoint: string = "/api/chat/uploads";
+export const uploadEndpoint: string = getWebChatApiPaths().uploads;
 export const defaultUploadFilename: typeof defaultWebChatUploadFilename =
   defaultWebChatUploadFilename;
 export const uploadPartType = "data-upload" as const;
 
-export interface WebChatUploadRef {
-  kind: "upload";
-  id: string;
-}
+export type WebChatUploadRef = BrowserChatUploadRef;
+export type WebChatUploadResponse = BrowserChatUploadResponse;
 
-export interface WebChatUploadResponse {
-  id: string;
-  ref: WebChatUploadRef;
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  url?: string | undefined;
-  downloadUrl?: string | undefined;
-}
-
-export const webChatUploadRefSchema: z.ZodType<WebChatUploadRef> = z.object({
-  kind: z.literal("upload"),
-  id: z.string().min(1),
-});
-
-export const webChatUploadResponseSchema: z.ZodType<WebChatUploadResponse> =
-  z.object({
-    id: z.string().min(1),
-    ref: webChatUploadRefSchema,
-    filename: z.string().min(1),
-    mediaType: z.string().min(1),
-    sizeBytes: z.number().nonnegative(),
-    createdAt: z.string().datetime(),
-    url: z.string().min(1).optional(),
-    downloadUrl: z.string().min(1).optional(),
-  });
+export const webChatUploadRefSchema: typeof browserChatUploadRefSchema =
+  browserChatUploadRefSchema;
+export const webChatUploadResponseSchema: typeof browserChatUploadResponseSchema =
+  browserChatUploadResponseSchema;
 export type UploadFetch = (
   input: RequestInfo | URL,
   init?: RequestInit,

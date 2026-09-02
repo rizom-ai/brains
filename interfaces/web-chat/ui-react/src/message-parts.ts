@@ -116,10 +116,8 @@ export function groupMessageParts(
             kind: "file",
             filename: upload.filename,
             mediaType: upload.mediaType,
-            ...(upload.url !== undefined && { url: upload.url }),
-            ...(upload.downloadUrl !== undefined && {
-              downloadUrl: upload.downloadUrl,
-            }),
+            url: upload.url,
+            downloadUrl: upload.downloadUrl,
           });
         }
         break;

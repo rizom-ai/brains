@@ -1,3 +1,4 @@
+import { createBrowserChatApiPaths } from "@brains/contracts/browser-chat";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { uiAssetPath } from "./chat-page";
 
@@ -31,6 +32,7 @@ export function createWebChatRoutes({
   apiPath,
   handlers,
 }: CreateWebChatRoutesOptions): WebRouteDefinition[] {
+  const paths = createBrowserChatApiPaths(apiPath);
   return [
     {
       path: routePath,
@@ -39,70 +41,70 @@ export function createWebChatRoutes({
       handler: (request): Promise<Response> => handlers.handleChatPage(request),
     },
     {
-      path: apiPath,
+      path: paths.stream,
       method: "POST",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleChatRequest(request),
     },
     {
-      path: "/api/chat/actions",
+      path: paths.actions,
       method: "POST",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleActionRequest(request),
     },
     {
-      path: "/api/chat/sessions",
+      path: paths.sessions,
       method: "GET",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleSessionsRequest(request),
     },
     {
-      path: "/api/chat/sessions",
+      path: paths.sessions,
       method: "DELETE",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleDeleteSessionRequest(request),
     },
     {
-      path: "/api/chat/sessions",
+      path: paths.sessions,
       method: "PUT",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleRenameSessionRequest(request),
     },
     {
-      path: "/api/chat/sessions/archive",
+      path: paths.sessionArchive,
       method: "PUT",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleArchiveSessionRequest(request),
     },
     {
-      path: "/api/chat/messages",
+      path: paths.messages,
       method: "GET",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleMessagesRequest(request),
     },
     {
-      path: "/api/chat/attachments/document",
+      path: paths.documentAttachments,
       method: "GET",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleDocumentAttachmentRequest(request),
     },
     {
-      path: "/api/chat/attachments/image",
+      path: paths.imageAttachments,
       method: "GET",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleImageAttachmentRequest(request),
     },
     {
-      path: "/api/chat/jobs/status",
+      path: paths.jobStatus,
       method: "GET",
       public: true,
       handler: (request): Promise<Response> =>
@@ -115,14 +117,14 @@ export function createWebChatRoutes({
       handler: (): Promise<Response> => handlers.handleUiAssetRequest(),
     },
     {
-      path: "/api/chat/uploads",
+      path: paths.uploads,
       method: "POST",
       public: true,
       handler: (request): Promise<Response> =>
         handlers.handleUploadRequest(request),
     },
     {
-      path: "/api/chat/uploads",
+      path: paths.uploads,
       method: "GET",
       public: true,
       handler: (request): Promise<Response> =>
