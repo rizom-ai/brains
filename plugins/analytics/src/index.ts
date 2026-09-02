@@ -8,7 +8,10 @@ import {
 } from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
-import { CloudflareClient } from "./lib/cloudflare-client";
+import {
+  CloudflareClient,
+  type CloudflareClientDeps,
+} from "./lib/cloudflare-client";
 import { createTrafficOverviewInsight } from "./insights/traffic-overview";
 import packageJson from "../package.json";
 
@@ -31,15 +34,21 @@ export class AnalyticsPlugin extends ServicePlugin<
 > {
   private cloudflareClient: CloudflareClient | undefined;
 
-  constructor(config: AnalyticsConfigInput = {}) {
+  private deps: CloudflareClientDeps;
+
+  constructor(
+    config: AnalyticsConfigInput = {},
+    deps: CloudflareClientDeps = {},
+  ) {
     super("analytics", packageJson, config, analyticsConfigSchema);
+    this.deps = deps;
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     this.cloudflareClient = this.config.cloudflare
-      ? new CloudflareClient(this.config.cloudflare)
+      ? new CloudflareClient(this.config.cloudflare, this.deps)
       : undefined;
 
     context.insights.register(
@@ -77,8 +86,9 @@ export class AnalyticsPlugin extends ServicePlugin<
  */
 export function createAnalyticsPlugin(
   config: AnalyticsConfigInput = {},
+  deps: CloudflareClientDeps = {},
 ): AnalyticsPlugin {
-  return new AnalyticsPlugin(config);
+  return new AnalyticsPlugin(config, deps);
 }
 
 /**
