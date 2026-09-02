@@ -8,7 +8,10 @@ import {
   removeWebChatSessionCaches,
   renameWebChatSession,
   renameWebChatSessionCache,
+  type RenameWebChatSessionInput,
+  type WebChatSessionMutationInput,
 } from "./mutations";
+import { useWebChatClient } from "./web-chat-fetch";
 
 export interface SessionMutationsOptions {
   chatIsBusy: boolean;
@@ -45,17 +48,21 @@ export function useSessionMutations(
   options: SessionMutationsOptions,
 ): SessionMutations {
   const queryClient = useQueryClient();
+  const chatClient = useWebChatClient();
   const [dialog, setDialog] = useState<SessionDialogState>(null);
   const [renameDraft, setRenameDraft] = useState("");
 
   const renameSessionMutation = useMutation({
-    mutationFn: renameWebChatSession,
+    mutationFn: (input: RenameWebChatSessionInput): Promise<void> =>
+      renameWebChatSession(input, chatClient),
   });
   const archiveSessionMutation = useMutation({
-    mutationFn: archiveWebChatSession,
+    mutationFn: (input: WebChatSessionMutationInput): Promise<void> =>
+      archiveWebChatSession(input, chatClient),
   });
   const deleteSessionMutation = useMutation({
-    mutationFn: deleteWebChatSession,
+    mutationFn: (input: WebChatSessionMutationInput): Promise<void> =>
+      deleteWebChatSession(input, chatClient),
   });
 
   function closeDialog(): void {

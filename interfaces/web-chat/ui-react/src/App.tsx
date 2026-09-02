@@ -15,7 +15,7 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import { Message, MessageContent } from "./ai-elements/message";
-import { createWebChatClient, getWebChatApiPaths } from "./web-chat-client";
+import { getWebChatApiPaths } from "./web-chat-client";
 import {
   PromptInput,
   PromptInputFooter,
@@ -74,6 +74,7 @@ import {
 } from "./inbox-prefill";
 import { deriveSessionTitle } from "./session-format";
 import { useSessionMutations } from "./use-session-mutations";
+import { useWebChatClient } from "./web-chat-fetch";
 
 type UploadNotice = { tone: "success" | "error"; message: string } | null;
 
@@ -100,7 +101,8 @@ export function App(): React.ReactElement {
     return next;
   });
   const queryClient = useQueryClient();
-  const sessionsQuery = useQuery(sessionListQueryOptions());
+  const chatClient = useWebChatClient();
+  const sessionsQuery = useQuery(sessionListQueryOptions(chatClient));
   const sessions = sessionsQuery.data ?? emptySessions;
   const sessionError = sessionsQuery.error?.message ?? null;
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -234,7 +236,7 @@ export function App(): React.ReactElement {
     await runSessionSwitch({
       load: async () => {
         const cachedHistory = await queryClient.fetchQuery({
-          ...sessionHistoryQueryOptions(nextConversationId),
+          ...sessionHistoryQueryOptions(nextConversationId, chatClient),
           staleTime: 0,
         });
         return createActiveMessageSeed(cachedHistory);
@@ -329,7 +331,7 @@ export function App(): React.ReactElement {
     setHistoryError(null);
 
     try {
-      const data = await createWebChatClient().runAction({
+      const data = await chatClient.runAction({
         conversationId,
         action: {
           type: "event",

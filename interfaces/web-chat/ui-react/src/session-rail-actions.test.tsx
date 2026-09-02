@@ -4,12 +4,13 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
 import { createWebChatQueryClient } from "./query-client";
-
-const originalFetch = globalThis.fetch;
+import { WebChatFetchProvider } from "./web-chat-fetch";
 
 let windowInstance: Window;
+let stubbedFetch: FetchLike;
 let root: Root;
 let mutationCalls: Array<{ url: string; method: string }>;
 
@@ -80,7 +81,11 @@ async function renderApp(): Promise<
       createElement(
         QueryClientProvider,
         { client: queryClient },
-        createElement(App),
+        createElement(
+          WebChatFetchProvider,
+          { fetch: stubbedFetch },
+          createElement(App),
+        ),
       ),
     );
   });
@@ -114,35 +119,30 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-active",
   );
-  // Object.assign rather than an assertion: Bun types `fetch` with a
-  // `preconnect` member, so the stub carries one instead of claiming to.
-  globalThis.fetch = Object.assign(
-    async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const method = init?.method ?? "GET";
-      if (url === "/api/chat/sessions" && method === "GET") {
-        return Response.json({
-          sessions: [
-            {
-              id: "web-active",
-              title: "Open thread",
-              lastActiveAt: "2026-07-16T10:00:00.000Z",
-            },
-          ],
-        });
-      }
-      if (url === "/api/chat/messages?id=web-active") {
-        return Response.json({ messages: [] });
-      }
-      mutationCalls.push({ url, method });
-      if (method === "DELETE") return Response.json({ deleted: true });
-      if (url.includes("/archive")) {
-        return Response.json({ archived: true });
-      }
-      return Response.json({ renamed: true, title: "Renamed thread" });
-    },
-    { preconnect: originalFetch.preconnect },
-  );
+  stubbedFetch = async (input, init): Promise<Response> => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    if (url === "/api/chat/sessions" && method === "GET") {
+      return Response.json({
+        sessions: [
+          {
+            id: "web-active",
+            title: "Open thread",
+            lastActiveAt: "2026-07-16T10:00:00.000Z",
+          },
+        ],
+      });
+    }
+    if (url === "/api/chat/messages?id=web-active") {
+      return Response.json({ messages: [] });
+    }
+    mutationCalls.push({ url, method });
+    if (method === "DELETE") return Response.json({ deleted: true });
+    if (url.includes("/archive")) {
+      return Response.json({ archived: true });
+    }
+    return Response.json({ renamed: true, title: "Renamed thread" });
+  };
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,
@@ -155,7 +155,6 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
-  globalThis.fetch = originalFetch;
 });
 
 describe("session rail actions", () => {
