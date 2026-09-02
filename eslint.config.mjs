@@ -48,6 +48,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "interfaces/mcp",
   "packages/brains-ops",
   "plugins/admin",
+  "plugins/analytics",
   "plugins/atproto",
   "plugins/atproto-registry",
   "plugins/dashboard",
@@ -58,6 +59,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "plugins/site-content",
   "plugins/stock-photo",
   "shared/atproto-contracts",
+  "shared/console-theme",
   "shared/content-formatters",
   "shared/http-signatures",
   "shared/media-page-composer",
@@ -68,6 +70,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "shell/ai-evaluation",
   "shell/job-queue",
   "shell/mcp-service",
+  "shell/messaging-service",
   "shell/recurring-checks",
   "sites/rizom-ai",
 ];

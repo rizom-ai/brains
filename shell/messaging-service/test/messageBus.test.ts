@@ -7,6 +7,11 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
 
+/** What the predicate below reads off a message it is asked to filter. */
+const prioritizedPayloadSchema = z.looseObject({
+  priority: z.number().optional(),
+});
+
 describe("MessageBus", () => {
   let messageBus: MessageBus;
   let logger: Logger;
@@ -533,7 +538,7 @@ describe("MessageBus", () => {
 
       messageBus.subscribe("test.message", handler, {
         predicate: (message) => {
-          const payload = message.payload as { priority?: number };
+          const payload = prioritizedPayloadSchema.parse(message.payload);
           return payload.priority ? payload.priority > 5 : false;
         },
       });
@@ -682,9 +687,11 @@ describe("MessageBus", () => {
     it("should compile wildcard string filters to RegExp", () => {
       const compiled = compileFilter({ source: "plugin:*" }).source;
 
-      expect(compiled).toBeInstanceOf(RegExp);
-      expect((compiled as RegExp).test("plugin:foo")).toBe(true);
-      expect((compiled as RegExp).test("other:bar")).toBe(false);
+      if (!(compiled instanceof RegExp)) {
+        throw new Error(`Expected a compiled RegExp, got: ${String(compiled)}`);
+      }
+      expect(compiled.test("plugin:foo")).toBe(true);
+      expect(compiled.test("other:bar")).toBe(false);
     });
   });
 

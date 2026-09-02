@@ -7,8 +7,6 @@ import type { IMessageBus, MessageResponse } from "../src";
 export interface MockMessageBusReturns {
   send?: MessageResponse;
   hasHandlers?: boolean;
-  getHandlerCount?: number;
-  getTargetedHandlerCount?: number;
 }
 
 /**
@@ -22,14 +20,29 @@ export interface MockMessageBusOptions {
  * Create a mock message bus with all methods pre-configured.
  */
 /**
+ * Re-apply a generic signature that `mock()` erased.
+ *
+ * A local copy of `@brains/test-utils`'s `genericSpy`: that package depends on
+ * this one, so importing it back would cycle. The limitation is the same —
+ * `mock(fn)` returns `Mock<typeof fn>`, which captures one instantiation and
+ * drops the type parameters, so it can never be assigned to a generic member
+ * like `send<T, R>`. Nothing else may use it.
+ */
+function genericSpy<TMember>(spy: unknown): TMember {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the whole point of the helper; see the comment above
+  return spy as TMember;
+}
+
+/**
  * Returns the interface rather than the MessageBus class.
  *
  * MessageBus is a class, so declaring it here made the result nominally typed:
- * every consumer wanting an IMessageBus had to cast, and four of them did. The
- * one assertion left is the generic-erasure case `genericSpy` covers
- * elsewhere — `send<T, R>` cannot be expressed by `mock()` — and it cannot
- * be used here, since @brains/test-utils depends on this package and declaring
- * it back would cycle. One cast here beats one at every call site.
+ * every consumer wanting an IMessageBus had to cast, and four of them did.
+ *
+ * `satisfies` rather than an assertion on the whole literal: the object is
+ * checked member by member, so a method added to IMessageBus — or a signature
+ * that changes — fails here instead of leaving a stale mock that every test
+ * still passes against. Only `send` needs the generic escape hatch.
  */
 export function createMockMessageBus(
   options: MockMessageBusOptions = {},
@@ -38,14 +51,11 @@ export function createMockMessageBus(
   const defaultSendResult = returns.send ?? { success: true };
 
   return {
-    subscribe: mock(() => mock(() => {})),
+    subscribe: genericSpy<IMessageBus["subscribe"]>(mock(() => mock(() => {}))),
     unsubscribe: mock(() => {}),
-    send: mock(() => Promise.resolve(defaultSendResult)),
+    send: genericSpy<IMessageBus["send"]>(
+      mock(() => Promise.resolve(defaultSendResult)),
+    ),
     hasHandlers: mock(() => returns.hasHandlers ?? false),
-    clearHandlers: mock(() => {}),
-    clearAllHandlers: mock(() => {}),
-    getHandlerCount: mock(() => returns.getHandlerCount ?? 0),
-    getTargetedHandlerCount: mock(() => returns.getTargetedHandlerCount ?? 0),
-    validateMessage: mock(() => ({ valid: true, data: {} })),
-  } as unknown as IMessageBus;
+  } satisfies IMessageBus;
 }

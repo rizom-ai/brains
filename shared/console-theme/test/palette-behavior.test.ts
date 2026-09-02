@@ -25,8 +25,14 @@ interface ConsoleJumpHost {
   __consoleJumpLocal?: (query: string) => unknown;
 }
 
-function hostingSurface(target: Window): ConsoleJumpHost {
-  return target as Window & ConsoleJumpHost;
+function setConsoleJumpLocal(
+  target: Window,
+  local: NonNullable<ConsoleJumpHost["__consoleJumpLocal"]>,
+): void {
+  // Reflect rather than an intersection cast: the host genuinely adds a
+  // property the Window type does not declare, and setting it through Reflect
+  // says so instead of claiming the window already had it.
+  Reflect.set(target, "__consoleJumpLocal", local);
 }
 
 /**
@@ -152,9 +158,9 @@ beforeEach(() => {
 
 afterEach(() => {
   window.close();
-  delete (globalThis as Record<string, unknown>)["window"];
-  delete (globalThis as Record<string, unknown>)["document"];
-  delete (globalThis as Record<string, unknown>)["KeyboardEvent"];
+  Reflect.deleteProperty(globalThis, "window");
+  Reflect.deleteProperty(globalThis, "document");
+  Reflect.deleteProperty(globalThis, "KeyboardEvent");
 });
 
 describe("console palette behavior", () => {
@@ -254,14 +260,14 @@ describe("console palette behavior", () => {
   });
 
   it("appends the hosting surface's local groups", async () => {
-    hostingSurface(window).__consoleJumpLocal = (query: string): unknown => [
+    setConsoleJumpLocal(window, (query: string): unknown => [
       {
         label: "Conversations",
         items: [
           { title: `About ${query || "everything"}`, href: "/chat#s/abc" },
         ],
       },
-    ];
+    ]);
 
     await openPalette();
 

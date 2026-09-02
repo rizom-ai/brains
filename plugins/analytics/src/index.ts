@@ -1,4 +1,4 @@
-import type { Plugin, Tool, ServicePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import {
@@ -77,7 +77,7 @@ export class AnalyticsPlugin extends ServicePlugin<
  */
 export function createAnalyticsPlugin(
   config: AnalyticsConfigInput = {},
-): Plugin {
+): AnalyticsPlugin {
   return new AnalyticsPlugin(config);
 }
 
