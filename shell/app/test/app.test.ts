@@ -1,4 +1,5 @@
 import { describe, it, expect, mock, afterEach, spyOn } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { App, STARTUP_CHECK_API_KEY } from "../src/app";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
@@ -380,7 +381,11 @@ describe("App", () => {
         const app = App.create({});
         await app.initialize();
 
-        expect(shellConfig?.identity).toBeUndefined();
+        // Pin the capture first: if createFresh were never called this would
+        // read undefined.identity and pass without testing anything.
+        expect(
+          expectDefined(shellConfig, "captured ShellConfig").identity,
+        ).toBeUndefined();
       } finally {
         createFreshSpy.mockRestore();
         migrationSpy.mockRestore();
