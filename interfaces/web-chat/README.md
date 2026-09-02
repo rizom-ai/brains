@@ -1,9 +1,9 @@
 # Web chat interface
 
 `@brains/web-chat` provides the authenticated standalone Web Chat surface and
-owns the shared Chat HTTP APIs. In Chat + Studio composition, `/chat` redirects
-to Studio's native workspace; Chat-only composition retains this package's
-standalone presentation.
+owns the shared Chat HTTP APIs. In Chat + Studio composition, an actor admitted
+to Studio Chat is redirected there; Chat-only composition retains this
+package's standalone presentation.
 
 ## Public boundary
 
@@ -13,6 +13,21 @@ transport consume that canonical contract. The React application, AI SDK
 adapters, query cache, active-conversation state, routing, browser storage,
 copy, and styles remain private Web Chat presentation logic and are not
 re-exported from `@rizom/brain`.
+
+## Audience boundary
+
+The current release remains fail-closed:
+
+- Studio Chat is limited to Trusted and Admin actors;
+- standalone Web Chat is an authenticated fallback for Chat-only composition;
+- active Public and unauthenticated callers have no Chat access.
+
+The intended future split is Studio for authenticated actors, with a separately
+restricted Public policy, and standalone Web Chat for explicitly enabled
+anonymous guests. Guest mode is not implemented or implied by routes registered
+with `public: true`. It must remain disabled until guest identity, capability,
+rate, abuse, spend, retention, consent, deletion, and kill-switch policies are
+accepted and enforced server-side.
 
 ## Build
 
