@@ -8,6 +8,7 @@ import {
   spyOn,
 } from "bun:test";
 import { handleCLI } from "../src/cli";
+import { genericSpy } from "@brains/test-utils";
 import { App } from "../src/app";
 import { defineConfig } from "../src/config";
 
@@ -27,7 +28,10 @@ describe("handleCLI", () => {
   const originalCreate = App.create;
 
   // Mock console and process.exit
+  // process.exit is declared to return never, and a stub that lets the caller
+  // continue cannot. There is nothing to narrow — it is a global.
   const mockExit = mock((_code?: number): never => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above
     return undefined as never;
   });
   const mockConsoleLog = mock(() => {});
@@ -38,7 +42,9 @@ describe("handleCLI", () => {
   beforeEach(() => {
     // Spy on App.run
     runSpy = mock(() => Promise.resolve());
-    App.run = runSpy as typeof App.run;
+    // mock() erases the type parameters App.run declares; genericSpy names that
+    // as the only reason.
+    App.run = genericSpy<typeof App.run>(runSpy);
 
     // Reset mocks
     mockExit.mockClear();
@@ -169,6 +175,7 @@ describe("CLI Integration", () => {
 
     const mockConsoleLog = mock(() => {});
     const mockExit = mock((_code?: number): never => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- process.exit returns never; a stub that lets the caller continue cannot
       return undefined as never;
     });
     console.log = mockConsoleLog;

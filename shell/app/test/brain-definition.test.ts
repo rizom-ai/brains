@@ -22,9 +22,18 @@ type SinglePluginFactory = (config: PluginConfig) => Plugin;
 function createMockPluginFactory(
   id = "mock-plugin",
 ): SinglePluginFactory & { lastConfig: PluginConfig | undefined } {
-  const factory = ((config: PluginConfig): Plugin => {
+  // Object.assign gives the intersection its own type, so the factory really
+  // carries `lastConfig` rather than being asserted to. `config` is an extra
+  // the Plugin type does not declare, so it rides on the annotation here
+  // instead of the whole literal being asserted into a Plugin.
+  const recorded: { lastConfig: PluginConfig | undefined } = {
+    lastConfig: undefined,
+  };
+  const factory: SinglePluginFactory & {
+    lastConfig: PluginConfig | undefined;
+  } = Object.assign((config: PluginConfig): Plugin => {
     factory.lastConfig = config;
-    return {
+    const plugin: Plugin & { config: PluginConfig } = {
       id,
       version: "1.0.0",
       type: "service",
@@ -34,9 +43,9 @@ function createMockPluginFactory(
         resources: [],
       }),
       config,
-    } as Plugin;
-  }) as SinglePluginFactory & { lastConfig: PluginConfig | undefined };
-  factory.lastConfig = undefined;
+    };
+    return plugin;
+  }, recorded);
   return factory;
 }
 

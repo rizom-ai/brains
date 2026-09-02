@@ -1,6 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
-import type { PermissionConfig } from "@brains/templates";
+import { z } from "@brains/utils/zod";
+
+/**
+ * The permission fields these tests read off a resolved config.
+ *
+ * Parsing rather than asserting means a resolver that stops emitting `rules`
+ * fails here, instead of comparing undefined to the expected array.
+ */
+const resolvedPermissionsSchema = z.looseObject({
+  admins: z.array(z.string()).optional(),
+  anchors: z.array(z.string()).optional(),
+  trusted: z.array(z.string()).optional(),
+  rules: z
+    .array(z.looseObject({ pattern: z.string(), level: z.string() }))
+    .optional(),
+  entityActions: z
+    .record(z.string(), z.record(z.string(), z.unknown()))
+    .optional(),
+});
 import { defineBundle } from "../src/bundle-definition";
 import {
   defineBrain,
@@ -33,9 +51,13 @@ function createPlugin(
     version: "1.0.0",
     type: "service",
     packageName: `@test/${id}`,
+    register: async (): Promise<PluginCapabilities> => ({
+      tools: [],
+      resources: [],
+    }),
     config,
     ...(entityActionPolicy ? { entityActionPolicy } : {}),
-  } as ConfigPlugin;
+  };
 }
 
 function trackingFactory(
@@ -480,13 +502,17 @@ describe("bundle permission integration", () => {
   test("applies plugin, definition, bundle, then instance permission precedence", () => {
     const definition = permissionDefinition();
     const bundled = resolve(definition, {}, { bundles: ["team", "core"] });
-    const bundledPermissions = bundled.permissions as PermissionConfig;
+    const bundledPermissions = resolvedPermissionsSchema.parse(
+      bundled.permissions,
+    );
 
     expect(bundledPermissions.rules).toEqual([
       { pattern: "mcp:*", level: "admin" },
       { pattern: "web-chat:*", level: "trusted" },
     ]);
-    expect(bundledPermissions.entityActions?.["note"]?.create).toBe("trusted");
+    expect(bundledPermissions.entityActions?.["note"]?.["create"]).toBe(
+      "trusted",
+    );
 
     const instance = resolve(
       definition,
@@ -499,12 +525,16 @@ describe("bundle permission integration", () => {
         },
       },
     );
-    const instancePermissions = instance.permissions as PermissionConfig;
+    const instancePermissions = resolvedPermissionsSchema.parse(
+      instance.permissions,
+    );
 
     expect(instancePermissions.rules).toEqual([
       { pattern: "instance:*", level: "public" },
     ]);
-    expect(instancePermissions.entityActions?.["note"]?.create).toBe("public");
+    expect(instancePermissions.entityActions?.["note"]?.["create"]).toBe(
+      "public",
+    );
   });
 
   test("unions principal seeds and identical permission rules deterministically", () => {
@@ -544,13 +574,9 @@ describe("bundle permission integration", () => {
       ],
     });
 
-    const permissions = resolve(
-      definition,
-      {},
-      {
-        bundles: ["site", "core"],
-      },
-    ).permissions as PermissionConfig;
+    const permissions = resolvedPermissionsSchema.parse(
+      resolve(definition, {}, { bundles: ["site", "core"] }).permissions,
+    );
 
     expect(permissions.admins).toEqual(["definition-admin", "core-admin"]);
     expect(permissions.trusted).toEqual(["site-trusted"]);
@@ -611,10 +637,10 @@ describe("bundle permission integration", () => {
         remove: ["alpha"],
       },
     );
-    const permissions = config.permissions as PermissionConfig;
+    const permissions = resolvedPermissionsSchema.parse(config.permissions);
 
     expect(pluginIds(config)).toEqual([]);
     expect(permissions.rules).toEqual([{ pattern: "mcp:*", level: "admin" }]);
-    expect(permissions.entityActions?.["note"]?.create).toBe("admin");
+    expect(permissions.entityActions?.["note"]?.["create"]).toBe("admin");
   });
 });

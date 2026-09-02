@@ -26,6 +26,7 @@ afterEach(() => {
  * named once rather than at each call site.
  */
 const createMockShell = (): ShellInstance => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
   return {
     initialize: mock(() => Promise.resolve()),
     shutdown: mock(() => Promise.resolve()),
@@ -147,6 +148,9 @@ describe("App", () => {
       const existingSigint = new Set(process.listeners("SIGINT"));
       const existingSigterm = new Set(process.listeners("SIGTERM"));
       const originalExit = process.exit;
+      // process.exit is declared to return never, and a stub that lets the
+      // handler continue cannot. There is nothing to narrow — it is a global.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above
       const exit = mock((_code?: number): never => undefined as never);
 
       try {
