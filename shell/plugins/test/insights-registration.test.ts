@@ -9,12 +9,6 @@ describe("insights registration via plugin context", () => {
     shell = createMockShell();
   });
 
-  it("should expose insights.register on BasePluginContext", () => {
-    const context = createBasePluginContext(shell, "test-plugin");
-    expect(context.insights).toBeDefined();
-    expect(typeof context.insights.register).toBe("function");
-  });
-
   it("should register an insight handler via context", () => {
     const context = createBasePluginContext(shell, "test-plugin");
     context.insights.register("custom-insight", async () => ({
