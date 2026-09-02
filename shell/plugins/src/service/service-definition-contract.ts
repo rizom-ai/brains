@@ -3,6 +3,10 @@ import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
 import type { IAuthRegistry } from "../contracts/auth-registry";
+import type {
+  IInboxFollowUpsNamespace,
+  IInboxNamespace,
+} from "../base/context-types";
 import type { AnyInterfaceRouteDefinition } from "../interface/route-contract";
 import type { ChannelDeliveryProvider } from "../channel-registry";
 
@@ -27,6 +31,18 @@ export interface ServiceEntityExtension {
   readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
   readonly validate?:
     ((entity: BaseEntity) => void | Promise<void>) | undefined;
+}
+
+/** A way in this service offers; see `interactions`. */
+export interface ServiceInteractionDeclaration {
+  readonly id: string;
+  readonly label: string;
+  readonly description?: string | undefined;
+  readonly href: string;
+  readonly kind: "human" | "agent" | "admin" | "protocol";
+  readonly priority?: number | undefined;
+  readonly visibility?: UserPermissionLevel | undefined;
+  readonly requiresActiveSession?: boolean | undefined;
 }
 
 export interface ServiceSeedDefinition {
@@ -491,6 +507,13 @@ interface ServiceDefinitionCore<
          * of resolving it per call. Named consumer: @brains/admin.
          */
         readonly auth: IAuthRegistry;
+        /**
+         * The inbox registries other packages file into. A service that
+         * presents the whole inbox reads what they registered rather than
+         * owning a list of its own. Named consumer: @brains/unified-inbox.
+         */
+        readonly inbox: IInboxNamespace;
+        readonly inboxFollowUps: IInboxFollowUpsNamespace;
         readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
     | undefined;
@@ -619,6 +642,18 @@ interface ServiceDefinitionCore<
          */
         readonly jobs: ServiceJobs;
       }) => readonly AnySubscriptionDefinition[])
+    | undefined;
+  /**
+   * Ways in that this service offers a person or an agent — a console link
+   * to a workspace it registers, say. Declared rather than registered from
+   * a lifecycle hook so the list is readable without running the plugin.
+   * Named consumer: @brains/unified-inbox.
+   */
+  readonly interactions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly ServiceInteractionDeclaration[])
     | undefined;
   readonly instructions?:
     | ((context: {

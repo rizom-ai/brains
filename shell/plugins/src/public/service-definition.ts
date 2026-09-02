@@ -68,9 +68,11 @@ export { defineJob, defineTool } from "../service/service-definition-contract";
 export type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
+  ServiceCheckDeclaration,
   ServiceDeadline,
   ServiceDefinitionInput,
   ServiceEntityExtension,
+  ServiceInteractionDeclaration,
   ServiceEvalHandler,
   ServiceInputSchema,
   ServiceJobBinding,

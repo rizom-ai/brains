@@ -351,11 +351,19 @@ made the entity tranche find real defects rather than move code.
    stock-photo's gap (both are a package asking the runtime to run work it
    does not own) and worth deciding together.
 
-   **`unified-inbox` needs three smaller additions**: the `inbox` and
-   `inboxFollowUps` readers in `setup`, a declared interaction (the console
-   link it registers on ready), and its digest registration. None is
-   contentious; they are listed here so the next slice can carry them
-   together rather than discovering them one at a time.
+   **`unified-inbox` was measured at three additions and needs four.** The
+   `inbox`/`inboxFollowUps` readers in `setup` and the `interactions` slot
+   are done, with tests. Its digest is a recurring check whose destination
+   URL is built from `siteUrl` and `webRoutes.getRoutes()` — neither reaches
+   the `checks` context, and that is the fourth. Two further mechanical
+   steps go with it: its list tool is still a `createTool` call rather than
+   a `defineTool` declaration, and its workspace binding is typed loosely
+   enough that the `studioWorkspaces` slot rejects it.
+
+   The lesson is worth keeping: three of these were visible from the plugin
+   file, and the fourth only from following the digest into the helper it
+   calls. Measuring a conversion means reading what the helpers reach for,
+   not only what the plugin class does.
 
 ### What the remaining tranche actually is
 

@@ -326,6 +326,30 @@ class DeclarativeServicePlugin<
       });
     }
 
+    for (const interaction of this.definition.interactions?.({
+      config: this.config,
+      state: this.requireState(),
+    }) ?? []) {
+      context.interactions.register({
+        id: interaction.id,
+        label: interaction.label,
+        href: interaction.href,
+        kind: interaction.kind,
+        ...(interaction.description !== undefined
+          ? { description: interaction.description }
+          : {}),
+        ...(interaction.priority !== undefined
+          ? { priority: interaction.priority }
+          : {}),
+        ...(interaction.visibility !== undefined
+          ? { visibility: interaction.visibility }
+          : {}),
+        ...(interaction.requiresActiveSession !== undefined
+          ? { requiresActiveSession: interaction.requiresActiveSession }
+          : {}),
+      });
+    }
+
     if (this.definition.ready) {
       await this.definition.ready({
         config: this.config,
@@ -423,6 +447,8 @@ class DeclarativeServicePlugin<
               context.channels.getDeliveryProvider(channelType),
           },
           auth: context.auth,
+          inbox: context.inbox,
+          inboxFollowUps: context.inboxFollowUps,
           logger: this.logger,
         })
       : (Object.freeze({}) as TState);
