@@ -15,12 +15,14 @@
  */
 
 export function objectKeys<T extends object>(value: T): (keyof T & string)[] {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Object.keys is typed string[] because of prototype-chain keys; for a plain object the keys are exactly keyof T, and this helper is the one place that says so
   return Object.keys(value) as (keyof T & string)[];
 }
 
 export function objectEntries<T extends object>(
   value: T,
 ): [keyof T & string, T[keyof T]][] {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same Object.entries widening as objectKeys above
   return Object.entries(value) as [keyof T & string, T[keyof T]][];
 }
 

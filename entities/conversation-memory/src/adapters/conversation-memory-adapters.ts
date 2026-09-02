@@ -75,6 +75,7 @@ class ConversationMemoryEntityAdapter<
     // stores a string — so TypeScript cannot verify a literal against
     // Partial<TEntity>. Removing this means the adapter carrying its entity
     // type as a type parameter, which the base EntityAdapter does not.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: the literal entityType cannot be checked against a generic TEntity without the adapter carrying its entity type as a parameter
     return {
       entityType: this.entityType,
       content: markdown,

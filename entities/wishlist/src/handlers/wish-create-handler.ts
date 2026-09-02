@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { WishAdapter } from "../adapters/wish-adapter";
-import { wishSchema } from "../schemas/wish";
+import { wishPrioritySchema, wishSchema } from "../schemas/wish";
 import { findExistingWish } from "../lib/wish-dedup";
 
 export interface WishCreateData {
@@ -87,9 +87,9 @@ export class WishCreateHandler {
     }
 
     const slug = slugify(title);
-    const priority =
-      (data.options?.priority as "low" | "medium" | "high" | undefined) ??
-      "medium";
+    // options.priority arrives as an unchecked string from the tool call.
+    const parsedPriority = wishPrioritySchema.safeParse(data.options?.priority);
+    const priority = parsedPriority.success ? parsedPriority.data : "medium";
     const content = this.adapter.createWishContent(
       {
         title,

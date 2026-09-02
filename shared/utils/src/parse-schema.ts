@@ -17,6 +17,7 @@ export function parseWithSchema<S extends AnySchema>(
   schema: S,
   value: unknown,
 ): z.output<S> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: parse resolved through a generic constraint returns unknown, and the value really is z.output<S> because parse produced it
   return schema.parse(value) as z.output<S>;
 }
 
@@ -30,6 +31,7 @@ export function safeParseWithSchema<S extends AnySchema>(
 ): SafeParseResult<z.output<S>> {
   const result = schema.safeParse(value);
   return result.success
-    ? { success: true, data: result.data as z.output<S> }
+    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same deferred-generic gap as parseWithSchema; safeParse produced this value
+      { success: true, data: result.data as z.output<S> }
     : { success: false, error: result.error };
 }

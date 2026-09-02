@@ -377,6 +377,7 @@ function createEvalProjectionContext(params: {
       // generateObject promises the caller's chosen T, which a fixed stub
       // cannot produce. The assertion is scoped to this one member so every
       // other override in this context is still checked against the real type.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub: generateObject is generic over a caller-chosen output, so a fixed forced value cannot satisfy an arbitrary T
       generateObject: (async () => ({
         object: {
           decision: params.projectionDecision,
@@ -390,6 +391,7 @@ function createEvalProjectionContext(params: {
       // null>`: the caller picks T and the implementation must return it. This
       // stub can only ever return the one seeded summary, so no honest
       // signature exists for it — a fixed value cannot satisfy an arbitrary T.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub; see the note above
       getEntity: (async ({ entityType }: { entityType: string }) =>
         entityType === "summary"
           ? params.existing
@@ -437,8 +439,10 @@ function createSeededRetrievalContext(
       // Both promise the caller's chosen entity type, which a fixed set of
       // seeded memories cannot satisfy. Scoped to these two members so the
       // rest of the context is checked against the real type.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub; see the note above
       search: (async () =>
         searchResults) as EntityPluginContext["entityService"]["search"],
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub; see the note above
       listEntities: (async ({ entityType }: { entityType: string }) =>
         entities.filter(
           (entity) => entity.entityType === entityType,

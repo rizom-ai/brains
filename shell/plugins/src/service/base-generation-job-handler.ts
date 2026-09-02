@@ -338,6 +338,7 @@ export abstract class BaseGenerationJobHandler<
    * across eight packages, not a local fix.
    */
   private toResult(result: GenerationResult): TResult {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: irreducible without moving result construction into all eight subclasses
     return result as TResult;
   }
 

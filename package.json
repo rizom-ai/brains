@@ -10,6 +10,7 @@
     "@changesets/cli": "^2.31.0",
     "@changesets/config": "^3.1.1",
     "@changesets/parse": "^0.4.1",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@manypkg/cli": "^0.25.1",

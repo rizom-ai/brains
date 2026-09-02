@@ -248,7 +248,9 @@ type AgentMachine = StateMachine<
 
 export const agentMachine: AgentMachine = setup({
   types: {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- xstate `setup` takes types as values; `{} as T` is the documented way to declare them and no value is produced at runtime
     context: {} as AgentMachineContext,
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same xstate types-as-values declaration
     events: {} as AgentMachineEvent,
   },
   actors: {

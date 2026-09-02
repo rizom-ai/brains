@@ -1,3 +1,4 @@
+import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import { dirname } from "node:path";
@@ -146,6 +147,51 @@ export default [
         "error",
         NO_UNSAFE_TEST_CAST,
         NO_SLEEP_SYNCHRONIZATION,
+      ],
+    },
+  },
+  {
+    // Type assertions are banned in shipped source.
+    //
+    // `as T` asserts a shape instead of checking it: the compiler stops
+    // looking and the claim is never tested at runtime. Removing ~185 of them
+    // from this repo turned up real defects each time — an svg+xml laundered
+    // into an ImageFormat, a `<select>` value asserted into a role, deploy
+    // errors read as `success: undefined`, entity sorts on metadata fields
+    // that were stripped before they ever reached the database.
+    //
+    // Reach for, in order: a Zod schema parsed at the boundary, a type
+    // predicate that actually inspects the value, or fixing the upstream type
+    // so the assertion has nothing to correct.
+    //
+    // An assertion that genuinely cannot be removed stays, with a disable
+    // naming why — `eslint-comments/require-description` makes the reason
+    // mandatory, and an unused directive is a warning, which `--max-warnings 0`
+    // turns into a failure. So an exemption left behind after its cast is
+    // gone breaks the build instead of accumulating.
+    //
+    // `as const` is not an assertion in this sense and is not reported.
+    //
+    // Tests hold ~600 assertions and are being migrated package by package
+    // after shipped source reaches zero. Delete an entry from `ignores` as its
+    // package lands, so the packages already done cannot regress while the
+    // rest are outstanding.
+    files: ["**/*.{ts,tsx}"],
+    ignores: [
+      "**/test/**",
+      "**/*.test.{ts,tsx}",
+      "shared/test-utils/**",
+      "**/scripts/**",
+    ],
+    plugins: { "eslint-comments": eslintComments },
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+      "eslint-comments/require-description": [
+        "error",
+        { ignore: ["eslint-enable"] },
       ],
     },
   },

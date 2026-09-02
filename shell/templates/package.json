@@ -23,6 +23,7 @@
   "main": "src/index.ts",
   "private": true,
   "scripts": {
+    "lint": "eslint . --max-warnings 0",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

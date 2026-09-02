@@ -26,5 +26,6 @@ function cloneUnknown(value: unknown): unknown {
  * instead of repeating it at each call site.
  */
 export function clonePlainData<T>(value: T): T {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- cloneUnknown walks and rebuilds the value, so the copy has the input shape by construction; the single proof point lives here so call sites need none
   return cloneUnknown(value) as T;
 }

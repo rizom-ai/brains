@@ -340,10 +340,12 @@ export function assertValidIdentityType(
   isChannelTypeRegistered?: (type: string) => boolean,
 ): void {
   if (
-    (AUTH_RESERVED_IDENTITY_TYPES as readonly string[]).includes(type) ||
+    AUTH_RESERVED_IDENTITY_TYPES.some((reserved) => reserved === type) ||
     (isChannelTypeRegistered
       ? isChannelTypeRegistered(type)
-      : (LEGACY_CHANNEL_IDENTITY_TYPES as readonly string[]).includes(type))
+      : LEGACY_CHANNEL_IDENTITY_TYPES.some(
+          (channelType) => channelType === type,
+        ))
   ) {
     return;
   }

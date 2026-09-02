@@ -11,5 +11,6 @@
  * The single assertion sits here rather than at each plugin family's fallback.
  */
 export function emptyPluginState<TState extends object>(): TState {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: TState defaults to the empty record, so a frozen empty object really is one; the plugin classes are generic over `object` and cannot see that default
   return Object.freeze({}) as TState;
 }

@@ -168,6 +168,7 @@ export function createMessagingNamespace(
       if (executionOnly) return () => {};
       if (isChannel(channelOrName)) {
         const channel = channelOrName;
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- overload bridge: the Channel branch of the union guarantees the typed handler shape, but the parameter is declared as the union
         const typedHandler = handler as TypedMessageHandler<T, R>;
 
         const wrappedHandler: MessageHandler<unknown, R> = async (message) => {
@@ -188,6 +189,7 @@ export function createMessagingNamespace(
 
       return messageBus.subscribe(
         channelOrName,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same overload bridge: the string branch guarantees the plain handler shape
         handler as MessageHandler<T, R>,
       );
     },

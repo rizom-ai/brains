@@ -387,7 +387,7 @@
         "siteDefinitionSchema",
         "z"
       ],
-      "advanced-with-consumer": [],
+      "advanced-with-consumer": ["siteDefinitionOverridesSchema"],
       "internal/removable": [
         "RizomBrandSuffix",
         "RizomFooterTagline",

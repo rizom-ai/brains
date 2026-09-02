@@ -9,7 +9,7 @@ import { TemplateCapabilities } from "./capabilities";
  */
 export class TemplateRegistry {
   private templates = new Map<string, Template>();
-  private logger: Logger | undefined | undefined;
+  private logger: Logger | undefined;
 
   /**
    * Isolated instance creation
@@ -21,7 +21,7 @@ export class TemplateRegistry {
   /**
    * Private constructor to enforce factory methods
    */
-  private constructor(logger?: Logger | undefined) {
+  private constructor(logger?: Logger) {
     this.logger = logger;
   }
 
