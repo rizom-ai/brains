@@ -1419,3 +1419,62 @@ describe("operator columns composition", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("a workspace reachable under more than one name", () => {
+  it("declares its aliases, so an old link still resolves", async () => {
+    const aliased = defineStudioWorkspace({
+      id: "administration",
+      label: "Administration",
+      permission: "admin",
+      // The tabs used to be separate workspaces; the links people saved
+      // still point at their ids.
+      aliases: [
+        { id: "people", query: { tab: "people" } },
+        { id: "audit", query: { tab: "audit" } },
+      ],
+      query: z.object({ tab: z.string().default("people") }),
+      data: z.object({ tab: z.string() }),
+      actions: [],
+      view: ({ data }) => ({
+        blocks: [{ type: "stats", items: [{ label: "Tab", value: data.tab }] }],
+      }),
+    });
+    const definition = defineServicePlugin({
+      id: "admin-desk",
+      config: z.object({}),
+      setup: () => ({}),
+      studioWorkspaces: (context) => [
+        aliased.bind(context, {
+          load: ({ query }) => ({
+            tab: query.get(z.object({ tab: z.string().default("people") })).tab,
+          }),
+          actions: [],
+        }),
+      ],
+    });
+
+    const shell = createMockShell({ logger: createSilentLogger("aliases") });
+    const registrations: StudioWorkspaceRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<StudioWorkspaceRegistration>(
+        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        (message) => {
+          registrations.push(message.payload);
+          return {
+            success: true,
+            data: { workspaceUrl: `/studio/${message.payload.id}` },
+          };
+        },
+      );
+
+    const plugin = instantiate(definition);
+    await plugin.register(shell);
+    await plugin.finalizeRegistration?.();
+
+    expect(registrations[0]?.aliases).toEqual([
+      { id: "people", query: { tab: "people" } },
+      { id: "audit", query: { tab: "audit" } },
+    ]);
+  });
+});

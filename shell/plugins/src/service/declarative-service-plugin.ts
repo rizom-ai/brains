@@ -710,6 +710,9 @@ class DeclarativeServicePlugin<
           publicServiceId: this.publicId,
           packageName: this.packageName,
           runtimeWorkspaceId,
+          ...(binding.definition.aliases
+            ? { aliases: binding.definition.aliases }
+            : {}),
           config: this.config,
           state: this.requireState(),
           ...(this.accountSettingsRegistration

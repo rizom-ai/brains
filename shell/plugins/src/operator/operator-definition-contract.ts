@@ -187,6 +187,19 @@ export interface StudioWorkspaceDefinition<
   readonly priority?: number | undefined;
   readonly permission: UserPermissionLevel;
   readonly entities?: readonly EntityDefinitionShape[] | undefined;
+  /**
+   * Other ids this workspace answers to, each with the query that selects
+   * the view the old id used to name. Consolidating several workspaces into
+   * one tabbed workspace breaks every saved link otherwise. Named consumer:
+   * @brains/admin, whose People, Invitations, Peers and Audit workspaces
+   * became tabs of Administration.
+   */
+  readonly aliases?:
+    | readonly {
+        readonly id: string;
+        readonly query: Readonly<Record<string, string>>;
+      }[]
+    | undefined;
   readonly entityCatalog?: OperatorEntityCatalogDefinition | undefined;
   readonly query?: OperatorSchema | undefined;
   readonly data: TDataSchema;
