@@ -1,14 +1,8 @@
 import {
-  archiveBrowserChatSessionResponseSchema,
-  browserChatSessionsResponseSchema,
-  deleteBrowserChatSessionResponseSchema,
-  renameBrowserChatSessionRequestSchema,
-  renameBrowserChatSessionResponseSchema,
-} from "@brains/contracts/browser-chat";
-import {
   coerceConversationMetadata,
   type InterfacePluginContext,
 } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   canAccessBrowserConversation,
   type WebChatConversation,
@@ -18,6 +12,10 @@ import {
 const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
+
+const renameSessionRequestSchema = z.object({
+  title: z.string().trim().min(1).max(webChatTitleMaxLength),
+});
 
 type AccessResolver = (request: Request) => Promise<WebChatConversationAccess>;
 type ConversationService = InterfacePluginContext["conversations"];
@@ -58,7 +56,7 @@ export async function handleSessionsRequest(
     })),
   );
 
-  return Response.json(browserChatSessionsResponseSchema.parse({ sessions }));
+  return Response.json({ sessions });
 }
 
 export async function handleDeleteSessionRequest(
@@ -74,9 +72,7 @@ export async function handleDeleteSessionRequest(
   if (conversation instanceof Response) return conversation;
 
   const deleted = await deps.conversations.delete(conversation.id);
-  return Response.json(
-    deleteBrowserChatSessionResponseSchema.parse({ deleted }),
-  );
+  return Response.json({ deleted });
 }
 
 export async function handleRenameSessionRequest(
@@ -91,9 +87,7 @@ export async function handleRenameSessionRequest(
   const conversation = await resolveWebChatSession(request, deps, access);
   if (conversation instanceof Response) return conversation;
 
-  const parsed = renameBrowserChatSessionRequestSchema.safeParse(
-    await request.json(),
-  );
+  const parsed = renameSessionRequestSchema.safeParse(await request.json());
   if (!parsed.success) {
     return new Response("Invalid rename request", { status: 400 });
   }
@@ -103,12 +97,7 @@ export async function handleRenameSessionRequest(
     metadata: { title: parsed.data.title },
   });
 
-  return Response.json(
-    renameBrowserChatSessionResponseSchema.parse({
-      renamed,
-      title: parsed.data.title,
-    }),
-  );
+  return Response.json({ renamed, title: parsed.data.title });
 }
 
 export async function handleArchiveSessionRequest(
@@ -128,9 +117,7 @@ export async function handleArchiveSessionRequest(
     metadata: { archivedAt: new Date().toISOString() },
   });
 
-  return Response.json(
-    archiveBrowserChatSessionResponseSchema.parse({ archived }),
-  );
+  return Response.json({ archived });
 }
 
 /**

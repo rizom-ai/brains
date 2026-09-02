@@ -16,10 +16,6 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    },
-    "./browser-chat": {
-      "types": "./src/browser-chat.ts",
-      "default": "./src/browser-chat.ts"
     }
   },
   "main": "./src/index.ts",

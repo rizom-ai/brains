@@ -2,11 +2,10 @@
 
 ## Status
 
-**Accepted architecture; Phase 1 implemented in source, release pending.** Chat
-will become a native Studio workspace without embedding the standalone Web Chat
-application. The public headless Chat contract now precedes presentation work;
-no presentation moves before that boundary is released and its packed external
-compatibility proof passes.
+**Accepted architecture; implementation not started.** Chat will become a native
+Studio workspace without embedding the standalone Web Chat application. The
+first implementation slice is the public headless Chat contract; no presentation
+moves before that boundary is published and tested.
 
 ## Shipped baseline
 

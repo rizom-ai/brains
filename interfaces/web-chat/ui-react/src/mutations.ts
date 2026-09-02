@@ -1,6 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { describeClientFailure, type WebChatSession } from "./api";
-import { createWebChatClient } from "./browser-chat-client";
+import { describeFetchFailure, type WebChatSession } from "./api";
 import { webChatKeys } from "./queries";
 
 export interface WebChatSessionMutationInput {
@@ -38,44 +37,45 @@ export function removeWebChatSessionCaches(
   );
 }
 
+async function requireSuccessfulMutation(
+  response: Response,
+  fallback: string,
+): Promise<void> {
+  if (response.ok) return;
+  throw new Error(describeFetchFailure(response, fallback));
+}
+
 export async function renameWebChatSession(
   input: RenameWebChatSessionInput,
 ): Promise<void> {
-  try {
-    await createWebChatClient().renameSession(
-      input.conversationId,
-      input.title,
-    );
-  } catch (error) {
-    throw new Error(
-      describeClientFailure(error, "Could not rename that session."),
-      { cause: error },
-    );
-  }
+  const response = await fetch(
+    `/api/chat/sessions?id=${encodeURIComponent(input.conversationId)}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: input.title }),
+    },
+  );
+  await requireSuccessfulMutation(response, "Could not rename that session.");
 }
 
 export async function archiveWebChatSession(
   input: WebChatSessionMutationInput,
 ): Promise<void> {
-  try {
-    await createWebChatClient().archiveSession(input.conversationId);
-  } catch (error) {
-    throw new Error(
-      describeClientFailure(error, "Could not archive that session."),
-      { cause: error },
-    );
-  }
+  const response = await fetch(
+    `/api/chat/sessions/archive?id=${encodeURIComponent(input.conversationId)}`,
+    { method: "PUT", credentials: "include" },
+  );
+  await requireSuccessfulMutation(response, "Could not archive that session.");
 }
 
 export async function deleteWebChatSession(
   input: WebChatSessionMutationInput,
 ): Promise<void> {
-  try {
-    await createWebChatClient().deleteSession(input.conversationId);
-  } catch (error) {
-    throw new Error(
-      describeClientFailure(error, "Could not delete that session."),
-      { cause: error },
-    );
-  }
+  const response = await fetch(
+    `/api/chat/sessions?id=${encodeURIComponent(input.conversationId)}`,
+    { method: "DELETE", credentials: "include" },
+  );
+  await requireSuccessfulMutation(response, "Could not delete that session.");
 }

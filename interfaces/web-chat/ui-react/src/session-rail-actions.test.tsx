@@ -132,11 +132,7 @@ beforeEach(() => {
       return Response.json({ messages: [] });
     }
     mutationCalls.push({ url, method });
-    if (method === "DELETE") return Response.json({ deleted: true });
-    if (url.includes("/archive")) {
-      return Response.json({ archived: true });
-    }
-    return Response.json({ renamed: true, title: "Renamed thread" });
+    return Response.json({ ok: true });
   }) as typeof fetch;
 
   // globalThis.document is the happy-dom document assigned above, but typed as

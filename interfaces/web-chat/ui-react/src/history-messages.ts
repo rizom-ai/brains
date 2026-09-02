@@ -13,25 +13,27 @@ import {
   type StructuredChatCard,
   type ToolApprovalCard,
 } from "@brains/contracts";
-import {
-  browserChatHistoryAttachmentSchema,
-  browserChatHistoryAttachmentSourceSchema,
-  browserChatHistoryMessageSchema,
-  browserChatMessagesResponseSchema,
-  type BrowserChatHistoryAttachment,
-  type BrowserChatHistoryAttachmentSource,
-  type BrowserChatHistoryMessage,
-  type BrowserChatMessagesResponse,
-} from "@brains/contracts/browser-chat";
 import type { DynamicToolUIPart, UIMessage } from "ai";
+import { z } from "@brains/utils/zod";
 import { stripInternalEntityMemoryNote } from "../../src/display-content";
-import { createWebChatClient } from "./browser-chat-client";
 import { createUploadPart, type WebChatUploadResponse } from "./uploads";
 
-const browserChatClient = createWebChatClient();
+export interface WebChatHistoryAttachmentSource {
+  [key: string]: unknown;
+  kind: string;
+  id: string;
+}
 
-export type WebChatHistoryAttachmentSource = BrowserChatHistoryAttachmentSource;
-export type WebChatHistoryAttachment = BrowserChatHistoryAttachment;
+export interface WebChatHistoryAttachment {
+  [key: string]: unknown;
+  kind: "text";
+  filename: string;
+  mediaType: string;
+  sizeBytes: number;
+  createdAt: string;
+  source?: WebChatHistoryAttachmentSource | undefined;
+}
+
 export type WebChatHistoryAttachmentCardSource = AttachmentCardSource;
 export type WebChatHistoryAttachmentCardAttachment = AttachmentCardData;
 export type WebChatHistoryAttachmentCard = AttachmentCard;
@@ -40,25 +42,59 @@ export type WebChatHistorySourcesCard = SourcesCard;
 export type WebChatHistoryAction = ChatAction;
 export type WebChatHistoryActionsCard = ActionsCard;
 export type WebChatHistoryCard = StructuredChatCard;
-export type WebChatHistoryMessage = BrowserChatHistoryMessage;
-export type WebChatMessagesResponse = BrowserChatMessagesResponse;
 
-export const webChatHistoryAttachmentSourceSchema: typeof browserChatHistoryAttachmentSourceSchema =
-  browserChatHistoryAttachmentSourceSchema;
-export const webChatHistoryAttachmentSchema: typeof browserChatHistoryAttachmentSchema =
-  browserChatHistoryAttachmentSchema;
-export const webChatHistoryAttachmentCardSchema: typeof AttachmentCardSchema =
+export interface WebChatHistoryMessage {
+  [key: string]: unknown;
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  attachments?: WebChatHistoryAttachment[] | undefined;
+  cards?: WebChatHistoryCard[] | undefined;
+}
+
+export interface WebChatMessagesResponse {
+  [key: string]: unknown;
+  messages: WebChatHistoryMessage[];
+}
+
+export const webChatHistoryAttachmentSourceSchema: z.ZodType<WebChatHistoryAttachmentSource> =
+  z.looseObject({
+    kind: z.string(),
+    id: z.string(),
+  });
+
+export const webChatHistoryAttachmentSchema: z.ZodType<WebChatHistoryAttachment> =
+  z.looseObject({
+    kind: z.literal("text"),
+    filename: z.string(),
+    mediaType: z.string(),
+    sizeBytes: z.number(),
+    createdAt: z.string(),
+    source: webChatHistoryAttachmentSourceSchema.optional(),
+  });
+
+export const webChatHistoryAttachmentCardSchema: z.ZodType<WebChatHistoryAttachmentCard> =
   AttachmentCardSchema;
-export const webChatHistorySourcesCardSchema: typeof SourcesCardSchema =
+export const webChatHistorySourcesCardSchema: z.ZodType<WebChatHistorySourcesCard> =
   SourcesCardSchema;
-export const webChatHistoryActionsCardSchema: typeof ActionsCardSchema =
+export const webChatHistoryActionsCardSchema: z.ZodType<WebChatHistoryActionsCard> =
   ActionsCardSchema;
-export const webChatHistoryCardSchema: typeof StructuredChatCardSchema =
+export const webChatHistoryCardSchema: z.ZodType<WebChatHistoryCard> =
   StructuredChatCardSchema;
-export const webChatHistoryMessageSchema: typeof browserChatHistoryMessageSchema =
-  browserChatHistoryMessageSchema;
-export const webChatMessagesResponseSchema: typeof browserChatMessagesResponseSchema =
-  browserChatMessagesResponseSchema;
+
+export const webChatHistoryMessageSchema: z.ZodType<WebChatHistoryMessage> =
+  z.looseObject({
+    id: z.string(),
+    role: z.enum(["user", "assistant"]),
+    content: z.string(),
+    attachments: z.array(webChatHistoryAttachmentSchema).optional(),
+    cards: z.array(webChatHistoryCardSchema).optional(),
+  });
+
+export const webChatMessagesResponseSchema: z.ZodType<WebChatMessagesResponse> =
+  z.looseObject({
+    messages: z.array(webChatHistoryMessageSchema),
+  });
 
 /**
  * The query cache owns an immutable history snapshot. AI SDK receives a
@@ -218,5 +254,6 @@ function toUploadResponse(
 }
 
 function getUploadUrl(uploadId: string, download = false): string {
-  return browserChatClient.getUploadUrl(uploadId, download);
+  const encodedId = encodeURIComponent(uploadId);
+  return `/api/chat/uploads?id=${encodedId}${download ? "&download=1" : ""}`;
 }

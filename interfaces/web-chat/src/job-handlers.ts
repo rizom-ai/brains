@@ -1,4 +1,3 @@
-import { browserChatJobStatusSchema } from "@brains/contracts/browser-chat";
 import type { InterfacePluginContext } from "@brains/plugins";
 
 type AuthSessionResolver = (request: Request) => Promise<boolean>;
@@ -28,11 +27,9 @@ export async function handleJobStatusRequest(
     return new Response("Job not found", { status: 404 });
   }
 
-  return Response.json(
-    browserChatJobStatusSchema.parse({
-      id: job.id,
-      status: job.status,
-      message: job.lastError ?? undefined,
-    }),
-  );
+  return Response.json({
+    id: job.id,
+    status: job.status,
+    message: job.lastError ?? undefined,
+  });
 }

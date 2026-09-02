@@ -16,20 +16,16 @@ import {
 } from "../ui-react/src/uploads";
 import { getErrorMessage } from "@brains/utils/error";
 
-const uploadId = "upload-550e8400-e29b-41d4-a716-446655440000";
-
 function makeUploadResponse(
   overrides: Partial<WebChatUploadResponse> = {},
 ): WebChatUploadResponse {
   return {
-    id: uploadId,
-    ref: { kind: "upload", id: uploadId },
+    id: "upload-123",
+    ref: { kind: "upload", id: "upload-123" },
     filename: "notes.md",
     mediaType: "text/markdown",
     sizeBytes: 12,
     createdAt: "2026-05-30T00:00:00.000Z",
-    url: `/api/chat/uploads?id=${uploadId}`,
-    downloadUrl: `/api/chat/uploads?id=${uploadId}&download=1`,
     ...overrides,
   };
 }
@@ -48,7 +44,7 @@ describe("web chat upload protocol", () => {
     expect(
       parseUploadPartData({
         ...makeUploadResponse(),
-        ref: { kind: "other", id: uploadId },
+        ref: { kind: "other", id: "upload-123" },
       }),
     ).toBe(null);
   });

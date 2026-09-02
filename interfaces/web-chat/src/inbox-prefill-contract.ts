@@ -1,10 +1,11 @@
-import {
-  browserChatSourceContextSchema,
-  type BrowserChatSourceContext,
-} from "@brains/contracts/browser-chat";
+import { inboxIdSchema, inboxItemIdSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export type WebChatInboxContext = BrowserChatSourceContext;
+export interface WebChatInboxContext {
+  sourceId: string;
+  itemId: string;
+  label: string;
+}
 
 export interface WebChatInboxPrefill {
   version: 2;
@@ -24,8 +25,14 @@ const safeText = (max: number): z.ZodString =>
     .max(max)
     .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
 
-export const webChatInboxContextSchema: typeof browserChatSourceContextSchema =
-  browserChatSourceContextSchema;
+export const webChatInboxContextSchema: z.ZodType<
+  WebChatInboxContext,
+  WebChatInboxContext
+> = z.strictObject({
+  sourceId: inboxIdSchema,
+  itemId: inboxItemIdSchema,
+  label: safeText(160),
+});
 
 export const webChatInboxPrefillSchema: z.ZodType<
   WebChatInboxPrefill,

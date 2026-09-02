@@ -1,8 +1,4 @@
 import {
-  browserChatProgressEventSchema,
-  browserChatToolStatusEventSchema,
-} from "@brains/contracts/browser-chat";
-import {
   formatMessageProgressDisplay,
   getToolStatusDisplay,
   type JobContext,
@@ -59,7 +55,6 @@ export function toProgressData(event: JobProgressEvent): WebChatProgressData {
   if (display.amount) {
     data.amount = display.amount;
   }
-  browserChatProgressEventSchema.parse(data);
   return data;
 }
 
@@ -72,44 +67,37 @@ export function toToolStatusData(
     title: display.title,
     fallback: display.fallback,
   };
-  let data: WebChatToolStatusData;
   switch (update.state) {
     case "running":
-      data = {
+      return {
         ...sharedData,
         status: "tool-running",
         toolName: update.toolName,
         message: `Using ${display.label}…`,
       };
-      break;
     case "completed":
-      data = {
+      return {
         ...sharedData,
         status: "tool-completed",
         toolName: update.toolName,
         message: `Finished ${display.label}.`,
       };
-      break;
     case "awaiting-approval":
-      data = {
+      return {
         ...sharedData,
         status: "tool-awaiting-approval",
         toolName: update.toolName,
         message: `${capitalize(display.label)} is awaiting approval.`,
       };
-      break;
     case "failed":
-      data = {
+      return {
         ...sharedData,
         status: "tool-failed",
         toolName: update.toolName,
         message: `${capitalize(display.label)} failed.`,
         ...(update.error !== undefined && { error: update.error }),
       };
-      break;
   }
-  browserChatToolStatusEventSchema.parse(data);
-  return data;
 }
 
 function capitalize(value: string): string {
