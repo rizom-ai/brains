@@ -144,20 +144,19 @@ describe("runPackageMigrations", () => {
     const dbDir = await tempDir("brains-db-file-");
     const url = `file:${join(dbDir, "test.db")}`;
 
-    let thrown: unknown;
-    try {
-      await runPackageMigrations({
-        label: "broken",
-        config: { url },
-        schema: {},
-        migrationsFolder,
-        logger: silentLogger(),
-      });
-    } catch (error) {
-      thrown = error;
-    }
+    const thrown = await runPackageMigrations({
+      label: "broken",
+      config: { url },
+      schema: {},
+      migrationsFolder,
+      logger: silentLogger(),
+    }).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
 
-    expect(thrown).toBeDefined();
+    // The rethrow half of the title: an Error, not merely something defined.
+    expect(thrown).toBeInstanceOf(Error);
 
     // A leaked open client would keep the WAL lock; reconnecting proves cleanup.
     const { createSqliteDatabase } = await import("../src/sqlite");

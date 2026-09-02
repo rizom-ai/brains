@@ -80,10 +80,20 @@ describe("ContentPipelinePlugin", () => {
     });
 
     it("should initialize components", () => {
-      expect(plugin.getQueueManager()).toBeDefined();
-      expect(plugin.getProviderRegistry()).toBeDefined();
-      expect(plugin.getRetryTracker()).toBeDefined();
-      expect(plugin.getScheduler()).toBeDefined();
+      const components = [
+        plugin.getQueueManager(),
+        plugin.getProviderRegistry(),
+        plugin.getRetryTracker(),
+        plugin.getScheduler(),
+      ];
+
+      // Four separate components, each held rather than rebuilt per call.
+      // Asserting only that each is defined would pass for two getters
+      // returning the same object, or for a getter constructing a new one
+      // every time — the scheduler in particular must be the same instance.
+      expect(new Set(components).size).toBe(4);
+      expect(plugin.getScheduler()).toBe(plugin.getScheduler());
+      expect(plugin.getQueueManager()).toBe(plugin.getQueueManager());
     });
 
     it("registers only the canonical publishing management tool", () => {
