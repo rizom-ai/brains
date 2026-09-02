@@ -366,6 +366,7 @@
     "core--projection-startup-recovery",
     "core--projection-wave-json-boundaries",
     "core--public-authoring-definitions",
+    "core--public-headless-chat-contract",
     "core--public-plugin-surface-soundness",
     "core--quality-refactor-sweep",
     "core--react-renderer-consolidation",

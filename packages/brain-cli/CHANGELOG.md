@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.345
+
+### Minor Changes
+
+- [#209](https://github.com/rizom-ai/brains/pull/209) [`2dd75e8`](https://github.com/rizom-ai/brains/commit/2dd75e873689ca6d425d42aa8f2598bc8d8e2245) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish `@rizom/brain/chat` as the browser-safe, framework-neutral Chat domain and transport contract. The new subpath provides versioned schemas, bounded API paths, and a fetch-injected client for conversations, messages, streaming, uploads, approvals, actions, progress, and durable job status without exporting React, routing, cache, storage, or other presentation logic.
+
 ## 0.2.0-alpha.344
 
 ### Patch Changes
