@@ -108,14 +108,10 @@ describe("Web chat UI contract", () => {
     expect(uiSource).toContain("Conversations");
     expect(uiSource).not.toContain("window.prompt");
     expect(uiSource).not.toContain("window.confirm");
-    expect(mutationSource).toContain("createWebChatClient");
-    expect(mutationSource).toContain(".renameSession(");
-    expect(mutationSource).toContain(".archiveSession(");
-    expect(mutationSource).toContain(".deleteSession(");
-    expect(apiSource).toContain(".getMessages(");
-    expect(apiSource).toContain(".listSessions(");
-    expect(uiSource).toContain("getWebChatApiPaths");
-    expect(uiSource).toContain(".runAction(");
+    expect(mutationSource).toContain('method: "PUT"');
+    expect(mutationSource).toContain('method: "DELETE"');
+    expect(mutationSource).toContain("/api/chat/sessions");
+    expect(apiSource).toContain("/api/chat/messages");
     expect(uiSource).toContain("queryClient.fetchQuery");
     expect(uiSource).toContain("createActiveMessageSeed");
 

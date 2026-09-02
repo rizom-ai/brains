@@ -15,7 +15,6 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import { Message, MessageContent } from "./ai-elements/message";
-import { createWebChatClient, getWebChatApiPaths } from "./browser-chat-client";
 import {
   PromptInput,
   PromptInputFooter,
@@ -119,7 +118,7 @@ export function App(): React.ReactElement {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: getWebChatApiPaths().stream,
+        api: "/api/chat",
         credentials: "include",
       }),
     [],
@@ -324,14 +323,27 @@ export function App(): React.ReactElement {
     setHistoryError(null);
 
     try {
-      const data = await createWebChatClient().runAction({
-        conversationId,
-        action: {
-          type: "event",
-          event: action.event,
-          ...(action.fromState ? { fromState: action.fromState } : {}),
-        },
+      const response = await fetch("/api/chat/actions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          action: {
+            type: "event",
+            event: action.event,
+            ...(action.fromState ? { fromState: action.fromState } : {}),
+          },
+        }),
       });
+      if (!response.ok) {
+        throw new Error(`Runtime action failed: ${response.status}`);
+      }
+      const data = (await response.json()) as {
+        text?: string;
+        cards?: Array<{ kind: string }>;
+        toolResults?: unknown[];
+      };
       const parts: UIMessage["parts"] = [];
       if (data.text && data.text.trim().length > 0) {
         parts.push({ type: "text", text: data.text });
