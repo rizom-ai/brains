@@ -2,7 +2,8 @@
 
 ## Status
 
-Complete through Phase 5G; MVCC remains deliberately gated. The engine spike
+Complete through Phase 5G; Phase 6 (gradual fleet rollout) is the remaining
+work, and MVCC remains deliberately gated. The engine spike
 is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
@@ -729,6 +730,35 @@ queue fields.
 runs converge across exclusive owner restarts; native close durability, remote
 projection incidents, queue diagnostics, worker expiry, and the renumbered
 migration chain have focused coverage.
+
+### Phase 6 — Gradual fleet rollout (remaining work)
+
+Decided 2026-09-02: Turso stays the shipped default; gradualism lives in
+deploy config, not in the code default. The engine flip is atomic per
+instance because the single-owner topology gives each instance exactly one
+process that opens the database files — an instance is entirely Turso or
+entirely libSQL, never mixed. Do not open a live Turso instance's database
+with libsql/sqlite3 tooling: the engines' WAL formats are not mutually
+visible (the split-brain the asset tests hit); checkpoint first or use the
+engine-aware client.
+
+1. Before shipping the release, pin `BRAINS_DB_ENGINE=libsql` in every
+   fleet instance's deploy config, so upgrading to the new version changes
+   no engine by itself.
+2. Unpin one instance at a time, each flip behind the verified predeploy
+   backup the deploy gate already requires: smoke rover first (it exists to
+   be broken), then yeehaa, then rizom.ai.
+3. Soak each instance on normal traffic for a few days before unpinning
+   the next: imports, search, projection waves, job throughput.
+4. Rollback per instance never touches code: re-pin the env var and run
+   `brain-rollback-entities-to-libsql`, or restore the predeploy backup if
+   anything beyond the entity database looks off. Note the first Turso open
+   transforms the file (portable-search cutover), so after that point
+   unsetting the env var alone is not a rollback.
+
+Release gate: stable v0.2.0 does not publish until smoke rover and at least
+one real instance have soaked on Turso — the public default must not ship
+with zero production hours.
 
 ## Non-goals
 
