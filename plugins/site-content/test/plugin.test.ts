@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { createElement } from "react";
+import type { ReactElement } from "react";
 import { SiteContentPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { SiteContentDefinition } from "../src/definitions";
 
-const TestLayout = (): never => null as never;
+// A real component: `layout` is typed to return a JSX element, so a stub that
+// returns null only fits by asserting the null away.
+const TestLayout = (): ReactElement => createElement("section");
 
 const definition: SiteContentDefinition = {
   namespace: "landing-page",

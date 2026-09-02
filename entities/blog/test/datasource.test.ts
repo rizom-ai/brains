@@ -325,7 +325,9 @@ describe("BlogDataSource", () => {
       expect(parsed.posts).toHaveLength(1);
       expect(parsed.posts[0]?.url).toBeNull();
       expect(parsed.posts[0]?.typeLabel).toBeNull();
-      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(
+        z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
+      ).toBeNull();
       expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 

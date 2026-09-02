@@ -284,7 +284,7 @@ describe("BlogGenerationJobHandler", () => {
     it("should extract author from profile", async () => {
       spyOn(mockContext.identity, "getProfile").mockReturnValue({
         name: "John Doe",
-      } as ReturnType<typeof mockContext.identity.getProfile>);
+      });
 
       await handler.process(
         { title: "Test", content: "Content", excerpt: "Excerpt" },

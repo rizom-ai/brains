@@ -1,5 +1,4 @@
 import type {
-  Plugin,
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
@@ -392,7 +391,7 @@ export class LinkPlugin extends EntityPlugin<
   }
 }
 
-export function createLinkPlugin(config: LinkConfigInput = {}): Plugin {
+export function createLinkPlugin(config: LinkConfigInput = {}): LinkPlugin {
   return new LinkPlugin(config);
 }
 

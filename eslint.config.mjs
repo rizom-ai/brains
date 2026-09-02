@@ -35,7 +35,10 @@ const NO_UNSAFE_TEST_CAST = {
  * that consumes this for why the migration is per-package.
  */
 const TEST_CAST_FREE_PACKAGES = [
+  "entities/blog",
+  "entities/conversation-memory",
   "entities/image",
+  "entities/link",
   "entities/note",
   "entities/portfolio",
   "entities/wishlist",
@@ -47,6 +50,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "plugins/email-workflows",
   "plugins/playbooks",
   "plugins/profile",
+  "plugins/site-content",
   "shared/atproto-contracts",
   "shared/http-signatures",
   "shared/media-page-composer",

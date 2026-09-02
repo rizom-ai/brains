@@ -160,14 +160,14 @@ describe("RSSDataSource", () => {
     });
 
     test("should validate query parameters", async () => {
-      // eslint-disable-next-line @typescript-eslint/await-thenable
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
       await expect(
         datasource.fetch({}, outputSchema, context),
       ).rejects.toThrow();
     });
 
     test("should validate invalid URL", async () => {
-      // eslint-disable-next-line @typescript-eslint/await-thenable
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
       await expect(
         datasource.fetch(
           {

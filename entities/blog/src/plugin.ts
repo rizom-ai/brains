@@ -1,5 +1,4 @@
 import type {
-  Plugin,
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
@@ -134,6 +133,6 @@ export class BlogPlugin extends EntityPlugin<
   }
 }
 
-export function blogPlugin(config: BlogConfigInput = {}): Plugin {
+export function blogPlugin(config: BlogConfigInput = {}): BlogPlugin {
   return new BlogPlugin(config);
 }

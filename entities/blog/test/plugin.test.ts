@@ -14,7 +14,7 @@ describe("BlogPlugin", () => {
   beforeEach(() => {
     plugin = blogPlugin({
       defaultPrompt: "Write a blog post about my recent work",
-    }) as BlogPlugin;
+    });
   });
 
   describe("Plugin Configuration", () => {
@@ -27,7 +27,7 @@ describe("BlogPlugin", () => {
     it("should use default configuration when not provided", () => {
       const defaultPlugin = blogPlugin({
         defaultPrompt: "Write a blog post about my recent work and insights",
-      }) as BlogPlugin;
+      });
       expect(defaultPlugin.id).toBe("blog");
       expect(defaultPlugin.version).toBe(packageJson.version);
     });
@@ -35,7 +35,7 @@ describe("BlogPlugin", () => {
     it("should accept custom configuration", () => {
       const customPlugin = blogPlugin({
         defaultPrompt: "Custom prompt here",
-      }) as BlogPlugin;
+      });
 
       expect(customPlugin.id).toBe("blog");
       expect(customPlugin.version).toBe(packageJson.version);

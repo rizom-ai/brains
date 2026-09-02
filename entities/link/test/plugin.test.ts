@@ -17,7 +17,7 @@ describe("LinkPlugin", () => {
   beforeEach(() => {
     plugin = createLinkPlugin({
       enableSummarization: true,
-    }) as LinkPlugin;
+    });
   });
 
   describe("Plugin Configuration", () => {
@@ -28,7 +28,7 @@ describe("LinkPlugin", () => {
     });
 
     it("should use default configuration when not provided", () => {
-      const defaultPlugin = createLinkPlugin() as LinkPlugin;
+      const defaultPlugin = createLinkPlugin();
       // Note: config is protected, so we test through behavior instead
       expect(defaultPlugin.id).toBe("link");
       expect(defaultPlugin.version).toBe(packageJson.version);
@@ -37,7 +37,7 @@ describe("LinkPlugin", () => {
     it("should accept custom configuration", () => {
       const customPlugin = createLinkPlugin({
         enableSummarization: false,
-      }) as LinkPlugin;
+      });
 
       // Note: config is protected, so we test through behavior instead
       expect(customPlugin.id).toBe("link");
@@ -178,7 +178,7 @@ describe("LinkPlugin with Harness", () => {
 
     plugin = createLinkPlugin({
       enableSummarization: true,
-    }) as LinkPlugin;
+    });
     capabilities = await harness.installPlugin(plugin);
   });
 

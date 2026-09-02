@@ -11,6 +11,15 @@ import type {
   MessageSendRequest,
 } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+
+// `enqueueBatch` takes JSON payloads, so `job.data` is untyped by design.
+// Parsing says what the operation is expected to enqueue; asserting each field
+// would let a renamed key read back as an undefined typed `string`.
+const generationJobDataSchema = z.looseObject({
+  routeId: z.string(),
+  sectionId: z.string(),
+});
 
 const testRoutes: RouteDefinitionInput[] = [
   {
@@ -343,7 +352,8 @@ describe("SiteContentOperations", () => {
 
       const sectionIds =
         batchJobs?.map(
-          (job: BatchOperation) => job.data["sectionId"] as string,
+          (job: BatchOperation) =>
+            generationJobDataSchema.parse(job.data).sectionId,
         ) ?? [];
       expect(sectionIds).not.toContain("static-section");
       expect(sectionIds).toContain("dynamic-section");
@@ -383,7 +393,8 @@ describe("SiteContentOperations", () => {
 
       const routeIds =
         batchJobs?.map(
-          (job: BatchOperation) => job.data["routeId"] as string,
+          (job: BatchOperation) =>
+            generationJobDataSchema.parse(job.data).routeId,
         ) ?? [];
       expect(routeIds).not.toContain("dashboard");
 
