@@ -503,9 +503,12 @@ describe("EntityService", (): void => {
   test("entity validation uses EntityRegistry", (): void => {
     const testEntity = createNote({ title: "Test Note", category: "test" });
 
-    const mockValidateEntity = mock(
-      (_type: string, entity: unknown) => entity,
-    ) as typeof entityRegistry.validateEntity;
+    // validateEntity is not generic — it returns a BaseEntity. Parsing the
+    // note rather than handing back `unknown` is what makes the stub fit, and
+    // it validates the way the real registry does.
+    const mockValidateEntity = mock((_type: string, entity: unknown): Note =>
+      noteSchema.parse(entity),
+    );
     entityRegistry.validateEntity = mockValidateEntity;
 
     const mockAdapter = {
@@ -626,10 +629,9 @@ describe("EntityService", (): void => {
     );
 
     const markdown = "# Test Note\n\nTest content";
-    const parsedEntity = entityService.deserializeEntity(
-      markdown,
-      "note",
-    ) as Note;
+    const parsedEntity = z
+      .looseObject({ title: z.string(), content: z.string() })
+      .parse(entityService.deserializeEntity(markdown, "note"));
 
     expect(parsedEntity.title).toBe("Test Note");
     expect(parsedEntity.content).toBe("Test content");

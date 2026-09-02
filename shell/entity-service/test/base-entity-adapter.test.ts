@@ -44,7 +44,7 @@ class TestAdapter extends BaseEntityAdapter<
 
   public override toMarkdown(entity: TestEntity): string {
     const body = this.extractBody(entity.content);
-    return this.buildMarkdown(body, entity.metadata as Record<string, unknown>);
+    return this.buildMarkdown(body, { ...entity.metadata });
   }
 
   public fromMarkdown(markdown: string): Partial<TestEntity> {

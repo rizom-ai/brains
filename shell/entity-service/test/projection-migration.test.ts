@@ -6,6 +6,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createEntityDatabase } from "../src/db";
 import { migrateEntities } from "../src/migrate";
+import { z } from "@brains/utils/zod";
+
+/** Drizzle's migration journal, as far as these tests rewrite it. */
+const journalSchema = z.looseObject({ entries: z.array(z.unknown()) });
 import { ProjectionStore } from "../src/projection-store";
 
 const migrationNames = [
@@ -47,9 +51,11 @@ describe("projection migrations", () => {
         await readFile(new URL(migrationName, migrations)),
       );
     }
-    const journal = JSON.parse(
-      await readFile(new URL("meta/_journal.json", migrations), "utf8"),
-    ) as { entries: unknown[] };
+    const journal = journalSchema.parse(
+      JSON.parse(
+        await readFile(new URL("meta/_journal.json", migrations), "utf8"),
+      ),
+    );
     await writeFile(
       join(legacyMeta, "_journal.json"),
       JSON.stringify({ ...journal, entries: journal.entries.slice(0, 4) }),
@@ -113,9 +119,11 @@ describe("projection migrations", () => {
         await readFile(new URL(migrationName, migrations)),
       );
     }
-    const journal = JSON.parse(
-      await readFile(new URL("meta/_journal.json", migrations), "utf8"),
-    ) as { entries: unknown[] };
+    const journal = journalSchema.parse(
+      JSON.parse(
+        await readFile(new URL("meta/_journal.json", migrations), "utf8"),
+      ),
+    );
     await writeFile(
       join(legacyMeta, "_journal.json"),
       JSON.stringify({ ...journal, entries: journal.entries.slice(0, 8) }),
