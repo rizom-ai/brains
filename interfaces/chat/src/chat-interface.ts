@@ -35,7 +35,7 @@ import { SlackSocketLoop } from "./slack-socket-loop";
 import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
-import { ChatInputBuilder } from "./chat-input-builder";
+import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
 import { getActiveAuthService } from "@brains/auth-service";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
@@ -53,6 +53,18 @@ import packageJson from "../package.json";
 
 /** Cap on retained prompt-action tokens; oldest never-clicked ones evict. */
 const MAX_PROMPT_ACTIONS = 1000;
+
+/**
+ * Runtime collaborators the interface needs that are not configuration.
+ *
+ * Config is schema-validated operator input; a fetch implementation is not.
+ * Threading it here lets a test hand the attachment downloader a fake and
+ * read the requests off it, instead of reassigning globalThis.fetch for the
+ * whole process and restoring it afterwards. Production leaves it unset.
+ */
+export interface ChatInterfaceDeps {
+  fetch?: ChatFetch | undefined;
+}
 
 export class ChatInterface extends MessageInterfacePlugin<
   ChatConfig,
@@ -84,6 +96,7 @@ export class ChatInterface extends MessageInterfacePlugin<
         messageId,
         botToken,
         logger: this.logger,
+        ...(this.deps.fetch ? { fetchFn: this.deps.fetch } : {}),
       });
     },
     sendMessageWithId: (input): Promise<string | undefined> =>
@@ -111,6 +124,7 @@ export class ChatInterface extends MessageInterfacePlugin<
     isBotCreatedThread: isBotCreatedDiscordThread,
     logger: this.logger,
   });
+  private deps: ChatInterfaceDeps = {};
   private readonly chatInputBuilder = new ChatInputBuilder({
     getUploadStore: (platform: string): ScopedRuntimeUploadStore | undefined =>
       platform === "discord" || platform === "slack"
@@ -118,6 +132,9 @@ export class ChatInterface extends MessageInterfacePlugin<
         : undefined,
     getThreadIdParts,
     logger: this.logger,
+    // Read at download time, after the constructor has stored the deps.
+    fetch: (input, init): Promise<Response> =>
+      (this.deps.fetch ?? fetch)(input, init),
   });
   private readonly turnController: ChatTurnController;
   private readonly gatewayLoop: DiscordGatewayLoop;
@@ -135,8 +152,10 @@ export class ChatInterface extends MessageInterfacePlugin<
   constructor(
     config: ChatConfigInput = {},
     identityAccess: () => ChatIdentityAccess | undefined = getActiveAuthService,
+    deps: ChatInterfaceDeps = {},
   ) {
     super("chat", packageJson, config, chatConfigSchema);
+    this.deps = deps;
     this.turnController = new ChatTurnController({
       identityAccess,
       config: this.config,

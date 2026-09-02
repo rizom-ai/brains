@@ -22,6 +22,11 @@ interface ThreadIdParts {
   threadId?: string;
 }
 
+export type ChatFetch = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
 interface ChatInputBuilderDeps {
   /** Return the platform's scoped upload store, or undefined when ingestion is unsupported. */
   getUploadStore: (platform: string) => ChatUploadStore | undefined;
@@ -29,6 +34,8 @@ interface ChatInputBuilderDeps {
   logger: {
     error: (message: string, context?: Record<string, unknown>) => void;
   };
+  /** Downloads URL-only attachments. Defaults to the global fetch. */
+  fetch?: ChatFetch | undefined;
 }
 
 /**
@@ -128,7 +135,7 @@ export class ChatInputBuilder {
     if (attachment.fetchData) return attachment.fetchData();
     if (!attachment.url) return undefined;
 
-    const response = await fetch(attachment.url);
+    const response = await (this.deps.fetch ?? fetch)(attachment.url);
     if (!response.ok) {
       throw new Error(
         `Attachment download failed with status ${response.status}`,
