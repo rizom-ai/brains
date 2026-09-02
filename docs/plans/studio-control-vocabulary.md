@@ -77,6 +77,18 @@ Two further defects that are the same root cause:
    layer. Instrument stops being a fixed identity and follows the brain's dark
    palette.
 
+6. **Tailwind, not StyleX, for the console.** StyleX was weighed: its typed,
+   colocated styles fit this repo's discipline better than class strings, and
+   its deterministic merge would make the specificity bugs above impossible.
+   It loses on cost, not merit. It compiles source rather than emitting a
+   stylesheet, so Dashboard — which renders TSX at request time with no build
+   step — would need a compiler in front of it; it has no `Bun.build`
+   integration; and it cannot share `@brains/ui-library`, so the console
+   would need a second component library. Tailwind adopts a library that
+   exists. Phases 1–3 are engine-agnostic, so this is revisited before
+   phase 4 only if the console component set turns out not to fit the
+   library.
+
 ## Unsettled
 
 - **`theme-base`'s token contract has holes.** `@rizom/theme-default` defines
@@ -110,11 +122,14 @@ Each phase ships behind the visual harness and leaves the console renderable.
 3. **Delete the literals.** Both climates become aliases. Dashboard and
    web-chat shells take the same injection. Every console baseline moves; this
    is the irreversible step and wants review before regeneration.
-4. **Tailwind in the console bundle.** `build-ui.ts` compiles a console sheet
-   with `@source` globs resolved through package names, emitted to
-   `dist/ui/console.css` and served from the existing asset manifest. Prove
-   with one `Button` on one surface in both climates before migrating
-   anything.
+4. **One console stylesheet, compiled once.** A single Tailwind sheet with
+   `@source` globs resolved through package names, shared by all three
+   surfaces. Studio and web-chat emit it from their `build-ui.ts` into the
+   existing asset manifest; Dashboard, which has no build step and renders
+   at request time, inlines the compiled string the way it already inlines
+   the console sheet. Tailwind builds a stylesheet and leaves the TSX
+   untouched, which is what lets Dashboard stay unbuilt. Prove with one
+   `Button` on one surface in both climates before migrating anything.
 5. **Migrate the controls.** Surface by surface, `.btn` / `.people-button*` /
    `.declarative-*` resolve to library components. Each surface's baseline is
    reviewed as it moves.
