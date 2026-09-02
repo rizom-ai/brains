@@ -1,6 +1,10 @@
 import { describe, it, expect, mock, afterEach, spyOn } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
-import { App, STARTUP_CHECK_API_KEY } from "../src/app";
+import {
+  App,
+  STARTUP_CHECK_API_KEY,
+  buildShellConfig,
+  toAppConfig,
+} from "../src/app";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
 import { Shell, type Shell as ShellInstance } from "@brains/core";
@@ -211,102 +215,6 @@ describe("App", () => {
         migrationSpy.mockRestore();
       }
     });
-
-    it("should provide a startup-check API key placeholder when no key is configured", async () => {
-      const mockShell = createMockShell();
-      let shellConfig: Parameters<typeof Shell.createFresh>[0];
-      const migrationSpy = spyOn(
-        MigrationManager.prototype,
-        "runAllMigrations",
-      ).mockImplementation(async () => undefined);
-      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
-        (config) => {
-          shellConfig = config;
-          return mockShell;
-        },
-      );
-
-      try {
-        const app = App.create({});
-        await app.initialize({ mode: "startup-check" });
-
-        expect(shellConfig?.ai?.apiKey).toBe(STARTUP_CHECK_API_KEY);
-        expect(mockShell.initialize).toHaveBeenCalledWith({
-          mode: "startup-check",
-        });
-      } finally {
-        createFreshSpy.mockRestore();
-        migrationSpy.mockRestore();
-      }
-    });
-
-    it("should prefer localhost runtime URLs outside production", async () => {
-      const mockShell = createMockShell();
-      let shellConfig: Parameters<typeof Shell.createFresh>[0];
-
-      delete process.env["NODE_ENV"];
-      const migrationSpy = spyOn(
-        MigrationManager.prototype,
-        "runAllMigrations",
-      ).mockImplementation(async () => undefined);
-      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
-        (config) => {
-          shellConfig = config;
-          return mockShell;
-        },
-      );
-
-      try {
-        const app = App.create({
-          deployment: {
-            domain: "brain.example.com",
-            ports: { production: 9090 },
-          },
-        });
-        await app.initialize();
-
-        expect(shellConfig?.siteBaseUrl).toBe("brain.example.com");
-        expect(shellConfig?.localSiteUrl).toBe("http://localhost:9090");
-        expect(shellConfig?.preferLocalUrls).toBe(true);
-      } finally {
-        createFreshSpy.mockRestore();
-        migrationSpy.mockRestore();
-      }
-    });
-
-    it("should prefer public URLs in production", async () => {
-      const mockShell = createMockShell();
-      let shellConfig: Parameters<typeof Shell.createFresh>[0];
-
-      process.env["NODE_ENV"] = "production";
-      const migrationSpy = spyOn(
-        MigrationManager.prototype,
-        "runAllMigrations",
-      ).mockImplementation(async () => undefined);
-      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
-        (config) => {
-          shellConfig = config;
-          return mockShell;
-        },
-      );
-
-      try {
-        const app = App.create({
-          deployment: {
-            domain: "brain.example.com",
-            ports: { production: 9090 },
-          },
-        });
-        await app.initialize();
-
-        expect(shellConfig?.siteBaseUrl).toBe("brain.example.com");
-        expect(shellConfig?.localSiteUrl).toBe("http://localhost:9090");
-        expect(shellConfig?.preferLocalUrls).toBe(false);
-      } finally {
-        createFreshSpy.mockRestore();
-        migrationSpy.mockRestore();
-      }
-    });
   });
 
   describe("getters", () => {
@@ -316,68 +224,82 @@ describe("App", () => {
       expect(app.getShell()).toBe(mockShell);
     });
   });
+});
 
-  describe("identity configuration", () => {
-    it("passes a configured identity through to the shell", async () => {
-      const mockShell = createMockShell();
-      const customIdentity = {
-        name: "Test Assistant",
-        role: "Technical assistant",
-        purpose: "Help with technical tasks",
-        values: ["precision", "efficiency"],
-      };
-      let shellConfig: Parameters<typeof Shell.createFresh>[0] | undefined;
-      const migrationSpy = spyOn(
-        MigrationManager.prototype,
-        "runAllMigrations",
-      ).mockImplementation(async () => undefined);
-      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
-        (config) => {
-          shellConfig = config;
-          return mockShell;
-        },
-      );
+describe("buildShellConfig", () => {
+  // A pure function of AppConfig and initialize options. These used to spy
+  // Shell.createFresh to capture what App passed it — six spies, each with a
+  // MigrationManager spy beside it and a try/finally to restore both — when
+  // the thing under test was a value that could simply be returned.
 
-      try {
-        const app = App.create({ identity: customIdentity });
-        await app.initialize();
-
-        expect(shellConfig?.identity).toEqual(customIdentity);
-      } finally {
-        createFreshSpy.mockRestore();
-        migrationSpy.mockRestore();
-      }
+  it("injects the startup-check API key placeholder when no key is configured", () => {
+    const shellConfig = buildShellConfig(toAppConfig({}), {
+      mode: "startup-check",
     });
 
-    it("leaves identity unset when none is configured", async () => {
-      // The shell owns the default. App must not invent one, or the shell's
-      // own default becomes unreachable.
-      const mockShell = createMockShell();
-      let shellConfig: Parameters<typeof Shell.createFresh>[0] | undefined;
-      const migrationSpy = spyOn(
-        MigrationManager.prototype,
-        "runAllMigrations",
-      ).mockImplementation(async () => undefined);
-      const createFreshSpy = spyOn(Shell, "createFresh").mockImplementation(
-        (config) => {
-          shellConfig = config;
-          return mockShell;
-        },
-      );
+    expect(shellConfig.ai?.apiKey).toBe(STARTUP_CHECK_API_KEY);
+  });
 
-      try {
-        const app = App.create({});
-        await app.initialize();
+  it("leaves ai unset outside startup-check when nothing configures it", () => {
+    expect(buildShellConfig(toAppConfig({})).ai).toBeUndefined();
+  });
 
-        // Pin the capture first: if createFresh were never called this would
-        // read undefined.identity and pass without testing anything.
-        expect(
-          expectDefined(shellConfig, "captured ShellConfig").identity,
-        ).toBeUndefined();
-      } finally {
-        createFreshSpy.mockRestore();
-        migrationSpy.mockRestore();
-      }
+  it("prefers the configured key over the startup-check placeholder", () => {
+    const shellConfig = buildShellConfig(toAppConfig({ aiApiKey: "real" }), {
+      mode: "startup-check",
     });
+
+    expect(shellConfig.ai?.apiKey).toBe("real");
+  });
+
+  it("derives site URLs from the deployment and prefers local ones outside production", () => {
+    delete process.env["NODE_ENV"];
+
+    const shellConfig = buildShellConfig(
+      toAppConfig({
+        deployment: {
+          domain: "brain.example.com",
+          ports: { production: 9090 },
+        },
+      }),
+    );
+
+    expect(shellConfig.siteBaseUrl).toBe("brain.example.com");
+    expect(shellConfig.localSiteUrl).toBe("http://localhost:9090");
+    expect(shellConfig.preferLocalUrls).toBe(true);
+  });
+
+  it("prefers public URLs in production", () => {
+    process.env["NODE_ENV"] = "production";
+
+    const shellConfig = buildShellConfig(
+      toAppConfig({
+        deployment: {
+          domain: "brain.example.com",
+          ports: { production: 9090 },
+        },
+      }),
+    );
+
+    expect(shellConfig.preferLocalUrls).toBe(false);
+  });
+
+  it("passes a configured identity through", () => {
+    const identity = {
+      name: "Test Assistant",
+      role: "Technical assistant",
+      purpose: "Help with technical tasks",
+      values: ["precision", "efficiency"],
+    };
+
+    expect(buildShellConfig(toAppConfig({ identity })).identity).toEqual(
+      identity,
+    );
+  });
+
+  it("leaves identity unset when none is configured", () => {
+    // The shell owns the default; App must not invent one or the shell's own
+    // default becomes unreachable.
+    expect(buildShellConfig(toAppConfig({})).identity).toBeUndefined();
   });
 });
