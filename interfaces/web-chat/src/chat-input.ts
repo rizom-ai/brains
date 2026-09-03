@@ -10,7 +10,7 @@ import {
 import {
   type ChatAttachment,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,
   resolveReferencedUpload as resolveReferencedUploadPart,

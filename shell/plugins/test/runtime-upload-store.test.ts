@@ -1,16 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, utimes, writeFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
-import {
-  WebChatUploadStore,
-  WebChatUploadStoreError,
-} from "../src/upload-store";
+import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { RuntimeUploadStore, RuntimeUploadStoreError } from "../src";
+
+/**
+ * The store a declaration gets from `uploads`.
+ *
+ * These moved here from `@brains/web-chat`, where they described this
+ * behaviour under a web-chat name: what is written to disk, what a stored
+ * upload looks like to a client, and what the store refuses. None of it was
+ * ever web-chat's — it is the runtime's, and now that an interface reaches it
+ * through a declared scope rather than by constructing one, this is where the
+ * behaviour lives and where it is tested.
+ */
 
 let dataDir: string;
 
 beforeEach(async () => {
-  dataDir = await mkdtemp(join(tmpdir(), "web-chat-file-upload-store-"));
+  dataDir = await mkdtemp(join(tmpdir(), "runtime-upload-store-"));
 });
 
 afterEach(async () => {
@@ -25,25 +33,41 @@ function fixedNow(): Date {
   return new Date("2026-05-30T00:00:00.000Z");
 }
 
+function storeAt(
+  options: {
+    createId?: () => string;
+    now?: () => Date;
+    retentionMs?: number;
+    maxCount?: number;
+  } = {},
+): RuntimeUploadStore {
+  return new RuntimeUploadStore({
+    dataDir,
+    namespace: "upload",
+    refKind: "upload",
+    routePath: "/api/chat/uploads",
+    ...options,
+  });
+}
+
 async function expectStoreError(
   promise: Promise<unknown>,
-  code: WebChatUploadStoreError["code"],
+  code: RuntimeUploadStoreError["code"],
 ): Promise<void> {
   try {
     await promise;
     throw new Error("Expected upload store error");
   } catch (error) {
-    expect(error).toBeInstanceOf(WebChatUploadStoreError);
-    expect(error instanceof WebChatUploadStoreError ? error.code : null).toBe(
+    expect(error).toBeInstanceOf(RuntimeUploadStoreError);
+    expect(error instanceof RuntimeUploadStoreError ? error.code : null).toBe(
       code,
     );
   }
 }
 
-describe("WebChatUploadStore", () => {
-  it("stores upload metadata and content under the shared upload data directory", async () => {
-    const store = new WebChatUploadStore({
-      dataDir,
+describe("the store behind a declared upload scope", () => {
+  it("writes content and metadata under the scope's directory", async () => {
+    const store = storeAt({
       createId: (): string => fixedUploadId("000000000001"),
       now: fixedNow,
     });
@@ -77,14 +101,11 @@ describe("WebChatUploadStore", () => {
     ).toEqual(record);
   });
 
-  it("builds route refs for stored uploads", () => {
-    const store = new WebChatUploadStore({ dataDir });
+  it("builds the URLs a client fetches a stored upload from", () => {
+    const store = storeAt();
     const record = {
       id: fixedUploadId("000000000001"),
-      ref: {
-        kind: "upload" as const,
-        id: fixedUploadId("000000000001"),
-      },
+      ref: { kind: "upload" as const, id: fixedUploadId("000000000001") },
       filename: "notes.md",
       mediaType: "text/markdown",
       sizeBytes: 7,
@@ -98,9 +119,8 @@ describe("WebChatUploadStore", () => {
     });
   });
 
-  it("reads stored upload content with metadata", async () => {
-    const store = new WebChatUploadStore({
-      dataDir,
+  it("reads stored content back with its metadata", async () => {
+    const store = storeAt({
       createId: (): string => fixedUploadId("000000000002"),
     });
     const record = await store.save({
@@ -120,14 +140,12 @@ describe("WebChatUploadStore", () => {
     expect(resolved.content.toString("utf8")).toBe("hello");
   });
 
-  it("rejects invalid upload ids before touching storage", async () => {
-    const store = new WebChatUploadStore({ dataDir });
-
-    await expectStoreError(store.read("../bad"), "invalid_ref");
+  it("refuses an id that is not one it issued, before touching storage", async () => {
+    await expectStoreError(storeAt().read("../bad"), "invalid_ref");
   });
 
-  it("rejects malformed stored upload metadata", async () => {
-    const store = new WebChatUploadStore({ dataDir });
+  it("refuses metadata it cannot read", async () => {
+    const store = storeAt();
     const uploadId = fixedUploadId("000000000003");
     const uploadDir = join(dataDir, "upload", "uploads", uploadId);
     await mkdir(uploadDir, { recursive: true });
@@ -140,9 +158,8 @@ describe("WebChatUploadStore", () => {
     await expectStoreError(store.read(uploadId), "invalid_metadata");
   });
 
-  it("prunes stale stored uploads", async () => {
-    const store = new WebChatUploadStore({
-      dataDir,
+  it("drops uploads past their retention window when a new one arrives", async () => {
+    const store = storeAt({
       createId: (): string => fixedUploadId("000000000005"),
       now: fixedNow,
       retentionMs: 24 * 60 * 60 * 1000,

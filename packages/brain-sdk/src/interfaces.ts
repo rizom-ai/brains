@@ -42,10 +42,23 @@ export type {
   InterfaceUploads,
   ResolvedRuntimeUpload,
   RuntimeUploadRecord,
+  RuntimeUploadResponseBody,
   RuntimeUploadScopeOptions,
   SaveRuntimeUploadInput,
   ScopedRuntimeUploadStore,
 } from "@brains/plugins";
+// What the store refuses, and why. An interface serving upload endpoints has
+// to tell a missing file from a malformed ref to answer with the right status,
+// and the alternative is matching on message text.
+export { RuntimeUploadStoreError } from "@brains/plugins";
+export type { RuntimeUploadStoreErrorCode } from "@brains/plugins";
+
+// A file on its way to or from the agent. An interface that accepts an
+// attachment builds one of these, and one that serves a download names the
+// file in the header browsers read it from.
+// Named consumers: @brains/web-chat, @brains/chat.
+export { formatContentDispositionHeader } from "@brains/plugins";
+export type { ChatAttachment } from "@brains/plugins";
 export type {
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,
