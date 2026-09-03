@@ -147,8 +147,7 @@ export interface AuthAdminOperations {
   ): Promise<{ sessions: number; refreshTokens: number }>;
 }
 
-const roleSchema: z.ZodType<AuthUserRole, AuthUserRole> =
-  z.enum(AUTH_USER_ROLES);
+const roleSchema = z.enum(AUTH_USER_ROLES);
 const statusSchema = z.enum(AUTH_USER_STATUSES);
 const identityTypeSchema = z
   .string()

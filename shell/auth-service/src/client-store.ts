@@ -12,44 +12,33 @@ import {
 import type { RegisteredOAuthClient } from "./types";
 import { definedFields } from "@brains/utils/strip-undefined";
 
-type TokenEndpointAuthMethod =
-  "none" | "client_secret_basic" | "client_secret_post";
+const tokenEndpointAuthMethodSchema: z.ZodEnum<{
+  none: "none";
+  client_secret_basic: "client_secret_basic";
+  client_secret_post: "client_secret_post";
+}> = z.enum(["none", "client_secret_basic", "client_secret_post"]);
 
-const tokenEndpointAuthMethodSchema: z.ZodType<
-  TokenEndpointAuthMethod,
-  TokenEndpointAuthMethod
-> = z.enum(["none", "client_secret_basic", "client_secret_post"]);
-
-export interface ClientRegistrationRequest {
-  redirect_uris: string[];
-  application_type?: "native" | "web" | undefined;
-  token_endpoint_auth_method?: TokenEndpointAuthMethod | undefined;
-  grant_types?: ("authorization_code" | "refresh_token")[] | undefined;
-  response_types?: "code"[] | undefined;
-  scope?: string | undefined;
-  client_name?: string | undefined;
-  client_uri?: string | undefined;
-  logo_uri?: string | undefined;
-  contacts?: string[] | undefined;
-}
-
-interface ParsedClientRegistrationRequest {
-  redirect_uris: string[];
-  application_type?: "native" | "web" | undefined;
-  token_endpoint_auth_method: TokenEndpointAuthMethod;
-  grant_types: ("authorization_code" | "refresh_token")[];
-  response_types: "code"[];
-  scope?: string | undefined;
-  client_name?: string | undefined;
-  client_uri?: string | undefined;
-  logo_uri?: string | undefined;
-  contacts?: string[] | undefined;
-}
-
-const clientRegistrationRequestSchema: z.ZodType<
-  ParsedClientRegistrationRequest,
-  ClientRegistrationRequest
-> = z.object({
+const clientRegistrationRequestSchema: z.ZodObject<{
+  redirect_uris: z.ZodArray<z.ZodURL>;
+  application_type: z.ZodOptional<z.ZodEnum<{ native: "native"; web: "web" }>>;
+  token_endpoint_auth_method: z.ZodDefault<
+    typeof tokenEndpointAuthMethodSchema
+  >;
+  grant_types: z.ZodDefault<
+    z.ZodArray<
+      z.ZodEnum<{
+        authorization_code: "authorization_code";
+        refresh_token: "refresh_token";
+      }>
+    >
+  >;
+  response_types: z.ZodDefault<z.ZodArray<z.ZodLiteral<"code">>>;
+  scope: z.ZodOptional<z.ZodString>;
+  client_name: z.ZodOptional<z.ZodString>;
+  client_uri: z.ZodOptional<z.ZodURL>;
+  logo_uri: z.ZodOptional<z.ZodURL>;
+  contacts: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}> = z.object({
   redirect_uris: z.array(z.url()).min(1),
   application_type: z.enum(["native", "web"]).optional(),
   token_endpoint_auth_method: tokenEndpointAuthMethodSchema.default("none"),
@@ -63,6 +52,13 @@ const clientRegistrationRequestSchema: z.ZodType<
   logo_uri: z.url().optional(),
   contacts: z.array(z.string()).optional(),
 });
+
+export type ClientRegistrationRequest = z.input<
+  typeof clientRegistrationRequestSchema
+>;
+type ParsedClientRegistrationRequest = z.output<
+  typeof clientRegistrationRequestSchema
+>;
 
 const persistedOAuthClientSchema = z
   .looseObject({
