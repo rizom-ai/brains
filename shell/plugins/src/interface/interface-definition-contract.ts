@@ -11,6 +11,7 @@ import type {
 import type { IAuthRegistry } from "../contracts/auth-registry";
 import type { IMCPTransport } from "../interfaces";
 import type { AgentNamespace } from "../contracts/agent";
+import type { ResponseRenderDirective } from "../message-interface/response-render-plan";
 import type { IPermissionsNamespace } from "../public/types";
 import type {
   IEndpointsNamespace,
@@ -412,6 +413,47 @@ export interface MessageInterfaceDefinitionInput<
         readonly messageId: string;
         readonly message: MessageOutput;
       }) => void | Promise<void>)
+    | undefined;
+  /**
+   * How one part of an answer reads on this channel.
+   *
+   * The runtime decides what an answer is made of and in what order — text,
+   * artifacts, the approvals it is waiting on — because that selection must
+   * not drift between interfaces. What it cannot decide is how any of it
+   * looks: a terminal spells an approval out as "reply yes 1", a web client
+   * draws a card with buttons, and neither is a rendering of the other.
+   *
+   * Returning text sends it; returning nothing means this interface renders
+   * that directive some other way, or not at all. Omitting the slot sends
+   * the response text and drops the rest, which is what every declared
+   * interface did before there was a way to say otherwise.
+   * Named consumers: @brains/chat-repl, @brains/chat, @brains/web-chat.
+   */
+  readonly present?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly channel: MessageChannel;
+        readonly directive: ResponseRenderDirective;
+      }) => string | undefined | Promise<string | undefined>)
+    | undefined;
+  /**
+   * The inbound half of `present`: what a reply means on this channel.
+   *
+   * A terminal that numbered the approvals it printed accepts "yes 2", and
+   * only that interface knows what 2 refers to — a client with buttons has
+   * no ordinals to resolve. Return the message with the approval named, or
+   * the message unchanged; the runtime routes what comes back.
+   * Named consumer: @brains/chat-repl.
+   */
+  readonly interpret?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly text: string;
+        /** In the order this interface last presented them. */
+        readonly approvalIds: readonly string[];
+      }) => string)
     | undefined;
   readonly deliver?:
     | ((context: {

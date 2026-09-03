@@ -27,6 +27,10 @@ import type {
   SendMessageWithIdRequest,
 } from "./progress-message-coordinator";
 import { MessageInterfacePlugin } from "./message-interface-plugin";
+import { PendingApprovalTracker } from "./pending-approval-tracker";
+import { routeConfirmationResponse } from "./confirmation-routing";
+import { buildResponsePlan } from "./response-render-plan";
+import type { AgentResponse } from "../contracts/agent";
 import type { z } from "@brains/utils/zod";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
@@ -83,6 +87,7 @@ class DeclarativeMessageInterfacePlugin<
   private accountSettingsRegistration: AccountSettingsRegistration | undefined;
   private hasRequiredDaemon = false;
   private state: TState | undefined;
+  private approvalTracker: PendingApprovalTracker | undefined;
 
   constructor(
     definition: MessageInterfaceDefinitionInput<
@@ -426,6 +431,69 @@ class DeclarativeMessageInterfacePlugin<
     return this.definition.channel.recipient.parse(recipient);
   }
 
+  /**
+   * What this interface is waiting on, per conversation.
+   *
+   * Built lazily because most interfaces never see an approval, and restored
+   * from stored messages when it does — a brain that restarted mid-approval
+   * still knows what the next "yes" refers to.
+   */
+  private approvals(): PendingApprovalTracker {
+    const context = this.getContext();
+    this.approvalTracker ??= new PendingApprovalTracker({
+      loadMessages: async (conversationId): Promise<readonly unknown[]> =>
+        context.conversations.getMessages(conversationId),
+      onRestoreError: (error, conversationId): void => {
+        this.logger.warn("Could not restore pending approvals", {
+          conversationId,
+          error: getErrorMessage(error),
+        });
+      },
+    });
+    return this.approvalTracker;
+  }
+
+  /**
+   * Send an answer the way this interface presents one.
+   *
+   * The runtime decides what the answer is made of and in what order; the
+   * interface decides how each part reads. Without a `present` slot only the
+   * text goes out, which is what happened before there was a way to say
+   * otherwise.
+   */
+  private async deliverResponse(
+    channel: { id: string; threadId?: string | undefined },
+    response: AgentResponse,
+  ): Promise<string | undefined> {
+    const present = this.definition.present;
+    if (!present) {
+      return this.sendMessageWithId({
+        channelId: channel.id,
+        message: response.text,
+      });
+    }
+    const plan = buildResponsePlan(response, { deniedCardIds: undefined });
+    let firstMessageId: string | undefined;
+    for (const directive of plan.directives) {
+      const text = await present({
+        config: this.config,
+        state: this.requireState(),
+        channel: {
+          id: channel.id,
+          ...(channel.threadId ? { threadId: channel.threadId } : {}),
+        },
+        directive,
+      });
+      if (text === undefined || text.length === 0) continue;
+      const messageId = await this.sendMessageWithId({
+        channelId: channel.id,
+        message: text,
+      });
+      firstMessageId ??= messageId;
+    }
+    return firstMessageId;
+  }
+
   private async receiveAuthenticated(
     input: ReceiveAuthenticatedInput,
     signal: AbortSignal,
@@ -456,6 +524,50 @@ class DeclarativeMessageInterfacePlugin<
       for (const attachment of pending) {
         attachments.push(await attachmentFrom(attachment, signal));
       }
+    }
+
+    // A reply to a question the brain asked is not a new question. Routing
+    // it here rather than in each interface is what keeps "yes" from being
+    // answered as if nobody had asked anything.
+    const approvalIds = await this.approvals().getApprovalIds(conversationId);
+    const routed = routeConfirmationResponse({
+      message: this.definition.interpret
+        ? this.definition.interpret({
+            config: this.config,
+            state: this.requireState(),
+            text: input.text,
+            approvalIds: [...approvalIds],
+          })
+        : input.text,
+      approvalIds,
+    });
+    if (routed.kind === "notice") {
+      await this.sendMessageWithId({
+        channelId: input.channel.id,
+        message: routed.message,
+      });
+      return;
+    }
+    if (routed.kind === "confirm") {
+      this.startProcessingInput(input.channel.id);
+      try {
+        const resolved = await context.agent.confirmPendingAction(
+          conversationId,
+          routed.confirmed,
+          routed.approvalId,
+          { userPermissionLevel: permission, isAnchor, interfaceType },
+          signal,
+        );
+        this.approvals().syncFromResponse(
+          conversationId,
+          resolved,
+          routed.approvalId,
+        );
+        await this.deliverResponse(input.channel, resolved);
+      } finally {
+        this.endProcessingInput();
+      }
+      return;
     }
 
     this.startProcessingInput(input.channel.id);
@@ -492,10 +604,8 @@ class DeclarativeMessageInterfacePlugin<
         },
         signal,
       );
-      const messageId = await this.sendMessageWithId({
-        channelId: input.channel.id,
-        message: response.text,
-      });
+      this.approvals().rememberFromResponse(conversationId, response);
+      const messageId = await this.deliverResponse(input.channel, response);
       if (messageId) {
         for (const result of response.toolResults ?? []) {
           if (result.jobId) {

@@ -227,7 +227,10 @@ made the entity tranche find real defects rather than move code.
    for `chat-repl`, `chat` and `web-chat`, and doing it here as a one-off for
    mcp would pre-empt the design three other packages need. **mcp is its
    fourth named consumer**, which is the strongest argument for taking that
-   slice next.
+   slice next — and it has since been built, in phase 2 above. What mcp
+   still needs from it is the piece the message pipeline does not cover: a
+   declared _tool_ answering with a pending confirmation, rather than a
+   declared _interface_ presenting one.
 
 3. **Convert one service plugin.** _Done: `@brains/notifications`._ One file,
    104 lines, whose entire job is answering one request on the bus — and it
@@ -374,6 +377,28 @@ made the entity tranche find real defects rather than move code.
    slice is: the pipeline owns tracking and routing, and an interface
    declares how an approval is presented. Three named consumers, measured —
    its own slice, ahead of any of the three conversions.
+
+   **Built, with tests.** The pipeline now holds a `PendingApprovalTracker`
+   per conversation, routes an incoming message through
+   `routeConfirmationResponse` before putting it to the agent, resolves a
+   matched approval through `confirmPendingAction`, and syncs the tracker
+   from whatever comes back. An interface says the rest in two slots:
+
+   - **`present`** takes one `ResponseRenderDirective` — the runtime already
+     decides what an answer is made of and in what order — and returns the
+     text to send, or nothing when this interface renders that part some
+     other way. Omitting it sends the response text and drops the rest,
+     which is exactly what every declared interface did before.
+   - **`interpret`** is its inbound half, and only exists because the two
+     are not symmetric. A terminal that numbered the approvals it printed
+     accepts "yes 2", and only that interface knows what 2 refers to; a
+     client with buttons has no ordinals at all. It rewrites the message
+     before routing, or returns it unchanged.
+
+   The split is the point: everything that must not drift between
+   interfaces — what is pending, what a reply resolves, what an answer
+   contains and in what order — is the runtime's, and everything that is a
+   rendering decision stays with the interface that renders it.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking
