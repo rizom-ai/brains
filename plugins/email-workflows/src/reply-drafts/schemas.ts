@@ -1,71 +1,72 @@
 import { inboxItemIdSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-interface UnsentDraftViewValue {
-  text: string;
-  revision: number;
-  status: "draft";
-  updatedAt: string;
-}
+type UnsentDraftViewSchema = z.ZodObject<
+  {
+    text: z.ZodString;
+    revision: z.ZodNumber;
+    status: z.ZodLiteral<"draft">;
+    updatedAt: z.ZodISODateTime;
+  },
+  z.core.$strict
+>;
 
-interface SentDraftViewValue {
-  text: string;
-  revision: number;
-  status: "sent";
-  updatedAt: string;
-  sentAt: string;
-}
-
-type DraftViewValue = UnsentDraftViewValue | SentDraftViewValue;
-
-const unsentDraftViewSchema: z.ZodType<
-  UnsentDraftViewValue,
-  UnsentDraftViewValue
-> = z.strictObject({
+const unsentDraftViewSchema: UnsentDraftViewSchema = z.strictObject({
   text: z.string().min(1).max(20_000),
   revision: z.number().int().positive(),
   status: z.literal("draft"),
   updatedAt: z.iso.datetime(),
 });
 
-const sentDraftViewSchema: z.ZodType<SentDraftViewValue, SentDraftViewValue> =
-  z.strictObject({
-    text: z.string().min(1).max(20_000),
-    revision: z.number().int().positive(),
-    status: z.literal("sent"),
-    updatedAt: z.iso.datetime(),
-    sentAt: z.iso.datetime(),
-  });
+type SentDraftViewSchema = z.ZodObject<
+  {
+    text: z.ZodString;
+    revision: z.ZodNumber;
+    status: z.ZodLiteral<"sent">;
+    updatedAt: z.ZodISODateTime;
+    sentAt: z.ZodISODateTime;
+  },
+  z.core.$strict
+>;
 
-export const draftViewSchema: z.ZodType<DraftViewValue, DraftViewValue> =
-  z.union([unsentDraftViewSchema, sentDraftViewSchema]);
+const sentDraftViewSchema: SentDraftViewSchema = z.strictObject({
+  text: z.string().min(1).max(20_000),
+  revision: z.number().int().positive(),
+  status: z.literal("sent"),
+  updatedAt: z.iso.datetime(),
+  sentAt: z.iso.datetime(),
+});
 
-interface DraftSourceAddressValue {
-  name?: string | undefined;
-  address: string;
-}
+type DraftViewSchema = z.ZodUnion<[UnsentDraftViewSchema, SentDraftViewSchema]>;
 
-const draftSourceAddressSchema: z.ZodType<
-  DraftSourceAddressValue,
-  DraftSourceAddressValue
-> = z.strictObject({
+export const draftViewSchema: DraftViewSchema = z.union([
+  unsentDraftViewSchema,
+  sentDraftViewSchema,
+]);
+
+type DraftSourceAddressSchema = z.ZodObject<
+  { name: z.ZodOptional<z.ZodString>; address: z.ZodEmail },
+  z.core.$strict
+>;
+
+const draftSourceAddressSchema: DraftSourceAddressSchema = z.strictObject({
   name: z.string().min(1).max(300).optional(),
   address: z.email().max(320),
 });
 
-interface DraftSourceViewValue {
-  from: DraftSourceAddressValue;
-  replyTo?: DraftSourceAddressValue | undefined;
-  subject: string;
-  receivedAt: string;
-  text: string;
-  truncated: boolean;
-}
+type DraftSourceViewSchema = z.ZodObject<
+  {
+    from: DraftSourceAddressSchema;
+    replyTo: z.ZodOptional<DraftSourceAddressSchema>;
+    subject: z.ZodString;
+    receivedAt: z.ZodISODateTime;
+    text: z.ZodString;
+    truncated: z.ZodBoolean;
+  },
+  z.core.$strict
+>;
 
-const draftSourceViewSchema: z.ZodType<
-  DraftSourceViewValue,
-  DraftSourceViewValue
-> = z.strictObject({
+const draftSourceViewSchema: DraftSourceViewSchema = z.strictObject({
   from: draftSourceAddressSchema,
   replyTo: draftSourceAddressSchema.optional(),
   subject: z.string().max(1_000),
@@ -74,177 +75,170 @@ const draftSourceViewSchema: z.ZodType<
   truncated: z.boolean(),
 });
 
-interface EmailReplyDraftWorkspaceSnapshotValue {
-  mailItemId: string | null;
-  draft: DraftViewValue | null;
-}
+type EmailReplyDraftWorkspaceSnapshotSchema = z.ZodObject<
+  {
+    mailItemId: z.ZodNullable<typeof inboxItemIdSchema>;
+    draft: z.ZodNullable<DraftViewSchema>;
+  },
+  z.core.$strict
+>;
 
-export const emailReplyDraftWorkspaceSnapshotSchema: z.ZodType<
-  EmailReplyDraftWorkspaceSnapshotValue,
-  EmailReplyDraftWorkspaceSnapshotValue
-> = z.strictObject({
-  mailItemId: inboxItemIdSchema.nullable(),
-  draft: draftViewSchema.nullable(),
-});
-
-interface EmailReplyDraftSourceRequestValue {
-  type: "source";
-  mailItemId: string;
-}
-
-export const emailReplyDraftSourceRequestSchema: z.ZodType<
-  EmailReplyDraftSourceRequestValue,
-  EmailReplyDraftSourceRequestValue
-> = z.strictObject({
-  type: z.literal("source"),
-  mailItemId: inboxItemIdSchema,
-});
-
-interface EmailReplyDraftSourceAvailableValue {
-  kind: "source";
-  source: DraftSourceViewValue;
-}
-
-interface EmailReplyDraftSourceUnavailableValue {
-  kind: "source-unavailable";
-  error: "Original content is unavailable";
-}
-
-type EmailReplyDraftSourceOutcomeValue =
-  EmailReplyDraftSourceAvailableValue | EmailReplyDraftSourceUnavailableValue;
-
-export const emailReplyDraftSourceOutcomeSchema: z.ZodType<
-  EmailReplyDraftSourceOutcomeValue,
-  EmailReplyDraftSourceOutcomeValue
-> = z.union([
-  z.strictObject({ kind: z.literal("source"), source: draftSourceViewSchema }),
+export const emailReplyDraftWorkspaceSnapshotSchema: EmailReplyDraftWorkspaceSnapshotSchema =
   z.strictObject({
-    kind: z.literal("source-unavailable"),
-    error: z.literal("Original content is unavailable"),
-  }),
-]);
+    mailItemId: inboxItemIdSchema.nullable(),
+    draft: draftViewSchema.nullable(),
+  });
 
-interface GenerateDraftActionValue {
-  type: "generate";
-  mailItemId: string;
-}
+type EmailReplyDraftSourceRequestSchema = z.ZodObject<
+  { type: z.ZodLiteral<"source">; mailItemId: typeof inboxItemIdSchema },
+  z.core.$strict
+>;
 
-const generateDraftActionSchema: z.ZodType<
-  GenerateDraftActionValue,
-  GenerateDraftActionValue
-> = z.strictObject({
+export const emailReplyDraftSourceRequestSchema: EmailReplyDraftSourceRequestSchema =
+  z.strictObject({
+    type: z.literal("source"),
+    mailItemId: inboxItemIdSchema,
+  });
+
+type EmailReplyDraftSourceOutcomeSchema = z.ZodUnion<
+  [
+    z.ZodObject<
+      { kind: z.ZodLiteral<"source">; source: DraftSourceViewSchema },
+      z.core.$strict
+    >,
+    z.ZodObject<
+      {
+        kind: z.ZodLiteral<"source-unavailable">;
+        error: z.ZodLiteral<"Original content is unavailable">;
+      },
+      z.core.$strict
+    >,
+  ]
+>;
+
+export const emailReplyDraftSourceOutcomeSchema: EmailReplyDraftSourceOutcomeSchema =
+  z.union([
+    z.strictObject({
+      kind: z.literal("source"),
+      source: draftSourceViewSchema,
+    }),
+    z.strictObject({
+      kind: z.literal("source-unavailable"),
+      error: z.literal("Original content is unavailable"),
+    }),
+  ]);
+
+type GenerateDraftActionSchema = z.ZodObject<
+  { type: z.ZodLiteral<"generate">; mailItemId: typeof inboxItemIdSchema },
+  z.core.$strict
+>;
+
+const generateDraftActionSchema: GenerateDraftActionSchema = z.strictObject({
   type: z.literal("generate"),
   mailItemId: inboxItemIdSchema,
 });
 
-interface SaveDraftActionValue {
-  type: "save";
-  mailItemId: string;
-  text: string;
-  baseRevision: number;
-}
+type SaveDraftActionSchema = z.ZodObject<
+  {
+    type: z.ZodLiteral<"save">;
+    mailItemId: typeof inboxItemIdSchema;
+    text: z.ZodString;
+    baseRevision: z.ZodNumber;
+  },
+  z.core.$strict
+>;
 
-const saveDraftActionSchema: z.ZodType<
-  SaveDraftActionValue,
-  SaveDraftActionValue
-> = z.strictObject({
+const saveDraftActionSchema: SaveDraftActionSchema = z.strictObject({
   type: z.literal("save"),
   mailItemId: inboxItemIdSchema,
   text: z.string().trim().min(1).max(20_000),
   baseRevision: z.number().int().nonnegative(),
 });
 
-interface SendDraftActionValue {
-  type: "send";
-  mailItemId: string;
-  revision: number;
-  confirmed: boolean;
-}
+type SendDraftActionSchema = z.ZodObject<
+  {
+    type: z.ZodLiteral<"send">;
+    mailItemId: typeof inboxItemIdSchema;
+    revision: z.ZodNumber;
+    confirmed: z.ZodBoolean;
+  },
+  z.core.$strict
+>;
 
-const sendDraftActionSchema: z.ZodType<
-  SendDraftActionValue,
-  SendDraftActionValue
-> = z.strictObject({
+const sendDraftActionSchema: SendDraftActionSchema = z.strictObject({
   type: z.literal("send"),
   mailItemId: inboxItemIdSchema,
   revision: z.number().int().positive(),
   confirmed: z.boolean(),
 });
 
-type EmailReplyDraftActionValue =
-  GenerateDraftActionValue | SaveDraftActionValue | SendDraftActionValue;
+type EmailReplyDraftActionSchema = z.ZodUnion<
+  [GenerateDraftActionSchema, SaveDraftActionSchema, SendDraftActionSchema]
+>;
 
-export const emailReplyDraftActionSchema: z.ZodType<
-  EmailReplyDraftActionValue,
-  EmailReplyDraftActionValue
-> = z.union([
-  generateDraftActionSchema,
-  saveDraftActionSchema,
-  sendDraftActionSchema,
-]);
+export const emailReplyDraftActionSchema: EmailReplyDraftActionSchema = z.union(
+  [generateDraftActionSchema, saveDraftActionSchema, sendDraftActionSchema],
+);
 
-interface DraftCompletedOutcomeValue {
-  kind: "draft";
-  draft: DraftViewValue;
-}
+type EmailReplyDraftActionOutcomeSchema = z.ZodUnion<
+  [
+    z.ZodObject<
+      { kind: z.ZodLiteral<"draft">; draft: DraftViewSchema },
+      z.core.$strict
+    >,
+    z.ZodObject<
+      { kind: z.ZodLiteral<"confirmation">; summary: z.ZodString },
+      z.core.$strict
+    >,
+    z.ZodObject<
+      { kind: z.ZodLiteral<"sent">; draft: SentDraftViewSchema },
+      z.core.$strict
+    >,
+    z.ZodObject<
+      {
+        kind: z.ZodLiteral<"error">;
+        error: z.ZodEnum<{
+          "Invalid draft action": "Invalid draft action";
+          "Draft generation failed": "Draft generation failed";
+          "Draft save failed": "Draft save failed";
+          "Draft changed; reload before saving": "Draft changed; reload before saving";
+          "Draft changed; review before sending": "Draft changed; review before sending";
+          "Email delivery is unavailable": "Email delivery is unavailable";
+          "Original content is unavailable": "Original content is unavailable";
+          "Email delivery failed": "Email delivery failed";
+        }>;
+      },
+      z.core.$strict
+    >,
+  ]
+>;
 
-interface SendConfirmationOutcomeValue {
-  kind: "confirmation";
-  summary: string;
-}
+export const emailReplyDraftActionOutcomeSchema: EmailReplyDraftActionOutcomeSchema =
+  z.union([
+    z.strictObject({ kind: z.literal("draft"), draft: draftViewSchema }),
+    z.strictObject({
+      kind: z.literal("confirmation"),
+      summary: z.string().trim().min(1).max(200),
+    }),
+    z.strictObject({ kind: z.literal("sent"), draft: sentDraftViewSchema }),
+    z.strictObject({
+      kind: z.literal("error"),
+      error: z.enum([
+        "Invalid draft action",
+        "Draft generation failed",
+        "Draft save failed",
+        "Draft changed; reload before saving",
+        "Draft changed; review before sending",
+        "Email delivery is unavailable",
+        "Original content is unavailable",
+        "Email delivery failed",
+      ]),
+    }),
+  ]);
 
-interface SendCompletedOutcomeValue {
-  kind: "sent";
-  draft: SentDraftViewValue;
-}
-
-interface DraftErrorOutcomeValue {
-  kind: "error";
-  error:
-    | "Invalid draft action"
-    | "Draft generation failed"
-    | "Draft save failed"
-    | "Draft changed; reload before saving"
-    | "Draft changed; review before sending"
-    | "Email delivery is unavailable"
-    | "Original content is unavailable"
-    | "Email delivery failed";
-}
-
-type EmailReplyDraftActionOutcomeValue =
-  | DraftCompletedOutcomeValue
-  | SendConfirmationOutcomeValue
-  | SendCompletedOutcomeValue
-  | DraftErrorOutcomeValue;
-
-export const emailReplyDraftActionOutcomeSchema: z.ZodType<
-  EmailReplyDraftActionOutcomeValue,
-  EmailReplyDraftActionOutcomeValue
-> = z.union([
-  z.strictObject({ kind: z.literal("draft"), draft: draftViewSchema }),
-  z.strictObject({
-    kind: z.literal("confirmation"),
-    summary: z.string().trim().min(1).max(200),
-  }),
-  z.strictObject({ kind: z.literal("sent"), draft: sentDraftViewSchema }),
-  z.strictObject({
-    kind: z.literal("error"),
-    error: z.enum([
-      "Invalid draft action",
-      "Draft generation failed",
-      "Draft save failed",
-      "Draft changed; reload before saving",
-      "Draft changed; review before sending",
-      "Email delivery is unavailable",
-      "Original content is unavailable",
-      "Email delivery failed",
-    ]),
-  }),
-]);
-
-export type UnsentDraftView = UnsentDraftViewValue;
-export type SentDraftView = SentDraftViewValue;
-export type DraftView = DraftViewValue;
+export type UnsentDraftView = z.output<typeof unsentDraftViewSchema>;
+export type SentDraftView = z.output<typeof sentDraftViewSchema>;
+export type DraftView = z.output<typeof draftViewSchema>;
 export type DraftSourceView = z.output<typeof draftSourceViewSchema>;
 export type EmailReplyDraftSourceRequest = z.output<
   typeof emailReplyDraftSourceRequestSchema

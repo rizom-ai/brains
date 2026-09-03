@@ -14,15 +14,20 @@ import {
 const THREAD_ORDINAL_STATE_KEY = "state";
 const DEFAULT_MIGRATION_PAGE_SIZE = 100;
 
-export type ThreadOrdinalState = { kind: "building" } | { kind: "ready" };
+type ThreadOrdinalStateSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ kind: z.ZodLiteral<"building"> }, z.core.$strict>,
+    z.ZodObject<{ kind: z.ZodLiteral<"ready"> }, z.core.$strict>,
+  ]
+>;
 
-export const threadOrdinalStateSchema: z.ZodType<
-  ThreadOrdinalState,
-  ThreadOrdinalState
-> = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("building") }),
-  z.strictObject({ kind: z.literal("ready") }),
-]);
+export const threadOrdinalStateSchema: ThreadOrdinalStateSchema =
+  z.discriminatedUnion("kind", [
+    z.strictObject({ kind: z.literal("building") }),
+    z.strictObject({ kind: z.literal("ready") }),
+  ]);
+
+export type ThreadOrdinalState = z.output<typeof threadOrdinalStateSchema>;
 
 interface MailThreadOrdinalCoordinatorOptions {
   entityService: ServiceEntityService;

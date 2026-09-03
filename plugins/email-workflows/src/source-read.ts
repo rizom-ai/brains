@@ -6,32 +6,32 @@ import {
 import {
   inboxActorSchema,
   inboxItemIdSchema,
-  type InboxActor,
   type ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { MailTriageOperatorService } from "./operator-service";
 
-interface EmailWorkflowsSourceReadRequestValue {
-  itemId: string;
-  actor: InboxActor;
-  signal?: AbortSignal | undefined;
-}
-
-const abortSignalSchema: z.ZodType<AbortSignal, AbortSignal> =
+const abortSignalSchema: z.ZodCustom<AbortSignal, AbortSignal> =
   z.custom<AbortSignal>(
     (value) =>
       typeof AbortSignal !== "undefined" && value instanceof AbortSignal,
   );
 
-export const emailWorkflowsSourceReadRequestSchema: z.ZodType<
-  EmailWorkflowsSourceReadRequestValue,
-  EmailWorkflowsSourceReadRequestValue
-> = z.strictObject({
-  itemId: inboxItemIdSchema,
-  actor: inboxActorSchema,
-  signal: abortSignalSchema.optional(),
-});
+type EmailWorkflowsSourceReadRequestSchema = z.ZodObject<
+  {
+    itemId: typeof inboxItemIdSchema;
+    actor: typeof inboxActorSchema;
+    signal: z.ZodOptional<typeof abortSignalSchema>;
+  },
+  z.core.$strict
+>;
+
+export const emailWorkflowsSourceReadRequestSchema: EmailWorkflowsSourceReadRequestSchema =
+  z.strictObject({
+    itemId: inboxItemIdSchema,
+    actor: inboxActorSchema,
+    signal: abortSignalSchema.optional(),
+  });
 
 export type EmailWorkflowsSourceReadRequest = z.output<
   typeof emailWorkflowsSourceReadRequestSchema
