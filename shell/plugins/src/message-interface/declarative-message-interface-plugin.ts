@@ -473,21 +473,23 @@ class DeclarativeMessageInterfacePlugin<
       });
     }
     const plan = buildResponsePlan(response, { deniedCardIds: undefined });
+    const presented = await present({
+      config: this.config,
+      state: this.requireState(),
+      channel: {
+        id: channel.id,
+        ...(channel.threadId ? { threadId: channel.threadId } : {}),
+      },
+      directives: plan.directives,
+    });
+    if (presented === undefined) return undefined;
+    const messages = typeof presented === "string" ? [presented] : presented;
     let firstMessageId: string | undefined;
-    for (const directive of plan.directives) {
-      const text = await present({
-        config: this.config,
-        state: this.requireState(),
-        channel: {
-          id: channel.id,
-          ...(channel.threadId ? { threadId: channel.threadId } : {}),
-        },
-        directive,
-      });
-      if (text === undefined || text.length === 0) continue;
+    for (const message of messages) {
+      if (message.length === 0) continue;
       const messageId = await this.sendMessageWithId({
         channelId: channel.id,
-        message: text,
+        message,
       });
       firstMessageId ??= messageId;
     }

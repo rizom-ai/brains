@@ -384,11 +384,18 @@ made the entity tranche find real defects rather than move code.
    matched approval through `confirmPendingAction`, and syncs the tracker
    from whatever comes back. An interface says the rest in two slots:
 
-   - **`present`** takes one `ResponseRenderDirective` — the runtime already
-     decides what an answer is made of and in what order — and returns the
-     text to send, or nothing when this interface renders that part some
-     other way. Omitting it sends the response text and drops the rest,
-     which is exactly what every declared interface did before.
+   - **`present`** takes the whole list of `ResponseRenderDirective`s — the
+     runtime already decides what an answer is made of and in what order —
+     and returns one message, several in order, or none. Omitting it sends
+     the response text and drops the rest, which is exactly what every
+     declared interface did before.
+
+     The first cut passed one directive at a time and sent whatever came
+     back, which reading `chat-repl` disproved: the terminal joins text,
+     cards and approval prompts into a **single** block, and a
+     directive-at-a-time slot cannot express that. Grouping is a rendering
+     decision like any other, so it belongs with the interface too.
+
    - **`interpret`** is its inbound half, and only exists because the two
      are not symmetric. A terminal that numbered the approvals it printed
      accepts "yes 2", and only that interface knows what 2 refers to; a

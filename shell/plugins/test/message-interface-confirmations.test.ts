@@ -78,16 +78,21 @@ function talkback(
       const approvalId = approvalIds[Number(match[2]) - 1];
       return approvalId ? `${match[1]} ${approvalId}` : text;
     },
-    present: ({ directive }) => {
-      if (directive.kind === "approvals") {
-        for (const confirmation of directive.confirmations) {
-          presented.push(
-            `approve ${confirmation.id}? reply yes ${confirmation.id}`,
-          );
+    // A terminal joins the whole answer into one block rather than sending
+    // the text and then the approval as separate messages.
+    present: ({ directives }) => {
+      const blocks: string[] = [];
+      for (const directive of directives) {
+        if (directive.kind === "text") blocks.push(directive.text);
+        if (directive.kind === "approvals") {
+          for (const confirmation of directive.confirmations) {
+            const prompt = `approve ${confirmation.id}? reply yes ${confirmation.id}`;
+            presented.push(prompt);
+            blocks.push(prompt);
+          }
         }
-        return undefined;
       }
-      return directive.kind === "text" ? directive.text : undefined;
+      return blocks.join("\n\n");
     },
   });
 }
@@ -137,7 +142,10 @@ describe("a declared interface that carries confirmations", () => {
       text: "delete the old notes",
     });
 
-    expect(sent).toContain("This will delete 3 notes.");
+    // One message, not two: the terminal coalesced the answer.
+    expect(sent).toEqual([
+      "This will delete 3 notes.\n\napprove appr-1? reply yes appr-1",
+    ]);
     // Without this the approval never reaches anyone, and the next "yes"
     // has nothing to resolve.
     expect(presented).toEqual(["approve appr-1? reply yes appr-1"]);

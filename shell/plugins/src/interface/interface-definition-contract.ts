@@ -415,16 +415,17 @@ export interface MessageInterfaceDefinitionInput<
       }) => void | Promise<void>)
     | undefined;
   /**
-   * How one part of an answer reads on this channel.
+   * How an answer reads on this channel.
    *
    * The runtime decides what an answer is made of and in what order — text,
    * artifacts, the approvals it is waiting on — because that selection must
    * not drift between interfaces. What it cannot decide is how any of it
-   * looks: a terminal spells an approval out as "reply yes 1", a web client
-   * draws a card with buttons, and neither is a rendering of the other.
+   * looks, or how much of it arrives at once: a terminal joins the whole
+   * answer into one block and spells an approval out as "reply yes 1", a
+   * chat channel sends the text and then a card as separate messages.
+   * Neither is a rendering of the other, and neither is a grouping of it.
    *
-   * Returning text sends it; returning nothing means this interface renders
-   * that directive some other way, or not at all. Omitting the slot sends
+   * Return one message, several in order, or none. Omitting the slot sends
    * the response text and drops the rest, which is what every declared
    * interface did before there was a way to say otherwise.
    * Named consumers: @brains/chat-repl, @brains/chat, @brains/web-chat.
@@ -434,8 +435,12 @@ export interface MessageInterfaceDefinitionInput<
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
         readonly channel: MessageChannel;
-        readonly directive: ResponseRenderDirective;
-      }) => string | undefined | Promise<string | undefined>)
+        readonly directives: readonly ResponseRenderDirective[];
+      }) =>
+        | string
+        | readonly string[]
+        | undefined
+        | Promise<string | readonly string[] | undefined>)
     | undefined;
   /**
    * The inbound half of `present`: what a reply means on this channel.
