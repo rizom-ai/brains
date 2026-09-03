@@ -60,7 +60,7 @@ function createPipelineContext(
   services.resolveTemplateContent = async (
     _templateName,
     options,
-  ): Promise<never> => options?.fallback as never;
+  ): Promise<unknown> => options?.fallback;
 
   return {
     logger,

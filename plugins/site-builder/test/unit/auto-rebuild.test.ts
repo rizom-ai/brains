@@ -1,35 +1,55 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
+import { z } from "@brains/utils/zod";
 import { createTestConfig } from "../test-helpers";
 import {
   createMockServicePluginContext,
+  genericSpy,
   type MockServicePluginContext,
 } from "@brains/test-utils";
 
+/** The build payload these tests read off an enqueued job. */
+const buildJobDataSchema = z.looseObject({
+  inputGeneration: z.number().optional(),
+  environment: z.string().optional(),
+  outputDir: z.string().optional(),
+});
+
+/** The projection-wave handler these tests capture from the subscription. */
+type WaveReadyHandler = (message: {
+  payload: {
+    waveId: string;
+    sourceTypes: string[];
+    changedTargetTypes: string[];
+  };
+}) => Promise<{ success: boolean }>;
+
 describe("RebuildManager", () => {
   let context: MockServicePluginContext;
+  // Spied once per test, so the recorded arguments are typed by the member
+  // rather than reached for through an assertion afterwards.
+  let enqueue: ReturnType<
+    typeof spyOn<MockServicePluginContext["jobs"], "enqueue">
+  >;
 
   beforeEach(() => {
     context = createMockServicePluginContext({
       returns: { jobsEnqueue: "job-1" },
     });
+    enqueue = spyOn(context.jobs, "enqueue");
   });
 
   test("successful projection waves enqueue a build before acknowledgment", async () => {
-    let waveReadyHandler:
-      | ((message: {
-          payload: {
-            waveId: string;
-            sourceTypes: string[];
-            changedTargetTypes: string[];
-          };
-        }) => Promise<{ success: boolean }>)
-      | undefined;
-    context.messaging.subscribeExecution = mock(
-      (_type, handler): (() => void) => {
-        waveReadyHandler = handler as typeof waveReadyHandler;
+    let waveReadyHandler: WaveReadyHandler | undefined;
+    // mock() erases the type parameters subscribeExecution declares;
+    // genericSpy names that as the only reason.
+    context.messaging.subscribeExecution = genericSpy<
+      typeof context.messaging.subscribeExecution
+    >(
+      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
+        waveReadyHandler = handler;
         return () => {};
-      },
+      }),
     );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
@@ -53,20 +73,16 @@ describe("RebuildManager", () => {
   });
 
   test("does not rebuild for note-only waves", async () => {
-    let waveReadyHandler:
-      | ((message: {
-          payload: {
-            waveId: string;
-            sourceTypes: string[];
-            changedTargetTypes: string[];
-          };
-        }) => Promise<{ success: boolean }>)
-      | undefined;
-    context.messaging.subscribeExecution = mock(
-      (_type, handler): (() => void) => {
-        waveReadyHandler = handler as typeof waveReadyHandler;
+    let waveReadyHandler: WaveReadyHandler | undefined;
+    // mock() erases the type parameters subscribeExecution declares;
+    // genericSpy names that as the only reason.
+    context.messaging.subscribeExecution = genericSpy<
+      typeof context.messaging.subscribeExecution
+    >(
+      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
+        waveReadyHandler = handler;
         return () => {};
-      },
+      }),
     );
     const manager = new RebuildManager(
       createTestConfig(),
@@ -90,26 +106,24 @@ describe("RebuildManager", () => {
   });
 
   test("enqueues one dirty-generation successor after an active build", async () => {
-    let waveReadyHandler:
-      | ((message: {
-          payload: {
-            waveId: string;
-            sourceTypes: string[];
-            changedTargetTypes: string[];
-          };
-        }) => Promise<{ success: boolean }>)
-      | undefined;
-    context.messaging.subscribeExecution = mock(
-      (_type, handler): (() => void) => {
-        waveReadyHandler = handler as typeof waveReadyHandler;
+    let waveReadyHandler: WaveReadyHandler | undefined;
+    // mock() erases the type parameters subscribeExecution declares;
+    // genericSpy names that as the only reason.
+    context.messaging.subscribeExecution = genericSpy<
+      typeof context.messaging.subscribeExecution
+    >(
+      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
+        waveReadyHandler = handler;
         return () => {};
-      },
+      }),
     );
     let nextJob = 0;
-    context.jobs.enqueue = mock(async () => {
-      nextJob += 1;
-      return `job-${nextJob}`;
-    });
+    enqueue.mockImplementation(
+      mock(async () => {
+        nextJob += 1;
+        return `job-${nextJob}`;
+      }),
+    );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
       context,
@@ -144,10 +158,15 @@ describe("RebuildManager", () => {
     });
     await manager.markBuildFinished("preview", "job-1", 1);
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(enqueue.mock.calls[0]?.[0]?.data.inputGeneration).toBe(1);
-    expect(enqueue.mock.calls[1]?.[0]?.data.inputGeneration).toBe(3);
+    expect(
+      buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data)
+        .inputGeneration,
+    ).toBe(1);
+    expect(
+      buildJobDataSchema.parse(enqueue.mock.calls[1]?.[0]?.data)
+        .inputGeneration,
+    ).toBe(3);
     await manager.dispose();
   });
 
@@ -163,11 +182,10 @@ describe("RebuildManager", () => {
     manager.requestBuild("production");
     await Promise.resolve();
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
-    expect(enqueue.mock.calls[0]?.[0]?.options.deduplicationKey).toBe(
+    expect(enqueue.mock.calls[0]?.[0]?.options?.deduplicationKey).toBe(
       "site-build:preview",
     );
-    expect(enqueue.mock.calls[1]?.[0]?.options.deduplicationKey).toBe(
+    expect(enqueue.mock.calls[1]?.[0]?.options?.deduplicationKey).toBe(
       "site-build:production",
     );
     await manager.dispose();
@@ -188,10 +206,8 @@ describe("RebuildManager", () => {
     // Wait a tick for the async enqueue call.
     await new Promise((r) => setTimeout(r, 10));
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalled();
-    const call = enqueue.mock.calls[0];
-    const data = call?.[0]?.data;
+    const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
 
@@ -211,9 +227,8 @@ describe("RebuildManager", () => {
 
     await new Promise((r) => setTimeout(r, 10));
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalled();
-    const data = enqueue.mock.calls[0]?.[0]?.data;
+    const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("production");
 
     await manager.dispose();
@@ -282,9 +297,8 @@ describe("RebuildManager", () => {
 
     await new Promise((r) => setTimeout(r, 10));
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalled();
-    const data = enqueue.mock.calls[0]?.[0]?.data;
+    const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");
 

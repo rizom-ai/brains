@@ -2,16 +2,20 @@ import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SITE_METADATA_GET_CHANNEL } from "@brains/site-composition";
 import { SiteBuilderPlugin } from "../../src/plugin";
+import { z } from "@brains/utils/zod";
 
-interface SiteResourceContent {
-  title: string;
-  description: string;
-  cta?: {
-    heading: string;
-    buttonText: string;
-    buttonLink: string;
-  };
-}
+/** The site resource body, parsed rather than asserted: it arrives as JSON text. */
+const siteResourceContentSchema = z.looseObject({
+  title: z.string(),
+  description: z.string(),
+  cta: z
+    .looseObject({
+      heading: z.string(),
+      buttonText: z.string(),
+      buttonLink: z.string(),
+    })
+    .optional(),
+});
 
 describe("site-builder metadata provider contract", () => {
   it("uses metadata from the shared provider channel for brain://site", async () => {
@@ -36,9 +40,9 @@ describe("site-builder metadata provider contract", () => {
     if (!resource) throw new Error("brain://site not found");
 
     const result = await resource.handler();
-    const data = JSON.parse(
-      result.contents[0]?.text ?? "{}",
-    ) as SiteResourceContent;
+    const data = siteResourceContentSchema.parse(
+      JSON.parse(result.contents[0]?.text ?? "{}"),
+    );
 
     expect(data.title).toBe("Provided Site");
     expect(data.description).toBe("Provided metadata");
@@ -61,9 +65,9 @@ describe("site-builder metadata provider contract", () => {
     if (!resource) throw new Error("brain://site not found");
 
     const result = await resource.handler();
-    const data = JSON.parse(
-      result.contents[0]?.text ?? "{}",
-    ) as SiteResourceContent;
+    const data = siteResourceContentSchema.parse(
+      JSON.parse(result.contents[0]?.text ?? "{}"),
+    );
 
     expect(data.title).toBe("Fallback Site");
     expect(data.description).toBe("Fallback metadata");

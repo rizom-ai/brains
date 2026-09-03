@@ -66,6 +66,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "plugins/obsidian-vault",
   "plugins/playbooks",
   "plugins/profile",
+  "plugins/site-builder",
   "plugins/site-content",
   "plugins/stock-photo",
   "shared/atproto-contracts",

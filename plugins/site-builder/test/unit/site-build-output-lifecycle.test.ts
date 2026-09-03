@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   siteBuildArtifactManifestSchema,
   type PreparedSiteBuild,
@@ -366,13 +366,17 @@ describe("TransactionalSiteBuildOutput", () => {
 
     const originalRename = fs.rename;
     let injected = false;
-    fs.rename = mock(async (source, destination) => {
-      if (!injected && String(source).includes(".site-preview.next-")) {
-        injected = true;
-        throw new Error("injected pointer switch failure");
-      }
-      return originalRename(source, destination);
-    }) as typeof fs.rename;
+    // spyOn types the stub by the member it replaces, so the injected failure
+    // cannot drift from the real rename signature.
+    const rename = spyOn(fs, "rename").mockImplementation(
+      async (source, destination) => {
+        if (!injected && String(source).includes(".site-preview.next-")) {
+          injected = true;
+          throw new Error("injected pointer switch failure");
+        }
+        return originalRename(source, destination);
+      },
+    );
 
     try {
       expect(
@@ -388,7 +392,7 @@ describe("TransactionalSiteBuildOutput", () => {
         "legacy output",
       );
     } finally {
-      fs.rename = originalRename;
+      rename.mockRestore();
       await lifecycle.abort(target);
     }
   });
