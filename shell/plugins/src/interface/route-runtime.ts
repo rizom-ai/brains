@@ -1,16 +1,12 @@
 import type { UserPermissionLevel } from "@brains/templates";
-/**
- * The two permission questions a route asks. Structural, so the interface
- * and service contexts both satisfy it without a shared nominal type.
- */
-export interface RoutePermissions {
-  getUserLevel(declarationId: string, userId: string): UserPermissionLevel;
-  isAnchor(declarationId: string, userId: string): boolean;
-}
-import type {
-  AnyInterfaceRouteDefinition,
-  InterfaceCaller,
+import {
+  isVerbatimResponse,
+  type AnyInterfaceRouteDefinition,
+  type InterfaceCaller,
+  type RoutePermissions,
 } from "./route-contract";
+
+export type { RoutePermissions };
 import {
   jsonError,
   jsonResponse,
@@ -64,6 +60,13 @@ export function createRuntimeRoute(
         body,
         caller,
       });
+      // A route hosting somebody else's protocol answers for itself; there is
+      // nothing here to validate and nothing to encode.
+      if (isVerbatimResponse(definition.response)) {
+        return output instanceof Response
+          ? output
+          : jsonError("Route did not answer with a response", 500);
+      }
       return jsonResponse(definition.response.parse(output));
     },
   };

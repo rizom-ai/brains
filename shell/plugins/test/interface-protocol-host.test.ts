@@ -3,8 +3,10 @@ import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
 import {
   defineInterface,
+  defineRoute,
   defineTool,
   instantiatePluginPackageDefinition,
+  verbatim,
 } from "../src";
 
 /**
@@ -87,6 +89,50 @@ describe("an interface that hosts a protocol", () => {
     });
     // stdio has no URL, so nothing was advertised.
     expect(harness.getMockShell().listInteractions()).toEqual([]);
+  });
+
+  it("hands back the transport's own response, untouched", async () => {
+    // The protocol on the wire is not this interface's to shape. An MCP
+    // client reads an event stream with its own headers and status codes;
+    // re-encoding that as a JSON envelope would break every one of them.
+    const definition = defineInterface({
+      id: "protocol-host",
+      config: z.object({}),
+      setup: () => ({}),
+      routes: () => [
+        defineRoute({
+          method: "POST",
+          path: "/mcp",
+          security: { kind: "public" },
+          response: verbatim,
+          handle: () =>
+            new Response("event: message\ndata: {}\n\n", {
+              status: 202,
+              headers: {
+                "content-type": "text/event-stream",
+                "mcp-session-id": "session-1",
+              },
+            }),
+        }),
+      ],
+    });
+
+    const harness = createPluginHarness();
+    const plugin = instantiate(definition, {});
+    await harness.installPlugin(plugin);
+
+    const route = (plugin.getWebRoutes?.() ?? []).find(
+      ({ path }) => path === "/mcp",
+    );
+    if (!route) throw new Error("route was not registered");
+    const response = await route.handler(
+      new Request("http://localhost/mcp", { method: "POST" }),
+    );
+
+    expect(response.status).toBe(202);
+    expect(response.headers.get("content-type")).toBe("text/event-stream");
+    expect(response.headers.get("mcp-session-id")).toBe("session-1");
+    expect(await response.text()).toBe("event: message\ndata: {}\n\n");
   });
 
   it("refuses HTTP transport without the host it mounts on", async () => {

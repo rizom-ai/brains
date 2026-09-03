@@ -31,9 +31,12 @@ import type {
 // The route vocabulary lives in a leaf, because services declare routes too
 // and the two definition contracts import each other's job types. It stays
 // re-exported here, where interface authors read it.
-import type { AnyInterfaceRouteDefinition } from "./route-contract";
+import type {
+  AnyInterfaceRouteDefinition,
+  RoutePermissions,
+} from "./route-contract";
 
-export { routeMethods } from "./route-contract";
+export { routeMethods, verbatim } from "./route-contract";
 export type {
   AnyInterfaceRouteDefinition,
   InterfaceActor,
@@ -45,8 +48,12 @@ export type {
   PublicSecurityDefinition,
   RouteBody,
   RouteCaller,
+  RoutePermissions,
   RouteMethod,
   RouteSecurity,
+  RouteOutput,
+  RouteResponse,
+  VerbatimResponse,
 } from "./route-contract";
 
 export type InterfaceConfigSchema = z.ZodType<object, object>;
@@ -159,9 +166,11 @@ export interface InterfaceDefinitionInput<
         /**
          * What a caller arriving over this transport may do. A protocol
          * host resolves that once, from the transport rather than from a
-         * person — stdio is whoever runs the process.
+         * person — stdio is whoever runs the process, so the two transport
+         * questions come alongside the entity assertion every family gets.
+         * Named consumer: @brains/mcp.
          */
-        readonly permissions: IPermissionsNamespace;
+        readonly permissions: IPermissionsNamespace & RoutePermissions;
         /**
          * The thing that answers.
          *

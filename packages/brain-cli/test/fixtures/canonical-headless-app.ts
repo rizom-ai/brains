@@ -10,7 +10,7 @@ const overrides = parseInstanceOverrides(
 );
 const config = resolve(canonicalBrain, process.env, overrides);
 const plugins = config.plugins ?? [];
-const mcp = plugins.find(({ id }) => id === "mcp");
+const mcp = plugins.find(({ id }) => id === "@brains/mcp:mcp");
 const mcpConfig =
   mcp && "config" in mcp && isRecord(mcp.config) ? mcp.config : undefined;
 

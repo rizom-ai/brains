@@ -128,7 +128,9 @@ describe("canonical brain core", () => {
       seedContentPath: "./seed-content",
       initialSync: true,
     });
-    expect(pluginConfig("mcp")).toMatchObject({ transport: "stdio" });
+    expect(pluginConfig("@brains/mcp:mcp")).toMatchObject({
+      transport: "stdio",
+    });
     expect(pluginConfig("profile")).not.toHaveProperty(
       "starterIdentity.anchorKind",
     );
@@ -153,7 +155,7 @@ describe("canonical brain core", () => {
       "@brains/agent-discovery:agent",
       "@brains/agent-discovery:skill",
       "@brains/unified-inbox:unified-inbox",
-      "mcp",
+      "@brains/mcp:mcp",
       "a2a",
     ]);
     expect(resolvedIds).toContain("@brains/unified-inbox:unified-inbox");

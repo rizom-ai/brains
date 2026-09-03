@@ -65,6 +65,13 @@ export type {
   WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
 export { defineJob, defineTool } from "../service/service-definition-contract";
+// A tool that *is* the conversation reaches the brain and may answer with
+// what the brain asked back. Named consumer: @brains/mcp.
+export type {
+  ToolAgent,
+  ToolAgentAnswer,
+  ToolAsk,
+} from "../service/tool-agent";
 export type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,

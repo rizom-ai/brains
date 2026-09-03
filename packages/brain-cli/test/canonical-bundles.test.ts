@@ -368,12 +368,16 @@ describe("canonical bundle taxonomy", () => {
 
   test("derives effective transport and team permission overrides", () => {
     const headless = resolve(canonicalBrain, {}, targetRecipes.headless);
-    expect(pluginConfig(headless, "mcp")?.["transport"]).toBe("stdio");
+    expect(pluginConfig(headless, "@brains/mcp:mcp")?.["transport"]).toBe(
+      "stdio",
+    );
     expect(headless.plugins?.some(({ id }) => id === "webserver")).toBe(false);
     expect(permissionLevel(headless, "mcp:http")).toBeUndefined();
 
     const personal = resolve(canonicalBrain, {}, targetRecipes.personal);
-    expect(pluginConfig(personal, "mcp")?.["transport"]).toBe("http");
+    expect(pluginConfig(personal, "@brains/mcp:mcp")?.["transport"]).toBe(
+      "http",
+    );
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
 
     const team = resolve(canonicalBrain, {}, targetRecipes.team);

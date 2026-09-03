@@ -122,7 +122,7 @@ describe("canonical team bundle", () => {
       "@brains/conversation-memory:conversation-memory",
       "@brains/doc:doc",
       "site-builder",
-      "mcp",
+      "@brains/mcp:mcp",
     ]) {
       expect(ids).toContain(id);
     }

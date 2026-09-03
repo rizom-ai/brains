@@ -6,7 +6,10 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
+import type {
+  IMCPTransport,
+  UserPermissionLevel,
+} from "@brains/sdk/interfaces";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
@@ -15,7 +18,7 @@ import { adaptLogger, createConsoleLogger } from "./types";
 export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
-  permissionLevel?: ToolVisibility;
+  permissionLevel?: UserPermissionLevel;
   isAnchor?: boolean;
   actor?: ActorRef;
   displayName?: string;
@@ -369,7 +372,7 @@ export class StreamableHTTPServer {
     this.mcpHandler = createMcpHandler(
       ({ authInfo }) => {
         const permissionLevel = authInfo?.extra?.["permissionLevel"] as
-          ToolVisibility | undefined;
+          UserPermissionLevel | undefined;
         return this.mcpTransport
           ? this.mcpTransport.createMcpServer(permissionLevel)
           : mcpServer;

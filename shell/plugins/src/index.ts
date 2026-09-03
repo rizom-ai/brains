@@ -411,6 +411,9 @@ export {
   type ServicePackageDefinition,
   type ServiceToolDefinition,
   type ServicePublishDeclaration,
+  type ToolAgent,
+  type ToolAgentAnswer,
+  type ToolAsk,
   type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,
   type WorkspacePreparedConfirmation,
@@ -422,6 +425,11 @@ export {
   defineSubscription,
   defineRoute,
   protocol,
+  verbatim,
+} from "./public/interface-definition";
+export type {
+  RouteResponse,
+  VerbatimResponse,
 } from "./public/interface-definition";
 
 // ============================================================================

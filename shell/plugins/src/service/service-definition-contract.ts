@@ -9,6 +9,7 @@ import type {
 } from "../base/context-types";
 import type { AnyInterfaceRouteDefinition } from "../interface/route-contract";
 import type { ChannelDeliveryProvider } from "../channel-registry";
+import type { ToolAgent, ToolAsk } from "./tool-agent";
 
 /**
  * Looking up a transport, not the registry that holds them.
@@ -351,8 +352,17 @@ export interface ServiceToolDefinition<
        * caller rather than about the tool.
        */
       readonly caller: ToolContext | undefined;
+      /**
+       * The brain, for a tool that *is* the conversation rather than a
+       * capability within one. Only a tool declaring `agentTool: false`
+       * may reach it — see `createToolAgent`. Named consumer: @brains/mcp.
+       */
+      readonly agent: ToolAgent;
     },
-  ): z.input<TOutputSchema> | Promise<z.input<TOutputSchema>>;
+  ):
+    | z.input<TOutputSchema>
+    | ToolAsk
+    | Promise<z.input<TOutputSchema> | ToolAsk>;
 }
 
 export type AnyServiceToolDefinition = ServiceToolDefinition<

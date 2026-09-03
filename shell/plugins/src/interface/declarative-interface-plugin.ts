@@ -202,6 +202,10 @@ class DeclarativeInterfacePlugin<
         // reaction offers over nothing: the shape is the same, and what it
         // reaches is empty on purpose.
         reaction: () => this.reaction(),
+        // An interface is a way in, so a tool it declares may be the
+        // conversation itself. The gate is on the tool: only one the agent
+        // cannot call gets to call the agent.
+        agent: () => this.context?.agent,
       });
     });
   }

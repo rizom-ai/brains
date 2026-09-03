@@ -25,6 +25,18 @@ export interface InterfaceActor {
   readonly displayName?: string | undefined;
 }
 
+/**
+ * The two permission questions asked about someone who is not a person yet.
+ *
+ * A route resolves them per request from whoever authenticated; a protocol
+ * host resolves them once from its transport. Structural, so the interface
+ * and service contexts both satisfy it without a shared nominal type.
+ */
+export interface RoutePermissions {
+  getUserLevel(declarationId: string, userId: string): UserPermissionLevel;
+  isAnchor(declarationId: string, userId: string): boolean;
+}
+
 export interface InterfaceCaller {
   readonly actor: InterfaceActor;
   readonly permission: UserPermissionLevel;
@@ -49,10 +61,41 @@ export type RouteCaller<TSecurity extends RouteSecurity> =
 export type RouteBody<TSchema extends InterfaceSchema | undefined> =
   TSchema extends InterfaceSchema ? z.output<TSchema> : undefined;
 
+/**
+ * A route whose answer is the response itself, sent as written.
+ *
+ * Almost every route returns data and lets the runtime encode it, which is
+ * what keeps a declared route from inventing its own error shapes. A route
+ * hosting somebody else's protocol is the exception: an event stream, the
+ * status code the protocol specifies, the session header its clients read
+ * back. None of that survives a JSON envelope, and none of it is this
+ * interface's to shape. Named consumer: @brains/mcp.
+ */
+export interface VerbatimResponse {
+  readonly kind: "rizom-verbatim-response";
+}
+
+export const verbatim: VerbatimResponse = Object.freeze({
+  kind: "rizom-verbatim-response",
+});
+
+export function isVerbatimResponse(value: unknown): value is VerbatimResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Reflect.get(value, "kind") === "rizom-verbatim-response"
+  );
+}
+
+export type RouteResponse = InterfaceSchema | VerbatimResponse;
+
+export type RouteOutput<TResponse extends RouteResponse> =
+  TResponse extends VerbatimResponse ? Response : unknown;
+
 export interface InterfaceRouteInput<
   TMethod extends RouteMethod = RouteMethod,
   TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
+  TResponseSchema extends RouteResponse = RouteResponse,
   TSecurity extends RouteSecurity = RouteSecurity,
 > {
   readonly method: TMethod;
@@ -64,13 +107,13 @@ export interface InterfaceRouteInput<
     readonly request: Request;
     readonly body: RouteBody<TBodySchema>;
     readonly caller: RouteCaller<TSecurity>;
-  }): unknown | Promise<unknown>;
+  }): RouteOutput<TResponseSchema> | Promise<RouteOutput<TResponseSchema>>;
 }
 
 export interface InterfaceRouteDefinition<
   TMethod extends RouteMethod = RouteMethod,
   TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema = InterfaceSchema,
+  TResponseSchema extends RouteResponse = RouteResponse,
   TSecurity extends RouteSecurity = RouteSecurity,
 > extends InterfaceRouteInput<
   TMethod,
@@ -84,6 +127,6 @@ export interface InterfaceRouteDefinition<
 export type AnyInterfaceRouteDefinition = InterfaceRouteDefinition<
   RouteMethod,
   InterfaceSchema | undefined,
-  InterfaceSchema,
+  RouteResponse,
   RouteSecurity
 >;

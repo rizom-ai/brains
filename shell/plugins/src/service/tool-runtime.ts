@@ -8,6 +8,8 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { AnyServiceToolDefinition } from "./service-definition-contract";
+import { createToolAgent, isToolAsk } from "./tool-agent";
+import type { AgentNamespace } from "../contracts/agent";
 
 export const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -42,6 +44,12 @@ export function createRuntimeTool(input: {
    */
   readonly run?:
     (<T>(context: ToolContext, operation: () => T) => T) | undefined;
+  /**
+   * The brain, for a family whose tools may be the way in. Absent for one
+   * whose tools are capabilities the agent calls — those must not call back.
+   * Named consumer: @brains/mcp, through the interface family.
+   */
+  readonly agent?: (() => AgentNamespace | undefined) | undefined;
 }): Tool {
   const { definition, pluginId, reaction } = input;
   const run =
@@ -100,8 +108,36 @@ export function createRuntimeTool(input: {
             input: parsed,
             signal: toolContext.signal ?? new AbortController().signal,
             caller: toolContext,
+            agent: createToolAgent({
+              pluginId,
+              toolName: name,
+              // Defaults to true, and a tool that never says otherwise is one
+              // the agent may call — so it is one that must not call back.
+              agentTool: definition.agentTool ?? true,
+              agent: input.agent ?? ((): undefined => undefined),
+              caller: () => toolContext,
+            }),
           }),
         );
+        // An ask is not an answer: it does not go through the output schema,
+        // and it does not arrive as `{success: true}`.
+        if (isToolAsk(output)) {
+          return {
+            needsConfirmation: true,
+            toolName: output.toolName,
+            summary: output.summary,
+            ...(output.completionSummary
+              ? { completionSummary: output.completionSummary }
+              : {}),
+            ...(output.preview ? { preview: output.preview } : {}),
+            args: {
+              approvalId: output.approvalId,
+              conversationId: output.conversationId,
+              ...(output.toolCallId ? { toolCallId: output.toolCallId } : {}),
+              originalArgs: output.originalArgs,
+            },
+          };
+        }
         return {
           success: true,
           data: definition.output.parse(output),

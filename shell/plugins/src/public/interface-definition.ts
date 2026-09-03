@@ -1,6 +1,9 @@
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
-import { routeMethods } from "../interface/interface-definition-contract";
+import {
+  routeMethods,
+  verbatim,
+} from "../interface/interface-definition-contract";
 import type {
   AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
@@ -13,6 +16,7 @@ import type {
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   RouteMethod,
+  RouteResponse,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
 import { createDeclarativeMessageInterfacePlugin } from "../message-interface/declarative-message-interface-plugin";
@@ -60,8 +64,11 @@ export type {
   RouteBody,
   RouteCaller,
   RouteMethod,
+  RouteResponse,
   RouteSecurity,
+  VerbatimResponse,
 } from "../interface/interface-definition-contract";
+export { verbatim };
 
 export function protocol(
   definition: Omit<ProtocolSecurityDefinition, "kind">,
@@ -88,7 +95,7 @@ export function defineSubscription<
 export function defineRoute<
   const TMethod extends RouteMethod,
   TBodySchema extends InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema,
+  TResponseSchema extends RouteResponse,
   const TSecurity extends RouteSecurity,
 >(
   definition: InterfaceRouteInput<

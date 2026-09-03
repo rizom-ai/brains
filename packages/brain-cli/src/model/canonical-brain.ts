@@ -33,7 +33,7 @@ import emailPackage from "@brains/email";
 import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
-import { MCPInterface } from "@brains/mcp";
+import mcpPackage from "@brains/mcp";
 import { newsletter } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
@@ -238,7 +238,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   interfaces: [
     [
       "mcp",
-      (config): Plugin => new MCPInterface(config),
+      packageFactory("@brains/mcp", mcpPackage),
       (): PluginConfig => ({}),
     ],
     [

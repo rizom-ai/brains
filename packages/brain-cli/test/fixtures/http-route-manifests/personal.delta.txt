@@ -1,3 +1,13 @@
++ @brains/mcp:mcp|handler|DELETE|/mcp|exact|true
++ @brains/mcp:mcp|handler|GET|/mcp|exact|true
++ @brains/mcp:mcp|handler|GET|/status|exact|true
++ @brains/mcp:mcp|handler|OPTIONS|/mcp|exact|true
++ @brains/mcp:mcp|handler|POST|/mcp|exact|true
++ a2a|handler|GET|/.well-known/agent-card.json|exact|true
++ a2a|handler|GET|/.well-known/agent-directory.json|exact|true
++ a2a|handler|GET|/a2a|exact|true
++ a2a|handler|OPTIONS|/a2a|exact|true
++ a2a|handler|POST|/a2a|exact|true
 + auth-service|handler|GET|/.well-known/jwks.json|exact|true
 + auth-service|handler|GET|/.well-known/oauth-authorization-server|exact|true
 + auth-service|handler|GET|/.well-known/oauth-protected-resource|exact|true
@@ -36,11 +46,6 @@
 + dashboard|handler|GET|/assets/dashboard.[content-hash].js|exact|true
 + dashboard|handler|GET|/assets/theme.[content-hash].css|exact|true
 + dashboard|handler|GET|/|exact|true
-+ mcp|handler|DELETE|/mcp|exact|true
-+ mcp|handler|GET|/mcp|exact|true
-+ mcp|handler|GET|/status|exact|true
-+ mcp|handler|OPTIONS|/mcp|exact|true
-+ mcp|handler|POST|/mcp|exact|true
 + studio|handler|DELETE|/studio/api/entities|exact|true
 + studio|handler|GET|/account|prefix|true
 + studio|handler|GET|/admin|prefix|true

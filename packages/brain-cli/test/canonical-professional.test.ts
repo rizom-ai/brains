@@ -103,7 +103,9 @@ describe("canonical professional posture", () => {
     const resolved = resolve(canonicalBrain, {}, canonicalOverrides());
 
     expect(resolved.profileKind).toBe("professional");
-    expect(pluginConfig(resolved, "mcp")).toMatchObject({ transport: "http" });
+    expect(pluginConfig(resolved, "@brains/mcp:mcp")).toMatchObject({
+      transport: "http",
+    });
     expect(pluginConfig(resolved, "dashboard")).toMatchObject({
       routePath: "/dashboard",
     });

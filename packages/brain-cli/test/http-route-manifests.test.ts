@@ -9,6 +9,7 @@ import type {
   Plugin,
   WebRouteDefinition,
 } from "@brains/plugins";
+import { createMockShell, createSilentLogger } from "@brains/test-utils";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 interface WebRoutePlugin extends Plugin {
@@ -32,6 +33,34 @@ function normalizeRoutePath(path: string): string {
     /(\/assets\/[^/.]+)\.[a-f0-9]{64}(\.(?:css|js))$/,
     "$1.[content-hash]$2",
   );
+}
+
+/**
+ * A declared interface knows its routes once it is registered, not when it is
+ * constructed: the slot that returns them reads the state `setup` built, and
+ * there is no state before the runtime hands it a context. Registering here
+ * keeps this manifest measuring the whole HTTP surface rather than quietly
+ * shrinking to whatever is still written as a class.
+ */
+async function registered(plugins: readonly Plugin[]): Promise<Plugin[]> {
+  const shell = createMockShell({ logger: createSilentLogger("routes") });
+  // Announce the whole composition before registering any of it: an interface
+  // that mounts on the shared HTTP host asks whether the host is present, and
+  // the answer must not depend on registration order.
+  for (const plugin of plugins) shell.addPlugin(plugin);
+  // Interfaces only. They are the family whose routes are built from the state
+  // `setup` returned, so they report nothing until registered — and registering
+  // a service here would run real work this manifest has no business starting:
+  // directory-sync would begin a filesystem sync, site-builder a build.
+  for (const plugin of plugins.filter(({ type }) => type === "interface")) {
+    try {
+      await plugin.register(shell);
+    } catch {
+      // A plugin that refuses this bare shell contributes no routes, which is
+      // what an unregistered one contributed before.
+    }
+  }
+  return [...plugins];
 }
 
 function routeManifest(plugins: readonly Plugin[]): string[] {
@@ -94,7 +123,22 @@ function resolveTestApp(name: string): Plugin[] {
 }
 
 describe("canonical HTTP route manifests", () => {
-  const minimal = routeManifest(resolveTestApp("minimal"));
+  /**
+   * Each composition is registered once and its manifest cached.
+   *
+   * Three tests below want the same manifests, and registering per test would
+   * stand up a shell and a full interface set for each of them — the work that
+   * produces the answer, repeated for answers already known.
+   */
+  const manifests = new Map<string, Promise<string[]>>();
+  const manifestFor = (name: string): Promise<string[]> => {
+    const cached = manifests.get(name);
+    if (cached) return cached;
+    const built = registered(resolveTestApp(name)).then(routeManifest);
+    manifests.set(name, built);
+    return built;
+  };
+  const minimal = (): Promise<string[]> => manifestFor("minimal");
 
   test("normalizes only content-addressed CSS and JavaScript routes", () => {
     expect(
@@ -114,46 +158,50 @@ describe("canonical HTTP route manifests", () => {
     );
   });
 
-  test("inventories every route in the minimal composition", () => {
-    expect(minimal).toEqual(readExpected("minimal"));
+  test("inventories every route in the minimal composition", async () => {
+    expect(await minimal()).toEqual(readExpected("minimal"));
   });
 
-  const compositionCases: Array<[string, Plugin[]]> = [
-    ["personal", resolveTestApp("personal")],
-    ["publishing", resolveTestApp("publishing")],
-    ["team", resolveTestApp("team")],
-    ["docs", resolveTestApp("docs")],
-    ["rizom-ai", resolveTestApp("rizom-ai")],
+  const compositionNames = [
+    "personal",
+    "publishing",
+    "team",
+    "docs",
+    "rizom-ai",
   ];
 
-  for (const [name, plugins] of compositionCases) {
-    test(`records the ${name} composition delta`, () => {
-      expect(manifestDelta(minimal, routeManifest(plugins))).toEqual(
+  for (const name of compositionNames) {
+    test(`records the ${name} composition delta`, async () => {
+      expect(manifestDelta(await minimal(), await manifestFor(name))).toEqual(
         readExpected(`${name}.delta`),
       );
     });
   }
 
-  test("normalizes generated asset hashes without hiding their routes", () => {
-    const manifests = [
-      minimal,
-      ...compositionCases.map(([, plugins]) => routeManifest(plugins)),
-    ].flat();
-    expect(manifests).toContain(
+  test("normalizes generated asset hashes without hiding their routes", async () => {
+    const entries = (
+      await Promise.all([
+        minimal(),
+        ...compositionNames.map((name) => manifestFor(name)),
+      ])
+    ).flat();
+    expect(entries).toContain(
       "dashboard|handler|GET|/assets/dashboard.[content-hash].css|exact|true",
     );
     expect(
-      manifests.some((entry) => /\.[a-f0-9]{64}\.(?:css|js)\|/u.test(entry)),
+      entries.some((entry) => /\.[a-f0-9]{64}\.(?:css|js)\|/u.test(entry)),
     ).toBeFalse();
   });
 
-  test("has no current canonical method/path collisions", () => {
+  test("has no current canonical method/path collisions", async () => {
     const manifestCases: Array<[string, string[]]> = [
-      ["minimal", minimal],
-      ...compositionCases.map(([caseName, plugins]): [string, string[]] => [
-        caseName,
-        routeManifest(plugins),
-      ]),
+      ["minimal", await minimal()],
+      ...(await Promise.all(
+        compositionNames.map(async (name): Promise<[string, string[]]> => [
+          name,
+          await manifestFor(name),
+        ]),
+      )),
     ];
 
     for (const [name, entries] of manifestCases) {

@@ -46,7 +46,10 @@ export const architectureStructuralEdges = [
   {
     family: "interfaces",
     from: "interfaces/mcp/src/index.ts",
-    to: "interfaces/mcp/src/mcp-interface.ts",
+    // The config import rather than the declaration's own modules: a package
+    // being converted moves its behaviour around, and a sentinel is only
+    // useful if it proves the family is cruised without tracking that churn.
+    to: "interfaces/mcp/src/config.ts",
   },
   {
     family: "sites",

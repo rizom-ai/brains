@@ -2,12 +2,12 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **13 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **14 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
-`@brains/chat-repl`).
+`@brains/chat-repl`, `@brains/mcp`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -229,9 +229,88 @@ made the entity tranche find real defects rather than move code.
    mcp would pre-empt the design three other packages need. **mcp is its
    fourth named consumer**, which is the strongest argument for taking that
    slice next — and it has since been built, in phase 2 above. What mcp
-   still needs from it is the piece the message pipeline does not cover: a
+   still needed from it was the piece the message pipeline does not cover: a
    declared _tool_ answering with a pending confirmation, rather than a
    declared _interface_ presenting one.
+
+   **`mcp` is converted**, and that last piece is built. A declared tool's
+   `execute` now reaches the brain through `agent.chat` and `agent.resolve`,
+   and may return what came back in place of its declared output: an
+   `asked` answer is a `ToolAsk`, which the runtime renders as
+   `needsConfirmation` without putting it through the output schema. The
+   split is the same one the message pipeline uses — a tool says which
+   conversation it is in and what was said; the runtime supplies who is
+   asking, scopes the thread to them so two callers naming the same handle
+   are two conversations, and decides what an answer is made of.
+
+   **Only a tool the agent cannot call reaches the agent.** `agentTool:
+false` is checked, not documented: the agent calling a tool that calls
+   the agent is a loop with no base case, and it is better refused where it
+   is written than found as a request that never returns. Both of mcp's
+   tools already declared it, because a tool that _is_ the way in is not a
+   capability the agent should reach for.
+
+   Two further gaps surfaced, neither predicted by the measurement:
+
+   - **A route hosting somebody else's protocol answers for itself.** Every
+     declared route returned data and let the runtime encode it, which is
+     what stops a package inventing its own error shapes. MCP is the
+     exception: an event stream, the status codes the spec defines, the
+     session header its clients read back — none of it survives a JSON
+     envelope, and none of it is this interface's to reshape. `response:
+verbatim` hands the handler's own `Response` through untouched.
+
+   - **The setup's `permissions` was narrower than its own doc comment.**
+     It promised "what a caller arriving over this transport may do" and
+     typed only the entity assertion. The runtime was already passing the
+     whole namespace, so this was a type widened to what it hands over, not
+     a capability added.
+
+   Three things fell out that are worth stating plainly. The tools are
+   renamed: scoping makes them `mcp_chat` and `mcp_confirm`, so a client
+   with the bare names saved will not find them — the same cost
+   `unified-inbox_list` paid, and clients that list tools on connect pick
+   the new names up on their own. `readYourWrites` stays with mcp rather
+   than moving to the runtime: it is derived mechanically from tool results,
+   but it exists so an MCP client can read back what it just wrote, and it
+   has exactly one consumer. And the job-progress subscription is gone — it
+   only wrote `logger.debug` lines, and keeping it would have meant either a
+   subscription slot with a debug logger as its named consumer, or keeping
+   the class for it.
+
+   **Two things the conversion exposed outside the package**, both
+   consequences of the scoped plugin id (`@brains/mcp:mcp`) that every
+   declarative package gets:
+
+   - The canonical HTTP route manifest was measuring `getWebRoutes()` on
+     **unregistered** plugins. A declared interface builds its routes from
+     the state `setup` returned, so it reports none until it is registered —
+     mcp's five routes simply vanished from the manifest. Registering the
+     interfaces first restores them, and it turned out `a2a` had been
+     missing five routes from that manifest all along for the same reason.
+     The guard was already under-reporting; it would have rotted silently as
+     `web-chat`, `webserver` and `a2a` convert.
+
+     Registering costs something, and the first version cost too much: three
+     tests each registered all five compositions, standing up sixteen shells
+     in one worker and hanging the suite under `turbo`'s parallel run. Each
+     composition is registered once and its manifest cached, and only
+     interfaces are registered — registering a service there would start a
+     directory-sync filesystem scan or a site build.
+
+   - **Debug mode's auth check moved back to daemon start.** The first cut
+     put it in `setup`, which reads better — an interface that cannot serve
+     should not appear to. But it asks `auth.getCaller()`, and auth-service
+     publishes that while plugins are still registering, so the answer
+     depended on registration order. The class read it at daemon start for
+     that reason, and so does the declaration.
+
+   Its 629 lines of tests are replaced by 4. Everything they covered —
+   caller-scoped conversation ids, an isolated conversation when none is
+   named, the same handle partitioned by caller, a pending confirmation
+   becoming an answerable response — moved to the runtime and is tested
+   where it lives. What is left is the one thing genuinely about MCP
+   clients: the handles a turn produced.
 
 3. **Convert one service plugin.** _Done: `@brains/notifications`._ One file,
    104 lines, whose entire job is answering one request on the bus — and it
@@ -512,11 +591,16 @@ slices — cross-type create (stock-photo), the confirmation pipeline (three
 chat interfaces **and now mcp**), the auth instance (admin, studio,
 dashboard, since done), and batch/foreign work (site-content) — each with
 named consumers, and the conversions sit behind them. The confirmation
-pipeline has the most: four packages cannot convert until a declared tool
-can answer "the brain asked you something back". Every conversion so far has found gaps rather
-than moved imports, exactly as this plan predicted; what has changed is
-that the remaining gaps are now measured up front instead of one package at
-a time.
+pipeline was the largest of them, and it is **now complete on both halves**:
+a declared interface presents an approval, and a declared tool answers with
+one. `chat` and `web-chat` are unblocked; `mcp` is converted.
+
+What remains is two slices and the conversions behind them — cross-type
+create (stock-photo) and batch/foreign work (site-content) — plus the two
+chat interfaces, which need no new capability. Every conversion so far has
+found gaps rather than moved imports, exactly as this plan predicted; what
+has changed is that the remaining gaps are now measured up front instead of
+one package at a time.
 
 ## Validation
 
