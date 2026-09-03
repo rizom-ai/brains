@@ -55,25 +55,30 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-persisted",
   );
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
-    const url = String(input);
-    fetchCalls.push(url);
-    if (url === "/api/chat/sessions") {
-      return Response.json({
-        sessions: [
-          {
-            id: "web-persisted",
-            title: "Persisted thread",
-            lastActiveAt: "2026-07-16T10:00:00.000Z",
-          },
-        ],
-      });
-    }
-    if (url === "/api/chat/messages?id=web-persisted") {
-      return Response.json({ messages: historyMessages });
-    }
-    throw new Error(`Unexpected fetch: ${url}`);
-  }) as typeof fetch;
+  // Object.assign rather than an assertion: Bun types `fetch` with a
+  // `preconnect` member, so the stub carries one instead of claiming to.
+  globalThis.fetch = Object.assign(
+    async (input: RequestInfo | URL) => {
+      const url = String(input);
+      fetchCalls.push(url);
+      if (url === "/api/chat/sessions") {
+        return Response.json({
+          sessions: [
+            {
+              id: "web-persisted",
+              title: "Persisted thread",
+              lastActiveAt: "2026-07-16T10:00:00.000Z",
+            },
+          ],
+        });
+      }
+      if (url === "/api/chat/messages?id=web-persisted") {
+        return Response.json({ messages: historyMessages });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    },
+    { preconnect: (): void => {} },
+  );
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,
@@ -149,7 +154,10 @@ describe("startup session restoration", () => {
     expect(app?.getAttribute("data-conversation-id")).toMatch(/^web-/);
     expect(app?.getAttribute("data-conversation-id")).not.toBe("web-persisted");
     const textarea = windowInstance.document.querySelector("#web-chat-input");
-    expect((textarea as HTMLTextAreaElement | null)?.value).toBe(
+    if (!(textarea instanceof windowInstance.HTMLTextAreaElement)) {
+      throw new Error("Expected the chat input to be a textarea");
+    }
+    expect(textarea.value).toBe(
       "Help me understand this Inbox item and decide what to do next.",
     );
     expect(windowInstance.document.body.textContent).toContain(

@@ -30,69 +30,6 @@ const NO_UNSAFE_TEST_CAST = {
     "Do not use `as unknown as` in a test. Use a @brains/test-utils factory, an honest narrow type, or narrow the parameter of the code under test.",
 };
 
-/**
- * Packages whose test suites hold no type assertions. See the config block
- * that consumes this for why the migration is per-package.
- */
-const TEST_CAST_FREE_PACKAGES = [
-  "entities/agent-discovery",
-  "entities/assessment",
-  "entities/blog",
-  "entities/conversation-memory",
-  "entities/image",
-  "entities/link",
-  "entities/note",
-  "entities/portfolio",
-  "entities/social-media",
-  "entities/topics",
-  "entities/wishlist",
-  "interfaces/a2a",
-  "interfaces/chat",
-  "interfaces/chat-repl",
-  "interfaces/mcp",
-  "interfaces/web-chat",
-  "packages/brain-cli",
-  "packages/brains-ops",
-  "packages/build-tools",
-  "plugins/admin",
-  "plugins/analytics",
-  "plugins/atproto",
-  "plugins/atproto-registry",
-  "plugins/content-pipeline",
-  "plugins/dashboard",
-  "plugins/directory-sync",
-  "plugins/email-workflows",
-  "plugins/newsletter",
-  "plugins/obsidian-vault",
-  "plugins/playbooks",
-  "plugins/profile",
-  "plugins/site-builder",
-  "plugins/site-content",
-  "plugins/stock-photo",
-  "shared/atproto-contracts",
-  "shared/console-theme",
-  "shared/content-formatters",
-  "shared/http-signatures",
-  "shared/media-page-composer",
-  "shared/site-composition",
-  "shared/site-engine",
-  "shared/theme-default",
-  "shared/theme-rizom-ai",
-  "shell/ai-evaluation",
-  "shell/ai-service",
-  "shell/app",
-  "shell/auth-service",
-  "shell/content-service",
-  "shell/core",
-  "shell/entity-service",
-  "shell/job-queue",
-  "shell/mcp-service",
-  "shell/plugins",
-  "shell/messaging-service",
-  "shell/recurring-checks",
-  "sites/rizom-ai",
-];
-
 const NO_SLEEP_SYNCHRONIZATION = {
   selector:
     "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']",
@@ -149,23 +86,19 @@ export default [
     },
   },
   {
-    // Test files in the layers Phase 6 has cleared.
+    // `as unknown as` in a test, called out separately from the assertion ban
+    // so the message can say what to reach for instead.
     //
     // A cast on an inline mock does the same damage as one in a shared factory,
     // just locally: it asserts a shape instead of checking it, so the mock goes
-    // stale silently while the test keeps passing. Every cast removed from
-    // these layers was hiding something — a handler declared to take no
-    // argument where the real one is passed a message, a provider asserting a
-    // return shape its contract does not promise, a private method reached
-    // through the class.
+    // stale silently while the test keeps passing. Every cast removed this way
+    // was hiding something — a handler declared to take no argument where the
+    // real one is passed a message, a provider asserting a return shape its
+    // contract does not promise, a private method reached through the class.
     //
     // Reach for, in order: a shared factory from `@brains/test-utils`, an
     // honest narrow type (`Pick<...>` or a local interface), or narrowing the
     // parameter of the code under test when it asks for more than it uses.
-    //
-    // Enabled per layer as each one reaches zero, so the layers already done
-    // cannot regress while the rest are outstanding. Add a layer here when its
-    // count hits zero — `shell` remains.
     files: ["**/*.test.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": ["error", NO_UNSAFE_TEST_CAST],
@@ -235,10 +168,8 @@ export default [
     //
     // `as const` is not an assertion in this sense and is not reported.
     //
-    // Tests hold ~600 assertions and are being migrated package by package
-    // after shipped source reaches zero. Delete an entry from `ignores` as its
-    // package lands, so the packages already done cannot regress while the
-    // rest are outstanding.
+    // Tests are excluded here only so the block below can state the same ban
+    // for them separately; they are not exempt from it.
     files: ["**/*.{ts,tsx}"],
     ignores: [
       "**/test/**",
@@ -258,19 +189,20 @@ export default [
     },
   },
   {
-    // Test suites that have reached zero type assertions.
+    // Tests, which the ban above exempts so the two can be stated separately.
     //
-    // The ban above exempts tests while ~600 of them are migrated. This block
-    // re-enables it per package as each one lands, so a package already done
-    // cannot regress while the rest are outstanding. Add an entry when a
-    // package hits zero; the list only grows.
+    // This started as a per-package allowlist while ~520 assertions were
+    // migrated, and grew until it named every package — at which point the
+    // list said nothing the glob does not. What the migration turned up is
+    // the argument for keeping it on: a fixture whose `operationType` did not
+    // exist, plugin stubs that could never have registered, entity literals
+    // missing `visibility` and `rootJobId`, an `IMessageBus` mock still
+    // implementing two members the interface had dropped, and eleven
+    // assertions on a parameter that already took the narrowed type.
+    //
     // Both patterns: some packages keep their tests beside the source they
-    // cover rather than under `test/`, and a list that named only `test/`
-    // silently locked nothing in those.
-    files: TEST_CAST_FREE_PACKAGES.flatMap((pkg) => [
-      `${pkg}/test/**/*.{ts,tsx}`,
-      `${pkg}/src/**/*.test.{ts,tsx}`,
-    ]),
+    // cover rather than under `test/`.
+    files: ["**/test/**/*.{ts,tsx}", "**/*.test.{ts,tsx}"],
     plugins: { "eslint-comments": eslintComments },
     rules: {
       "@typescript-eslint/consistent-type-assertions": [

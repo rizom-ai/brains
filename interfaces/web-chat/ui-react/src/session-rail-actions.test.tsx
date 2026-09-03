@@ -114,26 +114,30 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-active",
   );
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    const method = init?.method ?? "GET";
-    if (url === "/api/chat/sessions" && method === "GET") {
-      return Response.json({
-        sessions: [
-          {
-            id: "web-active",
-            title: "Open thread",
-            lastActiveAt: "2026-07-16T10:00:00.000Z",
-          },
-        ],
-      });
-    }
-    if (url === "/api/chat/messages?id=web-active") {
-      return Response.json({ messages: [] });
-    }
-    mutationCalls.push({ url, method });
-    return Response.json({ ok: true });
-  }) as typeof fetch;
+  // Object.assign rather than an assertion: Bun types `fetch` with a
+  // `preconnect` member, so the stub carries one instead of claiming to.
+  globalThis.fetch = Object.assign(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url === "/api/chat/sessions" && method === "GET") {
+        return Response.json({
+          sessions: [
+            {
+              id: "web-active",
+              title: "Open thread",
+              lastActiveAt: "2026-07-16T10:00:00.000Z",
+            },
+          ],
+        });
+      }
+      if (url === "/api/chat/messages?id=web-active") {
+        return Response.json({ messages: [] });
+      }
+      mutationCalls.push({ url, method });
+      return Response.json({ ok: true });
+    },
+  );
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,
