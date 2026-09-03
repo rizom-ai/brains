@@ -64,8 +64,11 @@ describe("EntityTypeConfig embeddable flag", () => {
       expect.objectContaining({
         type: "shell:embedding",
         idempotencyKey: result.jobId,
-        options: expect.not.objectContaining({
-          deduplication: expect.anything(),
+        options: expect.objectContaining({
+          deduplication: "coalesce",
+          deduplicationKey: expect.stringMatching(
+            /^embedding:note:idempotent-note:[a-f0-9]{64}$/,
+          ),
         }),
       }),
     );

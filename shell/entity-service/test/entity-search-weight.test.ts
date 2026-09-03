@@ -109,6 +109,7 @@ describe("EntitySearch weight behavior", () => {
     const chainableMock = {
       from: mock(() => chainableMock),
       innerJoin: mock(() => chainableMock),
+      leftJoin: mock(() => chainableMock),
       where: mock(() => chainableMock),
       orderBy: mock(() => chainableMock),
       limit: mock(() => chainableMock),

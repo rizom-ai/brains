@@ -49,7 +49,8 @@
     "./yaml": "./src/yaml.ts",
     "./zod": "./src/zod.ts",
     "./zod-introspect": "./src/zod-introspect.ts",
-    "./confirmation-response": "./src/confirmation-response.ts"
+    "./confirmation-response": "./src/confirmation-response.ts",
+    "./constant-time": "./src/constant-time.ts"
   },
   "private": true,
   "scripts": {

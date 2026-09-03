@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { constantTimeEqual } from "@brains/utils/constant-time";
 import {
   createMcpHandler,
   type AuthInfo,
@@ -213,7 +213,7 @@ export class StreamableHTTPServer {
 
     if (this.authConfig.token) {
       const token = authHeader.substring(7);
-      if (!constantTimeEquals(token, this.authConfig.token)) {
+      if (!constantTimeEqual(token, this.authConfig.token)) {
         this.logger.warn("Authentication failed: Invalid token");
         return this.getAuthErrorResponse(
           "Unauthorized: Invalid token",
@@ -444,13 +444,4 @@ export class StreamableHTTPServer {
 
 function escapeChallengeValue(value: string): string {
   return value.replace(/["\\]/g, (match) => `\\${match}`);
-}
-
-function constantTimeEquals(a: string, b: string): boolean {
-  const aBuffer = Buffer.from(a);
-  const bBuffer = Buffer.from(b);
-  if (aBuffer.length !== bBuffer.length) {
-    return false;
-  }
-  return timingSafeEqual(aBuffer, bBuffer);
 }

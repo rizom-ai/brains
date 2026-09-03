@@ -234,7 +234,7 @@ export class EntityQueries {
 
   /**
    * Build ORDER BY clauses from sortFields.
-   * Supports system fields (id, created, updated) and metadata fields via json_extract.
+   * Supports system fields (id, entityType, created, updated) and metadata fields via json_extract.
    */
   private buildOrderByClauses(sortFields?: ListOptions["sortFields"]): SQL[] {
     // Default: sort by updated desc
@@ -248,6 +248,10 @@ export class EntityQueries {
       // System fields
       if (field === "id") {
         return [orderFn(entities.id)];
+      }
+
+      if (field === "entityType") {
+        return [orderFn(entities.entityType)];
       }
 
       if (field === "created") {
@@ -288,11 +292,13 @@ export class EntityQueries {
   public async countEntities(
     entityType: string,
     options: {
-      publishedOnly?: boolean;
-      filter?: {
-        metadata?: Record<string, unknown>;
-        visibilityScope?: ContentVisibility;
-      };
+      publishedOnly?: boolean | undefined;
+      filter?:
+        | {
+            metadata?: Record<string, unknown> | undefined;
+            visibilityScope?: ContentVisibility | undefined;
+          }
+        | undefined;
     } = {},
     publishedStatuses?: string[],
   ): Promise<number> {

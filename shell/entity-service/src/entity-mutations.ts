@@ -1,5 +1,5 @@
 import { ENTITY_CHANNELS, SHELL_CHANNELS } from "@brains/contracts";
-import type { EntityDB } from "./db";
+import { normalizeSearchText, type EntityDB } from "./db";
 import type {
   AssetTransaction,
   SqliteAssetRepository,
@@ -313,6 +313,7 @@ export class EntityMutations {
           id: finalId,
           entityType: validatedEntity.entityType,
           content: markdown,
+          searchText: normalizeSearchText(markdown),
           contentHash,
           visibility: validatedEntity.visibility,
           metadata,
@@ -539,6 +540,7 @@ export class EntityMutations {
             .update(entities)
             .set({
               content: markdown,
+              searchText: normalizeSearchText(markdown),
               contentHash,
               visibility: validatedEntity.visibility,
               metadata,
@@ -783,37 +785,25 @@ export class EntityMutations {
       );
     }
 
+    const embedding = Buffer.from(
+      data.embedding.buffer,
+      data.embedding.byteOffset,
+      data.embedding.byteLength,
+    );
     await this.projectionStore.runDatabaseOperation(() =>
-      this.db.transaction(async (transaction) => {
-        const current = await transaction
-          .select({ contentHash: entities.contentHash })
-          .from(entities)
-          .where(
-            and(
-              eq(entities.id, data.entityId),
-              eq(entities.entityType, data.entityType),
-              eq(entities.contentHash, data.contentHash),
-            ),
-          )
-          .limit(1);
-        if (current.length === 0) return;
-
-        await transaction
-          .insert(embeddings)
-          .values({
-            entityId: data.entityId,
-            entityType: data.entityType,
-            embedding: data.embedding,
-            contentHash: data.contentHash,
-          })
-          .onConflictDoUpdate({
-            target: [embeddings.entityId, embeddings.entityType],
-            set: {
-              embedding: data.embedding,
-              contentHash: data.contentHash,
-            },
-          });
-      }),
+      this.db.run(sql`
+        INSERT INTO embeddings (entity_id, entity_type, embedding, content_hash)
+        SELECT ${data.entityId}, ${data.entityType}, ${embedding}, ${data.contentHash}
+        WHERE EXISTS (
+          SELECT 1 FROM entities
+          WHERE id = ${data.entityId}
+            AND entityType = ${data.entityType}
+            AND contentHash = ${data.contentHash}
+        )
+        ON CONFLICT(entity_id, entity_type) DO UPDATE SET
+          embedding = excluded.embedding,
+          content_hash = excluded.content_hash
+      `),
     );
   }
 
@@ -1160,7 +1150,7 @@ export class EntityMutations {
     params: Omit<EmbeddingJobData, "id"> &
       EntityJobOptions & { entityId: string },
   ): PreparedJobEnqueue | null {
-    const request = this.buildEmbeddingJobRequest(params, false);
+    const request = this.buildEmbeddingJobRequest(params);
     return request ? this.jobQueueService.prepareEnqueue(request) : null;
   }
 
@@ -1181,7 +1171,7 @@ export class EntityMutations {
     params: Omit<EmbeddingJobData, "id"> &
       EntityJobOptions & { entityId: string },
   ): Promise<EntityMutationResult> {
-    const request = this.buildEmbeddingJobRequest(params, true);
+    const request = this.buildEmbeddingJobRequest(params);
     if (!request) {
       return { entityId: params.entityId, jobId: "", skipped: false };
     }
@@ -1196,7 +1186,6 @@ export class EntityMutations {
   private buildEmbeddingJobRequest(
     params: Omit<EmbeddingJobData, "id"> &
       EntityJobOptions & { entityId: string },
-    deduplicate: boolean,
   ): JobQueueEnqueueRequest | null {
     const {
       entityId,
@@ -1232,10 +1221,8 @@ export class EntityMutations {
         ...(priority !== undefined && { priority }),
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
-        ...(deduplicate && {
-          deduplication: "coalesce" as const,
-          deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
-        }),
+        deduplication: "coalesce",
+        deduplicationKey: `embedding:${entityType}:${entityId}:${contentHash}`,
         metadata: {
           operationType: "data_processing",
           operationTarget: entityId,

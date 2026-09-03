@@ -5,11 +5,18 @@ export {
   localDatabaseEndpointEnv,
   localDatabaseOwnershipEnv,
   parseLocalDatabaseEndpointConfig,
+  resolveRuntimeProcessTopology,
   type LocalDatabaseEndpointConfig,
   type RuntimeProcessRole,
+  type RuntimeProcessTopology,
   type ShellRuntimeOptions,
 } from "./runtime-process-role";
 export { PROJECTION_RULE_JOB_TYPE } from "./projection-wave-scheduler";
+export {
+  LOCAL_DATABASE_CLI_SERVICE,
+  LocalDatabaseRpcClient,
+  LocalDatabaseRpcServer,
+} from "./local-database-endpoint";
 export type { ProjectionRuntimeControls } from "./projection-runtime";
 export type { ProjectionRuleDiagnostic } from "./projection-rule-job-handler";
 

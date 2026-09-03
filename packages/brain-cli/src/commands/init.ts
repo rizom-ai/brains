@@ -528,6 +528,7 @@ function writeGitignore(dir: string): void {
 !.env.schema
 node_modules
 brain.log
+.brain-runtime-owner.json
 brain-data/
 dist/
 cache/

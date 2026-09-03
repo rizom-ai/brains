@@ -42,3 +42,55 @@ export interface ShellRuntimeOptions {
   readonly processRole?: RuntimeProcessRole;
   readonly localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
 }
+
+export interface RuntimeProcessTopology {
+  readonly role: RuntimeProcessRole | undefined;
+  readonly endpointRole: "owner" | "client" | "none";
+  readonly executionOnly: boolean;
+  readonly ownsControlPlane: boolean;
+  readonly runsJobWorker: boolean;
+  readonly jobHandlerMode: "combined" | "validation-only" | "execution-only";
+  readonly progressMonitorMode:
+    "combined" | "durable-reader" | "durable-writer";
+  readonly projectionMode: "scheduler" | "executor";
+}
+
+/** Derive every process-placement decision once from the supervised role. */
+export function resolveRuntimeProcessTopology(
+  role?: RuntimeProcessRole,
+): RuntimeProcessTopology {
+  if (role === "web") {
+    return {
+      role,
+      endpointRole: "owner",
+      executionOnly: false,
+      ownsControlPlane: true,
+      runsJobWorker: false,
+      jobHandlerMode: "validation-only",
+      progressMonitorMode: "durable-reader",
+      projectionMode: "scheduler",
+    };
+  }
+  if (role === "worker") {
+    return {
+      role,
+      endpointRole: "client",
+      executionOnly: true,
+      ownsControlPlane: false,
+      runsJobWorker: true,
+      jobHandlerMode: "execution-only",
+      progressMonitorMode: "durable-writer",
+      projectionMode: "executor",
+    };
+  }
+  return {
+    role: undefined,
+    endpointRole: "none",
+    executionOnly: false,
+    ownsControlPlane: true,
+    runsJobWorker: true,
+    jobHandlerMode: "combined",
+    progressMonitorMode: "combined",
+    projectionMode: "scheduler",
+  };
+}

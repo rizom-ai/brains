@@ -1,4 +1,5 @@
 import type { JobQueue } from "./schema/job-queue";
+import { PermanentJobEnqueueError } from "./errors";
 import type { JobContextInput } from "./schema/types";
 import { createId } from "@brains/utils/id";
 import { Logger } from "@brains/utils/logger";
@@ -451,11 +452,18 @@ export class JobQueueService implements IJobQueueService {
   private validateEnqueueData(type: string, data: unknown): unknown {
     const validator = this.handlerRegistry.getValidator(type);
     if (!validator) {
-      throw new Error(`No job type declared: ${type}`);
+      throw new PermanentJobEnqueueError(`No job type declared: ${type}`);
     }
-    const parsedData = validator.validateAndParse(data);
+    let parsedData: unknown;
+    try {
+      parsedData = validator.validateAndParse(data);
+    } catch (error) {
+      throw new PermanentJobEnqueueError(`Invalid job data for type: ${type}`, {
+        cause: error,
+      });
+    }
     if (parsedData === null) {
-      throw new Error(`Invalid job data for type: ${type}`);
+      throw new PermanentJobEnqueueError(`Invalid job data for type: ${type}`);
     }
     return parsedData;
   }

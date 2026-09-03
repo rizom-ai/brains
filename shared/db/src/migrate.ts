@@ -3,7 +3,6 @@ import { Logger } from "@brains/utils/logger";
 import {
   applySqlitePragmas,
   createSqliteDatabase,
-  type PragmaClient,
   type SqliteEngine,
 } from "./sqlite";
 import { closeSqliteClient } from "./turso-client";
@@ -25,27 +24,21 @@ export interface PackageMigrationOptions {
   /** Environment variable consulted when config has no explicit token. */
   authTokenEnv?: string | undefined;
   logger?: Logger | undefined;
-  /**
-   * Runs after migrations, before the client closes — for engine-specific
-   * schema objects that Drizzle does not manage.
-   */
-  afterMigrate?:
-    ((client: PragmaClient, engine: SqliteEngine) => Promise<void>) | undefined;
 }
 
 /**
  * Run a package's drizzle migrations: connect, apply concurrency pragmas,
- * migrate, run any post-migration hook, and always close the client.
+ * migrate, and always close the client.
  */
 export async function runPackageMigrations(
   options: PackageMigrationOptions,
 ): Promise<void> {
-  const { label, config, schema, migrationsFolder, afterMigrate } = options;
+  const { label, config, schema, migrationsFolder } = options;
   const context = `${label}-migrate`;
   const log =
     options.logger?.child(context) ?? Logger.getInstance().child(context);
 
-  const { db, client, url, engine } = createSqliteDatabase({
+  const { db, client, url } = createSqliteDatabase({
     url: config.url,
     schema,
     authToken: config.authToken,
@@ -59,7 +52,6 @@ export async function runPackageMigrations(
     // Pragmas first so the migration itself benefits from the busy timeout.
     await applySqlitePragmas(client, url);
     await migrate(db, { migrationsFolder });
-    await afterMigrate?.(client, engine);
 
     log.debug(`${label} migrations completed successfully`);
   } catch (error) {

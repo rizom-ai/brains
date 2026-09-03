@@ -65,6 +65,40 @@ export const assetRecordSchema: z.ZodType<AssetRecord> = z
     path: ["digest"],
   });
 
+/** Transport-safe prepared asset contract shared by mutation boundaries. */
+export const preparedAssetSchema: z.ZodType<PreparedAsset> = z
+  .strictObject({
+    ref: assetRefSchema,
+    digest: z.string().regex(SHA256_DIGEST_PATTERN),
+    sizeBytes: z.number().int().nonnegative(),
+    bytes: z.custom<Uint8Array>((value) => value instanceof Uint8Array, {
+      message: "Prepared asset bytes must be a Uint8Array",
+    }),
+  })
+  .superRefine((asset, context) => {
+    if (getAssetDigest(asset.ref) !== asset.digest) {
+      context.addIssue({
+        code: "custom",
+        message: "Asset reference and digest must match",
+        path: ["digest"],
+      });
+    }
+    if (asset.bytes.byteLength !== asset.sizeBytes) {
+      context.addIssue({
+        code: "custom",
+        message: "Prepared asset size must match its bytes",
+        path: ["sizeBytes"],
+      });
+    }
+    if (computeAssetDigest(asset.bytes) !== asset.digest) {
+      context.addIssue({
+        code: "custom",
+        message: "Prepared asset digest must match its bytes",
+        path: ["bytes"],
+      });
+    }
+  });
+
 export function parseAssetRef(value: unknown): AssetRef {
   return assetRefSchema.parse(value);
 }

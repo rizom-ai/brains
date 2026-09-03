@@ -4,6 +4,7 @@ import {
   createSqliteDatabase,
   refuseDirectMigrationRun,
   resolveMigrationsFolder,
+  resolveSqliteEngine,
   runPackageMigrations,
 } from "@brains/db";
 import { embeddings } from "./schema/embeddings";
@@ -18,52 +19,37 @@ import {
   projectionWaves,
 } from "./schema/projection-state";
 import type { EntityDbConfig } from "./types";
-import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
-/**
- * Remove the FTS5 table created by released libSQL builds.
- *
- * This must run on libSQL: only libSQL can drop the fts5 virtual table and
- * the historical vector index its own era created (Turso has neither module). A
- * file whose WAL Turso is already coordinating is unreadable to libSQL and
- * reports SQLITE_CORRUPT — but such a file has necessarily been through this
- * cleanup before its first Turso open, so there is nothing left to remove
- * and the pass is skipped. Genuine corruption still fails loudly at the
- * migration step immediately after.
- */
-export async function preparePortableEntitySearch(
+async function hasLegacyEntitySearchTable(
   config: EntityDbConfig,
-): Promise<void> {
+): Promise<boolean> {
   const { client } = createSqliteDatabase({
     url: config.url,
     schema: {},
     authToken: config.authToken,
     authTokenEnv: "DATABASE_AUTH_TOKEN",
-    engine: "libsql",
+    engine: "turso",
   });
-
   try {
-    try {
-      await client.execute("DROP TABLE IF EXISTS entity_fts");
-      await client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
-    } finally {
-      await closeSqliteClient(client);
-    }
-  } catch (error) {
-    if (!getErrorMessage(error).includes("SQLITE_CORRUPT")) throw error;
+    const result = await client.execute(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'entity_fts' LIMIT 1",
+    );
+    return result.rows.length > 0;
+  } finally {
+    await closeSqliteClient(client);
   }
 }
 
-export async function migrateEntities(
+function runEntityMigrations(
   config: EntityDbConfig,
-  logger?: Logger,
+  logger: Logger | undefined,
+  engine?: "libsql" | "turso",
 ): Promise<void> {
-  await preparePortableEntitySearch(config);
-
-  await runPackageMigrations({
+  return runPackageMigrations({
     label: "entity",
     config,
+    ...(engine && { engine }),
     schema: {
       assets,
       entities,
@@ -82,6 +68,22 @@ export async function migrateEntities(
     authTokenEnv: "DATABASE_AUTH_TOKEN",
     logger,
   });
+}
+
+export async function migrateEntities(
+  config: EntityDbConfig,
+  logger?: Logger,
+): Promise<void> {
+  // Turso cannot remove a legacy FTS5 virtual table it cannot load. For that
+  // pre-0012 schema only, execute the generated migration through libSQL.
+  // Fresh and already-current Turso databases never open a libSQL connection.
+  if (
+    resolveSqliteEngine(config.url) === "turso" &&
+    (await hasLegacyEntitySearchTable(config))
+  ) {
+    await runEntityMigrations(config, logger, "libsql");
+  }
+  await runEntityMigrations(config, logger);
 }
 
 // Migration scripts should only be called from app contexts,

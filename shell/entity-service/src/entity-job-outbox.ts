@@ -1,8 +1,12 @@
 import type { IJobQueueService, PreparedJobEnqueue } from "@brains/job-queue";
-import { parseJobQueueEnqueueRequest } from "@brains/job-queue";
+import {
+  isPermanentJobEnqueueError,
+  parseJobQueueEnqueueRequest,
+} from "@brains/job-queue";
 import { SerialQueue } from "@brains/utils/serial-queue";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import { asc, count, inArray, sql } from "drizzle-orm";
+import { asc, count, eq, isNull } from "drizzle-orm";
 import type { EntityDB } from "./db";
 import type { ProjectionStore } from "./projection-store";
 import { entityJobOutbox } from "./schema/entity-job-outbox";
@@ -85,9 +89,11 @@ export class EntityJobOutbox {
 
   /** Count durable intents for owner diagnostics and deterministic tests. */
   public async pendingCount(): Promise<number> {
-    if (!(await this.hasTable())) return 0;
     const rows = await this.projectionStore.runDatabaseOperation(() =>
-      this.db.select({ value: count() }).from(entityJobOutbox),
+      this.db
+        .select({ value: count() })
+        .from(entityJobOutbox)
+        .where(isNull(entityJobOutbox.parkedAt)),
     );
     return Number(rows[0]?.value ?? 0);
   }
@@ -103,55 +109,69 @@ export class EntityJobOutbox {
   }
 
   private async drainAll(): Promise<number> {
-    if (!(await this.hasTable())) return 0;
-
     let delivered = 0;
     while (!this.isStopped()) {
       const rows = await this.projectionStore.runDatabaseOperation(() =>
         this.db
           .select()
           .from(entityJobOutbox)
+          .where(isNull(entityJobOutbox.parkedAt))
           .orderBy(asc(entityJobOutbox.createdAt), asc(entityJobOutbox.id))
           .limit(DELIVERY_BATCH_SIZE),
       );
       if (rows.length === 0) return delivered;
 
-      const deliveredIds: string[] = [];
       for (const row of rows) {
-        const request = parseJobQueueEnqueueRequest(row.request);
-        if (request.idempotencyKey !== row.id) {
-          throw new Error(`Outbox job identity mismatch for ${row.id}`);
+        let request: ReturnType<typeof parseJobQueueEnqueueRequest>;
+        try {
+          request = parseJobQueueEnqueueRequest(row.request);
+          if (request.idempotencyKey !== row.id) {
+            throw new Error(`Outbox job identity mismatch for ${row.id}`);
+          }
+        } catch (error) {
+          await this.park(row.id, error);
+          continue;
         }
-        const jobId = await this.jobQueueService.enqueue(request);
+
+        let jobId: string;
+        try {
+          jobId = await this.jobQueueService.enqueue(request);
+        } catch (error) {
+          if (!isPermanentJobEnqueueError(error)) throw error;
+          await this.park(row.id, error);
+          continue;
+        }
         if (jobId !== row.id) {
-          throw new Error(
-            `Idempotent enqueue returned ${jobId} for outbox job ${row.id}`,
-          );
+          this.logger.debug("Embedding intent coalesced with an active job", {
+            intentId: row.id,
+            jobId,
+          });
         }
         if (this.isStopped()) return delivered;
-        deliveredIds.push(row.id);
+        await this.projectionStore.runDatabaseOperation(() =>
+          this.db.delete(entityJobOutbox).where(eq(entityJobOutbox.id, row.id)),
+        );
+        delivered++;
       }
-
-      await this.projectionStore.runDatabaseOperation(() =>
-        this.db
-          .delete(entityJobOutbox)
-          .where(inArray(entityJobOutbox.id, deliveredIds)),
-      );
-      delivered += deliveredIds.length;
     }
     return delivered;
   }
 
-  private isStopped(): boolean {
-    return this.stopped;
+  private async park(id: string, error: unknown): Promise<void> {
+    const reason = getErrorMessage(error).slice(0, 4_000);
+    await this.projectionStore.runDatabaseOperation(() =>
+      this.db
+        .update(entityJobOutbox)
+        .set({ parkedAt: Date.now(), failureReason: reason })
+        .where(eq(entityJobOutbox.id, id)),
+    );
+    this.logger.error("Parked an undeliverable entity job intent", {
+      id,
+      reason,
+    });
   }
 
-  private async hasTable(): Promise<boolean> {
-    const rows = await this.projectionStore.runDatabaseOperation(() =>
-      this.db.all<{ name: string }>(
-        sql`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'entity_job_outbox'`,
-      ),
-    );
-    return rows.length > 0;
+  private isStopped(): boolean {
+    return this.stopped;
   }
 }

@@ -60,9 +60,21 @@ if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; t
   echo "🔍 Running type checks..."
   bun run typecheck -- --continue
 
-  # Run tests on all packages (required for monorepo correctness).
+  # Run tests on all packages under the default libSQL engine.
   echo "🧪 Running tests..."
-  bun run test -- --continue
+  BRAINS_DB_ENGINE=libsql bun run test -- --continue
+
+  # Keep the opt-in engine exercised before code reaches CI. Limit the second
+  # pass to packages that own or orchestrate local database access.
+  echo "🧪 Running database tests with Turso..."
+  BRAINS_DB_ENGINE=turso bunx turbo run test --continue \
+    --filter=@brains/db \
+    --filter=@brains/entity-service \
+    --filter=@brains/job-queue \
+    --filter=@brains/conversation-service \
+    --filter=@brains/runtime-state \
+    --filter=@brains/core \
+    --filter=@rizom/brain
 else
   echo "📝 Docs-only commit — skipping lint/typecheck/test"
 fi

@@ -1,17 +1,15 @@
+import { preparedAssetSchema } from "@brains/assets";
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { ProjectionBatchScopeSchema } from "./projection-rpc";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
-import type {
-  DurableBulkMutationRootInput,
-  SettleDurableBulkMutationChildInput,
-} from "./projection-store";
 import type {
   BaseEntity,
   CountEntitiesRequest,
   CreateEntityFromMarkdownRequest,
   CreateEntityRequest,
   DeleteEntityRequest,
+  DurableBulkMutationRootInput,
   EmbeddingBackfillResult,
   EntityMutationResult,
   EntitySearchRequest,
@@ -21,13 +19,19 @@ import type {
   IndexReadinessStatus,
   ListEntitiesRequest,
   ProjectSemanticSpaceRequest,
+  ProjectionOwnedEntityRequest,
   SearchResult,
   SearchWithDistancesRequest,
   SemanticSpaceProjection,
+  SettleDurableBulkMutationChildInput,
   StoreEmbeddingData,
   UpdateEntityRequest,
   UpsertEntityRequest,
 } from "./types";
+import type {
+  AcknowledgeEntityExportsRequest,
+  EntityExportIntent,
+} from "./entity-export-types";
 import { contentVisibilitySchema } from "./visibility";
 
 export const ENTITY_RPC_SERVICE = "entity";
@@ -83,6 +87,16 @@ export type EntityRpcRequest =
       request: ProjectSemanticSpaceRequest;
     }
   | { operation: "countEmbeddings" }
+  | {
+      operation: "isProjectionOwnedEntity";
+      request: ProjectionOwnedEntityRequest;
+    }
+  | { operation: "listPendingEntityExports"; offset: number; limit: number }
+  | {
+      operation: "acknowledgeEntityExports";
+      request: AcknowledgeEntityExportsRequest;
+    }
+  | { operation: "hasPendingEntityExports" }
   | { operation: "getAsyncJobStatus"; jobId: string }
   | {
       operation: "prepareDurableBulkMutation";
@@ -105,10 +119,12 @@ const eventContextSchema = z.strictObject({
   actor: actorRefSchema.optional(),
   interfaceType: z.string().optional(),
 });
+const persistenceOriginSchema = z.enum(["ordinary", "directory-sync"]);
 const jobOptionsShape = {
   priority: z.number().optional(),
   maxRetries: z.number().int().nonnegative().optional(),
   eventContext: eventContextSchema.optional(),
+  persistenceOrigin: persistenceOriginSchema.optional(),
 };
 const createOptionsSchema = z.strictObject({
   ...jobOptionsShape,
@@ -121,13 +137,14 @@ const updateOptionsSchema = z.strictObject({
 const jobOptionsSchema = z.strictObject(jobOptionsShape);
 const deleteOptionsSchema = z.strictObject({
   eventContext: eventContextSchema.optional(),
+  persistenceOrigin: persistenceOriginSchema.optional(),
 });
 const entityInputSchema = z.looseObject({
   id: z.string().optional(),
   entityType: nonEmptyString,
   content: z.string(),
-  created: z.string().optional(),
-  updated: z.string().optional(),
+  created: z.string().datetime().optional(),
+  updated: z.string().datetime().optional(),
   visibility: z
     .union([contentVisibilitySchema, z.literal("private")])
     .optional(),
@@ -137,8 +154,8 @@ const entitySchema = z.looseObject({
   id: nonEmptyString,
   entityType: nonEmptyString,
   content: z.string(),
-  created: z.string(),
-  updated: z.string(),
+  created: z.string().datetime(),
+  updated: z.string().datetime(),
   visibility: contentVisibilitySchema,
   metadata: metadataSchema,
   contentHash: z.string(),
@@ -148,7 +165,7 @@ const listFilterSchema = z.strictObject({
   visibilityScope: contentVisibilitySchema.optional(),
 });
 const listOptionsSchema = z.strictObject({
-  limit: z.number().int().nonnegative().optional(),
+  limit: z.number().int().positive().optional(),
   offset: z.number().int().nonnegative().optional(),
   sortFields: z
     .array(
@@ -181,7 +198,7 @@ const countRequestSchema = z.strictObject({
     .optional(),
 });
 const searchOptionsSchema = z.strictObject({
-  limit: z.number().int().nonnegative().optional(),
+  limit: z.number().int().positive().optional(),
   offset: z.number().int().nonnegative().optional(),
   types: z.array(nonEmptyString).optional(),
   excludeTypes: z.array(nonEmptyString).optional(),
@@ -190,16 +207,19 @@ const searchOptionsSchema = z.strictObject({
   weight: z.record(z.string(), z.number()).optional(),
   visibilityScope: contentVisibilitySchema.optional(),
   includeUngenerated: z.boolean().optional(),
-  minScore: z.number().optional(),
+  minScore: z.number().min(0).optional(),
 });
 const semanticReferenceSchema = z.strictObject({
   entityId: nonEmptyString,
   entityType: nonEmptyString,
 });
-const projectSemanticSpaceRequestSchema = z.strictObject({
+export const projectSemanticSpaceRequestSchema: z.ZodType<
+  ProjectSemanticSpaceRequest,
+  unknown
+> = z.strictObject({
   types: z.array(nonEmptyString).optional(),
   origin: semanticReferenceSchema.optional(),
-  maxNeighborDistance: z.number().optional(),
+  maxNeighborDistance: z.number().min(0).max(2).optional(),
   visibilityScope: contentVisibilitySchema.optional(),
 });
 const changedTargetSchema = z.strictObject({
@@ -209,59 +229,132 @@ const changedTargetSchema = z.strictObject({
   contentHash: nonEmptyString.optional(),
 });
 
+export const createEntityRequestSchema: z.ZodType<
+  CreateEntityRequest<BaseEntity>,
+  unknown
+> = z.strictObject({
+  entity: entityInputSchema,
+  preparedAsset: preparedAssetSchema.optional(),
+  options: createOptionsSchema.optional(),
+});
+export const createEntityFromMarkdownRequestSchema: z.ZodType<
+  CreateEntityFromMarkdownRequest,
+  unknown
+> = z.strictObject({
+  input: z.strictObject({
+    entityType: nonEmptyString,
+    id: nonEmptyString,
+    markdown: z.string(),
+    visibility: contentVisibilitySchema.optional(),
+  }),
+  options: createOptionsSchema.optional(),
+});
+export const updateEntityRequestSchema: z.ZodType<
+  UpdateEntityRequest<BaseEntity>,
+  unknown
+> = z.strictObject({
+  entity: entitySchema,
+  preparedAsset: preparedAssetSchema.optional(),
+  options: updateOptionsSchema.optional(),
+});
+export const deleteEntityRequestSchema: z.ZodType<
+  DeleteEntityRequest,
+  unknown
+> = z.strictObject({
+  entityType: nonEmptyString,
+  id: nonEmptyString,
+  options: deleteOptionsSchema.optional(),
+});
+export const upsertEntityRequestSchema: z.ZodType<
+  UpsertEntityRequest<BaseEntity>,
+  unknown
+> = z.strictObject({
+  entity: entitySchema,
+  preparedAsset: preparedAssetSchema.optional(),
+  options: jobOptionsSchema.optional(),
+});
+export const getEntityRequestSchema: z.ZodType<GetEntityRequest, unknown> =
+  getRequestSchema;
+export const listEntitiesRequestSchema: z.ZodType<
+  ListEntitiesRequest,
+  unknown
+> = listRequestSchema;
+export const countEntitiesRequestSchema: z.ZodType<
+  CountEntitiesRequest,
+  unknown
+> = countRequestSchema;
+export const ENTITY_RPC_LIST_PAGE_SIZE: number = 100;
+export const ENTITY_RPC_EXPORT_PAGE_SIZE: number = 100;
+const entityRpcListRequestSchema = z.strictObject({
+  entityType: nonEmptyString,
+  options: listOptionsSchema.extend({
+    limit: z.number().int().positive().max(ENTITY_RPC_LIST_PAGE_SIZE),
+  }),
+});
+export const entitySearchRequestSchema: z.ZodType<
+  EntitySearchRequest,
+  unknown
+> = z.strictObject({
+  query: z.string(),
+  options: searchOptionsSchema.optional(),
+});
+export const searchWithDistancesRequestSchema: z.ZodType<
+  SearchWithDistancesRequest,
+  unknown
+> = z.strictObject({
+  query: z.string(),
+});
+export const storeEmbeddingDataSchema: z.ZodType<StoreEmbeddingData, unknown> =
+  z.strictObject({
+    entityId: nonEmptyString,
+    entityType: nonEmptyString,
+    embedding: z.custom<Float32Array>((value) => value instanceof Float32Array),
+    contentHash: z.string(),
+  });
+export const durableBulkMutationRootInputSchema: z.ZodType<
+  DurableBulkMutationRootInput,
+  unknown
+> = z.strictObject({
+  source: nonEmptyString,
+  operationId: nonEmptyString,
+  rootJobId: nonEmptyString,
+  expectedChildren: z.number().int().positive().max(10_000),
+});
+export const settleDurableBulkMutationChildInputSchema: z.ZodType<
+  SettleDurableBulkMutationChildInput,
+  unknown
+> = z.strictObject({
+  operationId: nonEmptyString,
+  childKey: nonEmptyString,
+  jobId: nonEmptyString,
+  outcome: z.enum(["completed", "failed"]),
+});
+
 export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
   z.discriminatedUnion("operation", [
     z.strictObject({
       operation: z.literal("createEntity"),
-      request: z.strictObject({
-        entity: entityInputSchema,
-        options: createOptionsSchema.optional(),
-      }),
+      request: createEntityRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("createEntityFromMarkdown"),
-      request: z.strictObject({
-        input: z.strictObject({
-          entityType: nonEmptyString,
-          id: nonEmptyString,
-          markdown: z.string(),
-          visibility: contentVisibilitySchema.optional(),
-        }),
-        options: createOptionsSchema.optional(),
-      }),
+      request: createEntityFromMarkdownRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("updateEntity"),
-      request: z.strictObject({
-        entity: entitySchema,
-        options: updateOptionsSchema.optional(),
-      }),
+      request: updateEntityRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("deleteEntity"),
-      request: z.strictObject({
-        entityType: nonEmptyString,
-        id: nonEmptyString,
-        options: deleteOptionsSchema.optional(),
-      }),
+      request: deleteEntityRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("upsertEntity"),
-      request: z.strictObject({
-        entity: entitySchema,
-        options: jobOptionsSchema.optional(),
-      }),
+      request: upsertEntityRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("storeEmbedding"),
-      data: z.strictObject({
-        entityId: nonEmptyString,
-        entityType: nonEmptyString,
-        embedding: z.custom<Float32Array>(
-          (value) => value instanceof Float32Array,
-        ),
-        contentHash: z.string(),
-      }),
+      data: storeEmbeddingDataSchema,
     }),
     z.strictObject({
       operation: z.literal("reconcileProjectionTargets"),
@@ -277,19 +370,19 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     }),
     z.strictObject({
       operation: z.literal("getEntity"),
-      request: getRequestSchema,
+      request: getEntityRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("getEntityRaw"),
-      request: getRequestSchema,
+      request: getEntityRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("listEntities"),
-      request: listRequestSchema,
+      request: entityRpcListRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("countEntities"),
-      request: countRequestSchema,
+      request: countEntitiesRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("getEntityCounts"),
@@ -297,14 +390,11 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     }),
     z.strictObject({
       operation: z.literal("search"),
-      request: z.strictObject({
-        query: z.string(),
-        options: searchOptionsSchema.optional(),
-      }),
+      request: entitySearchRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("searchWithDistances"),
-      request: z.strictObject({ query: z.string() }),
+      request: searchWithDistancesRequestSchema,
     }),
     z.strictObject({
       operation: z.literal("projectSemanticSpace"),
@@ -312,16 +402,37 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     }),
     z.strictObject({ operation: z.literal("countEmbeddings") }),
     z.strictObject({
+      operation: z.literal("isProjectionOwnedEntity"),
+      request: z.strictObject({
+        entityType: nonEmptyString,
+        id: nonEmptyString,
+      }),
+    }),
+    z.strictObject({
+      operation: z.literal("listPendingEntityExports"),
+      offset: z.number().int().nonnegative(),
+      limit: z.number().int().positive().max(ENTITY_RPC_EXPORT_PAGE_SIZE),
+    }),
+    z.strictObject({
+      operation: z.literal("acknowledgeEntityExports"),
+      request: z.strictObject({
+        intents: z.array(
+          z.strictObject({
+            entityType: nonEmptyString,
+            entityId: nonEmptyString,
+            revision: nonEmptyString,
+          }),
+        ),
+      }),
+    }),
+    z.strictObject({ operation: z.literal("hasPendingEntityExports") }),
+    z.strictObject({
       operation: z.literal("getAsyncJobStatus"),
       jobId: nonEmptyString,
     }),
     z.strictObject({
       operation: z.literal("prepareDurableBulkMutation"),
-      input: z.strictObject({
-        source: nonEmptyString,
-        operationId: nonEmptyString,
-        rootJobId: nonEmptyString,
-      }),
+      input: durableBulkMutationRootInputSchema,
     }),
     z.strictObject({
       operation: z.literal("finalizeDurableBulkMutationEnqueue"),
@@ -333,18 +444,9 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     }),
     z.strictObject({
       operation: z.literal("settleDurableBulkMutationChild"),
-      input: z.strictObject({
-        operationId: nonEmptyString,
-        childKey: nonEmptyString,
-        jobId: nonEmptyString,
-        outcome: z.enum(["completed", "failed"]),
-      }),
+      input: settleDurableBulkMutationChildInputSchema,
     }),
-    // Boundary cast, deliberate: zod optionals are `T | undefined` under
-    // exactOptionalPropertyTypes while the domain types use plain optionals.
-    // Reconciling without a cast means rewriting the domain types as schema
-    // outputs — tracked as a follow-up, not smuggled into this layer.
-  ]) as z.ZodType<EntityRpcRequest, unknown>;
+  ]);
 
 const mutationResultSchema = z.strictObject({
   entityId: nonEmptyString,
@@ -386,6 +488,14 @@ const semanticSpaceSchema = z.strictObject({
   ),
   distanceRange: z.strictObject({ min: z.number(), max: z.number() }),
 });
+const entityExportIntentSchema: z.ZodType<EntityExportIntent, unknown> =
+  z.strictObject({
+    entityType: nonEmptyString,
+    entityId: nonEmptyString,
+    operation: z.enum(["upsert", "delete"]),
+    revision: nonEmptyString,
+    markedAt: z.number(),
+  });
 const readinessSchema = z.strictObject({
   ready: z.boolean(),
   degraded: z.boolean(),
@@ -464,7 +574,13 @@ export function parseEntityRpcResult(
       return z.array(entitySchema).parse(input);
     case "countEntities":
     case "countEmbeddings":
+    case "acknowledgeEntityExports":
       return z.number().int().nonnegative().parse(input);
+    case "isProjectionOwnedEntity":
+    case "hasPendingEntityExports":
+      return z.boolean().parse(input);
+    case "listPendingEntityExports":
+      return z.array(entityExportIntentSchema).parse(input);
     case "getEntityCounts":
       return z
         .array(
@@ -551,6 +667,18 @@ export function handleEntityRpcRequest(
       return service.projectSemanticSpace(request.request);
     case "countEmbeddings":
       return service.countEmbeddings();
+    case "isProjectionOwnedEntity":
+      return service.isProjectionOwnedEntity(request.request);
+    case "listPendingEntityExports":
+      return service
+        .listPendingEntityExports()
+        .then((intents) =>
+          intents.slice(request.offset, request.offset + request.limit),
+        );
+    case "acknowledgeEntityExports":
+      return service.acknowledgeEntityExports(request.request);
+    case "hasPendingEntityExports":
+      return service.hasPendingEntityExports();
     case "getAsyncJobStatus":
       return service.getAsyncJobStatus(request.jobId);
     case "prepareDurableBulkMutation":

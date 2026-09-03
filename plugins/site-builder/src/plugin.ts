@@ -128,7 +128,9 @@ export class SiteBuilderPlugin extends ServicePlugin<
       context.runtimeState,
       context.jobs,
     );
-    await this.buildStatusService.initialize();
+    await this.buildStatusService.initialize({
+      reconcileQueue: !context.executionOnly,
+    });
 
     setupRouteHandlers(context, this._routeRegistry, this.logger);
 

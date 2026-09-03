@@ -43,12 +43,12 @@ export interface EmbeddingJobData {
  * Options for entity mutation operations (create, update, upsert)
  */
 export interface EntityMutationEventContext {
-  conversationId?: string;
-  channelId?: string;
-  runId?: string;
-  toolCallId?: string;
-  actor?: ActorRef;
-  interfaceType?: string;
+  conversationId?: string | undefined;
+  channelId?: string | undefined;
+  runId?: string | undefined;
+  toolCallId?: string | undefined;
+  actor?: ActorRef | undefined;
+  interfaceType?: string | undefined;
 }
 
 export type {
@@ -59,14 +59,14 @@ export type {
 export type EntityPersistenceOrigin = "ordinary" | "directory-sync";
 
 export interface EntityJobOptions {
-  priority?: number;
-  maxRetries?: number;
-  eventContext?: EntityMutationEventContext;
+  priority?: number | undefined;
+  maxRetries?: number | undefined;
+  eventContext?: EntityMutationEventContext | undefined;
   /**
    * Identifies authoritative file imports/deletes so they clear, rather than
    * create, an outbound directory-export intent.
    */
-  persistenceOrigin?: EntityPersistenceOrigin;
+  persistenceOrigin?: EntityPersistenceOrigin | undefined;
 }
 
 export {
@@ -84,7 +84,7 @@ export type { ContentVisibility, RawContentVisibility } from "./visibility";
  * Options for entity creation (extends EntityJobOptions with deduplication)
  */
 export interface CreateEntityOptions extends EntityJobOptions {
-  deduplicateId?: boolean;
+  deduplicateId?: boolean | undefined;
 }
 
 /** Options for updating an existing entity. */
@@ -112,7 +112,7 @@ export interface CreateEntityFromMarkdownInput {
   id: string;
   markdown: string;
   /** Explicit core visibility. When omitted, markdown frontmatter or the public default applies. */
-  visibility?: ContentVisibility;
+  visibility?: ContentVisibility | undefined;
 }
 
 /**
@@ -227,10 +227,10 @@ export type EntityInput<T extends BaseEntity> = Omit<
   T,
   "id" | "created" | "updated" | "contentHash" | "visibility"
 > & {
-  id?: string;
-  created?: string;
-  updated?: string;
-  visibility?: RawContentVisibility;
+  id?: string | undefined;
+  created?: string | undefined;
+  updated?: string | undefined;
+  visibility?: RawContentVisibility | undefined;
 };
 
 /**
@@ -496,7 +496,7 @@ export interface SortField {
   /** Sort direction */
   direction: "asc" | "desc";
   /** Sort NULL values before non-NULL values (default: false / SQLite default) */
-  nullsFirst?: boolean;
+  nullsFirst?: boolean | undefined;
 }
 
 /**
@@ -504,36 +504,38 @@ export interface SortField {
  * Generic over metadata type for type-safe filtering
  */
 export interface ListOptions<TMetadata = Record<string, unknown>> {
-  limit?: number;
-  offset?: number;
+  limit?: number | undefined;
+  offset?: number | undefined;
   /** Multi-field sorting - supports system fields (created, updated) and metadata fields */
-  sortFields?: SortField[];
-  filter?: {
-    // Typed metadata filter - partial match on metadata fields
-    metadata?: Partial<TMetadata>;
-    visibilityScope?: ContentVisibility;
-  };
+  sortFields?: SortField[] | undefined;
+  filter?:
+    | {
+        // Typed metadata filter - partial match on metadata fields
+        metadata?: Partial<TMetadata> | undefined;
+        visibilityScope?: ContentVisibility | undefined;
+      }
+    | undefined;
   /** Filter to only entities with metadata.status = "published" */
-  publishedOnly?: boolean;
+  publishedOnly?: boolean | undefined;
 }
 
 /**
  * Search options
  */
 export interface SearchOptions {
-  limit?: number;
-  offset?: number;
-  types?: string[];
-  excludeTypes?: string[];
-  sortBy?: "relevance" | "created" | "updated";
-  sortDirection?: "asc" | "desc";
+  limit?: number | undefined;
+  offset?: number | undefined;
+  types?: string[] | undefined;
+  excludeTypes?: string[] | undefined;
+  sortBy?: "relevance" | "created" | "updated" | undefined;
+  sortDirection?: "asc" | "desc" | undefined;
   /** Score multipliers per entity type - applied after initial search */
-  weight?: Record<string, number>;
-  visibilityScope?: ContentVisibility;
+  weight?: Record<string, number> | undefined;
+  visibilityScope?: ContentVisibility | undefined;
   /** Include queued/failed generation stubs in search results (default: false) */
-  includeUngenerated?: boolean;
+  includeUngenerated?: boolean | undefined;
   /** Minimum relevance score to return. Omit for no score cutoff. */
-  minScore?: number;
+  minScore?: number | undefined;
 }
 
 export type ProjectionSourceRole =
@@ -574,11 +576,8 @@ export interface EntityTypeConfig {
 export interface GetEntityRequest {
   entityType: string;
   id: string;
-  /**
-   * Optional visibility scope. Undefined fails closed to "public" — callers
-   * with elevated access must opt up explicitly.
-   */
-  visibilityScope?: ContentVisibility;
+  /** Undefined fails closed to the public scope. */
+  visibilityScope?: ContentVisibility | undefined;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -647,13 +646,13 @@ export interface SemanticEntityReference {
 
 export interface ProjectSemanticSpaceRequest {
   /** Entity types to include as projected points. Empty or omitted includes all types. */
-  types?: string[];
+  types?: string[] | undefined;
   /** Optional entity used as the semantic origin. Missing origins fall back to the point centroid. */
-  origin?: SemanticEntityReference;
+  origin?: SemanticEntityReference | undefined;
   /** Include pairwise neighbors at or below this cosine distance. */
-  maxNeighborDistance?: number;
+  maxNeighborDistance?: number | undefined;
   /** Undefined fails closed to public-only visibility. */
-  visibilityScope?: ContentVisibility;
+  visibilityScope?: ContentVisibility | undefined;
 }
 
 export interface SemanticSpacePoint extends SemanticEntityReference {

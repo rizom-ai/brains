@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { prepareAsset } from "@brains/assets";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import {
   createMockJobQueueService,
@@ -10,6 +11,7 @@ import {
   handleEntityRpcRequest,
   handleProjectionStoreRpcRequest,
   parseEntityRpcCall,
+  parseEntityRpcRequest,
   type EntityRpcCall,
   type EntityRpcTransport,
   type ProjectionStoreRpcRequest,
@@ -171,9 +173,28 @@ describe("entity owner RPC", () => {
       title: "Untitled",
     });
 
+    expect(await remote.hasPendingEntityExports()).toBe(true);
+    const pendingExports = await remote.listPendingEntityExports();
+    expect(pendingExports).toHaveLength(1);
     expect(
-      await remote.deleteEntity({ entityType: "note", id: "remote-note" }),
+      await remote.acknowledgeEntityExports({
+        intents: pendingExports,
+      }),
+    ).toBe(1);
+    expect(
+      await remote.isProjectionOwnedEntity({
+        entityType: "note",
+        id: "remote-note",
+      }),
+    ).toBe(false);
+    expect(
+      await remote.deleteEntity({
+        entityType: "note",
+        id: "remote-note",
+        options: { persistenceOrigin: "directory-sync" },
+      }),
     ).toBe(true);
+    expect(await remote.hasPendingEntityExports()).toBe(false);
     expect(
       await owner.getEntity({ entityType: "note", id: "remote-note" }),
     ).toBeNull();
@@ -257,6 +278,47 @@ describe("entity owner RPC", () => {
     });
   });
 
+  it("shares complete mutation and durable-batch request contracts", () => {
+    const preparedAsset = prepareAsset(new Uint8Array([1, 2, 3]));
+    const entity = {
+      id: "asset-1",
+      entityType: "asset",
+      content: preparedAsset.ref,
+      created: "2026-09-02T12:00:00.000Z",
+      updated: "2026-09-02T12:00:00.000Z",
+      visibility: "public" as const,
+      metadata: {},
+      contentHash: "hash",
+    };
+
+    expect(
+      parseEntityRpcRequest({
+        operation: "upsertEntity",
+        request: {
+          entity,
+          preparedAsset,
+          options: { persistenceOrigin: "directory-sync" },
+        },
+      }),
+    ).toMatchObject({
+      request: {
+        preparedAsset: { ref: preparedAsset.ref },
+        options: { persistenceOrigin: "directory-sync" },
+      },
+    });
+    expect(
+      parseEntityRpcRequest({
+        operation: "prepareDurableBulkMutation",
+        input: {
+          source: "directory-sync",
+          operationId: "sync-request",
+          rootJobId: "root-job",
+          expectedChildren: 2,
+        },
+      }),
+    ).toMatchObject({ input: { expectedChildren: 2 } });
+  });
+
   it("rejects malformed operations before owner dispatch", () => {
     const error = captureThrown(() =>
       handleEntityRpcRequest(owner, {
@@ -265,5 +327,24 @@ describe("entity owner RPC", () => {
       }),
     );
     expect(error.name).toBe("ZodError");
+    expect(() =>
+      parseEntityRpcRequest({
+        operation: "search",
+        request: { query: "x", options: { minScore: -1 } },
+      }),
+    ).toThrow();
+    expect(() =>
+      parseEntityRpcRequest({
+        operation: "createEntity",
+        request: {
+          entity: {
+            entityType: "note",
+            content: "bad date",
+            created: "yesterday",
+            metadata: {},
+          },
+        },
+      }),
+    ).toThrow();
   });
 });

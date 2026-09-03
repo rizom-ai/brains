@@ -68,6 +68,7 @@ export interface JobServicesLifecycle {
 }
 
 export interface LocalDatabaseEndpointLifecycle {
+  readonly role: "owner" | "client";
   initialize(): Promise<void>;
   close(): void | Promise<void>;
 }

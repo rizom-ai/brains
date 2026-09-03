@@ -2,6 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { createTursoClient } from "./turso-client";
+import { isLocalFileDatabaseUrl } from "./local-file-url";
 
 export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
 export type SqliteEngine = "libsql" | "turso";
@@ -45,17 +46,17 @@ export function resolveAuthToken(options: {
   return process.env[options.authTokenEnv];
 }
 
-/** Resolve the selected engine. Turso is the local default; remote urls stay libSQL. */
+/** Resolve the selected engine. libSQL is the alpha default; Turso is opt-in. */
 export function resolveSqliteEngine(
   url: string,
   requestedEngine?: SqliteEngine,
 ): SqliteEngine {
-  if (requestedEngine === "turso" && !url.startsWith("file:")) {
+  if (requestedEngine === "turso" && !isLocalFileDatabaseUrl(url)) {
     throw new Error("The Turso embedded engine only supports file: urls");
   }
   if (requestedEngine !== undefined) return requestedEngine;
-  if (!url.startsWith("file:")) return "libsql";
-  return process.env["BRAINS_DB_ENGINE"] === "libsql" ? "libsql" : "turso";
+  if (!isLocalFileDatabaseUrl(url)) return "libsql";
+  return process.env["BRAINS_DB_ENGINE"] === "turso" ? "turso" : "libsql";
 }
 
 /**
@@ -69,7 +70,7 @@ export function createSqliteDatabase(
 ): SqliteConnection {
   const { url, schema } = options;
   if (
-    url.startsWith("file:") &&
+    isLocalFileDatabaseUrl(url) &&
     process.env[forbidLocalDatabaseOpenEnv] === "1"
   ) {
     throw new Error(`Local SQLite opens are forbidden in this process: ${url}`);
@@ -96,7 +97,7 @@ export async function applySqlitePragmas(
   client: PragmaClient,
   url: string,
 ): Promise<void> {
-  if (!url.startsWith("file:")) return;
+  if (!isLocalFileDatabaseUrl(url)) return;
 
   await client.execute("PRAGMA busy_timeout = 5000");
   await client.execute("PRAGMA journal_mode = WAL");

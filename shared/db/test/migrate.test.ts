@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Logger, LogLevel } from "@brains/utils/logger";
 import { runPackageMigrations } from "../src/migrate";
-import type { PragmaClient, SqliteEngine } from "../src/sqlite";
 
 /**
  * Tracked locally rather than through `createTempDir` in `@brains/test-utils`:
@@ -102,42 +101,6 @@ describe("runPackageMigrations", () => {
     try {
       const journal = await client.execute("PRAGMA journal_mode");
       expect(journal.rows[0]?.["journal_mode"]).toBe("wal");
-    } finally {
-      client.close();
-    }
-  });
-
-  it("runs an afterMigrate hook with the live client", async () => {
-    const migrationsFolder = await createMigrationsFolder(
-      "CREATE TABLE things (id text PRIMARY KEY NOT NULL);",
-    );
-    const dbDir = await tempDir("brains-db-file-");
-    const url = `file:${join(dbDir, "test.db")}`;
-
-    let hookEngine: SqliteEngine | undefined;
-    await runPackageMigrations({
-      label: "things",
-      config: { url },
-      schema: {},
-      migrationsFolder,
-      logger: silentLogger(),
-      afterMigrate: async (
-        client: PragmaClient,
-        engine: SqliteEngine,
-      ): Promise<void> => {
-        hookEngine = engine;
-        await client.execute("CREATE TABLE things_hook (content text)");
-      },
-    });
-
-    const { createSqliteDatabase } = await import("../src/sqlite");
-    const { client, engine } = createSqliteDatabase({ url, schema: {} });
-    try {
-      const result = await client.execute(
-        "SELECT name FROM sqlite_master WHERE name='things_hook'",
-      );
-      expect(result.rows).toHaveLength(1);
-      expect(hookEngine).toBe(engine);
     } finally {
       client.close();
     }

@@ -53,16 +53,15 @@ describe("canonical packed consumer", () => {
         ),
       ).toBe(false);
       await runCommand(["bun", "run", "import-smoke.ts"], consumerDirectory);
-      const runtimeEnv = {
-        ...process.env,
-        AI_API_KEY: "packed-startup-check",
-        GIT_SYNC_TOKEN: "packed-startup-check",
-      };
+      const runtimeEnv = { ...process.env };
+      delete runtimeEnv["BRAINS_DB_ENGINE"];
+      runtimeEnv["AI_API_KEY"] = "packed-startup-check";
+      runtimeEnv["GIT_SYNC_TOKEN"] = "packed-startup-check";
       const startup = await runCommand(
         ["bun", "run", "brain", "start", "--startup-check"],
         consumerDirectory,
         {
-          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "turso" },
+          env: runtimeEnv,
           timeoutMs: 90_000,
         },
       );
@@ -84,15 +83,17 @@ describe("canonical packed consumer", () => {
         "Local SQLite opens are forbidden in this process",
       );
 
-      const fallback = await runCommand(
+      const tursoOptIn = await runCommand(
         ["bun", "run", "brain", "start", "--startup-check"],
         consumerDirectory,
         {
-          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "libsql" },
+          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "turso" },
           timeoutMs: 90_000,
         },
       );
-      expect(combinedOutput(fallback)).toContain("Dashboard plugin registered");
+      expect(combinedOutput(tursoOptIn)).toContain(
+        "Dashboard plugin registered",
+      );
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

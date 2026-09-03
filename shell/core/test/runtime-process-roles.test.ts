@@ -344,6 +344,32 @@ describe("supervised runtime process roles", () => {
       contentHash: persistedEntity.contentHash,
     });
     expect(await web.getEntityService().countEmbeddings()).toBe(1);
+    expect(await worker.getEntityService().hasPendingEntityExports()).toBe(
+      true,
+    );
+    await worker.getEntityService().prepareDurableBulkMutation({
+      source: "sync-request",
+      operationId: "worker-sync-request",
+      rootJobId: "worker-sync-root",
+      expectedChildren: 1,
+    });
+    await worker
+      .getEntityService()
+      .failDurableBulkMutationEnqueue("worker-sync-request");
+    await worker.getEntityService().upsertEntity({
+      entity: persistedEntity,
+      options: { persistenceOrigin: "directory-sync" },
+    });
+    expect(
+      typeof (await worker.getEntityService().hasPendingEntityExports()),
+    ).toBe("boolean");
+    expect(
+      await worker.getEntityService().deleteEntity({
+        entityType: "note",
+        id: "worker-owned-note",
+        options: { persistenceOrigin: "directory-sync" },
+      }),
+    ).toBe(true);
     await expectFileMissing(workerEntityPath);
 
     const jobId = await workerOperationContext.run(

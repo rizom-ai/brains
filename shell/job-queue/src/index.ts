@@ -15,6 +15,7 @@ export {
   type JobQueueRpcTransport,
 } from "./job-queue-rpc";
 export { BaseJobHandler } from "./base-job-handler";
+export { PermanentJobEnqueueError, isPermanentJobEnqueueError } from "./errors";
 export type {
   BaseJobHandlerConfig,
   JobDataSchema,

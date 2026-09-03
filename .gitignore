@@ -193,6 +193,7 @@ brain.db
 *.db-shm
 *.db-wal
 *.db-tshm
+.brain-runtime-owner.json
 
 # Allow pre-built eval databases
 !**/eval-content/*.db

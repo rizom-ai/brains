@@ -1,8 +1,4 @@
 import type { ShellLifecycle } from "./initialization/shell-lifecycle";
-import {
-  LocalDatabaseRpcClient,
-  LocalDatabaseRpcServer,
-} from "./local-database-endpoint";
 import type { ShellServices } from "./types/shell-types";
 
 interface EntityJobOutboxOwner {
@@ -52,7 +48,7 @@ export function registerShellRuntimeFinalizers(
   // its runtime before closing the shared endpoint client because worker-session
   // cleanup uses that client.
   const endpoint = services.localDatabaseEndpoint;
-  if (endpoint instanceof LocalDatabaseRpcClient) {
+  if (endpoint?.role === "client") {
     lifecycle.addFinalizer(() => endpoint.close());
   }
 
@@ -96,7 +92,7 @@ export function registerShellRuntimeFinalizers(
   // The web owner rejects remote persistence traffic before runtime drains and
   // database cleanup. Unlike the worker client, the server is not needed to
   // stop local runtime services.
-  if (endpoint instanceof LocalDatabaseRpcServer) {
+  if (endpoint?.role === "owner") {
     lifecycle.addFinalizer(() => endpoint.close());
   }
 }

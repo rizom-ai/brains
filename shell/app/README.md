@@ -59,12 +59,12 @@ export default defineBrain({
 
 External authors should use the published `@rizom/brain` contracts rather than importing shell internals.
 
-## Database engine fallback
+## Database engine selection
 
-Local `file:` databases use Turso Database by default. Remote database URLs
-continue to use libSQL.
+Local `file:` databases use libSQL by default during the alpha fleet soak.
+Set `BRAINS_DB_ENGINE=turso` to opt an instance into the embedded Turso engine;
+remote database URLs continue to use libSQL.
 
-Local libSQL is an explicit fallback, not a routine runtime switch. Stop the
-app, set `BRAINS_DB_ENGINE=libsql`, and restart. Both engines use the same
-portable entities-table keyword boost, and startup removes the historical FTS5
-table created by released libSQL builds.
+Stop the app before changing engines. Both engines use the same portable
+entities-table keyword search, and migration removes the historical FTS5 table
+created by released libSQL builds.

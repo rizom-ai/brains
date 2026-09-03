@@ -6,7 +6,7 @@ import {
 } from "node:net";
 import { chmod, rm } from "node:fs/promises";
 import { platform } from "node:os";
-import { timingSafeEqual } from "node:crypto";
+import { constantTimeEqual } from "@brains/utils/constant-time";
 import {
   OperationProvenanceSchema,
   type OperationProvenance,
@@ -16,10 +16,10 @@ import { z } from "@brains/utils/zod";
 import type { LocalDatabaseEndpointConfig } from "./runtime-process-role";
 
 export const LOCAL_DATABASE_PROTOCOL_VERSION = 1;
+export const LOCAL_DATABASE_CLI_SERVICE = "cli";
 const DEFAULT_MAX_FRAME_BYTES = 16 * 1024 * 1024;
 const DEFAULT_MAX_IN_FLIGHT = 128;
 const DEFAULT_MAX_PENDING_BYTES = 32 * 1024 * 1024;
-const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const HANDSHAKE_TIMEOUT_MS = 10_000;
 const SHUTDOWN_DRAIN_TIMEOUT_MS = 5_000;
 
@@ -46,6 +46,7 @@ export interface LocalDatabaseRpcClientOptions {
   maxFrameBytes?: number | undefined;
   maxInFlight?: number | undefined;
   maxPendingBytes?: number | undefined;
+  /** Optional transport deadline. Omit to rely on operation cancellation. */
   requestTimeoutMs?: number | undefined;
 }
 
@@ -153,61 +154,52 @@ function encodeBinary(
   };
 }
 
-function toWireJson(value: unknown, seen = new Set<object>()): unknown {
-  if (value === null || value === undefined) return value;
-  if (typeof value === "string" || typeof value === "boolean") return value;
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new LocalDatabaseProtocolError(
-        "Local database payload contains a non-finite number",
-        "LOCAL_DATABASE_UNSUPPORTED_VALUE",
-      );
-    }
-    return value;
+function wireJsonReplacer(
+  this: Record<string, unknown>,
+  key: string,
+  value: unknown,
+): unknown {
+  const original = this[key];
+  if (original === null || original === undefined) return original;
+  if (typeof original === "number" && !Number.isFinite(original)) {
+    throw new LocalDatabaseProtocolError(
+      "Local database payload contains a non-finite number",
+      "LOCAL_DATABASE_UNSUPPORTED_VALUE",
+    );
   }
-  if (value instanceof Float32Array) {
+  if (original instanceof Float32Array) {
     return encodeBinary(
       "float32",
-      new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+      new Uint8Array(original.buffer, original.byteOffset, original.byteLength),
     );
   }
-  if (value instanceof Float64Array) {
+  if (original instanceof Float64Array) {
     return encodeBinary(
       "float64",
-      new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+      new Uint8Array(original.buffer, original.byteOffset, original.byteLength),
     );
   }
-  if (value instanceof Uint8Array) return encodeBinary("uint8", value);
-  if (typeof value !== "object") {
-    throw new LocalDatabaseProtocolError(
-      `Local database payload contains unsupported ${typeof value} data`,
-      "LOCAL_DATABASE_UNSUPPORTED_VALUE",
-    );
-  }
-  if (seen.has(value)) {
-    throw new LocalDatabaseProtocolError(
-      "Local database payload contains a cycle",
-      "LOCAL_DATABASE_UNSUPPORTED_VALUE",
-    );
-  }
-  seen.add(value);
-  try {
-    if (Array.isArray(value)) {
-      return value.map((item) => toWireJson(item, seen));
-    }
-    const prototype = Object.getPrototypeOf(value);
+  if (original instanceof Uint8Array) return encodeBinary("uint8", original);
+  if (typeof original === "object" && !Array.isArray(original)) {
+    const prototype = Object.getPrototypeOf(original);
     if (prototype !== Object.prototype && prototype !== null) {
       throw new LocalDatabaseProtocolError(
-        `Local database payload contains unsupported ${value.constructor.name} data`,
+        `Local database payload contains unsupported ${original.constructor.name} data`,
         "LOCAL_DATABASE_UNSUPPORTED_VALUE",
       );
     }
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, toWireJson(item, seen)]),
-    );
-  } finally {
-    seen.delete(value);
   }
+  if (
+    typeof original === "bigint" ||
+    typeof original === "function" ||
+    typeof original === "symbol"
+  ) {
+    throw new LocalDatabaseProtocolError(
+      `Local database payload contains unsupported ${typeof original} data`,
+      "LOCAL_DATABASE_UNSUPPORTED_VALUE",
+    );
+  }
+  return value;
 }
 
 function decodeBinary(type: SupportedBinaryType, data: string): unknown {
@@ -226,27 +218,24 @@ function decodeBinary(type: SupportedBinaryType, data: string): unknown {
   return type === "float32" ? new Float32Array(bytes) : new Float64Array(bytes);
 }
 
-function fromWireJson(value: unknown): unknown {
-  if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.map(fromWireJson);
-  const record = value as Record<string, unknown>;
-  if (binaryMarkerKey in record) {
-    const type = record[binaryMarkerKey];
-    const data = record["data"];
-    if (
-      (type !== "uint8" && type !== "float32" && type !== "float64") ||
-      typeof data !== "string" ||
-      Object.keys(record).length !== 2
-    ) {
-      throw new LocalDatabaseProtocolError(
-        "Invalid local database binary representation",
-      );
-    }
-    return decodeBinary(type, data);
+function wireJsonReviver(_key: string, value: unknown): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return value;
   }
-  return Object.fromEntries(
-    Object.entries(record).map(([key, item]) => [key, fromWireJson(item)]),
-  );
+  const record = value as Record<string, unknown>;
+  if (!(binaryMarkerKey in record)) return value;
+  const type = record[binaryMarkerKey];
+  const data = record["data"];
+  if (
+    (type !== "uint8" && type !== "float32" && type !== "float64") ||
+    typeof data !== "string" ||
+    Object.keys(record).length !== 2
+  ) {
+    throw new LocalDatabaseProtocolError(
+      "Invalid local database binary representation",
+    );
+  }
+  return decodeBinary(type, data);
 }
 
 class LocalDatabaseProtocolError extends Error {
@@ -260,7 +249,9 @@ class LocalDatabaseProtocolError extends Error {
 }
 
 export class LocalDatabaseFrameDecoder {
-  private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+  private readonly chunks: Buffer[] = [];
+  private bufferedBytes = 0;
+  private expectedBodyBytes: number | undefined;
   private readonly maxFrameBytes: number;
 
   public constructor(maxFrameBytes: number) {
@@ -268,25 +259,30 @@ export class LocalDatabaseFrameDecoder {
   }
 
   public push(chunk: Buffer): WireMessage[] {
-    this.buffer =
-      this.buffer.length === 0 ? chunk : Buffer.concat([this.buffer, chunk]);
+    if (chunk.length > 0) {
+      this.chunks.push(chunk);
+      this.bufferedBytes += chunk.length;
+    }
     const messages: WireMessage[] = [];
 
-    while (this.buffer.length >= 4) {
-      const frameLength = this.buffer.readUInt32BE(0);
-      if (frameLength <= 0 || frameLength > this.maxFrameBytes) {
-        throw new LocalDatabaseProtocolError(
-          `Local database frame size ${frameLength} is outside the allowed range`,
-          "LOCAL_DATABASE_FRAME_SIZE",
-        );
+    while (this.bufferedBytes >= (this.expectedBodyBytes ?? 4)) {
+      if (this.expectedBodyBytes === undefined) {
+        const frameLength = this.consume(4).readUInt32BE(0);
+        if (frameLength <= 0 || frameLength > this.maxFrameBytes) {
+          throw new LocalDatabaseProtocolError(
+            `Local database frame size ${frameLength} is outside the allowed range`,
+            "LOCAL_DATABASE_FRAME_SIZE",
+          );
+        }
+        this.expectedBodyBytes = frameLength;
       }
-      if (this.buffer.length < frameLength + 4) break;
+      if (this.bufferedBytes < this.expectedBodyBytes) break;
 
-      const body = this.buffer.subarray(4, frameLength + 4);
-      this.buffer = this.buffer.subarray(frameLength + 4);
+      const body = this.consume(this.expectedBodyBytes);
+      this.expectedBodyBytes = undefined;
       let decoded: unknown;
       try {
-        decoded = fromWireJson(JSON.parse(body.toString("utf8")));
+        decoded = JSON.parse(body.toString("utf8"), wireJsonReviver);
       } catch (error) {
         throw new LocalDatabaseProtocolError(
           `Invalid local database frame JSON: ${getErrorMessage(error)}`,
@@ -297,10 +293,49 @@ export class LocalDatabaseFrameDecoder {
 
     return messages;
   }
+
+  private consume(length: number): Buffer {
+    const first = this.chunks[0];
+    if (first?.length === length) {
+      this.chunks.shift();
+      this.bufferedBytes -= length;
+      return first;
+    }
+    if (first && first.length > length) {
+      const value = first.subarray(0, length);
+      this.chunks[0] = first.subarray(length);
+      this.bufferedBytes -= length;
+      return value;
+    }
+
+    const value = Buffer.allocUnsafe(length);
+    let offset = 0;
+    while (offset < length) {
+      const next = this.chunks[0];
+      if (!next) throw new Error("Local database frame buffer underflow");
+      const copied = Math.min(next.length, length - offset);
+      next.copy(value, offset, 0, copied);
+      offset += copied;
+      if (copied === next.length) this.chunks.shift();
+      else this.chunks[0] = next.subarray(copied);
+    }
+    this.bufferedBytes -= length;
+    return value;
+  }
 }
 
 function encodeFrame(message: WireMessage, maxFrameBytes: number): Buffer {
-  const body = Buffer.from(JSON.stringify(toWireJson(message)), "utf8");
+  let json: string;
+  try {
+    json = JSON.stringify(message, wireJsonReplacer);
+  } catch (error) {
+    if (error instanceof LocalDatabaseProtocolError) throw error;
+    throw new LocalDatabaseProtocolError(
+      `Local database payload is not JSON-serializable: ${getErrorMessage(error)}`,
+      "LOCAL_DATABASE_UNSUPPORTED_VALUE",
+    );
+  }
+  const body = Buffer.from(json, "utf8");
   if (body.length === 0 || body.length > maxFrameBytes) {
     throw new LocalDatabaseProtocolError(
       `Local database frame size ${body.length} is outside the allowed range`,
@@ -317,15 +352,6 @@ function writeFrame(socket: Socket, frame: Buffer): Promise<void> {
   return new Promise((resolve, reject) => {
     socket.write(frame, (error) => (error ? reject(error) : resolve()));
   });
-}
-
-function secretsMatch(left: string, right: string): boolean {
-  const leftBytes = Buffer.from(left);
-  const rightBytes = Buffer.from(right);
-  return (
-    leftBytes.length === rightBytes.length &&
-    timingSafeEqual(leftBytes, rightBytes)
-  );
 }
 
 function isNamedPipe(address: string): boolean {
@@ -381,6 +407,7 @@ interface ServerConnection {
 }
 
 export class LocalDatabaseRpcServer {
+  public readonly role = "owner" as const;
   private readonly config: LocalDatabaseEndpointConfig;
   private readonly maxFrameBytes: number;
   private readonly maxInFlight: number;
@@ -491,7 +518,7 @@ export class LocalDatabaseRpcServer {
       }
       if (
         message.version !== LOCAL_DATABASE_PROTOCOL_VERSION ||
-        !secretsMatch(message.secret, this.config.secret)
+        !constantTimeEqual(message.secret, this.config.secret)
       ) {
         connection.socket.destroy(
           new LocalDatabaseProtocolError(
@@ -602,11 +629,45 @@ export class LocalDatabaseRpcServer {
     message: WireMessage,
   ): Promise<void> {
     if (connection.socket.destroyed) return;
+    let frame: Buffer;
     try {
-      await writeFrame(
-        connection.socket,
-        encodeFrame(message, this.maxFrameBytes),
-      );
+      frame = encodeFrame(message, this.maxFrameBytes);
+    } catch (error) {
+      // A handler result is untrusted boundary data. Reject only that request
+      // when it cannot be represented or exceeds the frame budget; severing
+      // the endpoint would strand the worker until supervisor restart.
+      if (message.kind !== "response" || !message.ok) {
+        connection.socket.destroy();
+        return;
+      }
+      try {
+        frame = encodeFrame(
+          {
+            kind: "response",
+            requestId: message.requestId,
+            ok: false,
+            error: serializeError(error),
+          },
+          this.maxFrameBytes,
+        );
+      } catch {
+        frame = encodeFrame(
+          {
+            kind: "response",
+            requestId: message.requestId,
+            ok: false,
+            error: {
+              name: "LocalDatabaseProtocolError",
+              message: "Local database response could not be encoded",
+              code: "LOCAL_DATABASE_RESPONSE_ENCODING",
+            },
+          },
+          this.maxFrameBytes,
+        );
+      }
+    }
+    try {
+      await writeFrame(connection.socket, frame);
     } catch {
       connection.socket.destroy();
     }
@@ -667,18 +728,19 @@ interface PendingRequest {
   readonly resolve: (value: unknown) => void;
   readonly reject: (error: Error) => void;
   readonly frameBytes: number;
-  readonly timer: ReturnType<typeof setTimeout>;
+  readonly timer: ReturnType<typeof setTimeout> | undefined;
   readonly removeAbortListener: () => void;
 }
 
 export class LocalDatabaseRpcClient {
+  public readonly role = "client" as const;
   private readonly config: LocalDatabaseEndpointConfig;
   private readonly getOperationScope:
     (() => LocalDatabaseOperationScope | undefined) | undefined;
   private readonly maxFrameBytes: number;
   private readonly maxInFlight: number;
   private readonly maxPendingBytes: number;
-  private readonly requestTimeoutMs: number;
+  private readonly requestTimeoutMs: number | undefined;
   private readonly pending = new Map<string, PendingRequest>();
   private socket: Socket | undefined;
   private decoder: LocalDatabaseFrameDecoder;
@@ -696,8 +758,7 @@ export class LocalDatabaseRpcClient {
     this.maxFrameBytes = options.maxFrameBytes ?? DEFAULT_MAX_FRAME_BYTES;
     this.maxInFlight = options.maxInFlight ?? DEFAULT_MAX_IN_FLIGHT;
     this.maxPendingBytes = options.maxPendingBytes ?? DEFAULT_MAX_PENDING_BYTES;
-    this.requestTimeoutMs =
-      options.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.requestTimeoutMs = options.requestTimeoutMs;
     this.decoder = new LocalDatabaseFrameDecoder(this.maxFrameBytes);
   }
 
@@ -894,16 +955,19 @@ export class LocalDatabaseRpcClient {
         );
       };
       signal?.addEventListener("abort", onAbort, { once: true });
-      const timer = setTimeout(
-        () =>
-          rejectRequest(
-            new LocalDatabaseProtocolError(
-              `Local database request timed out after ${this.requestTimeoutMs}ms`,
-              "LOCAL_DATABASE_REQUEST_TIMEOUT",
-            ),
-          ),
-        this.requestTimeoutMs,
-      );
+      const timer =
+        this.requestTimeoutMs === undefined
+          ? undefined
+          : setTimeout(
+              () =>
+                rejectRequest(
+                  new LocalDatabaseProtocolError(
+                    `Local database request timed out after ${this.requestTimeoutMs}ms`,
+                    "LOCAL_DATABASE_REQUEST_TIMEOUT",
+                  ),
+                ),
+              this.requestTimeoutMs,
+            );
       const pending: PendingRequest = {
         resolve,
         reject,
@@ -932,7 +996,7 @@ export class LocalDatabaseRpcClient {
   }
 
   private releasePending(requestId: string, pending: PendingRequest): void {
-    clearTimeout(pending.timer);
+    if (pending.timer !== undefined) clearTimeout(pending.timer);
     pending.removeAbortListener();
     this.pending.delete(requestId);
     this.pendingBytes -= pending.frameBytes;

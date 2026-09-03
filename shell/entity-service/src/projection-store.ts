@@ -17,7 +17,7 @@ import { computeContentHash } from "@brains/utils/hash";
 import { createId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
-import type { EntityDB } from "./db";
+import { normalizeSearchText, type EntityDB } from "./db";
 import { EntityExportStore } from "./entity-export-store";
 import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 import type { EntityMutationAdmission } from "./mutation-admission";
@@ -2092,6 +2092,7 @@ export class ProjectionStore implements IProjectionStore {
         .update(entities)
         .set({
           content: intent.entity.content,
+          searchText: normalizeSearchText(intent.entity.content),
           contentHash,
           metadata: intent.entity.metadata,
           visibility: intent.entity.visibility,
@@ -2105,6 +2106,7 @@ export class ProjectionStore implements IProjectionStore {
         id: entityId,
         entityType,
         content: intent.entity.content,
+        searchText: normalizeSearchText(intent.entity.content),
         contentHash,
         metadata: intent.entity.metadata,
         visibility: intent.entity.visibility,

@@ -1,5 +1,5 @@
-import { rm } from "node:fs/promises";
 import type { Database } from "@tursodatabase/database";
+import { localDatabasePath } from "./local-file-url";
 import type {
   Client,
   InArgs,
@@ -79,11 +79,6 @@ function normalizeStatement(
   return { sql: stmt.sql, args: stmt.args };
 }
 
-function pathFromFileUrl(url: string): string {
-  const path = url.startsWith("file:") ? url.slice("file:".length) : url;
-  return path;
-}
-
 const BEGIN_BY_MODE: Record<TransactionMode, string> = {
   write: "BEGIN IMMEDIATE",
   read: "BEGIN",
@@ -101,14 +96,12 @@ class TursoClient implements Client {
   public closed = false;
   public readonly protocol = "file";
   private readonly connection: Promise<Database>;
-  private readonly databasePath: string;
   private readonly fileBacked: boolean;
   private operationTail: Promise<void> = Promise.resolve();
   private closePromise: Promise<void> | null = null;
 
   constructor(url: string) {
-    const path = pathFromFileUrl(url);
-    this.databasePath = path;
+    const path = localDatabasePath(url);
     this.fileBacked = path !== ":memory:";
     // The web-owner boundary guarantees one local opener, so enabling
     // multiprocess_wal would only permit callers to bypass that invariant.
@@ -194,24 +187,18 @@ class TursoClient implements Client {
   /** Await all admitted operations and the native handle's durable close. */
   closeAsync(): Promise<void> {
     if (this.closePromise) return this.closePromise;
+    // Fence new admissions synchronously, but let operations that already
+    // joined the serial tail finish before the native handle closes.
     this.closed = true;
     const admittedOperations = this.operationTail;
     this.closePromise = admittedOperations.then(async () => {
       const db = await this.connection;
-      let checkpointed = false;
       try {
         if (this.fileBacked) {
           await db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-          checkpointed = true;
         }
       } finally {
         await db.close();
-      }
-      if (checkpointed) {
-        await Promise.all([
-          rm(`${this.databasePath}-shm`, { force: true }),
-          rm(`${this.databasePath}-wal`, { force: true }),
-        ]);
       }
     });
     return this.closePromise;
@@ -240,6 +227,9 @@ class TursoClient implements Client {
   }
 
   private async acquireOperation(): Promise<() => void> {
+    if (this.closed) {
+      throw new Error("CLIENT_CLOSED: the client was closed");
+    }
     const previous = this.operationTail;
     let release = (): void => undefined;
     this.operationTail = new Promise<void>((resolve) => {
@@ -260,10 +250,7 @@ class TursoClient implements Client {
     }
   }
 
-  private async open(): Promise<Database> {
-    if (this.closed) {
-      throw new Error("CLIENT_CLOSED: the client was closed");
-    }
+  private open(): Promise<Database> {
     return this.connection;
   }
 
@@ -354,9 +341,15 @@ class TursoTransaction implements Transaction {
 
   private async finish(statement: "COMMIT" | "ROLLBACK"): Promise<void> {
     if (this.closed) return;
-    this.closed = true;
     try {
       await this.db.exec(statement);
+      this.closed = true;
+    } catch (error) {
+      if (statement === "COMMIT") {
+        await this.db.exec("ROLLBACK").catch(() => undefined);
+      }
+      this.closed = true;
+      throw error;
     } finally {
       this.releaseOperation();
     }

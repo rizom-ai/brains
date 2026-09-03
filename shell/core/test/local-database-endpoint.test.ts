@@ -43,6 +43,7 @@ function encodeTestFrame(value: unknown): Buffer {
 async function createHarness(options?: {
   clientSecret?: string;
   serverMaxInFlight?: number;
+  serverMaxFrameBytes?: number;
   clientMaxInFlight?: number;
   clientMaxFrameBytes?: number;
   clientRequestTimeoutMs?: number;
@@ -64,6 +65,9 @@ async function createHarness(options?: {
     config: serverConfig,
     ...(options?.serverMaxInFlight !== undefined && {
       maxInFlight: options.serverMaxInFlight,
+    }),
+    ...(options?.serverMaxFrameBytes !== undefined && {
+      maxFrameBytes: options.serverMaxFrameBytes,
     }),
   });
   const client = new LocalDatabaseRpcClient({
@@ -287,6 +291,23 @@ describe("private local database endpoint", () => {
         harness.client.request("echo", { content: "x".repeat(512) }),
       ),
     ).toMatchObject({ code: "LOCAL_DATABASE_FRAME_SIZE" });
+  });
+
+  it("rejects only an oversized handler result and keeps the session usable", async () => {
+    const harness = await createHarness({
+      serverMaxFrameBytes: 512,
+      clientMaxFrameBytes: 512,
+    });
+    harness.server.register("result", async (payload) =>
+      payload === "large" ? { content: "x".repeat(1_024) } : "next",
+    );
+    await harness.server.initialize();
+    await harness.client.initialize();
+
+    expect(
+      await captureRejection(harness.client.request("result", "large")),
+    ).toMatchObject({ code: "LOCAL_DATABASE_FRAME_SIZE" });
+    expect(await harness.client.request("result", "small")).toBe("next");
   });
 
   it("bounds pending work by its request deadline", async () => {

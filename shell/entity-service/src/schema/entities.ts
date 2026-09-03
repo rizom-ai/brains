@@ -56,6 +56,7 @@ type EntitiesTable = SQLiteTableWithColumns<{
     id: EntityTextColumn<"id", true>;
     entityType: EntityTextColumn<"entityType", true>;
     content: EntityTextColumn<"content", true>;
+    searchText: EntityTextColumn<"search_text", false>;
     contentHash: EntityTextColumn<"contentHash", true>;
     visibility: EntityTextColumn<
       "visibility",
@@ -90,6 +91,9 @@ export const entities: EntitiesTable = sqliteTable(
 
     // Content with frontmatter
     content: text("content").notNull(),
+
+    // Portable lexical-search representation, normalized in application code.
+    searchText: text("search_text"),
 
     // Content hash for change detection (SHA256 hex)
     // Used by plugins to detect if content has changed without comparing full text

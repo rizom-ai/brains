@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["BRAINS_DB_ENGINE"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

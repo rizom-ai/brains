@@ -192,6 +192,35 @@ describe("createTursoClient transactions", () => {
       client.close();
     }
   });
+
+  it("rolls back a transaction whose deferred constraint fails at commit", async () => {
+    const client = createTursoClient({ url: "file::memory:" });
+    try {
+      await client.execute("PRAGMA foreign_keys = ON");
+      await client.execute("CREATE TABLE parents (id INTEGER PRIMARY KEY)");
+      await client.execute(
+        "CREATE TABLE children (parent_id INTEGER, FOREIGN KEY (parent_id) REFERENCES parents(id) DEFERRABLE INITIALLY DEFERRED)",
+      );
+
+      const txn = await client.transaction("write");
+      await txn.execute("INSERT INTO children VALUES (99)");
+      let commitError: unknown;
+      try {
+        await Promise.resolve().then(() => txn.commit());
+      } catch (error) {
+        commitError = error;
+      }
+      expect(commitError).toBeInstanceOf(Error);
+
+      const rows = await client.execute("SELECT count(*) AS n FROM children");
+      expect(rows.rows[0]?.["n"]).toBe(0);
+      const next = await client.transaction("write");
+      await next.execute("INSERT INTO parents VALUES (99)");
+      await next.commit();
+    } finally {
+      await closeSqliteClient(client);
+    }
+  });
 });
 
 describe("createTursoClient close", () => {
@@ -203,6 +232,33 @@ describe("createTursoClient close", () => {
     expect(client.batch(["SELECT 1"])).rejects.toThrow(/CLIENT_CLOSED/);
     expect(client.transaction("write")).rejects.toThrow(/CLIENT_CLOSED/);
     expect(client.executeMultiple("SELECT 1")).rejects.toThrow(/CLIENT_CLOSED/);
+  });
+
+  it("drains operations admitted before close", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "turso-close-drain-"));
+    const url = `file:${join(directory, "drain.db")}`;
+    const writer = createTursoClient({ url });
+    try {
+      await writer.execute("CREATE TABLE durable (value TEXT NOT NULL)");
+      const transaction = await writer.transaction("write");
+      const queued = writer.execute("INSERT INTO durable VALUES ('queued')");
+      const closing = closeSqliteClient(writer);
+
+      await transaction.rollback();
+      await queued;
+      await closing;
+
+      const reader = createClient({ url });
+      try {
+        const result = await reader.execute("SELECT value FROM durable");
+        expect(result.rows[0]?.["value"]).toBe("queued");
+      } finally {
+        await closeSqliteClient(reader);
+      }
+    } finally {
+      if (!writer.closed) await closeSqliteClient(writer);
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it("awaits durable file close before a replacement client opens", async () => {
@@ -235,7 +291,7 @@ describe("createTursoClient close", () => {
       await writer.execute("CREATE TABLE durable (value TEXT NOT NULL)");
       await writer.execute("INSERT INTO durable VALUES ('committed')");
       await closeSqliteClient(writer);
-      expect(await readdir(directory)).toEqual(["handoff.db"]);
+      expect(await readdir(directory)).toContain("handoff.db");
 
       const reader = createClient({ url });
       try {

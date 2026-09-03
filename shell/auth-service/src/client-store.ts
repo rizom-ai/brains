@@ -1,4 +1,5 @@
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { constantTimeEqual } from "@brains/utils/constant-time";
 import { sha256Base64Url } from "@brains/utils/hash";
 import { and, eq, lt, notExists } from "drizzle-orm";
 import { nowSeconds } from "@brains/utils/date";
@@ -396,15 +397,6 @@ function isLoopbackHostname(hostname: string): boolean {
 
 function hashSecret(secret: string): string {
   return sha256Base64Url(secret);
-}
-
-function constantTimeEqual(left: string, right: string): boolean {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-  return (
-    leftBuffer.length === rightBuffer.length &&
-    timingSafeEqual(leftBuffer, rightBuffer)
-  );
 }
 
 export class InvalidClientMetadataError extends Error {

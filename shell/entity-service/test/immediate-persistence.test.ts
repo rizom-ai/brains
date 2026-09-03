@@ -243,16 +243,18 @@ describe("Immediate Entity Persistence", () => {
   });
 
   describe("search behavior with embeddings table", () => {
-    test("newly created entities should NOT appear in search until embedding is ready", async () => {
+    test("newly created entities remain discoverable through lexical fallback", async () => {
       const noteData = createNoteInput({
         title: "Searchable Note",
         content: "This note should eventually be searchable",
         tags: ["search"],
       });
-      await ctx.entityService.createEntity({ entity: noteData });
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
 
       const results = await ctx.entityService.search({ query: "searchable" });
-      expect(results.length).toBe(0);
+      expect(results.map((result) => result.entity.id)).toContain(entityId);
     });
   });
 

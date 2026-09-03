@@ -39,6 +39,23 @@ describe("Turso entity database cutover", () => {
       engine: "libsql",
     });
     try {
+      // Reconstruct the released 0011 schema so this exercises the real 0012
+      // migration rather than runtime cleanup after an already-current schema.
+      await entityLibsql.client.execute(
+        "DROP INDEX entity_job_outbox_pending_delivery_order_idx",
+      );
+      await entityLibsql.client.execute(
+        "ALTER TABLE entity_job_outbox DROP COLUMN parked_at",
+      );
+      await entityLibsql.client.execute(
+        "ALTER TABLE entity_job_outbox DROP COLUMN failure_reason",
+      );
+      await entityLibsql.client.execute(
+        "ALTER TABLE entities DROP COLUMN search_text",
+      );
+      await entityLibsql.client.execute(
+        "DELETE FROM __drizzle_migrations WHERE created_at = (SELECT MAX(created_at) FROM __drizzle_migrations)",
+      );
       await entityLibsql.client.execute(`
         CREATE VIRTUAL TABLE entity_fts USING fts5(
           entity_id UNINDEXED,

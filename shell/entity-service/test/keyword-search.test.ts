@@ -7,7 +7,11 @@ import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import { createTestEntity } from "@brains/test-utils";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
-import { buildKeywordMatch, createEntityDatabase } from "../src/db";
+import {
+  buildKeywordMatch,
+  createEntityDatabase,
+  normalizeSearchText,
+} from "../src/db";
 import { sql } from "drizzle-orm";
 
 describe("portable keyword search", () => {
@@ -94,13 +98,82 @@ describe("portable keyword search", () => {
     });
     expect(permissive.map((result) => result.entity.id)).toEqual([entity.id]);
 
-    // Portable lexical relevance is 0.5 for an unweighted type, so a
-    // threshold of 1 filters every match while the default admits it.
+    // A complete lexical match scores 1 for an unweighted type, so a cutoff
+    // above 1 filters it while the default threshold admits it.
     const filtered = await ctx.entityService.search({
       query: "wombat",
-      options: { types: ["test"], minScore: 1 },
+      options: { types: ["test"], minScore: 1.001 },
     });
     expect(filtered).toEqual([]);
+  });
+
+  test("normalizes unicode case and punctuation-separated query terms", async () => {
+    await ctx.cleanup();
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+          config: { weight: 0.25 },
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    const entity = createTestEntity("test", {
+      id: "normalized-search",
+      content: "Café notes about Python, programming patterns",
+    });
+    await ctx.entityService.createEntity({ entity });
+
+    const results = await ctx.entityService.search({
+      query: "CAFÉ python programming",
+      options: {
+        types: ["test"],
+        weight: { test: 0.25 },
+        minScore: 0.5,
+      },
+    });
+    expect(results.map((result) => result.entity.id)).toEqual([entity.id]);
+    expect(results[0]?.score).toBeGreaterThanOrEqual(0.5);
+  });
+
+  test("uses deterministic ordering across lexical pages", async () => {
+    await ctx.cleanup();
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+        },
+      ],
+      { embeddingsEnabled: false },
+    );
+    for (const id of ["b", "a", "c"]) {
+      await ctx.entityService.createEntity({
+        entity: createTestEntity("test", {
+          id,
+          content: "stable pagination term",
+          created: "2026-01-01T00:00:00.000Z",
+          updated: "2026-01-01T00:00:00.000Z",
+        }),
+      });
+    }
+
+    const first = await ctx.entityService.search({
+      query: "stable",
+      options: { limit: 2 },
+    });
+    const second = await ctx.entityService.search({
+      query: "stable",
+      options: { limit: 2, offset: 2 },
+    });
+    expect([...first, ...second].map((result) => result.entity.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
   });
 
   test("disabled semantic indexing registers no handler and queues no backfill", async () => {
@@ -155,6 +228,15 @@ describe("portable keyword search", () => {
       id: entity.id,
     });
     if (!updated) throw new Error(`Expected updated entity ${entity.id}`);
+
+    // The changed row remains lexically searchable while its new embedding is
+    // still queued; invalidating a stale vector must not hide edited content.
+    expect(
+      (await ctx.entityService.search({ query: "Rust" })).map(
+        (result) => result.entity.id,
+      ),
+    ).toContain(entity.id);
+
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType: "test",
@@ -338,6 +420,7 @@ describe("portable keyword engine parity", () => {
             id TEXT NOT NULL,
             entityType TEXT NOT NULL,
             content TEXT NOT NULL,
+            search_text TEXT,
             PRIMARY KEY (id, entityType)
           )
         `);
@@ -347,8 +430,8 @@ describe("portable keyword engine parity", () => {
         ] as const;
         for (const [id, content] of rows) {
           await connection.client.execute({
-            sql: "INSERT INTO entities (id, entityType, content) VALUES (?, 'test', ?)",
-            args: [id, content],
+            sql: "INSERT INTO entities (id, entityType, content, search_text) VALUES (?, 'test', ?, ?)",
+            args: [id, content, normalizeSearchText(content)],
           });
         }
 
@@ -382,11 +465,12 @@ describe("portable keyword engine parity", () => {
           id TEXT NOT NULL,
           entityType TEXT NOT NULL,
           content TEXT NOT NULL,
+          search_text TEXT,
           PRIMARY KEY (id, entityType)
         )
       `);
       await connection.client.execute(
-        "INSERT INTO entities VALUES ('a', 'test', 'TypeScript generics'), ('b', 'test', 'unrelated prose')",
+        "INSERT INTO entities VALUES ('a', 'test', 'TypeScript generics', 'typescript generics'), ('b', 'test', 'unrelated prose', 'unrelated prose')",
       );
 
       for (const emptyQuery of ["", "   "]) {

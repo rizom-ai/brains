@@ -13,6 +13,7 @@ import {
 } from "@brains/directory-sync";
 import type { CommandResult } from "./command-result";
 import { BROKER_HEARTBEAT_INTERVAL_MS } from "./git-broker-policy";
+import { removeRuntimeOwner, writeRuntimeOwner } from "./runtime-owner";
 import {
   runtimeSignalProcess,
   type SignalProcess,
@@ -92,6 +93,8 @@ export interface ProcessSupervisorDependencies extends SpawnBunRunnerDependencie
   reportReady?: (role: SupervisedChildRole) => void;
   localDatabaseEndpoint?: { address: string; secret: string };
   createProcessSessionId?: () => string;
+  publishRuntimeOwner?: typeof writeRuntimeOwner;
+  removeRuntimeOwner?: typeof removeRuntimeOwner;
   gitBroker?: GitBrokerSpec;
 }
 
@@ -249,6 +252,8 @@ interface RuntimeSupervisorOptions {
   reportReady: (role: SupervisedChildRole) => void;
   localDatabaseEndpoint: { address: string; secret: string };
   createProcessSessionId: () => string;
+  publishRuntimeOwner: typeof writeRuntimeOwner;
+  removeRuntimeOwner: typeof removeRuntimeOwner;
   gitBroker: GitBrokerSpec | undefined;
 }
 
@@ -312,6 +317,7 @@ function runRuntimeSupervisor(
       if (broker) clearChildTimers(broker);
       if (web) clearChildTimers(web);
       if (worker) clearChildTimers(worker);
+      options.removeRuntimeOwner(options.cwd, options.localDatabaseEndpoint);
       if (!options.localDatabaseEndpoint.address.startsWith("\\\\.\\pipe\\")) {
         rmSync(options.localDatabaseEndpoint.address, { force: true });
       }
@@ -684,6 +690,7 @@ function runRuntimeSupervisor(
       }
 
       if (child.role === "web") {
+        options.removeRuntimeOwner(options.cwd, options.localDatabaseEndpoint);
         if (!parentShutdownRequested) {
           finalResult ??= webExitResult(child, code);
           stopEverything();
@@ -781,6 +788,20 @@ function runRuntimeSupervisor(
         }
         if (role === "web" && hasMessageType(message, "runtime-ready")) {
           if (child.ready) return;
+          try {
+            options.publishRuntimeOwner(
+              options.cwd,
+              options.localDatabaseEndpoint,
+            );
+          } catch (error) {
+            finalResult = {
+              success: false,
+              message: `Could not publish the Brain owner endpoint: ${String(error)}`,
+              exitCode: 1,
+            };
+            stopEverything();
+            return;
+          }
           child.ready = true;
           clearChildTimers(child);
           options.reportReady(role);
@@ -896,5 +917,7 @@ export function superviseRuntimeChildren(
     localDatabaseEndpoint:
       dependencies.localDatabaseEndpoint ?? createLocalDatabaseEndpoint(),
     createProcessSessionId: dependencies.createProcessSessionId ?? randomUUID,
+    publishRuntimeOwner: dependencies.publishRuntimeOwner ?? writeRuntimeOwner,
+    removeRuntimeOwner: dependencies.removeRuntimeOwner ?? removeRuntimeOwner,
   });
 }

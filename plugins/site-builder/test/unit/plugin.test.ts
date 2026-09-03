@@ -97,6 +97,21 @@ describe("SiteBuilderPlugin", () => {
     expect(plugin.id).toBe("site-builder");
   });
 
+  it("registers execution-only handlers without owner queue reconciliation", async () => {
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        previewOutputDir: "/tmp/test-output",
+        productionOutputDir: "/tmp/test-output-production",
+      }),
+    );
+    const shell = harness.getMockShell();
+    shell.getJobQueueService().getRecentJobs = async (): Promise<never> => {
+      throw new Error("getRecentJobs is owner-only");
+    };
+
+    await plugin.register(shell, { executionOnly: true });
+  });
+
   it("should register successfully and provide capabilities", async () => {
     plugin = new SiteBuilderPlugin(
       createTestConfig({

@@ -26,7 +26,7 @@ import {
   createEntityServiceLayer,
 } from "@brains/entity-service/effect";
 import { ProfileKindRegistry } from "@brains/identity-service";
-import { MCPService } from "@brains/mcp-service";
+import { mapArgsToInput, MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
   AccountSettingsRegistry,
@@ -55,6 +55,7 @@ import {
   TemplateRegistry,
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
+import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import {
   OperationContext,
@@ -67,6 +68,7 @@ import {
 
 import { DaemonRegistry } from "../daemon-registry";
 import {
+  LOCAL_DATABASE_CLI_SERVICE,
   LocalDatabaseRpcClient,
   LocalDatabaseRpcServer,
 } from "../local-database-endpoint";
@@ -74,9 +76,10 @@ import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
-import type {
-  LocalDatabaseEndpointConfig,
-  RuntimeProcessRole,
+import {
+  resolveRuntimeProcessTopology,
+  type LocalDatabaseEndpointConfig,
+  type RuntimeProcessRole,
 } from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
@@ -88,6 +91,22 @@ import {
   createServiceLogger,
 } from "./service-config";
 
+const localCliRequestSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("command"),
+    commandName: z.string().min(1),
+    args: z.array(z.string()),
+    flags: z.record(z.string(), z.unknown()),
+  }),
+  z.strictObject({
+    kind: z.literal("tool"),
+    toolName: z.string().min(1),
+    input: z.unknown(),
+    confirm: z.boolean().optional(),
+    permission: z.enum(["public", "trusted", "admin"]).optional(),
+  }),
+]);
+
 export function createShellServices(options: {
   config: ShellConfig;
   dependencies: ShellDependencies | undefined;
@@ -98,94 +117,64 @@ export function createShellServices(options: {
 }): ShellServices {
   const { config, dependencies, initializerLogger, lifecycle, processRole } =
     options;
+  const topology = resolveRuntimeProcessTopology(processRole);
   initializerLogger.debug("Initializing Shell services");
 
   const logger = createServiceLogger(config, dependencies?.logger);
   const operationContext =
     dependencies?.operationContext ?? OperationContext.createFresh();
-  if (options.localDatabaseEndpoint && !processRole) {
+  if (options.localDatabaseEndpoint && topology.endpointRole === "none") {
     throw new Error("A local database endpoint requires a process role");
   }
-  const localDatabaseEndpoint = options.localDatabaseEndpoint
-    ? processRole === "web"
+  const localDatabaseServer =
+    options.localDatabaseEndpoint && topology.endpointRole === "owner"
       ? new LocalDatabaseRpcServer({ config: options.localDatabaseEndpoint })
-      : new LocalDatabaseRpcClient({
+      : undefined;
+  const localDatabaseClient =
+    options.localDatabaseEndpoint && topology.endpointRole === "client"
+      ? new LocalDatabaseRpcClient({
           config: options.localDatabaseEndpoint,
           getOperationScope: (): OperationScope | undefined =>
             operationContext.current(),
         })
-    : undefined;
+      : undefined;
+  const localDatabaseEndpoint = localDatabaseServer ?? localDatabaseClient;
+  const createRemoteTransport = (
+    service: string,
+  ):
+    | {
+        initialize(): Promise<void>;
+        request(
+          payload: unknown,
+          options?: { signal?: AbortSignal | undefined },
+        ): Promise<unknown>;
+        close(): void;
+      }
+    | undefined =>
+    localDatabaseClient
+      ? {
+          initialize: () => localDatabaseClient.initialize(),
+          request: (payload, requestOptions) =>
+            localDatabaseClient.request(service, payload, requestOptions),
+          close: () => undefined,
+        }
+      : undefined;
   const remoteJobQueueTransport: JobQueueRpcTransport | undefined =
-    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
-      ? {
-          initialize: () => localDatabaseEndpoint.initialize(),
-          request: (payload, requestOptions) =>
-            localDatabaseEndpoint.request(
-              JOB_QUEUE_RPC_SERVICE,
-              payload,
-              requestOptions,
-            ),
-          close: () => undefined,
-        }
-      : undefined;
+    createRemoteTransport(JOB_QUEUE_RPC_SERVICE);
   const remoteRuntimeStateTransport: RuntimeStateRpcTransport | undefined =
-    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
-      ? {
-          initialize: () => localDatabaseEndpoint.initialize(),
-          request: (payload, requestOptions) =>
-            localDatabaseEndpoint.request(
-              RUNTIME_STATE_RPC_SERVICE,
-              payload,
-              requestOptions,
-            ),
-          close: () => undefined,
-        }
-      : undefined;
+    createRemoteTransport(RUNTIME_STATE_RPC_SERVICE);
   const remoteConversationTransport: ConversationRpcTransport | undefined =
-    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
-      ? {
-          initialize: () => localDatabaseEndpoint.initialize(),
-          request: (payload, requestOptions) =>
-            localDatabaseEndpoint.request(
-              CONVERSATION_RPC_SERVICE,
-              payload,
-              requestOptions,
-            ),
-          close: () => undefined,
-        }
-      : undefined;
+    createRemoteTransport(CONVERSATION_RPC_SERVICE);
   const remoteEntityTransport: EntityRpcTransport | undefined =
-    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
-      ? {
-          initialize: () => localDatabaseEndpoint.initialize(),
-          request: (payload, requestOptions) =>
-            localDatabaseEndpoint.request(
-              ENTITY_RPC_SERVICE,
-              payload,
-              requestOptions,
-            ),
-          close: () => undefined,
-        }
-      : undefined;
+    createRemoteTransport(ENTITY_RPC_SERVICE);
   const remoteProjectionTransport: ProjectionStoreRpcTransport | undefined =
-    localDatabaseEndpoint instanceof LocalDatabaseRpcClient
-      ? {
-          initialize: () => localDatabaseEndpoint.initialize(),
-          request: (payload, requestOptions) =>
-            localDatabaseEndpoint.request(
-              PROJECTION_STORE_RPC_SERVICE,
-              payload,
-              requestOptions,
-            ),
-          close: () => undefined,
-        }
-      : undefined;
+    createRemoteTransport(PROJECTION_STORE_RPC_SERVICE);
   const registerOwnerHandler = (
     service: string,
     handler: (payload: unknown, signal: AbortSignal) => Promise<unknown>,
   ): void => {
-    if (!(localDatabaseEndpoint instanceof LocalDatabaseRpcServer)) return;
-    localDatabaseEndpoint.register(service, (payload, context) => {
+    if (!localDatabaseServer) return;
+    localDatabaseServer.register(service, (payload, context) => {
       const invoke = (): Promise<unknown> => handler(payload, context.signal);
       return context.scope
         ? operationContext.run(
@@ -270,6 +259,49 @@ export function createShellServices(options: {
 
   const mcpService =
     dependencies?.mcpService ?? MCPService.createFresh(messageBus, logger);
+  registerOwnerHandler(LOCAL_DATABASE_CLI_SERVICE, async (payload) => {
+    const request = localCliRequestSchema.parse(payload);
+    if (request.kind === "command") {
+      const match = mcpService
+        .getCliTools()
+        .find(({ tool }) => tool.cli?.name === request.commandName);
+      if (!match?.tool.cli) {
+        const available = mcpService
+          .getCliTools()
+          .map(({ tool }) => tool.cli?.name)
+          .filter(Boolean)
+          .join(", ");
+        throw new Error(
+          `Unknown command: ${request.commandName}. Available: ${available}`,
+        );
+      }
+      const input = mapArgsToInput(
+        match.tool.inputSchema,
+        request.args,
+        request.flags,
+      );
+      return match.tool.handler(input, {
+        interfaceType: "cli",
+        actor: { kind: "service", serviceId: "brain-cli" },
+        userPermissionLevel: "admin",
+      });
+    }
+
+    const match = mcpService
+      .listTools()
+      .find(({ tool }) => tool.name === request.toolName);
+    if (!match) throw new Error(`Tool not found: ${request.toolName}`);
+    const context = {
+      interfaceType: "cli",
+      actor: { kind: "service" as const, serviceId: "brain-cli" },
+      userPermissionLevel: request.permission ?? "admin",
+    };
+    let result = await match.tool.handler(request.input, context);
+    if ("needsConfirmation" in result && request.confirm) {
+      result = await match.tool.handler(result.args, context);
+    }
+    return result;
+  });
 
   const jobServices = initializeJobServices({
     dependencies,
@@ -278,18 +310,8 @@ export function createShellServices(options: {
     messageBus,
     operationContext,
     projectionAdmission: projectionRuntimeSupervisor,
-    handlerRegistrationMode:
-      processRole === "web"
-        ? "validation-only"
-        : processRole === "worker"
-          ? "execution-only"
-          : "combined",
-    progressMonitorMode:
-      processRole === "web"
-        ? "durable-reader"
-        : processRole === "worker"
-          ? "durable-writer"
-          : "combined",
+    handlerRegistrationMode: topology.jobHandlerMode,
+    progressMonitorMode: topology.progressMonitorMode,
     ...(remoteJobQueueTransport && {
       remoteTransport: remoteJobQueueTransport,
     }),
@@ -304,7 +326,7 @@ export function createShellServices(options: {
   lifecycle.addSyncFinalizer(() => jobServices.closeDatabase());
   lifecycle.addSyncFinalizer(() => jobServices.rollbackRuntime());
 
-  if (localDatabaseEndpoint instanceof LocalDatabaseRpcServer) {
+  if (localDatabaseServer) {
     const handleRequest = jobServices.handleRpcRequest;
     if (!handleRequest) {
       throw new Error("The web-owned job queue does not expose RPC dispatch");
@@ -334,7 +356,7 @@ export function createShellServices(options: {
     inboxRegistry.unregisterPlugin("shell.recurring-checks"),
   );
 
-  if (processRole !== "worker") {
+  if (topology.ownsControlPlane) {
     const recurringDaemonName = "shell:recurring-checks";
     daemonRegistry.register(
       recurringDaemonName,
@@ -454,7 +476,7 @@ export function createShellServices(options: {
     conversationService,
     runtimeUploadRegistry,
     disposables,
-    executionOnly: processRole === "worker",
+    executionOnly: topology.executionOnly,
   });
 
   return {

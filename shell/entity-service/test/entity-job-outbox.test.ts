@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
-import type {
-  IJobQueueService,
-  JobQueueEnqueueRequest,
+import {
+  PermanentJobEnqueueError,
+  type IJobQueueService,
+  type JobQueueEnqueueRequest,
 } from "@brains/job-queue";
 import {
   createMockJobQueueService,
@@ -89,6 +90,41 @@ describe("entity embedding job outbox", () => {
     expect(await service.flushJobOutbox()).toBe(1);
     expect(await service.getPendingJobOutboxCount()).toBe(0);
     expect(admitted).toEqual(new Set([result.jobId]));
+  });
+
+  test("parks a poisoned head row and continues with later intents", async () => {
+    const queue = createMockJobQueueService();
+    const delivered: string[] = [];
+    queue.enqueue = mock(async (request: JobQueueEnqueueRequest) => {
+      const data = request.data as { id?: string };
+      if (data.id === "poisoned") {
+        throw new PermanentJobEnqueueError("handler removed during upgrade");
+      }
+      if (!request.idempotencyKey) {
+        throw new Error("Expected a stable idempotency key");
+      }
+      delivered.push(data.id ?? "");
+      return request.idempotencyKey;
+    });
+    const { service } = await createService(queue);
+
+    await service.createEntity({
+      entity: createNoteInput(
+        { title: "Poisoned", content: "cannot deliver", tags: [] },
+        "poisoned",
+      ),
+    });
+    await service.createEntity({
+      entity: createNoteInput(
+        { title: "Healthy", content: "deliver me", tags: [] },
+        "healthy",
+      ),
+    });
+    await service.waitForJobOutboxIdle();
+    await service.flushJobOutbox();
+
+    expect(delivered).toContain("healthy");
+    expect(await service.getPendingJobOutboxCount()).toBe(0);
   });
 
   test("replays exactly once after interruption between enqueue and acknowledgement", async () => {

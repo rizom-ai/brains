@@ -51,16 +51,39 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
   });
 }
 
-/**
- * Build the portable case-insensitive exact-phrase predicate used for keyword
- * boosting. SQLite's lower() provides ASCII case folding; no search index or
- * engine-specific schema is involved.
- */
+/** Normalize text identically for durable rows and incoming queries. */
+export function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/\p{P}+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function keywordTerms(query: string): string[] {
+  return [...new Set(normalizeSearchText(query).split(" ").filter(Boolean))];
+}
+
+/** Require every normalized query term as a portable substring match. */
 export function buildKeywordMatch(query: string): SQL {
-  // instr(content, '') is 1 for every row, so an empty phrase would boost the
-  // whole corpus and push results past a caller's minScore threshold.
-  if (query.trim() === "") return sql`0 = 1`;
-  return sql`instr(lower(${entities.content}), lower(${query})) > 0`;
+  const terms = keywordTerms(query);
+  if (terms.length === 0) return sql`0 = 1`;
+  return sql.join(
+    terms.map((term) => sql`instr(${entities.searchText}, ${term}) > 0`),
+    sql` AND `,
+  );
+}
+
+/** Fraction of normalized query terms present in an entity's search text. */
+export function buildKeywordScore(query: string): SQL<number> {
+  const terms = keywordTerms(query);
+  if (terms.length === 0) return sql<number>`0.0`;
+  const matches = terms.map(
+    (term) =>
+      sql`CASE WHEN instr(${entities.searchText}, ${term}) > 0 THEN 1.0 ELSE 0.0 END`,
+  );
+  return sql<number>`(${sql.join(matches, sql` + `)}) / ${terms.length}`;
 }
 
 /**

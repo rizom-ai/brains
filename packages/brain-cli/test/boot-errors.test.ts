@@ -2,6 +2,16 @@ import { describe, it, expect } from "bun:test";
 import { formatBootError } from "../src/lib/boot-errors";
 
 describe("formatBootError", () => {
+  it("should classify Turso's exclusive-lock error as another owner", () => {
+    const msg = formatBootError(
+      new Error(
+        "Failed to acquire lock: database is locked by another process",
+      ),
+    );
+    expect(msg).toContain("Another brain is running");
+    expect(msg).not.toContain("deleting ./data");
+  });
+
   it("should classify database errors", () => {
     const msg = formatBootError(new Error("SQLITE_CANTOPEN: unable to open"));
     expect(msg).toContain("Database error");

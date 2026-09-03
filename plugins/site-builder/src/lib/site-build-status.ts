@@ -162,15 +162,19 @@ export class SiteBuildStatusService {
     this.jobs = jobs;
   }
 
-  async initialize(): Promise<void> {
-    // Reconciling against the job queue is a read-modify-write like any other,
-    // so it runs inside the queue rather than racing mutations alongside it.
-    await this.store.mutate((state) => this.reconcile(state, true));
+  async initialize(options: { reconcileQueue?: boolean } = {}): Promise<void> {
+    // Queue reconciliation belongs to the database owner. The execution-only
+    // worker still initializes its status store for handler writes, but must
+    // not call owner-only queue readers while registering the handler.
+    await this.store.mutate((state) =>
+      this.reconcile(state, true, options.reconcileQueue ?? true),
+    );
   }
 
   private async reconcile(
     state: StoredSiteBuildStatus,
     clearStaleDebounce: boolean = false,
+    reconcileQueue: boolean = true,
   ): Promise<void> {
     const environments: SiteBuildEnvironment[] = ["preview", "production"];
     for (const environment of environments) {
@@ -210,7 +214,7 @@ export class SiteBuildStatusService {
       this.applyTerminalJob(state, environment, job);
     }
 
-    await this.reconcileFromQueue(state);
+    if (reconcileQueue) await this.reconcileFromQueue(state);
   }
 
   /**

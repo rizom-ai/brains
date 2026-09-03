@@ -5,9 +5,17 @@ import { getErrorMessage } from "@brains/utils/error";
  */
 export function formatBootError(error: unknown): string {
   const msg = getErrorMessage(error);
+  const normalized = msg.toLowerCase();
 
-  // Database lock — another instance running
-  if (msg.includes("SQLITE_BUSY") || msg.includes("database is locked")) {
+  // Database lock — another instance running. Turso reports an exclusive file
+  // lock rather than libSQL's SQLITE_BUSY wording.
+  if (
+    msg.includes("SQLITE_BUSY") ||
+    normalized.includes("database is locked") ||
+    normalized.includes("failed to acquire lock") ||
+    normalized.includes("could not acquire lock") ||
+    normalized.includes("locked by another process")
+  ) {
     return `Another brain is running in this directory.\nStop it first, then try again.`;
   }
 

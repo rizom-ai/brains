@@ -2,7 +2,7 @@ import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
-import { createEntityDatabase, type EntityDB } from "./db";
+import { createEntityDatabase, normalizeSearchText, type EntityDB } from "./db";
 import type {
   EntityDbConfig,
   BaseEntity,
@@ -43,8 +43,9 @@ import type {
   EntityRegistry as IEntityRegistry,
 } from "./types";
 import { embeddings } from "./schema/embeddings";
+import { entities } from "./schema/entities";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
-import { sql } from "drizzle-orm";
+import { isNull, sql } from "drizzle-orm";
 import { Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
@@ -292,6 +293,7 @@ export class EntityService implements IEntityService {
     }
     // Foreign keys provide atomic embedding cleanup when an entity is deleted.
     await this.dbClient.execute("PRAGMA foreign_keys = ON");
+    await this.backfillSearchText();
 
     try {
       const delivered = await this.jobOutbox.flush();
@@ -306,6 +308,29 @@ export class EntityService implements IEntityService {
         error,
       );
     }
+  }
+
+  private async backfillSearchText(): Promise<void> {
+    const rows = await this.db
+      .select({
+        id: entities.id,
+        entityType: entities.entityType,
+        content: entities.content,
+      })
+      .from(entities)
+      .where(isNull(entities.searchText));
+    if (rows.length === 0) return;
+
+    await this.db.transaction(async (transaction) => {
+      for (const row of rows) {
+        await transaction
+          .update(entities)
+          .set({ searchText: normalizeSearchText(row.content) })
+          .where(
+            sql`${entities.id} = ${row.id} AND ${entities.entityType} = ${row.entityType}`,
+          );
+      }
+    });
   }
 
   /** Drain durable embedding intents while the owner job database is open. */

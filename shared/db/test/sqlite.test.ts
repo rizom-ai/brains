@@ -16,7 +16,7 @@ function restoreDatabaseEngine(previousEngine: string | undefined): void {
 }
 
 describe("createSqliteDatabase", () => {
-  it("defaults local file urls to turso", async () => {
+  it("defaults local file urls to libsql", async () => {
     const previousEngine = process.env["BRAINS_DB_ENGINE"];
     delete process.env["BRAINS_DB_ENGINE"];
     try {
@@ -25,7 +25,7 @@ describe("createSqliteDatabase", () => {
         schema: {},
       });
       expect(url).toBe("file::memory:");
-      expect(engine).toBe("turso");
+      expect(engine).toBe("libsql");
       expect(db).toBeDefined();
       expect(client).toBeDefined();
       await client.execute("SELECT 1");

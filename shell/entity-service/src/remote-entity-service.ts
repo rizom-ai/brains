@@ -6,6 +6,8 @@ import type { IEmbeddingService } from "./embedding-types";
 import { EntitySerializer } from "./entity-serializer";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import {
+  ENTITY_RPC_EXPORT_PAGE_SIZE,
+  ENTITY_RPC_LIST_PAGE_SIZE,
   parseEntityRpcResult,
   type EntityIndexReadinessRpcOptions,
   type EntityRpcRequest,
@@ -77,7 +79,6 @@ export class RemoteEntityService implements EntityService {
   private closeRequested = false;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
-  private projectionWakeup: (() => Promise<void>) | undefined;
 
   public constructor(options: RemoteEntityServiceOptions) {
     this.transport = options.transport;
@@ -148,14 +149,9 @@ export class RemoteEntityService implements EntityService {
     return this.projectionStore;
   }
 
-  public setProjectionWakeup(wakeup: () => Promise<void>): () => void {
-    this.projectionWakeup = wakeup;
-    let active = true;
-    return (): void => {
-      if (!active) return;
-      active = false;
-      if (this.projectionWakeup === wakeup) this.projectionWakeup = undefined;
-    };
+  public setProjectionWakeup(_wakeup: () => Promise<void>): () => void {
+    // Executor activation never installs a scheduler wakeup in the worker.
+    return (): void => undefined;
   }
 
   public createEntity<T extends BaseEntity>(
@@ -251,10 +247,44 @@ export class RemoteEntityService implements EntityService {
     return this.requestRemote<T | null>({ operation: "getEntityRaw", request });
   }
 
-  public listEntities<T extends BaseEntity>(
+  public async listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
   ): Promise<T[]> {
-    return this.requestRemote<T[]>({ operation: "listEntities", request });
+    const requestedLimit = request.options?.limit;
+    let remaining = requestedLimit ?? Number.POSITIVE_INFINITY;
+    let offset = request.options?.offset ?? 0;
+    const configuredSort = request.options?.sortFields ?? [
+      { field: "updated", direction: "desc" as const },
+    ];
+    const sortFields = [...configuredSort];
+    for (const field of ["entityType", "id"]) {
+      if (!sortFields.some((sort) => sort.field === field)) {
+        sortFields.push({ field, direction: "asc" });
+      }
+    }
+    const entities: T[] = [];
+
+    while (remaining > 0) {
+      const limit = Math.min(remaining, ENTITY_RPC_LIST_PAGE_SIZE);
+      const page = await this.requestRemote<T[]>({
+        operation: "listEntities",
+        request: {
+          entityType: request.entityType,
+          options: {
+            ...request.options,
+            limit,
+            offset,
+            sortFields,
+          },
+        },
+      });
+      entities.push(...page);
+      if (page.length < limit) break;
+      remaining -= page.length;
+      offset += page.length;
+    }
+
+    return entities;
   }
 
   public countEntities(request: CountEntitiesRequest): Promise<number> {
@@ -334,36 +364,51 @@ export class RemoteEntityService implements EntityService {
     return this.requestRemote({ operation: "getAsyncJobStatus", jobId });
   }
 
-  // ── Owner-only operations ──────────────────────────────────────────────
-  // The worker surface carries only operations worker code demonstrably
-  // calls. Everything else refuses loudly: a new feature reaching one of
-  // these from the worker is a process-placement decision to make
-  // explicitly, not a proxy to add silently.
-
-  private ownerOnly(method: string): Promise<never> {
-    return Promise.reject(
-      new Error(`${method} runs in the database owner, not in a worker`),
-    );
-  }
-
-  public listPendingEntityExports(): Promise<EntityExportIntent[]> {
-    return this.ownerOnly("listPendingEntityExports");
+  public async listPendingEntityExports(): Promise<EntityExportIntent[]> {
+    const intents: EntityExportIntent[] = [];
+    let offset = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const page = await this.requestRemote<EntityExportIntent[]>({
+        operation: "listPendingEntityExports",
+        offset,
+        limit: ENTITY_RPC_EXPORT_PAGE_SIZE,
+      });
+      intents.push(...page);
+      hasMore = page.length === ENTITY_RPC_EXPORT_PAGE_SIZE;
+      offset += page.length;
+    }
+    return intents;
   }
 
   public hasPendingEntityExports(): Promise<boolean> {
-    return this.ownerOnly("hasPendingEntityExports");
+    return this.requestRemote<boolean>({
+      operation: "hasPendingEntityExports",
+    });
   }
 
   public acknowledgeEntityExports(
-    _request: AcknowledgeEntityExportsRequest,
+    request: AcknowledgeEntityExportsRequest,
   ): Promise<number> {
-    return this.ownerOnly("acknowledgeEntityExports");
+    return this.requestRemote<number>({
+      operation: "acknowledgeEntityExports",
+      request: {
+        intents: request.intents.map(({ entityType, entityId, revision }) => ({
+          entityType,
+          entityId,
+          revision,
+        })),
+      },
+    });
   }
 
   public isProjectionOwnedEntity(
-    _request: ProjectionOwnedEntityRequest,
+    request: ProjectionOwnedEntityRequest,
   ): Promise<boolean> {
-    return this.ownerOnly("isProjectionOwnedEntity");
+    return this.requestRemote<boolean>({
+      operation: "isProjectionOwnedEntity",
+      request,
+    });
   }
 
   // ── Bulk mutation ──────────────────────────────────────────────────────
@@ -447,6 +492,8 @@ export class RemoteEntityService implements EntityService {
    * from a worker is a wiring mistake rather than a supported call.
    */
   public recoverProjectionBatches(): Promise<never> {
-    return this.ownerOnly("recoverProjectionBatches");
+    return Promise.reject(
+      new Error("recoverProjectionBatches runs only in the scheduler owner"),
+    );
   }
 }

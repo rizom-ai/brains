@@ -4,7 +4,7 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 
 ## Overview
 
-`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in the entity database. Local files default to Turso; libSQL is retained as the explicit fallback.
+`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in the entity database. Local files default to libSQL during the alpha fleet soak; set `BRAINS_DB_ENGINE=turso` to opt in to the embedded Turso engine.
 
 ## Features
 
@@ -195,7 +195,7 @@ CREATE TABLE entities (
 );
 ```
 
-Keyword boosting uses a portable literal phrase check against `entities.content` on both engines. Matching is ASCII case-insensitive and treats punctuation and query-language characters literally; no separate search index or shadow table is maintained.
+Keyword boosting uses normalized `entities.search_text` on both engines. Text is NFKC-normalized, lower-cased, and punctuation-collapsed in JavaScript; every normalized query term must match. No separate search index or shadow table is maintained.
 
 ### Embeddings
 

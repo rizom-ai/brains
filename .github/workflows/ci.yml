@@ -149,9 +149,15 @@ jobs:
         run: bunx turbo run typecheck --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
   test:
-    name: Test
+    name: Test (${{ matrix.engine }})
     timeout-minutes: 20
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [libsql, turso]
+    env:
+      BRAINS_DB_ENGINE: ${{ matrix.engine }}
     steps:
       - name: Check out code
         uses: actions/checkout@v5
@@ -177,9 +183,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .turbo
-          key: turbo-test-${{ runner.os }}-${{ github.sha }}
+          key: turbo-test-${{ matrix.engine }}-${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            turbo-test-${{ runner.os }}-
+            turbo-test-${{ matrix.engine }}-${{ runner.os }}-
             turbo-${{ runner.os }}-
 
       - name: Test core packages

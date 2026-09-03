@@ -12,6 +12,7 @@ import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 interface SearchChain {
   from: (...args: unknown[]) => SearchChain;
   innerJoin: (...args: unknown[]) => SearchChain;
+  leftJoin: (...args: unknown[]) => SearchChain;
   where: (condition: unknown) => SearchChain;
   orderBy: (...args: unknown[]) => SearchChain;
   limit: (...args: unknown[]) => SearchChain;
@@ -23,6 +24,7 @@ function createSearchDb(onWhere?: (condition: unknown) => void): EntityDB {
   const chainableMock: SearchChain = {
     from: mock(() => chainableMock),
     innerJoin: mock(() => chainableMock),
+    leftJoin: mock(() => chainableMock),
     where: mock((condition: unknown) => {
       onWhere?.(condition);
       return chainableMock;

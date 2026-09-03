@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync, mkdtempSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import {
+  LOCAL_DATABASE_CLI_SERVICE,
+  LocalDatabaseRpcServer,
+} from "@brains/core";
 import { createTool } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import { commands } from "../src/run-command";
@@ -12,6 +16,7 @@ import {
   resetCanonicalDefinition,
   setCanonicalDefinition,
 } from "../src/lib/definition-registry";
+import { writeRuntimeOwner } from "../src/lib/runtime-owner";
 
 const definition = {
   name: "brain",
@@ -83,6 +88,71 @@ describe("operate with the builtin canonical definition", () => {
 
     expect(result.success).toBe(true);
     expect(requestedEnvironment).toBe("preview");
+  });
+
+  it("ignores a stale owner descriptor when no endpoint is running", async () => {
+    setCanonicalDefinition(definition);
+    let invoked = false;
+    const statusTool = createTool(
+      "shell",
+      "status",
+      "Status",
+      z.object({}),
+      async () => {
+        invoked = true;
+        return { success: true, data: {} };
+      },
+      { cli: { name: "status" } },
+    );
+    setBootFn(async (): Promise<BootedBrain> => ({
+      getShell: () => ({
+        getMCPService: () => ({
+          getCliTools: () => [{ pluginId: "shell", tool: statusTool }],
+          listTools: () => [{ pluginId: "shell", tool: statusTool }],
+        }),
+      }),
+    }));
+    writeRuntimeOwner(testDir, {
+      address: join(testDir, "missing-owner.sock"),
+      secret: "s".repeat(48),
+    });
+
+    expect(await operate(testDir, "status", [], {})).toEqual({
+      success: true,
+    });
+    expect(invoked).toBe(true);
+    expect(existsSync(join(testDir, ".brain-runtime-owner.json"))).toBe(false);
+  });
+
+  it("routes a headless command through a running database owner", async () => {
+    const descriptor = {
+      address: join(testDir, "owner.sock"),
+      secret: "s".repeat(48),
+    };
+    const server = new LocalDatabaseRpcServer({
+      config: { ...descriptor, sessionId: "owner-session" },
+    });
+    let received: unknown;
+    server.register(LOCAL_DATABASE_CLI_SERVICE, async (payload) => {
+      received = payload;
+      return { success: true, data: { routed: true } };
+    });
+    await server.initialize();
+    writeRuntimeOwner(testDir, descriptor);
+
+    try {
+      expect(await operate(testDir, "status", [], {})).toEqual({
+        success: true,
+      });
+      expect(received).toEqual({
+        kind: "command",
+        commandName: "status",
+        args: [],
+        flags: {},
+      });
+    } finally {
+      await server.close();
+    }
   });
 
   it("replays generated confirmation args for bundled raw tools", async () => {

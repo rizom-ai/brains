@@ -1,4 +1,8 @@
-import { buildKeywordMatch, type EntitySearchDB } from "./db";
+import {
+  buildKeywordMatch,
+  buildKeywordScore,
+  type EntitySearchDB,
+} from "./db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -30,6 +34,7 @@ export type QueryEmbedder = Pick<IEmbeddingService, "generateEmbedding">;
 
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
 const MAX_VECTOR_DISTANCE = 0.82;
+const MIN_LEXICAL_MATCH_SCORE = 0.5;
 
 function prepareSearchQuery(
   query: string,
@@ -233,10 +238,11 @@ export class EntitySearch {
       ...this.buildGenerationStatusConditions(options.includeUngenerated),
     );
 
-    // A literal phrase match receives the same minimum relevance admitted by
-    // the system default while preserving configured type multipliers.
     const multiplier = this.buildWeightMultiplier(options.weight);
-    const weightedScore = sql<number>`0.5 * (${multiplier})`;
+    const keywordScore = buildKeywordScore(query);
+    // A complete lexical match always clears the system's default threshold,
+    // even when a type-specific multiplier is below one.
+    const weightedScore = sql<number>`max(${MIN_LEXICAL_MATCH_SCORE}, (${keywordScore}) * (${multiplier}))`;
     if (options.minScore !== undefined) {
       conditions.push(sql`${weightedScore} >= ${options.minScore}`);
     }
@@ -254,7 +260,12 @@ export class EntitySearch {
       })
       .from(entities)
       .where(and(...conditions))
-      .orderBy(sql`weighted_score DESC`)
+      .orderBy(
+        sql`weighted_score DESC`,
+        desc(entities.updated),
+        asc(entities.entityType),
+        asc(entities.id),
+      )
       .limit(options.limit)
       .offset(options.offset);
 
@@ -321,20 +332,25 @@ export class EntitySearch {
   ): Promise<SearchResult<T>[]> {
     const alpha = EntitySearch.KEYWORD_ALPHA;
 
-    // Vector similarity score (0..1, higher is better)
-    const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;
-    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
-
-    // Portable literal phrase boost: 1.0 when the normalized query appears in
-    // content (ASCII case-insensitive) and the type is text-searchable,
-    // 0.0 otherwise.
-    const keywordBoost = sql<number>`CASE WHEN ${sql.join(
+    // Materialize the query vector once. Repeating vector32(?) in each score,
+    // distance, filter, and ordering expression needlessly decoded the same
+    // 1,536-dimension value several times per search.
+    const queryVector = sql`(SELECT vector32(${embeddingArray}) AS embedding LIMIT 1) AS query_vector`;
+    const distanceExpr = sql<number>`CASE
+      WHEN emb_e.embedding IS NULL THEN 2.0
+      ELSE vector_distance_cos(emb_e.embedding, query_vector.embedding)
+    END`;
+    const vectorScore = sql<number>`(1.0 - ${distanceExpr} / 2.0) * (${weightMultiplier})`;
+    const keywordMatch = sql.join(
       [buildKeywordMatch(query), ...this.buildLexicalExclusionConditions()],
       sql` AND `,
-    )} THEN 1.0 ELSE 0.0 END`;
-
-    // Combined score: (1-α)*vector + α*keyword_match
-    const combinedScore = sql<number>`(${1 - alpha} * ${vectorScore}) + (${alpha} * ${keywordBoost})`;
+    );
+    const keywordScore = sql<number>`CASE WHEN ${keywordMatch} THEN ${buildKeywordScore(query)} ELSE 0.0 END`;
+    const lexicalOnlyScore = sql<number>`max(${MIN_LEXICAL_MATCH_SCORE}, (${keywordScore}) * (${weightMultiplier}))`;
+    const combinedScore = sql<number>`CASE
+      WHEN emb_e.embedding IS NULL THEN ${lexicalOnlyScore}
+      ELSE (${1 - alpha} * ${vectorScore}) + (${alpha} * ${keywordScore})
+    END`;
 
     const results = await this.db
       .select({
@@ -350,20 +366,26 @@ export class EntitySearch {
         weighted_score: combinedScore,
       })
       .from(entities)
-      .innerJoin(
+      .innerJoin(queryVector, sql`1 = 1`)
+      .leftJoin(
         sql`embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
       .where(
         and(
-          sql`${distanceExpr} < ${MAX_VECTOR_DISTANCE}`,
+          sql`(${distanceExpr} < ${MAX_VECTOR_DISTANCE} OR ${keywordMatch})`,
           ...(minScore !== undefined
             ? [sql`${combinedScore} >= ${minScore}`]
             : []),
           ...typeConditions,
         ),
       )
-      .orderBy(desc(combinedScore))
+      .orderBy(
+        desc(combinedScore),
+        desc(entities.updated),
+        asc(entities.entityType),
+        asc(entities.id),
+      )
       .limit(limit)
       .offset(offset);
 
@@ -376,7 +398,7 @@ export class EntitySearch {
   public async searchEntities(
     entityType: string,
     query: string,
-    options?: { limit?: number },
+    options?: { limit?: number | undefined },
   ): Promise<SearchResult[]> {
     // Build search options with the entity type filter
     const searchOptions: SearchOptions = {
@@ -505,7 +527,8 @@ export class EntitySearch {
       await this.embeddingService.generateEmbedding(preparedQuery);
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
-    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
+    const queryVector = sql`(SELECT vector32(${embeddingArray}) AS embedding LIMIT 1) AS query_vector`;
+    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, query_vector.embedding)`;
 
     const results = await this.db
       .select({
@@ -514,6 +537,7 @@ export class EntitySearch {
         distance: distanceExpr,
       })
       .from(entities)
+      .innerJoin(queryVector, sql`1 = 1`)
       .innerJoin(
         sql`embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,

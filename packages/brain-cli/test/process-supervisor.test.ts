@@ -125,6 +125,8 @@ function supervise(harness: TestHarness): Promise<CommandResult> {
       secret: "s".repeat(48),
     },
     createProcessSessionId: () => `process-session-${++session}`,
+    publishRuntimeOwner: () => undefined,
+    removeRuntimeOwner: () => undefined,
   });
 }
 
@@ -155,6 +157,8 @@ function superviseWithBroker(harness: TestHarness): Promise<CommandResult> {
     brokerProgressTimeoutMs: 1_000,
     brokerGroupProbeIntervalMs: 10,
     brokerGroupProbeAttempts: 3,
+    publishRuntimeOwner: () => undefined,
+    removeRuntimeOwner: () => undefined,
   });
 }
 

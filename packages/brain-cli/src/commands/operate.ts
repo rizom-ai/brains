@@ -1,14 +1,20 @@
 import { existsSync } from "fs";
 import { join } from "path";
 import { spawn } from "child_process";
+import { randomUUID } from "node:crypto";
+import {
+  LOCAL_DATABASE_CLI_SERVICE,
+  LocalDatabaseRpcClient,
+} from "@brains/core";
 import type { CommandResult } from "../lib/command-result";
 import type { BootedBrain } from "../lib/boot";
-import type { ToolResponse } from "@brains/mcp-service";
+import { toolResponseSchema, type ToolResponse } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { findRunner, resolveRunnerType } from "./start";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { getErrorMessage } from "@brains/utils/error";
 import { loadDefinition } from "../lib/definition-registry";
+import { readRuntimeOwner, removeRuntimeOwner } from "../lib/runtime-owner";
 
 /**
  * Run a CLI command via the brain's tool registry.
@@ -27,6 +33,23 @@ export async function operate(
     return {
       success: false,
       message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
+    };
+  }
+
+  try {
+    const ownerResult = await invokeRunningOwner(cwd, {
+      kind: "command",
+      commandName,
+      args,
+      flags,
+    });
+    if (ownerResult) {
+      return printToolResult(ownerResult, { success: true });
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, "Owner operation failed"),
     };
   }
 
@@ -105,6 +128,52 @@ function printToolResult(
   return { success: true };
 }
 
+async function invokeRunningOwner(
+  cwd: string,
+  payload:
+    | {
+        kind: "command";
+        commandName: string;
+        args: string[];
+        flags: Record<string, unknown>;
+      }
+    | {
+        kind: "tool";
+        toolName: string;
+        input: unknown;
+        confirm?: boolean | undefined;
+        permission?: UserPermissionLevel | undefined;
+      },
+): Promise<ToolResponse | undefined> {
+  const descriptor = readRuntimeOwner(cwd);
+  if (!descriptor) return undefined;
+
+  const client = new LocalDatabaseRpcClient({
+    config: {
+      ...descriptor,
+      sessionId: `headless-${process.pid}-${randomUUID()}`,
+    },
+  });
+  try {
+    const result = await client.request(LOCAL_DATABASE_CLI_SERVICE, payload);
+    return toolResponseSchema.parse(result);
+  } catch (error) {
+    const message = getErrorMessage(error).toLowerCase();
+    if (
+      message.includes("enoent") ||
+      message.includes("econnrefused") ||
+      message.includes("econnreset") ||
+      message.includes("endpoint closed")
+    ) {
+      removeRuntimeOwner(cwd, descriptor);
+      return undefined;
+    }
+    throw error;
+  } finally {
+    client.close();
+  }
+}
+
 /**
  * In-process operate: boot brain, find tool by CLI name, invoke, print, exit.
  */
@@ -114,10 +183,12 @@ async function operateBuiltin(
   args: string[],
   flags: Record<string, unknown>,
 ): Promise<CommandResult> {
+  let bootedBrain: BootedBrain | undefined;
   try {
     const booted = await bootRegisterOnly(cwd);
     if ("failure" in booted) return booted.failure;
-    const mcpService = booted.brain.getShell().getMCPService();
+    bootedBrain = booted.brain;
+    const mcpService = bootedBrain.getShell().getMCPService();
     const cliTools = mcpService.getCliTools();
     const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 
@@ -147,6 +218,8 @@ async function operateBuiltin(
       success: false,
       message: getErrorMessage(error, "Operation failed"),
     };
+  } finally {
+    await bootedBrain?.stop?.();
   }
 }
 
@@ -166,6 +239,29 @@ export async function operateRawTool(
       message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
     };
   }
+  try {
+    const ownerResult = await invokeRunningOwner(cwd, {
+      kind: "tool",
+      toolName,
+      input,
+      ...(options.confirm !== undefined && { confirm: options.confirm }),
+      ...(options.permission !== undefined && {
+        permission: options.permission,
+      }),
+    });
+    if (ownerResult) {
+      return printToolResult(ownerResult, {
+        success: false,
+        message: "Confirmation required; rerun with --yes.",
+      });
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: getErrorMessage(error, "Owner tool operation failed"),
+    };
+  }
+
   if (resolveRunnerType(cwd) !== "builtin") {
     return {
       success: false,

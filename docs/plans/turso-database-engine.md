@@ -2,20 +2,21 @@
 
 ## Status
 
-Complete through Phase 5G. The 2026-09-02 pre-merge review confirmed ten
+Complete through Phase 6. The 2026-09-02 pre-merge review confirmed ten
 defects, most on the supervised web-owner plus worker path that no boundary
-test exercised; Phase 5H closes them and Phase 6 flips the alpha default back
-to libSQL behind a dual-engine gate — both are merge gates. Phase 7 is the
-opt-in fleet rollout, and MVCC remains deliberately gated. The engine spike
+test exercised; Phase 5H closed them and Phase 6 restored libSQL as the alpha
+default behind a dual-engine gate. Phase 7 is the opt-in fleet rollout, and
+MVCC remains deliberately gated. The engine spike
 is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
 `createSqliteDatabase` selects it for `file:` urls when `BRAINS_DB_ENGINE=turso`.
 
 Phases 1 through 3 are implemented in `work/turso-migration`: Turso native FTS
-is wired through an engine-aware seam, the remaining service differences are
-closed, packed installs carry the native binding, and local files default to
-Turso with a tested explicit fallback. Phase 4's live sync spike is complete,
+was wired through an engine-aware seam, the remaining service differences are
+closed, and packed installs carry the native binding. Phase 6 supersedes the
+earlier default: local files default to libSQL during the alpha fleet soak,
+with Turso available through an explicit opt-in. Phase 4's live sync spike is complete,
 and the owner selected Git-only content sync. Phases 5A through 5C make the web
 process the sole local shell database owner under WAL, fold regenerated
 embeddings into `brain.db`, and atomically journal entity embedding jobs through
@@ -46,7 +47,8 @@ together in `brain.db`, while the job queue keeps its own file and accepts
 interrupted relay replays idempotently.
 
 This plan originally asked whether the rewrite is worth adopting at all. The
-spike answered that: yes — phased, with libSQL retained as a fallback. Phase 1
+spike answered that: yes — phased, with libSQL kept as the alpha default until
+the opt-in fleet soak is complete. Phase 1
 then showed that native-FTS cleanup must accompany the engine flag, and Phase 4
 closed the strategic sync fork in favor of Git-only content sync. Phase 5
 preflight exposed a separate runtime-topology constraint: Turso rejects MVCC
@@ -833,6 +835,10 @@ tree-clone per frame, the four-statement `storeEmbedding` transaction on the
 serial tail, `vector32(?)` bound five times per search, and the duplicated
 file-url, constant-time-compare, `toError`, and socket-address helpers.
 
+**Phase 5H exit: met.** Focused owner/worker boundary, transport, Turso
+transaction, outbox, search, site-builder, and headless routing coverage is
+green.
+
 ### Phase 6 — Engine default and dual-engine gate — MERGE GATE
 
 Decided 2026-09-02, superseding the default-Turso decision for the alpha
@@ -851,6 +857,9 @@ under the non-default engine as well. The branch's `@rizom/brain` changeset
 is a minor, not a patch: a default-engine change and the owner topology are
 behavior changes.
 
+**Phase 6 exit: met.** The code default and packed-consumer test use libSQL;
+CI, pre-commit, and the migration-sensitive package suites gate both engines.
+
 ### Phase 7 — Gradual fleet rollout
 
 The engine flip is atomic per instance because the single-owner topology
@@ -868,11 +877,10 @@ client.
 3. Soak each instance on normal traffic for a few days before the next:
    imports, search, projection waves, job throughput, headless commands
    beside the running owner.
-4. Rollback per instance never touches code: remove the env var and run
-   `brain-rollback-entities-to-libsql`, or restore the predeploy backup if
-   anything beyond the entity database looks off. The first Turso open
-   transforms the file (portable-search cutover), so after that point
-   removing the env var alone is not a rollback.
+4. Rollback per instance never touches code: stop the instance, remove the
+   env var, and restart under libSQL; restore the predeploy backup if anything
+   beyond the entity database looks off. The portable schema is shared by both
+   engines, so no separate rollback command is required.
 
 Release gate: stable v0.2.0 flips the default to Turso only after smoke rover
 and at least one real instance have soaked on it — the public default must
@@ -895,10 +903,11 @@ not ship with zero production hours.
   separate `embeddings.db`, which the final runtime does not open. Turso native
   FTS is also different: it never shipped, so no released installation can
   hold it (see Phase 5F).
-- The portable predicate is a linear ASCII case-insensitive substring check,
-  not tokenizer-based FTS. Ranking changes are bounded to the 30% keyword
-  boost; behavior tests pin punctuation and case semantics, and the 10,000-row
-  benchmark records the current scale envelope.
+- The portable predicate is a linear scan over NFKC-normalized, lower-cased,
+  punctuation-collapsed text, not tokenizer-based FTS. Ranking changes are
+  bounded to the 30% keyword boost; behavior tests pin Unicode, punctuation,
+  and pagination semantics, and the 10,000-row benchmark records the current
+  scale envelope.
 - The single-owner boundary adds IPC latency to substantial worker persistence
   traffic. The private endpoint also adds framing, authentication, discovery,
   and cleanup responsibilities. Overload bounds, failure, restart, and

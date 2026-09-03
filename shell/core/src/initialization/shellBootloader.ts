@@ -17,7 +17,11 @@ import {
   activateProjectionRuntime,
   type ProjectionRuntimeControls,
 } from "../projection-runtime";
-import type { RuntimeProcessRole } from "../runtime-process-role";
+import {
+  resolveRuntimeProcessTopology,
+  type RuntimeProcessRole,
+  type RuntimeProcessTopology,
+} from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -66,7 +70,7 @@ export class ShellBootloader {
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
   private readonly initializer: ShellInitializer;
-  private readonly processRole: RuntimeProcessRole | undefined;
+  private readonly topology: RuntimeProcessTopology;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
@@ -80,7 +84,7 @@ export class ShellBootloader {
     this.services = services;
     this.lifecycle = lifecycle;
     this.initializer = initializer;
-    this.processRole = processRole;
+    this.topology = resolveRuntimeProcessTopology(processRole);
     this.hooks = hooks;
   }
 
@@ -108,7 +112,7 @@ export class ShellBootloader {
       ...(this.config.entityDisplay !== undefined && {
         entityDisplay: this.config.entityDisplay,
       }),
-      ...(this.processRole === "worker" && { executionOnly: true }),
+      ...(this.topology.executionOnly && { executionOnly: true }),
     };
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
@@ -217,8 +221,7 @@ export class ShellBootloader {
               });
             },
           ),
-        activationMode:
-          this.processRole === "worker" ? "executor" : "scheduler",
+        activationMode: this.topology.projectionMode,
       });
       this.services.disposables.push(() => projectionRuntime.dispose());
     }
@@ -226,7 +229,7 @@ export class ShellBootloader {
     this.services.jobQueueService.finalizeHandlerRegistrations();
 
     this.hooks.registerCoreDataSources();
-    if (this.processRole !== "worker") {
+    if (this.topology.ownsControlPlane) {
       this.hooks.registerSystemCapabilities();
     }
 
@@ -235,7 +238,7 @@ export class ShellBootloader {
       return;
     }
 
-    if (this.processRole === "worker") {
+    if (this.topology.executionOnly) {
       await this.initializeIdentityServices();
       this.services.jobProgressMonitor.start();
       await this.services.jobQueueWorker.start();
@@ -324,7 +327,7 @@ export class ShellBootloader {
       await this.services.daemonRegistry.start(recurringDaemonName);
     }
     await this.services.pluginManager.startPluginDaemons();
-    if (this.processRole !== "web") {
+    if (this.topology.runsJobWorker) {
       await this.services.jobQueueWorker.start();
     }
     this.services.jobProgressMonitor.start();
