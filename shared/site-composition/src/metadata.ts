@@ -17,10 +17,11 @@ export type {
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
 
-export const siteMetadataCTASchema: z.ZodType<
-  SiteMetadataCTA,
-  SiteMetadataCTA
-> = z.object({
+export const siteMetadataCTASchema: z.ZodObject<{
+  heading: z.ZodString;
+  buttonText: z.ZodString;
+  buttonLink: z.ZodString;
+}> = z.object({
   heading: z.string().describe("Main CTA heading text"),
   buttonText: z.string().describe("Call-to-action button text"),
   buttonLink: z.string().describe("URL or anchor for the CTA button"),
@@ -30,10 +31,9 @@ export const siteMetadataCTASchema: z.ZodType<
  * beneath each section title (e.g. under "Essays"). Keys match section ids
  * the homepage template knows about ("essays", "presentations", "about", …).
  */
-export const siteMetadataSectionSchema: z.ZodType<
-  SiteMetadataSection,
-  SiteMetadataSection
-> = z.object({
+export const siteMetadataSectionSchema: z.ZodObject<{
+  blurb: z.ZodOptional<z.ZodString>;
+}> = z.object({
   blurb: z
     .string()
     .optional()
@@ -95,6 +95,9 @@ export type SiteMetadataInput = z.input<typeof siteMetadataSchema>;
 
 type SiteMetadataSchemaOutput = z.infer<typeof siteMetadataSchema>;
 type SiteMetadataCTASchemaOutput = z.infer<typeof siteMetadataCTASchema>;
+type SiteMetadataSectionSchemaOutput = z.infer<
+  typeof siteMetadataSectionSchema
+>;
 
 function expectSiteMetadata(value: SiteMetadataSchemaOutput): SiteMetadata {
   return value;
@@ -106,10 +109,27 @@ function expectSiteMetadataCTA(
   return value;
 }
 
+function expectSiteMetadataSection(
+  value: SiteMetadataSectionSchemaOutput,
+): SiteMetadataSection {
+  return value;
+}
+
 void expectSiteMetadata;
 void expectSiteMetadataCTA;
+void expectSiteMetadataSection;
 
-const socialLinkSchema = z.object({
+const socialLinkSchema: z.ZodObject<{
+  platform: z.ZodEnum<{
+    github: "github";
+    instagram: "instagram";
+    linkedin: "linkedin";
+    email: "email";
+    website: "website";
+  }>;
+  url: z.ZodString;
+  label: z.ZodOptional<z.ZodString>;
+}> = z.object({
   platform: z
     .enum(["github", "instagram", "linkedin", "email", "website"])
     .describe("Social media platform"),
@@ -126,18 +146,26 @@ const socialLinkSchema = z.object({
  * drift — the TypeScript side already models this as
  * `interface SiteLayoutInfo extends SiteMetadata`.
  */
-export const siteLayoutInfoSchema: z.ZodType<SiteLayoutInfo> =
-  siteMetadataSchema.extend({
-    copyright: z.string(),
-    navigation: z.object({
-      primary: z.array(NavigationItemSchema),
-      secondary: z.array(NavigationItemSchema),
-    }),
-    socialLinks: z
-      .array(socialLinkSchema)
-      .optional()
-      .describe("Social media links from profile metadata"),
-  });
+export const siteLayoutInfoSchema: ReturnType<
+  typeof siteMetadataSchema.extend<{
+    copyright: z.ZodString;
+    navigation: z.ZodObject<{
+      primary: z.ZodArray<typeof NavigationItemSchema>;
+      secondary: z.ZodArray<typeof NavigationItemSchema>;
+    }>;
+    socialLinks: z.ZodOptional<z.ZodArray<typeof socialLinkSchema>>;
+  }>
+> = siteMetadataSchema.extend({
+  copyright: z.string(),
+  navigation: z.object({
+    primary: z.array(NavigationItemSchema),
+    secondary: z.array(NavigationItemSchema),
+  }),
+  socialLinks: z
+    .array(socialLinkSchema)
+    .optional()
+    .describe("Social media links from profile metadata"),
+});
 
 type SiteLayoutInfoSchemaOutput = z.infer<typeof siteLayoutInfoSchema>;
 function expectSiteLayoutInfo(

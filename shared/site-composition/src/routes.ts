@@ -81,44 +81,45 @@ export const RouteDefinitionSchema: z.ZodType<
   navigation: NavigationMetadataSchema,
 });
 
-export interface RegisterRoutesPayload {
-  routes: RouteDefinition[];
-  pluginId: string;
-}
-
-export interface UnregisterRoutesPayload {
-  paths?: string[] | undefined;
-  pluginId?: string | undefined;
-}
-
-export interface ListRoutesPayload {
-  pluginId?: string | undefined;
-}
-
-export interface GetRoutePayload {
-  path: string;
-}
-
 /** Message payload schemas for route operations. */
-export const RegisterRoutesPayloadSchema: z.ZodType<RegisterRoutesPayload> =
-  z.object({
-    routes: z.array(RouteDefinitionSchema),
-    pluginId: z.string(),
-  });
+export const RegisterRoutesPayloadSchema: z.ZodObject<{
+  routes: z.ZodArray<typeof RouteDefinitionSchema>;
+  pluginId: z.ZodString;
+}> = z.object({
+  routes: z.array(RouteDefinitionSchema),
+  pluginId: z.string(),
+});
 
-export const UnregisterRoutesPayloadSchema: z.ZodType<UnregisterRoutesPayload> =
-  z.object({
-    paths: z.array(z.string()).optional(),
-    pluginId: z.string().optional(),
-  });
+export type RegisterRoutesPayload = z.output<
+  typeof RegisterRoutesPayloadSchema
+>;
 
-export const ListRoutesPayloadSchema: z.ZodType<ListRoutesPayload> = z.object({
+export const UnregisterRoutesPayloadSchema: z.ZodObject<{
+  paths: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  pluginId: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  paths: z.array(z.string()).optional(),
   pluginId: z.string().optional(),
 });
 
-export const GetRoutePayloadSchema: z.ZodType<GetRoutePayload> = z.object({
-  path: z.string(),
+export type UnregisterRoutesPayload = z.output<
+  typeof UnregisterRoutesPayloadSchema
+>;
+
+export const ListRoutesPayloadSchema: z.ZodObject<{
+  pluginId: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  pluginId: z.string().optional(),
 });
+
+export type ListRoutesPayload = z.output<typeof ListRoutesPayloadSchema>;
+
+export const GetRoutePayloadSchema: z.ZodObject<{ path: z.ZodString }> =
+  z.object({
+    path: z.string(),
+  });
+
+export type GetRoutePayload = z.output<typeof GetRoutePayloadSchema>;
 
 export interface RouteOperationResponse {
   success: boolean;
