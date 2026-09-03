@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createSystemPrompts } from "../../src/system/prompts";
+import { z } from "@brains/utils/zod";
 import { createMockSystemServices } from "./mock-services";
 
 describe("system prompts", () => {
@@ -20,7 +21,9 @@ describe("system prompts", () => {
     const result = await prompt?.handler({ type: "post", topic: "TypeScript" });
 
     expect(result?.messages[0]?.content).toHaveProperty("text");
-    const text = (result?.messages[0]?.content as { text: string }).text;
+    const text = z
+      .looseObject({ text: z.string() })
+      .parse(result?.messages[0]?.content).text;
     expect(text).toContain("TypeScript");
     expect(text).toContain("post");
   });
@@ -30,7 +33,9 @@ describe("system prompts", () => {
     const prompt = prompts.find((p) => p.name === "create");
     const result = await prompt?.handler({ type: "note" });
 
-    const text = (result?.messages[0]?.content as { text: string }).text;
+    const text = z
+      .looseObject({ text: z.string() })
+      .parse(result?.messages[0]?.content).text;
     expect(text).toContain("Ask me");
   });
 
@@ -39,7 +44,9 @@ describe("system prompts", () => {
     const prompt = prompts.find((p) => p.name === "brainstorm");
     const result = await prompt?.handler({ topic: "AI agents" });
 
-    const text = (result?.messages[0]?.content as { text: string }).text;
+    const text = z
+      .looseObject({ text: z.string() })
+      .parse(result?.messages[0]?.content).text;
     expect(text).toContain("AI agents");
   });
 });

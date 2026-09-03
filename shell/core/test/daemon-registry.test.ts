@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Logger } from "@brains/utils/logger";
 import { DaemonRegistry } from "../src/daemon-registry";
+import { caughtError } from "@brains/test-utils";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
@@ -449,7 +450,7 @@ describe("DaemonRegistry", () => {
     }
 
     expect(receivedError).toBeInstanceOf(Error);
-    expect((receivedError as Error).message).toBe("second failed");
+    expect(caughtError(receivedError).message).toBe("second failed");
     expect(order).toEqual([
       "first-start",
       "second-start",

@@ -82,6 +82,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "shell/app",
   "shell/auth-service",
   "shell/content-service",
+  "shell/core",
   "shell/entity-service",
   "shell/job-queue",
   "shell/mcp-service",

@@ -137,7 +137,12 @@ export {
 } from "./test-entity-adapter";
 
 // Narrow a tool result to a branch of ToolResponse by parsing, not asserting
-export { expectToolSuccess, expectToolError } from "./tool-response";
+export {
+  expectToolSuccess,
+  expectToolError,
+  expectToolConfirmation,
+  expectConfirmationArgs,
+} from "./tool-response";
 
 // Semantic renderer-output comparison
 export {

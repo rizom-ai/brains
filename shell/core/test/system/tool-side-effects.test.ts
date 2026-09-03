@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Message } from "@brains/conversation-service";
+import { expectToolError } from "@brains/test-utils";
 import type { ToolContext, ToolResponse } from "@brains/mcp-service";
 import { createEntityCreateTool } from "../../src/system/entity-create-tool";
 import { createEntityDeleteTool } from "../../src/system/entity-delete-tool";
@@ -44,7 +45,7 @@ function servicesWithMessages(
     conversationService: {
       getMessages: async (conversationId: string) =>
         messages.filter((item) => item.conversationId === conversationId),
-    } as never,
+    },
   });
   services.addEntities([
     {
@@ -234,7 +235,7 @@ describe("system_create conversation-message sources", () => {
     );
 
     expect(response).toMatchObject({ success: false });
-    expect((response as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(response).error).toContain("Unrecognized key");
   });
 
   it("resolves canonical prior-response source refs", async () => {
@@ -280,7 +281,7 @@ describe("system_create conversation-message sources", () => {
     );
 
     expect(response).toMatchObject({ success: false });
-    expect((response as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(response).error).toContain("Unrecognized key");
   });
 
   it("does not inspect conversation messages for direct content creates", async () => {
@@ -291,7 +292,7 @@ describe("system_create conversation-message sources", () => {
           getMessagesCalls += 1;
           return [];
         },
-      } as never,
+      },
     });
     services.addEntities([
       {

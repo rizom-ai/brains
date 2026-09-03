@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
+import { z } from "@brains/utils/zod";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool } from "@brains/mcp-service";
 
@@ -33,7 +34,7 @@ describe("system_status tool", () => {
     expect("success" in result && result.success).toBe(true);
     if (!("success" in result) || !result.success) return;
 
-    const data = result.data as Record<string, unknown>;
+    const data = z.record(z.string(), z.unknown()).parse(result.data);
     expect(data["model"]).toBe("test");
     expect(data["version"]).toBe("1.0.0");
     expect(typeof data["uptime"]).toBe("number");
@@ -58,7 +59,7 @@ describe("system_status tool", () => {
     expect("success" in result && result.success).toBe(true);
     if (!("success" in result) || !result.success) return;
 
-    const data = result.data as Record<string, unknown>;
+    const data = z.record(z.string(), z.unknown()).parse(result.data);
     expect(data["entityCounts"]).toBeUndefined();
     expect(data["daemons"]).toBeUndefined();
     expect(data["endpoints"]).toBeUndefined();
@@ -72,7 +73,7 @@ describe("system_status tool", () => {
     expect("success" in result && result.success).toBe(true);
     if (!("success" in result) || !result.success) return;
 
-    const data = result.data as Record<string, unknown>;
+    const data = z.record(z.string(), z.unknown()).parse(result.data);
     expect(data["plugins"]).toBeUndefined();
     expect(data["tools"]).toBeUndefined();
     expect(data["interfaces"]).toBeUndefined();

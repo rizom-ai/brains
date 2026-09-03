@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  spyOn,
+} from "bun:test";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/plugins";
@@ -7,6 +15,7 @@ import {
   createMockEntityService,
   createMockAIService,
   createMockTemplateRegistry,
+  createTestEntity,
 } from "@brains/test-utils";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
@@ -128,16 +137,16 @@ describe("AIContentDataSource", () => {
     mockAIService = createMockAIService({
       returns: { generateObject: { message: "Test response" } },
     });
-    mockGenerateObject = mockAIService.generateObject as ReturnType<
-      typeof mock
-    >;
+    // Spied rather than asserted into a mock: spyOn types the recorded calls
+    // by the member it wraps.
+    mockGenerateObject = spyOn(mockAIService, "generateObject");
 
     mockEntityService = createMockEntityService();
 
     mockTemplateRegistry = createMockTemplateRegistry({
       returns: { get: testTemplate },
     });
-    mockTemplateGet = mockTemplateRegistry.get as ReturnType<typeof mock>;
+    mockTemplateGet = spyOn(mockTemplateRegistry, "get");
 
     mockGetIdentityContent = mock(() => defaultIdentityContent);
     mockGetProfileContent = mock(() => defaultProfileContent);
@@ -470,16 +479,15 @@ describe("AIContentDataSource", () => {
   describe("prompt entity override", () => {
     it("should use prompt entity content instead of template basePrompt when entity exists", async () => {
       // Mock: prompt entity exists for this template
-      const mockGetEntity = mockEntityService.getEntity as ReturnType<
-        typeof mock
-      >;
-      mockGetEntity.mockResolvedValue({
-        id: "test-template",
-        entityType: "prompt",
-        content:
-          "---\ntitle: Test Template\ntarget: test-template\n---\nCustom prompt from entity.",
-        metadata: { title: "Test Template", target: "test-template" },
-      });
+      const mockGetEntity = spyOn(mockEntityService, "getEntity");
+      mockGetEntity.mockResolvedValue(
+        createTestEntity("prompt", {
+          id: "test-template",
+          content:
+            "---\ntitle: Test Template\ntarget: test-template\n---\nCustom prompt from entity.",
+          metadata: { title: "Test Template", target: "test-template" },
+        }),
+      );
 
       await generate("Hello");
 
@@ -489,9 +497,7 @@ describe("AIContentDataSource", () => {
     });
 
     it("should fall back to template basePrompt when no prompt entity exists", async () => {
-      const mockGetEntity = mockEntityService.getEntity as ReturnType<
-        typeof mock
-      >;
+      const mockGetEntity = spyOn(mockEntityService, "getEntity");
       mockGetEntity.mockResolvedValue(null);
 
       await generate("Hello");
