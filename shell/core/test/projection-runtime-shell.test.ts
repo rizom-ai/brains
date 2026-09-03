@@ -25,7 +25,7 @@ import {
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import {
-  ProgressReporter,
+  CallbackProgressReporter,
   type IJobProgressMonitor,
 } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -231,7 +231,7 @@ describe("Shell projection runtime lifecycle", () => {
         isHealthy: true,
       }),
     };
-    const reporter = ProgressReporter.from(async () => {});
+    const reporter = CallbackProgressReporter.from(async () => {});
     if (!reporter) throw new Error("Failed to create progress reporter");
     const progressMonitor: IJobProgressMonitor = {
       start: () => {},

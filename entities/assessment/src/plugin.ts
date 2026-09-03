@@ -111,7 +111,7 @@ const swotWidget = defineDashboardWidget({
 
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { createSwotProjectionRule } from "./lib/swot-projection";
 import packageJson from "../package.json";
 
@@ -175,7 +175,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<
       context,
     );
     context.eval.registerHandler("deriveSwot", async () => {
-      const progressReporter = ProgressReporter.from(async () => {});
+      const progressReporter = CallbackProgressReporter.from(async () => {});
       if (!progressReporter) {
         throw new Error("Expected progress reporter to be created");
       }

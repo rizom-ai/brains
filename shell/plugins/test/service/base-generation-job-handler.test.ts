@@ -6,7 +6,10 @@ import {
 } from "@brains/test-utils";
 import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import type { EntityPluginContext } from "../../src/entity/context";
 import {
   BaseGenerationJobHandler,
@@ -94,7 +97,7 @@ class ConflictGenerationHandler extends BaseGenerationJobHandler<
 }
 
 function createProgressReporter(): ProgressReporter {
-  const reporter = ProgressReporter.from(mock(() => Promise.resolve()));
+  const reporter = CallbackProgressReporter.from(mock(() => Promise.resolve()));
   if (!reporter) throw new Error("Expected progress reporter");
   return reporter;
 }

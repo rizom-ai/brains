@@ -11,7 +11,7 @@ import {
   createEntityPluginContext,
 } from "@brains/plugins";
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import packageJson from "../../package.json";
 import { SwotAdapter } from "../adapters/swot-adapter";
@@ -311,7 +311,7 @@ async function deriveSwot(
   await seedSwotEvalEntities(context, parsed);
 
   const handler = new SwotDerivationHandler(context.logger, context);
-  const progressReporter = ProgressReporter.from(async () => {});
+  const progressReporter = CallbackProgressReporter.from(async () => {});
   if (!progressReporter) {
     throw new Error("Expected progress reporter to be created");
   }

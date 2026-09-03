@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -42,7 +45,7 @@ class SocialPostStubAdapter extends BaseEntityAdapter<SocialPostStub> {
 const pdfBuffer = Buffer.from("%PDF-1.7\n%carousel");
 
 function progressReporter(): ProgressReporter {
-  const reporter = ProgressReporter.from(async () => undefined);
+  const reporter = CallbackProgressReporter.from(async () => undefined);
   if (!reporter) throw new Error("Failed to create progress reporter");
   return reporter;
 }

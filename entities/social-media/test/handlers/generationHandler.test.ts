@@ -15,7 +15,10 @@ import type {
   EntityPluginContext,
   EntityMutationResult,
 } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   socialPostMetadataSchema,
   type SocialPostMetadata,
@@ -35,7 +38,7 @@ describe("GenerationJobHandler", () => {
     handler = new GenerationJobHandler(logger, context);
 
     progressCalls = [];
-    const reporter = ProgressReporter.from(async (notification) => {
+    const reporter = CallbackProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
         progress: notification.progress,
       };

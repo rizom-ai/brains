@@ -15,7 +15,10 @@ import {
   type Logger,
 } from "@brains/plugins/test";
 import type { EntityMutationResult } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   newsletterMetadataSchema,
   type NewsletterMetadata,
@@ -37,7 +40,7 @@ describe("GenerationJobHandler", () => {
 
     // Track progress calls
     progressCalls = [];
-    const reporter = ProgressReporter.from(async (notification) => {
+    const reporter = CallbackProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
         progress: notification.progress,
       };

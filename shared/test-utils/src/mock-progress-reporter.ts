@@ -1,14 +1,13 @@
 import { mock } from "bun:test";
 import type { ProgressReporter } from "@brains/utils/progress";
-import type { PublicSurface } from "./public-surface";
 
 /**
  * Create a mock ProgressReporter for testing
  *
  * Returns a ProgressReporter-typed object where all methods are bun mock
- * functions, so test files need no casts of their own. The literal is declared
- * against `PublicSurface<ProgressReporter>`, so a new or changed public method
- * fails to compile here rather than leaving a silently incomplete mock.
+ * functions. The literal is declared against `ProgressReporter` itself, so a
+ * method added to the interface — or a signature that changes — fails to
+ * compile here rather than leaving a silently incomplete mock.
  *
  * @example
  * ```typescript
@@ -23,16 +22,13 @@ import type { PublicSurface } from "./public-surface";
  * ```
  */
 export function createMockProgressReporter(): ProgressReporter {
-  const mockReporter: PublicSurface<ProgressReporter> = {
+  const mockReporter: ProgressReporter = {
     report: mock(() => Promise.resolve()),
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the nominal gap again; see the return below
-    createSub: mock((): ProgressReporter => mockReporter as ProgressReporter),
+    createSub: mock((): ProgressReporter => mockReporter),
     toCallback: mock((): (() => Promise<void>) => () => Promise.resolve()),
     startHeartbeat: mock(() => {}),
     stopHeartbeat: mock(() => {}),
   };
 
-  // Only the nominal private-field gap remains; the shape is checked above.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
-  return mockReporter as ProgressReporter;
+  return mockReporter;
 }

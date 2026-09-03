@@ -9,7 +9,10 @@ import {
 } from "@brains/test-utils";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 
 // Valid 1x1 PNG image as base64
 const VALID_PNG_BASE64 =
@@ -25,7 +28,7 @@ describe("ImageGenerationJobHandler", () => {
 
   const createProgressReporter = (): ProgressReporter => {
     progressCalls = [];
-    const reporter = ProgressReporter.from(async (notification) => {
+    const reporter = CallbackProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
         progress: notification.progress,
       };

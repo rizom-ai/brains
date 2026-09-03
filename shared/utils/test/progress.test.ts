@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from "bun:test";
-import { ProgressReporter } from "../src/progress";
+import { CallbackProgressReporter } from "../src/progress";
 import type { ProgressNotification } from "../src/progress";
 
 describe("ProgressReporter", () => {
@@ -11,33 +11,40 @@ describe("ProgressReporter", () => {
 
   describe("from", () => {
     it("should return undefined when callback is undefined", () => {
-      const progress = ProgressReporter.from(undefined);
+      const progress = CallbackProgressReporter.from(undefined);
       expect(progress).toBeUndefined();
     });
 
     it("should create a ProgressReporter when callback is provided", () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       expect(progress).toBeDefined();
     });
   });
 
   describe("noop", () => {
     it("always returns a reporter, never undefined", () => {
-      expect(ProgressReporter.noop()).toBeInstanceOf(ProgressReporter);
+      expect(CallbackProgressReporter.noop()).toBeInstanceOf(
+        CallbackProgressReporter,
+      );
     });
 
     it("accepts reports without throwing", async () => {
-      await ProgressReporter.noop().report({ progress: 50, total: 100 });
+      await CallbackProgressReporter.noop().report({
+        progress: 50,
+        total: 100,
+      });
     });
 
     it("returns a distinct instance each call", () => {
-      expect(ProgressReporter.noop()).not.toBe(ProgressReporter.noop());
+      expect(CallbackProgressReporter.noop()).not.toBe(
+        CallbackProgressReporter.noop(),
+      );
     });
   });
 
   describe("report", () => {
     it("should call callback with message", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       await progress?.report({
         message: "Test message",
         progress: 0,
@@ -50,7 +57,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should call callback with progress and total", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       await progress?.report({
         message: "Test message",
         progress: 5,
@@ -65,7 +72,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should not include total when undefined", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       await progress?.report({
         message: "Test message",
         progress: 5,
@@ -80,7 +87,7 @@ describe("ProgressReporter", () => {
 
   describe("createSub", () => {
     it("should create sub-progress without scaling", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       const sub = progress?.createSub();
 
       await sub?.report({
@@ -97,7 +104,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should scale progress for sub-reporters", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       // Create sub-reporter for range 10-90
       const sub = progress?.createSub({ scale: { start: 10, end: 90 } });
 
@@ -116,7 +123,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should chain scaled ranges for nested sub-progress", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       // First sub: maps 0-100 to 20-80 (60% of parent)
       const sub1 = progress?.createSub({ scale: { start: 20, end: 80 } });
       // Second sub: maps 0-100 to 0-50 of sub1's range
@@ -139,7 +146,7 @@ describe("ProgressReporter", () => {
 
   describe("toCallback", () => {
     it("should return a callback function", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       const callback = progress?.toCallback();
 
       expect(typeof callback).toBe("function");
@@ -156,7 +163,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should scale progress in callback for sub-reporters", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       const sub = progress?.createSub({ scale: { start: 10, end: 90 } });
       const callback = sub?.toCallback();
 
@@ -177,7 +184,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should handle notifications without message", async () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       const callback = progress?.toCallback();
 
       const notification: ProgressNotification = {
@@ -202,7 +209,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should start sending periodic messages", () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       progress?.startHeartbeat("Still working...", 50); // 50ms interval
 
       jest.advanceTimersByTime(50);
@@ -220,7 +227,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should stop heartbeat when stopHeartbeat is called", () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       progress?.startHeartbeat("Still working...", 50);
 
       jest.advanceTimersByTime(50);
@@ -234,7 +241,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should clear previous heartbeat when starting a new one", () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
 
       // Start first heartbeat with message A
       progress?.startHeartbeat("Message A", 100);
@@ -257,7 +264,7 @@ describe("ProgressReporter", () => {
     });
 
     it("should include prefix in heartbeat messages", () => {
-      const progress = ProgressReporter.from(mockCallback);
+      const progress = CallbackProgressReporter.from(mockCallback);
       const sub = progress?.createSub();
 
       sub?.startHeartbeat("Still working...", 50);

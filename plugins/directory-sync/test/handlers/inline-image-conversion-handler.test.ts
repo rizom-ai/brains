@@ -17,7 +17,8 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
-  ProgressReporter,
+  CallbackProgressReporter,
+  type ProgressReporter,
   type ProgressNotification,
 } from "@brains/utils/progress";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
@@ -34,7 +35,7 @@ describe("InlineImageConversionJobHandler", () => {
 
   const createProgressReporter = (): ProgressReporter => {
     progressCalls = [];
-    const reporter = ProgressReporter.from(
+    const reporter = CallbackProgressReporter.from(
       async (notification: ProgressNotification) => {
         progressCalls.push(notification);
       },

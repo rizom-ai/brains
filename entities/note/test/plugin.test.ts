@@ -4,7 +4,7 @@ import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 
 const webChatOperatorContext = {
   interfaceType: "web-chat",
@@ -77,7 +77,7 @@ describe("NotePlugin", () => {
     if (!handler) throw new Error("note:upload-import handler not registered");
     const job = enqueuedJobs[0];
     if (!job) throw new Error("upload import job not queued");
-    const reporter = ProgressReporter.from(async () => {});
+    const reporter = CallbackProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
     return handler.process(
       job.data,
@@ -483,7 +483,7 @@ describe("NotePlugin", () => {
       if (!handler) {
         throw new Error("note:upload-import handler not registered");
       }
-      const reporter = ProgressReporter.from(async () => {});
+      const reporter = CallbackProgressReporter.from(async () => {});
       if (!reporter) throw new Error("progress reporter not created");
       const jobResult = await handler.process(
         { uploadId: "missing-upload", entityId: "doomed-import" },

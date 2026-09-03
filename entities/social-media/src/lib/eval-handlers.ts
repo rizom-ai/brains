@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { GenerationJobHandler } from "../handlers/generationHandler";
 
@@ -42,7 +42,7 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     const parsed: CreateInput = createInputSchema.parse(input);
 
     const progressSteps: Array<{ progress: number; message?: string }> = [];
-    const reporter = ProgressReporter.from(async (n) => {
+    const reporter = CallbackProgressReporter.from(async (n) => {
       const step: { progress: number; message?: string } = {
         progress: n.progress,
       };
