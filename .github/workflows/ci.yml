@@ -252,7 +252,12 @@ jobs:
 
       - name: Install Chrome
         id: chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@v2
+        with:
+          # Bun.WebView's pipe transport is verified against the same Chromium
+          # build used to review the committed pixel baselines. Do not follow
+          # snapshot `latest`, which can move beyond Bun's supported protocol.
+          chrome-version: 142.0.7444.59
 
       - name: Build app UI assets
         run: |
