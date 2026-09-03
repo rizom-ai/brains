@@ -98,6 +98,7 @@ import type {
 } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AIGenerationSchema } from "../entity/ai-types";
+import type { DirectMcpExposure } from "@brains/mcp-service";
 import type {
   IRuntimeStateStore,
   RuntimeStateScopeOptions,
@@ -326,6 +327,15 @@ export interface ServiceToolDefinition<
    * @brains/analytics.
    */
   readonly agentTool?: boolean | undefined;
+  /**
+   * Whether an external protocol client sees this tool directly.
+   *
+   * Defaults from `sideEffects` — a read is basic, a write is debug-only —
+   * which is right for a tool that acts on the brain and wrong for one that
+   * *is* the conversation: `chat` writes, and a client with no way to call
+   * it has no way in at all. Named consumer: @brains/mcp.
+   */
+  readonly directMcpExposure?: DirectMcpExposure | undefined;
   /**
    * Entity access and a permission check, because most tools do something to
    * the brain's own records — and whether the caller may is only knowable

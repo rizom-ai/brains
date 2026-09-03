@@ -3,14 +3,7 @@ import { PUBLISH_CHANNELS, type JsonObject } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "../system-channels";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
-import {
-  createConfirmationGate,
-  type Prompt,
-  type Resource,
-  type Tool,
-  type ToolContext,
-  type ToolResponse,
-} from "@brains/mcp-service";
+import type { Prompt, Resource, Tool, ToolContext } from "@brains/mcp-service";
 import {
   createTemplate,
   type ComponentType,
@@ -19,7 +12,7 @@ import {
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
 import { getErrorMessage } from "@brains/utils/error";
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -78,23 +71,16 @@ import {
   unbindServiceJobRuntimeType,
 } from "./job-definition-runtime";
 import { normalizeSameOriginPath } from "../internal/same-origin-path";
+import { createRuntimeTool } from "./tool-runtime";
 import { stateNamespaceFor } from "../internal/state-namespace";
 import { permissionToVisibilityScope } from "@brains/entity-service";
 import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
-
-const confirmationTokenField = "_rizomConfirmationToken";
 
 function formatTemplateValue(
   template: ServiceTemplateDefinition<ServiceSchema>,
   value: unknown,
 ): string {
   return template.format({ value: template.schema.parse(value) });
-}
-
-function toolConfirmationToken(input: unknown): string | undefined {
-  if (input === null || typeof input !== "object") return undefined;
-  const token = Reflect.get(input, confirmationTokenField);
-  return typeof token === "string" ? token : undefined;
 }
 
 function promptInput(value: string | undefined): unknown {
@@ -1229,75 +1215,26 @@ class DeclarativeServicePlugin<
   private reaction(): EntityReactionContext {
     return createReactionContext({
       context: this.getContext(),
-      pluginId: this.publicId,
       packageName: this.packageName,
-      entityTypes: this.ownedTypeNames(),
+      entities: createJobEntityAccess(
+        this.getContext().entityService,
+        this.ownedTypeNames(),
+        this.publicId,
+      ),
       logger: this.logger,
     });
   }
 
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
-    const name = `${this.publicId}_${definition.name}`;
-    const confirmations = createConfirmationGate({
-      label: definition.name,
-      requestNoun: "the operation",
+    return createRuntimeTool({
+      definition,
+      pluginId: this.publicId,
+      reaction: () => this.reaction(),
+      // A service attributes nested work to the caller for the duration of
+      // the handler, so a job it enqueues carries who asked for it.
+      run: (toolContext, operation) =>
+        this.toolContext.run(toolContext, operation),
     });
-    return {
-      name,
-      description: definition.description,
-      inputSchema: definition.input.shape,
-      outputSchema: definition.output,
-      visibility: definition.permission ?? "admin",
-      sideEffects:
-        definition.sideEffects ?? (definition.confirmation ? "writes" : "none"),
-      ...(definition.agentTool === undefined
-        ? {}
-        : { agentTool: definition.agentTool }),
-      handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-        try {
-          const token = toolConfirmationToken(rawInput);
-          if (token !== undefined) {
-            const gateError = confirmations.validateConfirmed(token, rawInput);
-            if (gateError) return gateError;
-            const record = {
-              ...z.record(z.string(), z.unknown()).parse(rawInput),
-            };
-            delete record[confirmationTokenField];
-            rawInput = record;
-          }
-          const input = definition.input.parse(rawInput);
-          if (token === undefined && definition.confirmation) {
-            return {
-              needsConfirmation: true,
-              toolName: name,
-              summary:
-                typeof definition.confirmation === "function"
-                  ? definition.confirmation(input)
-                  : definition.confirmation,
-              args: confirmations.buildArgs((confirmationToken) => ({
-                ...z.record(z.string(), z.unknown()).parse(input),
-                [confirmationTokenField]: confirmationToken,
-              })),
-            };
-          }
-
-          const output = await this.toolContext.run(toolContext, () =>
-            definition.execute({
-              ...this.reaction(),
-              input,
-              signal: toolContext.signal ?? new AbortController().signal,
-              caller: toolContext,
-            }),
-          );
-          return {
-            success: true,
-            data: definition.output.parse(output),
-          };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
-      },
-    };
   }
 }
 

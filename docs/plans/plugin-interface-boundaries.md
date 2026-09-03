@@ -194,6 +194,41 @@ made the entity tranche find real defects rather than move code.
    explicit type arguments. The contract now says so on `setup`, since the
    failure names the wrong culprit: it points at the slots, not the ordering.
 
+   **`defineInterface` — the generic half — still had no consumer, and
+   `@brains/mcp` is the smallest one.** Five additions are done, with tests;
+   the conversion itself is not, and the reason is worth recording.
+
+   The five are one shape. A generic interface had `routes` and `daemons` and
+   nothing to hold: no way to build a transport once, no way to refuse to
+   start, no tools of its own. So it gains `setup` — with `plugins` to ask
+   whether the host it mounts on is present, `endpoints` and `interactions`
+   to advertise where it can be reached, `mcpTransport` for the protocol
+   server it wraps, `permissions` for what that transport confers, and
+   `agent` because an interface's own tools are conversational — and a
+   `tools` slot to declare them. `directMcpExposure` came with them: it
+   defaults from `sideEffects`, which is right for a tool that acts on the
+   brain and wrong for one that _is_ the conversation.
+
+   Two of those were extractions rather than additions. `runtimeTool` was
+   ~60 lines in the service plugin doing the parse, the confirmation gate and
+   the success envelope; both families need all three, so it moved to
+   `service/tool-runtime.ts` and each supplies only what differs — the
+   context the handler runs in. And `createReactionContext` stopped building
+   entity access from a service, because an interface has a read-only entity
+   service by design; it now takes the access, and an interface supplies one
+   that reads and refuses every write, since it declares no types for a write
+   to be checked against.
+
+   **What stopped the conversion is the confirmation pipeline.** mcp's `chat`
+   tool answers with the agent's own pending confirmation — not "this tool
+   wants approval", which `defineTool` already says, but "the brain asked you
+   something back". A declared tool returns data and the runtime wraps it;
+   there is no way to return that. That is exactly the slice already scoped
+   for `chat-repl`, `chat` and `web-chat`, and doing it here as a one-off for
+   mcp would pre-empt the design three other packages need. **mcp is its
+   fourth named consumer**, which is the strongest argument for taking that
+   slice next.
+
 3. **Convert one service plugin.** _Done: `@brains/notifications`._ One file,
    104 lines, whose entire job is answering one request on the bus — and it
    took nothing from `@brains/plugins` but the base class.
@@ -417,9 +452,11 @@ made the entity tranche find real defects rather than move code.
 Nine conversions in, the pattern is clear and worth stating: the rest is
 **not nineteen mechanical conversions**. It is roughly four capability
 slices — cross-type create (stock-photo), the confirmation pipeline (three
-chat interfaces), the auth instance (admin, studio, dashboard), and
-batch/foreign work (site-content) — each with named consumers, and the
-conversions sit behind them. Every conversion so far has found gaps rather
+chat interfaces **and now mcp**), the auth instance (admin, studio,
+dashboard, since done), and batch/foreign work (site-content) — each with
+named consumers, and the conversions sit behind them. The confirmation
+pipeline has the most: four packages cannot convert until a declared tool
+can answer "the brain asked you something back". Every conversion so far has found gaps rather
 than moved imports, exactly as this plan predicted; what has changed is
 that the remaining gaps are now measured up front instead of one package at
 a time.

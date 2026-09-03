@@ -23,6 +23,7 @@ import type {
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { createReactionContext } from "../service/reaction-context";
+import { createJobEntityAccess } from "../job/job-entity-access";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import {
   createServicePluginContext,
@@ -227,13 +228,16 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   ): EntityReactionContext {
     return createReactionContext({
       context: this.getServiceContext(pluginId),
-      pluginId,
       // Notes belong to the package, and a plugin id from a package is
       // `${packageName}:${localId}` — so the package is its first segment.
       packageName: pluginId.includes(":")
         ? pluginId.slice(0, pluginId.lastIndexOf(":"))
         : pluginId,
-      entityTypes: entityTypes ?? this.getEntityService().getEntityTypes(),
+      entities: createJobEntityAccess(
+        this.getEntityService(),
+        new Set(entityTypes ?? this.getEntityService().getEntityTypes()),
+        pluginId,
+      ),
       logger: this.logger,
     });
   }

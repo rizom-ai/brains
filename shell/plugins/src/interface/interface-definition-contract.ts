@@ -4,7 +4,19 @@ import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
 } from "../operator/account-settings-definition-contract";
-import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
+import type {
+  AnyServiceJobDefinition,
+  AnyServiceToolDefinition,
+} from "../service/service-definition-contract";
+import type { IAuthRegistry } from "../contracts/auth-registry";
+import type { IMCPTransport } from "../interfaces";
+import type { AgentNamespace } from "../contracts/agent";
+import type { IPermissionsNamespace } from "../public/types";
+import type {
+  IEndpointsNamespace,
+  IInteractionsNamespace,
+  IPluginsNamespace,
+} from "../base/context-types";
 import type {
   ChannelDeliverySensitivity,
   ChannelDeliveryThreading,
@@ -104,19 +116,91 @@ export type AnyInterfaceDaemonDefinition =
 export interface InterfaceDefinitionInput<
   TConfigSchema extends InterfaceConfigSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TState extends object = Record<never, never>,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
   readonly accountSettings?: TAccountSettings | undefined;
+  /**
+   * What this interface holds while it runs, and what it does once, at
+   * registration.
+   *
+   * An interface that hosts a protocol has both: a transport built once and
+   * answered through by every route, and a refusal to start at all when the
+   * host it mounts on is absent. Throwing here fails registration, which is
+   * the honest outcome — an interface that cannot serve should not appear to.
+   * Named consumer: @brains/mcp.
+   */
+  readonly setup?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        /**
+         * Whether another package is part of this deployment. An interface
+         * that mounts on the shared HTTP host cannot answer without it, and
+         * that is knowable at registration rather than at the first request.
+         */
+        readonly plugins: IPluginsNamespace;
+        /** Where this interface can be reached, for the Endpoints card. */
+        readonly endpoints: IEndpointsNamespace;
+        /** The same address as a way in, for a person rather than a client. */
+        readonly interactions: IInteractionsNamespace;
+        /** Where the running auth implementation is published. */
+        readonly auth: IAuthRegistry;
+        /**
+         * The runtime's server for the protocol this interface hosts.
+         *
+         * The tools and resources every package registered are already on
+         * it; what an interface adds is a transport to reach them over, and
+         * the mode and permission level that transport confers.
+         * Named consumer: @brains/mcp.
+         */
+        readonly mcpTransport: IMCPTransport;
+        /**
+         * What a caller arriving over this transport may do. A protocol
+         * host resolves that once, from the transport rather than from a
+         * person — stdio is whoever runs the process.
+         */
+        readonly permissions: IPermissionsNamespace;
+        /**
+         * The thing that answers.
+         *
+         * An interface is how someone reaches the brain, so the tools it
+         * offers of its own are conversational: `chat` asks, `confirm`
+         * answers a question the brain asked back. Both are the agent's,
+         * and an interface holds the handle rather than being handed one
+         * per call. Named consumer: @brains/mcp.
+         */
+        readonly agent: AgentNamespace;
+        /** The brain's own domain, when it has one. */
+        readonly domain: string | undefined;
+        readonly logger: Logger;
+      }) => TState)
+    | undefined;
+  /**
+   * Tools this interface offers of its own.
+   *
+   * Not the tools it serves — those come from every other package — but the
+   * ones that only make sense through it: `chat` and `confirm` are how a
+   * protocol client holds a conversation, and they have no meaning without
+   * a client on the other end. Named consumer: @brains/mcp.
+   */
+  readonly tools?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly AnyServiceToolDefinition[])
+    | undefined;
   readonly routes?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
         readonly jobs: InterfaceJobs;
       }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   readonly daemons?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
         readonly jobs: InterfaceJobs;
       }) => readonly (
         | InterfaceDaemonDefinition

@@ -146,8 +146,9 @@ export function defineDaemon(
 export function defineInterface<
   TConfigSchema extends InterfaceConfigSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
+  TState extends object = Record<never, never>,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings, TState>,
 ): {
   readonly kind: "rizom-plugin-package";
   readonly family: "interface";
