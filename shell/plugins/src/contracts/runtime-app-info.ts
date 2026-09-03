@@ -76,22 +76,22 @@ export const entityCountSchema: z.ZodObject<{
 
 export type EntityCount = z.output<typeof entityCountSchema>;
 
-export const backgroundWorkInfoSchema: z.ZodType<{
-  status: "operational" | "degraded";
-  reasons: string[];
-  worker: {
-    state: "active" | "missing" | "stale";
-    activeSessions: number;
-    staleSessions: number;
-    latestHeartbeatAgeMs: number | null;
-  };
-  queue: {
-    duePending: number;
-    processing: number;
-    oldestDuePendingAgeMs: number | null;
-    latestClaimAgeMs: number | null;
-    stalled: boolean;
-  };
+export const backgroundWorkInfoSchema: z.ZodObject<{
+  status: z.ZodEnum<{ operational: "operational"; degraded: "degraded" }>;
+  reasons: z.ZodArray<z.ZodString>;
+  worker: z.ZodObject<{
+    state: z.ZodEnum<{ active: "active"; missing: "missing"; stale: "stale" }>;
+    activeSessions: z.ZodNumber;
+    staleSessions: z.ZodNumber;
+    latestHeartbeatAgeMs: z.ZodNullable<z.ZodNumber>;
+  }>;
+  queue: z.ZodObject<{
+    duePending: z.ZodNumber;
+    processing: z.ZodNumber;
+    oldestDuePendingAgeMs: z.ZodNullable<z.ZodNumber>;
+    latestClaimAgeMs: z.ZodNullable<z.ZodNumber>;
+    stalled: z.ZodBoolean;
+  }>;
 }> = z.object({
   status: z.enum(["operational", "degraded"]),
   reasons: z.array(z.string()),

@@ -84,7 +84,7 @@ function canonicalJson(value: JsonValue): string {
 function inputDigest(value: JsonValue): string {
   return createHash("sha256").update(canonicalJson(value)).digest("hex");
 }
-const jsonValueSchema: z.ZodType<JsonValue, unknown> = z.json();
+const jsonValueSchema: ReturnType<typeof z.json> = z.json();
 
 function createOperatorQueryReader(
   schema: OperatorSchema | undefined,

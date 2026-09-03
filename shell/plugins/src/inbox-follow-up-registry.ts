@@ -15,13 +15,7 @@ const MAX_STATE_BYTES = 8 * 1_024;
 
 export type InboxFollowUpMode = "universal" | "declared";
 export type InboxFollowUpContext = Readonly<Record<string, string>>;
-export type InboxFollowUpJson =
-  | null
-  | boolean
-  | number
-  | string
-  | InboxFollowUpJson[]
-  | { [key: string]: InboxFollowUpJson };
+export type InboxFollowUpJson = z.output<ReturnType<typeof z.json>>;
 
 export interface InboxFollowUpResolutionInput {
   sourceId: string;
@@ -33,13 +27,6 @@ export interface InboxFollowUpResolutionInput {
 export interface InboxFollowUpTargetInput {
   href: string;
   state?: unknown;
-}
-
-export interface ResolvedInboxFollowUp {
-  kind: string;
-  label: string;
-  href: string;
-  state?: Readonly<Record<string, InboxFollowUpJson>> | undefined;
 }
 
 export interface InboxFollowUpKindRegistration {
@@ -138,9 +125,9 @@ const targetSchema = z.strictObject({
   state: z.unknown().optional(),
 });
 
-const inboxFollowUpStateSchema: z.ZodType<
-  Readonly<Record<string, InboxFollowUpJson>>,
-  Readonly<Record<string, InboxFollowUpJson>>
+const inboxFollowUpStateSchema: z.ZodRecord<
+  z.ZodString,
+  ReturnType<typeof z.json>
 > = z
   .record(z.string(), z.json())
   .refine(
@@ -150,19 +137,31 @@ const inboxFollowUpStateSchema: z.ZodType<
     { message: "Inbox follow-up state is too large" },
   );
 
-export const resolvedInboxFollowUpSchema: z.ZodType<
-  ResolvedInboxFollowUp,
-  ResolvedInboxFollowUp
-> = z.strictObject({
-  kind: inboxIdSchema,
-  label: z.string().trim().min(1).max(100),
-  href: z
-    .string()
-    .min(1)
-    .max(MAX_TARGET_LENGTH)
-    .refine((href) => normalizeSameOriginPath(href) === href),
-  state: inboxFollowUpStateSchema.optional(),
-});
+type ResolvedInboxFollowUpSchema = z.ZodObject<
+  {
+    kind: z.ZodString;
+    label: z.ZodString;
+    href: z.ZodString;
+    state: z.ZodOptional<typeof inboxFollowUpStateSchema>;
+  },
+  z.core.$strict
+>;
+
+export const resolvedInboxFollowUpSchema: ResolvedInboxFollowUpSchema =
+  z.strictObject({
+    kind: inboxIdSchema,
+    label: z.string().trim().min(1).max(100),
+    href: z
+      .string()
+      .min(1)
+      .max(MAX_TARGET_LENGTH)
+      .refine((href) => normalizeSameOriginPath(href) === href),
+    state: inboxFollowUpStateSchema.optional(),
+  });
+
+export type ResolvedInboxFollowUp = z.output<
+  typeof resolvedInboxFollowUpSchema
+>;
 
 /** App-scoped catalog of destination-owned, non-mutating Inbox launches. */
 export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {

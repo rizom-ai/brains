@@ -6,7 +6,9 @@ import type {
   AnyAccountSettingsDefinition,
 } from "./account-settings-definition-contract";
 
-export type AccountSettingsScalar = string | number | boolean | null;
+export type AccountSettingsScalar = z.output<
+  typeof accountSettingsScalarSchema
+>;
 export type AccountSettingsStoredValues = Readonly<
   Record<string, AccountSettingsScalar>
 >;
@@ -96,12 +98,9 @@ export interface RegisterAccountSettingsInput<
 
 export type AccountSettingsChangeListener = () => void;
 
-const accountSettingsScalarSchema: z.ZodType<AccountSettingsScalar> = z.union([
-  z.string(),
-  z.number().finite(),
-  z.boolean(),
-  z.null(),
-]);
+const accountSettingsScalarSchema: z.ZodUnion<
+  [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]
+> = z.union([z.string(), z.number().finite(), z.boolean(), z.null()]);
 
 /**
  * A registration is for `definition` when it holds that exact object. The
