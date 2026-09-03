@@ -30,6 +30,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage } = createMockMessageSender();
 
     const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
+      represents: "anchor",
       title: "Test Site",
       description: "Test Description",
     };
@@ -135,6 +136,7 @@ describe("SiteBuildJobHandler", () => {
 
       const { sendMessage: slotsSendMessage } = createMockMessageSender();
       const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
+        represents: "anchor",
         title: "Test Site",
         description: "Test Description",
       };
@@ -186,6 +188,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: lifecycleBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },
@@ -252,6 +255,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: cancelledBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },
@@ -306,6 +310,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: unchangedBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },
@@ -348,6 +353,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: mockSiteBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },

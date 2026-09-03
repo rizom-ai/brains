@@ -238,6 +238,7 @@ export function createTestConfig(
     sharedImagesDir: "./dist/images",
     workingDir: "./.react-work",
     siteInfo: {
+      represents: "anchor",
       title: "Test Site",
       description: "Test site for unit tests",
     },

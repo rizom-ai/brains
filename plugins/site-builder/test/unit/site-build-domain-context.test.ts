@@ -45,7 +45,11 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     const handler = new SiteBuildJobHandler(createSilentLogger(), sendMessage, {
       siteBuilder: mockSiteBuilder,
       layouts: {},
-      defaultSiteConfig: { title: "Test", description: "Test" },
+      defaultSiteConfig: {
+        represents: "anchor",
+        title: "Test",
+        description: "Test",
+      },
       sharedImagesDir: "./dist/images",
       ...overrides,
     });
