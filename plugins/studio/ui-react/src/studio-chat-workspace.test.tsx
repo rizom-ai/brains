@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { stubMethod } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
@@ -63,7 +64,7 @@ beforeEach(() => {
     IS_REACT_ACT_ENVIRONMENT: true,
   });
   windowInstance.Element.prototype.scrollIntoView = (): void => {};
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+  const respond = async (input: RequestInfo | URL): Promise<Response> => {
     const url = String(input);
     if (url === "/api/chat/sessions") {
       return Response.json({
@@ -91,7 +92,12 @@ beforeEach(() => {
       return Response.json({ messages: [] });
     }
     throw new Error(`Unexpected Studio Chat request: ${url}`);
-  }) as typeof fetch;
+  };
+  stubMethod(
+    globalThis,
+    "fetch",
+    Object.assign(respond, { preconnect: originalFetch.preconnect }),
+  );
 
   queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -111,10 +117,10 @@ afterEach(async () => {
 describe("native Studio Chat workspace", () => {
   it("opens an authorized context session and seeds the native composer", async () => {
     let contextBody: unknown;
-    globalThis.fetch = (async (
+    const respondToContext = async (
       input: RequestInfo | URL,
       init?: RequestInit,
-    ) => {
+    ): Promise<Response> => {
       const url = String(input);
       if (url === "/custom/chat/sessions") {
         return Response.json({ sessions: [] });
@@ -124,7 +130,14 @@ describe("native Studio Chat workspace", () => {
         return Response.json({ conversationId: "context-conversation" });
       }
       throw new Error(`Unexpected Studio Chat request: ${url}`);
-    }) as typeof fetch;
+    };
+    stubMethod(
+      globalThis,
+      "fetch",
+      Object.assign(respondToContext, {
+        preconnect: originalFetch.preconnect,
+      }),
+    );
 
     await act(async () => {
       root.render(
