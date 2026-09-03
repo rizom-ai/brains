@@ -30,7 +30,6 @@ import {
   handleSchema,
   siteOverrideSchema,
   userSchema,
-  type SiteOverrideConfig,
 } from "./schema";
 
 export interface StagedCrossover {
@@ -38,14 +37,14 @@ export interface StagedCrossover {
   changedFiles: string[];
 }
 
-interface ReviewedSitePinManifest {
-  sites: Record<string, SiteOverrideConfig>;
-}
+const reviewedSitePinsSchema: z.ZodObject<
+  { sites: z.ZodRecord<z.ZodString, typeof siteOverrideSchema> },
+  z.core.$strict
+> = z.strictObject({
+  sites: z.record(handleSchema, siteOverrideSchema),
+});
 
-const reviewedSitePinsSchema: z.ZodType<ReviewedSitePinManifest> =
-  z.strictObject({
-    sites: z.record(handleSchema, siteOverrideSchema),
-  });
+type ReviewedSitePinManifest = z.output<typeof reviewedSitePinsSchema>;
 
 const stagedSiteUserSchema = z
   .object({
