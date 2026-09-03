@@ -69,7 +69,7 @@ describe("DashboardPlugin", () => {
   describe("Web routes", () => {
     it("should expose the dashboard page and console jump routes", async () => {
       const routes = plugin.getWebRoutes();
-      expect(routes).toHaveLength(4);
+      expect(routes).toHaveLength(5);
       const pageRoute = routes.find((route) => route.path === "/dashboard");
       expect(pageRoute).toMatchObject({
         path: "/dashboard",

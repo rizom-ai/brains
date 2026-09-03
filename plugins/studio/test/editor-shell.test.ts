@@ -3,6 +3,7 @@ import { renderEditorShellHtml } from "../src/editor-shell";
 
 const SHELL_OPTIONS = {
   assetPath: "/studio/assets/app.js",
+  stylesheetPath: "/studio/assets/app.css",
   basePath: "/studio",
   surfaces: [
     {
@@ -68,6 +69,9 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain('href="/logout?return_to=%2Fstudio"');
     expect(html).toContain('<body data-console-host="studio">');
     expect(html).toContain('data-studio-base-path="/studio"');
+    expect(html).toContain(
+      '<link data-studio-app-styles rel="stylesheet" href="/studio/assets/app.css" />',
+    );
     expect(html).toContain("Sign out");
   });
 

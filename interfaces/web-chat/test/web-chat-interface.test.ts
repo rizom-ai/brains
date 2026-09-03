@@ -500,7 +500,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(16);
+    expect(routes).toHaveLength(17);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -562,21 +562,26 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[12]).toMatchObject({
-      path: "/api/chat/uploads",
-      method: "POST",
+      path: "/chat/assets/app.css",
+      method: "GET",
       public: true,
     });
     expect(routes[13]).toMatchObject({
       path: "/api/chat/uploads",
-      method: "GET",
+      method: "POST",
       public: true,
     });
     expect(routes[14]).toMatchObject({
+      path: "/api/chat/uploads",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[15]).toMatchObject({
       path: "/api/agent/chat",
       method: "POST",
       public: true,
     });
-    expect(routes[15]).toMatchObject({
+    expect(routes[16]).toMatchObject({
       path: "/api/agent/chat/confirm",
       method: "POST",
       public: true,
@@ -1333,7 +1338,10 @@ describe("WebChatInterface", () => {
     // load them from a third party.
     expect(html).not.toContain("fonts.googleapis.com");
     expect(html).not.toContain("fonts.gstatic.com");
-    expect(html).not.toContain("<link");
+    expect(html).not.toContain('rel="preconnect"');
+    expect(html).toContain(
+      '<link data-web-chat-app-styles rel="stylesheet" href="/chat/assets/app.css">',
+    );
   });
 
   it("registers no playbook bootstrap route", async () => {
@@ -1352,6 +1360,7 @@ describe("WebChatInterface", () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/chat/assets/app.js", "GET");
+    const stylesheetRoute = getRoute(plugin, "/chat/assets/app.css", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -1361,6 +1370,15 @@ describe("WebChatInterface", () => {
     if (response?.status === 200) {
       expect(response.headers.get("content-type")).toContain("text/javascript");
       expect(text).toContain("data-web-chat-app");
+      const stylesheetResponse = await stylesheetRoute?.handler(
+        new Request("http://brain/chat/assets/app.css"),
+      );
+      expect(stylesheetResponse?.headers.get("content-type")).toContain(
+        "text/css",
+      );
+      expect(await stylesheetResponse?.text()).toContain(
+        "var(--console-accent)",
+      );
     } else {
       expect(response?.status).toBe(404);
       expect(text).toContain("not built");

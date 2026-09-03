@@ -38,6 +38,13 @@ export {
   type PublishedPackageManifest,
 } from "./published-metadata";
 export {
+  createStylexBunTransform,
+  transformStylexSource,
+  type StylexBunTransform,
+  type StylexBunTransformOptions,
+  type StylexTransformResult,
+} from "./stylex-bun-plugin";
+export {
   buildThemePackage,
   type BuildThemePackageOptions,
   type BuildThemePackageResult,

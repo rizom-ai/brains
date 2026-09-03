@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.347",
   "description": "Studio plugin for config and browser authoring routes",
   "dependencies": {
+    "@brains/app-ui-react": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
@@ -15,14 +16,15 @@
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.6",
     "@lezer/highlight": "^1.2.3",
-    "@radix-ui/react-select": "^2.3.3",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-router": "^1.0.0",
+    "radix-ui": "^1.6.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "streamdown": "^2.5.0"
   },
   "devDependencies": {
+    "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/test-utils": "workspace:*",
@@ -44,7 +46,7 @@
     "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test",
+    "test": "bun test --preload @brains/build-tools/stylex-test-preload",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"

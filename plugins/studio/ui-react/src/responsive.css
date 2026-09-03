@@ -1,6 +1,7 @@
 /* Studio responsive composition. Desktop form/editor rules stay in App.tsx;
    this module owns tablet collection switching and phone editing modes. */
 
+.studio-mobile-tabs,
 .studio-mobile-modes,
 .studio-mobile-switcher {
   display: none;
@@ -140,7 +141,7 @@
     padding: 7px 12px;
   }
   .pipeline .stations-wrap,
-  .pipeline > .btn.danger,
+  .studio-desktop-delete,
   .pipeline > .spacer {
     display: none;
   }
@@ -164,34 +165,7 @@
     text-overflow: ellipsis;
   }
   .studio-mobile-more {
-    position: relative;
-    display: block;
-  }
-  .studio-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .studio-mobile-more summary::-webkit-details-marker {
-    display: none;
-  }
-  .studio-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
-    min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
+    display: inline-flex;
   }
 }
 
@@ -438,6 +412,11 @@
     grid-template-rows: 44px minmax(0, 1fr) auto;
     overflow: hidden;
   }
+  .studio-mobile-tabs {
+    display: block;
+    grid-column: 1;
+    grid-row: 2;
+  }
   .studio-mobile-modes {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -457,7 +436,7 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
-  .studio-mobile-mode.is-active {
+  .studio-mobile-mode[data-state="active"] {
     border-bottom-color: var(--console-accent);
     background: transparent;
     color: var(--console-text);
@@ -541,8 +520,7 @@
   .assist-presets {
     overflow-x: auto;
   }
-  .assist-preset {
-    min-height: 30px;
+  .assist-presets [data-slot="button"] {
     white-space: nowrap;
   }
   .assist-meta {
@@ -606,11 +584,11 @@
   .studio-editor-phone-save {
     display: block;
   }
-  .save-btn,
-  .pipeline .btn.danger {
+  .studio-editor-phone-save,
+  .pipeline [data-slot="button"][data-variant="danger"] {
     min-height: var(--console-touch);
   }
-  .save-btn {
+  .studio-editor-phone-save {
     padding-inline: 18px;
     border-radius: 8px;
   }
@@ -637,36 +615,9 @@
     text-overflow: ellipsis;
   }
   .studio-mobile-more {
-    position: relative;
-    display: block;
+    display: inline-flex;
   }
-  .studio-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .studio-mobile-more summary::-webkit-details-marker {
-    display: none;
-  }
-  .studio-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
-    min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
-  }
-  .pipeline > .btn.danger {
+  .studio-desktop-delete {
     display: none;
   }
   .stations {
@@ -700,7 +651,7 @@
   .pipeline > .spacer {
     display: none;
   }
-  .pipeline .btn.danger {
+  .pipeline [data-slot="button"][data-variant="danger"] {
     padding-inline: 10px;
     font-size: 11px;
   }
@@ -760,7 +711,7 @@
   body[data-console-host="studio"] .declarative-pager {
     margin-left: auto;
   }
-  body[data-console-host="studio"] .declarative-pager .btn {
+  body[data-console-host="studio"] .declarative-pager [data-slot="button"] {
     min-height: var(--console-touch);
   }
   body[data-console-host="studio"]

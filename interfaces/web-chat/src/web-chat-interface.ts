@@ -56,7 +56,7 @@ import {
   type WebChatConversationAccess,
 } from "./conversation-access";
 import { deriveConsoleSurfaces } from "@brains/plugins";
-import { renderChatPage, uiAssetFile } from "./chat-page";
+import { renderChatPage, uiAssetFile, uiStylesheetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
@@ -226,6 +226,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleJobStatusRequest(request),
         handleUiAssetRequest: (): Promise<Response> =>
           this.handleUiAssetRequest(),
+        handleUiStylesheetRequest: (): Promise<Response> =>
+          this.handleUiStylesheetRequest(),
         handleUploadRequest: (request): Promise<Response> =>
           this.handleUploadRequest(request),
         handleUploadDownloadRequest: (request): Promise<Response> =>
@@ -346,6 +348,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           },
         ),
         sessionHref: `/logout?return_to=${returnTo}`,
+        themeCSS: this.getContext().themeCSS,
       }),
       {
         headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -400,14 +403,28 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleUiAssetRequest(): Promise<Response> {
-    const file = Bun.file(uiAssetFile);
+    return this.handleBuiltUiFile(
+      uiAssetFile,
+      "text/javascript; charset=utf-8",
+    );
+  }
+
+  private async handleUiStylesheetRequest(): Promise<Response> {
+    return this.handleBuiltUiFile(uiStylesheetFile, "text/css; charset=utf-8");
+  }
+
+  private async handleBuiltUiFile(
+    path: string,
+    contentType: string,
+  ): Promise<Response> {
+    const file = Bun.file(path);
     if (!(await file.exists())) {
       return new Response("Web chat UI asset not built", { status: 404 });
     }
 
     return new Response(file, {
       headers: {
-        "Content-Type": "text/javascript; charset=utf-8",
+        "Content-Type": contentType,
         "Cache-Control": "no-cache",
       },
     });

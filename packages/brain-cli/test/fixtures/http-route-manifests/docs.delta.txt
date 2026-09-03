@@ -34,6 +34,7 @@
 + dashboard|handler|GET|/api/console/jump|exact|true
 + dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].css|exact|true
 + dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].js|exact|true
++ dashboard|handler|GET|/dashboard/assets/theme.[content-hash].css|exact|true
 + dashboard|handler|GET|/dashboard|exact|true
 + mcp|handler|DELETE|/mcp|exact|true
 + mcp|handler|GET|/mcp|exact|true
@@ -67,6 +68,7 @@
 + web-chat|handler|GET|/api/chat/messages|exact|true
 + web-chat|handler|GET|/api/chat/sessions|exact|true
 + web-chat|handler|GET|/api/chat/uploads|exact|true
++ web-chat|handler|GET|/chat/assets/app.css|exact|true
 + web-chat|handler|GET|/chat/assets/app.js|exact|true
 + web-chat|handler|GET|/chat|exact|true
 + web-chat|handler|POST|/api/agent/chat/confirm|exact|true

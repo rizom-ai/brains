@@ -13,19 +13,21 @@ import {
  * confirm-style dialog renders through this so behavior cannot drift per
  * surface.
  */
-export function ConfirmDialog(props: {
+export interface ConfirmDialogProps {
   mark: string;
   title: string;
   titleId: string;
   children: ReactNode;
   cancelLabel: string;
   confirmLabel: string;
-  pending?: boolean;
-  sectionClassName?: string;
-  confirmClassName?: string;
+  pending?: boolean | undefined;
+  sectionClassName?: string | undefined;
+  confirmClassName?: string | undefined;
   onCancel: () => void;
   onConfirm: () => void;
-}): ReactElement {
+}
+
+export function ConfirmDialog(props: ConfirmDialogProps): ReactElement {
   const sectionRef = useRef<HTMLElement>(null);
   const pending = props.pending === true;
 

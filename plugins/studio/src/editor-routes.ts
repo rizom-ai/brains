@@ -98,7 +98,7 @@ function isSafeStudioAssetPath(value: string): boolean {
       .every(
         (segment) => segment !== "" && segment !== "." && segment !== "..",
       ) &&
-    /^(?:app\.js|studio-app\.js|studio-app\.js\.map|studio-chunks\/[a-zA-Z0-9_-]+\.(?:js|js\.map))$/.test(
+    /^(?:app\.(?:js|css)|studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[a-zA-Z0-9_-]+\.(?:js|js\.map))$/.test(
       value,
     )
   );
@@ -144,7 +144,9 @@ async function serveStudioAsset(
     headers: {
       "Content-Type": relativeFile.endsWith(".map")
         ? "application/json; charset=utf-8"
-        : "text/javascript; charset=utf-8",
+        : relativeFile.endsWith(".css")
+          ? "text/css; charset=utf-8"
+          : "text/javascript; charset=utf-8",
       "Cache-Control": "no-cache",
     },
   });
@@ -170,6 +172,7 @@ export function createEditorRoutes(
   const shellPath = normalizedBase || "/";
   const assetPrefix = `${normalizedBase}/assets`;
   const assetPath = `${assetPrefix}/app.js`;
+  const stylesheetPath = `${assetPrefix}/app.css`;
   const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
   const resolveRequestAccess = async (
@@ -234,6 +237,7 @@ export function createEditorRoutes(
     return new Response(
       renderEditorShellHtml({
         assetPath,
+        stylesheetPath,
         basePath: shellPath,
         surfaces: deriveConsoleSurfaces(getContext().webRoutes.getRoutes(), {
           activeId: "studio",
@@ -242,6 +246,7 @@ export function createEditorRoutes(
           self: { id: "studio", href: shellPath },
         }),
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
+        themeCSS: getContext().themeCSS,
         principal: {
           displayName: resolution.access.principal.displayName,
           role: resolution.access.principal.role,

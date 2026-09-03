@@ -15,38 +15,6 @@
   border-radius: 10px;
   background: var(--console-card);
 }
-.people-button {
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 7px;
-  background: var(--console-card-soft);
-  color: var(--console-text);
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.people-button:hover {
-  border-color: var(--console-rule-accent);
-}
-.people-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.56;
-}
-.people-button:focus-visible,
-.people-text-action:focus-visible {
-  outline: 2px solid var(--console-accent);
-  outline-offset: 2px;
-}
-.people-button--primary {
-  background: var(--console-accent);
-  border-color: var(--console-accent);
-  color: var(--console-on-accent);
-  font-weight: 600;
-}
-.people-button--danger {
-  color: var(--console-err);
-  background: color-mix(in srgb, var(--console-err) 10%, transparent);
-  border-color: color-mix(in srgb, var(--console-err) 34%, transparent);
-}
 .people-detail {
   padding: 0;
   overflow: hidden;
@@ -183,20 +151,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-}
-.people-text-action {
-  border: 0;
-  background: transparent;
-  color: var(--console-text-muted);
-  padding: 4px;
-  font-size: 11px;
-  cursor: pointer;
-}
-.people-text-action:hover {
-  color: var(--console-text);
-}
-.people-text-action--danger {
-  color: var(--console-err);
 }
 .people-detail-footer {
   border-top: 1px solid var(--console-rule);

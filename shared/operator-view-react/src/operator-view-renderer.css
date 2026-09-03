@@ -374,11 +374,11 @@
   width: min(720px, 100%);
 }
 
-.declarative-action-disclosure {
+[data-control-engine="css"] .declarative-action-disclosure {
   width: min(720px, 100%);
 }
 
-.declarative-action-disclosure > summary {
+[data-control-engine="css"] .declarative-action-disclosure > summary {
   width: fit-content;
   padding: 7px 11px;
   border: 1px solid var(--console-rule-accent);
@@ -391,20 +391,24 @@
   list-style: none;
 }
 
-.declarative-action-disclosure > summary::-webkit-details-marker {
+[data-control-engine="css"]
+  .declarative-action-disclosure
+  > summary::-webkit-details-marker {
   display: none;
 }
 
-.declarative-action-disclosure > summary::before {
+[data-control-engine="css"] .declarative-action-disclosure > summary::before {
   content: "+";
   margin-right: 7px;
 }
 
-.declarative-action-disclosure[open] > summary {
+[data-control-engine="css"] .declarative-action-disclosure[open] > summary {
   margin-bottom: 14px;
 }
 
-.declarative-action-disclosure[open] > summary::before {
+[data-control-engine="css"]
+  .declarative-action-disclosure[open]
+  > summary::before {
   content: "−";
 }
 
@@ -420,8 +424,8 @@
   font: 10px var(--console-mono);
 }
 
-.declarative-action-form input,
-.declarative-action-form select {
+[data-control-engine="css"] .declarative-action-form input,
+[data-control-engine="css"] .declarative-action-form select {
   min-height: 38px;
   border: 1px solid var(--console-rule-strong);
   border-radius: 7px;
@@ -768,8 +772,8 @@
   background: color-mix(in srgb, var(--console-card) 62%, transparent);
 }
 
-.declarative-filter button,
-.declarative-tabs [role="tab"] {
+[data-control-engine="css"] .declarative-filter button,
+[data-control-engine="css"] .declarative-tabs [role="tab"] {
   min-height: 28px;
   padding: 0 13px;
   border: 0;
@@ -782,19 +786,23 @@
   white-space: nowrap;
 }
 
-.declarative-filter button:hover,
-.declarative-tabs [role="tab"]:hover {
+[data-control-engine="css"] .declarative-filter button:hover,
+[data-control-engine="css"] .declarative-tabs [role="tab"]:hover {
   color: var(--console-text);
 }
 
-.declarative-filter button[aria-pressed="true"],
-.declarative-tabs [role="tab"][aria-selected="true"] {
+[data-control-engine="css"] .declarative-filter button[aria-pressed="true"],
+[data-control-engine="css"]
+  .declarative-tabs
+  [role="tab"][aria-selected="true"] {
   background: var(--console-text);
   color: var(--console-frame);
   font-weight: 500;
 }
 
-.declarative-filter button[data-emphasis="attention"] {
+[data-control-engine="css"]
+  .declarative-filter
+  button[data-emphasis="attention"] {
   color: var(--console-warn);
 }
 
@@ -913,7 +921,7 @@
   text-transform: uppercase;
 }
 
-.declarative-query select {
+[data-control-engine="css"] .declarative-query select {
   min-height: 32px;
   padding: 0 9px;
   border: 1px solid var(--console-rule-strong);
@@ -1248,13 +1256,41 @@
   }
 }
 
+@media (max-width: 640px) {
+  .declarative-flow ol {
+    display: grid;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .declarative-flow li {
+    min-width: 0;
+    padding: 0 0 8px 24px;
+  }
+
+  .declarative-flow li > span {
+    position: absolute;
+    top: 4px;
+    left: 0;
+  }
+
+  .declarative-flow li:not(:last-child)::after {
+    top: 14px;
+    right: auto;
+    bottom: -5px;
+    left: 4px;
+    width: 1px;
+    height: auto;
+  }
+}
+
 @media (max-width: 720px) {
   .declarative-blocks {
     grid-template-columns: 1fr;
   }
 
   .declarative-matrix {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
   .declarative-list > li {

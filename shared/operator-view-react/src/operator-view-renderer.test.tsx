@@ -385,11 +385,11 @@ describe("OperatorViewRenderer", () => {
     );
 
     // A standalone action is the workspace's primary call to action.
-    expect(html).toContain('class="btn">Run sync now');
+    expect(html).toMatch(/class="btn"[^>]*>Run sync now/);
     // Needing confirmation is the signal that an action is consequential.
-    expect(html).toContain('class="btn danger">Purge exports');
+    expect(html).toMatch(/class="btn danger"[^>]*>Purge exports/);
     // Row-level actions stay subordinate to the row they belong to.
-    expect(html).toContain('class="btn ghost">Open');
+    expect(html).toMatch(/class="btn ghost"[^>]*>Open/);
   });
 });
 

@@ -1,5 +1,6 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
+import { createStylexBunTransform } from "@brains/build-tools";
 import { dirname, join, relative } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -19,6 +20,7 @@ const reactAliases: Record<string, string> = {
 await rm(outdir, { recursive: true, force: true });
 await mkdir(outdir, { recursive: true });
 
+const stylex = createStylexBunTransform();
 const result = await Bun.build({
   entrypoints: [entrypoint],
   outdir,
@@ -33,6 +35,7 @@ const result = await Bun.build({
     asset: "studio-chunks/[name]-[hash].[ext]",
   },
   plugins: [
+    stylex.plugin,
     {
       // Pin every react specifier to one physical copy so hoisting can
       // never produce a dual-React bundle (same guard as web-chat).
@@ -57,12 +60,22 @@ if (!result.success) {
   process.exit(1);
 }
 
-const outputFiles = result.outputs
-  .map((output) => relative(outdir, output.path).replaceAll("\\", "/"))
-  .sort();
+const stylexFile = "studio-app.css";
+await writeFile(join(outdir, stylexFile), `${stylex.css()}\n`);
+const outputFiles = [
+  ...result.outputs.map((output) =>
+    relative(outdir, output.path).replaceAll("\\", "/"),
+  ),
+  stylexFile,
+].sort();
 const assets: Record<string, string> = {};
 for (const file of outputFiles) {
-  const publicPath = file === "studio-app.js" ? "app.js" : file;
+  const publicPath =
+    file === "studio-app.js"
+      ? "app.js"
+      : file === stylexFile
+        ? "app.css"
+        : file;
   assets[publicPath] = file;
 }
 await writeFile(

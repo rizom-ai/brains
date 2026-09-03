@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

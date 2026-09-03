@@ -774,11 +774,11 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain("Post one");
     expect(browse).toContain('disabled="">New post</button>');
     expect(edit).toContain('class="capability-fields" disabled=""');
-    expect(edit).toContain(
-      'class="save-btn studio-editor-head-save" disabled=""',
+    expect(edit).toMatch(
+      /<button[^>]*(?:studio-editor-head-save[^>]*disabled|disabled[^>]*studio-editor-head-save)/,
     );
-    expect(edit).toContain(
-      'class="save-btn studio-editor-phone-save" disabled=""',
+    expect(edit).toMatch(
+      /<button[^>]*(?:studio-editor-phone-save[^>]*disabled|disabled[^>]*studio-editor-phone-save)/,
     );
     expect(edit).not.toContain(">Delete<");
     expect(edit).not.toContain("AI selection rewrite");
@@ -806,8 +806,8 @@ describe("capability-aware Studio controls", () => {
 
     expect(browse).not.toContain('disabled="">New post</button>');
     expect(edit).not.toContain('class="capability-fields" disabled=""');
-    expect(edit).not.toContain(
-      'class="save-btn studio-editor-head-save" disabled=""',
+    expect(edit).not.toMatch(
+      /<button[^>]*(?:studio-editor-head-save[^>]*disabled|disabled[^>]*studio-editor-head-save)/,
     );
     expect(edit).toContain(">Delete<");
     expect(edit).toContain("AI selection rewrite");
@@ -914,7 +914,7 @@ describe("BodyEditor", () => {
     expect(html).toContain(">Source<");
     expect(html).toContain(">Split<");
     expect(html).toContain(">Preview<");
-    expect(html.match(/class="[^"]*mode-active/g)).toHaveLength(1);
+    expect(html.match(/data-state="active"/g)).toHaveLength(1);
   });
 
   it("renders a CodeMirror 6 mount in source mode", () => {

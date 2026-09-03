@@ -4,7 +4,8 @@
   "version": "0.2.0-alpha.347",
   "description": "Operator-console token sheet and shared chrome styles",
   "dependencies": {
-    "@brains/contracts": "workspace:*"
+    "@brains/contracts": "workspace:*",
+    "@brains/theme-base": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

@@ -61,6 +61,12 @@ function findMonorepoRoot(): string {
 const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
+const webChatUiStylesheetPath = join(
+  webChatPackageDir,
+  "dist",
+  "ui",
+  "app.css",
+);
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
 const studioUiDirectory = join(studioPackageDir, "dist", "ui");
@@ -98,6 +104,12 @@ if (webChatBuildResult.exitCode !== 0) {
 }
 if (!existsSync(webChatUiAssetPath)) {
   console.error(`Web chat UI asset not found at ${webChatUiAssetPath}`);
+  process.exit(1);
+}
+if (!existsSync(webChatUiStylesheetPath)) {
+  console.error(
+    `Web chat UI stylesheet not found at ${webChatUiStylesheetPath}`,
+  );
   process.exit(1);
 }
 
@@ -386,6 +398,7 @@ cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
 
 mkdirSync(bundledWebChatUiDir, { recursive: true });
 cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
+cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));

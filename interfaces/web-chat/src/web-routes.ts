@@ -1,5 +1,5 @@
 import type { WebRouteDefinition } from "@brains/plugins";
-import { uiAssetPath } from "./chat-page";
+import { uiAssetPath, uiStylesheetPath } from "./chat-page";
 
 interface WebChatRouteHandlers {
   handleChatPage(request: Request): Promise<Response>;
@@ -16,6 +16,7 @@ interface WebChatRouteHandlers {
   handleImageAttachmentRequest(request: Request): Promise<Response>;
   handleJobStatusRequest(request: Request): Promise<Response>;
   handleUiAssetRequest(): Promise<Response>;
+  handleUiStylesheetRequest(): Promise<Response>;
   handleUploadRequest(request: Request): Promise<Response>;
   handleUploadDownloadRequest(request: Request): Promise<Response>;
 }
@@ -113,6 +114,12 @@ export function createWebChatRoutes({
       method: "GET",
       public: true,
       handler: (): Promise<Response> => handlers.handleUiAssetRequest(),
+    },
+    {
+      path: uiStylesheetPath,
+      method: "GET",
+      public: true,
+      handler: (): Promise<Response> => handlers.handleUiStylesheetRequest(),
     },
     {
       path: "/api/chat/uploads",

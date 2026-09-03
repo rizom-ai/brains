@@ -33,7 +33,11 @@ describe("renderDashboardPageHtml", () => {
         /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g,
         "<rendered-at-iso>",
       )
-      .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g, "<rendered-at>");
+      .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g, "<rendered-at>")
+      .replace(
+        /(<style[^>]*data-dashboard-theme[^>]*>)[\s\S]*?(<\/style>)/,
+        "$1<theme-css>$2",
+      );
     expect(
       normalizeRendererHtml(stableHtml, { ignoreImagePreloads: true }),
     ).toMatchSnapshot();

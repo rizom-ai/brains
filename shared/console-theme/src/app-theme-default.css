@@ -1,0 +1,52 @@
+/* Neutral default for app shells whose Brain has no configured site theme.
+ * Configured themes replace this sheet; console climates only consume the
+ * semantic contract and never embed their own colour values. */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@layer theme {
+  :root {
+    --palette-paper: #f4ede0;
+    --palette-paper-soft: #faf4e6;
+    --palette-paper-muted: #ebe2cb;
+    --palette-paper-deep: #e3d9bf;
+    --palette-ink: #18132a;
+    --palette-ink-muted: #443c54;
+    --palette-ink-subtle: #756c80;
+    --palette-border: #ddd2c4;
+    --palette-amber: #b8410c;
+    --palette-amber-light: #ff8b3d;
+    --palette-purple: #4b2a63;
+    --palette-dark-bg: #0a0819;
+    --palette-dark-bg-subtle: #14112b;
+    --palette-dark-bg-muted: #1b1638;
+    --palette-dark-bg-deep: #05040f;
+    --palette-dark-border: rgb(255 255 255 / 0.12);
+
+    --color-accent: var(--palette-amber);
+    --color-secondary: var(--palette-purple);
+    --color-text: var(--palette-ink);
+    --color-text-muted: var(--palette-ink-muted);
+    --color-text-light: var(--palette-ink-subtle);
+    --color-text-inverse: var(--palette-paper-soft);
+    --color-bg: var(--palette-paper);
+    --color-bg-subtle: var(--palette-paper-soft);
+    --color-bg-muted: var(--palette-paper-muted);
+    --color-bg-deep: var(--palette-paper-deep);
+    --color-border: var(--palette-border);
+  }
+
+  [data-theme="dark"] {
+    --color-accent: var(--palette-amber-light);
+    --color-secondary: #8c82c8;
+    --color-text: var(--palette-paper-soft);
+    --color-text-muted: rgb(251 247 239 / 0.68);
+    --color-text-light: rgb(251 247 239 / 0.46);
+    --color-text-inverse: var(--palette-dark-bg);
+    --color-bg: var(--palette-dark-bg);
+    --color-bg-subtle: var(--palette-dark-bg-subtle);
+    --color-bg-muted: var(--palette-dark-bg-muted);
+    --color-bg-deep: var(--palette-dark-bg-deep);
+    --color-border: var(--palette-dark-border);
+  }
+}

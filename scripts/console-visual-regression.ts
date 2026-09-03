@@ -973,6 +973,275 @@ const inboxWorkspaceData = {
   },
 };
 
+const contentSyncWorkspaceData = {
+  view: {
+    kicker: "Content operations",
+    title: "Content sync",
+    description:
+      "Keep durable entities, the content directory, and its Git remote converged.",
+    status: { label: "Watching", detail: "main · clean", tone: "good" },
+    primaryAction: {
+      actionId: "sync-now",
+      label: "Sync now",
+      input: {},
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "sync-summary",
+        items: [
+          { label: "Files", value: 84, caption: "markdown + images" },
+          { label: "Entity types", value: 12, caption: "within scope" },
+          { label: "Issues", value: 0, caption: "all clear", tone: "good" },
+        ],
+      },
+      {
+        type: "flow",
+        id: "sync-flow",
+        label: "Convergence path",
+        steps: [
+          { id: "database", label: "Entity database", status: "complete" },
+          { id: "directory", label: "Content directory", status: "complete" },
+          {
+            id: "git",
+            label: "origin/main",
+            status: "complete",
+            detail: "0 ahead · 0 behind",
+          },
+        ],
+      },
+      {
+        type: "columns",
+        id: "sync-body",
+        primary: [
+          {
+            type: "card",
+            id: "sync-source-card",
+            label: "Source directory",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "Path", value: "brain-data" },
+                  { label: "Last import", value: "11 Jul 2026, 16:32" },
+                  { label: "Watch", value: "enabled" },
+                ],
+              },
+            ],
+          },
+        ],
+        aside: [
+          {
+            type: "card",
+            id: "sync-automation-card",
+            label: "Automation",
+            blocks: [
+              {
+                type: "notice",
+                tone: "good",
+                text: "Exports are current and the remote has no pending changes.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const siteWorkspaceData = {
+  view: {
+    kicker: "Website operations",
+    title: "Site control",
+    description:
+      "Build a proof with public drafts, then update the live site from published content.",
+    status: {
+      label: "Rizom field notes",
+      detail: "2 environments",
+      tone: "good",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "site-summary",
+        items: [
+          { label: "Routes", value: 31, caption: "configured" },
+          { label: "Active builds", value: 0, caption: "none running" },
+          {
+            label: "Warnings",
+            value: 1,
+            caption: "latest builds",
+            tone: "warn",
+          },
+        ],
+      },
+      {
+        type: "columns",
+        id: "site-body",
+        primary: [
+          {
+            type: "card",
+            id: "preview-card",
+            label: "Preview",
+            tone: "good",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "State", value: "published" },
+                  { label: "Built", value: "11 Jul 2026, 16:33" },
+                  { label: "Routes", value: 31 },
+                ],
+              },
+              {
+                type: "actions",
+                items: [
+                  {
+                    actionId: "build-preview",
+                    label: "Build preview",
+                    input: {},
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "production-card",
+            label: "Production",
+            tone: "warn",
+            blocks: [
+              {
+                type: "notice",
+                tone: "warn",
+                title: "One warning",
+                text: "The notes index contains one draft-only link.",
+              },
+              {
+                type: "actions",
+                items: [
+                  {
+                    actionId: "build-production",
+                    label: "Build production",
+                    input: {},
+                    confirmation: {
+                      kind: "static",
+                      message:
+                        "Replace the live site with the latest published build?",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        aside: [
+          {
+            type: "card",
+            id: "site-routes",
+            label: "Route sample",
+            blocks: [
+              {
+                type: "list",
+                empty: "No routes.",
+                items: [
+                  { id: "home", title: "/", description: "Home" },
+                  { id: "notes", title: "/notes/", description: "Notes" },
+                  { id: "about", title: "/about/", description: "About" },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const publishingWorkspaceData = {
+  view: {
+    kicker: "External delivery",
+    title: "Publishing",
+    description:
+      "Review the queue, recover failures, and send saved entities to registered providers.",
+    status: {
+      label: "1 needs attention",
+      detail: "no active run",
+      tone: "warn",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "publishing-summary",
+        items: [
+          { label: "Queued", value: 3, caption: "awaiting dispatch" },
+          { label: "Generating", value: 0, caption: "in progress" },
+          {
+            label: "Needs attention",
+            value: 1,
+            caption: "failed",
+            tone: "warn",
+          },
+          { label: "Published", value: 18, caption: "all time" },
+        ],
+      },
+      {
+        type: "query",
+        id: "publishing-query",
+        controls: [
+          {
+            kind: "select",
+            key: "state",
+            label: "Queue state",
+            value: "all",
+            options: [
+              { value: "all", label: "All" },
+              { value: "queued", label: "Queued", count: 3 },
+              { value: "failed", label: "Failed", count: 1 },
+            ],
+          },
+        ],
+        pagination: { offset: 0, limit: 10, total: 4 },
+      },
+      {
+        type: "list",
+        id: "publishing-items",
+        empty: "The publishing queue is empty.",
+        items: [
+          {
+            id: "post:quiet-infrastructure",
+            title: "Quiet infrastructure",
+            description: "Queued for the newsletter provider.",
+            metadata: ["Post", "Newsletter", "position 1"],
+            badges: [{ label: "queued" }],
+            actions: [
+              {
+                actionId: "remove",
+                label: "Remove",
+                input: { id: "quiet-infrastructure" },
+              },
+            ],
+          },
+          {
+            id: "post:field-notes",
+            title: "Notes from the rhizome",
+            description: "Provider rejected the last delivery attempt.",
+            metadata: ["Post", "Newsletter", "2 retries left"],
+            badges: [{ label: "failed", tone: "warn" }],
+            actions: [
+              {
+                actionId: "retry",
+                label: "Retry",
+                input: { id: "field-notes" },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
 const entities = [
   {
     id: "responsive-console",
@@ -1717,6 +1986,30 @@ async function clickSelector(
   if (!clicked) throw new Error(`Could not click ${selector}`);
 }
 
+async function pointerDownSelector(
+  page: Bun.WebView,
+  selector: string,
+): Promise<void> {
+  await waitForSelector(page, selector);
+  const dispatched = await evaluatePageWith(
+    page,
+    (candidateSelector) => {
+      const candidate = document.querySelector(candidateSelector);
+      if (!(candidate instanceof HTMLElement)) return false;
+      candidate.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          button: 0,
+          pointerType: "mouse",
+        }),
+      );
+      return true;
+    },
+    selector,
+  );
+  if (!dispatched) throw new Error(`Could not press ${selector}`);
+}
+
 async function clickText(
   page: Bun.WebView,
   selector: string,
@@ -1952,12 +2245,11 @@ async function addVisualInitScript(
  */
 function isStudioAppShellSurface(surface: string): boolean {
   return (
-    surface.startsWith("studio-") &&
-    surface !== "studio-library" &&
-    surface !== "studio-account" &&
-    surface !== "studio-overview" &&
-    surface !== "studio-inbox" &&
-    !surface.startsWith("studio-administration")
+    surface === "studio-editor" ||
+    surface === "studio-delete" ||
+    surface === "studio-conflict" ||
+    surface === "studio-invalid" ||
+    surface === "studio-upload"
   );
 }
 
@@ -2014,7 +2306,14 @@ async function checkLayout(
         })
         .map((element) => element.className.toString().slice(0, 60)),
     );
-    if (isStudioAppShellSurface(surface)) {
+    const hasOpenActionSheet =
+      surface === "studio-administration-invitations-form";
+    if (hasOpenActionSheet) {
+      const dialog = await elementBounds(page, '[role="dialog"]');
+      if (!dialog || dialog.y + dialog.height > viewportHeight + 1) {
+        throw new Error(`Studio action sheet escaped the phone viewport`);
+      }
+    } else if (isStudioAppShellSurface(surface)) {
       if (
         dimensions.scrollHeight > dimensions.clientHeight + 1 &&
         dimensions.rootOverflowY !== "hidden" &&
@@ -2118,7 +2417,7 @@ async function checkLayout(
         `Studio phone context picker exceeded its chrome budget: ${JSON.stringify(switcherState)}`,
       );
     }
-    if (switcherState?.focusReached === false) {
+    if (!hasOpenActionSheet && switcherState?.focusReached === false) {
       throw new Error(`Studio phone context picker was not keyboard reachable`);
     }
     if (surface.startsWith("studio-administration")) {
@@ -2138,7 +2437,7 @@ async function checkLayout(
     }
   }
   if (isStudioAppShellSurface(surface)) {
-    const modes = await elementDisplay(page, ".studio-mobile-modes");
+    const modes = await elementDisplay(page, ".studio-mobile-tabs");
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`Studio responsive mode mismatch at ${width}px`);
     if (width <= 900) {
@@ -2183,7 +2482,12 @@ await mkdir(ARTIFACT_DIR, { recursive: true });
 const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
 const studioAsset = path.join(studioUiDirectory, "studio-app.js");
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
-await Promise.all([readFile(studioAsset), readFile(chatAsset)]).catch(() => {
+const chatStyles = path.join(ROOT, "interfaces/web-chat/dist/ui/app.css");
+await Promise.all([
+  readFile(studioAsset),
+  readFile(chatAsset),
+  readFile(chatStyles),
+]).catch(() => {
   throw new Error(
     "Build @brains/studio and @brains/web-chat UI assets before visual regression.",
   );
@@ -2231,6 +2535,10 @@ const server = Bun.serve({
       return new Response(await readFile(chatAsset), {
         headers: { "content-type": "text/javascript" },
       });
+    if (url.pathname === "/chat/assets/app.css")
+      return new Response(await readFile(chatStyles), {
+        headers: { "content-type": "text/css" },
+      });
     if (url.pathname === "/api/chat/sessions") return json({ sessions });
     if (url.pathname === "/api/chat/uploads")
       return new Response("# Verdigris field notes\n", {
@@ -2252,6 +2560,7 @@ const server = Bun.serve({
         climateHtml(
           renderEditorShellHtml({
             assetPath: "/studio/assets/app.js",
+            stylesheetPath: "/studio/assets/app.css",
             basePath: "/studio",
             surfaces: activeSurfaces("studio"),
             sessionHref: "/logout",
@@ -2263,9 +2572,14 @@ const server = Bun.serve({
       );
     if (url.pathname.startsWith("/studio/assets/")) {
       const publicPath = url.pathname.slice("/studio/assets/".length);
-      const filePath = publicPath === "app.js" ? "studio-app.js" : publicPath;
+      const filePath =
+        publicPath === "app.js"
+          ? "studio-app.js"
+          : publicPath === "app.css"
+            ? "studio-app.css"
+            : publicPath;
       if (
-        !/^(?:studio-app\.js|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+        !/^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
           filePath,
         )
       ) {
@@ -2277,7 +2591,9 @@ const server = Bun.serve({
           headers: {
             "content-type": filePath.endsWith(".map")
               ? "application/json"
-              : "text/javascript",
+              : filePath.endsWith(".css")
+                ? "text/css"
+                : "text/javascript",
           },
         },
       );
@@ -2306,6 +2622,34 @@ const server = Bun.serve({
             urlQuery: true,
             entityTypes: [],
             badge: 3,
+          },
+          {
+            id: "content-pipeline:publishing",
+            pluginId: "content-pipeline",
+            label: "Publishing",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 40,
+            permission: "trusted",
+            urlQuery: true,
+            entityTypes: [],
+          },
+          {
+            id: "site-builder:site",
+            pluginId: "site-builder",
+            label: "Site",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 35,
+            permission: "trusted",
+            entityTypes: [],
+          },
+          {
+            id: "directory-sync:sync",
+            pluginId: "directory-sync",
+            label: "Content sync",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 30,
+            permission: "admin",
+            entityTypes: [],
           },
           {
             id: "admin:administration",
@@ -2349,6 +2693,39 @@ const server = Bun.serve({
           id: "unified-inbox:inbox",
           rendererName: "DeclarativeOperatorWorkspace",
           data: inboxWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "directory-sync:sync"
+    )
+      return json({
+        workspace: {
+          id: "directory-sync:sync",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: contentSyncWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "site-builder:site"
+    )
+      return json({
+        workspace: {
+          id: "site-builder:site",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: siteWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "content-pipeline:publishing"
+    )
+      return json({
+        workspace: {
+          id: "content-pipeline:publishing",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: publishingWorkspaceData,
         },
       });
     if (
@@ -2543,7 +2920,9 @@ try {
         "studio-library",
         "studio-overview",
         "studio-inbox",
-
+        "studio-content-sync",
+        "studio-site",
+        "studio-publishing",
         "studio-administration",
         "studio-administration-invitations",
         "studio-administration-invitations-form",
@@ -2586,6 +2965,10 @@ try {
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
         await addVisualInitScript(page, conversationId);
         const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
+        const studioSaveSelector =
+          viewport.width <= 900
+            ? ".studio-editor-phone-save"
+            : ".studio-editor-head-save";
         const route = isDashboard
           ? "/dashboard"
           : isChat
@@ -2596,11 +2979,17 @@ try {
                 ? "/studio/workspaces/studio%3Aoverview"
                 : surface === "studio-inbox"
                   ? "/studio/workspaces/unified-inbox%3Ainbox"
-                  : surface.startsWith("studio-administration")
-                    ? "/studio/workspaces/admin%3Aadministration"
-                    : isStudioEditor
-                      ? "/studio/entities/posts/field-notes"
-                      : "/studio/entities/posts";
+                  : surface === "studio-content-sync"
+                    ? "/studio/workspaces/directory-sync%3Async"
+                    : surface === "studio-site"
+                      ? "/studio/workspaces/site-builder%3Asite"
+                      : surface === "studio-publishing"
+                        ? "/studio/workspaces/content-pipeline%3Apublishing"
+                        : surface.startsWith("studio-administration")
+                          ? "/studio/workspaces/admin%3Aadministration"
+                          : isStudioEditor
+                            ? "/studio/entities/posts/field-notes"
+                            : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
@@ -2727,27 +3116,39 @@ try {
         if (surface === "studio-overview") {
           await waitForText(page, "While you were away");
         }
+        if (surface === "studio-content-sync") {
+          await waitForText(page, "Convergence path");
+        }
+        if (surface === "studio-site") {
+          await waitForText(page, "Build production");
+        }
+        if (surface === "studio-publishing") {
+          await waitForText(page, "Notes from the rhizome");
+        }
         if (surface === "studio-account") {
           await waitForText(page, "Signed-in sessions");
         }
         if (surface === "studio-administration-invitations-form") {
-          await clickSelector(page, ".declarative-action-disclosure > summary");
+          await clickSelector(page, ".declarative-action-disclosure");
         }
         if (surface === "studio-delete") {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await clickSelector(page, ".studio-mobile-more summary");
-            await clickText(page, "button", "Delete entry");
+            await pointerDownSelector(page, ".studio-mobile-more button");
+            await clickSelector(page, '[role="menuitem"]');
           } else {
-            await clickSelector(page, ".pipeline .btn.danger");
+            await clickSelector(
+              page,
+              '.pipeline [data-slot="button"][data-variant="danger"]',
+            );
           }
           await waitForSelector(page, ".delete-modal");
         }
         if (surface === "studio-conflict") {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
-          await clickSelector(page, ".save-btn");
+          await clickSelector(page, studioSaveSelector);
           await waitForSelector(page, ".conflict");
         }
         if (surface === "studio-invalid") {
@@ -2755,7 +3156,7 @@ try {
           // (the fixture 400s on "!!") pins the pipeline error line, then
           // an emptied required title pins the :user-invalid outline.
           await fillLabel(page, "Title", "Notes from the rhizome!!");
-          await clickSelector(page, ".save-btn");
+          await clickSelector(page, studioSaveSelector);
           await waitForSelector(page, ".status-error");
           await fillLabel(page, "Title", "");
           await blurLabel(page, "Title");

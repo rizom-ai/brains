@@ -228,3 +228,38 @@ jobs:
       # fails to build is caught here, not at release time.
       - name: Build core packages
         run: bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'
+
+  console-visual:
+    name: Console visual regression
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Build app UI assets
+        run: |
+          bun run --filter @brains/web-chat build
+          bun run --filter @brains/studio build
+
+      - name: Compare console baselines
+        env:
+          CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: bun run visual:console

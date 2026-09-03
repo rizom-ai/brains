@@ -4,9 +4,9 @@
 
 ## Build
 
-`bun run build` invokes `scripts/build-ui.ts`, which owns the browser target,
-ESM output, minification, source maps, React deduplication, and the `@/` alias
-through `Bun.build`. Web Chat has no second Vite build path.
+`bun run build` invokes `scripts/build-ui.ts`, which owns the browser target, ESM output, minification, source maps, React deduplication, the `@/` alias, and compile-time StyleX extraction through `Bun.build`. It emits `app.js` plus static `app.css`; the browser receives no Babel plugin or runtime style injector. Web Chat has no second Vite build path.
+
+Buttons, fields, selects, dialogs, and menus reuse `@brains/app-ui-react`, the same token-driven control vocabulary as Studio. Web Chat keeps its conversation-specific composition and AI elements local.
 
 ## State ownership
 

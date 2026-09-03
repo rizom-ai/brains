@@ -123,6 +123,19 @@ describe("Web chat UI contract", () => {
     expect(messageSource).toContain("MessageResponse");
   });
 
+  it("emits the shared app controls as static StyleX CSS", () => {
+    const buildScript = readFileSync(buildScriptPath, "utf-8");
+    const css = readFileSync(
+      join(packageRoot, "dist", "ui", "app.css"),
+      "utf-8",
+    );
+
+    expect(buildScript).toContain("createStylexBunTransform");
+    expect(buildScript).toContain('writeFile(join(outdir, "app.css")');
+    expect(css).toContain("var(--console-accent)");
+    expect(css).not.toContain("insertRule");
+  });
+
   it("dedupes React entrypoints in the UI build config", () => {
     const buildScript = readFileSync(buildScriptPath, "utf-8");
 

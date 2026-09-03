@@ -2,11 +2,7 @@
 
 ## Status
 
-**Not started; direction accepted 2026-09-02, engine settled by spike the same
-day.** The phases below are the build order. Two prerequisites already shipped
-and are stated only because the phases depend on them: reading surfaces own the
-phone document scroll, and the operator-view renderer contains
-author-supplied text within its column.
+**Implemented 2026-09-02 after review of the accepted direction and spike.** The review corrected three integration assumptions before implementation: the shared operator renderer also serves Dashboard, Web Chat had no asset manifest, and StyleX does not give every generated rule elevated specificity. The phases below record the delivered build order. Reading surfaces continue to own the phone document scroll, and the operator-view renderer contains author-supplied text within its column.
 
 ## Question
 
@@ -104,11 +100,7 @@ Two further defects that are the same root cause:
    as `var()` fallbacks that never resolve, because no console shell injects a
    theme.
 
-6. **Each brain's console follows its own theme, with `@rizom/theme-default`
-   as the built-in fallback.** `shell/app/src/resolver/site.ts` already
-   composes the string via `withThemeBase`; the console shells never receive
-   it. The fallback is what keeps a brain with no site configured from
-   rendering an unstyled console.
+6. **Each brain's console follows its own theme, with an app-owned neutral theme as the built-in fallback.** `shell/app/src/resolver/site.ts` already composes configured theme strings via `withThemeBase`; the console shells previously ignored them. Core packages cannot depend on the independently released `@rizom/theme-default`, so `@brains/console-theme` owns only the fallback semantic values needed to keep a brain with no site configured from rendering an unstyled console.
 
 7. **Climate stays the console's name for the theme switch.** It already sets
    both attributes — `data-climate` for console CSS, `data-theme` for
@@ -135,77 +127,29 @@ rules in 648 bytes.
   two-product split possible rather than merely tidy.
 - **No runtime injection.** Class names are baked into the JS; nothing calls
   `insertRule`. The output is a stylesheet plus static markup.
-- **Emitted rules carry `:not(#\#)`**, an ID inside `:not()`, so they land at
-  specificity (1,1,0) — above essentially all existing console CSS
-  (`.declarative-list strong` is (0,1,1)). A migrated component therefore
-  beats the hand-written CSS it replaces, which is what lets phase 5 move one
-  surface at a time instead of switching everything at once. The `!important`
-  in `.declarative-matrix` is the one rule that still wins and must be
-  removed by hand.
+- **Review correction: specificity is priority-dependent, not universal.** `processStylexRules` adds `:not(#\#)` only to later property-priority groups; the first group remains an ordinary class, and Studio's legacy React `<style>` element is inserted after the linked StyleX sheet. Migration therefore cannot rely on StyleX beating old selectors. The implementation removes obsolete app rules and scopes the Dashboard renderer's CSS controls under `data-control-engine="css"`. The `!important` in `.declarative-matrix` was removed.
 - `@stylexjs/babel-plugin`'s exported type does not satisfy `@babel/core`'s
   `PluginItem`; the integration needs a cast.
 
-## Unsettled
+## Review findings resolved during implementation
 
-- **`theme-base`'s token contract has holes.** `@rizom/theme-default` defines
-  no `--color-bg-card`, `--color-success`, `--color-error`, or
-  `--color-on-accent`, all of which the console needs. They have to be given
-  defaults in `theme-base` — derived from the status palette it already
-  defines per `[data-theme]` — before any literal can be deleted from
-  `console.css`. Until then, phase 1 cannot land.
-- **`--console-warn` reads `--palette-warning-text-emphasis-light`**, a
-  palette internal rather than a contract token. Needs a real
-  `--color-warning`.
-- Whether the phone filter row collapses into a single control or stays as
-  stacked selects at full width is a layout question this plan does not
-  settle; it is bounded by phase 4 and should be mocked first.
+- `theme-base` now supplies `--color-bg-card`, `--color-success`, `--color-warning`, `--color-error`, and `--color-on-accent` under both theme modes. Console warning state no longer reaches into a palette internal.
+- Resolved themes begin with `theme-base`, so a theme's font `@import`s are no longer first. `resolveConsoleThemeCSS()` hoists them for Studio and Dashboard and removes them for Web Chat's no-third-party-request policy.
+- `@brains/operator-view-react` serves both hydrated Studio and server-rendered Dashboard. It now exposes a host-control seam: Studio supplies the app components, while Dashboard retains CSS/static-tab fallbacks and does not load StyleX or Radix behavior.
+- Web Chat has fixed `app.js`/`app.css` routes rather than a manifest. Studio adds `app.css` to its existing bounded manifest.
+- The phone query row remains stacked full-width selects; the visual fixture confirms the resulting budget.
 
 ## Phases
 
 Each phase ships behind the visual harness and leaves the console renderable.
 
-1. **Fill the token contract.** `theme-base` defines every token the console
-   aliases, defaulting the four missing ones. No console change; no baseline
-   moves. Tests assert each contract token resolves under both `[data-theme]`
-   values.
-2. **Inject the theme into the Studio shell only.** `editor-shell.ts` takes a
-   resolved theme string, defaulting to `withThemeBase(themeDefault)`, and
-   inlines it in its own `<style>` ahead of the console sheet — its own
-   element, because the theme's font `@import`s must lead a stylesheet.
-   `console.css` keeps its literals. Baselines move only if the default theme
-   differs from today's hardcoded values, which is the point of doing Studio
-   alone first.
-3. **Delete the literals.** Both climates become aliases. Dashboard and
-   web-chat shells take the same injection. Every console baseline moves; this
-   is the irreversible step and wants review before regeneration.
-4. **StyleX in the app bundles.** The `Bun.BunPlugin` the spike proved goes
-   into Studio's and web-chat's `build-ui.ts`, emitting the collected
-   stylesheet into the existing asset manifest. Dashboard is untouched — it
-   is a site surface and keeps Tailwind and `ui-library`. Prove with one
-   button on one Studio surface in both climates before migrating anything.
-5. **Migrate the controls, one surface at a time.** `.btn`, `.save-btn`,
-   `.people-button*`, `.declarative-actions`, `.declarative-pager` and
-   `.declarative-filter` collapse into one app control set. StyleX's higher
-   specificity means a migrated surface wins over the CSS still in place
-   around it, so surfaces move independently and each baseline is reviewed as
-   it lands. The `!important` in `.declarative-matrix` is removed first,
-   because it is the one rule StyleX will not beat.
-6. **Add the interactive primitives.** Dialog replaces the hand-rolled focus
-   trap, DropdownMenu the `<details>` menu, Switch the faux-toggle checkbox,
-   Tabs replaces `WidgetTabs` — which drops the app's last `ui-library`
-   import and is what actually closes the product boundary — and the phone
-   action sheet becomes a real sheet with a scrim, a title, and a close
-   control. Each lands on the unified `radix-ui` package, taking
-   `@radix-ui/react-select` with it.
+1. **Complete — fill the token contract.** `theme-base` defines the five app tokens that themes previously omitted. Tests assert each under both `[data-theme]` values.
+2. **Complete — inject resolved themes.** Studio, Web Chat, and Dashboard consume the runtime theme with the base-composed, app-owned neutral fallback. Imports are hoisted or deliberately removed according to host policy.
+3. **Complete — delete console colour literals.** Both climates alias semantic theme tokens; climate selects matching light/dark theme mode. Every console baseline was reviewed and regenerated.
+4. **Complete — compile StyleX in app bundles.** A shared build-tools `Bun.BunPlugin` transforms Studio and Web Chat and emits static CSS. Studio records `app.css` in its bounded manifest; Web Chat serves a fixed CSS asset. A test-only preload applies the compile transform to source imports, while deployed browsers receive no Babel plugin or style injector.
+5. **Complete — migrate controls.** Buttons, fields, selects, text areas, filters, pagers, Account actions, and operator actions collapse into `@brains/app-ui-react`. Obsolete Studio/Account material rules were deleted; Dashboard's fallback controls are scoped behind `data-control-engine="css"`. The matrix override no longer uses `!important`.
+6. **Complete — use Radix behavior.** Dialog owns app confirmations, DropdownMenu owns document overflow actions, Switch owns booleans, and Tabs owns hydrated workspace/editor panes. The Dashboard-only all-tabs fallback moved into the shared renderer, dropping its `ui-library` dependency without trying to hydrate a public server-rendered card. The phone disclosure is a bounded sheet with scrim, title, and close control. All app primitives use unified `radix-ui`; the scoped Select package is gone.
 
-## Coverage debt
+## Coverage delivered
 
-Content sync, Site, and Publishing have no visual coverage. Each is restyled by
-phase 5, so each needs a fixture before that phase touches it — the absence of
-exactly this coverage is what let the Site health widget ship a 726px overflow
-against a 375px viewport, and what hid Inbox's raw ISO timestamps and its
-dropped high-priority count.
-
-`visual:console` does not run in CI. It is the only gate that would catch any
-of this, and main has drifted past its last baseline refresh before. Wiring it
-into CI is a prerequisite for trusting phases 3 and 5.
+Content sync, Site, and Publishing now have fixtures at all three viewport sizes in both climates. The harness also checks action-sheet bounds, document overflow, document-versus-pane scrolling, and fixed app controls. Core CI installs Chrome, builds both app bundles, and runs `visual:console`; reviewed baselines are a gate rather than a local convention.

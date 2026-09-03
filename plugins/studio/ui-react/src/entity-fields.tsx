@@ -1,5 +1,12 @@
 /** @jsxImportSource react */
-import * as SelectPrimitive from "@radix-ui/react-select";
+import {
+  Button,
+  Input,
+  NativeSelect,
+  Switch,
+  Textarea,
+} from "@brains/app-ui-react";
+import { Select as SelectPrimitive } from "radix-ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactElement } from "react";
 import type {
@@ -374,9 +381,14 @@ function ImageField(props: {
       {current && (
         <p className="image-ref">
           <code>{current}</code>
-          <button type="button" onClick={() => onChange("")}>
+          <Button
+            type="button"
+            variant="link"
+            size="xs"
+            onClick={() => onChange("")}
+          >
             Clear
-          </button>
+          </Button>
         </p>
       )}
       <label className="upload-zone">
@@ -435,19 +447,21 @@ function StringListField(props: {
         {values.map((value) => (
           <span className="tag" key={value}>
             {value}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               aria-label={`Remove ${value}`}
               onClick={() =>
                 props.onChange(values.filter((item) => item !== value))
               }
             >
               ×
-            </button>
+            </Button>
           </span>
         ))}
         <span className="tag tag-add">
-          <input
+          <Input
             type="text"
             value={pending}
             aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
@@ -460,9 +474,15 @@ function StringListField(props: {
               }
             }}
           />
-          <button type="button" aria-label="Add tag" onClick={add}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Add tag"
+            onClick={add}
+          >
             +
-          </button>
+          </Button>
         </span>
       </div>
     </div>
@@ -524,29 +544,26 @@ export function FieldAssistControls(props: {
         ) : (
           <span className="field-assist-copy">{state.suggestion}</span>
         )}
-        <button
+        <Button
           type="button"
-          className="field-assist-action"
+          size="xs"
           onClick={() => onApply(state.field, state.suggestion)}
         >
           Apply
-        </button>
-        <button
-          type="button"
-          className="field-assist-action ghost"
-          onClick={onDiscard}
-        >
+        </Button>
+        <Button type="button" variant="ghost" size="xs" onClick={onDiscard}>
           Discard
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="field-assist-controls">
-      <button
+      <Button
         type="button"
-        className="field-assist-run"
+        variant="outline"
+        size="xs"
         disabled={active && state.kind === "loading"}
         onClick={() => onRun(variant, descriptor.name)}
       >
@@ -555,7 +572,7 @@ export function FieldAssistControls(props: {
           : variant === "summarise"
             ? "Summarise body"
             : `Suggest ${descriptor.label.toLowerCase()}`}
-      </button>
+      </Button>
       {active && state.kind === "error" && (
         <span className="status status-error">{state.message}</span>
       )}
@@ -593,10 +610,9 @@ export function Field(props: {
     return (
       <label className="field field-inline">
         <span className="field-label">{descriptor.label}</span>
-        <input
-          type="checkbox"
+        <Switch
           checked={value === true}
-          onChange={(event) => onChange(event.currentTarget.checked)}
+          onCheckedChange={(checked) => onChange(checked)}
         />
       </label>
     );
@@ -606,7 +622,7 @@ export function Field(props: {
     return (
       <label className="field">
         {label}
-        <select
+        <NativeSelect
           value={text}
           required={required}
           onChange={(event) => onChange(event.currentTarget.value)}
@@ -617,7 +633,7 @@ export function Field(props: {
               {option}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
     );
   }
@@ -626,7 +642,7 @@ export function Field(props: {
     return (
       <label className="field">
         {label}
-        <textarea
+        <Textarea
           value={text}
           required={required}
           rows={4}
@@ -655,7 +671,7 @@ export function Field(props: {
           {descriptor.label}
           <em className="kind">read-only</em>
         </span>
-        <textarea
+        <Textarea
           value={JSON.stringify(value ?? null, null, 2)}
           disabled
           rows={4}
@@ -667,7 +683,7 @@ export function Field(props: {
   return (
     <label className="field">
       {label}
-      <input
+      <Input
         type={
           descriptor.widget === "number"
             ? "number"

@@ -23,13 +23,14 @@ describe("Studio split UI assets", () => {
     const entries = Object.entries(manifest.assets);
 
     expect(manifest.assets["app.js"]).toBe("studio-app.js");
+    expect(manifest.assets["app.css"]).toBe("studio-app.css");
     expect(
       entries.every(
         ([publicPath, filePath]) =>
-          /^(?:app\.js|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          /^(?:app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
             publicPath,
           ) &&
-          /^(?:studio-app\.js|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          /^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
             filePath,
           ),
       ),
@@ -40,6 +41,13 @@ describe("Studio split UI assets", () => {
     );
     expect(accountEntry).toBeDefined();
     if (!accountEntry) throw new Error("Missing lazy Account asset");
+
+    const stylesheet = readFileSync(
+      join(uiDirectory, manifest.assets["app.css"] ?? ""),
+      "utf8",
+    );
+    expect(stylesheet).toContain("var(--console-accent)");
+    expect(stylesheet).not.toContain("insertRule");
 
     const entrySource = readFileSync(
       join(uiDirectory, manifest.assets["app.js"] ?? ""),
