@@ -17,6 +17,11 @@ import {
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
 
+/** The passkey registration options this test reads off the wire. */
+const passkeyOptionsSchema = z.looseObject({
+  challenge: z.string(),
+});
+
 /** The account snapshot fields these tests read off the wire. */
 const accountSnapshotSchema = z.looseObject({
   account: z.looseObject({
@@ -551,9 +556,14 @@ describe("auth account API", () => {
       accountRequest("/auth/account/passkeys/options", session.cookie, {}),
     );
     expect(options.status).toBe(200);
-    const passkeyOptions = await options.json();
+    const passkeyOptions = passkeyOptionsSchema.parse(await options.json());
+    // `challenge` is asserted on its own rather than inside the toMatchObject
+    // below: bun replaces a field matched by an asymmetric matcher with the
+    // matcher itself, and the verification request further down sends this
+    // challenge back. Matching it here would send the matcher instead, so the
+    // request would be rejected for the wrong reason.
+    expect(passkeyOptions.challenge).not.toBe("");
     expect(passkeyOptions).toMatchObject({
-      challenge: expect.any(String),
       user: { name: "Mira", displayName: "Mira" },
       authenticatorSelection: {
         residentKey: "required",
