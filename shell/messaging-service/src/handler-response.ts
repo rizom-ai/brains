@@ -3,10 +3,12 @@ import { type MessageResponse, messageResponseSchema } from "./base-types";
 
 export type HandlerResponse = MessageResponse;
 
-const handlerResponseSchema: z.ZodType<HandlerResponse> = z.union([
-  z.object({ noop: z.literal(true) }),
-  messageResponseSchema,
-]);
+const handlerResponseSchema: z.ZodUnion<
+  readonly [
+    z.ZodObject<{ noop: z.ZodLiteral<true> }>,
+    typeof messageResponseSchema,
+  ]
+> = z.union([z.object({ noop: z.literal(true) }), messageResponseSchema]);
 
 /**
  * Validate unknown handler output before the bus converts it to an internal
