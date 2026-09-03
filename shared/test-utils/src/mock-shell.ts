@@ -990,7 +990,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   } satisfies IContentService;
 
   // --- DataSource Registry ---
-  const dataSourceRegistrySurface: PublicSurface<DataSourceRegistry> = {
+  const dataSourceRegistry: DataSourceRegistry = {
     register: (dataSource: DataSource): void => {
       if ("id" in dataSource && typeof dataSource.id === "string") {
         dataSources.set(dataSource.id, dataSource);
@@ -1022,8 +1022,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
-  const dataSourceRegistry = dataSourceRegistrySurface as DataSourceRegistry;
 
   // --- Daemon Registry ---
   // --- Insights Registry ---

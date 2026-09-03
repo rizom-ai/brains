@@ -202,7 +202,8 @@ export {
 } from "./frontmatter";
 
 // Datasource (merged from @brains/datasource)
-export { DataSourceRegistry } from "./datasource-registry";
+export { InMemoryDataSourceRegistry } from "./datasource-registry";
+export type { DataSourceRegistry } from "./datasource-registry";
 export type {
   DataSource,
   DataSourceSchema,

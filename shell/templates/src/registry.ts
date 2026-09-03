@@ -3,19 +3,39 @@ import type { Logger } from "@brains/utils/logger";
 import { TemplateCapabilities } from "./capabilities";
 
 /**
- * Central template registry that stores and manages all templates
- * This is the single source of truth for template storage
- * Implements Component Interface Standardization pattern.
+ * The template registry as consumers use it.
+ *
+ * They depend on this rather than on `InMemoryTemplateRegistry`: the class has
+ * private state and a private constructor, so nothing else can be assignable
+ * to it — which is why every test double had to be asserted into place.
  */
-export class TemplateRegistry {
+export interface TemplateRegistry {
+  register(name: string, template: Template): void;
+  get(name: string): Template | undefined;
+  getAll(): Map<string, Template>;
+  has(name: string): boolean;
+  getNames(): string[];
+  list(): Template[];
+  unregister(name: string): boolean;
+  clear(): void;
+  size(): number;
+  getPluginTemplates(pluginId: string): Template[];
+  getPluginTemplateNames(pluginId: string): string[];
+}
+
+/**
+ * Central template registry that stores and manages all templates.
+ * This is the single source of truth for template storage.
+ */
+export class InMemoryTemplateRegistry implements TemplateRegistry {
   private templates = new Map<string, Template>();
   private logger: Logger | undefined;
 
   /**
    * Isolated instance creation
    */
-  public static createFresh(logger?: Logger): TemplateRegistry {
-    return new TemplateRegistry(logger);
+  public static createFresh(logger?: Logger): InMemoryTemplateRegistry {
+    return new InMemoryTemplateRegistry(logger);
   }
 
   /**

@@ -1,5 +1,8 @@
 import { describe, expect, test, beforeEach } from "bun:test";
-import { DataSourceRegistry } from "../src/datasource-registry";
+import {
+  InMemoryDataSourceRegistry,
+  type DataSourceRegistry,
+} from "../src/datasource-registry";
 import type { DataSource, DataSourceSchema } from "../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 
@@ -52,7 +55,7 @@ describe("DataSourceRegistry", () => {
   const logger = createSilentLogger();
 
   beforeEach(() => {
-    registry = DataSourceRegistry.createFresh(logger);
+    registry = InMemoryDataSourceRegistry.createFresh(logger);
   });
 
   describe("Registration", () => {

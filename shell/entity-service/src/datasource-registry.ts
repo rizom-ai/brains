@@ -2,17 +2,31 @@ import type { Logger } from "@brains/utils/logger";
 import type { DataSource, DataSourceCapabilities } from "./types";
 
 /**
- * DataSource Registry
+ * The data source registry as consumers use it.
  *
- * Central registry for all data sources in the system.
- * Follows Component Interface Standardization pattern.
+ * They depend on this rather than on `InMemoryDataSourceRegistry`: the class
+ * has private state and a private constructor, so nothing else can be
+ * assignable to it — which is why every test double had to be asserted in.
  */
-export class DataSourceRegistry {
+export interface DataSourceRegistry {
+  register(dataSource: DataSource): void;
+  unregister(id: string): void;
+  get(id: string): DataSource | undefined;
+  has(id: string): boolean;
+  list(): DataSource[];
+  getIds(): string[];
+  getByCapability(capability: keyof DataSourceCapabilities): DataSource[];
+  find(predicate: (dataSource: DataSource) => boolean): DataSource[];
+  clear(): void;
+}
+
+/** Central registry for all data sources in the system. */
+export class InMemoryDataSourceRegistry implements DataSourceRegistry {
   private dataSources = new Map<string, DataSource>();
   private logger: Logger;
 
-  public static createFresh(logger: Logger): DataSourceRegistry {
-    return new DataSourceRegistry(logger);
+  public static createFresh(logger: Logger): InMemoryDataSourceRegistry {
+    return new InMemoryDataSourceRegistry(logger);
   }
 
   private constructor(logger: Logger) {

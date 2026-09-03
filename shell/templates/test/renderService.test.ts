@@ -1,6 +1,9 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { RenderService } from "../src/render-service";
-import { TemplateRegistry } from "../src/registry";
+import {
+  InMemoryTemplateRegistry,
+  type TemplateRegistry,
+} from "../src/registry";
 import type { Template } from "../src/types";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
@@ -27,7 +30,7 @@ describe("RenderService", () => {
   let templateRegistry: TemplateRegistry;
 
   beforeEach(() => {
-    templateRegistry = TemplateRegistry.createFresh();
+    templateRegistry = InMemoryTemplateRegistry.createFresh();
     renderService = RenderService.createFresh(templateRegistry);
   });
 
