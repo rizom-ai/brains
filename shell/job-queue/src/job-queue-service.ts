@@ -1,7 +1,7 @@
 import type { JobQueue } from "./schema/job-queue";
 import type { JobContextInput } from "./schema/types";
 import { createId } from "@brains/utils/id";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { DEFAULT_WORKER_SESSION_TIMEOUT_MS } from "./types";
 import type {
   IJobQueueService,
@@ -88,7 +88,7 @@ export class JobQueueService implements IJobQueueService {
   ): JobQueueService {
     return new JobQueueService(
       config,
-      logger ?? Logger.getInstance(),
+      logger ?? ConsoleLogger.getInstance(),
       runtimeOptions,
     );
   }

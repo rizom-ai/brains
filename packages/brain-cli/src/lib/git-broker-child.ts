@@ -3,7 +3,7 @@ import {
   startGitBrokerHost,
   type GitBrokerHostOptions,
 } from "@brains/directory-sync/broker-runtime";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { interpolateEnv } from "@brains/utils/string-utils";
 import type { CommandResult } from "./command-result";
@@ -97,7 +97,7 @@ export async function runGitBrokerChild(
       config.plugins?.["directory-sync"] ?? {},
       processImpl.env,
     ),
-    logger: Logger.getInstance(),
+    logger: ConsoleLogger.getInstance(),
     ...(processImpl.env[GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV] === undefined
       ? {}
       : {

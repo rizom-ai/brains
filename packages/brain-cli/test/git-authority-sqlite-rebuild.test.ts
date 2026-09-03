@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { MigrationManager, resolve } from "@brains/app";
 import { Shell } from "@brains/core";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel, type Logger } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
 import {
   MOCK_LOAD_API_KEY,
@@ -101,7 +101,7 @@ function createShell(
       },
     },
   );
-  const logger = Logger.getInstance({ level: LogLevel.ERROR });
+  const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
   return Shell.createFresh(
     {
       name: resolved.name,
@@ -163,7 +163,7 @@ describe("Git-authoritative SQLite rebuild", () => {
 
   afterEach(async () => {
     await shell?.shutdown();
-    Logger.resetInstance();
+    ConsoleLogger.resetInstance();
     if (tempRoot) await rm(tempRoot, { recursive: true, force: true });
   });
 
@@ -209,7 +209,7 @@ describe("Git-authoritative SQLite rebuild", () => {
     await run(["git", "commit", "-m", "authoritative content"], dataDir);
 
     const tracker = new MockLoadTracker();
-    const logger = Logger.getInstance({ level: LogLevel.ERROR });
+    const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
     await resetDatabases(tempRoot, logger);
     shell = createShell(tempRoot, dataDir, tracker);
     await assertAuthoritativeState(shell);

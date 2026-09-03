@@ -6,7 +6,7 @@ import { Shell, type ProjectionRuleDiagnostic } from "@brains/core";
 import { MigrationManager, resolve } from "@brains/app";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
 import { OperationContext } from "@brains/operation-context";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
 import {
   MOCK_LOAD_API_KEY,
@@ -247,7 +247,7 @@ describe("directory import burst with locally mocked AI features", () => {
       await rm(tempRoot, { recursive: true, force: true });
       tempRoot = undefined;
     }
-    Logger.resetInstance();
+    ConsoleLogger.resetInstance();
   });
 
   it(
@@ -289,8 +289,8 @@ describe("directory import burst with locally mocked AI features", () => {
         dimensions: 1536,
       });
 
-      Logger.resetInstance();
-      const logger = Logger.getInstance({ level: LogLevel.ERROR });
+      ConsoleLogger.resetInstance();
+      const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
       const databaseUrl = `file:${join(tempRoot, "brain.db")}`;
       const jobQueueDatabaseUrl = `file:${join(tempRoot, "jobs.db")}`;
       const conversationDatabaseUrl = `file:${join(tempRoot, "conversations.db")}`;

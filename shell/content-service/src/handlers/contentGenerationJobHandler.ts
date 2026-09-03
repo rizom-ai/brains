@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 import { readString } from "@brains/utils/record-fields";
 // Remove ContentGenerationRequest import - we'll define our own schema
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
@@ -53,7 +53,9 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
     contentService: ContentService,
     entityService: IEntityService,
   ) {
-    this.logger = Logger.getInstance().child("ContentGenerationJobHandler");
+    this.logger = ConsoleLogger.getInstance().child(
+      "ContentGenerationJobHandler",
+    );
     this.contentService = contentService;
     this.entityService = entityService;
   }

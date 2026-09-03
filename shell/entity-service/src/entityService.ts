@@ -54,7 +54,7 @@ import type {
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
@@ -203,7 +203,7 @@ export class EntityService implements IEntityService {
       this.embeddingDbClient = emb.client;
 
       this.entityRegistry = options.entityRegistry;
-      this.logger = (options.logger ?? Logger.getInstance()).child(
+      this.logger = (options.logger ?? ConsoleLogger.getInstance()).child(
         "EntityService",
       );
       if (!options.jobQueueService) {

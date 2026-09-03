@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import {
   parseInstanceOverrides,
   InstanceOverridesParseError,
@@ -121,7 +121,7 @@ async function main(): Promise<void> {
     overrides,
   );
 
-  const logger = Logger.getInstance();
+  const logger = ConsoleLogger.getInstance();
   const config = resolve(definition, process.env, effectiveOverrides, logger);
   await handleCLI(config);
 }

@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { EvalHandler, IEvalHandlerRegistry } from "@brains/plugins";
 
 /**
@@ -33,7 +33,7 @@ export class EvalHandlerRegistry implements IEvalHandlerRegistry {
   }
 
   private constructor() {
-    this.logger = Logger.getInstance().child("EvalHandlerRegistry");
+    this.logger = ConsoleLogger.getInstance().child("EvalHandlerRegistry");
   }
 
   /**

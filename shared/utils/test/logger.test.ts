@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { Logger, LogLevel } from "../src/logger";
+import { ConsoleLogger, LogLevel } from "../src/logger";
 import { z } from "../src/zod";
 
 const logRecordSchema = z.record(z.string(), z.unknown());
@@ -10,17 +10,17 @@ function parseLogRecord(line: unknown): z.output<typeof logRecordSchema> {
 
 describe("Logger", () => {
   beforeEach(() => {
-    Logger.resetInstance();
+    ConsoleLogger.resetInstance();
   });
 
   afterEach(() => {
-    Logger.resetInstance();
+    ConsoleLogger.resetInstance();
   });
 
   describe("text format (default)", () => {
     test("formats with timestamp and context", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const logger = Logger.createFresh({ context: "TestCtx" });
+      const logger = ConsoleLogger.createFresh({ context: "TestCtx" });
       logger.info("hello");
       expect(spy).toHaveBeenCalledTimes(1);
       const msg = String(spy.mock.calls[0]?.[0]);
@@ -30,7 +30,7 @@ describe("Logger", () => {
 
     test("formats without context", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const logger = Logger.createFresh({});
+      const logger = ConsoleLogger.createFresh({});
       logger.info("hello");
       const msg = String(spy.mock.calls[0]?.[0]);
       expect(msg).toMatch(/^\[.*\] hello$/);
@@ -42,7 +42,7 @@ describe("Logger", () => {
   describe("json format", () => {
     test("outputs JSON line with level, context, and message", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const logger = Logger.createFresh({
+      const logger = ConsoleLogger.createFresh({
         context: "TestCtx",
         format: "json",
       });
@@ -58,7 +58,7 @@ describe("Logger", () => {
 
     test("includes extra args as data field", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const logger = Logger.createFresh({
+      const logger = ConsoleLogger.createFresh({
         format: "json",
       });
       logger.info("event", { key: "value" });
@@ -70,7 +70,7 @@ describe("Logger", () => {
 
     test("omits data field when no extra args", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const logger = Logger.createFresh({ format: "json" });
+      const logger = ConsoleLogger.createFresh({ format: "json" });
       logger.info("clean");
       const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
       expect(parsed["data"]).toBeUndefined();
@@ -82,7 +82,7 @@ describe("Logger", () => {
       const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
       const errorSpy = spyOn(console, "error").mockImplementation(() => {});
 
-      const logger = Logger.createFresh({
+      const logger = ConsoleLogger.createFresh({
         level: LogLevel.DEBUG,
         format: "json",
       });
@@ -108,7 +108,7 @@ describe("Logger", () => {
   describe("child logger inherits format", () => {
     test("child of json logger outputs json", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const parent = Logger.createFresh({ format: "json" });
+      const parent = ConsoleLogger.createFresh({ format: "json" });
       const child = parent.child("ChildCtx");
       child.info("from child");
       const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
@@ -119,7 +119,7 @@ describe("Logger", () => {
 
     test("child of text logger outputs text", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
-      const parent = Logger.createFresh({});
+      const parent = ConsoleLogger.createFresh({});
       const child = parent.child("ChildCtx");
       child.info("from child");
       const msg = String(spy.mock.calls[0]?.[0]);
@@ -132,7 +132,7 @@ describe("Logger", () => {
   describe("level filtering", () => {
     test("suppresses messages below configured level", () => {
       const spy = spyOn(console, "debug").mockImplementation(() => {});
-      const logger = Logger.createFresh({ level: LogLevel.INFO });
+      const logger = ConsoleLogger.createFresh({ level: LogLevel.INFO });
       logger.debug("should not appear");
       expect(spy).not.toHaveBeenCalled();
       spy.mockRestore();
@@ -142,7 +142,7 @@ describe("Logger", () => {
   describe("useStderr", () => {
     test("info writes to stderr when useStderr is true", () => {
       const spy = spyOn(console, "error").mockImplementation(() => {});
-      const logger = Logger.createFresh({ useStderr: true });
+      const logger = ConsoleLogger.createFresh({ useStderr: true });
       logger.info("stderr msg");
       expect(spy).toHaveBeenCalledTimes(1);
       spy.mockRestore();

@@ -80,7 +80,7 @@ import type {
 } from "@brains/templates";
 import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import { defaultQueryResponseSchema } from "@brains/contracts";
 
@@ -152,7 +152,8 @@ export class Shell implements IShell {
     this.config = config;
     this.lifecycle = new ShellLifecycle();
     bindHttpRouteSnapshot(this, () => this.httpRouteRegistry.getSnapshot());
-    const constructionLogger = dependencies?.logger ?? Logger.getInstance();
+    const constructionLogger =
+      dependencies?.logger ?? ConsoleLogger.getInstance();
     const shellInitializer = ShellInitializer.createFresh(
       constructionLogger,
       this.config,

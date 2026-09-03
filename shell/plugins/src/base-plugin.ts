@@ -10,7 +10,7 @@ import type {
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import {
   type ProgressNotification,
   ProgressReporter,
@@ -78,7 +78,9 @@ export abstract class BasePlugin<
    * Get the logger - uses context logger if available, creates temp logger otherwise
    */
   protected get logger(): Logger {
-    return this.context?.logger ?? Logger.createFresh({ context: this.id });
+    return (
+      this.context?.logger ?? ConsoleLogger.createFresh({ context: this.id })
+    );
   }
 
   constructor(

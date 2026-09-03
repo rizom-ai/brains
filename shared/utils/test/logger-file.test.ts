@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { Logger, LogLevel } from "../src/logger";
+import { ConsoleLogger, LogLevel } from "../src/logger";
 import { mkdtemp, rm, readFile, watch } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
@@ -57,7 +57,7 @@ describe("Logger file output", () => {
   let tempDir: string;
 
   afterEach(async () => {
-    Logger.resetInstance();
+    ConsoleLogger.resetInstance();
     if (tempDir) {
       await rm(tempDir, { recursive: true, force: true });
     }
@@ -67,7 +67,7 @@ describe("Logger file output", () => {
     tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
     const logFile = join(tempDir, "brain.log");
 
-    const logger = Logger.createFresh({
+    const logger = ConsoleLogger.createFresh({
       level: LogLevel.DEBUG,
       context: "test",
       logFile,
@@ -97,7 +97,7 @@ describe("Logger file output", () => {
     tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
     const logFile = join(tempDir, "brain.log");
 
-    const logger = Logger.createFresh({
+    const logger = ConsoleLogger.createFresh({
       level: LogLevel.INFO,
       format: "text",
       logFile,
@@ -113,7 +113,7 @@ describe("Logger file output", () => {
     tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
     const logFile = join(tempDir, "brain.log");
 
-    const parent = Logger.createFresh({
+    const parent = ConsoleLogger.createFresh({
       level: LogLevel.INFO,
       logFile,
     });
@@ -130,7 +130,7 @@ describe("Logger file output", () => {
     tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
     const logFile = join(tempDir, "brain.log");
 
-    const logger = Logger.createFresh({
+    const logger = ConsoleLogger.createFresh({
       level: LogLevel.INFO,
       logFile,
     });
@@ -145,7 +145,7 @@ describe("Logger file output", () => {
     tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
     const logFile = join(tempDir, "brain.log");
 
-    const logger = Logger.createFresh({
+    const logger = ConsoleLogger.createFresh({
       level: LogLevel.WARN,
       logFile,
     });

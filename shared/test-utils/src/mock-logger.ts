@@ -1,6 +1,5 @@
 import { mock } from "bun:test";
-import { Logger, LogLevel } from "@brains/utils/logger";
-import type { PublicSurface } from "./public-surface";
+import { ConsoleLogger, LogLevel, type Logger } from "@brains/utils/logger";
 
 /**
  * Create a silent logger for tests
@@ -9,7 +8,7 @@ import type { PublicSurface } from "./public-surface";
  * Use when you just need a logger that doesn't print anything
  */
 export function createSilentLogger(context?: string): Logger {
-  return Logger.createFresh({
+  return ConsoleLogger.createFresh({
     level: LogLevel.NONE,
     ...(context ? { context } : {}),
   });
@@ -23,7 +22,7 @@ export function createTestLogger(
   level: LogLevel = LogLevel.NONE,
   context?: string,
 ): Logger {
-  return Logger.createFresh({
+  return ConsoleLogger.createFresh({
     level,
     ...(context ? { context } : {}),
   });
@@ -32,10 +31,10 @@ export function createTestLogger(
 /**
  * Create a mock Logger for testing with spyable methods
  *
- * Returns a Logger-typed object where all methods are bun mock functions, so
- * test files need no casts of their own. The literal is declared against
- * `PublicSurface<Logger>`, so a new or changed public Logger method fails to
- * compile here rather than leaving a silently incomplete mock.
+ * Returns a Logger-typed object where all methods are bun mock functions. The
+ * literal is declared against `Logger` itself, so a method added to the
+ * interface — or a signature that changes — fails to compile here rather than
+ * leaving a silently incomplete mock.
  *
  * Use when you need to assert that specific log calls were made
  *
@@ -49,19 +48,16 @@ export function createTestLogger(
  * ```
  */
 export function createMockLogger(): Logger {
-  const mockLogger: PublicSurface<Logger> = {
+  const mockLogger: Logger = {
     silly: mock(() => {}),
     verbose: mock(() => {}),
     debug: mock(() => {}),
     info: mock(() => {}),
     warn: mock(() => {}),
     error: mock(() => {}),
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the nominal gap again; see the return below
-    child: mock((): Logger => mockLogger as Logger),
+    child: mock((): Logger => mockLogger),
     setUseStderr: mock(() => {}),
   };
 
-  // Only the nominal private-field gap remains; the shape is checked above.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
-  return mockLogger as Logger;
+  return mockLogger;
 }

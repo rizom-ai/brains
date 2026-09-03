@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { IAIService } from "@brains/ai-service";
 
@@ -132,7 +132,7 @@ ${customEvalPrompt ? `\n## Additional Evaluation Criteria\n${customEvalPrompt}` 
         reasoning: verdict.reasoning,
       };
     } catch (error) {
-      Logger.getInstance().error("Plugin LLM Judge failed:", error);
+      ConsoleLogger.getInstance().error("Plugin LLM Judge failed:", error);
       return null;
     }
   }
