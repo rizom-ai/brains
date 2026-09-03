@@ -1,23 +1,14 @@
 import { describe, test, expect } from "bun:test";
-import { ReactBuilder } from "../../src/lib/react-builder";
-import { createSilentLogger } from "@brains/test-utils";
+import { extractFontImports } from "../../src/lib/font-imports";
 
-describe("ReactBuilder - extractFontImports", () => {
-  const logger = createSilentLogger("test");
-  const builder = new ReactBuilder({
-    logger,
-    outputDir: "/tmp/out",
-    workingDir: "/tmp/work",
-  });
-
+describe("extractFontImports", () => {
   test("extracts Google Font imports", () => {
     const css = `
       @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
       body { font-family: Roboto; }
     `;
 
-    // @ts-ignore - accessing private method for testing
-    const result = builder.extractFontImports(css);
+    const result = extractFontImports(css);
 
     expect(result.imports).toEqual([
       "@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');",
@@ -30,8 +21,7 @@ describe("ReactBuilder - extractFontImports", () => {
   test("handles complex font URLs with multiple families", () => {
     const css = `@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');`;
 
-    // @ts-ignore - accessing private method for testing
-    const result = builder.extractFontImports(css);
+    const result = extractFontImports(css);
 
     expect(result.imports).toHaveLength(1);
     expect(result.imports[0]).toContain("Bebas+Neue");
@@ -45,8 +35,7 @@ describe("ReactBuilder - extractFontImports", () => {
       body { color: red; }
     `;
 
-    // @ts-ignore - accessing private method for testing
-    const result = builder.extractFontImports(css);
+    const result = extractFontImports(css);
 
     expect(result.imports).toEqual([]);
     expect(result.cssWithoutImports).toContain('@import "tailwindcss"');
@@ -55,8 +44,7 @@ describe("ReactBuilder - extractFontImports", () => {
   test("extracts fonts.gstatic.com imports", () => {
     const css = `@import url('https://fonts.gstatic.com/s/roboto/v30/font.woff2');`;
 
-    // @ts-ignore - accessing private method for testing
-    const result = builder.extractFontImports(css);
+    const result = extractFontImports(css);
 
     expect(result.imports).toHaveLength(1);
     expect(result.imports[0]).toContain("fonts.gstatic.com");

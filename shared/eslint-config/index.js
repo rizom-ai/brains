@@ -121,10 +121,18 @@ module.exports = {
     // "@typescript-eslint/no-unnecessary-type-assertion": "error", // Requires type info
     "@typescript-eslint/prefer-nullish-coalescing": "error",
     "@typescript-eslint/prefer-optional-chain": "warn",
+    // `@ts-ignore` is banned outright: it suppresses whatever error happens to
+    // be on the next line, and keeps suppressing after the error is gone.
+    // `@ts-expect-error` says the same thing and fails once the code type-checks,
+    // so it cannot outlive its reason. Every remaining use is a negative type
+    // test — proving the compiler rejects a bad input — and each carries a
+    // description saying which rejection it is pinning.
     "@typescript-eslint/ban-ts-comment": [
-      "warn",
+      "error",
       {
-        "ts-ignore": "allow-with-description",
+        "ts-ignore": true,
+        "ts-expect-error": "allow-with-description",
+        minimumDescriptionLength: 10,
       },
     ],
     "@typescript-eslint/no-floating-promises": "error",
