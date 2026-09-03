@@ -68,10 +68,11 @@ export default [
     // would notice an interface gaining a member or changing a signature, so
     // the mock goes stale while every test using it still passes.
     //
-    // Use `satisfies` on a fully populated literal, `PublicSurface<T>` plus a
-    // single nominal cast for class types, or `genericSpy` where bun's mock()
-    // has erased type parameters. Each of those names its reason; a bare
-    // `as unknown as` does not.
+    // Declare the literal against the interface it stands in for, or use
+    // `genericSpy` where bun's mock() has erased type parameters. Both name
+    // their reason; a bare `as unknown as` does not. Where a service was a
+    // class with private state, the fix was to give consumers an interface —
+    // not to widen the mock.
     files: ["shared/test-utils/src/**/*.ts"],
     rules: {
       "no-restricted-syntax": [
@@ -80,7 +81,7 @@ export default [
           selector:
             "TSAsExpression > TSAsExpression > TSUnknownKeyword.typeAnnotation",
           message:
-            "Do not use `as unknown as` in shared mocks — use `satisfies`, PublicSurface<T>, or genericSpy so interface drift fails to compile.",
+            "Do not use `as unknown as` in shared mocks — declare the literal against the interface, or use genericSpy, so interface drift fails to compile.",
         },
       ],
     },

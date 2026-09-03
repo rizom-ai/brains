@@ -4,11 +4,9 @@
  * Shared test utilities for the brains project.
  * Provides mock builders and helpers to reduce test boilerplate.
  *
- * Every factory is checked against the type it stands in for — `satisfies` on
- * the literal, `PublicSurface<T>` for class types, `genericSpy` where bun's
- * `mock()` erases type parameters — so interface drift fails to compile here
- * rather than leaving a silently stale mock. Test files need no casts of
- * their own.
+ * Every factory is declared against the interface it stands in for, so
+ * interface drift fails to compile here rather than leaving a silently stale
+ * mock. Test files need no casts of their own.
  */
 
 // Logger utilities
