@@ -29,6 +29,10 @@ export type {
 // registration and the daemon that drives it. Named consumer: @brains/mcp.
 export type { IMCPTransport } from "@brains/plugins";
 
+// What every interface can ask for at registration — both families get the
+// same context, because they are the same kind of thing.
+export type { InterfaceSetupContext } from "@brains/plugins";
+
 // Somewhere to put bytes that arrived from outside — the same reason
 // `runtimeState` exists, for content rather than bookkeeping. The runtime owns
 // the store and its retention; the declaration names a scope, and the runtime

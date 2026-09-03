@@ -11,6 +11,8 @@ import type { AnyAccountSettingsDefinition } from "../operator/account-settings-
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
+import { createRuntimeRoute } from "../interface/route-runtime";
+import type { WebRouteDefinition } from "../types/web-routes";
 import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
@@ -87,6 +89,7 @@ class DeclarativeMessageInterfacePlugin<
   >;
   private accountSettingsRegistration: AccountSettingsRegistration | undefined;
   private hasRequiredDaemon = false;
+  private routes: WebRouteDefinition[] = [];
   private state: TState | undefined;
   private approvalTracker: PendingApprovalTracker | undefined;
 
@@ -120,8 +123,6 @@ class DeclarativeMessageInterfacePlugin<
     this.state = this.definition.setup
       ? await this.definition.setup({
           config: this.config,
-          // Namespaced under the declaring package, so two interfaces cannot
-          // read or corrupt each other's bookkeeping.
           // Namespaced under the interface's own id, which is what the
           // stored keys already carry: a class wrote "email.inbound.cursor"
           // by hand. Changing the prefix here would orphan a live cursor, and
@@ -140,6 +141,13 @@ class DeclarativeMessageInterfacePlugin<
                 options.namespace,
               ),
             }),
+          plugins: context.plugins,
+          endpoints: context.endpoints,
+          interactions: context.interactions,
+          auth: context.auth,
+          permissions: context.permissions,
+          agent: context.agent,
+          domain: context.domain,
           messaging: {
             send: (message) =>
               context.messaging.send({
@@ -179,6 +187,18 @@ class DeclarativeMessageInterfacePlugin<
         send: (input) => this.deliver(input),
       });
     }
+
+    this.routes = (
+      this.definition.routes?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? []
+    ).map((route) =>
+      createRuntimeRoute(route, {
+        declarationId: this.definition.id,
+        permissions: context.permissions,
+      }),
+    );
 
     const daemonDefinitions =
       this.definition.daemons?.({
@@ -299,6 +319,10 @@ class DeclarativeMessageInterfacePlugin<
 
   override requiresDaemonStartup(): boolean {
     return this.hasRequiredDaemon;
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return [...this.routes];
   }
 
   protected override sendMessageToChannel(

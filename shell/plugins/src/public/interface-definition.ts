@@ -64,6 +64,7 @@ export type {
   RouteBody,
   RouteCaller,
   RouteMethod,
+  InterfaceSetupContext,
   InterfaceUploads,
   RouteResponse,
   RouteSecurity,

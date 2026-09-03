@@ -584,6 +584,7 @@
         "getPendingApprovalCards",
         "getResolvedApprovalCard",
         "IMCPTransport",
+        "InterfaceSetupContext",
         "InterfaceUploads",
         "IRuntimeStateStore",
         "ResolvedRuntimeUpload",

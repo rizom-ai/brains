@@ -636,6 +636,26 @@ now files a scope under the declaration's own id, the way `stateNamespaceFor`
 already did for runtime state. Uploads are a cache with a retention window, so
 relocating them costs nothing a restart does not already cost.
 
+**The two interface families had drifted apart, and are now one context.**
+Measuring the rest of web-chat turned up something nobody designed: the
+generic family's `setup` had `plugins`, `endpoints`, `interactions`, `auth`,
+`permissions`, `agent` and `domain` but no `runtimeState`; the message family
+had `runtimeState` and `messaging` and none of the others. Each grew what its
+first consumer happened to need. web-chat needs both halves — it is a chat
+channel _and_ the console people reach it through, resolving a browser session
+per request and advertising where it lives.
+
+The runtime never made that distinction: `MessageInterfacePluginContext` has
+extended `InterfacePluginContext` all along. Only what a declaration was
+allowed to ask for was narrower. There is now one `InterfaceSetupContext` both
+families share, plus exactly one field each that is genuinely theirs —
+`mcpTransport` for the generic family, because hosting a protocol is what one
+is, and `messaging` for the message family, because carrying messages is.
+
+A message interface can declare `routes` now, too. The generic family always
+could; nothing made a channel that also answers HTTP impossible except that
+no consumer had needed it.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so

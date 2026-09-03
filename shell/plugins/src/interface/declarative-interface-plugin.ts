@@ -97,6 +97,11 @@ class DeclarativeInterfacePlugin<
           mcpTransport: context.mcpTransport,
           permissions: context.permissions,
           agent: context.agent,
+          runtimeState: (options) =>
+            context.runtimeState.scoped({
+              ...options,
+              namespace: `${this.definition.id}.${options.namespace}`,
+            }),
           uploads: (options) =>
             context.uploads.scoped({
               ...options,

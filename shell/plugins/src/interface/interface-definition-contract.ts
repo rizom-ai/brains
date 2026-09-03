@@ -144,6 +144,65 @@ export interface AccountInterfaceDaemonDefinition<
 export type AnyInterfaceDaemonDefinition =
   InterfaceDaemonDefinition | AccountInterfaceDaemonDefinition;
 
+/**
+ * What every interface can ask for at registration.
+ *
+ * Both families get this. They are the same kind of thing — a way in — and the
+ * runtime never distinguished them: `MessageInterfacePluginContext` has
+ * extended `InterfacePluginContext` all along. Only the declared contracts had
+ * drifted, each growing what its first consumer happened to need, so a chat
+ * channel that also serves a console could not ask for auth and a protocol
+ * host could not keep a cursor. Nothing designed that split.
+ */
+export interface InterfaceSetupContext<
+  TConfigSchema extends InterfaceConfigSchema,
+> {
+  readonly config: z.output<TConfigSchema>;
+  /**
+   * Whether another package is part of this deployment. An interface
+   * that mounts on the shared HTTP host cannot answer without it, and
+   * that is knowable at registration rather than at the first request.
+   */
+  readonly plugins: IPluginsNamespace;
+  /** Where this interface can be reached, for the Endpoints card. */
+  readonly endpoints: IEndpointsNamespace;
+  /** The same address as a way in, for a person rather than a client. */
+  readonly interactions: IInteractionsNamespace;
+  /** Where the running auth implementation is published. */
+  readonly auth: IAuthRegistry;
+  /**
+   * What a caller arriving over this transport may do. A protocol host
+   * resolves that once, from the transport rather than from a person —
+   * stdio is whoever runs the process, so the two transport questions come
+   * alongside the entity assertion every family gets.
+   * Named consumer: @brains/mcp.
+   */
+  readonly permissions: IPermissionsNamespace & RoutePermissions;
+  /**
+   * The thing that answers.
+   *
+   * An interface is how someone reaches the brain, so the tools it offers of
+   * its own are conversational: `chat` asks, `confirm` answers a question the
+   * brain asked back. Named consumer: @brains/mcp.
+   */
+  readonly agent: AgentNamespace;
+  /**
+   * Bookkeeping that has to survive a restart.
+   *
+   * An interface that reads a mailbox remembers how far it got, and without
+   * that it re-reads everything on every boot. Scoped by namespace under this
+   * interface's id and validated by a schema. Named `runtimeState` rather than
+   * `state` because `state` already means what setup returns.
+   */
+  readonly runtimeState: <TValue>(
+    options: RuntimeStateScopeOptions<TValue>,
+  ) => IRuntimeStateStore<TValue>;
+  readonly uploads: InterfaceUploads;
+  /** The brain's own domain, when it has one. */
+  readonly domain: string | undefined;
+  readonly logger: Logger;
+}
+
 export interface InterfaceDefinitionInput<
   TConfigSchema extends InterfaceConfigSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
@@ -163,52 +222,20 @@ export interface InterfaceDefinitionInput<
    * Named consumer: @brains/mcp.
    */
   readonly setup?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        /**
-         * Whether another package is part of this deployment. An interface
-         * that mounts on the shared HTTP host cannot answer without it, and
-         * that is knowable at registration rather than at the first request.
-         */
-        readonly plugins: IPluginsNamespace;
-        /** Where this interface can be reached, for the Endpoints card. */
-        readonly endpoints: IEndpointsNamespace;
-        /** The same address as a way in, for a person rather than a client. */
-        readonly interactions: IInteractionsNamespace;
-        /** Where the running auth implementation is published. */
-        readonly auth: IAuthRegistry;
-        /**
-         * The runtime's server for the protocol this interface hosts.
-         *
-         * The tools and resources every package registered are already on
-         * it; what an interface adds is a transport to reach them over, and
-         * the mode and permission level that transport confers.
-         * Named consumer: @brains/mcp.
-         */
-        readonly mcpTransport: IMCPTransport;
-        /**
-         * What a caller arriving over this transport may do. A protocol
-         * host resolves that once, from the transport rather than from a
-         * person — stdio is whoever runs the process, so the two transport
-         * questions come alongside the entity assertion every family gets.
-         * Named consumer: @brains/mcp.
-         */
-        readonly permissions: IPermissionsNamespace & RoutePermissions;
-        /**
-         * The thing that answers.
-         *
-         * An interface is how someone reaches the brain, so the tools it
-         * offers of its own are conversational: `chat` asks, `confirm`
-         * answers a question the brain asked back. Both are the agent's,
-         * and an interface holds the handle rather than being handed one
-         * per call. Named consumer: @brains/mcp.
-         */
-        readonly agent: AgentNamespace;
-        readonly uploads: InterfaceUploads;
-        /** The brain's own domain, when it has one. */
-        readonly domain: string | undefined;
-        readonly logger: Logger;
-      }) => TState)
+    | ((
+        context: InterfaceSetupContext<TConfigSchema> & {
+          /**
+           * The runtime's server for the protocol this interface hosts.
+           *
+           * The tools and resources every package registered are already on
+           * it; what an interface adds is a transport to reach them over, and
+           * the mode and permission level that transport confers. Only this
+           * family: a protocol host is what one is.
+           * Named consumer: @brains/mcp.
+           */
+          readonly mcpTransport: IMCPTransport;
+        },
+      ) => TState)
     | undefined;
   /**
    * Tools this interface offers of its own.
@@ -363,37 +390,20 @@ export interface MessageInterfaceDefinitionInput<
    * reports its own fields as missing.
    */
   readonly setup?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        /**
-         * Bookkeeping that has to survive a restart.
-         *
-         * An interface that reads a mailbox remembers how far it got, and
-         * without that it re-reads everything on every boot. Scoped by
-         * namespace under this interface's id and validated by a schema.
-         * Named `runtimeState` rather than `state` because `state` already
-         * means what setup returns.
-         */
-        readonly runtimeState: <TValue>(
-          options: RuntimeStateScopeOptions<TValue>,
-        ) => IRuntimeStateStore<TValue>;
-        /**
-         * Handing on something that arrived from outside.
-         *
-         * A chat turn goes back through `messages.receiveAuthenticated`, but
-         * not everything an interface receives is a turn — an inbound email is
-         * an event other packages consume. Named consumer: @brains/email.
-         */
-        readonly messaging: MessageInterfacePublisher;
-        /**
-         * Somewhere to put an attachment someone sent.
-         *
-         * A chat channel carries files, and the agent has to be able to read
-         * one back. Named consumer: @brains/chat.
-         */
-        readonly uploads: InterfaceUploads;
-        readonly logger: Logger;
-      }) => TState | Promise<TState>)
+    | ((
+        context: InterfaceSetupContext<TConfigSchema> & {
+          /**
+           * Handing on something that arrived from outside.
+           *
+           * A chat turn goes back through `messages.receiveAuthenticated`,
+           * but not everything an interface receives is a turn — an inbound
+           * email is an event other packages consume. Only this family:
+           * carrying messages is what one is.
+           * Named consumer: @brains/email.
+           */
+          readonly messaging: MessageInterfacePublisher;
+        },
+      ) => TState | Promise<TState>)
     | undefined;
   /**
    * Whether delivery can actually be attempted right now.
@@ -427,6 +437,21 @@ export interface MessageInterfaceDefinitionInput<
             ? AccountInterfaceDaemonDefinition<TAccountSettings>
             : never)
       )[])
+    | undefined;
+  /**
+   * HTTP this interface answers itself.
+   *
+   * A channel is not always only a channel: web-chat is a chat interface and
+   * the console people reach it through, serving a page, uploads and a
+   * session list. The generic family has had this all along; there was never
+   * a reason a message interface could not.
+   * Named consumer: @brains/web-chat.
+   */
+  readonly routes?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   readonly listen?:
     | ((context: {
