@@ -526,8 +526,11 @@ describe("DynamicRouteGenerator", () => {
 
         await testGenerator.generateEntityRoutes();
 
-        const route = testRegistry.get(expected);
-        expect(route).toBeDefined();
+        expect(testRegistry.get(expected)).toMatchObject({
+          id: `${entity}-index`,
+          path: expected,
+          sourceEntityType: entity,
+        });
       }
     });
   });

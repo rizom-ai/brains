@@ -26,11 +26,17 @@ describe("Agent Card anchor-profile extension", () => {
       tools: [],
     });
 
-    const extensions = card.capabilities.extensions;
-    expect(extensions).toBeDefined();
-
-    const anchorExt = extensions?.find((e) => e.uri === ANCHOR_EXTENSION_URI);
-    expect(anchorExt).toBeDefined();
+    const anchorExt = card.capabilities.extensions?.find(
+      (e) => e.uri === ANCHOR_EXTENSION_URI,
+    );
+    expect(anchorExt).toEqual({
+      uri: ANCHOR_EXTENSION_URI,
+      description: "Anchor identity for this brain",
+      params: {
+        name: mockProfile.name,
+        description: mockProfile.description,
+      },
+    });
   });
 
   test("should include anchor name in extension params", () => {

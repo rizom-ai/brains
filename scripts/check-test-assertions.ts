@@ -13,7 +13,10 @@
  *   unasserted — a test body that performs work and asserts nothing. "It did
  *   not throw" is rarely the claim the title makes, and is never checked.
  *
- * Both shapes have legitimate uses, so `docs/test-assertion-exemptions.json`
+ *   tautological — `expect(true).toBe(true)` and other assertions over a
+ *   literal. They document something; they check nothing.
+ *
+ * The first two shapes have legitimate uses, so `docs/test-assertion-exemptions.json`
  * records the accepted ones with a reason. Anything not listed fails.
  */
 
@@ -42,7 +45,7 @@ const searchRoots = [
 const exemptionSchema = z.strictObject({
   file: z.string().min(1),
   test: z.string().min(1),
-  rule: z.enum(["vacuous", "unasserted"]),
+  rule: z.enum(["vacuous", "unasserted", "tautological"]),
   reason: z.string().min(1),
 });
 
@@ -65,11 +68,15 @@ const VACUOUS =
 const ASSERTION =
   /\b(expect|assert)[A-Za-z]*\(|\.toHaveBeenCalled|\.rejects|\.resolves|\btoThrow\b|\bwaitUntil\(|\bpollUntil\(/;
 
+/** An expectation whose subject is a literal, so the outcome is fixed. */
+const TAUTOLOGICAL =
+  /expect\(\s*(?:true|false|null|undefined|-?\d+(?:\.\d+)?|"[^"]*"|'[^']*')\s*\)\s*\./;
+
 interface Finding {
   file: string;
   line: number;
   test: string;
-  rule: "vacuous" | "unasserted";
+  rule: "vacuous" | "unasserted" | "tautological";
   detail: string;
 }
 
@@ -156,6 +163,22 @@ function findUnasserted(block: TestBlock, file: string): Finding[] {
   ];
 }
 
+function findTautological(block: TestBlock, file: string): Finding[] {
+  return block.body.flatMap((line, offset) =>
+    TAUTOLOGICAL.test(line)
+      ? [
+          {
+            file,
+            line: block.startLine + 1 + offset,
+            test: block.title,
+            rule: "tautological" as const,
+            detail: line.trim(),
+          },
+        ]
+      : [],
+  );
+}
+
 function loadExemptions(): Exemption[] {
   try {
     const parsed = exemptionsSchema.parse(
@@ -178,6 +201,7 @@ async function collectFindings(): Promise<Finding[]> {
       for (const block of readTestBlocks(lines)) {
         findings.push(...findVacuous(block, file));
         findings.push(...findUnasserted(block, file));
+        findings.push(...findTautological(block, file));
       }
     }
   }
@@ -197,7 +221,9 @@ function describe(finding: Finding): string {
   const what =
     finding.rule === "vacuous"
       ? "holds when its subject is absent"
-      : "asserts nothing";
+      : finding.rule === "unasserted"
+        ? "asserts nothing"
+        : "asserts over a literal";
   return [
     `${finding.file}:${finding.line}`,
     `  test: "${finding.test}"`,

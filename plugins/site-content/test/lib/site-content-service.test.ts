@@ -162,19 +162,23 @@ describe("SiteContentService", () => {
         batchId: "batch-error",
       });
 
-      try {
-        await service.generateContent({
+      // Settled explicitly: a try/catch with a "should not reach here"
+      // sentinel asserts over a literal, and the catch accepted any error.
+      const outcome = await service
+        .generateContent({
           // @ts-expect-error deliberately invalid: generateContent parses its
           // own options and there is no unknown-typed entry point, so proving
           // the runtime guard fires needs a value the type forbids. Written as
           // an expect-error rather than a cast so it fails the build if the
           // signature ever starts accepting this.
           routeId: 123,
-        });
-        expect(true).toBe(false); // Should not reach here
-      } catch (error) {
-        expect(error).toBeDefined();
-      }
+        })
+        .then(
+          () => "resolved",
+          (error: unknown) => error,
+        );
+
+      expect(outcome).toBeInstanceOf(Error);
     });
 
     test("should work without site config", async () => {

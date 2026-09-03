@@ -17,7 +17,7 @@ describe("ProgressReporter", () => {
 
     it("should create a ProgressReporter when callback is provided", () => {
       const progress = CallbackProgressReporter.from(mockCallback);
-      expect(progress).toBeDefined();
+      expect(progress).toBeInstanceOf(CallbackProgressReporter);
     });
   });
 

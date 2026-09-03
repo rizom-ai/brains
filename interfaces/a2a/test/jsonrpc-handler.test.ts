@@ -250,7 +250,7 @@ describe("JSON-RPC Handler", () => {
       });
 
       const task = expectSuccess(response);
-      expect(taskManager.getTask(task.id)).toBeDefined();
+      expect(taskManager.getTask(task.id)).toMatchObject({ task });
     });
 
     it("should return failed task when AgentService throws", async () => {
