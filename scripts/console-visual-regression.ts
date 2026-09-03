@@ -3030,6 +3030,7 @@ try {
         });
         await page.navigate("about:blank");
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
+        await page.cdp("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
         await addVisualInitScript(page, conversationId);
         const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
         const studioSaveSelector =
@@ -3082,6 +3083,7 @@ try {
         }
         if (surface.startsWith("studio-chat")) {
           await waitForText(page, "And the Studio?");
+          await waitForSelector(page, ".web-chat-attached-file");
           if (surface === "studio-chat-sessions") {
             await clickText(
               page,
@@ -3104,6 +3106,7 @@ try {
         }
         if (surface === "chat" || surface === "chat-drawer") {
           await waitForText(page, "And the Studio?");
+          await waitForSelector(page, ".web-chat-attached-file");
         }
         if (surface === "chat-empty") {
           await waitForText(page, "Begin a field note.");
