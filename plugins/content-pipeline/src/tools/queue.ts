@@ -11,17 +11,17 @@ export type QueueMutationService = Pick<
 /**
  * Input schema for publish-pipeline:queue tool
  */
-export type QueueAction = "list" | "add" | "remove" | "reorder";
-
-export interface QueueInput {
-  action: QueueAction;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  position?: number | undefined;
-}
-
-export const queueInputSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<QueueInput, QueueInput> = z.object({
+export const queueInputSchema: z.ZodObject<{
+  action: z.ZodEnum<{
+    list: "list";
+    add: "add";
+    remove: "remove";
+    reorder: "reorder";
+  }>;
+  entityType: z.ZodOptional<z.ZodString>;
+  entityId: z.ZodOptional<z.ZodString>;
+  position: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
   action: z
     .enum(["list", "add", "remove", "reorder"])
     .describe("Queue action to perform"),
@@ -41,51 +41,43 @@ export const queueInputSchema: z.ZodObject<z.ZodRawShape> &
     .describe("New position for reorder action (1-based)"),
 });
 
+export type QueueInput = z.output<typeof queueInputSchema>;
+export type QueueAction = QueueInput["action"];
+
 /**
  * Queue item in list response
  */
-export interface QueueItem {
-  position: number;
-  entityType: string;
-  entityId: string;
-  queuedAt: string;
-}
-
-export const queueItemSchema: z.ZodType<QueueItem, QueueItem> = z.object({
+export const queueItemSchema: z.ZodObject<{
+  position: z.ZodNumber;
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+  queuedAt: z.ZodString;
+}> = z.object({
   position: z.number(),
   entityType: z.string(),
   entityId: z.string(),
   queuedAt: z.string(),
 });
 
+export type QueueItem = z.output<typeof queueItemSchema>;
+
 /**
  * Output schema for publish-pipeline:queue tool - discriminated union for success/error cases
  */
-export interface QueueSuccessData {
-  queue?: QueueItem[] | undefined;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  position?: number | undefined;
-}
+type QueueSuccessSchema = z.ZodObject<{
+  success: z.ZodLiteral<true>;
+  message: z.ZodOptional<z.ZodString>;
+  data: z.ZodOptional<
+    z.ZodObject<{
+      queue: z.ZodOptional<z.ZodArray<typeof queueItemSchema>>;
+      entityType: z.ZodOptional<z.ZodString>;
+      entityId: z.ZodOptional<z.ZodString>;
+      position: z.ZodOptional<z.ZodNumber>;
+    }>
+  >;
+}>;
 
-export interface QueueSuccessOutput {
-  success: true;
-  message?: string | undefined;
-  data?: QueueSuccessData | undefined;
-}
-
-export interface QueueErrorOutput {
-  success: false;
-  error: string;
-  code?: string | undefined;
-}
-
-export type QueueOutput = QueueSuccessOutput | QueueErrorOutput;
-
-export const queueSuccessSchema: z.ZodType<
-  QueueSuccessOutput,
-  QueueSuccessOutput
-> = z.object({
+export const queueSuccessSchema: QueueSuccessSchema = z.object({
   success: z.literal(true),
   message: z.string().optional(),
   data: z
@@ -98,17 +90,26 @@ export const queueSuccessSchema: z.ZodType<
     .optional(),
 });
 
-export const queueErrorSchema: z.ZodType<QueueErrorOutput, QueueErrorOutput> =
-  z.object({
-    success: z.literal(false),
-    error: z.string(),
-    code: z.string().optional(),
-  });
+type QueueErrorSchema = z.ZodObject<{
+  success: z.ZodLiteral<false>;
+  error: z.ZodString;
+  code: z.ZodOptional<z.ZodString>;
+}>;
 
-export const queueOutputSchema: z.ZodType<QueueOutput, QueueOutput> = z.union([
-  queueSuccessSchema,
-  queueErrorSchema,
-]);
+export const queueErrorSchema: QueueErrorSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
+});
+
+export const queueOutputSchema: z.ZodUnion<
+  [QueueSuccessSchema, QueueErrorSchema]
+> = z.union([queueSuccessSchema, queueErrorSchema]);
+
+export type QueueSuccessOutput = z.output<typeof queueSuccessSchema>;
+export type QueueSuccessData = NonNullable<QueueSuccessOutput["data"]>;
+export type QueueErrorOutput = z.output<typeof queueErrorSchema>;
+export type QueueOutput = z.output<typeof queueOutputSchema>;
 
 /**
  * Create the publish-pipeline:queue tool

@@ -16,16 +16,6 @@ const QUEUE_STATE_NAMESPACE = "content-pipeline.queue.v1";
 const RANK_STEP = 1024;
 const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
-export interface PublicationQueueRecord {
-  entityType: string;
-  entityId: string;
-  rank: number;
-  queuedAt: string;
-  contentHashAtEnqueue: string;
-  authContext: PublishAuthContext;
-  revision: number;
-}
-
 const publishAuthContextSchema: z.ZodType<
   PublishAuthContext,
   PublishAuthContext
@@ -36,10 +26,15 @@ const publishAuthContextSchema: z.ZodType<
   authorization: z.enum(["user", "system"]).optional(),
 });
 
-const publicationQueueRecordSchema: z.ZodType<
-  PublicationQueueRecord,
-  PublicationQueueRecord
-> = z.object({
+const publicationQueueRecordSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+  rank: z.ZodNumber;
+  queuedAt: z.ZodString;
+  contentHashAtEnqueue: z.ZodString;
+  authContext: typeof publishAuthContextSchema;
+  revision: z.ZodNumber;
+}> = z.object({
   entityType: z.string(),
   entityId: z.string(),
   rank: z.number().int().positive(),
@@ -48,6 +43,10 @@ const publicationQueueRecordSchema: z.ZodType<
   authContext: publishAuthContextSchema,
   revision: z.number().int().positive(),
 });
+
+export type PublicationQueueRecord = z.output<
+  typeof publicationQueueRecordSchema
+>;
 
 /**
  * Coordinates durable publication intent with recoverable operational order.

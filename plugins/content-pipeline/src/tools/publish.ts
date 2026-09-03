@@ -16,18 +16,17 @@ import {
 /**
  * Input schema for publish-pipeline:publish tool
  */
-export interface PublishInput {
-  entityType: string;
-  id?: string | undefined;
-  slug?: string | undefined;
-  confirmed?: boolean | undefined;
-  confirmationToken?: string | undefined;
-  contentHash?: string | undefined;
-  expiresAt?: string | undefined;
-}
+type PublishInputSchema = z.ZodObject<{
+  entityType: z.ZodString;
+  id: z.ZodOptional<z.ZodString>;
+  slug: z.ZodOptional<z.ZodString>;
+  confirmed: z.ZodOptional<z.ZodBoolean>;
+  confirmationToken: z.ZodOptional<z.ZodString>;
+  contentHash: z.ZodOptional<z.ZodString>;
+  expiresAt: z.ZodOptional<z.ZodString>;
+}>;
 
-export const publishInputSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<PublishInput, PublishInput> = z.object({
+export const publishInputSchema: PublishInputSchema = z.object({
   entityType: z
     .string()
     .describe("Entity type to publish (e.g., social-post, post, deck)"),
@@ -39,8 +38,9 @@ export const publishInputSchema: z.ZodObject<z.ZodRawShape> &
   expiresAt: z.string().datetime().optional(),
 });
 
-const publishInputParserSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<PublishInput, PublishInput> = z.object({
+export type PublishInput = z.output<typeof publishInputSchema>;
+
+const publishInputParserSchema: PublishInputSchema = z.object({
   entityType: z.string(),
   id: z.string().optional(),
   slug: z.string().optional(),
@@ -53,42 +53,20 @@ const publishInputParserSchema: z.ZodObject<z.ZodRawShape> &
 /**
  * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
  */
-export interface PublishSuccessData {
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  platformId?: string | undefined;
-  url?: string | undefined;
-}
+type PublishSuccessSchema = z.ZodObject<{
+  success: z.ZodLiteral<true>;
+  message: z.ZodOptional<z.ZodString>;
+  data: z.ZodOptional<
+    z.ZodObject<{
+      entityType: z.ZodOptional<z.ZodString>;
+      entityId: z.ZodOptional<z.ZodString>;
+      platformId: z.ZodOptional<z.ZodString>;
+      url: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}>;
 
-export interface PublishSuccessOutput {
-  success: true;
-  message?: string | undefined;
-  data?: PublishSuccessData | undefined;
-}
-
-export interface PublishErrorOutput {
-  success: false;
-  error: string;
-  code?: string | undefined;
-}
-
-export interface PublishConfirmationOutput {
-  success?: false | undefined;
-  error?: string | undefined;
-  needsConfirmation: true;
-  toolName: string;
-  summary: string;
-  preview?: string | undefined;
-  args: PublishInput;
-}
-
-export type PublishOutput =
-  PublishSuccessOutput | PublishErrorOutput | PublishConfirmationOutput;
-
-export const publishSuccessSchema: z.ZodType<
-  PublishSuccessOutput,
-  PublishSuccessOutput
-> = z.object({
+export const publishSuccessSchema: PublishSuccessSchema = z.object({
   success: z.literal(true),
   message: z.string().optional(),
   data: z
@@ -101,19 +79,29 @@ export const publishSuccessSchema: z.ZodType<
     .optional(),
 });
 
-export const publishErrorSchema: z.ZodType<
-  PublishErrorOutput,
-  PublishErrorOutput
-> = z.object({
+type PublishErrorSchema = z.ZodObject<{
+  success: z.ZodLiteral<false>;
+  error: z.ZodString;
+  code: z.ZodOptional<z.ZodString>;
+}>;
+
+export const publishErrorSchema: PublishErrorSchema = z.object({
   success: z.literal(false),
   error: z.string(),
   code: z.string().optional(),
 });
 
-export const publishConfirmationSchema: z.ZodType<
-  PublishConfirmationOutput,
-  PublishConfirmationOutput
-> = z.object({
+type PublishConfirmationSchema = z.ZodObject<{
+  success: z.ZodOptional<z.ZodLiteral<false>>;
+  error: z.ZodOptional<z.ZodString>;
+  needsConfirmation: z.ZodLiteral<true>;
+  toolName: z.ZodString;
+  summary: z.ZodString;
+  preview: z.ZodOptional<z.ZodString>;
+  args: z.ZodCustom<PublishInput, PublishInput>;
+}>;
+
+export const publishConfirmationSchema: PublishConfirmationSchema = z.object({
   success: z.literal(false).optional(),
   error: z.string().optional(),
   needsConfirmation: z.literal(true),
@@ -123,12 +111,21 @@ export const publishConfirmationSchema: z.ZodType<
   args: z.custom<PublishInput>(),
 });
 
-export const publishOutputSchema: z.ZodType<PublishOutput, PublishOutput> =
-  z.union([
-    publishSuccessSchema,
-    publishErrorSchema,
-    publishConfirmationSchema,
-  ]);
+export const publishOutputSchema: z.ZodUnion<
+  [PublishSuccessSchema, PublishErrorSchema, PublishConfirmationSchema]
+> = z.union([
+  publishSuccessSchema,
+  publishErrorSchema,
+  publishConfirmationSchema,
+]);
+
+export type PublishSuccessOutput = z.output<typeof publishSuccessSchema>;
+export type PublishSuccessData = NonNullable<PublishSuccessOutput["data"]>;
+export type PublishErrorOutput = z.output<typeof publishErrorSchema>;
+export type PublishConfirmationOutput = z.output<
+  typeof publishConfirmationSchema
+>;
+export type PublishOutput = z.output<typeof publishOutputSchema>;
 
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 

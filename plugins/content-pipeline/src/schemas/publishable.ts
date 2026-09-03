@@ -8,53 +8,44 @@ import { z } from "@brains/utils/zod";
  * - published: Successfully published
  * - failed: Publish error after max retries
  */
-export type PublishStatus = "draft" | "queued" | "published" | "failed";
+export const publishStatusSchema: z.ZodEnum<{
+  draft: "draft";
+  queued: "queued";
+  published: "published";
+  failed: "failed";
+}> = z.enum(["draft", "queued", "published", "failed"]);
 
-export const publishStatusSchema: z.ZodType<PublishStatus, PublishStatus> =
-  z.enum(["draft", "queued", "published", "failed"]);
+export type PublishStatus = z.output<typeof publishStatusSchema>;
 
-/**
- * Publishable metadata fields that plugins should include in their entity metadata.
- * These fields enable queue management and retry tracking.
- */
-export interface PublishableMetadata extends Record<string, unknown> {
-  status: PublishStatus;
-  queueOrder?: number | undefined;
-  publishedAt?: string | undefined;
-}
-
-export interface PublishableMetadataInput extends Record<string, unknown> {
-  status?: PublishStatus | undefined;
-  queueOrder?: number | undefined;
-  publishedAt?: string | undefined;
-}
-
-export const publishableMetadataSchema: z.ZodType<
-  PublishableMetadata,
-  PublishableMetadataInput
-> = z.object({
-  status: publishStatusSchema.default("draft"),
-  queueOrder: z
-    .number()
-    .optional()
-    .describe("Position in publish queue (lower = sooner)"),
-  publishedAt: z.string().datetime().optional(),
-});
-
-type PublishableEntityMetadataSchema = ReturnType<
-  typeof z.looseObject<{
+type PublishableMetadataSchema = z.ZodObject<
+  {
     status: z.ZodDefault<typeof publishStatusSchema>;
     queueOrder: z.ZodOptional<z.ZodNumber>;
     publishedAt: z.ZodOptional<z.ZodString>;
-  }>
+  },
+  z.core.$loose
 >;
 
-const publishableEntityMetadataSchema: PublishableEntityMetadataSchema =
+/**
+ * Publishable metadata fields that plugins should include in their entity metadata.
+ * These fields enable queue management and retry tracking. Entity metadata
+ * carries other fields beside these, so the object is loose: parsing keeps
+ * them and the type admits them.
+ */
+export const publishableMetadataSchema: PublishableMetadataSchema =
   z.looseObject({
     status: publishStatusSchema.default("draft"),
-    queueOrder: z.number().optional(),
+    queueOrder: z
+      .number()
+      .optional()
+      .describe("Position in publish queue (lower = sooner)"),
     publishedAt: z.string().datetime().optional(),
   });
+
+export type PublishableMetadata = z.output<typeof publishableMetadataSchema>;
+export type PublishableMetadataInput = z.input<
+  typeof publishableMetadataSchema
+>;
 
 /**
  * Read schema for any entity flowing through the publish pipeline. Loose on
@@ -63,10 +54,10 @@ const publishableEntityMetadataSchema: PublishableEntityMetadataSchema =
  */
 export const publishableEntitySchema: ReturnType<
   typeof baseEntitySchema.extend<{
-    metadata: PublishableEntityMetadataSchema;
+    metadata: PublishableMetadataSchema;
   }>
 > = baseEntitySchema.extend({
-  metadata: publishableEntityMetadataSchema,
+  metadata: publishableMetadataSchema,
 });
 
 export type PublishableEntity = z.output<typeof publishableEntitySchema>;

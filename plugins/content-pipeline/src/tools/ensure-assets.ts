@@ -3,29 +3,11 @@ import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
 
-export interface EnsureAssetsInput {
-  entityType: string;
-  status?: string | undefined;
-  assetType?: string | undefined;
-}
-
-export interface EnsureAssetsOutputData {
-  entityType: string;
-  assetType?: string | undefined;
-  checkedEntities: number;
-  checkedAssets: number;
-  enqueued: number;
-  skipped: number;
-}
-
-export interface EnsureAssetsOutput {
-  success: true;
-  data: EnsureAssetsOutputData;
-  message?: string | undefined;
-}
-
-export const ensureAssetsInputSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<EnsureAssetsInput, EnsureAssetsInput> = z.object({
+export const ensureAssetsInputSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  status: z.ZodOptional<z.ZodString>;
+  assetType: z.ZodOptional<z.ZodString>;
+}> = z.object({
   entityType: z.string().min(1).describe("Entity type to reconcile"),
   status: z
     .string()
@@ -39,10 +21,20 @@ export const ensureAssetsInputSchema: z.ZodObject<z.ZodRawShape> &
     .describe("Optional attachment type filter, e.g. og-image"),
 });
 
-export const ensureAssetsOutputSchema: z.ZodType<
-  EnsureAssetsOutput,
-  EnsureAssetsOutput
-> = z.object({
+export type EnsureAssetsInput = z.output<typeof ensureAssetsInputSchema>;
+
+export const ensureAssetsOutputSchema: z.ZodObject<{
+  success: z.ZodLiteral<true>;
+  data: z.ZodObject<{
+    entityType: z.ZodString;
+    assetType: z.ZodOptional<z.ZodString>;
+    checkedEntities: z.ZodNumber;
+    checkedAssets: z.ZodNumber;
+    enqueued: z.ZodNumber;
+    skipped: z.ZodNumber;
+  }>;
+  message: z.ZodOptional<z.ZodString>;
+}> = z.object({
   success: z.literal(true),
   data: z.object({
     entityType: z.string(),
@@ -54,6 +46,9 @@ export const ensureAssetsOutputSchema: z.ZodType<
   }),
   message: z.string().optional(),
 });
+
+export type EnsureAssetsOutput = z.output<typeof ensureAssetsOutputSchema>;
+export type EnsureAssetsOutputData = EnsureAssetsOutput["data"];
 
 export interface EnsurePublishAssetsOptions {
   context: ServicePluginContext;

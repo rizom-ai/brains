@@ -23,31 +23,40 @@ import {
 } from "../pipeline-snapshot";
 import { publishOutputSchema } from "../tools/publish";
 
-export interface StudioPublishConfirmation {
-  confirmed: true;
-  confirmationToken: string;
-  contentHash: string;
-  expiresAt: string;
-}
+type PublishingTargetSchema = z.ZodObject<{
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+}>;
 
-interface StudioPublishingTarget {
-  entityType: string;
-  entityId: string;
-}
-
-export type StudioPublishingAction =
-  | ({ type: "queue" | "remove" | "retry" } & StudioPublishingTarget)
-  | ({ type: "reorder"; position: number } & StudioPublishingTarget)
-  | ({
-      type: "publish";
-      confirmation?: StudioPublishConfirmation | undefined;
-    } & StudioPublishingTarget);
-
-const publishingTargetSchema = z.object({
+const publishingTargetSchema: PublishingTargetSchema = z.object({
   entityType: z.string().trim().min(1).max(120),
   entityId: z.string().trim().min(1).max(500),
 });
-const reorderInputSchema = publishingTargetSchema.extend({
+
+type StudioPublishConfirmationSchema = z.ZodObject<{
+  confirmed: z.ZodLiteral<true>;
+  confirmationToken: z.ZodString;
+  contentHash: z.ZodString;
+  expiresAt: z.ZodString;
+}>;
+
+const studioPublishConfirmationSchema: StudioPublishConfirmationSchema =
+  z.object({
+    confirmed: z.literal(true),
+    confirmationToken: z.string().min(1),
+    contentHash: z.string().min(1),
+    expiresAt: z.string().datetime(),
+  });
+
+export type StudioPublishConfirmation = z.output<
+  typeof studioPublishConfirmationSchema
+>;
+
+type StudioPublishingTarget = z.output<typeof publishingTargetSchema>;
+
+const reorderInputSchema: ReturnType<
+  typeof publishingTargetSchema.extend<{ position: z.ZodNumber }>
+> = publishingTargetSchema.extend({
   position: z.number().int().positive(),
 });
 const successSchema = z.object({ success: z.literal(true) });
@@ -94,26 +103,42 @@ const publishableEntities = defineEntityCatalog({
   label: "Publishable entities",
 });
 
-export const studioPublishingActionSchema: z.ZodType<
-  StudioPublishingAction,
-  StudioPublishingAction
-> = z.discriminatedUnion("type", [
-  publishingTargetSchema.extend({ type: z.literal("queue") }),
-  publishingTargetSchema.extend({ type: z.literal("remove") }),
-  publishingTargetSchema.extend({ type: z.literal("retry") }),
-  reorderInputSchema.extend({ type: z.literal("reorder") }),
-  publishingTargetSchema.extend({
-    type: z.literal("publish"),
-    confirmation: z
-      .object({
-        confirmed: z.literal(true),
-        confirmationToken: z.string().min(1),
-        contentHash: z.string().min(1),
-        expiresAt: z.string().datetime(),
-      })
-      .optional(),
-  }),
-]);
+type TargetAction<TType extends string> = ReturnType<
+  typeof publishingTargetSchema.extend<{ type: z.ZodLiteral<TType> }>
+>;
+
+type StudioPublishingActionSchema = z.ZodDiscriminatedUnion<
+  [
+    TargetAction<"queue">,
+    TargetAction<"remove">,
+    TargetAction<"retry">,
+    ReturnType<
+      typeof reorderInputSchema.extend<{ type: z.ZodLiteral<"reorder"> }>
+    >,
+    ReturnType<
+      typeof publishingTargetSchema.extend<{
+        type: z.ZodLiteral<"publish">;
+        confirmation: z.ZodOptional<StudioPublishConfirmationSchema>;
+      }>
+    >,
+  ]
+>;
+
+export const studioPublishingActionSchema: StudioPublishingActionSchema =
+  z.discriminatedUnion("type", [
+    publishingTargetSchema.extend({ type: z.literal("queue") }),
+    publishingTargetSchema.extend({ type: z.literal("remove") }),
+    publishingTargetSchema.extend({ type: z.literal("retry") }),
+    reorderInputSchema.extend({ type: z.literal("reorder") }),
+    publishingTargetSchema.extend({
+      type: z.literal("publish"),
+      confirmation: studioPublishConfirmationSchema.optional(),
+    }),
+  ]);
+
+export type StudioPublishingAction = z.output<
+  typeof studioPublishingActionSchema
+>;
 
 export interface RegisterStudioWorkspaceDeps {
   providerRegistry: ProviderRegistry;
