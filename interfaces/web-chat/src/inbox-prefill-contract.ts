@@ -6,16 +6,6 @@ import { z } from "@brains/utils/zod";
 
 export type WebChatInboxContext = ChatSourceContext;
 
-export interface WebChatInboxPrefill {
-  version: 2;
-  text: string;
-  context: WebChatInboxContext;
-}
-
-export interface WebChatInboxPrefillState {
-  webChatPrefill: WebChatInboxPrefill;
-}
-
 const safeText = (max: number): z.ZodString =>
   z
     .string()
@@ -27,19 +17,29 @@ const safeText = (max: number): z.ZodString =>
 export const webChatInboxContextSchema: typeof chatSourceContextSchema =
   chatSourceContextSchema;
 
-export const webChatInboxPrefillSchema: z.ZodType<
-  WebChatInboxPrefill,
-  WebChatInboxPrefill
+export const webChatInboxPrefillSchema: z.ZodObject<
+  {
+    version: z.ZodLiteral<2>;
+    text: z.ZodString;
+    context: typeof webChatInboxContextSchema;
+  },
+  z.core.$strict
 > = z.strictObject({
   version: z.literal(2),
   text: safeText(500),
   context: webChatInboxContextSchema,
 });
 
-export const webChatInboxPrefillStateSchema: z.ZodType<
-  WebChatInboxPrefillState,
-  unknown
-> = z.object({ webChatPrefill: webChatInboxPrefillSchema }).passthrough();
+export type WebChatInboxPrefill = z.output<typeof webChatInboxPrefillSchema>;
+
+export const webChatInboxPrefillStateSchema: z.ZodObject<
+  { webChatPrefill: typeof webChatInboxPrefillSchema },
+  z.core.$loose
+> = z.looseObject({ webChatPrefill: webChatInboxPrefillSchema });
+
+export type WebChatInboxPrefillState = z.output<
+  typeof webChatInboxPrefillStateSchema
+>;
 
 export function createWebChatInboxPrefillState(
   text: string,

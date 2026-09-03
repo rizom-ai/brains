@@ -4,22 +4,25 @@ import { z } from "@brains/utils/zod";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 import type { ChatPlatform } from "./types";
 
-export interface ChatThreadSubscriptionState {
-  subscribedAt: string;
-  routingMode?: "auto" | "mention-required" | undefined;
-  mentionRequiredNoticeSent?: boolean | undefined;
-}
+export const chatThreadSubscriptionStateSchema: z.ZodObject<{
+  subscribedAt: z.ZodString;
+  routingMode: z.ZodOptional<
+    z.ZodEnum<{ auto: "auto"; "mention-required": "mention-required" }>
+  >;
+  mentionRequiredNoticeSent: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
+  subscribedAt: z.string().datetime(),
+  routingMode: z.enum(["auto", "mention-required"]).optional(),
+  mentionRequiredNoticeSent: z.boolean().optional(),
+});
+
+export type ChatThreadSubscriptionState = z.output<
+  typeof chatThreadSubscriptionStateSchema
+>;
 
 export type DiscordThreadSubscriptionState = ChatThreadSubscriptionState;
 
-export const chatThreadSubscriptionStateSchema: z.ZodType<ChatThreadSubscriptionState> =
-  z.object({
-    subscribedAt: z.string().datetime(),
-    routingMode: z.enum(["auto", "mention-required"]).optional(),
-    mentionRequiredNoticeSent: z.boolean().optional(),
-  });
-
-export const discordThreadSubscriptionStateSchema: z.ZodType<DiscordThreadSubscriptionState> =
+export const discordThreadSubscriptionStateSchema: typeof chatThreadSubscriptionStateSchema =
   chatThreadSubscriptionStateSchema;
 
 export const discordThreadSubscriptionNamespace = "chat.discord.subscriptions";
