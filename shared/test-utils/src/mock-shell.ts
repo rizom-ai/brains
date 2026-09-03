@@ -40,7 +40,7 @@ import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
 import type {
   MessageHandler,
-  MessageBus,
+  IMessageBus,
   MessageBusSendRequest,
   MessageResponse,
 } from "@brains/messaging-service";
@@ -81,7 +81,7 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
-import type { RenderService } from "@brains/templates";
+import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import {
   ProfileKindRegistry,
@@ -97,7 +97,6 @@ import type {
   AIGenerationSchema,
 } from "@brains/ai-service";
 import { createSilentLogger } from "./mock-logger";
-import type { PublicSurface } from "./public-surface";
 
 /**
  * MockShell type — IShell plus test helper methods.
@@ -331,7 +330,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     options.conversationService ?? createDefaultMockConversationService();
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
-  const messageBusSurface: PublicSurface<MessageBus> = {
+  const messageBus: IMessageBus = {
     send: async <T = unknown, R = unknown>(
       request: MessageBusSendRequest<T>,
     ): Promise<MessageResponse<R>> => {
@@ -405,10 +404,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validateMessage is generic with no schema; the fake does not pretend to validate
       payload as T,
   };
-
-  // Only the nominal private-field gap remains; the shape is checked above.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
-  const messageBus = messageBusSurface as MessageBus;
 
   // --- Entity Service (stateful) ---
   // Overloaded like the real service: without a schema reads return the
@@ -1213,7 +1208,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     close: () => {},
   };
 
-  const renderServiceSurface: PublicSurface<RenderService> = {
+  const renderService: ViewTemplateRegistry = {
     get: () => undefined,
     list: () => [],
     validate: () => true,
@@ -1222,9 +1217,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     hasRenderer: () => false,
     listFormats: () => [],
   };
-  // Only the nominal private-field gap remains; the shape is checked above.
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
-  const renderService = renderServiceSurface as RenderService;
 
   const mcpTransport: IMCPTransport = {
     getMcpServer: (): never => {

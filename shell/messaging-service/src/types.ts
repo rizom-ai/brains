@@ -1,6 +1,10 @@
 import { z } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
+  MessageValidationResult,
+  MessageValidationSchema,
+} from "./message-validator";
+import type {
   MessageResponse,
   MessageHandler,
   BaseMessage,
@@ -102,10 +106,33 @@ export interface IMessageBus {
     filter?: SubscriptionFilter,
   ): () => void;
 
-  hasHandlers?(type: string): boolean;
+  /** Collect one response from every matching handler, in registration order. */
+  collect<T = unknown, R = unknown>(
+    request: MessageBusSendRequest<T>,
+  ): Promise<MessageResponse<R>[]>;
+
+  validateMessage<T>(
+    message: unknown,
+    schema: MessageValidationSchema<T>,
+  ): MessageValidationResult<T>;
 
   unsubscribe<T = unknown, R = unknown>(
     type: string,
     handler: MessageHandler<T, R>,
   ): void;
+
+  /*
+   * Handler introspection.
+   *
+   * These describe the bus the way `hasHandlers` already did, and they are
+   * what a caller checking wiring reaches for. They were missing here while
+   * the only implementation had them, so consumers took the `MessageBus` class
+   * instead — and a test double then had to be asserted into a type with
+   * private state.
+   */
+  hasHandlers?(type: string): boolean;
+  getHandlerCount(messageType: string): number;
+  getTargetedHandlerCount(messageType: string, target: string): number;
+  clearHandlers(messageType: string): void;
+  clearAllHandlers(): void;
 }

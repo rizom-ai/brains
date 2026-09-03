@@ -100,10 +100,25 @@ export interface ViewTemplate<T extends JsonObject = JsonObject> {
 /**
  * View template registry interface
  */
+/**
+ * The render service as consumers use it.
+ *
+ * `hasRenderer` and `listFormats` were missing here even though callers use
+ * both: consumers took the `RenderService` class instead, which meant a test
+ * double had to be asserted into a type with private state.
+ */
 export interface ViewTemplateRegistry {
   get(name: string): ViewTemplate | undefined;
   list(): ViewTemplate[];
   validate(templateName: string, content: unknown): boolean;
+  findViewTemplate(filter: {
+    name?: string;
+    pluginId?: string;
+    namePattern?: string;
+  }): ViewTemplate | undefined;
+  getRenderer(templateName: string, format: OutputFormat): Renderer | undefined;
+  hasRenderer(templateName: string, format: OutputFormat): boolean;
+  listFormats(templateName: string): OutputFormat[];
 }
 
 export interface SiteBuilderOptionsInput {

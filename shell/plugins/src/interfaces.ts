@@ -48,7 +48,7 @@ export {
   ToolContextRoutingSchema,
 } from "@brains/mcp-service";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
-import type { RenderService } from "@brains/templates";
+import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/templates";
@@ -227,7 +227,7 @@ export interface IShell {
   getEntityService(): IEntityService;
   getEntityRegistry(): IEntityRegistry;
   getJobQueueService(): IJobQueueService;
-  getRenderService(): RenderService;
+  getRenderService(): ViewTemplateRegistry;
   getConversationService(): IConversationService;
   getMCPService(): IMCPTransport;
   listToolsForPermissionLevel(level: UserPermissionLevel): ToolInfo[];

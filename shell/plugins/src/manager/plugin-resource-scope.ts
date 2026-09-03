@@ -205,6 +205,16 @@ export function createPluginScopedShell(
         subscription.stopAdmission();
       }
     },
+    // Scoping is about admission and teardown, not about what the bus can be
+    // asked; these pass straight through to it.
+    collect: (request) => messageBus.collect(request),
+    validateMessage: (message, schema) =>
+      messageBus.validateMessage(message, schema),
+    getHandlerCount: (messageType) => messageBus.getHandlerCount(messageType),
+    getTargetedHandlerCount: (messageType, target) =>
+      messageBus.getTargetedHandlerCount(messageType, target),
+    clearHandlers: (messageType) => messageBus.clearHandlers(messageType),
+    clearAllHandlers: () => messageBus.clearAllHandlers(),
   };
 
   const attachments = shell.getAttachmentRegistry();

@@ -8,6 +8,7 @@ import {
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
+import { createMockMessageBus } from "@brains/messaging-service/test";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -1862,13 +1863,8 @@ describe("AgentService", () => {
     });
 
     it("does not pass direct-MCP-only tools to the agent factory", async () => {
-      const unsubscribeFn = mock(() => {});
       const realMCPService = MCPService.createFresh(
-        {
-          send: mock(async () => ({ success: true as const })),
-          subscribe: mock(() => unsubscribeFn),
-          unsubscribe: mock(() => {}),
-        },
+        createMockMessageBus(),
         logger,
       );
       realMCPService.registerTool("system", {
@@ -3600,13 +3596,8 @@ describe("AgentService", () => {
     it("coerces non-compliant confirmed action results from registered tools", async () => {
       setupConfirmationResponse("Deleted.");
 
-      const unsubscribeFn = mock(() => {});
       const realMCPService = MCPService.createFresh(
-        {
-          send: mock(async () => ({ success: true as const })),
-          subscribe: mock(() => unsubscribeFn),
-          unsubscribe: mock(() => {}),
-        },
+        createMockMessageBus(),
         logger,
       );
       const deleteHandler = mock(async () => JSON.parse('{"success":false}'));

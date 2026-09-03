@@ -7,6 +7,8 @@ import type { IMessageBus, MessageResponse } from "../src";
 export interface MockMessageBusReturns {
   send?: MessageResponse;
   hasHandlers?: boolean;
+  getHandlerCount?: number;
+  getTargetedHandlerCount?: number;
 }
 
 /**
@@ -57,5 +59,15 @@ export function createMockMessageBus(
       mock(() => Promise.resolve(defaultSendResult)),
     ),
     hasHandlers: mock(() => returns.hasHandlers ?? false),
+    collect: genericSpy<IMessageBus["collect"]>(
+      mock(() => Promise.resolve([])),
+    ),
+    validateMessage: genericSpy<IMessageBus["validateMessage"]>(
+      mock((message: unknown) => ({ success: true, data: message })),
+    ),
+    getHandlerCount: mock(() => returns.getHandlerCount ?? 0),
+    getTargetedHandlerCount: mock(() => returns.getTargetedHandlerCount ?? 0),
+    clearHandlers: mock(() => {}),
+    clearAllHandlers: mock(() => {}),
   } satisfies IMessageBus;
 }

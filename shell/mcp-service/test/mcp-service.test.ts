@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import {
   createMcpHandler,
   InMemoryTransport,
@@ -10,11 +10,8 @@ import {
 } from "@modelcontextprotocol/client";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import {
-  createMockLogger,
-  createSilentLogger,
-  genericSpy,
-} from "@brains/test-utils";
+import { createMockMessageBus } from "@brains/messaging-service/test";
+import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 
@@ -155,15 +152,12 @@ describe("MCPService", () => {
 
   beforeEach(() => {
     // Create mock message bus with all required methods
-    const unsubscribeFn = mock(() => {});
-    const sendMock = genericSpy<IMessageBus["send"]>(
-      mock(() => Promise.resolve({ success: true, data: "test" })),
-    );
-    mockMessageBus = {
-      send: sendMock,
-      subscribe: mock(() => unsubscribeFn),
-      unsubscribe: mock(() => {}),
-    };
+    // The shared factory rather than a hand-built literal: it implements the
+    // whole bus, so a member added to IMessageBus does not silently leave this
+    // stub incomplete.
+    mockMessageBus = createMockMessageBus({
+      returns: { send: { success: true, data: "test" } },
+    });
 
     mcpService = MCPService.createFresh(mockMessageBus, createSilentLogger());
   });
