@@ -4,6 +4,10 @@ import type { BaseEntity, RawContentVisibility } from "@brains/entity-service";
 type TestEntityOverrides<T extends BaseEntity> = Partial<
   Omit<T, "entityType" | "visibility">
 > & {
+  /** Named here because `Partial<Omit<T, ...>>` cannot expose it while T is
+   * still a type parameter, which is what forced reading it through an
+   * assertion. */
+  content?: string;
   contentHash?: string;
   visibility?: RawContentVisibility;
 };
@@ -41,11 +45,15 @@ export function createTestEntity<T extends BaseEntity = BaseEntity>(
   entityType: string,
   overrides: TestEntityOverrides<T> = {},
 ): T {
-  const content =
-    (overrides as { content?: string }).content ?? `Test ${entityType} content`;
+  const content = overrides.content ?? `Test ${entityType} content`;
   const now = new Date().toISOString();
   const id = overrides.id ?? `test-${entityType}-${Date.now()}`;
 
+  // Constructing a value of an unresolved type parameter from a base plus
+  // overrides is not expressible: T is only known to extend BaseEntity, so
+  // nothing here can prove the result is exactly T. The factory is the one
+  // place this is named, rather than every call site building entities by hand.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above
   return {
     id,
     entityType,

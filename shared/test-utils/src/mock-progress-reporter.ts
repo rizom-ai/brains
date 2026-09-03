@@ -25,6 +25,7 @@ import type { PublicSurface } from "./public-surface";
 export function createMockProgressReporter(): ProgressReporter {
   const mockReporter: PublicSurface<ProgressReporter> = {
     report: mock(() => Promise.resolve()),
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the nominal gap again; see the return below
     createSub: mock((): ProgressReporter => mockReporter as ProgressReporter),
     toCallback: mock((): (() => Promise<void>) => () => Promise.resolve()),
     startHeartbeat: mock(() => {}),
@@ -32,5 +33,6 @@ export function createMockProgressReporter(): ProgressReporter {
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
   return mockReporter as ProgressReporter;
 }

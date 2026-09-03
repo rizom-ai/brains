@@ -57,5 +57,6 @@ export function createMockTemplateRegistry(
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
   return registry as TemplateRegistry;
 }

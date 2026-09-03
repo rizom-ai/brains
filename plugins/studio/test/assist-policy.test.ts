@@ -1,5 +1,6 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import type { AuthPrincipal } from "@brains/auth-service";
+import type { ZodType } from "@brains/utils/zod";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
 import {
   BaseEntityAdapter,
@@ -130,7 +131,16 @@ function assistBody(id: string): Record<string, unknown> {
 describe("Studio assist policy", () => {
   it("loads visible server content and enforces update permission", async () => {
     const fixture = await setup("trusted");
-    const generate = spyOn(fixture.shell, "generateObject");
+    // The shared fake parses whatever it returns through the caller's schema,
+    // so the suggestion has to be supplied here rather than left empty.
+    const generate = spyOn(fixture.shell, "generateObject").mockImplementation(
+      async <T>(
+        _prompt: string,
+        schema: ZodType<T>,
+      ): Promise<{ object: T }> => ({
+        object: schema.parse({ suggestion: "A tighter body." }),
+      }),
+    );
 
     const response = await route(
       fixture.routes,

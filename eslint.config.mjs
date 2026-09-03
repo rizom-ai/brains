@@ -243,7 +243,6 @@ export default [
     ignores: [
       "**/test/**",
       "**/*.test.{ts,tsx}",
-      "shared/test-utils/**",
       "**/scripts/**",
     ],
     plugins: { "eslint-comments": eslintComments },

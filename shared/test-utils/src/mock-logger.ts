@@ -56,10 +56,12 @@ export function createMockLogger(): Logger {
     info: mock(() => {}),
     warn: mock(() => {}),
     error: mock(() => {}),
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the nominal gap again; see the return below
     child: mock((): Logger => mockLogger as Logger),
     setUseStderr: mock(() => {}),
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
   return mockLogger as Logger;
 }

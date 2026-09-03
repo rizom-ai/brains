@@ -94,6 +94,7 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
+  AIGenerationSchema,
 } from "@brains/ai-service";
 import { createSilentLogger } from "./mock-logger";
 import type { PublicSurface } from "./public-surface";
@@ -349,6 +350,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         result = response;
         break;
       }
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the bus is generic in its response type with no schema to check against; the fake stores erased handlers
       return result as MessageResponse<R>;
     },
     subscribe: <T = unknown, R = unknown>(
@@ -359,6 +361,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         messageHandlers.get(type) ??
         new Set<MessageHandler<unknown, unknown>>();
       messageHandlers.set(type, handlers);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- erasing the handler is what lets one set hold every subscription
       const erased = handler as MessageHandler<unknown, unknown>;
       handlers.add(erased);
       return (): void => {
@@ -385,6 +388,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return Promise.all(
         Array.from(handlers).map(
           async (handler) =>
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note on send()
             (await handler({
               type: request.type,
               payload: request.payload,
@@ -398,10 +402,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     // Validation belongs to the real bus's schema registry; the fake accepts
     // whatever a test sends rather than pretending to validate it.
     validateMessage: <T>(_messageType: string, payload: unknown): T =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validateMessage is generic with no schema; the fake does not pretend to validate
       payload as T,
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
   const messageBus = messageBusSurface as MessageBus;
 
   // --- Entity Service (stateful) ---
@@ -563,7 +569,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata: {},
       };
       const now = new Date().toISOString();
-      const entity = {
+      const entity: BaseEntity = {
         ...parsed,
         id: request.input.id,
         entityType: request.input.entityType,
@@ -575,7 +581,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         contentHash: computeContentHash(
           parsed.content ?? request.input.markdown,
         ),
-      } as BaseEntity;
+      };
       return defaultEntityService.createEntity({ entity });
     },
     updateEntity: async <T extends BaseEntity>(
@@ -647,8 +653,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) =>
-      ({ content: markdown }) as BaseEntity,
+    deserializeEntity: (markdown: string) => ({ content: markdown }),
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async <T extends BaseEntity>(
       request: UpsertEntityRequest<T>,
@@ -794,6 +799,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
       entityTypes.add(type);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a heterogeneous registry stores adapters for every entity type in one map
       entityAdapters.set(type, adapter as EntityAdapter<BaseEntity>);
       entityTypeConfigs.set(type, config ?? {});
     },
@@ -819,6 +825,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       // A heterogeneous registry cannot prove the stored adapter matches the
       // caller-chosen T; the real EntityRegistry asserts at exactly this point
       // for the same reason.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the comment above
       return adapter as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
@@ -833,6 +840,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerCreateInterceptor: (type, interceptor) => {
       createInterceptors.set(
         type,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- one map holds interceptors for every entity type; the same erasure as getAdapter
         interceptor as (
           input: unknown,
           executionContext: unknown,
@@ -840,6 +848,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       );
     },
     getCreateInterceptor: (type) =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see registerCreateInterceptor above
       createInterceptors.get(type) as ReturnType<
         IEntityRegistry["getCreateInterceptor"]
       >,
@@ -956,6 +965,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       templateName: string,
       context?: Record<string, unknown>,
     ) =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- generateContent is generic in its output with no schema to check against
       ({
         message: `Generated content for ${templateName}`,
         summary: "Test summary",
@@ -967,6 +977,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     formatContent: <T = unknown>(_templateName: string, data: T) =>
       `Formatted: ${JSON.stringify(data)}`,
     parseContent: <T = unknown>(_templateName: string, content: string): T =>
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- parseContent is generic in its output with no schema to check against
       ({ parsed: content }) as T,
     getTemplate: (name: string): ContentTemplate<unknown> | null => {
       const template = templates.get(name);
@@ -1011,6 +1022,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
   const dataSourceRegistry = dataSourceRegistrySurface as DataSourceRegistry;
 
   // --- Daemon Registry ---
@@ -1213,6 +1225,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     listFormats: () => [],
   };
   // Only the nominal private-field gap remains; the shape is checked above.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only the nominal private-field gap remains; the shape is checked above
   const renderService = renderServiceSurface as RenderService;
 
   const mcpTransport: IMCPTransport = {
@@ -1363,9 +1376,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         ...(config.data && { data: config.data }),
       });
     },
-    generateObject: async <T>(): Promise<{ object: T }> => ({
-      object: {} as T,
-    }),
+    // Parsed through the caller's own schema: an empty object asserted into
+    // T would satisfy any caller while proving nothing.
+    generateObject: async <T>(
+      _prompt: string,
+      schema: AIGenerationSchema<T>,
+    ): Promise<{ object: T }> => ({ object: schema.parse({}) }),
     judge: async <T>(
       input: JudgeInput<T>,
     ): Promise<{

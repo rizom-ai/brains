@@ -30,11 +30,13 @@ export type SpiedMembers<T> = {
  * add, drop, or reshape members.
  */
 export function spyOnMembers<T extends object>(namespace: T): SpiedMembers<T> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Object.fromEntries cannot express the mapped type; see the comment above
   return Object.fromEntries(
     Object.entries(namespace).map(([key, value]) => [
       key,
       typeof value === "function"
-        ? mock(value as (...args: unknown[]) => unknown)
+        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Object.entries erases the value type; see the comment above
+          mock(value as (...args: unknown[]) => unknown)
         : value,
     ]),
   ) as SpiedMembers<T>;
