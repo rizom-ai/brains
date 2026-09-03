@@ -157,7 +157,7 @@ export {
   type ValidatedMessageUpload,
   type ValidatedTextUpload,
   type ValidateUploadInput,
-} from "./upload-policy";
+} from "@brains/contracts/upload-policy";
 
 export {
   MessageUploadContinuity,

@@ -9,7 +9,7 @@ import {
   sanitizeUploadFilename,
   validateMessageUpload,
   validateTextUpload,
-} from "../../src/message-interface/upload-policy";
+} from "../src/upload-policy";
 
 describe("message upload policy", () => {
   it("documents accepted file types and max upload sizes", () => {

@@ -602,6 +602,27 @@ found gaps rather than moved imports, exactly as this plan predicted; what
 has changed is that the remaining gaps are now measured up front instead of
 one package at a time.
 
+**`web-chat` was measured at 47 and is 70.** The table above counted its
+`@brains/plugins` imports and missed a second boundary: 24 more symbols
+arrive through `@brains/plugins/message-interface/upload-policy`, a deep
+subpath a package-level count never sees. The lesson is the same one
+`unified-inbox` taught — measure what the helpers reach for, and count
+subpaths, not packages.
+
+That one is now closed ahead of the conversion, because it was never a
+capability to begin with. `upload-policy.ts` has no imports at all: it is the
+accepted media types, the size ceilings, whether bytes are plausibly text,
+and how a filename is made safe. Both sides need the same answers — the
+runtime enforces them when a message arrives, an interface enforces them
+before sending so a person is told no by the page rather than by the server.
+It is now `@brains/contracts/upload-policy`, where shapes both sides agree on
+live, and neither side reaches through the other for a constant.
+
+The remaining 46 fall into six groups: the durable upload store (10), the
+base class and its contexts (6), the response pipeline (5), artifacts (6),
+progress and tool status (5), and message metadata (3). The upload store is
+the one that looks like a real capability rather than a move.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so

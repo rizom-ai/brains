@@ -1,3 +1,17 @@
+/**
+ * What may be uploaded to a conversation, and how large.
+ *
+ * A rule set rather than runtime: the accepted media types, the size ceilings,
+ * whether bytes are plausibly text, and how a filename is made safe. It has no
+ * imports at all, and both sides of the boundary need the same answers — the
+ * runtime enforces them when a message arrives, and an interface enforces them
+ * before sending so a person is told no by the page rather than by the server.
+ *
+ * It lived in the runtime, which meant an interface had to reach through
+ * `@brains/plugins` for constants. It belongs where shapes both sides agree on
+ * live. Named consumers: the message-interface runtime, and @brains/web-chat.
+ */
+
 export const defaultMessageUploadFilename = "upload.txt";
 export const messageTextUploadAccept =
   ".md,.txt,.markdown,text/plain,text/markdown,text/x-markdown";
