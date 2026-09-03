@@ -8,24 +8,15 @@ import type { SiteImageLookup } from "@brains/site-engine";
 import type { ServiceEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
-interface EntityWithSlug extends Record<string, unknown> {
-  id: string;
-  entityType: string;
-  content: string;
-  metadata: {
-    slug: string;
-  };
-}
-
-interface ImageEntity extends Record<string, unknown> {
-  content: string;
-  metadata: {
-    width?: number | undefined;
-    height?: number | undefined;
-  };
-}
-
-const entityWithSlugSchema: z.ZodType<EntityWithSlug> = z.looseObject({
+const entityWithSlugSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    entityType: z.ZodString;
+    content: z.ZodString;
+    metadata: z.ZodObject<{ slug: z.ZodString }, z.core.$loose>;
+  },
+  z.core.$loose
+> = z.looseObject({
   id: z.string(),
   entityType: z.string(),
   content: z.string(),
@@ -34,7 +25,21 @@ const entityWithSlugSchema: z.ZodType<EntityWithSlug> = z.looseObject({
   }),
 });
 
-const imageEntitySchema: z.ZodType<ImageEntity> = z.looseObject({
+type EntityWithSlug = z.output<typeof entityWithSlugSchema>;
+
+const imageEntitySchema: z.ZodObject<
+  {
+    content: z.ZodString;
+    metadata: z.ZodObject<
+      {
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
+      },
+      z.core.$loose
+    >;
+  },
+  z.core.$loose
+> = z.looseObject({
   content: z.string(),
   metadata: z.looseObject({
     width: z.number().optional(),
