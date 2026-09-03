@@ -1,6 +1,7 @@
 import packageJson from "../package.json";
 
 import type { FetchLike } from "@brains/deploy-support/origin-ca";
+import { getErrorMessage } from "@brains/utils/error";
 import {
   createCommandRegistry,
   defineCommand,
@@ -43,6 +44,7 @@ import type {
   cleanupHealthWatchdogSmoke,
   runHealthWatchdogSmoke,
 } from "./health-watchdog-smoke";
+import type { retireLegacyProjectionJob } from "./legacy-projection-job-recovery";
 
 export interface CommandResult {
   success: boolean;
@@ -68,6 +70,8 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   healthWatchdogSmokeRunner?: typeof runHealthWatchdogSmoke | undefined;
   healthWatchdogSmokeCleanupRunner?:
     typeof cleanupHealthWatchdogSmoke | undefined;
+  legacyProjectionJobRecoveryRunner?:
+    typeof retireLegacyProjectionJob | undefined;
 }
 
 type OpsCommand = CommandDefinition<CommandDependencies, CommandResult>;
@@ -386,6 +390,76 @@ const secretsEncrypt: OpsCommand = defineCommand({
         ? `Dry run: would encrypt ${result.encryptedKeys.length} secrets for ${handle}`
         : `Encrypted ${result.encryptedKeys.length} secrets for ${handle}`,
     };
+  },
+});
+
+const retireLegacyProjectionJobCommand: OpsCommand = defineCommand({
+  name: "recover:retire-legacy-projection-job",
+  usage:
+    "<database> <job-id> --type <legacy-type> (--dry-run | --confirm retire:<job-id>)",
+  description: "Retire one exact unowned pre-scheduler projection job",
+  flags: {
+    type: {
+      type: "string",
+      placeholder: "<legacy-type>",
+      description: "Exact retired projection job type",
+    },
+    confirm: {
+      type: "string",
+      placeholder: "retire:<job-id>",
+      description: "Exact job retirement confirmation",
+    },
+    "dry-run": dryRunFlag,
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const databasePath = args[0];
+    const jobId = args[1];
+    const rawJobType = getStringFlag(flags, "type");
+    const confirmation = getStringFlag(flags, "confirm");
+    const dryRun = getBooleanFlag(flags, "dry-run") ?? false;
+    if (
+      !databasePath ||
+      !jobId ||
+      !rawJobType ||
+      dryRun === (confirmation !== undefined)
+    ) {
+      return usageFailure(retireLegacyProjectionJobCommand);
+    }
+
+    const { legacyProjectionJobTypeSchema } =
+      await import("./legacy-projection-job-recovery");
+    const parsedType = legacyProjectionJobTypeSchema.safeParse(rawJobType);
+    if (!parsedType.success) {
+      return {
+        success: false,
+        message: `Unsupported legacy projection job type: ${rawJobType}`,
+      };
+    }
+
+    const runner =
+      dependencies.legacyProjectionJobRecoveryRunner ??
+      (await import("./legacy-projection-job-recovery"))
+        .retireLegacyProjectionJob;
+    try {
+      const result = await runner({
+        databasePath,
+        jobId,
+        jobType: parsedType.data,
+        ...(confirmation ? { confirmation } : {}),
+        dryRun,
+      });
+      return {
+        success: true,
+        message: result.retired
+          ? `Retired unowned legacy projection job ${result.job.id} (${result.job.type})`
+          : `Dry run: legacy projection job ${result.job.id} (${result.job.type}) is unowned and retirable`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Legacy projection job recovery failed: ${getErrorMessage(error)}`,
+      };
+    }
   },
 });
 
@@ -779,6 +853,7 @@ export const commands: readonly CommandDefinition<
   certBootstrap,
   secretsPush,
   secretsEncrypt,
+  retireLegacyProjectionJobCommand,
   directorySyncStress,
   directorySyncStressAccess,
   directorySyncStressCleanup,

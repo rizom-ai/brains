@@ -56,6 +56,27 @@ Files use mode `0600` and the directory uses `0700`. A `.incomplete` directory i
 
 These are same-server rollback snapshots, not off-host disaster recovery. There is no normal skip and no automatic restore. Restoration requires separate approval: stop replacement/application processes, recheck the selected snapshot's checksums, preserve the current state, restore databases and exact Git state, then validate health, queues, Git checkpoints, durable export intents, preview, and production output before reopening the target.
 
+## Retired projection job recovery
+
+A pre-scheduler projection job can remain active after its handler type is retired. Current runtime health reports active job types missing from the finalized execution inventory as degraded. Do not restart repeatedly or relax the snapshot idle gate.
+
+Use the recovery command only after read-only evidence proves all of the following for one exact row:
+
+- its type is one of the command's fixed legacy projection types;
+- the installed runtime no longer contains that handler;
+- attempt, worker-session, lease, and heartbeat ownership are all absent;
+- no durable progress snapshot or result exists.
+
+Preview the exact row first:
+
+```sh
+bunx --package @rizom/ops@<exact-version> brains-ops \
+  recover:retire-legacy-projection-job \
+  /data/brain-jobs.db <job-id> --type <legacy-type> --dry-run
+```
+
+After separate operator review, replace `--dry-run` with the exact confirmation `--confirm retire:<job-id>`. The command atomically fences against ownership or progress appearing between inspection and retirement, and fails closed if the row changed. It is not a general job cancellation API and cannot retire arbitrary job types. Require operational health and a fully idle queue afterward, then run the unchanged canonical predeploy snapshot and Deploy workflow.
+
 ## Canonical contract crossover maintenance window
 
 Do not run this procedure without explicit operator approval. The canonical desired state, canonical `@rizom/ops`, and unified runtime image form one contract and must move or roll back together. Complete `docs/canonical-crossover-record.md` as the approval evidence without adding secret values.

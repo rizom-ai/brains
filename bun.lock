@@ -665,12 +665,14 @@
         "brains-ops": "./dist/brains-ops.js",
       },
       "dependencies": {
+        "@libsql/client": "^0.17.4",
         "age-encryption": "^0.3.0",
         "yaml": "^2.9.0",
       },
       "devDependencies": {
         "@brains/deploy-support": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/job-queue": "workspace:*",
         "@brains/profile": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/test-utils": "workspace:*",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- [#212](https://github.com/rizom-ai/brains/pull/212) [`a83bc11`](https://github.com/rizom-ai/brains/commit/a83bc11cb9af7e1f499d58dd8cb4cf3538807823) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Detect active durable jobs whose types are absent from the finalized execution inventory and report operational health as degraded. Add an exact, confirmation-gated operator recovery command that can terminally retire only known pre-scheduler projection jobs after atomically proving they have no attempt ownership or partial progress.
+
 ## 0.2.0-alpha.347
 
 ### Patch Changes

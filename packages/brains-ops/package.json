@@ -1,6 +1,6 @@
 {
   "name": "@rizom/ops",
-  "version": "0.2.0-alpha.347",
+  "version": "0.2.0-alpha.348",
   "description": "Operator CLI for managing private brain fleet registry repos",
   "keywords": [
     "brains",
@@ -17,12 +17,14 @@
   },
   "bugs": "https://github.com/rizom-ai/brains/issues",
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "age-encryption": "^0.3.0",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@brains/deploy-support": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/job-queue": "workspace:*",
     "@brains/profile": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/test-utils": "workspace:*",
