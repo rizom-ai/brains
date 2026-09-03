@@ -1,4 +1,8 @@
-import { PermissionService, type UserPermissionLevel } from "@brains/templates";
+import {
+  PermissionService,
+  UserPermissionLevelSchema,
+  type UserPermissionLevel,
+} from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { normalizeSameOriginPath } from "./internal/same-origin-path";
@@ -71,18 +75,35 @@ interface KindRegistration {
   kind: RegisteredInboxFollowUpKind;
 }
 
-const kindRegistrationSchema: z.ZodType<
-  InboxFollowUpKindRegistration,
-  InboxFollowUpKindRegistration
+type KindContextSchema = NonNullable<
+  InboxFollowUpKindRegistration["contextSchema"]
+>;
+type KindApplies = InboxFollowUpKindRegistration["applies"];
+type KindResolve = InboxFollowUpKindRegistration["resolve"];
+
+const kindRegistrationSchema: z.ZodObject<
+  {
+    kind: typeof inboxIdSchema;
+    label: z.ZodString;
+    priority: z.ZodNumber;
+    mode: z.ZodEnum<{ universal: "universal"; declared: "declared" }>;
+    permissionLevel: typeof UserPermissionLevelSchema;
+    contextSchema: z.ZodOptional<
+      z.ZodCustom<KindContextSchema, KindContextSchema>
+    >;
+    applies: z.ZodCustom<KindApplies, KindApplies>;
+    resolve: z.ZodCustom<KindResolve, KindResolve>;
+  },
+  z.core.$strict
 > = z
   .strictObject({
     kind: inboxIdSchema,
     label: z.string().trim().min(1).max(100),
     priority: z.number().int().min(0).max(1_000),
     mode: z.enum(["universal", "declared"]),
-    permissionLevel: z.enum(["admin", "trusted", "public"]),
+    permissionLevel: UserPermissionLevelSchema,
     contextSchema: z
-      .custom<z.ZodType<InboxFollowUpContext, unknown>>(
+      .custom<KindContextSchema>(
         (value) =>
           typeof value === "object" &&
           value !== null &&
@@ -90,12 +111,8 @@ const kindRegistrationSchema: z.ZodType<
           typeof value.safeParse === "function",
       )
       .optional(),
-    applies: z.custom<InboxFollowUpKindRegistration["applies"]>(
-      (value) => typeof value === "function",
-    ),
-    resolve: z.custom<InboxFollowUpKindRegistration["resolve"]>(
-      (value) => typeof value === "function",
-    ),
+    applies: z.custom<KindApplies>((value) => typeof value === "function"),
+    resolve: z.custom<KindResolve>((value) => typeof value === "function"),
   })
   .superRefine((registration, context) => {
     if (
@@ -119,6 +136,14 @@ const kindRegistrationSchema: z.ZodType<
       });
     }
   });
+
+/** Registrations arrive typed by the plugin contract; the schema must accept every one. */
+function expectKindRegistrationInput(
+  value: InboxFollowUpKindRegistration,
+): z.input<typeof kindRegistrationSchema> {
+  return value;
+}
+void expectKindRegistrationInput;
 
 const targetSchema = z.strictObject({
   href: z.string(),

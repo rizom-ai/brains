@@ -9,6 +9,34 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 
+/**
+ * Parser for a JSON value. Recursive through z.lazy, so the type is declared
+ * rather than inferred. Rejects non-finite numbers and integers outside the
+ * safe range: a JSON round-trip would silently reround them, breaking
+ * deterministic comparison of anything snapshotted through it.
+ */
+export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.null(),
+    z.boolean(),
+    z
+      .number()
+      .finite()
+      .refine(
+        (value) => !Number.isInteger(value) || Number.isSafeInteger(value),
+        { message: "integer exceeds the JSON-safe range" },
+      ),
+    z.string(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
+);
+
+export const jsonObjectSchema: z.ZodRecord<
+  z.ZodString,
+  typeof jsonValueSchema
+> = z.record(z.string(), jsonValueSchema);
+
 type IsJsonValueMember<
   T,
   Depth extends readonly unknown[],

@@ -1,40 +1,19 @@
+import {
+  jsonObjectSchema,
+  jsonValueSchema,
+  type JsonObject,
+  type JsonValue,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema, type ContentVisibility } from "./visibility";
 
-export type ProjectionJsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | ProjectionJsonValue[]
-  | ProjectionJsonObject;
+export type ProjectionJsonValue = JsonValue;
+export type ProjectionJsonObject = JsonObject;
 
-export interface ProjectionJsonObject {
-  readonly [key: string]: ProjectionJsonValue;
-}
-
-export const ProjectionJsonValueSchema: z.ZodType<ProjectionJsonValue> = z.lazy(
-  () =>
-    z.union([
-      z.null(),
-      z.boolean(),
-      z
-        .number()
-        .finite()
-        .refine(
-          (value) => !Number.isInteger(value) || Number.isSafeInteger(value),
-          { message: "integer exceeds the JSON-safe range" },
-        ),
-      z.string(),
-      z.array(ProjectionJsonValueSchema),
-      z.record(z.string(), ProjectionJsonValueSchema),
-    ]),
-);
-
-export const ProjectionJsonObjectSchema: z.ZodRecord<
-  z.ZodString,
-  typeof ProjectionJsonValueSchema
-> = z.record(z.string(), ProjectionJsonValueSchema);
+export const ProjectionJsonValueSchema: typeof jsonValueSchema =
+  jsonValueSchema;
+export const ProjectionJsonObjectSchema: typeof jsonObjectSchema =
+  jsonObjectSchema;
 
 export interface ProjectionEntityWrite<
   TMetadata extends ProjectionJsonObject = ProjectionJsonObject,

@@ -16,15 +16,34 @@ const QUEUE_STATE_NAMESPACE = "content-pipeline.queue.v1";
 const RANK_STEP = 1024;
 const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
-const publishAuthContextSchema: z.ZodType<
-  PublishAuthContext,
-  PublishAuthContext
-> = z.object({
+const publishAuthContextSchema: z.ZodObject<{
+  interfaceType: z.ZodOptional<z.ZodString>;
+  actor: z.ZodOptional<typeof actorRefSchema>;
+  userPermissionLevel: z.ZodOptional<
+    z.ZodEnum<{ public: "public"; trusted: "trusted"; admin: "admin" }>
+  >;
+  authorization: z.ZodOptional<z.ZodEnum<{ user: "user"; system: "system" }>>;
+}> = z.object({
   interfaceType: z.string().optional(),
   actor: actorRefSchema.optional(),
   userPermissionLevel: z.enum(["public", "trusted", "admin"]).optional(),
   authorization: z.enum(["user", "system"]).optional(),
 });
+
+// PublishAuthContext is a slice of ToolContext; the stored form must match it
+// both ways: every context is storable, and every stored one is a context.
+function expectPublishAuthContext(
+  value: z.output<typeof publishAuthContextSchema>,
+): PublishAuthContext {
+  return value;
+}
+function expectPublishAuthContextInput(
+  value: PublishAuthContext,
+): z.input<typeof publishAuthContextSchema> {
+  return value;
+}
+void expectPublishAuthContext;
+void expectPublishAuthContextInput;
 
 const publicationQueueRecordSchema: z.ZodObject<{
   entityType: z.ZodString;

@@ -1,33 +1,15 @@
 import { siteLayoutInfoSchema } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
-import type { JsonValue } from "@brains/contracts";
+import {
+  jsonObjectSchema,
+  jsonValueSchema,
+  type JsonValue,
+} from "@brains/contracts";
 import { resolvedSiteImageSchema } from "./site-image-contracts";
 
 export type { JsonObject, JsonValue } from "@brains/contracts";
 
-export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.null(),
-    z.boolean(),
-    // Reject integers outside the safe range: a JSON round-trip would
-    // silently reround them, breaking deterministic snapshot comparison.
-    z
-      .number()
-      .finite()
-      .refine(
-        (value) => !Number.isInteger(value) || Number.isSafeInteger(value),
-        { message: "integer exceeds the JSON-safe range" },
-      ),
-    z.string(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema),
-  ]),
-);
-
-export const jsonObjectSchema: z.ZodRecord<
-  z.ZodString,
-  typeof jsonValueSchema
-> = z.record(z.string(), jsonValueSchema);
+export { jsonObjectSchema, jsonValueSchema } from "@brains/contracts";
 
 /** Resolved section data passed to a renderer without further service reads. */
 export const preparedSectionSchema: z.ZodObject<{
