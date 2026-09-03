@@ -2946,7 +2946,10 @@ if (!executablePath) {
   await server.stop(true);
   throw new Error("Set CONSOLE_CHROMIUM_PATH to a Chromium executable.");
 }
-const browserArgs = process.getuid?.() === 0 ? ["--no-sandbox"] : [];
+const browserArgs =
+  process.getuid?.() === 0 || process.env["CI"] === "true"
+    ? ["--no-sandbox", "--disable-dev-shm-usage"]
+    : [];
 const browserBackend: Bun.WebView.Backend = {
   type: "chrome",
   url: false,
