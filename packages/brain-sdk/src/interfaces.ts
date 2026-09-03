@@ -36,3 +36,23 @@ export type {
   AuthFederation,
   AuthPrincipal,
 } from "@brains/auth-service";
+
+// How an answer reads on this channel. The runtime decides what an answer is
+// made of and in what order — `present` receives that as directives — but a
+// terminal spells an approval out and a web client draws a card, so the
+// formatting helpers that are genuinely shared are published here and the
+// rest stays with whoever renders it.
+// Named consumers: @brains/chat-repl, @brains/chat, @brains/web-chat.
+export {
+  buildApprovalResultView,
+  formatApprovalRequestText,
+  formatStructuredCardFallback,
+  getPendingApprovalCards,
+  getResolvedApprovalCard,
+} from "@brains/plugins";
+export type {
+  ApprovalResolution,
+  ResponseRenderDirective,
+  StructuredChatCard,
+  ToolApprovalCard,
+} from "@brains/plugins";

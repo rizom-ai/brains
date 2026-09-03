@@ -2,11 +2,12 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **12 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **13 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
-`@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`).
+`@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
+`@brains/chat-repl`).
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -406,6 +407,30 @@ made the entity tranche find real defects rather than move code.
    interfaces — what is pending, what a reply resolves, what an answer
    contains and in what order — is the runtime's, and everything that is a
    rendering decision stays with the interface that renders it.
+
+   **`chat-repl` is converted**, and needed one more addition: `origin` on
+   `send`. A reply and a job-progress update already arrive through
+   different runtime paths, and the terminal routes them to different UI
+   callbacks — conversation is printed, progress is coalesced into a status
+   line. Nothing named the difference, so a declared interface could only
+   guess by inspecting rendered text.
+
+   Its 652-line test file is gone, replaced by 8 tests of what the package
+   still owns. That is the conversion's real shape: tracking, routing and
+   ordering moved to the runtime and are tested where they live, so what is
+   left to test here is how a terminal reads — one coalesced block,
+   approvals numbered, `yes 2` lowered back to an id.
+
+   **A latent boot failure surfaced, and it is worth knowing about.** The
+   SDK's `interfaces` subpath value-exports `isLoopbackIssuer` and
+   `issuerFromRequest` from auth-service, which pulls `@peculiar/x509`,
+   which pulls tsyringe — and tsyringe reads decorator metadata at module
+   scope. Nothing imported `reflect-metadata`, so the moment an interface
+   package on the binary's static path imported `@brains/sdk/interfaces`,
+   the built binary stopped booting. chat-repl was the first to do it. The
+   fix is one line at the bundle entry; the lesson is that **the boot smoke
+   is the only gate that catches this**, and it only catches it after a
+   forced rebuild — a stale `dist/` hides it completely.
 
    **`site-content` is gated on batch work it does not own.** Its generate
    tool decides which sections can generate by asking

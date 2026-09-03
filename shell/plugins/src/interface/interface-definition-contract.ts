@@ -403,6 +403,17 @@ export interface MessageInterfaceDefinitionInput<
         readonly state: TState;
         readonly channel: MessageChannel;
         readonly message: MessageOutput;
+        /**
+         * Whether this is an answer to something someone said, or the
+         * runtime reporting on work it is doing.
+         *
+         * The two arrive through different paths already; naming the
+         * difference lets an interface treat them differently — a terminal
+         * coalesces job progress into a status line and prints replies as
+         * conversation, and telling them apart by inspecting the rendered
+         * text is guesswork. Named consumer: @brains/chat-repl.
+         */
+        readonly origin: "reply" | "progress";
       }) => string | void | Promise<string | void>)
     | undefined;
   readonly edit?:

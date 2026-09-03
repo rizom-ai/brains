@@ -305,6 +305,9 @@ class DeclarativeMessageInterfacePlugin<
           state: this.requireState(),
           channel: { id: channelId },
           message: normalizedOutput(request.message),
+          // This path is the progress coordinator's; replies go through
+          // sendMessageWithId, which is what an interface waits on for an id.
+          origin: "progress",
         }),
       )
       .catch((error: unknown) => {
@@ -321,6 +324,7 @@ class DeclarativeMessageInterfacePlugin<
       state: this.requireState(),
       channel: { id: request.channelId },
       message: normalizedOutput(request.message),
+      origin: "reply",
     });
     return typeof id === "string" ? id : undefined;
   }
