@@ -11,28 +11,26 @@ import {
 
 const toolEmailSchema = z.string().email({ pattern: z.regexes.html5Email });
 
-export type SubscriberAction = "subscribe" | "unsubscribe" | "list";
-
-export interface SubscribersInput {
-  action: SubscriberAction;
-  email?: string | undefined;
-  name?: string | undefined;
-  tags?: string[] | undefined;
-  type?: "unactivated" | "regular" | "unsubscribed" | undefined;
-  limit?: number | undefined;
-}
-
-export interface SubscribersSchemaInput {
-  action?: SubscriberAction | undefined;
-  email?: string | undefined;
-  name?: string | undefined;
-  tags?: string[] | undefined;
-  type?: "unactivated" | "regular" | "unsubscribed" | undefined;
-  limit?: number | undefined;
-}
-
-export const subscribersInputSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<SubscribersInput, SubscribersSchemaInput> = z.object({
+export const subscribersInputSchema: z.ZodObject<{
+  action: z.ZodDefault<
+    z.ZodEnum<{
+      subscribe: "subscribe";
+      unsubscribe: "unsubscribe";
+      list: "list";
+    }>
+  >;
+  email: z.ZodOptional<z.ZodString>;
+  name: z.ZodOptional<z.ZodString>;
+  tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  type: z.ZodOptional<
+    z.ZodEnum<{
+      unactivated: "unactivated";
+      regular: "regular";
+      unsubscribed: "unsubscribed";
+    }>
+  >;
+  limit: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
   action: z
     .enum(["subscribe", "unsubscribe", "list"])
     .default("subscribe")
@@ -48,6 +46,10 @@ export const subscribersInputSchema: z.ZodObject<z.ZodRawShape> &
     .describe("Subscriber status filter for list"),
   limit: z.number().optional().describe("Maximum list results"),
 });
+
+export type SubscribersInput = z.output<typeof subscribersInputSchema>;
+export type SubscribersSchemaInput = z.input<typeof subscribersInputSchema>;
+export type SubscriberAction = SubscribersInput["action"];
 
 export function createButtondownTools(
   config: ButtondownConfig,

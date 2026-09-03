@@ -6,18 +6,15 @@ import { z } from "@brains/utils/zod";
 /**
  * Newsletter status enum
  */
-export type NewsletterStatus =
-  "generating" | "draft" | "queued" | "published" | "failed";
+export const newsletterStatusSchema: z.ZodEnum<{
+  generating: "generating";
+  draft: "draft";
+  queued: "queued";
+  published: "published";
+  failed: "failed";
+}> = z.enum(["generating", "draft", "queued", "published", "failed"]);
 
-export const newsletterStatusSchema: z.ZodType<
-  NewsletterStatus,
-  NewsletterStatus
-> = z.enum(["generating", "draft", "queued", "published", "failed"]);
-
-const newsletterStatusParserSchema: z.ZodType<
-  NewsletterStatus,
-  NewsletterStatus
-> = z.enum(["generating", "draft", "queued", "published", "failed"]);
+export type NewsletterStatus = z.output<typeof newsletterStatusSchema>;
 
 /**
  * Newsletter frontmatter schema (stored in content as YAML frontmatter)
@@ -25,7 +22,7 @@ const newsletterStatusParserSchema: z.ZodType<
  */
 export const newsletterFrontmatterSchema: z.ZodObject<{
   subject: z.ZodString;
-  status: z.ZodType<NewsletterStatus, NewsletterStatus>;
+  status: typeof newsletterStatusSchema;
   entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
   scheduledFor: z.ZodOptional<z.ZodString>;
   sentAt: z.ZodOptional<z.ZodString>;
@@ -48,16 +45,18 @@ export type NewsletterFrontmatter = z.output<
 /**
  * Newsletter metadata schema - derived from frontmatter
  */
-export const newsletterMetadataSchema: z.ZodObject<{
+type NewsletterMetadataSchema = z.ZodObject<{
   subject: z.ZodString;
-  status: z.ZodType<NewsletterStatus, NewsletterStatus>;
+  status: typeof newsletterStatusSchema;
   entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
   scheduledFor: z.ZodOptional<z.ZodString>;
   sentAt: z.ZodOptional<z.ZodString>;
   buttondownId: z.ZodOptional<z.ZodString>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
   error: z.ZodOptional<z.ZodString>;
-}> = z.object({
+}>;
+
+export const newsletterMetadataSchema: NewsletterMetadataSchema = z.object({
   subject: z.string(),
   status: newsletterStatusSchema,
   entityIds: z.array(z.string()).optional(),
@@ -70,37 +69,17 @@ export const newsletterMetadataSchema: z.ZodObject<{
 
 export type NewsletterMetadata = z.output<typeof newsletterMetadataSchema>;
 
-const newsletterEntityMetadataParserSchema: z.ZodObject<{
-  subject: z.ZodString;
-  status: z.ZodType<NewsletterStatus, NewsletterStatus>;
-  entityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
-  scheduledFor: z.ZodOptional<z.ZodString>;
-  sentAt: z.ZodOptional<z.ZodString>;
-  buttondownId: z.ZodOptional<z.ZodString>;
-  sourceEntityType: z.ZodOptional<z.ZodString>;
-  error: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  subject: z.string(),
-  status: newsletterStatusParserSchema,
-  entityIds: z.array(z.string()).optional(),
-  scheduledFor: z.string().datetime().optional(),
-  sentAt: z.string().datetime().optional(),
-  buttondownId: z.string().optional(),
-  sourceEntityType: z.string().optional(),
-  error: z.string().optional(),
-});
-
 /**
  * Newsletter entity schema
  */
 export const newsletterSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"newsletter">;
-    metadata: typeof newsletterEntityMetadataParserSchema;
+    metadata: NewsletterMetadataSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("newsletter"),
-  metadata: newsletterEntityMetadataParserSchema,
+  metadata: newsletterMetadataSchema,
 });
 
 export type Newsletter = z.output<typeof newsletterSchema>;

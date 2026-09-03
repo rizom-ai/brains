@@ -32,23 +32,23 @@ import { newsletterListTemplate } from "./templates/newsletter-list";
 import { newsletterDetailTemplate } from "./templates/newsletter-detail";
 import packageJson from "../../package.json";
 
-type NewsletterConfig = Record<string, unknown>;
-type NewsletterConfigInput = Record<string, unknown>;
-
-const newsletterConfigSchema: z.ZodType<
-  NewsletterConfig,
-  NewsletterConfigInput
+const newsletterConfigSchema: z.ZodObject<
+  Record<never, never>,
+  z.core.$loose
 > = z.looseObject({});
 
-interface GenerationEvalInput {
-  prompt?: string | undefined;
-  content?: string | undefined;
-}
+type NewsletterConfig = z.output<typeof newsletterConfigSchema>;
+type NewsletterConfigInput = z.input<typeof newsletterConfigSchema>;
 
-const generationEvalInputSchema: z.ZodType<GenerationEvalInput> = z.object({
+const generationEvalInputSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  content: z.ZodOptional<z.ZodString>;
+}> = z.object({
   prompt: z.string().optional(),
   content: z.string().optional(),
 });
+
+type GenerationEvalInput = z.output<typeof generationEvalInputSchema>;
 
 /**
  * Newsletter EntityPlugin — manages newsletter entities with AI generation.
