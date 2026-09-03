@@ -1,6 +1,6 @@
 import {
   createListToolOutputSchema,
-  type ListToolOutput,
+  type ListToolOutputSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -85,9 +85,8 @@ export type MailTriageFilter = z.output<typeof mailTriageFilterSchema>;
 export type MailTriageListItem = z.output<typeof mailTriageListItemSchema>;
 export type MailTriageListResult = z.output<typeof mailTriageListResultSchema>;
 
-export const mailTriageListToolOutputSchema: z.ZodType<
-  ListToolOutput<MailTriageListResult>,
-  ListToolOutput<MailTriageListResult>
+export const mailTriageListToolOutputSchema: ListToolOutputSchema<
+  typeof mailTriageListResultSchema
 > = createListToolOutputSchema(mailTriageListResultSchema);
 
 type MailTriageStatusActionSchema = z.ZodDiscriminatedUnion<

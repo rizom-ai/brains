@@ -23,21 +23,15 @@ const safeBody = (max: number): z.ZodString =>
       ),
     );
 
-export interface StudioCreatePrefill {
-  version: 2;
-  entityType: "note";
-  title: string;
-  body?: string | undefined;
-  backlink: string;
-}
-
-export interface StudioCreatePrefillState {
-  studioCreatePrefill: StudioCreatePrefill;
-}
-
-export const studioCreatePrefillSchema: z.ZodType<
-  StudioCreatePrefill,
-  StudioCreatePrefill
+export const studioCreatePrefillSchema: z.ZodObject<
+  {
+    version: z.ZodLiteral<2>;
+    entityType: z.ZodLiteral<"note">;
+    title: z.ZodString;
+    body: z.ZodOptional<z.ZodString>;
+    backlink: z.ZodString;
+  },
+  z.core.$strict
 > = z.strictObject({
   version: z.literal(2),
   entityType: z.literal("note"),
@@ -46,10 +40,16 @@ export const studioCreatePrefillSchema: z.ZodType<
   backlink: safeText(500).regex(/^entity:\/\/[^/]+\/.+$/),
 });
 
-export const studioCreatePrefillStateSchema: z.ZodType<
-  StudioCreatePrefillState,
-  unknown
-> = z.object({ studioCreatePrefill: studioCreatePrefillSchema }).passthrough();
+export type StudioCreatePrefill = z.output<typeof studioCreatePrefillSchema>;
+
+export const studioCreatePrefillStateSchema: z.ZodObject<
+  { studioCreatePrefill: typeof studioCreatePrefillSchema },
+  z.core.$loose
+> = z.looseObject({ studioCreatePrefill: studioCreatePrefillSchema });
+
+export type StudioCreatePrefillState = z.output<
+  typeof studioCreatePrefillStateSchema
+>;
 
 export function createStudioCreatePrefillState(
   title: string,

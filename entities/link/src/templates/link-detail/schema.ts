@@ -1,36 +1,26 @@
 import { z } from "@brains/utils/zod";
-import type { LinkStatus } from "../../schemas/link";
+import { linkStatusSchema } from "../../schemas/link";
 
-export interface LinkDetailSource {
-  ref: string;
-  label: string;
-}
+const linkSourceSchema: z.ZodObject<{ ref: z.ZodString; label: z.ZodString }> =
+  z.object({
+    ref: z.string(),
+    label: z.string(),
+  });
 
-export interface LinkDetail {
-  status: LinkStatus;
-  title: string;
-  url: string;
-  description: string | null;
-  domain: string;
-  capturedAt: string;
-  source: LinkDetailSource;
-  id: string;
-  summary: string | null;
-}
+export type LinkDetailSource = z.output<typeof linkSourceSchema>;
 
-export interface LinkDetailData {
-  link: LinkDetail;
-  prevLink: LinkDetail | null;
-  nextLink: LinkDetail | null;
-}
-
-const linkSourceSchema: z.ZodType<LinkDetailSource> = z.object({
-  ref: z.string(),
-  label: z.string(),
-});
-
-const linkDetailSchema: z.ZodType<LinkDetail> = z.object({
-  status: z.enum(["pending", "draft", "published"]),
+const linkDetailSchema: z.ZodObject<{
+  status: typeof linkStatusSchema;
+  title: z.ZodString;
+  url: z.ZodURL;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  domain: z.ZodString;
+  capturedAt: z.ZodString;
+  source: typeof linkSourceSchema;
+  id: z.ZodString;
+  summary: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}> = z.object({
+  status: linkStatusSchema,
   title: z.string(),
   url: z.url(),
   description: z.string().nullable().default(null),
@@ -41,9 +31,17 @@ const linkDetailSchema: z.ZodType<LinkDetail> = z.object({
   summary: z.string().nullable().default(null),
 });
 
+export type LinkDetail = z.output<typeof linkDetailSchema>;
+
 // Schema for link detail page data
-export const linkDetailDataSchema: z.ZodType<LinkDetailData> = z.object({
+export const linkDetailDataSchema: z.ZodObject<{
+  link: typeof linkDetailSchema;
+  prevLink: z.ZodNullable<typeof linkDetailSchema>;
+  nextLink: z.ZodNullable<typeof linkDetailSchema>;
+}> = z.object({
   link: linkDetailSchema,
   prevLink: linkDetailSchema.nullable(),
   nextLink: linkDetailSchema.nullable(),
 });
+
+export type LinkDetailData = z.output<typeof linkDetailDataSchema>;
