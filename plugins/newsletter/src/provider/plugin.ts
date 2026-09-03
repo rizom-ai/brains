@@ -19,22 +19,13 @@ import {
 } from "./publish-handler";
 import packageJson from "../../package.json";
 
-interface ButtondownConfig {
-  apiKey?: string | undefined;
-  doubleOptIn: boolean;
-  autoSendOnPublish: boolean;
-}
+type ButtondownPluginConfigSchema = z.ZodObject<{
+  apiKey: z.ZodOptional<z.ZodString>;
+  doubleOptIn: z.ZodDefault<z.ZodBoolean>;
+  autoSendOnPublish: z.ZodDefault<z.ZodBoolean>;
+}>;
 
-interface ButtondownConfigInput {
-  apiKey?: string | undefined;
-  doubleOptIn?: boolean | undefined;
-  autoSendOnPublish?: boolean | undefined;
-}
-
-const buttondownConfigSchema: z.ZodType<
-  ButtondownConfig,
-  ButtondownConfigInput
-> = z.object({
+const buttondownConfigSchema: ButtondownPluginConfigSchema = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
   doubleOptIn: z
     .boolean()
@@ -46,18 +37,21 @@ const buttondownConfigSchema: z.ZodType<
     .describe("Automatically send newsletter when a blog post is published"),
 });
 
+type ButtondownPluginConfig = z.output<typeof buttondownConfigSchema>;
+type ButtondownPluginConfigInput = z.input<typeof buttondownConfigSchema>;
+
 /**
  * Buttondown integration plugin — subscriber management and API routes.
  * Newsletter entity management is in this package's entity module.
  */
 export class ButtondownPlugin extends ServicePlugin<
-  ButtondownConfig,
-  ButtondownConfigInput
+  ButtondownPluginConfig,
+  ButtondownPluginConfigInput
 > {
   private deps: ButtondownClientDeps;
 
   constructor(
-    config: ButtondownConfigInput = {},
+    config: ButtondownPluginConfigInput = {},
     deps: ButtondownClientDeps = {},
   ) {
     super("buttondown", packageJson, config, buttondownConfigSchema);
@@ -130,7 +124,6 @@ export class ButtondownPlugin extends ServicePlugin<
   protected override async getTools(): Promise<Tool[]> {
     if (!this.config.apiKey) return [];
     return createButtondownTools(
-      this.id,
       { apiKey: this.config.apiKey, doubleOptIn: this.config.doubleOptIn },
       this.logger,
       this.deps,
@@ -153,7 +146,7 @@ export class ButtondownPlugin extends ServicePlugin<
 }
 
 export function buttondownPlugin(
-  config: ButtondownConfigInput = {},
+  config: ButtondownPluginConfigInput = {},
 ): ButtondownPlugin {
   return new ButtondownPlugin(config);
 }

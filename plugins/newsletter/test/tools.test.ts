@@ -26,7 +26,6 @@ describe("Buttondown Tools", () => {
 
   it("registers one canonical newsletter subscriber tool", () => {
     const tools = createButtondownTools(
-      "buttondown",
       { apiKey: "test-key", doubleOptIn: true },
       createSilentLogger("buttondown-tools-test"),
     );
@@ -36,7 +35,6 @@ describe("Buttondown Tools", () => {
 
   it("uses OpenAI-compatible email patterns in model-visible tool schemas", () => {
     const tools = createButtondownTools(
-      "buttondown",
       { apiKey: "test-key", doubleOptIn: true },
       createSilentLogger("buttondown-tools-test"),
     );

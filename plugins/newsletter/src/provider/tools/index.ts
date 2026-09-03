@@ -6,6 +6,7 @@ import { z } from "@brains/utils/zod";
 import {
   ButtondownClient,
   type ButtondownClientDeps,
+  type ButtondownConfig,
 } from "../lib/buttondown-client";
 
 const toolEmailSchema = z.string().email({ pattern: z.regexes.html5Email });
@@ -48,18 +49,11 @@ export const subscribersInputSchema: z.ZodObject<z.ZodRawShape> &
   limit: z.number().optional().describe("Maximum list results"),
 });
 
-interface ButtondownConfig {
-  apiKey: string;
-  doubleOptIn: boolean;
-}
-
 export function createButtondownTools(
-  pluginId: string,
   config: ButtondownConfig,
   logger: Logger,
   deps: ButtondownClientDeps = {},
 ): Tool[] {
-  void pluginId;
   const client = new ButtondownClient(config, logger, deps);
 
   return [
