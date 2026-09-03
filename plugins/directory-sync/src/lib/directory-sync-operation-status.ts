@@ -12,115 +12,144 @@ import { isAbsolute, relative } from "path";
 import type { ExportResult, ImportResult } from "../types";
 import { DEFAULT_GIT_TIMEOUT_MS } from "./git-options";
 
-export type DirectorySyncRunSource = "manual" | "periodic" | "watcher" | "save";
-export type DirectorySyncRunState =
-  "pulling" | "scanning" | "importing" | "settling";
-export type DirectorySyncRunOutcome = "succeeded" | "attention" | "failed";
-export type DirectorySyncIssueKind =
-  "quarantined" | "import" | "export" | "git" | "source";
+const runSourceSchema: z.ZodEnum<{
+  manual: "manual";
+  periodic: "periodic";
+  watcher: "watcher";
+  save: "save";
+}> = z.enum(["manual", "periodic", "watcher", "save"]);
+export type DirectorySyncRunSource = z.output<typeof runSourceSchema>;
 
-export interface DirectorySyncRunMetrics {
-  imported: number;
-  skipped: number;
-  failed: number;
-  quarantined: number;
-  exported: number;
-}
+const runStateSchema: z.ZodEnum<{
+  pulling: "pulling";
+  scanning: "scanning";
+  importing: "importing";
+  settling: "settling";
+}> = z.enum(["pulling", "scanning", "importing", "settling"]);
+export type DirectorySyncRunState = z.output<typeof runStateSchema>;
 
-export interface ActiveDirectorySyncRun extends DirectorySyncRunMetrics {
-  id: string;
-  source: DirectorySyncRunSource;
-  state: DirectorySyncRunState;
-  startedAt: string;
-  lastProgressAt: string;
-  jobId?: string | undefined;
-  batchId?: string | undefined;
-}
+const runOutcomeSchema: z.ZodEnum<{
+  succeeded: "succeeded";
+  attention: "attention";
+  failed: "failed";
+}> = z.enum(["succeeded", "attention", "failed"]);
+export type DirectorySyncRunOutcome = z.output<typeof runOutcomeSchema>;
 
-export interface RecentDirectorySyncRun extends DirectorySyncRunMetrics {
-  id: string;
-  source: DirectorySyncRunSource;
-  outcome: DirectorySyncRunOutcome;
-  startedAt: string;
-  completedAt: string;
-  summary: string;
-}
+const issueKindSchema: z.ZodEnum<{
+  quarantined: "quarantined";
+  import: "import";
+  export: "export";
+  git: "git";
+  source: "source";
+}> = z.enum(["quarantined", "import", "export", "git", "source"]);
+export type DirectorySyncIssueKind = z.output<typeof issueKindSchema>;
 
-export interface DirectorySyncIssue {
-  id: string;
-  kind: DirectorySyncIssueKind;
-  path?: string | undefined;
-  message: string;
-  occurredAt: string;
-}
-
-interface StoredDirectorySyncOperationStatus {
-  activeRun?: ActiveDirectorySyncRun | undefined;
-  recentRuns: RecentDirectorySyncRun[];
-  issues: DirectorySyncIssue[];
-}
-
-export interface DirectorySyncOperationSnapshot {
-  activeRun?: ActiveDirectorySyncRun | undefined;
-  recentRuns: RecentDirectorySyncRun[];
-  issues: DirectorySyncIssue[];
-}
-
-const runSourceSchema = z.enum(["manual", "periodic", "watcher", "save"]);
-const runStateSchema = z.enum(["pulling", "scanning", "importing", "settling"]);
-const runMetricsSchema = {
+type RunMetricsSchema = z.ZodObject<{
+  imported: z.ZodNumber;
+  skipped: z.ZodNumber;
+  failed: z.ZodNumber;
+  quarantined: z.ZodNumber;
+  exported: z.ZodNumber;
+}>;
+const runMetricsSchema: RunMetricsSchema = z.object({
   imported: z.number().int().nonnegative(),
   skipped: z.number().int().nonnegative(),
   failed: z.number().int().nonnegative(),
   quarantined: z.number().int().nonnegative(),
   exported: z.number().int().nonnegative(),
-};
-const activeRunSchema: z.ZodType<ActiveDirectorySyncRun> = z.preprocess(
-  (input) => {
-    if (
-      typeof input !== "object" ||
-      input === null ||
-      "lastProgressAt" in input ||
-      !("startedAt" in input) ||
-      typeof input.startedAt !== "string"
-    ) {
-      return input;
-    }
-    return { ...input, lastProgressAt: input.startedAt };
-  },
-  z.object({
-    id: z.string().min(1),
-    source: runSourceSchema,
-    state: runStateSchema,
-    startedAt: z.string().datetime(),
-    lastProgressAt: z.string().datetime(),
-    jobId: z.string().min(1).optional(),
-    batchId: z.string().min(1).optional(),
-    ...runMetricsSchema,
-  }),
-);
-const recentRunSchema = z.object({
+});
+export type DirectorySyncRunMetrics = z.output<typeof runMetricsSchema>;
+
+type ActiveRunSchema = z.ZodObject<
+  RunMetricsSchema["shape"] & {
+    id: z.ZodString;
+    source: typeof runSourceSchema;
+    state: typeof runStateSchema;
+    startedAt: z.ZodString;
+    lastProgressAt: z.ZodString;
+    jobId: z.ZodOptional<z.ZodString>;
+    batchId: z.ZodOptional<z.ZodString>;
+  }
+>;
+/** Runs recorded before lastProgressAt existed read as progressing at their start. */
+export const activeDirectorySyncRunSchema: z.ZodPreprocess<ActiveRunSchema> =
+  z.preprocess(
+    (input) => {
+      if (
+        typeof input !== "object" ||
+        input === null ||
+        "lastProgressAt" in input ||
+        !("startedAt" in input) ||
+        typeof input.startedAt !== "string"
+      ) {
+        return input;
+      }
+      return { ...input, lastProgressAt: input.startedAt };
+    },
+    z.object({
+      id: z.string().min(1),
+      source: runSourceSchema,
+      state: runStateSchema,
+      startedAt: z.string().datetime(),
+      lastProgressAt: z.string().datetime(),
+      jobId: z.string().min(1).optional(),
+      batchId: z.string().min(1).optional(),
+      ...runMetricsSchema.shape,
+    }),
+  );
+export type ActiveDirectorySyncRun = z.output<
+  typeof activeDirectorySyncRunSchema
+>;
+
+export const recentDirectorySyncRunSchema: z.ZodObject<
+  RunMetricsSchema["shape"] & {
+    id: z.ZodString;
+    source: typeof runSourceSchema;
+    outcome: typeof runOutcomeSchema;
+    startedAt: z.ZodString;
+    completedAt: z.ZodString;
+    summary: z.ZodString;
+  }
+> = z.object({
   id: z.string().min(1),
   source: runSourceSchema,
-  outcome: z.enum(["succeeded", "attention", "failed"]),
+  outcome: runOutcomeSchema,
   startedAt: z.string().datetime(),
   completedAt: z.string().datetime(),
   summary: z.string().min(1).max(240),
-  ...runMetricsSchema,
+  ...runMetricsSchema.shape,
 });
-const issueSchema = z.object({
+export type RecentDirectorySyncRun = z.output<
+  typeof recentDirectorySyncRunSchema
+>;
+
+export const directorySyncIssueSchema: z.ZodObject<{
+  id: z.ZodString;
+  kind: typeof issueKindSchema;
+  path: z.ZodOptional<z.ZodString>;
+  message: z.ZodString;
+  occurredAt: z.ZodString;
+}> = z.object({
   id: z.string().min(1),
-  kind: z.enum(["quarantined", "import", "export", "git", "source"]),
+  kind: issueKindSchema,
   path: z.string().min(1).max(300).optional(),
   message: z.string().min(1).max(400),
   occurredAt: z.string().datetime(),
 });
-const storedStatusSchema: z.ZodType<StoredDirectorySyncOperationStatus> =
-  z.object({
-    activeRun: activeRunSchema.optional(),
-    recentRuns: z.array(recentRunSchema).max(5),
-    issues: z.array(issueSchema).max(8),
-  });
+export type DirectorySyncIssue = z.output<typeof directorySyncIssueSchema>;
+
+const storedStatusSchema: z.ZodObject<{
+  activeRun: z.ZodOptional<typeof activeDirectorySyncRunSchema>;
+  recentRuns: z.ZodArray<typeof recentDirectorySyncRunSchema>;
+  issues: z.ZodArray<typeof directorySyncIssueSchema>;
+}> = z.object({
+  activeRun: activeDirectorySyncRunSchema.optional(),
+  recentRuns: z.array(recentDirectorySyncRunSchema).max(5),
+  issues: z.array(directorySyncIssueSchema).max(8),
+});
+export type DirectorySyncOperationSnapshot = z.output<
+  typeof storedStatusSchema
+>;
 
 const syncRequestResultSchema = z.object({
   gitPulled: z.literal(true),
@@ -137,7 +166,7 @@ const EMPTY_METRICS: DirectorySyncRunMetrics = {
   quarantined: 0,
   exported: 0,
 };
-const EMPTY_STATUS: StoredDirectorySyncOperationStatus = {
+const EMPTY_STATUS: DirectorySyncOperationSnapshot = {
   recentRuns: [],
   issues: [],
 };
@@ -163,7 +192,7 @@ export interface DirectorySyncOperationStatusOptions {
  * Jobs and batches remain execution authority; this service gives them sync-domain meaning.
  */
 export class DirectorySyncOperationStatusService {
-  private readonly store: SerializedStatusStore<StoredDirectorySyncOperationStatus>;
+  private readonly store: SerializedStatusStore<DirectorySyncOperationSnapshot>;
   private readonly progressStore: IRuntimeStateStore<
     z.infer<typeof progressSchema>
   >;
@@ -191,7 +220,7 @@ export class DirectorySyncOperationStatusService {
       namespace: STATUS_NAMESPACE,
       key: STATUS_KEY,
       schema: storedStatusSchema,
-      createEmpty: (): StoredDirectorySyncOperationStatus =>
+      createEmpty: (): DirectorySyncOperationSnapshot =>
         structuredClone(EMPTY_STATUS),
     });
     this.progressStore = runtimeState.scoped({
@@ -610,13 +639,13 @@ export class DirectorySyncOperationStatusService {
   }
 
   private mutate<T>(
-    mutation: (status: StoredDirectorySyncOperationStatus) => T,
+    mutation: (status: DirectorySyncOperationSnapshot) => T,
   ): Promise<T> {
     return this.store.mutate(mutation);
   }
 
   private prependRecent(
-    status: StoredDirectorySyncOperationStatus,
+    status: DirectorySyncOperationSnapshot,
     active: ActiveDirectorySyncRun,
     outcome: DirectorySyncRunOutcome,
     summary: string,
@@ -641,7 +670,7 @@ export class DirectorySyncOperationStatusService {
   }
 
   private prependIssue(
-    status: StoredDirectorySyncOperationStatus,
+    status: DirectorySyncOperationSnapshot,
     input: {
       kind: DirectorySyncIssueKind;
       path?: string | undefined;

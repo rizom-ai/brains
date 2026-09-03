@@ -1,6 +1,5 @@
 import { z } from "@brains/utils/zod";
 import { gitOperationSchema } from "./operations";
-import type { GitOperation } from "./operations";
 
 /**
  * Wire contract between a broker client and the broker.
@@ -29,102 +28,6 @@ export const MAX_PAYLOAD_BYTES: number = 4 * 1024 * 1024;
 
 const FRAME_HEADER_BYTES = 4;
 
-export interface RegisterCheckoutMessage {
-  type: "register-checkout";
-  version: number;
-  requestId: string;
-  checkoutPath: string;
-  branch: string;
-  remoteFingerprint: string;
-}
-
-export interface ExecuteOperationMessage {
-  type: "execute-operation";
-  version: number;
-  requestId: string;
-  checkoutPath: string;
-  operation: GitOperation;
-}
-
-export interface ProgressMessage {
-  type: "progress";
-  version: number;
-  requestId: string;
-  phase: "running";
-  observedAt: string;
-}
-
-export interface ResultMessage {
-  type: "result";
-  version: number;
-  requestId: string;
-  outcome: "ok" | "error";
-  /** Operation-specific payload, already typed by the operation contract. */
-  value: unknown;
-  error: string | null;
-}
-
-/**
- * A role reporting that it has reconciled what the previous owner left.
- *
- * The broker cannot do this itself: the queue and the durable checkpoint
- * live in the app. So it holds mutations until one role says the checkout
- * has been accounted for.
- */
-export interface OpenAdmissionMessage {
-  type: "open-admission";
-  version: number;
-  requestId: string;
-}
-
-export interface QueryMessage {
-  type: "query";
-  version: number;
-  requestId: string;
-}
-
-export interface StatusMessage {
-  type: "status";
-  version: number;
-  requestId: string;
-  brokerId: string;
-  checkouts: string[];
-  activeRequestIds: string[];
-  /** Accepted and waiting for a turn; waiting is not stalling. */
-  queuedRequestIds: string[];
-  /** Requests the previous generation started and never settled. */
-  ambiguousRequestIds: string[];
-  /** False when the previous generation's record could not be read whole. */
-  evidenceComplete: boolean;
-  /** True until the scheduling role reconciles an inherited generation. */
-  recoveryPending: boolean;
-  /** False while this owner is holding mutations pending reconciliation. */
-  admitsMutations: boolean;
-  /**
-   * Epoch millis of the least recently advanced active operation, or null when
-   * nothing is active. Progress age, not start age: a slow clone that keeps
-   * producing output is healthy, and one that stops is not.
-   */
-  oldestActiveProgressAt: number | null;
-}
-
-export interface HeartbeatMessage {
-  type: "heartbeat";
-  version: number;
-  brokerId: string;
-  observedAt: string;
-}
-
-export type BrokerMessage =
-  | RegisterCheckoutMessage
-  | QueryMessage
-  | OpenAdmissionMessage
-  | ExecuteOperationMessage
-  | ProgressMessage
-  | ResultMessage
-  | StatusMessage
-  | HeartbeatMessage;
-
 export type ProtocolErrorCode =
   "frame-too-large" | "malformed" | "version-mismatch";
 
@@ -138,83 +41,183 @@ export class ProtocolError extends Error {
   }
 }
 
-const requestId = z
+const requestId: z.ZodString = z
   .string()
   .min(8)
   .max(64)
   .regex(/^[A-Za-z0-9_-]+$/);
-const version = z.number().int().nonnegative();
-const timestamp = z.string().min(1).max(64);
+const version: z.ZodNumber = z.number().int().nonnegative();
+const timestamp: z.ZodString = z.string().min(1).max(64);
 
-export const brokerMessageSchema: z.ZodType<BrokerMessage, BrokerMessage> =
-  z.discriminatedUnion("type", [
-    z
-      .object({
-        type: z.literal("register-checkout"),
-        version,
-        requestId,
-        checkoutPath: z.string().min(1),
-        branch: z.string().min(1),
-        remoteFingerprint: z.string().min(1),
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal("execute-operation"),
-        version,
-        requestId,
-        checkoutPath: z.string().min(1),
-        operation: gitOperationSchema,
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal("progress"),
-        version,
-        requestId,
-        phase: z.literal("running"),
-        observedAt: timestamp,
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal("result"),
-        version,
-        requestId,
-        outcome: z.enum(["ok", "error"]),
-        value: z.unknown(),
-        error: z.string().nullable(),
-      })
-      .strict(),
-    z.object({ type: z.literal("query"), version, requestId }).strict(),
-    z
-      .object({ type: z.literal("open-admission"), version, requestId })
-      .strict(),
-    z
-      .object({
-        type: z.literal("status"),
-        version,
-        requestId,
-        brokerId: z.string().min(1),
-        checkouts: z.array(z.string()),
-        activeRequestIds: z.array(requestId),
-        queuedRequestIds: z.array(requestId),
-        ambiguousRequestIds: z.array(requestId),
-        evidenceComplete: z.boolean(),
-        recoveryPending: z.boolean(),
-        admitsMutations: z.boolean(),
-        oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal("heartbeat"),
-        version,
-        brokerId: z.string().min(1),
-        observedAt: timestamp,
-      })
-      .strict(),
-  ]);
+type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
+
+export const brokerMessageSchema: z.ZodDiscriminatedUnion<
+  [
+    Strict<{
+      type: z.ZodLiteral<"register-checkout">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+      checkoutPath: z.ZodString;
+      branch: z.ZodString;
+      remoteFingerprint: z.ZodString;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"execute-operation">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+      checkoutPath: z.ZodString;
+      operation: typeof gitOperationSchema;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"progress">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+      phase: z.ZodLiteral<"running">;
+      observedAt: z.ZodString;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"result">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+      outcome: z.ZodEnum<{ ok: "ok"; error: "error" }>;
+      value: z.ZodUnknown;
+      error: z.ZodNullable<z.ZodString>;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"query">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"open-admission">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"status">;
+      version: z.ZodNumber;
+      requestId: z.ZodString;
+      brokerId: z.ZodString;
+      checkouts: z.ZodArray<z.ZodString>;
+      activeRequestIds: z.ZodArray<z.ZodString>;
+      queuedRequestIds: z.ZodArray<z.ZodString>;
+      ambiguousRequestIds: z.ZodArray<z.ZodString>;
+      evidenceComplete: z.ZodBoolean;
+      recoveryPending: z.ZodBoolean;
+      admitsMutations: z.ZodBoolean;
+      oldestActiveProgressAt: z.ZodNullable<z.ZodNumber>;
+    }>,
+    Strict<{
+      type: z.ZodLiteral<"heartbeat">;
+      version: z.ZodNumber;
+      brokerId: z.ZodString;
+      observedAt: z.ZodString;
+    }>,
+  ],
+  "type"
+> = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("register-checkout"),
+      version,
+      requestId,
+      checkoutPath: z.string().min(1),
+      branch: z.string().min(1),
+      remoteFingerprint: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("execute-operation"),
+      version,
+      requestId,
+      checkoutPath: z.string().min(1),
+      operation: gitOperationSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("progress"),
+      version,
+      requestId,
+      phase: z.literal("running"),
+      observedAt: timestamp,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("result"),
+      version,
+      requestId,
+      outcome: z.enum(["ok", "error"]),
+      /** Operation-specific payload, already typed by the operation contract. */
+      value: z.unknown(),
+      error: z.string().nullable(),
+    })
+    .strict(),
+  z.object({ type: z.literal("query"), version, requestId }).strict(),
+  /**
+   * A role reporting that it has reconciled what the previous owner left.
+   *
+   * The broker cannot do this itself: the queue and the durable checkpoint
+   * live in the app. So it holds mutations until one role says the checkout
+   * has been accounted for.
+   */
+  z.object({ type: z.literal("open-admission"), version, requestId }).strict(),
+  z
+    .object({
+      type: z.literal("status"),
+      version,
+      requestId,
+      brokerId: z.string().min(1),
+      checkouts: z.array(z.string()),
+      activeRequestIds: z.array(requestId),
+      /** Accepted and waiting for a turn; waiting is not stalling. */
+      queuedRequestIds: z.array(requestId),
+      /** Requests the previous generation started and never settled. */
+      ambiguousRequestIds: z.array(requestId),
+      /** False when the previous generation's record could not be read whole. */
+      evidenceComplete: z.boolean(),
+      /** True until the scheduling role reconciles an inherited generation. */
+      recoveryPending: z.boolean(),
+      /** False while this owner is holding mutations pending reconciliation. */
+      admitsMutations: z.boolean(),
+      /**
+       * Epoch millis of the least recently advanced active operation, or null
+       * when nothing is active. Progress age, not start age: a slow clone that
+       * keeps producing output is healthy, and one that stops is not.
+       */
+      oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("heartbeat"),
+      version,
+      brokerId: z.string().min(1),
+      observedAt: timestamp,
+    })
+    .strict(),
+]);
+
+export type BrokerMessage = z.output<typeof brokerMessageSchema>;
+export type RegisterCheckoutMessage = Extract<
+  BrokerMessage,
+  { type: "register-checkout" }
+>;
+export type ExecuteOperationMessage = Extract<
+  BrokerMessage,
+  { type: "execute-operation" }
+>;
+export type ProgressMessage = Extract<BrokerMessage, { type: "progress" }>;
+export type ResultMessage = Extract<BrokerMessage, { type: "result" }>;
+export type OpenAdmissionMessage = Extract<
+  BrokerMessage,
+  { type: "open-admission" }
+>;
+export type QueryMessage = Extract<BrokerMessage, { type: "query" }>;
+export type StatusMessage = Extract<BrokerMessage, { type: "status" }>;
+export type HeartbeatMessage = Extract<BrokerMessage, { type: "heartbeat" }>;
 
 export function encodeFrame(message: BrokerMessage): Uint8Array {
   const body = new TextEncoder().encode(JSON.stringify(message));
