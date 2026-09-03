@@ -15,3 +15,24 @@ export function stateNamespaceFor(
 ): string {
   return `${packageName.replace(/^@/u, "").replaceAll("/", ".")}.${namespace}`;
 }
+
+/**
+ * The directory a declaration's uploads are filed under.
+ *
+ * The same reasoning as runtime state, for a different reason to care: an
+ * upload namespace is a filesystem path, and a declaration naming its own
+ * scope has no way to know another one did not choose the same word. Two
+ * interfaces both accepting attachments would then share a directory, and a
+ * ref issued by one would resolve in the other — isolation by convention,
+ * which is no isolation at all.
+ *
+ * Kept flat rather than nested so a scope stays one path segment, and
+ * separated by `.` because declaration ids are identifiers and cannot
+ * contain one.
+ */
+export function uploadNamespaceFor(
+  declarationId: string,
+  namespace: string,
+): string {
+  return `${declarationId}.${namespace}`;
+}

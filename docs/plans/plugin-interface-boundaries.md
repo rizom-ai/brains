@@ -291,12 +291,12 @@ verbatim` hands the handler's own `Response` through untouched.
      The guard was already under-reporting; it would have rotted silently as
      `web-chat`, `webserver` and `a2a` convert.
 
-     Registering costs something, and the first version cost too much: three
-     tests each registered all five compositions, standing up sixteen shells
-     in one worker and hanging the suite under `turbo`'s parallel run. Each
-     composition is registered once and its manifest cached, and only
-     interfaces are registered — registering a service there would start a
-     directory-sync filesystem scan or a site build.
+     Registering costs something, so each composition is registered once and
+     its manifest cached — three tests want the same manifests, and the first
+     version stood up sixteen shells to produce six answers. Only interfaces
+     are registered: registering a service there would start real work this
+     manifest has no business starting, a directory-sync filesystem scan or a
+     site build.
 
    - **Debug mode's auth check moved back to daemon start.** The first cut
      put it in `setup`, which reads better — an interface that cannot serve
@@ -620,8 +620,21 @@ live, and neither side reaches through the other for a constant.
 
 The remaining 46 fall into six groups: the durable upload store (10), the
 base class and its contexts (6), the response pipeline (5), artifacts (6),
-progress and tool status (5), and message metadata (3). The upload store is
-the one that looks like a real capability rather than a move.
+progress and tool status (5), and message metadata (3). The upload store was
+the one that looked like a real capability rather than a move, and it is
+**now built**: `uploads` in `setup`, for both interface families, handing back
+a scoped store. It is `runtimeState`'s shape for content rather than
+bookkeeping — the declaration names a scope, the runtime owns the store and
+its retention.
+
+Writing the test for it found a defect in what was already there. The scope's
+namespace is a filesystem path segment, and a declaration naming its own has
+no way to know another did not choose the same word: two interfaces both
+saying `namespace: "upload"` shared a directory, and a ref issued by one
+resolved in the other. Isolation by convention, which is none. The runtime
+now files a scope under the declaration's own id, the way `stateNamespaceFor`
+already did for runtime state. Uploads are a cache with a retention window, so
+relocating them costs nothing a restart does not already cost.
 
 ## Validation
 

@@ -64,10 +64,20 @@ export type {
   RouteBody,
   RouteCaller,
   RouteMethod,
+  InterfaceUploads,
   RouteResponse,
   RouteSecurity,
   VerbatimResponse,
 } from "../interface/interface-definition-contract";
+// The store `uploads` hands back, and what it takes and returns. A declaration
+// holds one, so its shape is part of the authoring surface.
+export type {
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
+  RuntimeUploadScopeOptions,
+  SaveRuntimeUploadInput,
+  ScopedRuntimeUploadStore,
+} from "../service/upload-registry";
 export { verbatim };
 
 export function protocol(

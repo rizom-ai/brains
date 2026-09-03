@@ -22,6 +22,7 @@ import {
 } from "../service/reaction-context";
 import { createRuntimeTool } from "../service/tool-runtime";
 import { createInterfaceEntityAccess } from "./interface-entity-access";
+import { uploadNamespaceFor } from "../internal/state-namespace";
 import { createDeclarativeDaemon } from "./declarative-daemon";
 import { createRuntimeRoute } from "./route-runtime";
 import type { InterfacePluginContext } from "./context";
@@ -96,6 +97,14 @@ class DeclarativeInterfacePlugin<
           mcpTransport: context.mcpTransport,
           permissions: context.permissions,
           agent: context.agent,
+          uploads: (options) =>
+            context.uploads.scoped({
+              ...options,
+              namespace: uploadNamespaceFor(
+                this.definition.id,
+                options.namespace,
+              ),
+            }),
           domain: context.domain,
           logger: this.logger,
         })

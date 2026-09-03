@@ -1,5 +1,6 @@
 import { createExternalActorId } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
+import { uploadNamespaceFor } from "../internal/state-namespace";
 import type { ChatAttachment } from "../contracts/agent";
 import type {
   ChannelDeliveryInput,
@@ -130,6 +131,14 @@ class DeclarativeMessageInterfacePlugin<
             context.runtimeState.scoped({
               ...options,
               namespace: `${this.definition.id}.${options.namespace}`,
+            }),
+          uploads: (options) =>
+            context.uploads.scoped({
+              ...options,
+              namespace: uploadNamespaceFor(
+                this.definition.id,
+                options.namespace,
+              ),
             }),
           messaging: {
             send: (message) =>

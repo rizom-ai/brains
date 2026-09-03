@@ -428,6 +428,7 @@ export {
   verbatim,
 } from "./public/interface-definition";
 export type {
+  InterfaceUploads,
   RouteResponse,
   VerbatimResponse,
 } from "./public/interface-definition";

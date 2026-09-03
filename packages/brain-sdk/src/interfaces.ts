@@ -28,6 +28,20 @@ export type {
 // — named here so a declaration can say what it holds onto between
 // registration and the daemon that drives it. Named consumer: @brains/mcp.
 export type { IMCPTransport } from "@brains/plugins";
+
+// Somewhere to put bytes that arrived from outside — the same reason
+// `runtimeState` exists, for content rather than bookkeeping. The runtime owns
+// the store and its retention; the declaration names a scope, and the runtime
+// files it under the declaration's own id so two interfaces cannot read each
+// other's. Named consumers: @brains/web-chat, @brains/chat.
+export type {
+  InterfaceUploads,
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
+  RuntimeUploadScopeOptions,
+  SaveRuntimeUploadInput,
+  ScopedRuntimeUploadStore,
+} from "@brains/plugins";
 export type {
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,

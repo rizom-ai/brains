@@ -14,6 +14,10 @@ import type { AgentNamespace } from "../contracts/agent";
 import type { ResponseRenderDirective } from "../message-interface/response-render-plan";
 import type { IPermissionsNamespace } from "../public/types";
 import type {
+  RuntimeUploadScopeOptions,
+  ScopedRuntimeUploadStore,
+} from "../service/upload-registry";
+import type {
   IEndpointsNamespace,
   IInteractionsNamespace,
   IPluginsNamespace,
@@ -55,6 +59,25 @@ export type {
   RouteResponse,
   VerbatimResponse,
 } from "./route-contract";
+
+/**
+ * Somewhere to put bytes that arrived from outside.
+ *
+ * An interface accepting an attachment has to keep the file where the agent
+ * can read it back, where it survives a restart, and where the client can
+ * fetch it at a URL. That is `runtimeState`'s reason, for content rather than
+ * bookkeeping, and it arrives the same way: the declaration names a scope and
+ * the runtime owns the store — including retention, so nothing accumulates
+ * forever.
+ *
+ * Scoped rather than shared: a ref means something only in the scope that
+ * issued it, and two interfaces accepting attachments must not be able to
+ * read each other's.
+ * Named consumers: @brains/web-chat, @brains/chat.
+ */
+export type InterfaceUploads = (
+  options: RuntimeUploadScopeOptions,
+) => ScopedRuntimeUploadStore;
 
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
@@ -181,6 +204,7 @@ export interface InterfaceDefinitionInput<
          * per call. Named consumer: @brains/mcp.
          */
         readonly agent: AgentNamespace;
+        readonly uploads: InterfaceUploads;
         /** The brain's own domain, when it has one. */
         readonly domain: string | undefined;
         readonly logger: Logger;
@@ -361,6 +385,13 @@ export interface MessageInterfaceDefinitionInput<
          * an event other packages consume. Named consumer: @brains/email.
          */
         readonly messaging: MessageInterfacePublisher;
+        /**
+         * Somewhere to put an attachment someone sent.
+         *
+         * A chat channel carries files, and the agent has to be able to read
+         * one back. Named consumer: @brains/chat.
+         */
+        readonly uploads: InterfaceUploads;
         readonly logger: Logger;
       }) => TState | Promise<TState>)
     | undefined;
