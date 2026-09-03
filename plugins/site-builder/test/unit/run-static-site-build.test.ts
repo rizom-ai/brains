@@ -12,6 +12,7 @@ const buildContext: BuildContext = {
     preparedAt: "2026-07-22T00:00:00.000Z",
     environment: "preview",
     site: {
+      represents: "anchor",
       title: "Test Site",
       description: "Test Description",
       navigation: {

@@ -152,7 +152,11 @@ export function createRendererTestContext(
       buildId: "renderer-test-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       environment: "preview",
-      site: { ...options.siteConfig, ...options.siteLayoutInfo },
+      site: {
+        ...options.siteConfig,
+        ...options.siteLayoutInfo,
+        represents: options.siteLayoutInfo.represents ?? "anchor",
+      },
       routes: preparedRoutes,
       ...(options.themeCSS !== undefined && { themeCSS: options.themeCSS }),
       images: options.images ?? {},

@@ -20,6 +20,7 @@ function createPreparedBuild(buildId: string): PreparedSiteBuild {
     preparedAt: "2026-07-22T00:00:00.000Z",
     environment: "preview",
     site: {
+      represents: "anchor",
       title: "Transactional Site",
       description: "Transactional fixture",
       copyright: "Fixture copyright",
