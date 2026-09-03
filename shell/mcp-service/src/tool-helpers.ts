@@ -9,35 +9,45 @@ import { getErrorMessage } from "@brains/utils/error";
 import { ConsoleLogger } from "@brains/utils/logger";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 
-export interface ToolSuccessResult<T = unknown> {
-  success: true;
-  data: T;
-  message?: string | undefined;
-}
-
-export interface ToolErrorResult {
-  success: false;
-  error: string;
-  code?: string | undefined;
-}
-
 /**
  * Zod schema for tool result validation
  * Use this to parse/validate tool results at runtime
  */
-export const toolResultSchema: z.ZodType<ToolSuccessResult | ToolErrorResult> =
-  z.union([
-    z.object({
-      success: z.literal(true),
-      data: z.unknown(),
-      message: z.string().optional(),
-    }),
-    z.object({
-      success: z.literal(false),
-      error: z.string(),
-      code: z.string().optional(),
-    }),
-  ]);
+export const toolResultSchema: z.ZodUnion<
+  readonly [
+    z.ZodObject<{
+      success: z.ZodLiteral<true>;
+      data: z.ZodUnknown;
+      message: z.ZodOptional<z.ZodString>;
+    }>,
+    z.ZodObject<{
+      success: z.ZodLiteral<false>;
+      error: z.ZodString;
+      code: z.ZodOptional<z.ZodString>;
+    }>,
+  ]
+> = z.union([
+  z.object({
+    success: z.literal(true),
+    data: z.unknown(),
+    message: z.string().optional(),
+  }),
+  z.object({
+    success: z.literal(false),
+    error: z.string(),
+    code: z.string().optional(),
+  }),
+]);
+
+type ParsedToolResult = z.output<typeof toolResultSchema>;
+
+/** A successful result, with its data narrowed to T. */
+export type ToolSuccessResult<T = unknown> = Omit<
+  Extract<ParsedToolResult, { success: true }>,
+  "data"
+> & { data: T };
+
+export type ToolErrorResult = Extract<ParsedToolResult, { success: false }>;
 
 /**
  * Standardized tool result type derived from schema

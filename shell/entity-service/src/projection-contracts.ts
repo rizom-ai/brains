@@ -31,8 +31,10 @@ export const ProjectionJsonValueSchema: z.ZodType<ProjectionJsonValue> = z.lazy(
     ]),
 );
 
-export const ProjectionJsonObjectSchema: z.ZodType<ProjectionJsonObject> =
-  z.record(z.string(), ProjectionJsonValueSchema);
+export const ProjectionJsonObjectSchema: z.ZodRecord<
+  z.ZodString,
+  typeof ProjectionJsonValueSchema
+> = z.record(z.string(), ProjectionJsonValueSchema);
 
 export interface ProjectionEntityWrite<
   TMetadata extends ProjectionJsonObject = ProjectionJsonObject,
@@ -57,7 +59,16 @@ export type ProjectionWriteIntent<
       id: string;
     };
 
-const ProjectionEntityWriteSchema = z.strictObject({
+const ProjectionEntityWriteSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    entityType: z.ZodString;
+    content: z.ZodString;
+    metadata: typeof ProjectionJsonObjectSchema;
+    visibility: typeof contentVisibilitySchema;
+  },
+  z.core.$strict
+> = z.strictObject({
   id: z.string().trim().min(1),
   entityType: z.string().trim().min(1),
   content: z.string(),
@@ -65,15 +76,33 @@ const ProjectionEntityWriteSchema = z.strictObject({
   visibility: contentVisibilitySchema,
 });
 
-export const ProjectionWriteIntentSchema: z.ZodType<ProjectionWriteIntent> =
-  z.discriminatedUnion("operation", [
-    z.strictObject({
-      operation: z.literal("upsert"),
-      entity: ProjectionEntityWriteSchema,
-    }),
-    z.strictObject({
-      operation: z.literal("delete"),
-      entityType: z.string().trim().min(1),
-      id: z.string().trim().min(1),
-    }),
-  ]);
+export const ProjectionWriteIntentSchema: z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<
+      {
+        operation: z.ZodLiteral<"upsert">;
+        entity: typeof ProjectionEntityWriteSchema;
+      },
+      z.core.$strict
+    >,
+    z.ZodObject<
+      {
+        operation: z.ZodLiteral<"delete">;
+        entityType: z.ZodString;
+        id: z.ZodString;
+      },
+      z.core.$strict
+    >,
+  ],
+  "operation"
+> = z.discriminatedUnion("operation", [
+  z.strictObject({
+    operation: z.literal("upsert"),
+    entity: ProjectionEntityWriteSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("delete"),
+    entityType: z.string().trim().min(1),
+    id: z.string().trim().min(1),
+  }),
+]);

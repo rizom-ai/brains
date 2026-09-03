@@ -362,19 +362,46 @@ export type SiteDefinitionOverrides = {
   [K in keyof SiteDefinition]?: SiteDefinition[K] | undefined;
 };
 
-const componentSchema = z.custom<ComponentType<SiteLayoutProps>>(
+type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
+
+const componentSchema: z.ZodCustom<
+  ComponentType<SiteLayoutProps>,
+  ComponentType<SiteLayoutProps>
+> = z.custom<ComponentType<SiteLayoutProps>>(
   (value) => typeof value === "function",
   "Expected a React component",
 );
 
-const navigationInputSchema = z.strictObject({
+const navigationInputSchema: Strict<{
+  show: z.ZodOptional<z.ZodBoolean>;
+  label: z.ZodOptional<z.ZodString>;
+  slot: z.ZodOptional<
+    z.ZodEnum<{ primary: "primary"; secondary: "secondary" }>
+  >;
+  priority: z.ZodOptional<z.ZodNumber>;
+}> = z.strictObject({
   show: z.boolean().optional(),
   label: z.string().min(1).optional(),
   slot: z.enum(NavigationSlots).optional(),
   priority: z.number().optional(),
 });
 
-const routeSectionSchema = z.strictObject({
+const routeSectionSchema: Strict<{
+  id: z.ZodString;
+  template: z.ZodString;
+  content: z.ZodOptional<z.ZodUnknown>;
+  dataQuery: z.ZodOptional<
+    z.ZodObject<
+      {
+        entityType: z.ZodOptional<z.ZodString>;
+        template: z.ZodOptional<z.ZodString>;
+        query: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+      },
+      z.core.$loose
+    >
+  >;
+  order: z.ZodOptional<z.ZodNumber>;
+}> = z.strictObject({
   id: z.string().min(1),
   template: z.string().min(1),
   content: z.unknown().optional(),
@@ -388,7 +415,20 @@ const routeSectionSchema = z.strictObject({
   order: z.number().optional(),
 });
 
-const routeInputSchema = z.strictObject({
+const routeInputSchema: Strict<{
+  id: z.ZodString;
+  path: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
+  pageLabel: z.ZodOptional<z.ZodString>;
+  description: z.ZodOptional<z.ZodString>;
+  sections: z.ZodOptional<z.ZodArray<typeof routeSectionSchema>>;
+  layout: z.ZodOptional<z.ZodString>;
+  fullscreen: z.ZodOptional<z.ZodBoolean>;
+  pluginId: z.ZodOptional<z.ZodString>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+  external: z.ZodOptional<z.ZodBoolean>;
+  navigation: z.ZodOptional<typeof navigationInputSchema>;
+}> = z.strictObject({
   id: z.string().min(1),
   path: z.string().startsWith("/"),
   title: z.string().optional(),
@@ -403,7 +443,22 @@ const routeInputSchema = z.strictObject({
   navigation: navigationInputSchema.optional(),
 });
 
-const entityDisplaySchema = z.strictObject({
+const entityDisplaySchema: Strict<{
+  label: z.ZodString;
+  pluralName: z.ZodOptional<z.ZodString>;
+  layout: z.ZodOptional<z.ZodString>;
+  paginate: z.ZodOptional<z.ZodBoolean>;
+  pageSize: z.ZodOptional<z.ZodNumber>;
+  navigation: z.ZodOptional<
+    Strict<{
+      show: z.ZodOptional<z.ZodBoolean>;
+      slot: z.ZodOptional<
+        z.ZodEnum<{ primary: "primary"; secondary: "secondary" }>
+      >;
+      priority: z.ZodOptional<z.ZodNumber>;
+    }>
+  >;
+}> = z.strictObject({
   label: z.string().min(1),
   pluralName: z.string().min(1).optional(),
   layout: z.string().min(1).optional(),
@@ -418,7 +473,16 @@ const entityDisplaySchema = z.strictObject({
     .optional(),
 });
 
-const sectionDefinitionSchema = z.strictObject({
+const sectionDefinitionSchema: Strict<{
+  schema: z.ZodCustom<z.ZodType<JsonObject>, z.ZodType<JsonObject>>;
+  component: z.ZodCustom<ComponentType<unknown>, ComponentType<unknown>>;
+  title: z.ZodString;
+  description: z.ZodString;
+  requiredPermission: z.ZodOptional<
+    z.ZodEnum<{ admin: "admin"; trusted: "trusted"; public: "public" }>
+  >;
+  fullscreen: z.ZodOptional<z.ZodBoolean>;
+}> = z.strictObject({
   // defineSection has already proved JSON output via JsonObjectOutputGuard;
   // this runtime check confirms it is a zod schema, and the declared type
   // carries that proof forward instead of erasing it to unknown.
@@ -436,22 +500,44 @@ const sectionDefinitionSchema = z.strictObject({
   fullscreen: z.boolean().optional(),
 });
 
-const sectionGroupSchema = z.strictObject({
+const sectionGroupSchema: Strict<{
+  namespace: z.ZodString;
+  sections: z.ZodRecord<z.ZodString, typeof sectionDefinitionSchema>;
+}> = z.strictObject({
   namespace: z.string().min(1),
   sections: z.record(z.string(), sectionDefinitionSchema),
 });
 
-const jsonObjectSchema = z.record(z.string(), z.json());
-const siteContentSchema = z.record(
-  z.string(),
-  z.record(z.string(), jsonObjectSchema),
-);
+const jsonObjectSchema: z.ZodRecord<
+  z.ZodString,
+  ReturnType<typeof z.json>
+> = z.record(z.string(), z.json());
+const siteContentSchema: z.ZodRecord<
+  z.ZodString,
+  z.ZodRecord<z.ZodString, typeof jsonObjectSchema>
+> = z.record(z.string(), z.record(z.string(), jsonObjectSchema));
 
 /**
  * The fields a site definition may carry. Extracted so overrides can be
  * validated as a partial of the same shape rather than asserted into it.
  */
-const siteDefinitionShape = {
+const siteDefinitionShape: {
+  layouts: z.ZodRecord<z.ZodString, typeof componentSchema>;
+  routes: z.ZodArray<typeof routeInputSchema>;
+  content: z.ZodOptional<typeof siteContentSchema>;
+  sections: z.ZodOptional<
+    z.ZodUnion<
+      readonly [
+        typeof sectionGroupSchema,
+        z.ZodArray<typeof sectionGroupSchema>,
+      ]
+    >
+  >;
+  themeOverride: z.ZodOptional<z.ZodString>;
+  headScripts: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  entityDisplay: z.ZodRecord<z.ZodString, typeof entityDisplaySchema>;
+  staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+} = {
   layouts: z
     .record(z.string(), componentSchema)
     .refine((layouts) => typeof layouts["default"] === "function", {
@@ -468,17 +554,27 @@ const siteDefinitionShape = {
   staticAssets: z.record(z.string(), z.string()).optional(),
 };
 
+type SiteDefinitionShape = typeof siteDefinitionShape;
+
 /**
  * Validator for a partial site definition — what a conventional `src/site.tsx`
  * exports to extend a base package. Whole-definition invariants (route/layout
  * cross-checks) are deliberately not applied here: they can only be judged
  * once the override has been merged over its base.
  */
-export const siteDefinitionOverridesSchema: z.ZodType<SiteDefinitionOverrides> =
-  z.strictObject(siteDefinitionShape).partial();
+export const siteDefinitionOverridesSchema: Strict<{
+  [K in keyof SiteDefinitionShape]: z.ZodOptional<SiteDefinitionShape[K]>;
+}> = z.strictObject(siteDefinitionShape).partial();
+
+function expectSiteDefinitionOverrides(
+  value: z.output<typeof siteDefinitionOverridesSchema>,
+): SiteDefinitionOverrides {
+  return value;
+}
+void expectSiteDefinitionOverrides;
 
 /** Canonical runtime validator for structural site definitions. */
-export const siteDefinitionSchema: z.ZodType<SiteDefinition> = z
+export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
   .strictObject(siteDefinitionShape)
   .superRefine((site, context) => {
     const routeIds = new Set<string>();
@@ -549,6 +645,14 @@ export const siteDefinitionSchema: z.ZodType<SiteDefinition> = z
       }
     }
   });
+
+type SiteDefinitionSchemaOutput = z.output<typeof siteDefinitionSchema>;
+function expectSiteDefinition(
+  value: SiteDefinitionSchemaOutput,
+): SiteDefinition {
+  return value;
+}
+void expectSiteDefinition;
 
 function runtimeTemplateName(template: string): {
   readonly name: string;
