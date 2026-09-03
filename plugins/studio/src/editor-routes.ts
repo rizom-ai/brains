@@ -10,6 +10,7 @@ import {
   permissionToVisibilityScope,
 } from "@brains/plugins";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
@@ -20,6 +21,7 @@ import {
 import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeStudioBasePath } from "./studio-paths";
 import { listBuiltInStudioWorkspaces } from "./account-workspace";
+import { listBuiltInStudioChatWorkspaces } from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
@@ -55,6 +57,31 @@ export type {
 } from "./editor-contracts";
 
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
+
+function resolveStudioChatApiPath(
+  context: ServicePluginContext,
+): string | undefined {
+  if (!context.plugins.has("web-chat")) return undefined;
+  const routes = context.webRoutes
+    .getRoutes()
+    .filter((route) => route.pluginId === "web-chat");
+  const actionsRoute = routes.find(
+    (route) =>
+      route.fullPath.endsWith("/actions") &&
+      (route.definition.method ?? "GET") === "POST" &&
+      route.definition.match !== "prefix",
+  );
+  if (!actionsRoute) return DEFAULT_CHAT_API_PATH;
+  const apiPath = actionsRoute.fullPath.slice(0, -"/actions".length);
+  return routes.some(
+    (route) =>
+      route.fullPath === apiPath &&
+      (route.definition.method ?? "GET") === "POST" &&
+      route.definition.match !== "prefix",
+  )
+    ? apiPath
+    : DEFAULT_CHAT_API_PATH;
+}
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
 // generated manifest maps its public asset names to package-owned files.
@@ -535,6 +562,10 @@ async function handleListTypes(
   }
 
   const workspaces = [
+    ...listBuiltInStudioChatWorkspaces(
+      access.permissionLevel,
+      resolveStudioChatApiPath(context),
+    ),
     ...listBuiltInStudioWorkspaces(access.permissionLevel),
     ...(await workspaceRegistry.listDescriptors(
       toStudioWorkspaceActor(access),

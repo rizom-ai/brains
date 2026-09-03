@@ -86,6 +86,7 @@
 + web-chat|handler|POST|/api/agent/chat/confirm|exact|true
 + web-chat|handler|POST|/api/agent/chat|exact|true
 + web-chat|handler|POST|/api/chat/actions|exact|true
++ web-chat|handler|POST|/api/chat/context-sessions|exact|true
 + web-chat|handler|POST|/api/chat/uploads|exact|true
 + web-chat|handler|POST|/api/chat|exact|true
 + web-chat|handler|PUT|/api/chat/sessions/archive|exact|true

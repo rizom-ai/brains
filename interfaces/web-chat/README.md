@@ -1,6 +1,33 @@
 # Web chat interface
 
-`@brains/web-chat` provides the authenticated browser chat surface and its session APIs.
+`@brains/web-chat` provides the authenticated standalone Web Chat surface and
+owns the shared Chat HTTP APIs. In Chat + Studio composition, an actor admitted
+to Studio Chat is redirected there; Chat-only composition retains this
+package's standalone presentation.
+
+## Public boundary
+
+`@rizom/brain/chat` owns the supported browser-safe domain schemas, paths, and
+fetch-injected transport client. This package's route handlers and standalone
+transport consume that canonical contract. The React application, AI SDK
+adapters, query cache, active-conversation state, routing, browser storage,
+copy, and styles remain private Web Chat presentation logic and are not
+re-exported from `@rizom/brain`.
+
+## Audience boundary
+
+The current release remains fail-closed:
+
+- Studio Chat is limited to Trusted and Admin actors;
+- standalone Web Chat is an authenticated fallback for Chat-only composition;
+- active Public and unauthenticated callers have no Chat access.
+
+The intended future split is Studio for authenticated actors, with a separately
+restricted Public policy, and standalone Web Chat for explicitly enabled
+anonymous guests. Guest mode is not implemented or implied by routes registered
+with `public: true`. It must remain disabled until guest identity, capability,
+rate, abuse, spend, retention, consent, deletion, and kill-switch policies are
+accepted and enforced server-side.
 
 ## Build
 
@@ -37,12 +64,11 @@ Do not persist the query cache or use it as a second active-message owner. Tests
 
 A conversation door uses `#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
 
-The interface owns the universal Inbox **Discuss in chat** follow-up at its configured
-mount for sources that support permission-checked detail. Its destination schema bounds a
-one-shot prompt plus source/item identifiers and a safe label. The browser consumes the
-handoff into a fresh conversation, keeps the reference in memory behind a removable context
-chip, and never receives the source body. Attached turns re-authorize and resolve source
-detail on the server, frame it as untrusted transient context, and omit it from stored user
-text and reusable attachment references. Detaching, starting a new conversation, or
-switching sessions clears the context; a reload does not create a durable mail-to-chat
-binding.
+The interface owns the universal Inbox **Discuss in chat** follow-up at its
+configured mount for sources that support permission-checked detail. Its
+destination schema bounds a prompt plus source/item identifiers and a safe
+label. When native Studio Chat is available, the handoff idempotently opens an
+actor-owned context session and routes Studio to it; the bounded locator remains
+inspectable after reload. Chat-only composition retains the standalone one-shot
+fallback. Both paths re-authorize and resolve source detail on the server, frame
+it as untrusted transient context, and never persist or return the source body.

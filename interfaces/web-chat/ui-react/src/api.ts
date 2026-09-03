@@ -1,67 +1,49 @@
-import type { UIMessage } from "ai";
-import { z } from "@brains/utils/zod";
 import {
-  toUiMessages,
-  webChatMessagesResponseSchema,
-} from "./history-messages";
+  ChatApiError,
+  type ChatHistoryMessage,
+  type ChatSession,
+} from "@brains/contracts/chat";
+import type { UIMessage } from "ai";
+import { createWebChatClient } from "./web-chat-client";
+import { toUiMessages } from "./history-messages";
 
-const webChatSessionSchema = z.looseObject({
-  id: z.string(),
-  title: z.string(),
-  lastActiveAt: z.string(),
-});
+export type WebChatSession = ChatSession;
 
-const webChatSessionsResponseSchema = z.looseObject({
-  sessions: z.array(webChatSessionSchema),
-});
-
-export interface WebChatSession {
-  id: string;
-  title: string;
-  lastActiveAt: string;
-}
-
-export function describeFetchFailure(
-  response: Response,
+export function describeClientFailure(
+  error: unknown,
   fallback: string,
 ): string {
-  if (response.status === 401 || response.status === 403) {
+  if (!(error instanceof ChatApiError)) return fallback;
+  if (error.status === 401 || error.status === 403) {
     return "Your operator session may have expired. Refresh or sign in again.";
   }
-  return `${fallback} (${response.status})`;
+  return error.kind === "invalid-response"
+    ? fallback
+    : `${fallback} (${error.status})`;
 }
 
 export async function fetchWebChatHistory(
   conversationId: string,
 ): Promise<UIMessage[]> {
-  const response = await fetch(
-    `/api/chat/messages?id=${encodeURIComponent(conversationId)}`,
-    { credentials: "include" },
-  );
-  if (!response.ok) {
+  let messages: ChatHistoryMessage[];
+  try {
+    messages = await createWebChatClient().getMessages(conversationId);
+  } catch (error) {
     throw new Error(
-      describeFetchFailure(response, "Could not reopen that session."),
+      describeClientFailure(error, "Could not reopen that session."),
+      { cause: error },
     );
   }
-  const parsed = webChatMessagesResponseSchema.safeParse(await response.json());
-  if (!parsed.success) {
-    throw new Error("Could not reopen that session.");
-  }
-  return toUiMessages(parsed.data.messages);
+  return toUiMessages(messages);
 }
 
 export async function fetchWebChatSessions(): Promise<WebChatSession[]> {
-  const response = await fetch("/api/chat/sessions", {
-    credentials: "include",
-  });
-  if (!response.ok) {
+  try {
+    return await createWebChatClient().listSessions();
+  } catch (error) {
     throw new Error(
-      describeFetchFailure(response, "Could not load saved sessions."),
+      describeClientFailure(error, "Could not load saved sessions."),
+      { cause: error },
     );
   }
-  const parsed = webChatSessionsResponseSchema.safeParse(await response.json());
-  if (!parsed.success) {
-    throw new Error("Could not load saved sessions.");
-  }
-  return parsed.data.sessions;
 }

@@ -130,12 +130,6 @@ export async function handleStreamedChat(
 ): Promise<void> {
   deps.activeStreams.set(input.conversationId, { writer: input.writer });
   deps.startProcessingInput(input.conversationId);
-  input.writer.write({
-    type: "data-status",
-    id: deps.createId("status"),
-    data: { status: "thinking" },
-    transient: true,
-  });
 
   try {
     const response = await deps.agent.chat(
@@ -186,15 +180,6 @@ export async function handleStreamedConfirmations(
 ): Promise<void> {
   deps.activeStreams.set(input.conversationId, { writer: input.writer });
   deps.startProcessingInput(input.conversationId);
-  const allApproved = input.approvalResponses.every(
-    (approvalResponse) => approvalResponse.approved,
-  );
-  input.writer.write({
-    type: "data-status",
-    id: deps.createId("status"),
-    data: { status: allApproved ? "approving" : "resolving approvals" },
-    transient: true,
-  });
 
   try {
     for (const approvalResponse of input.approvalResponses) {

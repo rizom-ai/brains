@@ -5,7 +5,11 @@ import type {
   ProjectionWave,
   ProjectionWaveRule,
 } from "@brains/entity-service";
-import type { JobInfo, JobQueueDiagnostics } from "@brains/job-queue";
+import type {
+  JobExecutionRegistration,
+  JobInfo,
+  JobQueueDiagnostics,
+} from "@brains/job-queue";
 import {
   getRuntimeReadiness,
   type RuntimeReadinessOptions,
@@ -50,6 +54,9 @@ function createDependencies(): RuntimeDependencies {
       },
     }),
     getStatus: async (): Promise<JobInfo | null> => null,
+    getExecutionRegistrations: (): JobExecutionRegistration[] => [
+      { type: "note:embedding", pluginId: "note" },
+    ],
   };
   return {
     entityService,
@@ -217,6 +224,37 @@ describe("getRuntimeReadiness", () => {
         expect.objectContaining({ name: "daemons", status: "degraded" }),
       ]),
     );
+  });
+
+  it("degrades operation when active jobs have no declared executor", async () => {
+    const dependencies = createDependencies();
+    dependencies.jobQueueService.getDiagnostics =
+      async (): Promise<JobQueueDiagnostics> => ({
+        ...(await createDependencies().jobQueueService.getDiagnostics()),
+        totals: { pending: 0, processing: 1, completed: 3, failed: 0 },
+        byType: [
+          { type: "skill:project", status: "processing", count: 1 },
+          { type: "note:embedding", status: "completed", count: 3 },
+        ],
+        oldestPendingAgeMs: null,
+        oldestProcessingAgeMs: 1_880_000_000,
+      });
+
+    const readiness = await getRuntimeReadiness({
+      ...dependencies,
+      ...runtimeOptions,
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.operationalStatus).toBe("degraded");
+    expect(readiness.checks).toContainEqual({
+      name: "job-execution-inventory",
+      status: "degraded",
+      message: "1 active job(s) have no declared executor",
+      details: {
+        jobs: [{ type: "skill:project", status: "processing", count: 1 }],
+      },
+    });
   });
 
   it("degrades operation when due work has not been claimed", async () => {

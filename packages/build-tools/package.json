@@ -2,7 +2,7 @@
   "name": "@brains/build-tools",
   "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.2.0-alpha.347",
+  "version": "0.2.0-alpha.349",
   "description": "Internal build and publish tooling: publishable-manifest transforms and declaration leak checks",
   "type": "module",
   "exports": {

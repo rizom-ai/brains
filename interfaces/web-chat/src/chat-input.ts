@@ -1,113 +1,26 @@
 import {
+  chatApprovalResponsePartSchema,
+  chatFilePartSchema,
+  chatMessageRequestSchema,
+  chatTextPartSchema,
+  chatUploadPartSchema,
+  type ChatApprovalResponse,
+  type ChatMessageRequest,
+} from "@brains/contracts/chat";
+import {
   type ChatAttachment,
   type ScopedRuntimeUploadStore,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { webChatUploadIdPattern, webChatUploadRefKind } from "./upload-store";
 import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,
   resolveReferencedUpload as resolveReferencedUploadPart,
 } from "./upload-handlers";
-import {
-  webChatInboxContextSchema,
-  type WebChatInboxContext,
-} from "./inbox-prefill-contract";
 
-interface TextPart {
-  type: "text";
-  text: string;
-}
+export type ApprovalResponse = ChatApprovalResponse;
+export type ChatRequest = ChatMessageRequest;
 
-interface FilePart {
-  type: "file";
-  mediaType?: string | undefined;
-  filename?: string | undefined;
-  url: string;
-}
-
-export interface ApprovalResponse {
-  id: string;
-  approved: boolean;
-  toolCallId?: string | undefined;
-  toolName?: string | undefined;
-  input?: Record<string, unknown> | undefined;
-  title?: string | undefined;
-}
-
-interface ApprovalResponsePart {
-  [key: string]: unknown;
-  state: "approval-responded";
-  toolCallId?: string | undefined;
-  toolName?: string | undefined;
-  input?: Record<string, unknown> | undefined;
-  title?: string | undefined;
-  approval: ApprovalResponse;
-}
-
-interface UiMessage {
-  id?: string | undefined;
-  role: string;
-  parts?: unknown[] | undefined;
-  content?: string | undefined;
-}
-
-export interface ChatRequest {
-  id?: string | undefined;
-  messages: UiMessage[];
-  trigger?: string | undefined;
-  inboxContext?: WebChatInboxContext | undefined;
-}
-
-const textPartSchema: z.ZodType<TextPart> = z.object({
-  type: z.literal("text"),
-  text: z.string(),
-});
-
-const filePartSchema: z.ZodType<FilePart> = z.object({
-  type: z.literal("file"),
-  mediaType: z.string().optional(),
-  filename: z.string().optional(),
-  url: z.string(),
-});
-
-const approvalResponsePartSchema: z.ZodType<ApprovalResponsePart> =
-  z.looseObject({
-    state: z.literal("approval-responded"),
-    toolCallId: z.string().optional(),
-    toolName: z.string().optional(),
-    input: z.record(z.string(), z.unknown()).optional(),
-    title: z.string().optional(),
-    approval: z.object({
-      id: z.string(),
-      approved: z.boolean(),
-    }),
-  });
-
-const uiMessageSchema: z.ZodType<UiMessage> = z.object({
-  id: z.string().optional(),
-  role: z.string(),
-  parts: z.array(z.unknown()).optional(),
-  content: z.string().optional(),
-});
-
-export const chatRequestSchema: z.ZodType<ChatRequest> = z.object({
-  id: z.string().optional(),
-  messages: z.array(uiMessageSchema).min(1),
-  trigger: z.string().optional(),
-  inboxContext: webChatInboxContextSchema.optional(),
-});
-
-const uploadRefSchema = z.object({
-  kind: z.literal(webChatUploadRefKind),
-  id: z.string().regex(webChatUploadIdPattern),
-});
-
-const uploadRefPartSchema = z.object({
-  type: z.literal("data-upload"),
-  data: z.object({
-    ref: uploadRefSchema,
-  }),
-});
+export const chatRequestSchema: typeof chatMessageRequestSchema =
+  chatMessageRequestSchema;
 
 export interface ParsedUserInput {
   message: string;
@@ -130,7 +43,7 @@ export async function extractLastUserInput(
   const messageParts: string[] = [];
   const attachments: ChatAttachment[] = [];
   for (const part of lastUserMessage.parts ?? []) {
-    const parsedText = textPartSchema.safeParse(part);
+    const parsedText = chatTextPartSchema.safeParse(part);
     if (parsedText.success) {
       if (parsedText.data.text.length > 0) {
         messageParts.push(parsedText.data.text);
@@ -138,7 +51,7 @@ export async function extractLastUserInput(
       continue;
     }
 
-    const parsedFile = filePartSchema.safeParse(part);
+    const parsedFile = chatFilePartSchema.safeParse(part);
     if (parsedFile.success) {
       const attachment = resolveInlineUploadFilePart(parsedFile.data);
       if (attachment instanceof Response) return attachment;
@@ -146,7 +59,7 @@ export async function extractLastUserInput(
       continue;
     }
 
-    const parsedUploadRef = uploadRefPartSchema.safeParse(part);
+    const parsedUploadRef = chatUploadPartSchema.safeParse(part);
     if (parsedUploadRef.success) {
       const attachment = await resolveReferencedUploadPart(
         parsedUploadRef.data.data.ref.id,
@@ -185,7 +98,7 @@ export function extractLatestApprovalResponses(
   if (!lastMessage || lastMessage.role === "user") return [];
 
   return (lastMessage.parts ?? [])
-    .map((part) => approvalResponsePartSchema.safeParse(part))
+    .map((part) => chatApprovalResponsePartSchema.safeParse(part))
     .filter((result) => result.success)
     .map((result) => ({
       ...result.data.approval,

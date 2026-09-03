@@ -1,6 +1,11 @@
-# Public Authoring API `0.2`
+# Public API `0.2`
 
-This is the patch-stable authoring ledger for the `0.2.x` line. A symbol is stable only when it appears below. The machine-readable source is [`export-ledger.json`](../../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json), and the standalone packages beside that ledger are the compatibility fixtures.
+This is the patch-stable public API ledger for the `0.2.x` line, covering
+external authoring and headless browser contracts. A symbol is stable only when
+it appears below. The machine-readable source is
+[`export-ledger.json`](../../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json).
+Authoring packages beside that ledger and the separate packed headless Chat
+consumer are the compatibility fixtures.
 
 ## `@rizom/brain`
 
@@ -24,6 +29,104 @@ Types:
 - `PermissionConfig`
 - `PluginPackageDefinition`
 - `ReasoningEffort`
+
+## `@rizom/brain/chat`
+
+Headless Chat domain and transport:
+
+- `CHAT_API_VERSION`
+- `DEFAULT_CHAT_API_PATH`
+- `ChatApiError`
+- `createChatApiPaths`
+- `createChatClient`
+- `readChatProtocolEvents`
+
+Client and transport types:
+
+- `ChatApiErrorKind`
+- `ChatApiPaths`
+- `ChatClient`
+- `ChatClientOptions`
+- `ChatFetch`
+
+Domain types:
+
+- `ArchiveChatSessionResponse`
+- `ChatActionRequest`
+- `ChatActionResponse`
+- `ChatApprovalResponse`
+- `ChatApprovalResponsePart`
+- `ChatCard`
+- `ChatContextHandoffRequest`
+- `ChatContextHandoffResponse`
+- `ChatEventAction`
+- `ChatFilePart`
+- `ChatHistoryAttachment`
+- `ChatHistoryAttachmentSource`
+- `ChatHistoryMessage`
+- `ChatJobStatus`
+- `ChatJobStatusValue`
+- `ChatMessage`
+- `ChatMessageRequest`
+- `ChatMessageRole`
+- `ChatMessagesResponse`
+- `ChatProgressEvent`
+- `ChatProtocolEvent`
+- `ChatSession`
+- `ChatSessionsResponse`
+- `ChatSourceContext`
+- `ChatTextPart`
+- `ChatToolStatusEvent`
+- `ChatToolStatusValue`
+- `ChatUploadPart`
+- `ChatUploadPartData`
+- `ChatUploadRef`
+- `ChatUploadResponse`
+- `DeleteChatSessionResponse`
+- `RenameChatSessionRequest`
+- `RenameChatSessionResponse`
+
+`ChatSession.contextHandoff` is optional bounded domain metadata. It contains
+only the versioned source locator and title seed accepted by
+`ChatContextHandoffRequest`; resolved source detail is never returned.
+
+Schemas:
+
+- `archiveChatSessionResponseSchema`
+- `chatActionRequestSchema`
+- `chatActionResponseSchema`
+- `chatApprovalResponsePartSchema`
+- `chatApprovalResponseSchema`
+- `chatCardSchema`
+- `chatContextHandoffRequestSchema`
+- `chatContextHandoffResponseSchema`
+- `chatEventActionSchema`
+- `chatFilePartSchema`
+- `chatHistoryAttachmentSchema`
+- `chatHistoryAttachmentSourceSchema`
+- `chatHistoryMessageSchema`
+- `chatJobStatusSchema`
+- `chatMessageRequestSchema`
+- `chatMessageSchema`
+- `chatMessagesResponseSchema`
+- `chatProgressEventSchema`
+- `chatProtocolEventSchema`
+- `chatSessionSchema`
+- `chatSessionsResponseSchema`
+- `chatSourceContextSchema`
+- `chatTextPartSchema`
+- `chatToolStatusEventSchema`
+- `chatUploadPartSchema`
+- `chatUploadRefSchema`
+- `chatUploadResponseSchema`
+- `deleteChatSessionResponseSchema`
+- `renameChatSessionRequestSchema`
+- `renameChatSessionResponseSchema`
+
+This subpath contains only server-owned domain state, protocol schemas, bounded
+paths, and fetch-injected transport. Active selection, reducers, routing,
+navigation, cache behavior, browser storage, UI-message transforms,
+presentation copy, components, hooks, styles, and stores are not public API.
 
 ## `@rizom/brain/plugins`
 

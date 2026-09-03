@@ -23,6 +23,7 @@ import {
   type ToolPart,
 } from "./tool";
 import { getErrorMessage } from "@brains/utils/error";
+import { createWebChatClient } from "../web-chat-client";
 
 export {
   attachmentStatusLabel,
@@ -46,10 +47,6 @@ const TOOL_STATES: readonly ToolPart["state"][] = [
   "output-denied",
   "output-error",
 ];
-
-const attachmentJobStatusResponseSchema = z.looseObject({
-  status: z.string().optional(),
-});
 
 const dataRecordSchema = z.record(z.string(), z.unknown());
 
@@ -161,6 +158,7 @@ function useAttachmentJobStatus(
     }
 
     const pollingJobId = jobId;
+    const chatClient = createWebChatClient({ credentials: "same-origin" });
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // The job row can lag behind the card (enqueue → row visible), and the
@@ -185,21 +183,9 @@ function useAttachmentJobStatus(
 
     async function poll(): Promise<void> {
       try {
-        const response = await fetch(
-          `/api/chat/jobs/status?id=${encodeURIComponent(pollingJobId)}`,
-          { credentials: "same-origin" },
-        );
-        if (!response.ok) {
-          handleTransientFailure();
-          return;
-        }
+        const job = await chatClient.getJobStatus(pollingJobId);
         transientFailures = 0;
-        const parsed = attachmentJobStatusResponseSchema.safeParse(
-          await response.json(),
-        );
-        const nextStatus = narrowAttachmentJobStatus(
-          parsed.success ? parsed.data.status : undefined,
-        );
+        const nextStatus = narrowAttachmentJobStatus(job.status);
         if (!cancelled) setStatus(nextStatus);
         if (nextStatus !== "completed" && nextStatus !== "failed") {
           scheduleNextPoll(2000);

@@ -1,45 +1,26 @@
-import { z } from "@brains/utils/zod";
+import {
+  chatUploadRefSchema,
+  chatUploadResponseSchema,
+  type ChatUploadRef,
+  type ChatUploadResponse,
+} from "@brains/contracts/chat";
 import type { FileUIPart, UIMessage } from "ai";
 import { defaultWebChatUploadFilename } from "../../src/upload-policy";
+import { getWebChatApiPaths } from "./web-chat-client";
 import { getErrorMessage } from "@brains/utils/error";
 
-export const uploadEndpoint: string = "/api/chat/uploads";
+export const uploadEndpoint: string = getWebChatApiPaths().uploads;
 export const defaultUploadFilename: typeof defaultWebChatUploadFilename =
   defaultWebChatUploadFilename;
 export const uploadPartType = "data-upload" as const;
 
-export interface WebChatUploadRef {
-  kind: "upload";
-  id: string;
-}
+export type WebChatUploadRef = ChatUploadRef;
+export type WebChatUploadResponse = ChatUploadResponse;
 
-export interface WebChatUploadResponse {
-  id: string;
-  ref: WebChatUploadRef;
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  url?: string | undefined;
-  downloadUrl?: string | undefined;
-}
-
-export const webChatUploadRefSchema: z.ZodType<WebChatUploadRef> = z.object({
-  kind: z.literal("upload"),
-  id: z.string().min(1),
-});
-
-export const webChatUploadResponseSchema: z.ZodType<WebChatUploadResponse> =
-  z.object({
-    id: z.string().min(1),
-    ref: webChatUploadRefSchema,
-    filename: z.string().min(1),
-    mediaType: z.string().min(1),
-    sizeBytes: z.number().nonnegative(),
-    createdAt: z.string().datetime(),
-    url: z.string().min(1).optional(),
-    downloadUrl: z.string().min(1).optional(),
-  });
+export const webChatUploadRefSchema: typeof chatUploadRefSchema =
+  chatUploadRefSchema;
+export const webChatUploadResponseSchema: typeof chatUploadResponseSchema =
+  chatUploadResponseSchema;
 export type UploadFetch = (
   input: RequestInfo | URL,
   init?: RequestInit,

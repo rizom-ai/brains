@@ -1292,6 +1292,12 @@ const sessions = [
     id: "responsive",
     title: "Responsive console audit",
     lastActiveAt: "2026-07-10T12:04:00.000Z",
+    contextHandoff: {
+      version: 1,
+      sourceId: "unified-inbox",
+      itemId: "inbox-responsive-audit",
+      titleSeed: "Responsive console audit",
+    },
   },
   {
     id: "cards",
@@ -2112,7 +2118,7 @@ async function elementDisplay(
   selector: string,
 ): Promise<string> {
   return page.evaluate<string>(
-    `getComputedStyle(document.querySelector(${JSON.stringify(selector)})).display`,
+    `(() => { const element = document.querySelector(${JSON.stringify(selector)}); return element ? getComputedStyle(element).display : "missing"; })()`,
   );
 }
 
@@ -2284,7 +2290,11 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
-  if (surface.startsWith("studio-") && width <= 640) {
+  if (
+    surface.startsWith("studio-") &&
+    !surface.startsWith("studio-chat") &&
+    width <= 640
+  ) {
     const crumbDisplay = await elementDisplay(page, ".studio > .crumbbar");
     if (crumbDisplay !== "none") {
       throw new Error(`Studio crumb bar exceeded the phone chrome budget`);
@@ -2436,6 +2446,39 @@ async function checkLayout(
       }
     }
   }
+  if (surface.startsWith("studio-chat")) {
+    const destinations = await elementDisplay(
+      page,
+      ".studio-chat-mobile-destinations",
+    );
+    if (width <= 700 !== (destinations !== "none")) {
+      throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
+    }
+    const workspace = await elementBounds(page, ".studio-chat-room");
+    const composer = await elementBounds(page, ".studio-chat-composer");
+    if (!workspace || !composer) {
+      throw new Error(`Studio Chat workspace did not render at ${width}px`);
+    }
+    if (composer.y + composer.height > viewportHeight + 1) {
+      throw new Error(
+        `Studio Chat composer escaped the viewport at ${width}px`,
+      );
+    }
+    if (width <= 700) {
+      const destinationBar = await elementBounds(
+        page,
+        ".studio-chat-mobile-destinations",
+      );
+      if (
+        !destinationBar ||
+        composer.y + composer.height > destinationBar.y + 1
+      ) {
+        throw new Error(
+          `Studio Chat composer overlapped mobile destinations at ${width}px`,
+        );
+      }
+    }
+  }
   if (isStudioAppShellSurface(surface)) {
     const modes = await elementDisplay(page, ".studio-mobile-tabs");
     if (width <= 640 !== (modes !== "none"))
@@ -2524,6 +2567,7 @@ const server = Bun.serve({
       return new Response(
         climateHtml(
           renderChatPage({
+            apiPath: "/api/chat",
             surfaces: activeSurfaces("web-chat"),
             sessionHref: "/logout",
           }),
@@ -2611,6 +2655,16 @@ const server = Bun.serve({
             permission: "trusted",
             entityTypes: [],
             badge: 3,
+          },
+          {
+            id: "web-chat:chat",
+            pluginId: "studio",
+            label: "Chat",
+            rendererName: "StudioChatWorkspace",
+            priority: -80,
+            permission: "trusted",
+            chatApiPath: "/api/chat",
+            entityTypes: [],
           },
           {
             id: "unified-inbox:inbox",
@@ -2919,6 +2973,9 @@ try {
         "chat-drawer",
         "studio-library",
         "studio-overview",
+        "studio-chat",
+        "studio-chat-sessions",
+        "studio-chat-context",
         "studio-inbox",
         "studio-content-sync",
         "studio-site",
@@ -2935,8 +2992,15 @@ try {
         "studio-upload",
       ] as const) {
         if (SURFACE_FILTER && surface !== SURFACE_FILTER) continue;
-        // The sessions drawer only exists at phone widths.
+        // Session and context destinations only exist at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
+        if (
+          (surface === "studio-chat-sessions" ||
+            surface === "studio-chat-context") &&
+          viewport.width > 640
+        ) {
+          continue;
+        }
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
         const isStudioSecondary =
@@ -2977,19 +3041,21 @@ try {
               ? "/studio/workspaces/studio%3Aaccount"
               : surface === "studio-overview"
                 ? "/studio/workspaces/studio%3Aoverview"
-                : surface === "studio-inbox"
-                  ? "/studio/workspaces/unified-inbox%3Ainbox"
-                  : surface === "studio-content-sync"
-                    ? "/studio/workspaces/directory-sync%3Async"
-                    : surface === "studio-site"
-                      ? "/studio/workspaces/site-builder%3Asite"
-                      : surface === "studio-publishing"
-                        ? "/studio/workspaces/content-pipeline%3Apublishing"
-                        : surface.startsWith("studio-administration")
-                          ? "/studio/workspaces/admin%3Aadministration"
-                          : isStudioEditor
-                            ? "/studio/entities/posts/field-notes"
-                            : "/studio/entities/posts";
+                : surface.startsWith("studio-chat")
+                  ? "/studio/workspaces/web-chat%3Achat"
+                  : surface === "studio-inbox"
+                    ? "/studio/workspaces/unified-inbox%3Ainbox"
+                    : surface === "studio-content-sync"
+                      ? "/studio/workspaces/directory-sync%3Async"
+                      : surface === "studio-site"
+                        ? "/studio/workspaces/site-builder%3Asite"
+                        : surface === "studio-publishing"
+                          ? "/studio/workspaces/content-pipeline%3Apublishing"
+                          : surface.startsWith("studio-administration")
+                            ? "/studio/workspaces/admin%3Aadministration"
+                            : isStudioEditor
+                              ? "/studio/entities/posts/field-notes"
+                              : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
@@ -2997,7 +3063,9 @@ try {
           ? `&tab=invitations`
           : surface === "studio-administration-audit"
             ? `&tab=audit`
-            : "";
+            : surface.startsWith("studio-chat")
+              ? `&session=responsive`
+              : "";
         await navigateToNetworkIdle(
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
@@ -3008,6 +3076,19 @@ try {
           climate === "instrument"
         ) {
           await verifyStudioMobileSwitcher(page);
+        }
+        if (surface.startsWith("studio-chat")) {
+          await waitForText(page, "And the Studio?");
+          if (surface === "studio-chat-sessions") {
+            await clickText(
+              page,
+              ".studio-chat-mobile-destination",
+              "sessions",
+            );
+          }
+          if (surface === "studio-chat-context") {
+            await clickText(page, ".studio-chat-mobile-destination", "context");
+          }
         }
         if (
           surface === "dashboard-knowledge" ||

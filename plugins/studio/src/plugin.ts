@@ -30,6 +30,7 @@ import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
+import { STUDIO_CHAT_WORKSPACE_ID } from "./chat-workspace";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -245,6 +246,7 @@ export class StudioPlugin extends ServicePlugin<
       try {
         if (
           message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
+          message.payload.id === STUDIO_CHAT_WORKSPACE_ID ||
           message.payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
         ) {
           throw new Error(

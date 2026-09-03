@@ -1,3 +1,4 @@
+import { chatMessagesResponseSchema } from "@brains/contracts/chat";
 import {
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
   getStoredMessageCards,
@@ -32,22 +33,24 @@ export async function handleMessagesRequest(
     limit: 100,
   });
 
-  return Response.json({
-    messages: messages.map((message) => {
-      const attachments = getStoredMessageAttachments(
-        message.metadata,
-        message.timestamp,
-      );
-      const cards = getStoredMessageCards(message.metadata);
-      return {
-        id: message.id,
-        role: message.role,
-        content: stripInternalEntityMemoryNote(message.content),
-        ...(attachments.length > 0 ? { attachments } : {}),
-        ...(cards.length > 0 ? { cards } : {}),
-      };
+  return Response.json(
+    chatMessagesResponseSchema.parse({
+      messages: messages.map((message) => {
+        const attachments = getStoredMessageAttachments(
+          message.metadata,
+          message.timestamp,
+        );
+        const cards = getStoredMessageCards(message.metadata);
+        return {
+          id: message.id,
+          role: message.role,
+          content: stripInternalEntityMemoryNote(message.content),
+          ...(attachments.length > 0 ? { attachments } : {}),
+          ...(cards.length > 0 ? { cards } : {}),
+        };
+      }),
     }),
-  });
+  );
 }
 
 function getStoredMessageAttachments(

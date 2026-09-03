@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.349
+
+### Minor Changes
+
+- [`62f8fda`](https://github.com/rizom-ai/brains/commit/62f8fda906f869e456d4d879266d8eb62e9d37de) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore `@rizom/brain/chat` as the headless Chat domain and transport contract after its temporary alpha rollback. The restored surface uses neutral `Chat*` names and provides versioned schemas, bounded API paths, bounded session context locators, a stateless stream decoder, and a fetch-injected client without exporting presentation logic. Keep that decoder aligned with emitted redacted tool-result events while leaving transient presentation status host-owned. Add the capability-gated native Studio Chat working room, durable Inbox context handoff, and conditional `/chat` redirect while retaining standalone Web Chat for Chat-only composition.
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- [#212](https://github.com/rizom-ai/brains/pull/212) [`a83bc11`](https://github.com/rizom-ai/brains/commit/a83bc11cb9af7e1f499d58dd8cb4cf3538807823) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Detect active durable jobs whose types are absent from the finalized execution inventory and report operational health as degraded. Add an exact, confirmation-gated operator recovery command that can terminally retire only known pre-scheduler projection jobs after atomically proving they have no attempt ownership or partial progress.
+
 ## 0.2.0-alpha.347
 
 ### Patch Changes

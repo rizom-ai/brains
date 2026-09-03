@@ -1,5 +1,29 @@
 # @brains/app
 
+## 0.2.0-alpha.349
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.349
+  - @brains/utils@0.2.0-alpha.349
+  - @brains/core@0.2.0-alpha.349
+  - @brains/plugins@0.2.0-alpha.349
+  - @brains/runtime-state@0.2.0-alpha.349
+  - @brains/templates@0.2.0-alpha.349
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- Updated dependencies [[`a83bc11`](https://github.com/rizom-ai/brains/commit/a83bc11cb9af7e1f499d58dd8cb4cf3538807823)]:
+  - @brains/core@0.2.0-alpha.348
+  - @brains/site-composition@0.2.0-alpha.348
+  - @brains/utils@0.2.0-alpha.348
+  - @brains/plugins@0.2.0-alpha.348
+  - @brains/runtime-state@0.2.0-alpha.348
+  - @brains/templates@0.2.0-alpha.348
+
 ## 0.2.0-alpha.347
 
 ### Patch Changes

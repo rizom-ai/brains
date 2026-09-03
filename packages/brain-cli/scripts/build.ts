@@ -238,6 +238,10 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "interfaces.ts"),
   },
   {
+    name: "chat",
+    source: join(import.meta.dir, "..", "src", "entries", "chat.ts"),
+  },
+  {
     name: "templates",
     source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
   },
