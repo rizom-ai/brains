@@ -86,7 +86,7 @@ function objectResult<T>(
   object: T,
   usage: LanguageModelUsage,
 ): Awaited<ReturnType<typeof ai.generateObject>> {
-  // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
+  // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
   return { object, usage } as unknown as Awaited<
     ReturnType<typeof ai.generateObject>
   >;

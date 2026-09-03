@@ -79,6 +79,7 @@ const TEST_CAST_FREE_PACKAGES = [
   "shared/theme-default",
   "shared/theme-rizom-ai",
   "shell/ai-evaluation",
+  "shell/ai-service",
   "shell/app",
   "shell/auth-service",
   "shell/content-service",

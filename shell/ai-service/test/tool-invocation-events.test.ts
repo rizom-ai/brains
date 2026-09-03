@@ -4,6 +4,26 @@ import {
   createToolExecuteWrapper,
   type ToolEventEmitter,
 } from "../src/tool-events";
+import { z } from "@brains/utils/zod";
+import { caughtError } from "@brains/test-utils";
+
+/**
+ * The tool-event payload fields these tests read.
+ *
+ * Parsing rather than asserting means an emitter that stops carrying `actor`
+ * or `error` fails here, instead of comparing undefined to the expectation.
+ */
+const toolEventPayloadSchema = z.looseObject({
+  toolName: z.string(),
+  args: z.unknown().optional(),
+  conversationId: z.string().optional(),
+  channelId: z.string().optional(),
+  interfaceType: z.string().optional(),
+  actor: z.unknown().optional(),
+  channelName: z.string().optional(),
+  displayName: z.string().optional(),
+  error: z.string().optional(),
+});
 
 /**
  * Tests for tool invocation events
@@ -84,14 +104,7 @@ describe("tool invocation events", () => {
       expect(invokingEvent).toBeDefined();
 
       if (invokingEvent) {
-        const payload = invokingEvent.payload as {
-          toolName: string;
-          args: unknown;
-          conversationId: string;
-          channelId: string;
-          interfaceType: string;
-          actor: { kind: "agent"; agentId: string };
-        };
+        const payload = toolEventPayloadSchema.parse(invokingEvent.payload);
 
         expect(payload.toolName).toBe("search_notes");
         expect(payload.args).toEqual({ query: "typescript", limit: 10 });
@@ -138,18 +151,7 @@ describe("tool invocation events", () => {
 
       const invokingEvent = findEvent(events, "tool:invoking");
       if (invokingEvent) {
-        const payload = invokingEvent.payload as {
-          conversationId: string;
-          channelId: string;
-          channelName: string;
-          interfaceType: string;
-          actor: {
-            kind: "user";
-            userId: string;
-            canonicalId: string;
-          };
-          displayName: string;
-        };
+        const payload = toolEventPayloadSchema.parse(invokingEvent.payload);
 
         expect(payload.conversationId).toBe("matrix-room-123");
         expect(payload.channelId).toBe("!abc:matrix.org");
@@ -191,10 +193,7 @@ describe("tool invocation events", () => {
       expect(completedEvent).toBeDefined();
 
       if (completedEvent) {
-        const payload = completedEvent.payload as {
-          toolName: string;
-          conversationId: string;
-        };
+        const payload = toolEventPayloadSchema.parse(completedEvent.payload);
         expect(payload.toolName).toBe("test_tool");
         expect(payload.conversationId).toBe("test-conv");
       }
@@ -275,17 +274,14 @@ describe("tool invocation events", () => {
         expect.unreachable("Should have thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe("Tool execution failed");
+        expect(caughtError(error).message).toBe("Tool execution failed");
       }
 
       const failedEvent = findEvent(events, "tool:failed");
       expect(failedEvent).toBeDefined();
 
       if (failedEvent) {
-        const payload = failedEvent.payload as {
-          toolName: string;
-          error: string;
-        };
+        const payload = toolEventPayloadSchema.parse(failedEvent.payload);
         expect(payload.toolName).toBe("failing_tool");
         expect(payload.error).toBe("Tool execution failed");
       }
@@ -319,7 +315,7 @@ describe("tool invocation events", () => {
 
       const failedEvent = findEvent(events, "tool:failed");
       if (failedEvent) {
-        const payload = failedEvent.payload as { error: string };
+        const payload = toolEventPayloadSchema.parse(failedEvent.payload);
         expect(payload.error).toBe("Connection timeout");
       }
     });
@@ -452,7 +448,7 @@ describe("tool invocation events", () => {
         expect.unreachable("Should have thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe("Test error");
+        expect(caughtError(error).message).toBe("Test error");
       }
     });
   });
@@ -566,10 +562,12 @@ describe("tool invocation events", () => {
       );
 
       const inputArgs = { query: "search term", page: 1, limit: 10 };
-      const result = (await wrapper(inputArgs)) as {
-        status: string;
-        data: { receivedArgs: unknown };
-      };
+      const result = z
+        .looseObject({
+          status: z.string(),
+          data: z.looseObject({ receivedArgs: z.unknown() }),
+        })
+        .parse(await wrapper(inputArgs));
 
       expect(handler).toHaveBeenCalledWith(inputArgs);
       expect(result.data).toEqual({ receivedArgs: inputArgs });

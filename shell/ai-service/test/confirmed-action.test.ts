@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { buildConfirmedActionResult } from "../src/confirmed-action";
+import { z } from "@brains/utils/zod";
 import type { PendingConfirmation } from "../src/agent-types";
 
 const pending: PendingConfirmation = {
@@ -27,7 +28,7 @@ describe("buildConfirmedActionResult", () => {
     expect(result.toolResult).toEqual({
       toolName: "system_update",
       data: { success: true, data: { entityId: "my-note", status: "updated" } },
-      args: pending.args as Record<string, unknown>,
+      args: z.record(z.string(), z.unknown()).parse(pending.args),
     });
     expect(result.entityMemoryRefs).toEqual([
       {
