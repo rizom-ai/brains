@@ -268,3 +268,12 @@ jobs:
         env:
           CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: bun run visual:console
+
+      - name: Upload failed console captures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-visual-failures
+          path: test/visual/console/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
