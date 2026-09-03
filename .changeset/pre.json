@@ -378,6 +378,7 @@
     "core--remove-public-headless-chat-contract",
     "core--remove-service-singletons",
     "core--renderer-neutral-ssr-contracts",
+    "core--restore-public-headless-chat-contract",
     "core--retire-commerce-products",
     "core--retire-discord-interface",
     "core--retire-rizom-ecosystem",
