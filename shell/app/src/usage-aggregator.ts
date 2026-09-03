@@ -10,21 +10,24 @@ import { z } from "@brains/utils/zod";
  * aggregated statistics.
  */
 
-export interface UsageEntry {
-  operation: string;
-  provider: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-}
-
-const usageEntrySchema: z.ZodType<UsageEntry> = z.looseObject({
+const usageEntrySchema: z.ZodObject<
+  {
+    operation: z.ZodString;
+    provider: z.ZodString;
+    model: z.ZodString;
+    inputTokens: z.ZodNumber;
+    outputTokens: z.ZodNumber;
+  },
+  z.core.$loose
+> = z.looseObject({
   operation: z.string(),
   provider: z.string(),
   model: z.string(),
   inputTokens: z.number(),
   outputTokens: z.number(),
 });
+
+export type UsageEntry = z.output<typeof usageEntrySchema>;
 
 export interface UsageEvent {
   ts: string;
