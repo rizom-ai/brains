@@ -7,10 +7,6 @@ import {
 
 type HtmlNode = DefaultTreeAdapterMap["node"];
 type HtmlChildNode = DefaultTreeAdapterMap["childNode"];
-type HtmlDocument = DefaultTreeAdapterMap["document"];
-type HtmlFragment = DefaultTreeAdapterMap["documentFragment"];
-type HtmlElement = DefaultTreeAdapterMap["element"];
-type HtmlTemplate = DefaultTreeAdapterMap["template"];
 
 export type NormalizedHtmlNode =
   | { type: "document" | "fragment"; children: NormalizedHtmlNode[] }
@@ -78,22 +74,20 @@ function normalizeNode(
       systemId: node.systemId,
     };
   }
-  if (node.nodeName === "#document") {
-    const document = node as HtmlDocument;
+  // parse5's node union has predicates for text, comment and doctype but not
+  // for the rest, so these narrow on the members they are about to read. A
+  // node arriving without them says so here rather than several reads later.
+  if (node.nodeName === "#document" || node.nodeName === "#document-fragment") {
     return {
-      type: "document",
-      children: normalizeChildren(document.childNodes, options),
-    };
-  }
-  if (node.nodeName === "#document-fragment") {
-    const fragment = node as HtmlFragment;
-    return {
-      type: "fragment",
-      children: normalizeChildren(fragment.childNodes, options),
+      type: node.nodeName === "#document" ? "document" : "fragment",
+      children: normalizeChildren(node.childNodes, options),
     };
   }
 
-  const element = node as HtmlElement;
+  if (!defaultTreeAdapter.isElementNode(node)) {
+    throw new Error(`Unexpected node in rendered HTML: ${node.nodeName}`);
+  }
+  const element = node;
   return {
     type: "element",
     name: element.tagName,
@@ -105,9 +99,7 @@ function normalizeNode(
       ])
       .sort(([left], [right]) => left.localeCompare(right)),
     children: normalizeChildren(
-      element.nodeName === "template"
-        ? (element as HtmlTemplate).content.childNodes
-        : element.childNodes,
+      "content" in element ? element.content.childNodes : element.childNodes,
       options,
     ),
   };

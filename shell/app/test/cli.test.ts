@@ -8,6 +8,11 @@ import {
   spyOn,
 } from "bun:test";
 import { handleCLI } from "../src/cli";
+import {
+  ProcessExited,
+  expectProcessExit,
+  genericSpy,
+} from "@brains/test-utils";
 import { App } from "../src/app";
 import { defineConfig } from "../src/config";
 
@@ -26,9 +31,11 @@ describe("handleCLI", () => {
   const originalConsoleError = console.error;
   const originalCreate = App.create;
 
-  // Mock console and process.exit
-  const mockExit = mock((_code?: number): never => {
-    return undefined as never;
+  // Mock console and process.exit. The double throws rather than returning:
+  // that is what `never` means, and it keeps the code under test from running
+  // on past a point where the real process would be gone.
+  const mockExit = mock((code?: number): never => {
+    throw new ProcessExited(code);
   });
   const mockConsoleLog = mock(() => {});
   const mockConsoleError = mock(() => {});
@@ -38,7 +45,9 @@ describe("handleCLI", () => {
   beforeEach(() => {
     // Spy on App.run
     runSpy = mock(() => Promise.resolve());
-    App.run = runSpy as typeof App.run;
+    // mock() erases the type parameters App.run declares; genericSpy names that
+    // as the only reason.
+    App.run = genericSpy<typeof App.run>(runSpy);
 
     // Reset mocks
     mockExit.mockClear();
@@ -71,7 +80,7 @@ describe("handleCLI", () => {
   it("should show help with --help flag", async () => {
     process.argv = ["bun", ".brain-entrypoint.ts", "--help"];
 
-    await handleCLI(testConfig);
+    await expectProcessExit(handleCLI(testConfig), 0);
 
     expect(mockConsoleLog).toHaveBeenCalledWith(
       expect.stringContaining("test-app v2.1.0"),
@@ -79,36 +88,32 @@ describe("handleCLI", () => {
     expect(mockConsoleLog).toHaveBeenCalledWith(
       expect.stringContaining("Usage:"),
     );
-    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should show help with -h flag", async () => {
     process.argv = ["bun", ".brain-entrypoint.ts", "-h"];
 
-    await handleCLI(testConfig);
+    await expectProcessExit(handleCLI(testConfig), 0);
 
     expect(mockConsoleLog).toHaveBeenCalledWith(
       expect.stringContaining("test-app v2.1.0"),
     );
-    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should show version with --version flag", async () => {
     process.argv = ["bun", ".brain-entrypoint.ts", "--version"];
 
-    await handleCLI(testConfig);
+    await expectProcessExit(handleCLI(testConfig), 0);
 
     expect(mockConsoleLog).toHaveBeenCalledWith("test-app v2.1.0");
-    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should show version with -v flag", async () => {
     process.argv = ["bun", ".brain-entrypoint.ts", "-v"];
 
-    await handleCLI(testConfig);
+    await expectProcessExit(handleCLI(testConfig), 0);
 
     expect(mockConsoleLog).toHaveBeenCalledWith("test-app v2.1.0");
-    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should pass --cli flag through to app", async () => {
@@ -122,13 +127,12 @@ describe("handleCLI", () => {
   it("should handle multiple flags", async () => {
     process.argv = ["bun", ".brain-entrypoint.ts", "--help", "--cli"];
 
-    await handleCLI(testConfig);
+    await expectProcessExit(handleCLI(testConfig), 0);
 
     // Help should take precedence
     expect(mockConsoleLog).toHaveBeenCalledWith(
       expect.stringContaining("Usage:"),
     );
-    expect(mockExit).toHaveBeenCalledWith(0);
   });
 
   it("should handle --startup-check by initializing without running", async () => {
@@ -168,14 +172,14 @@ describe("CLI Integration", () => {
     });
 
     const mockConsoleLog = mock(() => {});
-    const mockExit = mock((_code?: number): never => {
-      return undefined as never;
+    const mockExit = mock((code?: number): never => {
+      throw new ProcessExited(code);
     });
     console.log = mockConsoleLog;
     process.exit = mockExit;
     process.argv = ["bun", ".brain-entrypoint.ts", "--help"];
 
-    await handleCLI(testConfig);
+    await expectProcessExit(handleCLI(testConfig), 0);
 
     expect(mockConsoleLog).toHaveBeenCalled();
     expect(mockConsoleLog).toHaveBeenCalledWith(

@@ -1,7 +1,7 @@
 {
   "name": "@brains/contracts",
   "license": "Apache-2.0",
-  "version": "0.2.0-alpha.344",
+  "version": "0.2.0-alpha.350",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },
@@ -17,9 +17,9 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./browser-chat": {
-      "types": "./src/browser-chat.ts",
-      "default": "./src/browser-chat.ts"
+    "./chat": {
+      "types": "./src/chat.ts",
+      "default": "./src/chat.ts"
     }
   },
   "main": "./src/index.ts",

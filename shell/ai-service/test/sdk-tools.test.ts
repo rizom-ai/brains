@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { asSchema } from "@ai-sdk/provider-utils";
 import { MCPService, type Tool } from "@brains/mcp-service";
+import { createMockMessageBus } from "@brains/messaging-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { convertToSDKTools, toModelVisibleInputSchema } from "../src/sdk-tools";
@@ -414,13 +415,8 @@ describe("convertToSDKTools", () => {
   });
 
   it("passes coerced invalid registered tool responses through normal agent tool execution", async () => {
-    const unsubscribeFn = mock(() => {});
     const mcpService = MCPService.createFresh(
-      {
-        send: mock(async () => ({ success: true as const })),
-        subscribe: mock(() => unsubscribeFn),
-        unsubscribe: mock(() => {}),
-      },
+      createMockMessageBus(),
       createSilentLogger(),
     );
     const invalidHandler = mock(async () => JSON.parse('{"success":false}'));

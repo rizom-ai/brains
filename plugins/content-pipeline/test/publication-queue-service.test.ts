@@ -3,6 +3,7 @@ import {
   baseEntitySchema,
   createMockShell,
   createServicePluginContext,
+  createTestEntityAdapter,
 } from "@brains/plugins/test";
 import { QueueManager } from "../src/queue-manager";
 import { PublicationQueueService } from "../src/publication-queue-service";
@@ -16,7 +17,11 @@ async function createFixture(): Promise<{
     createMockShell(),
     "content-pipeline",
   );
-  context.entities.register("social-post", baseEntitySchema, {} as never);
+  context.entities.register(
+    "social-post",
+    baseEntitySchema,
+    createTestEntityAdapter("social-post"),
+  );
   for (const [id, title] of [
     ["first", "First post"],
     ["second", "Second post"],

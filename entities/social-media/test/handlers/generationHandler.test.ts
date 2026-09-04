@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { z } from "@brains/utils/zod";
 import {
   GenerationJobHandler,
+  generatedPostSchema,
   generationJobSchema,
   type GenerationJobData,
 } from "../../src/handlers/generationHandler";
@@ -13,7 +15,10 @@ import type {
   EntityPluginContext,
   EntityMutationResult,
 } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   socialPostMetadataSchema,
   type SocialPostMetadata,
@@ -33,7 +38,7 @@ describe("GenerationJobHandler", () => {
     handler = new GenerationJobHandler(logger, context);
 
     progressCalls = [];
-    const reporter = ProgressReporter.from(async (notification) => {
+    const reporter = CallbackProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
         progress: notification.progress,
       };
@@ -332,6 +337,7 @@ describe("GenerationJobHandler", () => {
         expect.objectContaining({
           representedIdentity: "anchor",
         }),
+        generatedPostSchema,
       );
     });
 
@@ -368,13 +374,17 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should queue image generation when generateImage is true", async () => {
-      interface ImageGenerateJobData {
-        prompt: string;
-        title: string;
-        aspectRatio: string;
-        targetEntityType: string;
-        targetEntityId: string;
-      }
+      // Parsed rather than asserted: the enqueued payload crosses an
+      // unknown-typed job boundary, so this is what proves it carries what
+      // the image handler will need.
+      const imageGenerateJobDataSchema = z.looseObject({
+        prompt: z.string(),
+        title: z.string(),
+        aspectRatio: z.string(),
+        targetEntityType: z.string(),
+        targetEntityId: z.string(),
+      });
+      type ImageGenerateJobData = z.output<typeof imageGenerateJobDataSchema>;
       const enqueuedJobs: Array<{
         jobType: string;
         data: ImageGenerateJobData;
@@ -382,7 +392,7 @@ describe("GenerationJobHandler", () => {
       context.jobs.enqueue = async (request): Promise<string> => {
         enqueuedJobs.push({
           jobType: request.type,
-          data: request.data as ImageGenerateJobData,
+          data: imageGenerateJobDataSchema.parse(request.data),
         });
         return "image-job-456";
       };
@@ -438,15 +448,16 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should queue generic coverImage generation with generated content context", async () => {
-      interface ImageGenerateJobData {
-        prompt: string;
-        title: string;
-        aspectRatio: string;
-        targetEntityType: string;
-        targetEntityId: string;
-        entityTitle?: string;
-        entityContent?: string;
-      }
+      const imageGenerateJobDataSchema = z.looseObject({
+        prompt: z.string(),
+        title: z.string(),
+        aspectRatio: z.string(),
+        targetEntityType: z.string(),
+        targetEntityId: z.string(),
+        entityTitle: z.string().optional(),
+        entityContent: z.string().optional(),
+      });
+      type ImageGenerateJobData = z.output<typeof imageGenerateJobDataSchema>;
       const enqueuedJobs: Array<{
         jobType: string;
         data: ImageGenerateJobData;
@@ -454,7 +465,7 @@ describe("GenerationJobHandler", () => {
       context.jobs.enqueue = async (request): Promise<string> => {
         enqueuedJobs.push({
           jobType: request.type,
-          data: request.data as ImageGenerateJobData,
+          data: imageGenerateJobDataSchema.parse(request.data),
         });
         return "image-job-789";
       };

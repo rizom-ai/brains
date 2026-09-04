@@ -14,9 +14,12 @@ import {
   createTemplate,
   type ComponentType,
   type Template,
+  type TemplateDataSchema,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
+import { parseWithSchema } from "@brains/utils/parse-schema";
+import { emptyPluginState } from "../base/empty-state";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -47,13 +50,11 @@ import type {
   ServiceJobReference,
   ServiceJobStatus,
   ServiceJobs,
-  ServicePromptDefinition,
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
-  ServiceTemplateDefinition,
+  ServiceViewSchemaMap,
   ServiceTemplateFormatter,
-  ServiceViewDefinition,
 } from "./service-definition-contract";
 import {
   getServiceJobHandler,
@@ -66,11 +67,20 @@ import {
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
-function formatTemplateValue(
-  template: ServiceTemplateDefinition<ServiceSchema>,
-  value: unknown,
-): string {
-  return template.format({ value: template.schema.parse(value) });
+/** A template with its schema type erased and `format` bound to that schema. */
+interface ErasedServiceTemplate {
+  readonly schema: ServiceSchema;
+  format(value: unknown): string;
+}
+
+/**
+ * A view with its schema erased to the JSON bound it is declared with, and its
+ * author component wrapped so props are parsed before render.
+ */
+interface ErasedServiceView {
+  readonly schema: TemplateDataSchema<JsonObject>;
+  readonly description?: string | undefined;
+  readonly component: ComponentType<JsonObject>;
 }
 
 function toolConfirmationToken(input: unknown): string | undefined {
@@ -94,7 +104,7 @@ function statusFor<TDefinition extends AnyServiceJobDefinition>(
 ): ServiceJobStatus<z.output<TDefinition["output"]>> {
   const result: z.output<TDefinition["output"]> | undefined =
     job.status === "completed" && job.result !== undefined
-      ? (definition.output.parse(job.result) as z.output<TDefinition["output"]>)
+      ? parseWithSchema<TDefinition["output"]>(definition.output, job.result)
       : undefined;
   return {
     id: job.id,
@@ -162,7 +172,7 @@ class DeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: NormalizedServiceDefinitionInput<
@@ -246,7 +256,7 @@ class DeclarativeServicePlugin<
             },
           },
         })
-      : (Object.freeze({}) as TState);
+      : emptyPluginState<TState>();
 
     const templates = this.templateFormatter();
     context.templates.register(this.runtimeTemplates(), this.id);
@@ -567,31 +577,61 @@ class DeclarativeServicePlugin<
   }
 
   private templateFormatter(): ServiceTemplateFormatter {
-    const templates = this.definition.templates as
-      Record<string, ServiceTemplateDefinition<ServiceSchema>> | undefined;
+    const formatters = this.erasedTemplates();
     return {
       format(name, value): string {
-        const template = templates?.[name];
+        const template = formatters.get(name);
         if (!template) throw new Error(`Template not found: ${name}`);
-        return formatTemplateValue(template, value);
+        return template.format(value);
       },
     };
   }
 
+  /**
+   * Erase each template's schema type where it is still known, binding format
+   * to the schema it belongs to. Reading the definition's mapped type as a
+   * plain record is not assignable — ServiceTemplateDefinition is
+   * contravariant in its schema through `format` — so the erasure happens here
+   * rather than being asserted away at the read site.
+   */
+  private erasedTemplates(): Map<string, ErasedServiceTemplate> {
+    return new Map(
+      Object.entries(this.definition.templates ?? {}).map(
+        ([name, template]) => [
+          name,
+          {
+            schema: template.schema,
+            format: (value: unknown): string =>
+              template.format({ value: template.schema.parse(value) }),
+          },
+        ],
+      ),
+    );
+  }
+
+  private erasedViews(): Map<string, ErasedServiceView> {
+    return new Map(
+      Object.entries(this.definition.views ?? {}).map(([name, view]) => [
+        name,
+        {
+          schema: view.schema,
+          description: view.description,
+          component: (props: JsonObject) =>
+            view.renderers.web(view.schema.parse(props)),
+        },
+      ]),
+    );
+  }
+
   private runtimeTemplates(): Record<string, Template> {
-    const templates = this.definition.templates as
-      Record<string, ServiceTemplateDefinition<ServiceSchema>> | undefined;
-    const views = this.definition.views as
-      Record<string, ServiceViewDefinition<ServiceSchema>> | undefined;
+    const templates = this.erasedTemplates();
+    const views = this.erasedViews();
     const result: Record<string, Template> = {};
-    const names = new Set([
-      ...Object.keys(templates ?? {}),
-      ...Object.keys(views ?? {}),
-    ]);
+    const names = new Set([...templates.keys(), ...views.keys()]);
 
     for (const name of names) {
-      const template = templates?.[name];
-      const view = views?.[name];
+      const template = templates.get(name);
+      const view = views.get(name);
       if (template && view && template.schema !== view.schema) {
         throw new Error(
           `Service "${this.publicId}" template and view "${name}" must share one schema`,
@@ -607,8 +647,7 @@ class DeclarativeServicePlugin<
         ...(template
           ? {
               formatter: {
-                format: (value: unknown): string =>
-                  formatTemplateValue(template, value),
+                format: (value: unknown): string => template.format(value),
                 parse: (): never => {
                   throw new Error(`Template "${name}" is format-only`);
                 },
@@ -620,16 +659,10 @@ class DeclarativeServicePlugin<
         result[name] = createTemplate(base);
         continue;
       }
-      const component = ((value: JsonObject) => {
-        const parsed = view.schema.parse(value);
-        return typeof view.renderers.web === "function"
-          ? view.renderers.web(parsed)
-          : view.renderers.web;
-      }) as unknown as ComponentType<JsonObject>;
       result[name] = createTemplate<JsonObject>({
         ...base,
-        schema: schema as z.ZodType<JsonObject, unknown>,
-        layout: { component },
+        schema: view.schema,
+        layout: { component: view.component },
       });
     }
     return result;
@@ -638,9 +671,9 @@ class DeclarativeServicePlugin<
   private registerPrompts(): void {
     const shell = this.scopedShell;
     if (!shell) throw new Error(`Service "${this.publicId}" has no shell`);
-    const prompts = this.definition.prompts as
-      Record<string, ServicePromptDefinition<ServiceSchema>> | undefined;
-    for (const [name, definition] of Object.entries(prompts ?? {})) {
+    for (const [name, definition] of Object.entries(
+      this.definition.prompts ?? {},
+    )) {
       const prompt: Prompt = {
         name: `${this.publicId}_${name}`,
         ...(definition.description
@@ -756,7 +789,7 @@ export function createDeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: NormalizedServiceDefinitionInput<

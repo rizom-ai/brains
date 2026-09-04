@@ -72,6 +72,24 @@ describe("summarizeBackgroundWork", () => {
     });
   });
 
+  it("reports active job types missing from the execution inventory", () => {
+    expect(
+      summarizeBackgroundWork(
+        diagnostics({
+          totals: { pending: 0, processing: 1, completed: 3, failed: 0 },
+          byType: [
+            { type: "skill:project", status: "processing", count: 1 },
+            { type: "note:embedding", status: "completed", count: 3 },
+          ],
+        }),
+        [{ type: "note:embedding", pluginId: "note" }],
+      ),
+    ).toMatchObject({
+      status: "degraded",
+      reasons: ["1 active job(s) have no declared executor"],
+    });
+  });
+
   it("requires old due work, no processing, and no recent claim to report a stall", () => {
     expect(
       summarizeBackgroundWork(

@@ -6,6 +6,8 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
 import { ENTITY_CHANNELS, DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import { isPlainRecord } from "@brains/utils/predicates";
+import { readString } from "@brains/utils/record-fields";
 import {
   SITE_METADATA_GET_CHANNEL,
   SITE_METADATA_UPDATED_CHANNEL,
@@ -79,8 +81,10 @@ export class SiteInfoPlugin extends EntityPlugin<
     );
 
     context.messaging.subscribe(ENTITY_CHANNELS.updated, async (message) => {
-      const payload = message.payload as { entityType: string };
-      if (payload.entityType === "site-info") {
+      const payload = isPlainRecord(message.payload)
+        ? message.payload
+        : undefined;
+      if (readString(payload, "entityType") === "site-info") {
         const siteInfo = await service.getSiteInfo();
         await context.messaging.send({
           type: SITE_METADATA_UPDATED_CHANNEL,

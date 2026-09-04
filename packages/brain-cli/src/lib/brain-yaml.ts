@@ -6,8 +6,11 @@ import {
   type InstanceOverrides,
 } from "@brains/app";
 import { getErrorMessage } from "@brains/utils/error";
-import { fromYaml } from "@brains/utils/yaml";
+import { parseYamlDocument } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import { CANONICAL_BUNDLE_CONTRACT } from "../model/canonical-bundles";
+
+const selectedBrainSchema = z.object({ brain: z.string() });
 
 export type BrainYamlConfig = InstanceOverrides & { brain: string };
 
@@ -62,18 +65,8 @@ export function parseBrainYaml(cwd: string): BrainYamlConfig {
 }
 
 function readSelectedBrain(input: string): string | undefined {
-  try {
-    const parsed = fromYaml<unknown>(input);
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed) &&
-      typeof (parsed as Record<string, unknown>)["brain"] === "string"
-    ) {
-      return (parsed as Record<string, unknown>)["brain"] as string;
-    }
-  } catch {
-    // The canonical parser below owns syntax and shape errors.
-  }
-  return undefined;
+  // The canonical parser in parseBrainYaml owns syntax and shape errors, so a
+  // failure to read the brain name here is not reported.
+  const result = parseYamlDocument(input, selectedBrainSchema);
+  return result.ok ? result.data.brain : undefined;
 }

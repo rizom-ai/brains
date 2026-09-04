@@ -137,6 +137,9 @@ describe("@rizom/brain package metadata", () => {
       'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',
     );
     expect(buildScript).toContain(
+      'cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"))',
+    );
+    expect(buildScript).toContain(
       "cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true })",
     );
     expect(buildScript).toContain("studio-asset-manifest.json");
@@ -150,6 +153,7 @@ describe("@rizom/brain package metadata", () => {
       JSON.parse(readPackageFile("dist/ui/studio-asset-manifest.json")),
     );
     expect(manifest.assets["app.js"]).toBe("studio-app.js");
+    expect(manifest.assets["app.css"]).toBe("studio-app.css");
     expect(
       Object.keys(manifest.assets).some((asset) =>
         /^studio-chunks\/account-view-[A-Za-z0-9]+\.js$/.test(asset),

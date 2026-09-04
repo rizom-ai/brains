@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 import { resolveStandardConfigWithDirectories } from "../src/standard-paths";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 
 async function main(): Promise<void> {
   const config = await resolveStandardConfigWithDirectories();
-  const logger = Logger.getInstance();
+  const logger = ConsoleLogger.getInstance();
 
   logger.info("Running runtime state database migrations...");
 

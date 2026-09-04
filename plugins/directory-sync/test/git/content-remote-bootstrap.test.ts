@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createTempDataDirSync } from "@brains/plugins/test";
+import { caughtError } from "@brains/test-utils";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -138,7 +139,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
         caught = err;
       }
       expect(caught).toBeInstanceOf(Error);
-      expect((caught as Error).message).toMatch("requires seedContentPath");
+      expect(caughtError(caught).message).toMatch("requires seedContentPath");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

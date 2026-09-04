@@ -280,48 +280,76 @@ export function parseProjectionStoreRpcRequest(
   return ProjectionStoreRpcRequestSchema.parse(input);
 }
 
-export function parseProjectionStoreRpcResult(
-  request: ProjectionStoreRpcRequest,
-  input: unknown,
-): unknown {
-  switch (request.operation) {
-    case "markDirty":
-      return z.number().int().nonnegative().parse(input);
-    case "listPendingInputs":
-      return z.array(dirtyRecordSchema).parse(input);
-    case "claimPendingWave":
-    case "getActiveWave":
-    case "getWave":
-      return input === null ? null : waveSchema.parse(input);
-    case "listWaveInputs":
-      return z.array(waveInputSchema).parse(input);
-    case "completeWave":
-    case "failWave":
-    case "failWaveWithIncident":
-      return waveSchema.parse(input);
-    case "getUnresolvedProjectionIncidentDiagnostics":
-      return incidentDiagnosticsSchema.parse(input);
-    case "putWaveRules":
-      return z.undefined().parse(input);
-    case "listWaveRules":
-      return z.array(waveRuleSchema).parse(input);
-    case "queueWaveRule":
-      return waveRuleSchema.parse(input);
-    // A rule whose wave moved on applies to nothing, so the owner returns null.
-    case "applyRuleResult":
-    case "getWaveRule":
-      return input === null ? null : waveRuleSchema.parse(input);
-    case "getRuleMemo":
-      return input === null ? null : memoSchema.parse(input);
-    case "supersedeWaveIfStale":
-      return z.boolean().parse(input);
-    case "openCallbackBatch":
-    case "openDurableBatchChild":
-      return ProjectionBatchScopeSchema.parse(input);
-    case "renewCallbackBatch":
-    case "closeCallbackBatch":
-      return z.undefined().parse(input);
-  }
+const nullableWaveSchema = waveSchema.nullable();
+// A rule whose wave moved on applies to nothing, so the owner returns null.
+const nullableWaveRuleSchema = waveRuleSchema.nullable();
+const undefinedResultSchema = z.undefined();
+
+/**
+ * What each operation answers. The schema map below is checked against this,
+ * so the two cannot drift, and keying both by operation is what lets
+ * `parseProjectionStoreRpcResult` return the operation's own type — callers no
+ * longer re-assert it at the transport boundary.
+ */
+export interface ProjectionStoreRpcResults {
+  markDirty: number;
+  listPendingInputs: ProjectionDirtyInput[];
+  claimPendingWave: ProjectionWave | null;
+  getActiveWave: ProjectionWave | null;
+  getWave: ProjectionWave | null;
+  listWaveInputs: ProjectionWaveInput[];
+  completeWave: ProjectionWave;
+  failWave: ProjectionWave;
+  failWaveWithIncident: ProjectionWave;
+  getUnresolvedProjectionIncidentDiagnostics: ProjectionIncidentDiagnostics;
+  putWaveRules: undefined;
+  listWaveRules: ProjectionWaveRule[];
+  queueWaveRule: ProjectionWaveRule;
+  applyRuleResult: ProjectionWaveRule | null;
+  getWaveRule: ProjectionWaveRule | null;
+  getRuleMemo: ProjectionRuleMemo | null;
+  supersedeWaveIfStale: boolean;
+  openCallbackBatch: ProjectionBatchScope;
+  openDurableBatchChild: ProjectionBatchScope;
+  renewCallbackBatch: undefined;
+  closeCallbackBatch: undefined;
+}
+
+export type ProjectionStoreRpcOperation = keyof ProjectionStoreRpcResults;
+
+const resultSchemas: {
+  [Op in ProjectionStoreRpcOperation]: z.ZodType<
+    ProjectionStoreRpcResults[Op],
+    unknown
+  >;
+} = {
+  markDirty: z.number().int().nonnegative(),
+  listPendingInputs: z.array(dirtyRecordSchema),
+  claimPendingWave: nullableWaveSchema,
+  getActiveWave: nullableWaveSchema,
+  getWave: nullableWaveSchema,
+  listWaveInputs: z.array(waveInputSchema),
+  completeWave: waveSchema,
+  failWave: waveSchema,
+  failWaveWithIncident: waveSchema,
+  getUnresolvedProjectionIncidentDiagnostics: incidentDiagnosticsSchema,
+  putWaveRules: undefinedResultSchema,
+  listWaveRules: z.array(waveRuleSchema),
+  queueWaveRule: waveRuleSchema,
+  applyRuleResult: nullableWaveRuleSchema,
+  getWaveRule: nullableWaveRuleSchema,
+  getRuleMemo: memoSchema.nullable(),
+  supersedeWaveIfStale: z.boolean(),
+  openCallbackBatch: ProjectionBatchScopeSchema,
+  openDurableBatchChild: ProjectionBatchScopeSchema,
+  renewCallbackBatch: undefinedResultSchema,
+  closeCallbackBatch: undefinedResultSchema,
+};
+
+export function parseProjectionStoreRpcResult<
+  Op extends ProjectionStoreRpcOperation,
+>(request: { operation: Op }, input: unknown): ProjectionStoreRpcResults[Op] {
+  return resultSchemas[request.operation].parse(input);
 }
 
 export function handleProjectionStoreRpcRequest(

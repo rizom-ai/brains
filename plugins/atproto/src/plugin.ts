@@ -873,7 +873,7 @@ export class AtprotoPlugin extends ServicePlugin<
       }
     }
 
-    const agents = await context.entityService.listEntities<BaseEntity>({
+    const agents = await context.entityService.listEntities({
       entityType: "agent",
     });
     const existingByDomain = agents.find((agent) => agent.id === domain);

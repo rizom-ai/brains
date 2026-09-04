@@ -119,6 +119,7 @@ export class HandlerRegistry {
 
   private wrapHandler<T, R>(handler: MessageHandler<T, R>): WrappedHandler {
     return async (message: MessageWithPayload<unknown>) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the registry stores handlers erased to unknown payloads; the payload was validated against this handler.s channel before dispatch
       const typedMessage = message as MessageWithPayload<T>;
       const result = await handler(typedMessage);
       return toInternalResponse(message.id, result);

@@ -1,6 +1,7 @@
 /* Studio responsive composition. Desktop form/editor rules stay in App.tsx;
    this module owns tablet collection switching and phone editing modes. */
 
+.studio-mobile-tabs,
 .studio-mobile-modes,
 .studio-mobile-switcher {
   display: none;
@@ -140,7 +141,7 @@
     padding: 7px 12px;
   }
   .pipeline .stations-wrap,
-  .pipeline > .btn.danger,
+  .studio-desktop-delete,
   .pipeline > .spacer {
     display: none;
   }
@@ -164,44 +165,29 @@
     text-overflow: ellipsis;
   }
   .studio-mobile-more {
-    position: relative;
-    display: block;
-  }
-  .studio-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .studio-mobile-more summary::-webkit-details-marker {
-    display: none;
-  }
-  .studio-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
-    min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
+    display: inline-flex;
   }
 }
 
 @media (max-width: 640px) {
-  html:has(body[data-console-host="studio"]) {
+  /* Two phone layout contracts. The editor is an app shell: its pane switcher
+     and save bar hold position while the panes scroll, so it locks the
+     document. Every reading surface scrolls the document instead — locking
+     those holds the mobile browser's URL bar permanently open, which costs
+     more viewport than the chrome budget ever saves, and trades native
+     overscroll for a painted scrollbar gutter. */
+  html:has(body[data-console-host="studio"] .studio[data-view="editor"]) {
     overflow: hidden;
   }
   body[data-console-host="studio"] {
     --console-strip-height: calc(52px + env(safe-area-inset-top));
+  }
+  body[data-console-host="studio"]:has(.studio[data-view="editor"]) {
     overflow: hidden;
+  }
+  body[data-console-host="studio"]:not(:has(.studio[data-view="editor"])) {
+    height: auto;
+    min-height: 100%;
   }
   body[data-console-host="studio"] .console-strip {
     grid-template-columns: minmax(0, 1fr) repeat(3, var(--console-touch));
@@ -239,8 +225,20 @@
   .studio > .crumbbar {
     display: none;
   }
-  .studio-body {
+  .studio[data-view="editor"] .studio-body {
     overflow: hidden;
+  }
+  /* Reading surfaces hand their scroll to the document, so the body grid stops
+     capping its content row and the context picker sticks instead of riding
+     the page away. */
+  .studio:not([data-view="editor"]) .studio-body {
+    grid-template-rows: auto auto;
+    /* Auto tracks stretch into a grid taller than their content, which would
+       pad the context picker out to share the leftover viewport. Content sizes
+       the rows; anything past the fold overflows into the document scroll. */
+    align-content: start;
+    min-height: 0;
+    overflow: visible;
   }
   .rail {
     overflow: visible;
@@ -248,6 +246,12 @@
     background: var(--console-card-soft);
     -webkit-mask-image: none;
     mask-image: none;
+  }
+  .studio:not([data-view="editor"]) .rail {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    border-bottom: 1px solid var(--console-rule-strong);
   }
   .types {
     display: none;
@@ -367,7 +371,7 @@
   }
   .listing {
     min-width: 0;
-    overflow-y: auto;
+    overflow: visible;
     padding: 12px 16px calc(28px + env(safe-area-inset-bottom));
   }
   .row {
@@ -408,6 +412,11 @@
     grid-template-rows: 44px minmax(0, 1fr) auto;
     overflow: hidden;
   }
+  .studio-mobile-tabs {
+    display: block;
+    grid-column: 1;
+    grid-row: 2;
+  }
   .studio-mobile-modes {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -427,7 +436,7 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
-  .studio-mobile-mode.is-active {
+  .studio-mobile-mode[data-state="active"] {
     border-bottom-color: var(--console-accent);
     background: transparent;
     color: var(--console-text);
@@ -511,8 +520,7 @@
   .assist-presets {
     overflow-x: auto;
   }
-  .assist-preset {
-    min-height: 30px;
+  .assist-presets [data-slot="button"] {
     white-space: nowrap;
   }
   .assist-meta {
@@ -576,11 +584,11 @@
   .studio-editor-phone-save {
     display: block;
   }
-  .save-btn,
-  .pipeline .btn.danger {
+  .studio-editor-phone-save,
+  .pipeline [data-slot="button"][data-variant="danger"] {
     min-height: var(--console-touch);
   }
-  .save-btn {
+  .studio-editor-phone-save {
     padding-inline: 18px;
     border-radius: 8px;
   }
@@ -607,36 +615,9 @@
     text-overflow: ellipsis;
   }
   .studio-mobile-more {
-    position: relative;
-    display: block;
+    display: inline-flex;
   }
-  .studio-mobile-more summary {
-    display: grid;
-    place-items: center;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    border: 1px solid color-mix(in srgb, var(--console-bg) 25%, transparent);
-    border-radius: 50%;
-    color: var(--console-bg);
-    cursor: pointer;
-    font-family: var(--console-mono);
-    list-style: none;
-  }
-  .studio-mobile-more summary::-webkit-details-marker {
-    display: none;
-  }
-  .studio-mobile-more button {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    min-width: 132px;
-    min-height: var(--console-touch);
-    border: 1px solid var(--console-err);
-    border-radius: 8px;
-    background: var(--console-card);
-    color: var(--console-err);
-  }
-  .pipeline > .btn.danger {
+  .studio-desktop-delete {
     display: none;
   }
   .stations {
@@ -670,7 +651,7 @@
   .pipeline > .spacer {
     display: none;
   }
-  .pipeline .btn.danger {
+  .pipeline [data-slot="button"][data-variant="danger"] {
     padding-inline: 10px;
     font-size: 11px;
   }
@@ -730,7 +711,7 @@
   body[data-console-host="studio"] .declarative-pager {
     margin-left: auto;
   }
-  body[data-console-host="studio"] .declarative-pager .btn {
+  body[data-console-host="studio"] .declarative-pager [data-slot="button"] {
     min-height: var(--console-touch);
   }
   body[data-console-host="studio"]

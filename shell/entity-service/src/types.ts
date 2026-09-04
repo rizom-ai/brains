@@ -507,6 +507,8 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
   limit?: number | undefined;
   offset?: number | undefined;
   /** Multi-field sorting - supports system fields (created, updated) and metadata fields */
+  // `| undefined` is load-bearing: these cross the entity RPC boundary, where
+  // zod `.optional()` produces `T | undefined` under exactOptionalPropertyTypes.
   sortFields?: SortField[] | undefined;
   filter?:
     | {
@@ -576,7 +578,10 @@ export interface EntityTypeConfig {
 export interface GetEntityRequest {
   entityType: string;
   id: string;
-  /** Undefined fails closed to the public scope. */
+  /**
+   * Optional visibility scope. Undefined fails closed to "public" — callers
+   * with elevated access must opt up explicitly.
+   */
   visibilityScope?: ContentVisibility | undefined;
 }
 
@@ -769,23 +774,35 @@ export interface DataSourceCapabilities {
 }
 
 export interface ICoreEntityService {
-  // Read-only operations
-  getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
+  // Read-only operations. Without a schema these return the registered
+  // BaseEntity view; pass the entity schema you own to get a parsed,
+  // proven T instead of asserting one.
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
 
   /**
    * Get entity without content resolution (raw)
    * Used internally to avoid recursion when resolving image references
    */
+  getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   getEntityRaw<T extends BaseEntity>(
     request: GetEntityRawRequest,
+    schema: EntitySchema<T>,
   ): Promise<T | null>;
 
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
   listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
   ): Promise<T[]>;
 
-  search<T extends BaseEntity = BaseEntity>(
+  search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
+  search<T extends BaseEntity>(
     request: EntitySearchRequest,
+    schema: EntitySchema<T>,
   ): Promise<SearchResult<T>[]>;
 
   /** Return embedded entities with raw cosine distance to a query. */
@@ -956,19 +973,12 @@ export interface SettleDurableBulkMutationChildInput {
   outcome: "completed" | "failed";
 }
 
-export type EntityServiceClient = Omit<
-  EntityService,
-  | "getProjectionStore"
-  | "setProjectionWakeup"
-  | "prepareDurableBulkMutation"
-  | "finalizeDurableBulkMutationEnqueue"
-  | "failDurableBulkMutationEnqueue"
-  | "runDurableBulkMutationChild"
-  | "settleDurableBulkMutationChild"
-  | "recoverProjectionBatches"
->;
-
-export interface EntityService extends ICoreEntityService {
+/**
+ * The entity-service surface ordinary plugins receive. A real interface
+ * rather than Omit<EntityService, ...>: mapped types collapse overloaded
+ * methods (like the schema-taking reads) down to one signature.
+ */
+export interface EntityServiceClient extends ICoreEntityService {
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
@@ -981,30 +991,11 @@ export interface EntityService extends ICoreEntityService {
     request: AcknowledgeEntityExportsRequest,
   ): Promise<number>;
 
-  // Scheduler-owned projection coordination
-  getProjectionStore(): IProjectionStore;
-  setProjectionWakeup(wakeup: () => Promise<void>): () => void;
-
   // Callback-scoped bulk mutation coordination
   runBulkMutation<TResult>(
     input: BulkMutationInput,
     mutation: () => Promise<TResult>,
   ): Promise<TResult>;
-  prepareDurableBulkMutation(
-    input: DurableBulkMutationRootInput,
-  ): Promise<void>;
-  finalizeDurableBulkMutationEnqueue(operationId: string): Promise<void>;
-  failDurableBulkMutationEnqueue(operationId: string): Promise<void>;
-  runDurableBulkMutationChild<TResult>(
-    input: DurableBulkMutationChildInput,
-    mutation: () => Promise<TResult>,
-  ): Promise<TResult>;
-  settleDurableBulkMutationChild(
-    input: SettleDurableBulkMutationChildInput,
-  ): Promise<boolean>;
-  recoverProjectionBatches(
-    readRoot: ProjectionBatchRootReader,
-  ): Promise<ProjectionBatchRecoveryResult>;
 
   // Mutations
   createEntity<T extends BaseEntity>(
@@ -1037,19 +1028,42 @@ export interface EntityService extends ICoreEntityService {
   // Counts
   countEmbeddings(): Promise<number>;
 
-  // Diagnostics
-  searchWithDistances(
-    request: SearchWithDistancesRequest,
-  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
-
   // Lifecycle
   initialize(): Promise<void>;
 
   // Job status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
-    error?: string;
+    // `| undefined` is load-bearing: this crosses the entity RPC boundary,
+    // where zod `.optional()` yields `T | undefined` under
+    // exactOptionalPropertyTypes.
+    error?: string | undefined;
   } | null>;
+}
+
+export interface EntityService extends EntityServiceClient {
+  // Scheduler-owned projection coordination
+  // Stays the interface, not the concrete store: the worker's facade returns
+  // RemoteProjectionStore over the owner's endpoint.
+  getProjectionStore(): IProjectionStore;
+  setProjectionWakeup(wakeup: () => Promise<void>): () => void;
+
+  // Durable bulk mutation coordination
+  prepareDurableBulkMutation(
+    input: DurableBulkMutationRootInput,
+  ): Promise<void>;
+  finalizeDurableBulkMutationEnqueue(operationId: string): Promise<void>;
+  failDurableBulkMutationEnqueue(operationId: string): Promise<void>;
+  runDurableBulkMutationChild<TResult>(
+    input: DurableBulkMutationChildInput,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult>;
+  settleDurableBulkMutationChild(
+    input: SettleDurableBulkMutationChildInput,
+  ): Promise<boolean>;
+  recoverProjectionBatches(
+    readRoot: ProjectionBatchRootReader,
+  ): Promise<ProjectionBatchRecoveryResult>;
 }
 
 /**
@@ -1058,7 +1072,7 @@ export interface EntityService extends ICoreEntityService {
 export interface EntityRegistry {
   registerEntityType<
     TEntity extends BaseEntity<TMetadata>,
-    TMetadata = Record<string, unknown>,
+    TMetadata extends Record<string, unknown> = Record<string, unknown>,
   >(
     type: string,
     schema: UnknownEntitySchema,
@@ -1071,12 +1085,7 @@ export interface EntityRegistry {
 
   getSchema(type: string): UnknownEntitySchema;
 
-  getAdapter<
-    TEntity extends BaseEntity<TMetadata>,
-    TMetadata = Record<string, unknown>,
-  >(
-    type: string,
-  ): EntityAdapter<TEntity, TMetadata>;
+  getAdapter(type: string): EntityAdapter<BaseEntity>;
 
   hasEntityType(type: string): boolean;
 

@@ -5,6 +5,8 @@ export type {
   ToolSideEffects,
   ToolContext,
   ToolResponse,
+  ToolSuccessResponse,
+  ToolErrorResponse,
   Tool,
   DirectMcpExposure,
   MCPProtocolMode,
@@ -13,6 +15,7 @@ export type {
   Prompt,
   ResourceVars,
 } from "./types";
+export { ToolVisibilitySchema } from "./types";
 export {
   toolResponseSchema,
   toolSuccessSchema,

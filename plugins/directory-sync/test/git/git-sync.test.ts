@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execSync } from "child_process";
-import { createServer, type AddressInfo, type Socket } from "net";
+import { createServer, type Socket } from "net";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type { IGitSync } from "../../src/types";
 import type { GitReconciliationCheckpoint } from "../../src/types";
@@ -33,7 +33,11 @@ async function startUnresponsiveServer(): Promise<{
   await new Promise<void>((resolve) =>
     server.listen(0, "127.0.0.1", () => resolve()),
   );
-  const port = (server.address() as AddressInfo).port;
+  const address = server.address();
+  if (address === null || typeof address === "string") {
+    throw new Error("Expected the test server to be listening on a TCP port");
+  }
+  const port = address.port;
   return {
     port,
     connected,

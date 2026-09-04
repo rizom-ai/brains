@@ -1,6 +1,7 @@
 import { describe, expect, test, mock } from "bun:test";
 import { ensureUniqueTitle } from "../../src/service/create-entity-with-unique-title";
 import type { BaseEntity } from "@brains/entity-service";
+import { z } from "@brains/utils/zod";
 import type { UniqueTitleContext } from "../../src/service/create-entity-with-unique-title";
 import { createSilentLogger, genericSpy } from "@brains/test-utils";
 
@@ -16,15 +17,17 @@ function createMockContext(
   const getEntity = mock(
     async (request: { entityType: string; id: string }) => {
       if (existingIds.has(request.id)) {
-        return {
+        const existing: BaseEntity = {
           id: request.id,
           entityType: "post",
           content: "",
+          visibility: "public",
           metadata: {},
           created: "",
           updated: "",
           contentHash: "",
-        } as BaseEntity;
+        };
+        return existing;
       }
       return null;
     },
@@ -107,7 +110,7 @@ describe("ensureUniqueTitle", () => {
       context,
     });
 
-    const prompt = mocks.generateObject.mock.calls[0]?.[0] as string;
+    const prompt = z.string().parse(mocks.generateObject.mock.calls[0]?.[0]);
     expect(prompt).toContain("My Post");
     expect(prompt).toContain(
       "Generate a unique blog post title about TypeScript",

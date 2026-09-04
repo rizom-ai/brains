@@ -1,6 +1,9 @@
 import { JOB_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type {
   IJobProgressMonitor,
@@ -126,7 +129,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     jobId: string,
     attemptId?: string,
   ): ProgressReporter {
-    const reporter = ProgressReporter.from(async (notification) => {
+    const reporter = CallbackProgressReporter.from(async (notification) => {
       await this.emitJobProgress(jobId, notification, attemptId);
     });
 

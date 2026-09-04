@@ -10,6 +10,7 @@ import type {
 import {
   parseConversationRpcResult,
   type ConversationRpcRequest,
+  type ConversationRpcResults,
   type ConversationRpcTransport,
 } from "./conversation-rpc";
 
@@ -32,30 +33,32 @@ export class RemoteConversationService implements IConversationService {
     this.transport.close();
   }
 
-  private async requestRemote<T>(request: ConversationRpcRequest): Promise<T> {
+  private async requestRemote<TRequest extends ConversationRpcRequest>(
+    request: TRequest,
+  ): Promise<ConversationRpcResults[TRequest["operation"]]> {
     if (this.closeRequested) {
       throw new Error("Remote conversation service is closed");
     }
     const result = await this.transport.request(request);
-    return parseConversationRpcResult(request, result) as T;
+    return parseConversationRpcResult<TRequest["operation"]>(request, result);
   }
 
   public startConversation(request: StartConversationRequest): Promise<string> {
-    return this.requestRemote<string>({
+    return this.requestRemote({
       operation: "startConversation",
       request,
     });
   }
 
   public addMessage(request: AddConversationMessageRequest): Promise<void> {
-    return this.requestRemote<void>({ operation: "addMessage", request });
+    return this.requestRemote({ operation: "addMessage", request });
   }
 
   public getMessages(
     conversationId: string,
     options?: GetMessagesOptions,
   ): Promise<Message[]> {
-    return this.requestRemote<Message[]>({
+    return this.requestRemote({
       operation: "getMessages",
       conversationId,
       ...(options && { options }),
@@ -63,14 +66,14 @@ export class RemoteConversationService implements IConversationService {
   }
 
   public countMessages(conversationId: string): Promise<number> {
-    return this.requestRemote<number>({
+    return this.requestRemote({
       operation: "countMessages",
       conversationId,
     });
   }
 
   public getConversation(conversationId: string): Promise<Conversation | null> {
-    return this.requestRemote<Conversation | null>({
+    return this.requestRemote({
       operation: "getConversation",
       conversationId,
     });
@@ -79,7 +82,7 @@ export class RemoteConversationService implements IConversationService {
   public listConversations(
     options?: ListConversationsOptions,
   ): Promise<Conversation[]> {
-    return this.requestRemote<Conversation[]>({
+    return this.requestRemote({
       operation: "listConversations",
       ...(options && { options }),
     });
@@ -88,14 +91,14 @@ export class RemoteConversationService implements IConversationService {
   public updateConversationMetadata(
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "updateConversationMetadata",
       request,
     });
   }
 
   public deleteConversation(conversationId: string): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "deleteConversation",
       conversationId,
     });
@@ -105,7 +108,7 @@ export class RemoteConversationService implements IConversationService {
     query: string,
     sessionId?: string,
   ): Promise<Conversation[]> {
-    return this.requestRemote<Conversation[]>({
+    return this.requestRemote({
       operation: "searchConversations",
       query,
       ...(sessionId !== undefined && { sessionId }),

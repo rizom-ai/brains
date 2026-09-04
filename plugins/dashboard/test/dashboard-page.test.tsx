@@ -33,7 +33,11 @@ describe("renderDashboardPageHtml", () => {
         /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g,
         "<rendered-at-iso>",
       )
-      .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g, "<rendered-at>");
+      .replace(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g, "<rendered-at>")
+      .replace(
+        /(<style[^>]*data-dashboard-theme[^>]*>)[\s\S]*?(<\/style>)/,
+        "$1<theme-css>$2",
+      );
     expect(
       normalizeRendererHtml(stableHtml, { ignoreImagePreloads: true }),
     ).toMatchSnapshot();
@@ -384,7 +388,13 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).toContain('data-card-map="knowledge"');
     expect(html).toContain('class="knowledge-map-field map-field"');
+    expect(html).toContain('class="knowledge-atlas-summary"');
+    expect(html).toContain("mapped sources");
+    expect(html).toContain("Territories");
     expect(html).toContain("Trust networks");
+    expect(html).toContain('data-knowledge-zone="topic:trust"');
+    expect(html).toContain('data-knowledge-zone-ref="topic:trust"');
+    expect(html).not.toContain("knowledge-point-glow");
     expect(html).toContain('data-card-map="network"');
     expect(html).toContain('class="proximity-map-field map-field"');
     expect(html).toContain("Agent One");

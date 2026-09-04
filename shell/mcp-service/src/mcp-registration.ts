@@ -385,6 +385,15 @@ export function registerPromptOnServer(
       description: prompt.description ?? "Prompt",
       argsSchema: z.object(argsSchema),
     },
-    async (args) => prompt.handler(args as Record<string, string>),
+    // Optional args arrive as undefined; drop them rather than declaring the
+    // bag to be all-strings when it is not.
+    async (args) =>
+      prompt.handler(
+        Object.fromEntries(
+          Object.entries(args).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        ),
+      ),
   );
 }

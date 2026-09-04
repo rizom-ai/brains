@@ -10,7 +10,7 @@ import {
   createConversationServiceLayer,
 } from "@brains/conversation-service/effect";
 import {
-  DataSourceRegistry,
+  InMemoryDataSourceRegistry,
   ENTITY_RPC_SERVICE,
   EntityRegistry,
   PROJECTION_STORE_RPC_SERVICE,
@@ -52,7 +52,7 @@ import { BunSchedulerBackend } from "@brains/scheduler";
 import {
   PermissionService,
   RenderService,
-  TemplateRegistry,
+  InMemoryTemplateRegistry,
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import { z } from "@brains/utils/zod";
@@ -202,9 +202,11 @@ export function createShellServices(options: {
     dependencies?.messageBus ??
     MessageBus.createFresh(logger, operationContext);
   const templateRegistry =
-    dependencies?.templateRegistry ?? TemplateRegistry.createFresh(logger);
+    dependencies?.templateRegistry ??
+    InMemoryTemplateRegistry.createFresh(logger);
   const dataSourceRegistry =
-    dependencies?.dataSourceRegistry ?? DataSourceRegistry.createFresh(logger);
+    dependencies?.dataSourceRegistry ??
+    InMemoryDataSourceRegistry.createFresh(logger);
   const renderService =
     dependencies?.renderService ?? RenderService.createFresh(templateRegistry);
   const daemonRegistry =

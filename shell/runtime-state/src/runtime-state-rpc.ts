@@ -91,7 +91,7 @@ export const RuntimeStateRpcRequestSchema: z.ZodType<
     ...requestBaseSchema,
     keyPrefix: keyPrefixSchema.optional(),
   }),
-]) as z.ZodType<RuntimeStateRpcRequest, unknown>;
+]);
 
 const recordSchema: z.ZodType<RuntimeStateRpcRecord, unknown> = z.strictObject({
   key: z.string().min(1),
@@ -106,24 +106,44 @@ export function parseRuntimeStateRpcRequest(
   return RuntimeStateRpcRequestSchema.parse(input);
 }
 
-export function parseRuntimeStateRpcResult(
-  request: RuntimeStateRpcRequest,
+/**
+ * What each operation answers. The schema map below is checked against this,
+ * so the two cannot drift, and keying both by operation is what lets
+ * `parseRuntimeStateRpcResult` return the operation's own type — callers no
+ * longer re-assert it at the transport boundary.
+ */
+export interface RuntimeStateRpcResults {
+  get: unknown;
+  has: boolean;
+  set: undefined;
+  setIfNotExists: boolean;
+  delete: boolean;
+  list: RuntimeStateRpcRecord[];
+  clear: number;
+}
+
+export type RuntimeStateRpcOperation = keyof RuntimeStateRpcResults;
+
+const resultSchemas: {
+  [Op in RuntimeStateRpcOperation]: z.ZodType<
+    RuntimeStateRpcResults[Op],
+    unknown
+  >;
+} = {
+  get: z.unknown(),
+  has: z.boolean(),
+  set: z.undefined(),
+  setIfNotExists: z.boolean(),
+  delete: z.boolean(),
+  list: z.array(recordSchema),
+  clear: z.number().int().nonnegative(),
+};
+
+export function parseRuntimeStateRpcResult<Op extends RuntimeStateRpcOperation>(
+  request: { operation: Op },
   input: unknown,
-): unknown {
-  switch (request.operation) {
-    case "get":
-      return input === null ? null : input;
-    case "has":
-    case "setIfNotExists":
-    case "delete":
-      return z.boolean().parse(input);
-    case "set":
-      return z.undefined().parse(input);
-    case "list":
-      return z.array(recordSchema).parse(input);
-    case "clear":
-      return z.number().int().nonnegative().parse(input);
-  }
+): RuntimeStateRpcResults[Op] {
+  return resultSchemas[request.operation].parse(input);
 }
 
 /** Dispatch one validated request against the web-owned runtime-state service. */

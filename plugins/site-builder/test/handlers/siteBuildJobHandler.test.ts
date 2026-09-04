@@ -7,7 +7,7 @@ import {
   createSilentLogger,
   createMockMessageSender,
 } from "@brains/test-utils";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import type { BuildStatusRecorder } from "../../src/handlers/siteBuildJobHandler";
 
 describe("SiteBuildJobHandler", () => {
@@ -146,7 +146,7 @@ describe("SiteBuildJobHandler", () => {
         },
       );
 
-      const progressReporter = ProgressReporter.from(async () => {});
+      const progressReporter = CallbackProgressReporter.from(async () => {});
       if (!progressReporter) throw new Error("Expected progress reporter");
 
       await handlerWithSlots.process(
@@ -197,7 +197,7 @@ describe("SiteBuildJobHandler", () => {
         },
       },
     );
-    const progressReporter = ProgressReporter.from(async () => {});
+    const progressReporter = CallbackProgressReporter.from(async () => {});
     if (!progressReporter) throw new Error("Expected progress reporter");
 
     await lifecycleHandler.process(
@@ -254,7 +254,7 @@ describe("SiteBuildJobHandler", () => {
         statusService,
       },
     );
-    const progressReporter = ProgressReporter.from(async () => {});
+    const progressReporter = CallbackProgressReporter.from(async () => {});
     if (!progressReporter) throw new Error("Expected progress reporter");
 
     const result = await cancelledHandler.process(
@@ -308,7 +308,7 @@ describe("SiteBuildJobHandler", () => {
         statusService,
       },
     );
-    const progressReporter = ProgressReporter.from(async () => {});
+    const progressReporter = CallbackProgressReporter.from(async () => {});
     if (!progressReporter) throw new Error("Expected progress reporter");
 
     const result = await unchangedHandler.process(
@@ -350,7 +350,7 @@ describe("SiteBuildJobHandler", () => {
         statusService,
       },
     );
-    const progressReporter = ProgressReporter.from(async () => {});
+    const progressReporter = CallbackProgressReporter.from(async () => {});
     if (!progressReporter) throw new Error("Expected progress reporter");
 
     const result = await failingWriteHandler.process(

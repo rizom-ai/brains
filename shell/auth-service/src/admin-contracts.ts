@@ -54,7 +54,7 @@ export interface AuthAdminPrincipal {
   status: AuthAdminStatus;
   permissionLevel: AuthAdminRole;
   isAnchor: boolean;
-  canonicalId?: string;
+  canonicalId?: string | undefined;
 }
 
 export interface AuthIdentitySummary {
@@ -65,32 +65,32 @@ export interface AuthIdentitySummary {
   visibility: AuthIdentityVisibility;
   evidence: Array<{
     sourceKind: AuthIdentitySourceKind;
-    sourceId?: string;
+    sourceId?: string | undefined;
     assurance: "asserted" | "verified";
-    verifiedAt?: number;
+    verifiedAt?: number | undefined;
   }>;
-  issuer?: string;
-  label?: string;
-  verifiedAt?: number;
-  revokedAt?: number;
+  issuer?: string | undefined;
+  label?: string | undefined;
+  verifiedAt?: number | undefined;
+  revokedAt?: number | undefined;
   createdAt: number;
 }
 
 export interface AuthAuditEventSummary {
   id: string;
-  actorUserId?: string;
+  actorUserId?: string | undefined;
   action: string;
-  targetType?: string;
-  targetId?: string;
-  metadata?: Record<string, unknown>;
+  targetType?: string | undefined;
+  targetId?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
   createdAt: number;
 }
 
 export interface AuthPasskeySummary {
   id: string;
   userId: string;
-  transports?: string[];
-  credentialDeviceType?: string;
+  transports?: string[] | undefined;
+  credentialDeviceType?: string | undefined;
   credentialBackedUp: boolean;
   createdAt: number;
   updatedAt: number;
@@ -109,20 +109,20 @@ export interface AuthInvitationSummary {
   id: string;
   userId: string;
   state: AuthInvitationState;
-  failureCode?: string;
+  failureCode?: string | undefined;
   createdAt: number;
   updatedAt: number;
   /** Current single-use setup-link expiry, in epoch milliseconds. */
-  expiresAt?: number;
-  sentAt?: number;
-  claimedAt?: number;
-  expiredAt?: number;
-  cancelledAt?: number;
+  expiresAt?: number | undefined;
+  sentAt?: number | undefined;
+  claimedAt?: number | undefined;
+  expiredAt?: number | undefined;
+  cancelledAt?: number | undefined;
 }
 
 export interface AuthAdminUserSummary extends AuthAdminPrincipal {
-  profileEntityId?: string;
-  invitation?: AuthInvitationSummary;
+  profileEntityId?: string | undefined;
+  invitation?: AuthInvitationSummary | undefined;
   identities: AuthIdentitySummary[];
   passkeys: AuthPasskeySummary[];
   externalPeers: AuthExternalPeerSummary[];
@@ -135,8 +135,8 @@ export interface AuthBrainAnchorSummary {
   configuredKind: AuthBrainAnchorConfigKind;
   subjectId: string;
   displayName: string;
-  personId?: string;
-  profileEntityId?: string;
+  personId?: string | undefined;
+  profileEntityId?: string | undefined;
   administeredBy: number;
 }
 
@@ -171,17 +171,17 @@ export interface AuthIdentityProposalInput {
 
 export interface AuthIdentityReconciliationOwner {
   personId: string;
-  userId?: string;
-  displayName?: string;
-  status?: AuthAdminStatus;
+  userId?: string | undefined;
+  displayName?: string | undefined;
+  status?: AuthAdminStatus | undefined;
 }
 
 export interface AuthIdentityClaimReconciliation {
   index: number;
   type: AuthIdentityProposalInput["type"];
-  label?: string;
+  label?: string | undefined;
   state: "unbound" | "asserted_match" | "verified_match";
-  owner?: AuthIdentityReconciliationOwner;
+  owner?: AuthIdentityReconciliationOwner | undefined;
 }
 
 export interface AuthIdentityReconciliationRequest {
@@ -191,7 +191,7 @@ export interface AuthIdentityReconciliationRequest {
 export interface AuthIdentityReconciliationResponse {
   state:
     "unique_verified_match" | "cross_person_conflict" | "no_verified_match";
-  suggestedUserId?: string;
+  suggestedUserId?: string | undefined;
   claims: AuthIdentityClaimReconciliation[];
 }
 
@@ -214,7 +214,7 @@ export type AuthAdminMutation =
       displayName: string;
       role: Extract<AuthAdminRole, "admin" | "trusted">;
       delivery: AuthSetupDeliveryInput;
-      peerId?: string;
+      peerId?: string | undefined;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.resendInvitation;
@@ -271,8 +271,8 @@ export type AuthAdminMutation =
       userId: string;
       type: Exclude<AuthAdminIdentityType, "passkey">;
       subject: string;
-      issuer?: string;
-      label?: string;
+      issuer?: string | undefined;
+      label?: string | undefined;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.detachIdentity;
@@ -288,7 +288,7 @@ export type AuthAdminMutation =
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
       confirmation: typeof AUTH_ADMIN_MUTATION_ACTIONS.startPasskeyRegistration;
       userId: string;
-      delivery?: AuthSetupDeliveryInput;
+      delivery?: AuthSetupDeliveryInput | undefined;
     }
   | {
       action: typeof AUTH_ADMIN_MUTATION_ACTIONS.revokeUserSessions;

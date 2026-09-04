@@ -106,9 +106,12 @@ export async function prepareSiteBuild(
     (result): result is PromiseRejectedResult => result.status === "rejected",
   );
   if (rejectedRoute) throw rejectedRoute.reason;
-  const routeResults = settledRouteResults.map(
-    (result) => (result as PromiseFulfilledResult<PreparedRouteResult>).value,
-  );
+  const routeResults = settledRouteResults
+    .filter(
+      (result): result is PromiseFulfilledResult<PreparedRouteResult> =>
+        result.status === "fulfilled",
+    )
+    .map((result) => result.value);
 
   const site = buildSiteLayoutInfo(
     options.siteMetadata,

@@ -13,6 +13,7 @@ import {
   registerBuiltInDashboardWidget,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import {
   wishPrioritySchema,
   wishSchema,
@@ -130,7 +131,7 @@ export class WishlistPlugin extends EntityPlugin<
         ...(input.content ? { content: input.content } : {}),
       },
       `wish-create-${Date.now()}`,
-      {} as never,
+      CallbackProgressReporter.noop(),
     );
 
     if (!result.success) {
@@ -165,10 +166,13 @@ export class WishlistPlugin extends EntityPlugin<
         definition: topWishesWidget,
         load: async ({ signal }) => {
           signal.throwIfAborted();
-          const wishes = await context.entityService.listEntities<WishEntity>({
-            entityType: "wish",
-            options: { limit: 10 },
-          });
+          const wishes = await context.entityService.listEntities(
+            {
+              entityType: "wish",
+              options: { limit: 10 },
+            },
+            wishSchema,
+          );
           signal.throwIfAborted();
           sortWishesByDemand(wishes);
           return {

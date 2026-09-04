@@ -5,7 +5,10 @@ import {
   createSilentLogger,
   createTestEntity,
 } from "@brains/test-utils";
-import { SeriesGenerationHandler } from "../src/handlers/seriesGenerationHandler";
+import {
+  SeriesGenerationHandler,
+  generatedSeriesDescriptionSchema,
+} from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
 
 describe("SeriesGenerationHandler", () => {
@@ -51,6 +54,7 @@ slug: systems-series
         templateName: "series:description",
         representedIdentity: "none",
       }),
+      generatedSeriesDescriptionSchema,
     );
   });
 });

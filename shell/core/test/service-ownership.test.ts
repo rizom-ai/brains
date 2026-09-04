@@ -419,15 +419,14 @@ describe("Shell service ownership", () => {
     const directory = await createDirectory();
     await migrateTestDatabases(directory.dir);
 
-    const jobQueueService = createMockJobQueueService();
+    // `closeAsync` is on the concrete services, not the interface, so the mock
+    // gains it by composition rather than by asserting a wider type.
+    const jobQueueService = Object.assign(createMockJobQueueService(), {
+      closeAsync: async (): Promise<void> => {
+        order.push("job-database");
+      },
+    });
     jobQueueService.close = (): void => {};
-    (
-      jobQueueService as typeof jobQueueService & {
-        closeAsync(): Promise<void>;
-      }
-    ).closeAsync = async (): Promise<void> => {
-      order.push("job-database");
-    };
     const jobQueueWorker = {
       start: async (): Promise<void> => {},
       stop: async (): Promise<void> => {

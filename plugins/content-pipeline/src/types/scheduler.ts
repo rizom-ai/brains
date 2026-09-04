@@ -87,3 +87,14 @@ export interface SchedulerConfig {
   /** Callback when generation should be triggered */
   onGenerate?: (event: GenerateExecuteEvent) => void;
 }
+
+/**
+ * A SchedulerConfig after ContentScheduler's constructor has defaulted the
+ * optional schedule maps to `{}`. Runners take this rather than SchedulerConfig
+ * so the defaulting is proven by the type instead of asserted at each read.
+ */
+export type ResolvedSchedulerConfig = SchedulerConfig & {
+  entitySchedules: Record<string, string>;
+  generationSchedules: Record<string, string>;
+  generationConditions: Record<string, GenerationCondition>;
+};

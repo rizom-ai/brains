@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ButtondownClient } from "../src/provider/lib/buttondown-client";
+import { z } from "@brains/utils/zod";
 import { createSilentLogger, mockFetch } from "@brains/test-utils";
 
 const originalFetch = globalThis.fetch;
@@ -45,7 +46,7 @@ describe("ButtondownClient", () => {
     it("should include name when provided", async () => {
       let capturedBody: string | undefined;
       mockFetch((_url, options) => {
-        capturedBody = options.body as string;
+        capturedBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -209,7 +210,7 @@ describe("ButtondownClient", () => {
     it("should send immediately when status is about_to_send", async () => {
       let capturedBody: string | undefined;
       mockFetch((_url, options) => {
-        capturedBody = options.body as string;
+        capturedBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
           json: () =>

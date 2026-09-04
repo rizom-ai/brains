@@ -5,7 +5,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { Project } from "../src/schemas/project";
+import { projectSchema, type Project } from "../src/schemas/project";
 
 const sampleDraftProject: Project = {
   id: "project-1",
@@ -160,10 +160,13 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
         entityId: "project-1",
       });
 
-      const updatedProject = await entityService.getEntity<Project>({
-        entityType: "project",
-        id: "project-1",
-      });
+      const updatedProject = await entityService.getEntity(
+        {
+          entityType: "project",
+          id: "project-1",
+        },
+        projectSchema,
+      );
       expect(updatedProject?.metadata.status).toBe("published");
       expect(updatedProject?.metadata.publishedAt).toBeDefined();
     });

@@ -239,12 +239,15 @@ export class NewsletterPlugin extends EntityPlugin<
         : (parsed.prompt ?? "Write an engaging newsletter");
 
       const voiceGuidance = await fetchVoiceGuidance(context.entityService);
-      return context.ai.generate<{ subject: string; content: string }>({
-        prompt: generationPrompt,
-        templateName: NEWSLETTER_CHANNELS.generation,
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      return context.ai.generate(
+        {
+          prompt: generationPrompt,
+          templateName: NEWSLETTER_CHANNELS.generation,
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({ subject: z.string(), content: z.string() }),
+      );
     });
   }
 }

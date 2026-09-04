@@ -5,13 +5,25 @@ import type {
   RuntimeOperatorLaunchIntent,
 } from "@brains/plugins";
 import {
+  Button,
   ConfirmDialog,
+  buttonClassName,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@brains/app-ui-react";
+import {
   OperatorActionButton,
   OperatorViewRenderer,
   operatorViewRendererStyles,
 } from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { styles } from "./app-styles";
+import { STUDIO_OPERATOR_COMPONENTS } from "./app-controls";
 import type {
   AgentTarget,
   StudioWorkspaceInfo,
@@ -305,9 +317,9 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       <header className="crumbbar">
         <span className="crumb">
           {editing && !entitySchema.isSingleton ? (
-            <button type="button" onClick={backToList}>
+            <Button type="button" variant="link" onClick={backToList}>
               {collectionLabel}
-            </button>
+            </Button>
           ) : (
             collectionLabel
           )}
@@ -347,6 +359,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                         <OperatorActionButton
                           action={declarativeHead.primaryAction}
                           onAction={performDeclarativeAction}
+                          components={STUDIO_OPERATOR_COMPONENTS}
                         />
                       ),
                     }
@@ -354,6 +367,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               />
               <OperatorViewRenderer
                 data={declarativeWorkspaceData}
+                components={STUDIO_OPERATOR_COMPONENTS}
                 renderHead={false}
                 onOpenEntity={openWorkspaceEntity}
                 onLaunch={openWorkspaceLaunch}
@@ -373,14 +387,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <StudioPageHead
               model={listingHead}
               action={
-                <button
+                <Button
                   type="button"
-                  className="btn"
                   disabled={!canCreate}
                   onClick={startCreate}
                 >
                   New {entryLabel.toLowerCase()}
-                </button>
+                </Button>
               }
             />
             {(entities ?? []).map((entity, index) => (
@@ -431,36 +444,44 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <StudioPageHead
               model={editorHead}
               action={
-                <button
+                <Button
                   type="submit"
-                  className="save-btn studio-editor-head-save"
+                  className="studio-editor-head-save"
                   disabled={!canEdit || saveState.kind === "saving"}
                 >
                   {saveState.kind === "saving" ? "Saving…" : "Save changes"}
-                </button>
+                </Button>
               }
             />
-            <nav className="studio-mobile-modes" aria-label="Editor view">
-              {MOBILE_EDITOR_PANES.map((pane) => (
-                <button
-                  key={pane}
-                  type="button"
-                  className={
-                    pane === mobilePane
-                      ? "studio-mobile-mode is-active"
-                      : "studio-mobile-mode"
-                  }
-                  disabled={pane !== "details" && !entitySchema.hasBody}
-                  onClick={() => {
-                    setMobilePane(pane);
-                    if (pane === "write") setBodyMode("source");
-                    if (pane === "preview") setBodyMode("preview");
-                  }}
-                >
-                  {pane}
-                </button>
-              ))}
-            </nav>
+            <Tabs
+              className="studio-mobile-tabs"
+              value={mobilePane}
+              onValueChange={(value) => {
+                const pane = MOBILE_EDITOR_PANES.find(
+                  (candidate) => candidate === value,
+                );
+                if (!pane) return;
+                setMobilePane(pane);
+                if (pane === "write") setBodyMode("source");
+                if (pane === "preview") setBodyMode("preview");
+              }}
+            >
+              <TabsList
+                className="studio-mobile-modes"
+                aria-label="Editor view"
+              >
+                {MOBILE_EDITOR_PANES.map((pane) => (
+                  <TabsTrigger
+                    key={pane}
+                    value={pane}
+                    className="studio-mobile-mode"
+                    disabled={pane !== "details" && !entitySchema.hasBody}
+                  >
+                    {pane}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
             <aside className="colophon">
               <div className="form-title">
                 <h2>
@@ -553,13 +574,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               )}
             </section>
             <footer className="pipeline">
-              <button
+              <Button
                 type="submit"
-                className="save-btn studio-editor-phone-save"
+                className="studio-editor-phone-save"
                 disabled={!canEdit || saveState.kind === "saving"}
               >
                 {saveState.kind === "saving" ? "Saving…" : "Save"}
-              </button>
+              </Button>
               {syncStatus?.directorySync && (
                 <PipelineStations
                   view={derivePipeline({
@@ -602,31 +623,37 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 !entitySchema.isSingleton &&
                 canDelete && (
                   <>
-                    <button
-                      type="button"
-                      className="btn danger"
-                      onClick={() =>
-                        dispatchEditor({ type: "deleteRequested" })
-                      }
-                    >
-                      Delete
-                    </button>
-                    <details className="studio-mobile-more">
-                      <summary aria-label="More document actions">•••</summary>
-                      <button
+                    <span className="studio-desktop-delete">
+                      <Button
                         type="button"
-                        onClick={(event) => {
-                          // Fold the disclosure so it isn't left hanging open
-                          // behind the confirmation dialog's scrim.
-                          event.currentTarget
-                            .closest("details")
-                            ?.removeAttribute("open");
-                          dispatchEditor({ type: "deleteRequested" });
-                        }}
+                        variant="danger"
+                        onClick={() =>
+                          dispatchEditor({ type: "deleteRequested" })
+                        }
                       >
-                        Delete entry
-                      </button>
-                    </details>
+                        Delete
+                      </Button>
+                    </span>
+                    <span className="studio-mobile-more">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className={buttonClassName("ghost", "icon")}
+                          aria-label="More document actions"
+                        >
+                          •••
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() =>
+                              dispatchEditor({ type: "deleteRequested" })
+                            }
+                          >
+                            Delete entry
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </span>
                   </>
                 )}
             </footer>
@@ -648,7 +675,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           titleId="discard-navigation-title"
           cancelLabel="Keep editing"
           confirmLabel="Discard and continue"
-          confirmClassName="danger"
+          confirmVariant="danger"
           onCancel={onNavigationReset}
           onConfirm={onNavigationProceed}
         >

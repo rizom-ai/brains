@@ -1,6 +1,7 @@
 import type { CommandResult } from "../lib/command-result";
 import type { MCPClient } from "../lib/mcp-client";
 import { getErrorMessage } from "@brains/utils/error";
+import { isPlainRecord } from "@brains/utils/predicates";
 
 /** A single tool from the MCP listTools response. */
 export type RemoteTool = Awaited<ReturnType<MCPClient["listTools"]>>[number];
@@ -87,10 +88,8 @@ function mapArgsFromJsonSchema(
 }
 
 function getJsonSchemaPropertyType(value: unknown): string | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return undefined;
-  }
-  const type = (value as Record<string, unknown>)["type"];
+  if (!isPlainRecord(value)) return undefined;
+  const type = value["type"];
   return typeof type === "string" ? type : undefined;
 }
 

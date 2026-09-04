@@ -10,6 +10,7 @@ import type {
   ListEntitiesRequest,
 } from "@brains/entity-service";
 import { isVisibleWithinScope } from "@brains/entity-service";
+import { readString } from "@brains/utils/record-fields";
 import { type Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import type { RouteRegistry } from "./route-registry";
@@ -252,10 +253,7 @@ export class DynamicRouteGenerator {
 
         for (const entity of entities) {
           // Use slug for URL if available (e.g., blog posts), otherwise use entity ID
-          const urlSlug =
-            "slug" in entity.metadata
-              ? (entity.metadata["slug"] as string)
-              : entity.id;
+          const urlSlug = readString(entity.metadata, "slug") ?? entity.id;
 
           const detailRoute: RouteDefinitionInput = {
             id: `${entityType}-${entity.id}`,

@@ -1,7 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   createMockEntityService,
   createSilentLogger,
@@ -23,7 +26,7 @@ function deferred(): {
 function createReporter(
   notifications: ProgressNotification[],
 ): ProgressReporter {
-  const reporter = ProgressReporter.from(async (notification) => {
+  const reporter = CallbackProgressReporter.from(async (notification) => {
     notifications.push(notification);
   });
   if (!reporter) throw new Error("Failed to create progress reporter");

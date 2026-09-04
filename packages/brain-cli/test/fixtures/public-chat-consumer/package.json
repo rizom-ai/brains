@@ -8,7 +8,7 @@
     "smoke": "bun smoke.ts"
   },
   "dependencies": {
-    "@rizom/brain": "0.2.0-alpha.344"
+    "@rizom/brain": "0.2.0-alpha.348"
   },
   "devDependencies": {
     "typescript": "^7.0.2"

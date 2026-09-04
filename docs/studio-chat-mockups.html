@@ -1,0 +1,3207 @@
+<!doctype html>
+<html lang="en" data-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio Chat — Workspace Integration Mockups</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,450;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --display: "Fraunces", Georgia, serif;
+        --ui: "IBM Plex Sans", sans-serif;
+        --mono: "IBM Plex Mono", monospace;
+        --page: #ded5c4;
+        --page-panel: #eee7da;
+        --page-ink: #211d18;
+        --page-dim: rgba(33, 29, 24, 0.62);
+        --page-rule: rgba(33, 29, 24, 0.16);
+        --page-accent: #b84318;
+        --shadow: 0 32px 80px -42px rgba(49, 35, 18, 0.44);
+      }
+
+      [data-climate="paper"] {
+        --console-bg: #ece5d6;
+        --console-frame: #f4efe6;
+        --console-card: #faf7f0;
+        --console-card-soft: #ece5d6;
+        --console-bg-deep: #dfd4bc;
+        --console-text: #211d18;
+        --console-text-dim: rgba(33, 29, 24, 0.64);
+        --console-text-muted: rgba(33, 29, 24, 0.43);
+        --console-text-faint: rgba(33, 29, 24, 0.23);
+        --console-accent: #c44a1d;
+        --console-secondary: #6b2fa0;
+        --console-ok: #3d6b5c;
+        --console-warn: #8a5b08;
+        --console-err: #932f2f;
+        --console-on-accent: #fff;
+        color-scheme: light;
+      }
+
+      [data-climate="instrument"] {
+        --console-bg: #0a0819;
+        --console-frame: #0f0d22;
+        --console-card: #14112b;
+        --console-card-soft: #1b1638;
+        --console-bg-deep: #05040f;
+        --console-text: #f1eadd;
+        --console-text-dim: rgba(241, 234, 221, 0.65);
+        --console-text-muted: rgba(241, 234, 221, 0.42);
+        --console-text-faint: rgba(241, 234, 221, 0.23);
+        --console-accent: #ff8b3d;
+        --console-secondary: #9aa2ff;
+        --console-ok: #68cc8b;
+        --console-warn: #f5c158;
+        --console-err: #e26d6d;
+        --console-on-accent: #0a0819;
+        color-scheme: dark;
+      }
+
+      [data-climate] {
+        --console-rule: color-mix(in srgb, var(--console-text) 8%, transparent);
+        --console-rule-strong: color-mix(
+          in srgb,
+          var(--console-text) 15%,
+          transparent
+        );
+        --console-accent-soft: color-mix(
+          in srgb,
+          var(--console-accent) 12%,
+          transparent
+        );
+        --console-secondary-soft: color-mix(
+          in srgb,
+          var(--console-secondary) 12%,
+          transparent
+        );
+        --console-ok-soft: color-mix(
+          in srgb,
+          var(--console-ok) 13%,
+          transparent
+        );
+        --console-warn-soft: color-mix(
+          in srgb,
+          var(--console-warn) 13%,
+          transparent
+        );
+        --console-err-soft: color-mix(
+          in srgb,
+          var(--console-err) 13%,
+          transparent
+        );
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            circle at 82% 4%,
+            rgba(196, 74, 29, 0.11),
+            transparent 28rem
+          ),
+          linear-gradient(135deg, #e7dfd1, var(--page));
+        color: var(--page-ink);
+        font: 14px/1.5 var(--ui);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        z-index: 100;
+        inset: 0;
+        opacity: 0.36;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='.026'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      a:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid color-mix(in srgb, #c44a1d 38%, transparent);
+        outline-offset: 2px;
+      }
+
+      .page-header {
+        width: min(1460px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 72px 8px 34px;
+      }
+
+      .eyebrow,
+      .screen-number,
+      .principle-number {
+        color: var(--page-accent);
+        font: 500 11px/1 var(--mono);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .page-header h1 {
+        max-width: 920px;
+        margin: 15px 0 0;
+        font: 540 clamp(43px, 6vw, 80px) / 0.97 var(--display);
+        font-variation-settings:
+          "SOFT" 58,
+          "opsz" 120;
+        letter-spacing: -0.04em;
+      }
+
+      .page-header h1 em {
+        color: var(--page-accent);
+        font-weight: 400;
+      }
+
+      .header-bottom {
+        display: grid;
+        grid-template-columns: minmax(0, 640px) auto;
+        align-items: end;
+        gap: 28px;
+        margin-top: 24px;
+      }
+
+      .lede {
+        margin: 0;
+        color: var(--page-dim);
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      .prototype-controls {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .prototype-controls button {
+        min-height: 44px;
+        padding: 0 16px;
+        border: 1px solid var(--page-rule);
+        border-radius: 7px;
+        background: rgba(250, 247, 240, 0.58);
+        cursor: pointer;
+        font: 500 11px var(--mono);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .prototype-controls button[aria-pressed="true"] {
+        border-color: var(--page-ink);
+        background: var(--page-ink);
+        color: #faf7f0;
+      }
+
+      .page-nav {
+        position: sticky;
+        z-index: 90;
+        top: 0;
+        display: flex;
+        gap: 3px;
+        width: min(1460px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 9px 8px;
+        overflow-x: auto;
+        border-block: 1px solid var(--page-rule);
+        background: color-mix(in srgb, var(--page-panel) 92%, transparent);
+        backdrop-filter: blur(16px);
+      }
+
+      .page-nav a {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 13px;
+        border-radius: 6px;
+        color: var(--page-dim);
+        font: 12px var(--mono);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .page-nav a:hover {
+        background: rgba(33, 29, 24, 0.06);
+        color: var(--page-ink);
+      }
+
+      .page-nav b {
+        color: var(--page-accent);
+        font-weight: 500;
+      }
+
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        width: min(1444px, calc(100% - 64px));
+        margin: 42px auto 0;
+        border-block: 1px solid var(--page-rule);
+      }
+
+      .principle {
+        min-height: 168px;
+        padding: 24px 25px 26px;
+        border-right: 1px solid var(--page-rule);
+      }
+
+      .principle:last-child {
+        border-right: 0;
+      }
+
+      .principle h2 {
+        margin: 28px 0 7px;
+        font: 540 20px var(--display);
+        font-variation-settings: "SOFT" 45;
+      }
+
+      .principle p {
+        margin: 0;
+        color: var(--page-dim);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .mockup-section {
+        width: min(1500px, 100%);
+        margin: 94px auto 0;
+        padding: 0 28px;
+        scroll-margin-top: 76px;
+      }
+
+      .section-heading {
+        display: grid;
+        grid-template-columns: 72px minmax(0, 1fr) minmax(260px, 500px);
+        align-items: end;
+        gap: 18px;
+        width: min(1444px, 100%);
+        margin: 0 auto 17px;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font: 540 clamp(27px, 3vw, 38px) / 1.04 var(--display);
+        font-variation-settings:
+          "SOFT" 55,
+          "opsz" 80;
+        letter-spacing: -0.018em;
+      }
+
+      .section-heading p {
+        margin: 0;
+        color: var(--page-dim);
+        font-size: 13px;
+        line-height: 1.55;
+        text-align: right;
+      }
+
+      .frame-wrap {
+        width: min(1444px, 100%);
+        margin: 0 auto;
+        overflow-x: auto;
+        border-radius: 13px;
+        box-shadow: var(--shadow);
+      }
+
+      .app-frame {
+        position: relative;
+        min-width: 1040px;
+        height: 780px;
+        overflow: hidden;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 12px;
+        background: var(--console-frame);
+        color: var(--console-text);
+        font-family: var(--ui);
+      }
+
+      .console-strip {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        height: 52px;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--console-rule-strong);
+        background:
+          linear-gradient(
+            to bottom,
+            color-mix(in srgb, var(--console-text) 4%, transparent),
+            transparent
+          ),
+          var(--console-frame);
+      }
+
+      .console-mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--console-text-dim);
+        font: 11px var(--mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .console-mark b {
+        color: var(--console-text);
+        font-weight: 500;
+      }
+
+      .pulse {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--console-accent);
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        50% {
+          box-shadow: 0 0 0 7px transparent;
+        }
+        0%,
+        100% {
+          box-shadow: 0 0 0 0
+            color-mix(in srgb, var(--console-accent) 50%, transparent);
+        }
+      }
+
+      .surface-nav {
+        display: flex;
+        gap: 2px;
+      }
+
+      .surface-nav span {
+        min-height: 32px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0 12px;
+        border-radius: 7px;
+        color: var(--console-text-muted);
+        font-size: 13px;
+      }
+
+      .surface-nav .active {
+        background: color-mix(in srgb, var(--console-text) 8%, transparent);
+        color: var(--console-text);
+        font-weight: 500;
+      }
+
+      .strip-spacer {
+        flex: 1;
+      }
+
+      .command,
+      .climate-mini,
+      .session {
+        min-height: 32px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--console-card) 60%, transparent);
+        color: var(--console-text-muted);
+      }
+
+      .command {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      .command kbd {
+        padding: 1px 5px;
+        border: 1px solid var(--console-rule-strong);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        font: 10px var(--mono);
+      }
+
+      .climate-mini {
+        width: 32px;
+        display: grid;
+        place-items: center;
+        font: 15px var(--mono);
+      }
+
+      .session {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--console-ok-soft);
+        color: var(--console-ok);
+        font: 11px var(--mono);
+      }
+
+      .session::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--console-ok);
+      }
+
+      .crumbbar {
+        height: 41px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        border-bottom: 1px solid var(--console-rule);
+        color: var(--console-text-muted);
+        font-size: 12px;
+      }
+
+      .crumbbar strong {
+        color: var(--console-text-dim);
+        font-weight: 500;
+      }
+
+      .route-hint {
+        font: 10px var(--mono);
+      }
+
+      .chat-grid {
+        height: calc(100% - 93px);
+        display: grid;
+        grid-template-columns: 260px minmax(440px, 1fr) 296px;
+        background: var(--console-card);
+      }
+
+      .conversation-rail {
+        min-width: 0;
+        border-right: 1px solid var(--console-rule-strong);
+        background:
+          linear-gradient(
+            to right,
+            transparent 62%,
+            color-mix(in srgb, var(--console-text) 2.5%, transparent)
+          ),
+          var(--console-card-soft);
+      }
+
+      .rail-head {
+        min-height: 75px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 17px;
+        border-bottom: 1px solid var(--console-rule);
+      }
+
+      .rail-head h3 {
+        margin: 0;
+        font: 540 24px var(--display);
+        font-variation-settings:
+          "SOFT" 55,
+          "opsz" 60;
+      }
+
+      .rail-head span {
+        color: var(--console-text-muted);
+        font: 10px var(--mono);
+      }
+
+      .icon-button,
+      .context-button,
+      .plain-button,
+      .approval-button,
+      .send-button,
+      .attach-button {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--console-text-dim);
+        cursor: pointer;
+      }
+
+      .rail-head .icon-button {
+        margin-left: auto;
+        border-color: var(--console-accent);
+        background: var(--console-accent);
+        color: var(--console-on-accent);
+        font-size: 22px;
+      }
+
+      .rail-filter {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--console-rule);
+      }
+
+      .rail-filter button {
+        min-height: 44px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--console-text-muted);
+        cursor: pointer;
+        font: 10px var(--mono);
+        text-transform: uppercase;
+      }
+
+      .rail-filter button.active {
+        background: var(--console-card);
+        color: var(--console-text);
+      }
+
+      .conversation-group {
+        padding: 15px 0 5px;
+      }
+
+      .group-label {
+        display: block;
+        padding: 0 17px 7px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .conversation {
+        position: relative;
+        width: 100%;
+        min-height: 72px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        padding: 11px 17px 10px;
+        border: 0;
+        border-left: 3px solid transparent;
+        background: transparent;
+        color: var(--console-text);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .conversation:hover {
+        background: color-mix(in srgb, var(--console-card) 64%, transparent);
+      }
+
+      .conversation.active {
+        border-left-color: var(--console-accent);
+        background: var(--console-card);
+      }
+
+      .conversation strong {
+        min-width: 0;
+        overflow: hidden;
+        font-size: 13px;
+        font-weight: 500;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .conversation time {
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .conversation small {
+        grid-column: 1 / -1;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--console-text-muted);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .conversation .status-dot {
+        position: absolute;
+        right: 15px;
+        bottom: 11px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--console-ok);
+      }
+
+      .thread-panel {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: 75px minmax(0, 1fr) auto;
+        overflow: hidden;
+        background: var(--console-card);
+      }
+
+      .thread-head {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 22px;
+        border-bottom: 1px solid var(--console-rule-strong);
+      }
+
+      .thread-title {
+        min-width: 0;
+      }
+
+      .thread-title h3 {
+        margin: 0;
+        overflow: hidden;
+        font: 550 18px var(--display);
+        font-variation-settings:
+          "SOFT" 45,
+          "opsz" 40;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .thread-title p {
+        margin: 2px 0 0;
+        color: var(--console-text-muted);
+        font: 10px var(--mono);
+      }
+
+      .thread-head-actions {
+        display: flex;
+        gap: 7px;
+        margin-left: auto;
+      }
+
+      .context-button {
+        width: auto;
+        padding: 0 12px;
+        gap: 7px;
+        grid-auto-flow: column;
+        font-size: 12px;
+      }
+
+      .context-button .pin {
+        color: var(--console-accent);
+      }
+
+      .thread-scroll {
+        min-height: 0;
+        overflow-y: auto;
+        scrollbar-color: var(--console-rule-strong) transparent;
+      }
+
+      .thread-inner {
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 28px 30px 44px;
+      }
+
+      .day-rule {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 28px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .day-rule::before,
+      .day-rule::after {
+        content: "";
+        height: 1px;
+        background: var(--console-rule);
+      }
+
+      .source-ribbon {
+        display: grid;
+        grid-template-columns: 33px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 30px 72px;
+        padding: 10px 12px;
+        border: 1px solid var(--console-rule-strong);
+        border-left: 3px solid var(--console-secondary);
+        border-radius: 7px;
+        background: var(--console-secondary-soft);
+      }
+
+      .source-glyph {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 5px;
+        background: color-mix(
+          in srgb,
+          var(--console-secondary) 15%,
+          transparent
+        );
+        color: var(--console-secondary);
+        font: 15px var(--mono);
+      }
+
+      .source-ribbon strong,
+      .source-ribbon small {
+        display: block;
+      }
+
+      .source-ribbon strong {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .source-ribbon small {
+        margin-top: 2px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .source-ribbon button {
+        min-height: 44px;
+        padding: 0 9px;
+        border: 0;
+        background: transparent;
+        color: var(--console-secondary);
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 14px;
+        margin-top: 30px;
+      }
+
+      .message:first-of-type {
+        margin-top: 0;
+      }
+
+      .message-meta {
+        padding-top: 3px;
+        color: var(--console-text-muted);
+        font: 9px/1.45 var(--mono);
+        letter-spacing: 0.06em;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .message-meta b {
+        display: block;
+        color: var(--console-text-dim);
+        font-weight: 500;
+      }
+
+      .message-body {
+        min-width: 0;
+        color: var(--console-text);
+        font-size: 14px;
+        line-height: 1.66;
+      }
+
+      .message-body p {
+        margin: 0 0 12px;
+      }
+
+      .message-body p:last-child {
+        margin-bottom: 0;
+      }
+
+      .message.user .message-body {
+        padding: 2px 0 2px 17px;
+        border-left: 2px solid var(--console-accent);
+        font: 460 16px/1.52 var(--display);
+        font-variation-settings:
+          "SOFT" 35,
+          "opsz" 28;
+      }
+
+      .message.assistant .message-body > p:first-child::first-letter {
+        font-family: var(--display);
+        font-size: 18px;
+      }
+
+      .message-foot {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 12px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .message-foot button {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--console-text-muted);
+        cursor: pointer;
+      }
+
+      .message-foot button:hover {
+        color: var(--console-text);
+      }
+
+      .inline-sources {
+        margin: 14px 0 0;
+        padding: 10px 12px;
+        border-block: 1px solid var(--console-rule);
+        color: var(--console-text-dim);
+        font-size: 11px;
+      }
+
+      .inline-sources b {
+        margin-right: 8px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .tool-receipt {
+        margin: 26px 0 0 72px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 8px;
+        background: color-mix(
+          in srgb,
+          var(--console-card-soft) 66%,
+          transparent
+        );
+      }
+
+      .receipt-head {
+        min-height: 46px;
+        display: grid;
+        grid-template-columns: 24px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 0 13px;
+        color: var(--console-text-dim);
+        font-size: 12px;
+      }
+
+      .receipt-head .check {
+        width: 20px;
+        height: 20px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--console-ok-soft);
+        color: var(--console-ok);
+        font-size: 11px;
+      }
+
+      .receipt-head time {
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .composer-wrap {
+        padding: 13px 18px 15px;
+        border-top: 1px solid var(--console-rule-strong);
+        background: color-mix(in srgb, var(--console-card) 94%, transparent);
+      }
+
+      .context-token {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 44px;
+        margin: 0 0 8px 51px;
+        padding: 0 9px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 5px;
+        background: var(--console-secondary-soft);
+        color: var(--console-secondary);
+        font-size: 10px;
+      }
+
+      .context-token button {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      .composer {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 44px;
+        align-items: end;
+        gap: 8px;
+        padding: 7px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 10px;
+        background: var(--console-frame);
+        box-shadow: 0 12px 30px -26px color-mix(in srgb, black 50%, transparent);
+      }
+
+      .composer textarea {
+        min-height: 44px;
+        max-height: 110px;
+        resize: none;
+        padding: 11px 5px 9px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--console-text);
+        line-height: 1.45;
+      }
+
+      .composer textarea::placeholder {
+        color: var(--console-text-muted);
+      }
+
+      .attach-button,
+      .send-button {
+        border-radius: 7px;
+        font-size: 18px;
+      }
+
+      .send-button {
+        border-color: var(--console-accent);
+        background: var(--console-accent);
+        color: var(--console-on-accent);
+      }
+
+      .context-panel {
+        min-width: 0;
+        border-left: 1px solid var(--console-rule-strong);
+        background: var(--console-frame);
+      }
+
+      .context-head {
+        height: 75px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--console-rule);
+      }
+
+      .context-head h3 {
+        margin: 0;
+        color: var(--console-text-dim);
+        font: 500 10px var(--mono);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .context-head button {
+        min-width: 44px;
+        min-height: 44px;
+        border: 0;
+        background: transparent;
+        color: var(--console-text-muted);
+        cursor: pointer;
+        font-size: 18px;
+      }
+
+      .context-body {
+        padding: 20px 17px;
+      }
+
+      .context-label {
+        display: block;
+        margin: 0 0 8px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .context-card {
+        margin-bottom: 21px;
+        padding: 13px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        background: var(--console-card);
+      }
+
+      .context-card h4 {
+        margin: 0;
+        font: 540 16px var(--display);
+        font-variation-settings: "SOFT" 45;
+      }
+
+      .context-card p {
+        margin: 6px 0 0;
+        color: var(--console-text-muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .context-card footer {
+        display: flex;
+        gap: 7px;
+        margin-top: 12px;
+      }
+
+      .plain-button {
+        width: auto;
+        min-height: 44px;
+        padding: 0 9px;
+        font-size: 10px;
+      }
+
+      .context-list {
+        margin: 0 0 22px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .context-list li {
+        position: relative;
+        padding: 8px 0 8px 16px;
+        border-bottom: 1px solid var(--console-rule);
+        color: var(--console-text-dim);
+        font-size: 11px;
+      }
+
+      .context-list li::before {
+        content: "";
+        position: absolute;
+        left: 1px;
+        top: 14px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--console-text-muted);
+      }
+
+      .context-list li.live::before {
+        background: var(--console-ok);
+      }
+
+      .context-list time {
+        display: block;
+        margin-top: 2px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      /* Context handoff */
+      .handoff-frame .thread-scroll {
+        background:
+          radial-gradient(
+            circle at 50% 40%,
+            var(--console-secondary-soft),
+            transparent 28rem
+          ),
+          var(--console-card);
+      }
+
+      .empty-room {
+        width: min(620px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 70px 0 42px;
+        text-align: center;
+      }
+
+      .rhizome-mark {
+        position: relative;
+        width: 74px;
+        height: 52px;
+        margin: 0 auto 23px;
+      }
+
+      .rhizome-mark span {
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        border: 2px solid var(--console-accent);
+        border-radius: 50%;
+        background: var(--console-card);
+      }
+
+      .rhizome-mark span:nth-child(1) {
+        left: 3px;
+        top: 18px;
+      }
+
+      .rhizome-mark span:nth-child(2) {
+        left: 30px;
+        top: 2px;
+      }
+
+      .rhizome-mark span:nth-child(3) {
+        right: 2px;
+        top: 25px;
+      }
+
+      .rhizome-mark::before,
+      .rhizome-mark::after {
+        content: "";
+        position: absolute;
+        height: 1px;
+        transform-origin: left center;
+        background: var(--console-accent);
+      }
+
+      .rhizome-mark::before {
+        width: 35px;
+        left: 17px;
+        top: 26px;
+        transform: rotate(-27deg);
+      }
+
+      .rhizome-mark::after {
+        width: 33px;
+        left: 42px;
+        top: 15px;
+        transform: rotate(34deg);
+      }
+
+      .empty-room h3 {
+        margin: 0;
+        font: 520 34px/1.05 var(--display);
+        font-variation-settings:
+          "SOFT" 65,
+          "opsz" 90;
+        letter-spacing: -0.02em;
+      }
+
+      .empty-room > p {
+        max-width: 46ch;
+        margin: 12px auto 25px;
+        color: var(--console-text-muted);
+        line-height: 1.6;
+      }
+
+      .handoff-card {
+        display: grid;
+        grid-template-columns: 46px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--console-rule-strong);
+        border-left: 3px solid var(--console-secondary);
+        border-radius: 9px;
+        background: var(--console-frame);
+        text-align: left;
+      }
+
+      .handoff-card .source-glyph {
+        width: 44px;
+        height: 44px;
+      }
+
+      .handoff-card strong,
+      .handoff-card small {
+        display: block;
+      }
+
+      .handoff-card small {
+        margin-top: 3px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .handoff-card .plain-button {
+        color: var(--console-secondary);
+      }
+
+      .prompt-seeds {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 11px;
+      }
+
+      .prompt-seeds button {
+        min-height: 52px;
+        padding: 8px 10px;
+        border: 1px solid var(--console-rule);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--console-text-muted);
+        cursor: pointer;
+        font-size: 11px;
+        line-height: 1.35;
+        text-align: left;
+      }
+
+      .prompt-seeds button:hover {
+        border-color: var(--console-secondary);
+        color: var(--console-text);
+      }
+
+      /* Approval + durable work */
+      .approval-card {
+        margin: 24px 0 0 72px;
+        overflow: hidden;
+        border: 1px solid
+          color-mix(
+            in srgb,
+            var(--console-warn) 48%,
+            var(--console-rule-strong)
+          );
+        border-radius: 9px;
+        background: var(--console-warn-soft);
+      }
+
+      .approval-top {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 11px;
+        padding: 16px;
+      }
+
+      .approval-glyph {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: color-mix(in srgb, var(--console-warn) 18%, transparent);
+        color: var(--console-warn);
+        font: 17px var(--mono);
+      }
+
+      .approval-top h4 {
+        margin: 0;
+        color: var(--console-text);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .approval-top p {
+        margin: 5px 0 0;
+        color: var(--console-text-dim);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .approval-detail {
+        display: grid;
+        grid-template-columns: 104px 1fr;
+        gap: 6px 10px;
+        margin: 0 16px 15px 63px;
+        padding: 11px 12px;
+        border: 1px solid var(--console-rule);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--console-card) 68%, transparent);
+        font-size: 11px;
+      }
+
+      .approval-detail dt {
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        text-transform: uppercase;
+      }
+
+      .approval-detail dd {
+        margin: 0;
+        color: var(--console-text-dim);
+      }
+
+      .approval-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--console-rule);
+        background: color-mix(in srgb, var(--console-card) 48%, transparent);
+      }
+
+      .approval-button {
+        width: auto;
+        padding: 0 15px;
+        font-size: 12px;
+      }
+
+      .approval-button.primary {
+        border-color: var(--console-warn);
+        background: var(--console-warn);
+        color: var(--console-bg-deep);
+        font-weight: 600;
+      }
+
+      .job-card {
+        margin: 24px 0 0 72px;
+        padding: 14px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 8px;
+        background: var(--console-card-soft);
+      }
+
+      .job-card header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .job-card header strong {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .job-state {
+        margin-left: auto;
+        color: var(--console-ok);
+        font: 9px var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .job-track {
+        height: 3px;
+        margin: 13px 0 9px;
+        overflow: hidden;
+        border-radius: 3px;
+        background: var(--console-rule-strong);
+      }
+
+      .job-track span {
+        display: block;
+        width: 68%;
+        height: 100%;
+        background: var(--console-ok);
+      }
+
+      .job-card p {
+        margin: 0;
+        color: var(--console-text-muted);
+        font-size: 10px;
+      }
+
+      .leave-note {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 10px;
+        color: var(--console-text-dim);
+        font: 9px var(--mono);
+      }
+
+      .leave-note::before {
+        content: "↗";
+        color: var(--console-ok);
+      }
+
+      .artifact-card {
+        margin: 24px 0 0 72px;
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 8px;
+        background: var(--console-frame);
+      }
+
+      .artifact-preview {
+        min-height: 112px;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        border-bottom: 1px solid var(--console-rule);
+        background:
+          linear-gradient(
+            135deg,
+            var(--console-secondary-soft),
+            transparent 60%
+          ),
+          var(--console-card);
+      }
+
+      .paper-sheet {
+        width: 180px;
+        padding: 14px;
+        border: 1px solid var(--console-rule-strong);
+        background: var(--console-frame);
+        box-shadow: 0 15px 28px -22px color-mix(in srgb, black 60%, transparent);
+      }
+
+      .paper-sheet b {
+        display: block;
+        font: 520 13px var(--display);
+      }
+
+      .paper-line {
+        height: 2px;
+        margin-top: 7px;
+        background: var(--console-rule-strong);
+      }
+
+      .paper-line.short {
+        width: 62%;
+      }
+
+      .artifact-meta {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+      }
+
+      .artifact-meta strong,
+      .artifact-meta small {
+        display: block;
+      }
+
+      .artifact-meta strong {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .artifact-meta small {
+        margin-top: 2px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .artifact-meta button {
+        min-height: 44px;
+        padding: 0 13px;
+        border: 1px solid var(--console-accent);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--console-accent);
+        cursor: pointer;
+      }
+
+      /* Mobile sequence */
+      .phone-stage {
+        width: min(1320px, 100%);
+        display: grid;
+        grid-template-columns: repeat(3, 390px);
+        justify-content: center;
+        gap: 34px;
+        margin: 0 auto;
+      }
+
+      .phone-column > p {
+        min-height: 40px;
+        margin: 0 0 10px;
+        color: var(--page-dim);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .phone {
+        width: 390px;
+        height: 844px;
+        overflow: hidden;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 29px;
+        background: var(--console-frame);
+        color: var(--console-text);
+        box-shadow: 0 34px 70px -42px rgba(25, 18, 12, 0.62);
+      }
+
+      .phone-strip {
+        height: 102px;
+        display: grid;
+        grid-template-columns: 1fr 44px 44px 44px;
+        grid-template-rows: 52px 44px;
+        grid-template-areas:
+          "mark command climate session"
+          "nav nav nav nav";
+        align-items: center;
+        gap: 2px 8px;
+        padding: 4px 12px 3px;
+        border-bottom: 1px solid var(--console-rule-strong);
+      }
+
+      .phone-strip .console-mark {
+        grid-area: mark;
+        overflow: hidden;
+      }
+
+      .phone-strip .command,
+      .phone-strip .climate-mini,
+      .phone-strip .session {
+        width: 44px;
+        height: 44px;
+        min-height: 44px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 50%;
+        background: transparent;
+        font: 15px var(--mono);
+      }
+
+      .phone-strip .command {
+        grid-area: command;
+      }
+
+      .phone-strip .climate-mini {
+        grid-area: climate;
+      }
+
+      .phone-strip .session {
+        grid-area: session;
+        color: var(--console-ok);
+        font-size: 10px;
+      }
+
+      .phone-strip .session::before {
+        display: none;
+      }
+
+      .phone-strip .surface-nav {
+        grid-area: nav;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding-top: 3px;
+        border-top: 1px solid var(--console-rule);
+      }
+
+      .phone-strip .surface-nav span {
+        min-height: 38px;
+        padding: 0;
+        font: 9px var(--mono);
+        letter-spacing: 0.04em;
+      }
+
+      .phone-workspace {
+        height: calc(100% - 102px);
+        display: grid;
+        grid-template-rows: 58px minmax(0, 1fr);
+        background: var(--console-card);
+      }
+
+      .phone-head {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) 52px;
+        align-items: center;
+        padding: 0 8px;
+        border-bottom: 1px solid var(--console-rule-strong);
+        background: var(--console-frame);
+      }
+
+      .phone-head button {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--console-text-dim);
+        cursor: pointer;
+        font-size: 18px;
+      }
+
+      .phone-head button:last-child {
+        justify-self: end;
+      }
+
+      .phone-head-title {
+        min-width: 0;
+        text-align: center;
+      }
+
+      .phone-head-title h3 {
+        margin: 0;
+        overflow: hidden;
+        font: 540 16px var(--display);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .phone-head-title small {
+        display: block;
+        color: var(--console-text-muted);
+        font: 8px var(--mono);
+        text-transform: uppercase;
+      }
+
+      .phone-content {
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      .mobile-list-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 20px 18px 12px;
+      }
+
+      .mobile-list-head h3 {
+        margin: 0;
+        font: 540 28px var(--display);
+      }
+
+      .mobile-list-head .icon-button {
+        margin-left: auto;
+        border-color: var(--console-accent);
+        background: var(--console-accent);
+        color: var(--console-on-accent);
+        font-size: 20px;
+      }
+
+      .mobile-search {
+        margin: 0 16px 12px;
+        padding: 0 12px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        color: var(--console-text-muted);
+        font-size: 12px;
+        line-height: 44px;
+      }
+
+      .mobile-conversation {
+        width: 100%;
+        min-height: 82px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 12px;
+        padding: 15px 18px;
+        border: 0;
+        border-top: 1px solid var(--console-rule);
+        background: transparent;
+        color: var(--console-text);
+        text-align: left;
+      }
+
+      .mobile-conversation strong {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .mobile-conversation time {
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+      }
+
+      .mobile-conversation p {
+        grid-column: 1 / -1;
+        margin: 0;
+        color: var(--console-text-muted);
+        font-size: 12px;
+      }
+
+      .mobile-conversation.active {
+        border-left: 3px solid var(--console-accent);
+        background: var(--console-accent-soft);
+      }
+
+      .mobile-thread {
+        height: 100%;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+
+      .mobile-thread-scroll {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 16px 15px 28px;
+      }
+
+      .mobile-source {
+        margin-bottom: 22px;
+        padding: 10px 11px;
+        border-left: 3px solid var(--console-secondary);
+        background: var(--console-secondary-soft);
+        color: var(--console-text-dim);
+        font-size: 11px;
+      }
+
+      .mobile-source b {
+        display: block;
+        color: var(--console-secondary);
+        font: 9px var(--mono);
+        text-transform: uppercase;
+      }
+
+      .mobile-message {
+        margin-top: 26px;
+      }
+
+      .mobile-message:first-of-type {
+        margin-top: 0;
+      }
+
+      .mobile-message label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mobile-message p {
+        margin: 0 0 10px;
+        font-size: 13px;
+        line-height: 1.62;
+      }
+
+      .mobile-message.user p {
+        padding-left: 13px;
+        border-left: 2px solid var(--console-accent);
+        font: 450 16px/1.45 var(--display);
+      }
+
+      .mobile-tool {
+        margin-top: 14px;
+        padding: 11px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        background: var(--console-card-soft);
+        color: var(--console-text-dim);
+        font-size: 11px;
+      }
+
+      .mobile-tool b {
+        color: var(--console-ok);
+        font: 9px var(--mono);
+        text-transform: uppercase;
+      }
+
+      .mobile-composer {
+        padding: 10px 10px max(12px, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--console-rule-strong);
+        background: var(--console-frame);
+      }
+
+      .mobile-composer .composer {
+        grid-template-columns: 44px minmax(0, 1fr) 44px;
+      }
+
+      .mobile-composer textarea {
+        height: 44px;
+      }
+
+      .context-sheet {
+        padding: 18px 16px 32px;
+      }
+
+      .sheet-section {
+        margin-bottom: 25px;
+      }
+
+      .sheet-section > label {
+        display: block;
+        margin-bottom: 9px;
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .sheet-source {
+        padding: 14px;
+        border: 1px solid var(--console-rule-strong);
+        border-left: 3px solid var(--console-secondary);
+        border-radius: 8px;
+        background: var(--console-frame);
+      }
+
+      .sheet-source h4 {
+        margin: 0;
+        font: 540 18px var(--display);
+      }
+
+      .sheet-source p {
+        margin: 6px 0 12px;
+        color: var(--console-text-muted);
+        font-size: 12px;
+      }
+
+      .sheet-source button,
+      .sheet-action {
+        min-height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--console-text-dim);
+      }
+
+      .sheet-job {
+        padding: 14px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 8px;
+        background: var(--console-card-soft);
+      }
+
+      .sheet-job strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .sheet-job p {
+        margin: 5px 0 0;
+        color: var(--console-text-muted);
+        font-size: 11px;
+      }
+
+      /* State plate */
+      .state-plate {
+        width: min(1220px, 100%);
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 12px;
+        background: var(--console-frame);
+        box-shadow: var(--shadow);
+        color: var(--console-text);
+      }
+
+      .state-card {
+        min-height: 310px;
+        display: grid;
+        grid-template-rows: 46px 1fr;
+        border-right: 1px solid var(--console-rule-strong);
+      }
+
+      .state-card:last-child {
+        border-right: 0;
+      }
+
+      .state-card header {
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--console-rule);
+        color: var(--console-text-muted);
+        font: 9px var(--mono);
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .state-content {
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        padding: 25px 20px;
+        background: var(--console-card);
+        text-align: center;
+      }
+
+      .state-icon {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 16px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 50%;
+        color: var(--console-accent);
+        font: 19px var(--mono);
+      }
+
+      .state-content h3 {
+        margin: 0;
+        font: 540 18px var(--display);
+      }
+
+      .state-content p {
+        margin: 7px 0 15px;
+        color: var(--console-text-muted);
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .state-content button {
+        min-height: 44px;
+        padding: 0 13px;
+        border: 1px solid var(--console-rule-strong);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--console-text-dim);
+      }
+
+      .skeleton {
+        width: 100%;
+      }
+
+      .skeleton span {
+        display: block;
+        height: 8px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--console-rule),
+          var(--console-rule-strong),
+          var(--console-rule)
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.6s linear infinite;
+      }
+
+      .skeleton span:nth-child(2) {
+        width: 76%;
+      }
+
+      .skeleton span:nth-child(3) {
+        width: 88%;
+      }
+
+      @keyframes shimmer {
+        to {
+          background-position: -200% 0;
+        }
+      }
+
+      .spec-footer {
+        width: min(1220px, calc(100% - 56px));
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin: 80px auto 100px;
+        padding-top: 28px;
+        border-top: 1px solid var(--page-rule);
+      }
+
+      .spec-footer h3 {
+        margin: 0 0 8px;
+        font: 540 18px var(--display);
+      }
+
+      .spec-footer p,
+      .spec-footer li {
+        color: var(--page-dim);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .spec-footer ul {
+        margin: 0;
+        padding-left: 17px;
+      }
+
+      .spec-footer code {
+        font: 10px var(--mono);
+      }
+
+      .app-frame.context-closed .chat-grid {
+        grid-template-columns: 260px minmax(440px, 1fr);
+      }
+
+      .app-frame.context-closed .context-panel {
+        display: none;
+      }
+
+      .approval-card.approved {
+        border-color: color-mix(
+          in srgb,
+          var(--console-ok) 48%,
+          var(--console-rule-strong)
+        );
+        background: var(--console-ok-soft);
+      }
+
+      .approval-card.approved .approval-glyph {
+        background: var(--console-ok-soft);
+        color: var(--console-ok);
+      }
+
+      .approval-card.approved .approval-actions {
+        display: none;
+      }
+
+      .approval-card.approved .approval-top h4::after {
+        content: " — approved";
+        color: var(--console-ok);
+      }
+
+      @media (max-width: 1260px) {
+        .phone-stage {
+          grid-template-columns: repeat(2, 390px);
+        }
+      }
+
+      @media (max-width: 880px) {
+        .page-header,
+        .page-nav {
+          width: calc(100% - 28px);
+        }
+
+        .page-header {
+          padding-top: 45px;
+        }
+
+        .header-bottom,
+        .section-heading {
+          grid-template-columns: 1fr;
+        }
+
+        .prototype-controls {
+          justify-content: flex-start;
+        }
+
+        .principles {
+          grid-template-columns: repeat(2, 1fr);
+          width: calc(100% - 32px);
+        }
+
+        .principle:nth-child(2) {
+          border-right: 0;
+        }
+
+        .principle:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--page-rule);
+        }
+
+        .section-heading p {
+          text-align: left;
+        }
+
+        .mockup-section {
+          padding-inline: 16px;
+        }
+
+        .phone-stage {
+          grid-template-columns: 390px;
+        }
+
+        .state-plate {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .state-card:nth-child(2) {
+          border-right: 0;
+        }
+
+        .state-card:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--console-rule-strong);
+        }
+
+        .spec-footer {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .page-header h1 {
+          font-size: 42px;
+        }
+
+        .principles,
+        .state-plate {
+          grid-template-columns: 1fr;
+        }
+
+        .principle,
+        .state-card {
+          border-right: 0;
+          border-bottom: 1px solid var(--page-rule);
+        }
+
+        .phone-stage {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .phone {
+          width: 100%;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="eyebrow">Studio workspace study · September 2026</div>
+      <h1>Chat as a <em>working room</em>, not an app inside Studio.</h1>
+      <div class="header-bottom">
+        <p class="lede">
+          A native conversation workspace shaped by Studio’s editorial grammar:
+          sessions at left, the active exchange as the single scroll region, and
+          authorized working context at right. The screen makes ongoing work,
+          approvals, and generated artifacts legible without turning every event
+          into a chat bubble.
+        </p>
+        <div class="prototype-controls" aria-label="Preview climate">
+          <button type="button" data-theme="paper" aria-pressed="true">
+            Paper
+          </button>
+          <button type="button" data-theme="instrument" aria-pressed="false">
+            Instrument
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="page-nav" aria-label="Mockup index">
+      <a href="#principles"><b>00</b> Principles</a>
+      <a href="#working-room"><b>01</b> Working room</a>
+      <a href="#context-handoff"><b>02</b> Context handoff</a>
+      <a href="#supervised-work"><b>03</b> Approval + jobs</a>
+      <a href="#mobile-sequence"><b>04</b> Mobile sequence</a>
+      <a href="#bounded-states"><b>05</b> Bounded states</a>
+    </nav>
+
+    <section class="principles" id="principles" aria-label="Design principles">
+      <article class="principle">
+        <span class="principle-number">01</span>
+        <h2>One host, one grammar</h2>
+        <p>
+          Studio owns the route, title, responsive composition, and browser
+          history. Chat does not arrive with a second masthead or nested app
+          shell.
+        </p>
+      </article>
+      <article class="principle">
+        <span class="principle-number">02</span>
+        <h2>Conversation is a document</h2>
+        <p>
+          Messages read as an annotated working record. Roles sit in the margin;
+          sources, actions, and artifacts remain structured material.
+        </p>
+      </article>
+      <article class="principle">
+        <span class="principle-number">03</span>
+        <h2>Context stays inspectable</h2>
+        <p>
+          The working set is visible beside the exchange, but it is secondary
+          and collapsible. Source permission is never implied by the screen.
+        </p>
+      </article>
+      <article class="principle">
+        <span class="principle-number">04</span>
+        <h2>Durable work survives navigation</h2>
+        <p>
+          Approvals are explicit and jobs advertise that they continue. Re-entry
+          restores server-owned progress rather than a browser-only illusion.
+        </p>
+      </article>
+    </section>
+
+    <section class="mockup-section" id="working-room">
+      <header class="section-heading">
+        <span class="screen-number">01 / 05</span>
+        <h2>The working conversation</h2>
+        <p>
+          Desktop’s three planes are intentionally unequal: navigation is terse,
+          the manuscript is dominant, and context is useful without becoming a
+          dashboard. Use “Context” to test the collapsed reading mode.
+        </p>
+      </header>
+      <div class="frame-wrap">
+        <div class="app-frame" data-climate="paper" id="working-frame">
+          <div class="console-strip">
+            <div class="console-mark">
+              <span class="pulse"></span><b>Rizom</b><span>/ brain</span>
+            </div>
+            <div class="surface-nav">
+              <span>Dashboard</span><span class="active">Studio</span>
+            </div>
+            <div class="strip-spacer"></div>
+            <div class="command">Search or run <kbd>⌘ K</kbd></div>
+            <div class="climate-mini" aria-hidden="true">◐</div>
+            <div class="session">Yeehaa · Admin</div>
+          </div>
+          <div class="crumbbar">
+            <span
+              >Studio&nbsp; / &nbsp;Chat&nbsp; / &nbsp;<strong
+                >Launch narrative</strong
+              ></span
+            >
+            <span class="route-hint">web-chat:chat · session 9c7…</span>
+          </div>
+          <div class="chat-grid">
+            <aside class="conversation-rail" aria-label="Conversations">
+              <header class="rail-head">
+                <div>
+                  <h3>Chat</h3>
+                  <span>6 open conversations</span>
+                </div>
+                <button
+                  class="icon-button"
+                  type="button"
+                  aria-label="New conversation"
+                >
+                  +
+                </button>
+              </header>
+              <div class="rail-filter" aria-label="Conversation filter">
+                <button class="active" type="button">Open</button>
+                <button type="button">Mine</button>
+                <button type="button">Archive</button>
+              </div>
+              <div class="conversation-group">
+                <span class="group-label">Today</span>
+                <button
+                  class="conversation active"
+                  type="button"
+                  data-title="Launch narrative"
+                >
+                  <strong>Launch narrative</strong><time>09:48</time>
+                  <small>Brief now includes the trust proof…</small>
+                  <span class="status-dot"></span>
+                </button>
+                <button
+                  class="conversation"
+                  type="button"
+                  data-title="Quarterly review"
+                >
+                  <strong>Quarterly review</strong><time>08:12</time>
+                  <small>Compare the current outcomes with Q2</small>
+                </button>
+              </div>
+              <div class="conversation-group">
+                <span class="group-label">This week</span>
+                <button
+                  class="conversation"
+                  type="button"
+                  data-title="Member onboarding"
+                >
+                  <strong>Member onboarding</strong><time>Tue</time>
+                  <small>Draft a concise welcome sequence</small>
+                </button>
+                <button
+                  class="conversation"
+                  type="button"
+                  data-title="Image library audit"
+                >
+                  <strong>Image library audit</strong><time>Mon</time>
+                  <small>12 assets still need descriptions</small>
+                </button>
+                <button
+                  class="conversation"
+                  type="button"
+                  data-title="Studio release notes"
+                >
+                  <strong>Studio release notes</strong><time>Fri</time>
+                  <small>Summarize changes for operators</small>
+                </button>
+              </div>
+            </aside>
+
+            <main class="thread-panel">
+              <header class="thread-head">
+                <div class="thread-title">
+                  <h3 data-thread-title>Launch narrative</h3>
+                  <p>Updated moments ago · owned by Yeehaa</p>
+                </div>
+                <div class="thread-head-actions">
+                  <button
+                    class="context-button"
+                    type="button"
+                    data-context-toggle
+                  >
+                    <span class="pin">◇</span> Context
+                  </button>
+                  <button
+                    class="icon-button"
+                    type="button"
+                    aria-label="Conversation actions"
+                  >
+                    •••
+                  </button>
+                </div>
+              </header>
+              <div class="thread-scroll">
+                <div class="thread-inner">
+                  <div class="day-rule">Today · September 2</div>
+                  <div class="source-ribbon">
+                    <div class="source-glyph">P</div>
+                    <div>
+                      <strong>Project · Mercury launch</strong>
+                      <small
+                        >Attached from Studio / Library · permission
+                        checked</small
+                      >
+                    </div>
+                    <button type="button">Open ↗</button>
+                  </div>
+
+                  <article class="message user">
+                    <div class="message-meta"><b>You</b>09:41</div>
+                    <div class="message-body">
+                      <p>
+                        Turn the launch notes into a clear narrative. Lead with
+                        why durable ownership matters, then connect it to the
+                        new Studio workflow.
+                      </p>
+                    </div>
+                  </article>
+
+                  <article class="message assistant">
+                    <div class="message-meta"><b>Rizom</b>09:42</div>
+                    <div class="message-body">
+                      <p>
+                        The strongest through-line is continuity: work should
+                        remain understandable after a person closes a tab,
+                        changes devices, or hands responsibility to someone
+                        else.
+                      </p>
+                      <p>
+                        Mercury makes that promise concrete. Studio supplies the
+                        shared room; durable conversations preserve decisions,
+                        source context, approvals, and resulting artifacts as
+                        one inspectable record.
+                      </p>
+                      <div class="inline-sources">
+                        <b>Sources</b> Project brief §2 · Studio principles · 3
+                        release notes
+                      </div>
+                      <div class="message-foot">
+                        <button type="button">Copy</button>
+                        <button type="button">Use in brief</button>
+                        <span>Grounded in 5 items</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <div class="tool-receipt">
+                    <div class="receipt-head">
+                      <span class="check">✓</span>
+                      <span>Read project notes and release history</span>
+                      <time>1.8s</time>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="composer-wrap">
+                <div class="context-token">
+                  ◇ Mercury launch
+                  <button type="button" aria-label="Remove context">×</button>
+                </div>
+                <div class="composer">
+                  <button
+                    class="attach-button"
+                    type="button"
+                    aria-label="Attach file or Studio item"
+                  >
+                    +
+                  </button>
+                  <textarea
+                    aria-label="Message"
+                    placeholder="Continue the conversation…"
+                  ></textarea>
+                  <button
+                    class="send-button"
+                    type="button"
+                    aria-label="Send message"
+                  >
+                    ↑
+                  </button>
+                </div>
+              </div>
+            </main>
+
+            <aside class="context-panel" aria-label="Working context">
+              <header class="context-head">
+                <h3>Working set</h3>
+                <button
+                  type="button"
+                  data-context-close
+                  aria-label="Close context"
+                >
+                  ×
+                </button>
+              </header>
+              <div class="context-body">
+                <span class="context-label">Attached source</span>
+                <article class="context-card">
+                  <h4>Mercury launch</h4>
+                  <p>
+                    Project · Draft · updated today. Resolved from its locator
+                    for this request.
+                  </p>
+                  <footer>
+                    <button class="plain-button" type="button">
+                      Open in Library
+                    </button>
+                    <button class="plain-button" type="button">Detach</button>
+                  </footer>
+                </article>
+
+                <span class="context-label">Artifacts</span>
+                <article class="context-card">
+                  <h4>Launch narrative</h4>
+                  <p>Draft document · generated in this conversation.</p>
+                  <footer>
+                    <button class="plain-button" type="button">Preview</button>
+                    <button class="plain-button" type="button">Open</button>
+                  </footer>
+                </article>
+
+                <span class="context-label">Activity</span>
+                <ul class="context-list">
+                  <li class="live">
+                    Conversation current<time>synced just now</time>
+                  </li>
+                  <li>5 sources consulted<time>09:42</time></li>
+                  <li>Context attached<time>09:40</time></li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mockup-section" id="context-handoff">
+      <header class="section-heading">
+        <span class="screen-number">02 / 05</span>
+        <h2>Discuss from anywhere in Studio</h2>
+        <p>
+          A handoff begins with one bounded source locator, not copied private
+          content. The new room carries a visible attachment and just enough
+          contextual prompts to get moving.
+        </p>
+      </header>
+      <div class="frame-wrap">
+        <div class="app-frame handoff-frame" data-climate="instrument">
+          <div class="console-strip">
+            <div class="console-mark">
+              <span class="pulse"></span><b>Rizom</b><span>/ brain</span>
+            </div>
+            <div class="surface-nav">
+              <span>Dashboard</span><span class="active">Studio</span>
+            </div>
+            <div class="strip-spacer"></div>
+            <div class="command">Search or run <kbd>⌘ K</kbd></div>
+            <div class="climate-mini">◐</div>
+            <div class="session">Yeehaa · Admin</div>
+          </div>
+          <div class="crumbbar">
+            <span
+              >Studio&nbsp; / &nbsp;Chat&nbsp; / &nbsp;<strong
+                >New conversation</strong
+              ></span
+            >
+            <span class="route-hint">context resolved server-side</span>
+          </div>
+          <div class="chat-grid">
+            <aside class="conversation-rail">
+              <header class="rail-head">
+                <div>
+                  <h3>Chat</h3>
+                  <span>New working room</span>
+                </div>
+                <button class="icon-button" type="button">+</button>
+              </header>
+              <div class="rail-filter">
+                <button class="active" type="button">Open</button
+                ><button type="button">Mine</button
+                ><button type="button">Archive</button>
+              </div>
+              <div class="conversation-group">
+                <span class="group-label">Draft</span>
+                <button class="conversation active" type="button">
+                  <strong>Mercury launch</strong><time>Now</time>
+                  <small>No messages yet</small>
+                </button>
+              </div>
+              <div class="conversation-group">
+                <span class="group-label">Recent</span>
+                <button class="conversation" type="button">
+                  <strong>Quarterly review</strong><time>08:12</time
+                  ><small>Compare current outcomes with Q2</small>
+                </button>
+                <button class="conversation" type="button">
+                  <strong>Member onboarding</strong><time>Tue</time
+                  ><small>Draft a welcome sequence</small>
+                </button>
+              </div>
+            </aside>
+            <main class="thread-panel">
+              <header class="thread-head">
+                <div class="thread-title">
+                  <h3>Mercury launch</h3>
+                  <p>New conversation · source attached</p>
+                </div>
+                <div class="thread-head-actions">
+                  <button class="context-button" type="button">
+                    <span class="pin">◇</span> Context
+                  </button>
+                  <button class="icon-button" type="button">•••</button>
+                </div>
+              </header>
+              <div class="thread-scroll">
+                <div class="empty-room">
+                  <div class="rhizome-mark" aria-hidden="true">
+                    <span></span><span></span><span></span>
+                  </div>
+                  <h3>Begin with the work at hand.</h3>
+                  <p>
+                    Mercury launch is attached to this room. Its details will be
+                    resolved again, with your current access, when a message
+                    uses them.
+                  </p>
+                  <div class="handoff-card">
+                    <div class="source-glyph">P</div>
+                    <div>
+                      <strong>Mercury launch</strong
+                      ><small>Project · Draft · source library</small>
+                    </div>
+                    <button class="plain-button" type="button">
+                      Inspect ↗
+                    </button>
+                  </div>
+                  <div
+                    class="prompt-seeds"
+                    aria-label="Contextual prompt examples"
+                  >
+                    <button
+                      type="button"
+                      data-seed="Find the decisions that still need owners."
+                    >
+                      Find decisions that still need owners
+                    </button>
+                    <button
+                      type="button"
+                      data-seed="Turn these notes into a concise launch brief."
+                    >
+                      Shape a concise launch brief
+                    </button>
+                    <button
+                      type="button"
+                      data-seed="What is missing before this project can publish?"
+                    >
+                      Check what is missing before publish
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="composer-wrap">
+                <div class="context-token">
+                  ◇ Mercury launch <button type="button">×</button>
+                </div>
+                <div class="composer">
+                  <button class="attach-button" type="button">+</button>
+                  <textarea
+                    aria-label="New message"
+                    placeholder="Ask about Mercury launch…"
+                    data-seed-target
+                  ></textarea>
+                  <button class="send-button" type="button">↑</button>
+                </div>
+              </div>
+            </main>
+            <aside class="context-panel">
+              <header class="context-head">
+                <h3>Working set</h3>
+                <button type="button">×</button>
+              </header>
+              <div class="context-body">
+                <span class="context-label">Attached source</span>
+                <article class="context-card">
+                  <h4>Mercury launch</h4>
+                  <p>Project · Draft · source locator verified for Yeehaa.</p>
+                  <footer>
+                    <button class="plain-button" type="button">
+                      Open in Library
+                    </button>
+                  </footer>
+                </article>
+                <span class="context-label">Why it is here</span>
+                <ul class="context-list">
+                  <li>
+                    Launched from Project detail<time>Studio handoff</time>
+                  </li>
+                  <li class="live">
+                    Access confirmed<time>this request</time>
+                  </li>
+                  <li>Conversation owned by Yeehaa<time>server state</time></li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mockup-section" id="supervised-work">
+      <header class="section-heading">
+        <span class="screen-number">03 / 05</span>
+        <h2>Supervised action, durable result</h2>
+        <p>
+          Risk interrupts the manuscript without impersonating a modal. The
+          action names its target and consequence; after approval, durable work
+          becomes a resumable receipt with a Studio-native artifact door.
+        </p>
+      </header>
+      <div class="frame-wrap">
+        <div class="app-frame" data-climate="instrument" id="approval-frame">
+          <div class="console-strip">
+            <div class="console-mark">
+              <span class="pulse"></span><b>Rizom</b><span>/ brain</span>
+            </div>
+            <div class="surface-nav">
+              <span>Dashboard</span><span class="active">Studio</span>
+            </div>
+            <div class="strip-spacer"></div>
+            <div class="command">Search or run <kbd>⌘ K</kbd></div>
+            <div class="climate-mini">◐</div>
+            <div class="session">Yeehaa · Admin</div>
+          </div>
+          <div class="crumbbar">
+            <span
+              >Studio&nbsp; / &nbsp;Chat&nbsp; / &nbsp;<strong
+                >Publish Mercury</strong
+              ></span
+            >
+            <span class="route-hint">durable job attached</span>
+          </div>
+          <div class="chat-grid">
+            <aside class="conversation-rail">
+              <header class="rail-head">
+                <div>
+                  <h3>Chat</h3>
+                  <span>Attention required</span>
+                </div>
+                <button class="icon-button" type="button">+</button>
+              </header>
+              <div class="rail-filter">
+                <button class="active" type="button">Open</button
+                ><button type="button">Mine</button
+                ><button type="button">Archive</button>
+              </div>
+              <div class="conversation-group">
+                <span class="group-label">Needs you</span>
+                <button class="conversation active" type="button">
+                  <strong>Publish Mercury</strong><time>Now</time
+                  ><small>Approval requested</small
+                  ><span
+                    class="status-dot"
+                    style="background: var(--console-warn)"
+                  ></span>
+                </button>
+              </div>
+              <div class="conversation-group">
+                <span class="group-label">Running</span>
+                <button class="conversation" type="button">
+                  <strong>Asset descriptions</strong><time>68%</time
+                  ><small>Job continues in background</small
+                  ><span class="status-dot"></span>
+                </button>
+              </div>
+            </aside>
+            <main class="thread-panel">
+              <header class="thread-head">
+                <div class="thread-title">
+                  <h3>Publish Mercury</h3>
+                  <p>Approval requested · owned by Yeehaa</p>
+                </div>
+                <div class="thread-head-actions">
+                  <button class="context-button" type="button">
+                    <span class="pin">◇</span> Context</button
+                  ><button class="icon-button" type="button">•••</button>
+                </div>
+              </header>
+              <div class="thread-scroll">
+                <div class="thread-inner">
+                  <div class="day-rule">Today · September 2</div>
+                  <article class="message user">
+                    <div class="message-meta"><b>You</b>10:16</div>
+                    <div class="message-body">
+                      <p>
+                        Publish the Mercury launch brief and rebuild the preview
+                        site.
+                      </p>
+                    </div>
+                  </article>
+                  <article class="message assistant">
+                    <div class="message-meta"><b>Rizom</b>10:16</div>
+                    <div class="message-body">
+                      <p>
+                        The brief is ready. Publishing changes durable content
+                        and starts a preview rebuild, so I need your approval
+                        before continuing.
+                      </p>
+                    </div>
+                  </article>
+                  <section class="approval-card" data-approval-card>
+                    <div class="approval-top">
+                      <div class="approval-glyph">!</div>
+                      <div>
+                        <h4>Approval required</h4>
+                        <p>
+                          Publish one project and enqueue its preview-site
+                          rebuild.
+                        </p>
+                      </div>
+                    </div>
+                    <dl class="approval-detail">
+                      <dt>Action</dt>
+                      <dd>Publish project</dd>
+                      <dt>Target</dt>
+                      <dd>Mercury launch · project/mercury</dd>
+                      <dt>Follow-up</dt>
+                      <dd>Rebuild preview site</dd>
+                      <dt>Actor</dt>
+                      <dd>Yeehaa · Admin</dd>
+                    </dl>
+                    <div class="approval-actions">
+                      <button class="approval-button" type="button">
+                        Not now
+                      </button>
+                      <button
+                        class="approval-button primary"
+                        type="button"
+                        data-approve
+                      >
+                        Approve and run
+                      </button>
+                    </div>
+                  </section>
+                  <section class="job-card">
+                    <header>
+                      <span class="check">◌</span
+                      ><strong>Preview site rebuild</strong
+                      ><span class="job-state">Running · 68%</span>
+                    </header>
+                    <div class="job-track"><span></span></div>
+                    <p>
+                      Rendering 24 pages · job 01J7… · updated 4 seconds ago
+                    </p>
+                    <div class="leave-note">
+                      Safe to leave Chat; progress is stored by the server.
+                    </div>
+                  </section>
+                  <section class="artifact-card">
+                    <div class="artifact-preview">
+                      <div class="paper-sheet">
+                        <b>Mercury launch</b>
+                        <div class="paper-line"></div>
+                        <div class="paper-line"></div>
+                        <div class="paper-line short"></div>
+                      </div>
+                    </div>
+                    <div class="artifact-meta">
+                      <div>
+                        <strong>Mercury launch brief</strong
+                        ><small
+                          >Project · published version · generated here</small
+                        >
+                      </div>
+                      <button type="button">Open in Library ↗</button>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="composer-wrap">
+                <div class="composer">
+                  <button class="attach-button" type="button">+</button
+                  ><textarea placeholder="Continue the conversation…"></textarea
+                  ><button class="send-button" type="button">↑</button>
+                </div>
+              </div>
+            </main>
+            <aside class="context-panel">
+              <header class="context-head">
+                <h3>Work status</h3>
+                <button type="button">×</button>
+              </header>
+              <div class="context-body">
+                <span class="context-label">Active work</span>
+                <article class="context-card">
+                  <h4>Preview rebuild</h4>
+                  <p>Running · 68% · durable job</p>
+                  <footer>
+                    <button class="plain-button" type="button">
+                      View details
+                    </button>
+                  </footer>
+                </article>
+                <span class="context-label">Authorization</span>
+                <ul class="context-list">
+                  <li class="live">Admin action admitted<time>Yeehaa</time></li>
+                  <li>Approval pending<time>this conversation</time></li>
+                  <li>Target checked<time>project/mercury</time></li>
+                </ul>
+                <span class="context-label">Result</span>
+                <article class="context-card">
+                  <h4>Mercury launch brief</h4>
+                  <p>Published project · durable artifact.</p>
+                  <footer>
+                    <button class="plain-button" type="button">
+                      Open in Library
+                    </button>
+                  </footer>
+                </article>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mockup-section" id="mobile-sequence">
+      <header class="section-heading">
+        <span class="screen-number">04 / 05</span>
+        <h2>Mobile is a sequence, not a squeezed desktop</h2>
+        <p>
+          The session list, thread, and context become three native
+          destinations. A stable back door and 44px controls replace permanent
+          side panels; only the active destination scrolls.
+        </p>
+      </header>
+      <div class="phone-stage">
+        <div class="phone-column">
+          <p>Conversation door · context and status visible before entry</p>
+          <div class="phone" data-climate="paper">
+            <div class="phone-strip">
+              <div class="console-mark">
+                <span class="pulse"></span><b>Rizom</b>
+              </div>
+              <div class="command">⌘</div>
+              <div class="climate-mini">◐</div>
+              <div class="session">YH</div>
+              <div class="surface-nav">
+                <span>Dashboard</span><span class="active">Studio</span
+                ><span>Account</span>
+              </div>
+            </div>
+            <div
+              class="phone-workspace"
+              style="grid-template-rows: minmax(0, 1fr)"
+            >
+              <div class="phone-content">
+                <div class="mobile-list-head">
+                  <div>
+                    <span class="group-label" style="padding: 0"
+                      >Studio workspace</span
+                    >
+                    <h3>Chat</h3>
+                  </div>
+                  <button class="icon-button" type="button">+</button>
+                </div>
+                <div class="mobile-search">⌕ &nbsp; Find a conversation</div>
+                <span class="group-label">Needs you</span>
+                <button class="mobile-conversation active" type="button">
+                  <strong>Publish Mercury</strong><time>Now</time>
+                  <p>Approval requested · project attached</p>
+                </button>
+                <span class="group-label" style="margin-top: 17px">Today</span>
+                <button class="mobile-conversation" type="button">
+                  <strong>Launch narrative</strong><time>09:48</time>
+                  <p>Brief now includes the trust proof…</p>
+                </button>
+                <button class="mobile-conversation" type="button">
+                  <strong>Quarterly review</strong><time>08:12</time>
+                  <p>Compare the current outcomes with Q2</p>
+                </button>
+                <span class="group-label" style="margin-top: 17px"
+                  >This week</span
+                >
+                <button class="mobile-conversation" type="button">
+                  <strong>Member onboarding</strong><time>Tue</time>
+                  <p>Draft a concise welcome sequence</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phone-column">
+          <p>
+            Thread · back to sessions, context one tap away, composer in safe
+            area
+          </p>
+          <div class="phone" data-climate="paper">
+            <div class="phone-strip">
+              <div class="console-mark">
+                <span class="pulse"></span><b>Rizom</b>
+              </div>
+              <div class="command">⌘</div>
+              <div class="climate-mini">◐</div>
+              <div class="session">YH</div>
+              <div class="surface-nav">
+                <span>Dashboard</span><span class="active">Studio</span
+                ><span>Account</span>
+              </div>
+            </div>
+            <div class="phone-workspace">
+              <header class="phone-head">
+                <button type="button" aria-label="Back to conversations">
+                  ←
+                </button>
+                <div class="phone-head-title">
+                  <h3>Launch narrative</h3>
+                  <small>current · synced</small>
+                </div>
+                <button type="button" aria-label="Open context">◇</button>
+              </header>
+              <div class="mobile-thread">
+                <div class="mobile-thread-scroll">
+                  <div class="mobile-source">
+                    <b>Attached project</b>Mercury launch · permission checked
+                  </div>
+                  <article class="mobile-message user">
+                    <label>You · 09:41</label>
+                    <p>
+                      Lead with why durable ownership matters, then connect it
+                      to Studio.
+                    </p>
+                  </article>
+                  <article class="mobile-message">
+                    <label>Rizom · 09:42</label>
+                    <p>
+                      The strongest through-line is continuity: work should
+                      remain understandable after someone closes a tab, changes
+                      devices, or hands responsibility to another person.
+                    </p>
+                    <p>
+                      Mercury makes that promise concrete by keeping decisions,
+                      source context, approvals, and resulting artifacts
+                      together.
+                    </p>
+                    <div class="mobile-tool">
+                      <b>✓ Source check complete</b><br />5 authorized items
+                      consulted
+                    </div>
+                  </article>
+                </div>
+                <div class="mobile-composer">
+                  <div class="composer">
+                    <button class="attach-button" type="button">+</button
+                    ><textarea placeholder="Continue…"></textarea
+                    ><button class="send-button" type="button">↑</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phone-column">
+          <p>Context destination · source, durable job, and artifact doors</p>
+          <div class="phone" data-climate="paper">
+            <div class="phone-strip">
+              <div class="console-mark">
+                <span class="pulse"></span><b>Rizom</b>
+              </div>
+              <div class="command">⌘</div>
+              <div class="climate-mini">◐</div>
+              <div class="session">YH</div>
+              <div class="surface-nav">
+                <span>Dashboard</span><span class="active">Studio</span
+                ><span>Account</span>
+              </div>
+            </div>
+            <div class="phone-workspace">
+              <header class="phone-head">
+                <button type="button">←</button>
+                <div class="phone-head-title">
+                  <h3>Working context</h3>
+                  <small>Launch narrative</small>
+                </div>
+                <button type="button">•••</button>
+              </header>
+              <div class="phone-content context-sheet">
+                <section class="sheet-section">
+                  <label>Attached source</label>
+                  <div class="sheet-source">
+                    <h4>Mercury launch</h4>
+                    <p>Project · Draft · resolved for this request.</p>
+                    <button type="button">Open in Library ↗</button>
+                  </div>
+                </section>
+                <section class="sheet-section">
+                  <label>Active work</label>
+                  <div class="sheet-job">
+                    <strong>Preview rebuild · 68%</strong>
+                    <div class="job-track"><span></span></div>
+                    <p>Continues if you leave this screen.</p>
+                  </div>
+                </section>
+                <section class="sheet-section">
+                  <label>Artifacts</label>
+                  <div class="sheet-source">
+                    <h4>Launch narrative</h4>
+                    <p>Draft document · generated in this conversation.</p>
+                    <button type="button">Preview artifact</button>
+                  </div>
+                </section>
+                <section class="sheet-section">
+                  <label>Conversation</label
+                  ><button class="sheet-action" type="button">
+                    Rename conversation
+                  </button>
+                  <button class="sheet-action" type="button">Archive</button>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mockup-section" id="bounded-states">
+      <header class="section-heading">
+        <span class="screen-number">05 / 05</span>
+        <h2>Quiet, bounded edge states</h2>
+        <p>
+          Unknown and inaccessible sessions share one disclosure-safe state.
+          Detached streams point back to durable status. Capability absence
+          removes the workspace entirely and therefore is not rendered here.
+        </p>
+      </header>
+      <div class="state-plate" data-climate="instrument">
+        <article class="state-card">
+          <header>Blank conversation</header>
+          <div class="state-content">
+            <div class="state-icon">+</div>
+            <h3>Start a working room</h3>
+            <p>
+              Nothing is attached yet. Add a Studio item or send a first
+              message.
+            </p>
+            <button type="button">Attach from Studio</button>
+          </div>
+        </article>
+        <article class="state-card">
+          <header>Restoring</header>
+          <div class="state-content">
+            <div class="skeleton">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <p>Restoring conversation and durable work from the server…</p>
+          </div>
+        </article>
+        <article class="state-card">
+          <header>Not found</header>
+          <div class="state-content">
+            <div class="state-icon">∅</div>
+            <h3>Conversation unavailable</h3>
+            <p>It may not exist or may not be available to this account.</p>
+            <button type="button">Back to conversations</button>
+          </div>
+        </article>
+        <article class="state-card">
+          <header>Stream detached</header>
+          <div class="state-content">
+            <div class="state-icon">↻</div>
+            <h3>Work continues</h3>
+            <p>
+              The browser stream ended. Durable job status and messages can be
+              restored.
+            </p>
+            <button type="button">Restore status</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="spec-footer">
+      <section>
+        <h3>Host-owned</h3>
+        <ul>
+          <li>Studio route and browser history</li>
+          <li>Active session and panel state</li>
+          <li>Responsive composition and labels</li>
+          <li>Presentation copy and empty states</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Chat-owned</h3>
+        <ul>
+          <li>Conversation and message persistence</li>
+          <li>Access and source disclosure checks</li>
+          <li>Streaming, uploads, approvals, and jobs</li>
+          <li>Structured server-owned lifecycle state</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Prototype constraints</h3>
+        <p>
+          One active content scroll region per destination, 44px interaction
+          targets, safe-area composer padding, no iframe or mounted standalone
+          application, and no public UI controller.
+        </p>
+        <p><code>/studio/workspaces/web-chat%3Achat?session=…</code></p>
+      </section>
+    </footer>
+
+    <script>
+      const themeButtons = document.querySelectorAll("[data-theme]");
+      const themedFrames = document.querySelectorAll(
+        ".app-frame, .phone, .state-plate",
+      );
+
+      themeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const theme = button.dataset.theme;
+          themeButtons.forEach((item) =>
+            item.setAttribute("aria-pressed", String(item === button)),
+          );
+          themedFrames.forEach((frame) =>
+            frame.setAttribute("data-climate", theme),
+          );
+        });
+      });
+
+      document.querySelectorAll("[data-context-toggle]").forEach((button) => {
+        button.addEventListener("click", () => {
+          button.closest(".app-frame")?.classList.toggle("context-closed");
+        });
+      });
+
+      document.querySelectorAll("[data-context-close]").forEach((button) => {
+        button.addEventListener("click", () => {
+          button.closest(".app-frame")?.classList.add("context-closed");
+        });
+      });
+
+      document
+        .querySelectorAll("#working-frame .conversation")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            document
+              .querySelectorAll("#working-frame .conversation")
+              .forEach((item) => item.classList.remove("active"));
+            button.classList.add("active");
+            const title = document.querySelector(
+              "#working-frame [data-thread-title]",
+            );
+            if (title && button.dataset.title)
+              title.textContent = button.dataset.title;
+          });
+        });
+
+      document.querySelectorAll("[data-seed]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = document.querySelector("[data-seed-target]");
+          if (target instanceof HTMLTextAreaElement) {
+            target.value = button.dataset.seed || "";
+            target.focus();
+          }
+        });
+      });
+
+      document.querySelectorAll("[data-approve]").forEach((button) => {
+        button.addEventListener("click", () => {
+          button.closest("[data-approval-card]")?.classList.add("approved");
+        });
+      });
+    </script>
+  </body>
+</html>

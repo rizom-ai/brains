@@ -13,7 +13,7 @@ const brokerConfigSchema = z.object({
 
 const cwd = process.cwd();
 const config = brokerConfigSchema.parse(
-  fromYaml<unknown>(readFileSync(join(cwd, "brain.yaml"), "utf8")),
+  fromYaml(readFileSync(join(cwd, "brain.yaml"), "utf8")),
 );
 const result = await runGitBrokerChild(cwd, config).catch(
   (error: unknown): CommandResult => ({

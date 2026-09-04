@@ -85,3 +85,28 @@ export type SocialPostView = Omit<
   listUrl: string;
   listLabel: string;
 };
+
+/**
+ * Runtime counterpart to {@link SocialPostView}: the same fields with the
+ * link slots site-builder fills required, so the render path can prove the
+ * enrichment ran instead of assuming it.
+ */
+export const socialPostRenderSchema: z.ZodType<SocialPostView> = z.object({
+  id: z.string(),
+  entityType: z.literal("social-post"),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  visibility: visibilitySchema,
+  metadata: metadataSchema,
+  contentHash: z.string(),
+  frontmatter: frontmatterSchema,
+  body: z.string(),
+  url: z.string(),
+  listUrl: z.string(),
+  listLabel: z.string(),
+  typeLabel: z.string(),
+  coverImageUrl: nullableString,
+  coverImageWidth: nullableNumber,
+  coverImageHeight: nullableNumber,
+});

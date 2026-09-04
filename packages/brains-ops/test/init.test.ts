@@ -16,6 +16,28 @@ import { parse as parseYaml } from "yaml";
 
 import packageJson from "../package.json";
 import { initPilotRepo } from "../src/init";
+import { z } from "@brains/utils/zod";
+
+/**
+ * The scaffolded Upgrade workflow, as far as this test reads it. `parseYaml`
+ * hands back `any`, so parsing is what makes the step list something the test
+ * can rely on: a workflow that stops emitting `jobs.upgrade.steps` fails here
+ * rather than several assertions later against undefined.
+ */
+const upgradeManifestSchema = z.looseObject({
+  permissions: z.unknown(),
+  jobs: z.looseObject({
+    upgrade: z.looseObject({
+      steps: z.array(
+        z.looseObject({
+          id: z.string().optional(),
+          name: z.string().optional(),
+          uses: z.string().optional(),
+        }),
+      ),
+    }),
+  }),
+});
 
 const opsPackageDir = join(dirname(import.meta.dir));
 
@@ -916,7 +938,9 @@ describe("initPilotRepo", () => {
     // The job's own Actions token stays read-only; write access arrives only
     // through the App token. Asserted structurally so reindenting the template
     // cannot quietly turn this check into a no-op.
-    const upgradeManifest = parseYaml(upgradeWorkflow);
+    const upgradeManifest = upgradeManifestSchema.parse(
+      parseYaml(upgradeWorkflow),
+    );
     expect(upgradeManifest.permissions).toEqual({ contents: "read" });
 
     expect(upgradeWorkflow).toContain("actions/create-github-app-token@v2");
@@ -941,11 +965,7 @@ describe("initPilotRepo", () => {
       "GH_TOKEN: ${{ steps.upgrade-token.outputs.token }}",
     );
     expect(upgradeWorkflow).not.toContain("GH_TOKEN: ${{ github.token }}");
-    const upgradeSteps = upgradeManifest.jobs.upgrade.steps as Array<{
-      id?: string;
-      name?: string;
-      uses?: string;
-    }>;
+    const upgradeSteps = upgradeManifest.jobs.upgrade.steps;
     expect(
       upgradeSteps.findIndex((step) => step.id === "upgrade-token"),
     ).toBeGreaterThan(

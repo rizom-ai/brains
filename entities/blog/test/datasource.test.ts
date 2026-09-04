@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { createMockLogger, createMockShell } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
 import { getTemplates } from "../src/lib/register-templates";
 
@@ -43,30 +44,42 @@ const paginatedListSchema = z.object({
   pagination: paginationSchema.nullable(),
 });
 
+const seriesSchema = z.object({
+  seriesName: z.string(),
+  posts: z.array(z.any()),
+});
+
 describe("BlogDataSource", () => {
   let datasource: BlogDataSource;
-  let mockEntityService: IEntityService;
+  let shell: MockShell;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
+  function seed(posts: BaseEntity[]): void {
+    shell.addEntities(posts);
+  }
+
   beforeEach(() => {
     mockLogger = createMockLogger();
-    mockEntityService = createMockEntityService();
-    mockContext = { entityService: mockEntityService };
+    shell = createMockShell();
+    mockContext = { entityService: shell.getEntityService() };
 
     datasource = new BlogDataSource(mockLogger);
   });
 
   describe("fetchLatestPost", () => {
     it("should fetch the most recent published post", async () => {
-      const latestPost = createMockPost(
-        "post-2",
-        "Latest Post",
-        "latest-post",
-        "published",
-        { publishedAt: "2025-01-03T10:00:00.000Z" },
-      );
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([latestPost]);
+      seed([
+        createMockPost("post-1", "Older Post", "older-post", "published", {
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        }),
+        createMockPost("post-2", "Latest Post", "latest-post", "published", {
+          publishedAt: "2025-01-03T10:00:00.000Z",
+        }),
+        createMockPost("post-3", "Middle Post", "middle-post", "published", {
+          publishedAt: "2025-01-02T10:00:00.000Z",
+        }),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
@@ -81,31 +94,7 @@ describe("BlogDataSource", () => {
       expect(result.seriesPosts).toBeNull();
     });
 
-    it("should exclude draft posts when fetching latest", async () => {
-      const latestPublished = createMockPost(
-        "post-3",
-        "Another Published",
-        "another-published",
-        "published",
-        { publishedAt: "2025-01-02T10:00:00.000Z" },
-      );
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([
-        latestPublished,
-      ]);
-
-      const result = await datasource.fetch(
-        { entityType: "post", query: { latest: true } },
-        singlePostSchema,
-        mockContext,
-      );
-
-      expect(result.post.id).toBe("post-3");
-      expect(result.post.frontmatter.status).toBe("published");
-    });
-
     it("should throw error when no published posts exist", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-
       expect(
         datasource.fetch(
           { entityType: "post", query: { latest: true } },
@@ -116,19 +105,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should include series posts if latest post is part of a series", async () => {
-      const latestPost = createMockPost(
-        "post-3",
-        "Latest Post",
-        "latest-post",
-        "published",
-        {
-          publishedAt: "2025-01-03T10:00:00.000Z",
-          seriesName: "My Series",
-          seriesIndex: 3,
-        },
-      );
-
-      const seriesPosts = [
+      seed([
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -151,12 +128,12 @@ describe("BlogDataSource", () => {
             seriesIndex: 2,
           },
         ),
-        latestPost,
-      ];
-
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([latestPost])
-        .mockResolvedValueOnce(seriesPosts);
+        createMockPost("post-3", "Latest Post", "latest-post", "published", {
+          publishedAt: "2025-01-03T10:00:00.000Z",
+          seriesName: "My Series",
+          seriesIndex: 3,
+        }),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
@@ -172,28 +149,18 @@ describe("BlogDataSource", () => {
   });
 
   describe("fetchSinglePost", () => {
-    it("should fetch a single post by ID with navigation", async () => {
-      const targetPost = createMockPost(
-        "post-2",
-        "Middle Post",
-        "middle-post",
-        "published",
-        { publishedAt: "2025-01-02T10:00:00.000Z" },
-      );
-
-      const allPostsSorted = [
-        createMockPost("post-3", "Newer Post", "newer-post", "published", {
-          publishedAt: "2025-01-03T10:00:00.000Z",
-        }),
-        targetPost,
+    it("should fetch a single post by slug with navigation", async () => {
+      seed([
         createMockPost("post-1", "Older Post", "older-post", "published", {
           publishedAt: "2025-01-01T10:00:00.000Z",
         }),
-      ];
-
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPostsSorted);
+        createMockPost("post-2", "Middle Post", "middle-post", "published", {
+          publishedAt: "2025-01-02T10:00:00.000Z",
+        }),
+        createMockPost("post-3", "Newer Post", "newer-post", "published", {
+          publishedAt: "2025-01-03T10:00:00.000Z",
+        }),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "middle-post" } },
@@ -208,8 +175,6 @@ describe("BlogDataSource", () => {
     });
 
     it("should throw error when post not found", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-
       expect(
         datasource.fetch(
           { entityType: "post", query: { id: "nonexistent-slug" } },
@@ -220,77 +185,44 @@ describe("BlogDataSource", () => {
     });
 
     it("should include series posts when post is part of a series", async () => {
-      const targetPost = createMockPost(
-        "post-2",
-        "Series Part 2",
-        "series-part-2",
-        "published",
-        {
-          publishedAt: "2025-01-02T10:00:00.000Z",
-          seriesName: "My Series",
-          seriesIndex: 2,
-        },
-      );
-
-      const allPostsSorted = [
+      seed([
+        createMockPost(
+          "post-1",
+          "Series Part 1",
+          "series-part-1",
+          "published",
+          {
+            publishedAt: "2025-01-01T10:00:00.000Z",
+            seriesName: "My Series",
+            seriesIndex: 1,
+          },
+        ),
+        createMockPost(
+          "post-2",
+          "Series Part 2",
+          "series-part-2",
+          "published",
+          {
+            publishedAt: "2025-01-02T10:00:00.000Z",
+            seriesName: "My Series",
+            seriesIndex: 2,
+          },
+        ),
+        createMockPost(
+          "post-3",
+          "Series Part 3",
+          "series-part-3",
+          "published",
+          {
+            publishedAt: "2025-01-03T10:00:00.000Z",
+            seriesName: "My Series",
+            seriesIndex: 3,
+          },
+        ),
         createMockPost("post-4", "Other Post", "other-post", "published", {
           publishedAt: "2025-01-04T10:00:00.000Z",
         }),
-        createMockPost(
-          "post-3",
-          "Series Part 3",
-          "series-part-3",
-          "published",
-          {
-            publishedAt: "2025-01-03T10:00:00.000Z",
-            seriesName: "My Series",
-            seriesIndex: 3,
-          },
-        ),
-        targetPost,
-        createMockPost(
-          "post-1",
-          "Series Part 1",
-          "series-part-1",
-          "published",
-          {
-            publishedAt: "2025-01-01T10:00:00.000Z",
-            seriesName: "My Series",
-            seriesIndex: 1,
-          },
-        ),
-      ];
-
-      const seriesPosts = [
-        createMockPost(
-          "post-1",
-          "Series Part 1",
-          "series-part-1",
-          "published",
-          {
-            publishedAt: "2025-01-01T10:00:00.000Z",
-            seriesName: "My Series",
-            seriesIndex: 1,
-          },
-        ),
-        targetPost,
-        createMockPost(
-          "post-3",
-          "Series Part 3",
-          "series-part-3",
-          "published",
-          {
-            publishedAt: "2025-01-03T10:00:00.000Z",
-            seriesName: "My Series",
-            seriesIndex: 3,
-          },
-        ),
-      ];
-
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPostsSorted)
-        .mockResolvedValueOnce(seriesPosts);
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "series-part-2" } },
@@ -305,24 +237,14 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle first post (no prev)", async () => {
-      const targetPost = createMockPost(
-        "post-1",
-        "First Post",
-        "first-post",
-        "published",
-        { publishedAt: "2025-01-03T10:00:00.000Z" },
-      );
-
-      const allPostsSorted = [
-        targetPost,
+      seed([
+        createMockPost("post-1", "First Post", "first-post", "published", {
+          publishedAt: "2025-01-03T10:00:00.000Z",
+        }),
         createMockPost("post-2", "Older Post", "older-post", "published", {
           publishedAt: "2025-01-01T10:00:00.000Z",
         }),
-      ];
-
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPostsSorted);
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "first-post" } },
@@ -336,24 +258,14 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle last post (no next)", async () => {
-      const targetPost = createMockPost(
-        "post-2",
-        "Oldest Post",
-        "oldest-post",
-        "published",
-        { publishedAt: "2025-01-01T10:00:00.000Z" },
-      );
-
-      const allPostsSorted = [
+      seed([
         createMockPost("post-1", "Newer Post", "newer-post", "published", {
           publishedAt: "2025-01-03T10:00:00.000Z",
         }),
-        targetPost,
-      ];
-
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPostsSorted);
+        createMockPost("post-2", "Oldest Post", "oldest-post", "published", {
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        }),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "oldest-post" } },
@@ -369,19 +281,17 @@ describe("BlogDataSource", () => {
 
   describe("fetchPostList", () => {
     it("should fetch and sort all posts by publishedAt", async () => {
-      const postsSorted = [
+      seed([
+        createMockPost("post-1", "Oldest", "oldest", "published", {
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        }),
         createMockPost("post-2", "Newest", "newest", "published", {
           publishedAt: "2025-01-03T10:00:00.000Z",
         }),
         createMockPost("post-3", "Middle", "middle", "published", {
           publishedAt: "2025-01-02T10:00:00.000Z",
         }),
-        createMockPost("post-1", "Oldest", "oldest", "published", {
-          publishedAt: "2025-01-01T10:00:00.000Z",
-        }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(postsSorted);
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -396,15 +306,11 @@ describe("BlogDataSource", () => {
     });
 
     it("accepts datasource output before site URL enrichment", async () => {
-      const post = createMockPost(
-        "post-1",
-        "Published",
-        "published",
-        "published",
-        { publishedAt: "2025-01-01T10:00:00.000Z" },
-      );
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([post]);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(1);
+      seed([
+        createMockPost("post-1", "Published", "published", "published", {
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        }),
+      ]);
 
       const templateSchema = getTemplates()["post-list"]?.schema;
       if (!templateSchema) throw new Error("post-list template not found");
@@ -419,20 +325,20 @@ describe("BlogDataSource", () => {
       expect(parsed.posts).toHaveLength(1);
       expect(parsed.posts[0]?.url).toBeNull();
       expect(parsed.posts[0]?.typeLabel).toBeNull();
-      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(
+        z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
+      ).toBeNull();
       expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
-    it("should return posts in database-sorted order (publishedAt desc)", async () => {
-      const postsSorted = [
+    it("should sort drafts without publishedAt after published posts", async () => {
+      seed([
+        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
         createMockPost("post-2", "Published", "published", "published", {
           publishedAt: "2025-01-01T10:00:00.000Z",
         }),
-        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
         createMockPost("post-3", "Draft 2", "draft-2", "draft"),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(postsSorted);
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -447,16 +353,17 @@ describe("BlogDataSource", () => {
     });
 
     it("should respect limit parameter", async () => {
-      const limitedPosts = [
-        createMockPost("post-2", "Post 2", "post-2", "published", {
-          publishedAt: "2025-01-02T10:00:00.000Z",
-        }),
+      seed([
         createMockPost("post-1", "Post 1", "post-1", "published", {
           publishedAt: "2025-01-01T10:00:00.000Z",
         }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(limitedPosts);
+        createMockPost("post-2", "Post 2", "post-2", "published", {
+          publishedAt: "2025-01-02T10:00:00.000Z",
+        }),
+        createMockPost("post-3", "Post 3", "post-3", "published", {
+          publishedAt: "2025-01-03T10:00:00.000Z",
+        }),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { limit: 2 } },
@@ -464,21 +371,11 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 2,
-          offset: 0,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
-        },
-      });
-
       expect(result.posts).toHaveLength(2);
+      expect(result.posts.map((post) => post.id)).toEqual(["post-3", "post-2"]);
     });
 
     it("should handle empty post list", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-
       const result = await datasource.fetch(
         { entityType: "post" },
         paginatedListSchema,
@@ -489,13 +386,11 @@ describe("BlogDataSource", () => {
     });
 
     it("should parse frontmatter for all posts", async () => {
-      const posts = [
+      seed([
         createMockPost("post-1", "Test Post", "test-post", "published", {
           publishedAt: "2025-01-01T10:00:00.000Z",
         }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -514,7 +409,21 @@ describe("BlogDataSource", () => {
 
   describe("fetchSeriesPosts", () => {
     it("should fetch posts in a series ordered by index", async () => {
-      const seriesPostsSorted = [
+      seed([
+        createMockPost("post-4", "Other Post", "other-post", "published", {
+          publishedAt: "2025-01-04T10:00:00.000Z",
+        }),
+        createMockPost(
+          "post-3",
+          "Series Part 3",
+          "series-part-3",
+          "published",
+          {
+            publishedAt: "2025-01-03T10:00:00.000Z",
+            seriesName: "My Series",
+            seriesIndex: 3,
+          },
+        ),
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -537,31 +446,11 @@ describe("BlogDataSource", () => {
             seriesIndex: 2,
           },
         ),
-        createMockPost(
-          "post-3",
-          "Series Part 3",
-          "series-part-3",
-          "published",
-          {
-            publishedAt: "2025-01-03T10:00:00.000Z",
-            seriesName: "My Series",
-            seriesIndex: 3,
-          },
-        ),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        seriesPostsSorted,
-      );
-
-      const schema = z.object({
-        seriesName: z.string(),
-        posts: z.array(z.any()),
-      });
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { "metadata.seriesName": "My Series" } },
-        schema,
+        seriesSchema,
         mockContext,
       );
 
@@ -573,7 +462,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should include draft posts in series", async () => {
-      const seriesPostsSorted = [
+      seed([
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -589,20 +478,11 @@ describe("BlogDataSource", () => {
           seriesName: "My Series",
           seriesIndex: 2,
         }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        seriesPostsSorted,
-      );
-
-      const schema = z.object({
-        seriesName: z.string(),
-        posts: z.array(z.any()),
-      });
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { "metadata.seriesName": "My Series" } },
-        schema,
+        seriesSchema,
         mockContext,
       );
 
@@ -611,19 +491,12 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle series with no posts", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-
-      const schema = z.object({
-        seriesName: z.string(),
-        posts: z.array(z.any()),
-      });
-
       const result = await datasource.fetch(
         {
           entityType: "post",
           query: { "metadata.seriesName": "Empty Series" },
         },
-        schema,
+        seriesSchema,
         mockContext,
       );
 
@@ -632,7 +505,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle series posts without explicit index", async () => {
-      const posts = [
+      seed([
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -653,18 +526,11 @@ describe("BlogDataSource", () => {
             seriesName: "My Series",
           },
         ),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
-
-      const schema = z.object({
-        seriesName: z.string(),
-        posts: z.array(z.any()),
-      });
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { "metadata.seriesName": "My Series" } },
-        schema,
+        seriesSchema,
         mockContext,
       );
 
@@ -673,21 +539,25 @@ describe("BlogDataSource", () => {
   });
 
   describe("pagination", () => {
-    it("should return paginated posts when page is specified", async () => {
-      const page1Posts = Array.from({ length: 3 }, (_, i) =>
-        createMockPost(
-          `post-${i + 1}`,
-          `Post ${i + 1}`,
-          `post-${i + 1}`,
-          "published",
-          {
-            publishedAt: `2025-01-${String(i + 1).padStart(2, "0")}T10:00:00.000Z`,
-          },
+    /** Seed posts post-1..post-N with publishedAt ascending by index. */
+    function seedNumberedPosts(count: number): void {
+      seed(
+        Array.from({ length: count }, (_, i) =>
+          createMockPost(
+            `post-${i + 1}`,
+            `Post ${i + 1}`,
+            `post-${i + 1}`,
+            "published",
+            {
+              publishedAt: `2025-01-${String(i + 1).padStart(2, "0")}T10:00:00.000Z`,
+            },
+          ),
         ),
       );
+    }
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(page1Posts);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
+    it("should return paginated posts when page is specified", async () => {
+      seedNumberedPosts(10);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 3 } },
@@ -695,7 +565,11 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(result.posts).toHaveLength(3);
+      expect(result.posts.map((post) => post.id)).toEqual([
+        "post-10",
+        "post-9",
+        "post-8",
+      ]);
       expect(result.pagination).not.toBeNull();
       expect(result.pagination?.currentPage).toBe(1);
       expect(result.pagination?.totalPages).toBe(4);
@@ -706,20 +580,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should return correct posts for page 2", async () => {
-      const page2Posts = Array.from({ length: 3 }, (_, i) =>
-        createMockPost(
-          `post-${i + 4}`,
-          `Post ${i + 4}`,
-          `post-${i + 4}`,
-          "published",
-          {
-            publishedAt: `2025-01-${String(7 - i).padStart(2, "0")}T10:00:00.000Z`,
-          },
-        ),
-      );
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(page2Posts);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
+      seedNumberedPosts(10);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 2, pageSize: 3 } },
@@ -727,30 +588,18 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 3,
-          offset: 3,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
-        },
-      });
-
-      expect(result.posts).toHaveLength(3);
+      expect(result.posts.map((post) => post.id)).toEqual([
+        "post-7",
+        "post-6",
+        "post-5",
+      ]);
       expect(result.pagination?.currentPage).toBe(2);
       expect(result.pagination?.hasNextPage).toBe(true);
       expect(result.pagination?.hasPrevPage).toBe(true);
     });
 
     it("should return correct posts for last page", async () => {
-      const lastPagePosts = [
-        createMockPost("post-10", "Post 10", "post-10", "published", {
-          publishedAt: "2025-01-01T10:00:00.000Z",
-        }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(lastPagePosts);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
+      seedNumberedPosts(10);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 4, pageSize: 3 } },
@@ -758,29 +607,14 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 3,
-          offset: 9,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
-        },
-      });
-
-      expect(result.posts).toHaveLength(1);
+      expect(result.posts.map((post) => post.id)).toEqual(["post-1"]);
       expect(result.pagination?.currentPage).toBe(4);
       expect(result.pagination?.hasNextPage).toBe(false);
       expect(result.pagination?.hasPrevPage).toBe(true);
     });
 
     it("should return null pagination when page is not specified", async () => {
-      const posts = [
-        createMockPost("post-1", "Post 1", "post-1", "published", {
-          publishedAt: "2025-01-01T10:00:00.000Z",
-        }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
+      seedNumberedPosts(1);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -792,9 +626,6 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle empty results with pagination", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(0);
-
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 10 } },
         paginatedListSchema,
@@ -809,18 +640,8 @@ describe("BlogDataSource", () => {
       expect(result.pagination?.hasPrevPage).toBe(false);
     });
 
-    it("should paginate posts using scoped entityService", async () => {
-      const page1Posts = [
-        createMockPost("post-1", "Published 1", "published-1", "published", {
-          publishedAt: "2025-01-01T10:00:00.000Z",
-        }),
-        createMockPost("post-3", "Published 2", "published-2", "published", {
-          publishedAt: "2025-01-02T10:00:00.000Z",
-        }),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(page1Posts);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(3);
+    it("counts all matching posts, not just the returned page", async () => {
+      seedNumberedPosts(3);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 2 } },
@@ -828,22 +649,9 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 2,
-          offset: 0,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
-        },
-      });
-
-      expect(mockEntityService.countEntities).toHaveBeenCalledWith({
-        entityType: "post",
-      });
-
+      expect(result.posts).toHaveLength(2);
       expect(result.pagination?.totalItems).toBe(3);
       expect(result.pagination?.totalPages).toBe(2);
-      expect(result.posts).toHaveLength(2);
     });
   });
 

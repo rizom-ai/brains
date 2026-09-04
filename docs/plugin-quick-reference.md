@@ -66,7 +66,7 @@ Entity definitions do not directly declare presentation templates. Read an
 entity through a service job, transform it into a schema-backed render value,
 and call the service-local formatter:
 
-<!-- public-authoring-example: quick-template-flow source=packages/brain-cli/test/fixtures/public-authoring/service/src/index.ts -->
+<!-- public-authoring-example: quick-template-flow source=packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx -->
 
 ```ts
 const saved = await entities.get(bookmark, input.bookmarkId);

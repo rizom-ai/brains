@@ -14,9 +14,94 @@ import {
   type AuthServiceOptions,
 } from "../src";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
+import { z } from "@brains/utils/zod";
 
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
+
+/*
+ * Admin endpoint response shapes.
+ *
+ * These bodies cross a JSON boundary, so asserting a shape onto them checked
+ * nothing: an endpoint that stopped returning `registration` read back as
+ * `undefined` and the assertion that followed compared undefined to undefined.
+ * `looseObject` keeps the schemas to what each test actually reads, while
+ * still failing when a field it depends on goes missing or changes type.
+ */
+const invitationCreatedSchema = z.looseObject({
+  invitation: z.looseObject({ id: z.string(), state: z.string() }),
+  registration: z.looseObject({ deliveryAttemptId: z.string() }),
+});
+
+const userListSchema = z.looseObject({ users: z.array(z.unknown()) });
+
+const invitedPeerSchema = z.looseObject({
+  user: z.looseObject({
+    userId: z.string(),
+    personId: z.string(),
+    status: z.string(),
+  }),
+  peer: z.looseObject({
+    peerId: z.string(),
+    personId: z.string(),
+    verificationStatus: z.string(),
+  }),
+  registration: z.looseObject({
+    setupUrl: z.string(),
+    expiresAt: z.number(),
+    delivery: z.looseObject({ type: z.string(), label: z.string() }),
+  }),
+});
+
+const rosterSchema = z.looseObject({
+  users: z.array(
+    z.looseObject({
+      userId: z.string(),
+      externalPeers: z.array(z.looseObject({ peerId: z.string() })),
+    }),
+  ),
+});
+
+const auditEventsSchema = z.looseObject({
+  events: z.array(
+    z.looseObject({
+      actorUserId: z.string().optional(),
+      action: z.string(),
+      targetId: z.string().optional(),
+    }),
+  ),
+});
+
+const registrationResultSchema = z.looseObject({
+  registration: z.looseObject({
+    setupUrl: z.string(),
+    expiresAt: z.number(),
+  }),
+});
+
+const registrationOptionsSchema = z.looseObject({
+  user: z.looseObject({ name: z.string(), displayName: z.string() }),
+});
+
+const createdUserSchema = z.looseObject({
+  user: z.looseObject({ userId: z.string() }),
+});
+
+const rosterWithIdentitiesSchema = z.looseObject({
+  users: z.array(
+    z.looseObject({
+      userId: z.string(),
+      identities: z.array(
+        z.looseObject({
+          id: z.string(),
+          type: z.string(),
+          label: z.string().optional(),
+        }),
+      ),
+      passkeys: z.array(z.unknown()),
+    }),
+  ),
+});
 
 function getEmailDeliveryProvider(
   send: (input: ChannelDeliveryInput) => Promise<ChannelDeliveryResult>,
@@ -425,10 +510,7 @@ describe("auth admin API", () => {
       }),
     );
     expect(created.status).toBe(200);
-    const body = (await created.json()) as {
-      invitation: { id: string; state: string };
-      registration: { deliveryAttemptId: string };
-    };
+    const body = invitationCreatedSchema.parse(await created.json());
     expect(body.invitation.state).toBe("pending");
 
     const confirmed = await service.handleRequest(
@@ -638,9 +720,7 @@ describe("auth admin API", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(
-      ((await response.json()) as { users: unknown[] }).users,
-    ).toHaveLength(2);
+    expect(userListSchema.parse(await response.json()).users).toHaveLength(2);
     expect(perUserQueryCount).toBe(0);
   });
 
@@ -812,15 +892,7 @@ describe("auth admin API", () => {
     );
 
     expect(response.status).toBe(200);
-    const invited = (await response.json()) as {
-      user: { userId: string; personId: string; status: string };
-      peer: { peerId: string; personId: string; verificationStatus: string };
-      registration: {
-        setupUrl: string;
-        expiresAt: number;
-        delivery: { type: string; label: string };
-      };
-    };
+    const invited = invitedPeerSchema.parse(await response.json());
     expect(invited.user).toMatchObject({ status: "invited" });
     expect(invited.peer).toMatchObject({
       peerId: "did:web:mira.example",
@@ -849,12 +921,7 @@ describe("auth admin API", () => {
     const listResponse = await service.handleRequest(
       adminRequest("/auth/admin/users", session.cookie),
     );
-    const roster = (await listResponse.json()) as {
-      users: Array<{
-        userId: string;
-        externalPeers: Array<{ peerId: string }>;
-      }>;
-    };
+    const roster = rosterSchema.parse(await listResponse.json());
     expect(
       roster.users.find((user) => user.userId === invited.user.userId),
     ).toMatchObject({
@@ -963,13 +1030,7 @@ describe("auth admin API", () => {
 
     expect(forbidden.status).toBe(403);
     expect(response.status).toBe(200);
-    const body = (await response.json()) as {
-      events: Array<{
-        actorUserId?: string;
-        action: string;
-        targetId?: string;
-      }>;
-    };
+    const body = auditEventsSchema.parse(await response.json());
     expect(body.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1147,9 +1208,7 @@ describe("auth admin API", () => {
       }),
     );
     expect(response.status).toBe(200);
-    const result = (await response.json()) as {
-      registration: { setupUrl: string; expiresAt: number };
-    };
+    const result = registrationResultSchema.parse(await response.json());
     expect(result.registration.setupUrl).toStartWith(`${ISSUER}/setup?token=`);
     expect(JSON.stringify(result)).not.toContain("mira@example.com");
     expect(await service.listUserIdentities(collaborator.userId)).toEqual([
@@ -1184,9 +1243,9 @@ describe("auth admin API", () => {
       ),
     );
     expect(optionsResponse.status).toBe(200);
-    const registrationOptions = (await optionsResponse.json()) as {
-      user: { name: string; displayName: string };
-    };
+    const registrationOptions = registrationOptionsSchema.parse(
+      await optionsResponse.json(),
+    );
     expect(registrationOptions.user).toMatchObject({
       name: "Mira",
       displayName: "Mira",
@@ -1328,9 +1387,7 @@ describe("auth admin API", () => {
       }),
     );
     expect(createResponse.status).toBe(200);
-    const created = (await createResponse.json()) as {
-      user: { userId: string };
-    };
+    const created = createdUserSchema.parse(await createResponse.json());
 
     const attachResponse = await service.handleRequest(
       adminRequest("/auth/admin/mutations", session.cookie, {
@@ -1349,13 +1406,7 @@ describe("auth admin API", () => {
     );
     expect(listResponse.status).toBe(200);
     const responseText = await listResponse.text();
-    const response = JSON.parse(responseText) as {
-      users: Array<{
-        userId: string;
-        identities: Array<{ id: string; type: string; label?: string }>;
-        passkeys: unknown[];
-      }>;
-    };
+    const response = rosterWithIdentitiesSchema.parse(JSON.parse(responseText));
     const mira = response.users.find(
       (user) => user.userId === created.user.userId,
     );

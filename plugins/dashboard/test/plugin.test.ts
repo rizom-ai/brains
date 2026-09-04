@@ -5,9 +5,16 @@ import {
   type EntityCount,
   type WebRouteDefinition,
 } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntitySchema,
+  EntitySearchRequest,
+  SearchResult,
+} from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
+import { consoleJumpResponseSchema } from "../src/console-jump";
 import { createPluginHarness } from "@brains/plugins/test";
 
 describe("DashboardPlugin", () => {
@@ -69,7 +76,7 @@ describe("DashboardPlugin", () => {
   describe("Web routes", () => {
     it("should expose the dashboard page and console jump routes", async () => {
       const routes = plugin.getWebRoutes();
-      expect(routes).toHaveLength(4);
+      expect(routes).toHaveLength(5);
       const pageRoute = routes.find((route) => route.path === "/dashboard");
       expect(pageRoute).toMatchObject({
         path: "/dashboard",
@@ -241,9 +248,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{ id: string; items: Array<{ href: string }> }>;
-      };
+      const data = consoleJumpResponseSchema.parse(await response?.json());
       const tabs = data.groups.find((group) => group.id === "tabs");
       expect(tabs?.items.map((item) => item.href)).toEqual([
         "/dashboard#overview",
@@ -295,33 +300,50 @@ describe("DashboardPlugin", () => {
       });
 
       const entityService = shell.getEntityService();
-      entityService.search = (async () => [
-        {
-          entity: {
-            id: "verdigris-pigments",
-            entityType: "note",
-            title: "Verdigris pigments",
-            content: "",
-            created: "",
-            updated: "",
-            contentHash: "",
-          },
-          score: 1,
-          excerpt: "",
-        },
-        {
-          entity: {
-            id: "untitled-note",
-            entityType: "note",
-            content: "",
-            created: "",
-            updated: "",
-            contentHash: "",
-          },
-          score: 0.5,
-          excerpt: "",
-        },
-      ]) as typeof entityService.search;
+      const titledNote = {
+        id: "verdigris-pigments",
+        entityType: "note",
+        title: "Verdigris pigments",
+        content: "",
+        created: "",
+        updated: "",
+        visibility: "public" as const,
+        metadata: {},
+        contentHash: "",
+      };
+      const untitledNote = {
+        id: "untitled-note",
+        entityType: "note",
+        content: "",
+        created: "",
+        updated: "",
+        visibility: "public" as const,
+        metadata: {},
+        contentHash: "",
+      };
+      function searchStub(
+        request: EntitySearchRequest,
+      ): Promise<SearchResult<BaseEntity>[]>;
+      function searchStub<T extends BaseEntity>(
+        request: EntitySearchRequest,
+        schema: EntitySchema<T>,
+      ): Promise<SearchResult<T>[]>;
+      async function searchStub(
+        _request: EntitySearchRequest,
+        schema?: EntitySchema<BaseEntity>,
+      ): Promise<SearchResult<BaseEntity>[]> {
+        const results = [
+          { entity: titledNote, score: 1, excerpt: "" },
+          { entity: untitledNote, score: 0.5, excerpt: "" },
+        ];
+        return schema
+          ? results.map((result) => ({
+              ...result,
+              entity: schema.parse(result.entity),
+            }))
+          : results;
+      }
+      entityService.search = searchStub;
 
       const route = plugin
         .getWebRoutes()
@@ -333,12 +355,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{
-          id: string;
-          items: Array<Record<string, string>>;
-        }>;
-      };
+      const data = consoleJumpResponseSchema.parse(await response?.json());
       const entities = data.groups.find((group) => group.id === "entities");
       expect(entities?.items).toEqual([
         {
@@ -368,9 +385,9 @@ describe("DashboardPlugin", () => {
 
       const shell = harness.getMockShell();
       const entityService = shell.getEntityService();
-      entityService.search = (async () => {
+      entityService.search = async (): Promise<never> => {
         throw new Error("index warming");
-      }) as typeof entityService.search;
+      };
 
       const route = plugin
         .getWebRoutes()
@@ -384,9 +401,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{ id: string }>;
-      };
+      const data = consoleJumpResponseSchema.parse(await response?.json());
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );

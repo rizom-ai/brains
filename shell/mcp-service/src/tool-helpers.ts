@@ -6,7 +6,7 @@ import type {
   ToolContext,
 } from "./types";
 import { getErrorMessage } from "@brains/utils/error";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 
 export interface ToolSuccessResult<T = unknown> {
@@ -134,7 +134,9 @@ export function createTool<
     nameOverride,
     outputSchema,
   } = options;
-  const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
+  const logger = debug
+    ? ConsoleLogger.createFresh({ context: pluginId })
+    : null;
   const inputShape = inputSchema.shape;
 
   return {
@@ -195,7 +197,9 @@ export function createResource(
   } = {},
 ): Resource {
   const { mimeType = "text/plain", debug = false } = options;
-  const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
+  const logger = debug
+    ? ConsoleLogger.createFresh({ context: pluginId })
+    : null;
 
   return {
     uri: `${pluginId}_${uri}`,

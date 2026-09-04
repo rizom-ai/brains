@@ -126,11 +126,14 @@ async function deriveSeries(
       const memberSummaries = members.map(
         (member) => `- "${member.title ?? member.id}": ${member.excerpt ?? ""}`,
       );
-      const generated = await context.ai.generate<{ description: string }>({
-        prompt: `Series name: ${seriesName}\n\nContent in this series:\n${memberSummaries.join("\n")}`,
-        templateName: "series:description",
-        representedIdentity: "none",
-      });
+      const generated = await context.ai.generate(
+        {
+          prompt: `Series name: ${seriesName}\n\nContent in this series:\n${memberSummaries.join("\n")}`,
+          templateName: "series:description",
+          representedIdentity: "none",
+        },
+        z.object({ description: z.string() }),
+      );
       if (!generated.description) {
         throw new Error(
           `Failed to generate description for series: ${seriesName}`,

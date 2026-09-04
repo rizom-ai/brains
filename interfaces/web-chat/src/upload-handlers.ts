@@ -1,4 +1,4 @@
-import { browserChatUploadResponseSchema } from "@brains/contracts/browser-chat";
+import { chatUploadResponseSchema } from "@brains/contracts/chat";
 import {
   RuntimeUploadStoreError,
   formatContentDispositionHeader,
@@ -77,7 +77,7 @@ export async function handleUploadRequest(
   });
 
   return Response.json(
-    browserChatUploadResponseSchema.parse(store.toResponseBody(record)),
+    chatUploadResponseSchema.parse(store.toResponseBody(record)),
     { status: 201 },
   );
 }

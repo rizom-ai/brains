@@ -77,7 +77,9 @@ export const JobContextInputSchema: z.ZodType<JobContextInput, unknown> =
  * Full job context schema - includes rootJobId for stored/transmitted metadata
  * This is what gets stored in the database and sent in progress events.
  */
-export const JobContextSchema: z.ZodType<JobContext, unknown> = z.object({
+// Loose: JobContextInput declares an index signature, so callers attach their
+// own metadata keys and those must survive a round trip through the queue.
+export const JobContextSchema: z.ZodType<JobContext, unknown> = z.looseObject({
   pluginId: z.string().optional(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,

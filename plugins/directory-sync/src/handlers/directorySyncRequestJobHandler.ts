@@ -32,15 +32,20 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     GitReconciliationService,
     "pullAndQueue"
   >;
+  /** Only the progress observer is read; the whole service is more than this asks. */
   private readonly operationStatus:
-    DirectorySyncOperationStatusService | undefined;
+    | Pick<DirectorySyncOperationStatusService, "createProgressObserver">
+    | undefined;
   constructor(
     logger: Logger,
     context: ServicePluginContext,
     getDirectorySync: () => IDirectorySync,
     getGitSync: () => IGitSync,
     reconciliation: Pick<GitReconciliationService, "pullAndQueue">,
-    operationStatus?: DirectorySyncOperationStatusService,
+    operationStatus?: Pick<
+      DirectorySyncOperationStatusService,
+      "createProgressObserver"
+    >,
   ) {
     super(logger, {
       schema: directorySyncRequestJobSchema,

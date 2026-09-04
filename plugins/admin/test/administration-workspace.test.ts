@@ -3,6 +3,7 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import {
   adminActor,
   captureAdminWorkspaces,
@@ -27,11 +28,31 @@ function actorFor(
   };
 }
 
+/**
+ * The shape these assertions read out of an opaque workspace view. Declared
+ * as a schema so the blocks are checked on the way out rather than assumed.
+ */
 interface ViewBlockLike {
-  readonly type?: string;
-  readonly id?: string;
-  readonly primary?: readonly ViewBlockLike[];
-  readonly aside?: readonly ViewBlockLike[];
+  readonly type?: string | undefined;
+  readonly id?: string | undefined;
+  readonly primary?: readonly ViewBlockLike[] | undefined;
+  readonly aside?: readonly ViewBlockLike[] | undefined;
+}
+
+const viewBlockSchema: z.ZodType<ViewBlockLike> = z.lazy(() =>
+  z.looseObject({
+    type: z.string().optional(),
+    id: z.string().optional(),
+    primary: z.array(viewBlockSchema).optional(),
+    aside: z.array(viewBlockSchema).optional(),
+  }),
+);
+
+const viewBlockListSchema = z.array(viewBlockSchema);
+
+function parseBlocks(value: unknown): ViewBlockLike[] {
+  const parsed = viewBlockListSchema.safeParse(value);
+  return parsed.success ? parsed.data : [];
 }
 
 function viewBlocks(value: unknown): ViewBlockLike[] {
@@ -39,7 +60,7 @@ function viewBlocks(value: unknown): ViewBlockLike[] {
   const view = Reflect.get(value, "view");
   if (view === null || typeof view !== "object") return [];
   const blocks = Reflect.get(view, "blocks");
-  return Array.isArray(blocks) ? (blocks as ViewBlockLike[]) : [];
+  return parseBlocks(blocks);
 }
 
 function peopleTabBlocks(value: unknown): ViewBlockLike[] {
@@ -50,7 +71,7 @@ function peopleTabBlocks(value: unknown): ViewBlockLike[] {
     (tab) => tab !== null && typeof tab === "object" && tab.id === "people",
   );
   const blocks = people ? Reflect.get(people, "blocks") : undefined;
-  return Array.isArray(blocks) ? (blocks as ViewBlockLike[]) : [];
+  return parseBlocks(blocks);
 }
 
 function headBlockIds(value: unknown): string[] {

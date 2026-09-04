@@ -5,10 +5,11 @@ import type { SiteViewTemplate } from "./site-view-template";
 export interface SiteBuilderServices {
   entityService: ServiceEntityService;
   sendMessage: MessageSender;
-  resolveTemplateContent: <T = unknown>(
+  /** Resolved against the template's own schema; callers narrow what they read. */
+  resolveTemplateContent: (
     templateName: string,
     options?: SiteContentResolutionOptions,
-  ) => Promise<T | null>;
+  ) => Promise<unknown>;
   getViewTemplate: (name: string) => SiteViewTemplate | undefined;
   listViewTemplateNames: () => string[];
 }

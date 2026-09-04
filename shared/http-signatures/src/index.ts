@@ -56,6 +56,32 @@ interface JwksDocument {
   keys?: JsonWebKey[];
 }
 
+/**
+ * Every JsonWebKey member is optional, so any non-array object satisfies the
+ * type — this check is what makes the narrowing honest rather than asserted.
+ * Whether the key is *usable* is decided later by createPublicKey.
+ */
+function isJsonWebKey(value: unknown): value is JsonWebKey {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseJwksDocument(value: unknown, jwksUrl: string): JwksDocument {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new HttpSignatureVerificationError(
+      `JWKS at ${jwksUrl} is not a JSON object`,
+    );
+  }
+  if (!("keys" in value) || value.keys === undefined) return {};
+
+  const keys: unknown = value.keys;
+  if (!Array.isArray(keys) || !keys.every(isJsonWebKey)) {
+    throw new HttpSignatureVerificationError(
+      `JWKS at ${jwksUrl} has a malformed "keys" array`,
+    );
+  }
+  return { keys };
+}
+
 interface CachedJwks {
   jwks: JwksDocument;
   expiresAt: number;
@@ -116,7 +142,7 @@ export class JwksResolver {
       );
     }
 
-    const jwks = (await response.json()) as JwksDocument;
+    const jwks = parseJwksDocument(await response.json(), jwksUrl);
     const ttlMs =
       cacheTtlMs(response.headers.get("cache-control")) ?? this.ttlMs;
     this.cache.set(jwksUrl, { jwks, expiresAt: now + ttlMs });
@@ -369,7 +395,7 @@ function toPublicKey(key: JsonWebKey): KeyObject {
 }
 
 function isKeyObject(key: SigningKey): key is KeyObject {
-  return typeof (key as KeyObject).export === "function";
+  return "export" in key && typeof key.export === "function";
 }
 
 function escapeParam(value: string): string {

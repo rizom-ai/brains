@@ -542,76 +542,113 @@ export function parseEntityRpcCall(input: unknown): EntityRpcCall {
   };
 }
 
-export function parseEntityRpcResult(
-  request: EntityRpcRequest,
+const nullableEntitySchema = entitySchema.nullable();
+const entityListSchema = z.array(entitySchema);
+const booleanResultSchema = z.boolean();
+const undefinedResultSchema = z.undefined();
+const nonNegativeIntSchema = z.number().int().nonnegative();
+const entityCountsSchema = z.array(
+  z.strictObject({
+    entityType: nonEmptyString,
+    count: nonNegativeIntSchema,
+  }),
+);
+const backfillResultSchema = z.strictObject({
+  queued: nonNegativeIntSchema,
+  skipped: nonNegativeIntSchema,
+});
+const asyncJobStatusSchema = z
+  .strictObject({
+    status: z.enum(["pending", "processing", "completed", "failed"]),
+    error: z.string().optional(),
+  })
+  .nullable();
+const upsertResultSchema = mutationResultSchema.extend({
+  created: z.boolean(),
+});
+
+/**
+ * What each operation answers. The schema map below is checked against this,
+ * so the two cannot drift, and keying both by operation is what lets
+ * `parseEntityRpcResult` return the operation's own type — callers no longer
+ * re-assert it at the transport boundary.
+ */
+export interface EntityRpcResults {
+  createEntity: EntityMutationResult;
+  createEntityFromMarkdown: EntityMutationResult;
+  updateEntity: EntityMutationResult;
+  upsertEntity: EntityMutationResult & { created: boolean };
+  deleteEntity: boolean;
+  storeEmbedding: undefined;
+  reconcileProjectionTargets: undefined;
+  backfillMissingEmbeddings: EmbeddingBackfillResult;
+  awaitIndexReady: IndexReadinessStatus;
+  getEntity: BaseEntity | null;
+  getEntityRaw: BaseEntity | null;
+  listEntities: BaseEntity[];
+  countEntities: number;
+  countEmbeddings: number;
+  acknowledgeEntityExports: number;
+  isProjectionOwnedEntity: boolean;
+  hasPendingEntityExports: boolean;
+  listPendingEntityExports: EntityExportIntent[];
+  getEntityCounts: Array<{ entityType: string; count: number }>;
+  search: SearchResult<BaseEntity>[];
+  searchWithDistances: Array<{
+    entityId: string;
+    entityType: string;
+    distance: number;
+  }>;
+  projectSemanticSpace: SemanticSpaceProjection;
+  getAsyncJobStatus: {
+    status: "pending" | "processing" | "completed" | "failed";
+    error?: string | undefined;
+  } | null;
+  settleDurableBulkMutationChild: boolean;
+  prepareDurableBulkMutation: undefined;
+  finalizeDurableBulkMutationEnqueue: undefined;
+  failDurableBulkMutationEnqueue: undefined;
+}
+
+export type EntityRpcOperation = keyof EntityRpcResults;
+
+const resultSchemas: {
+  [Op in EntityRpcOperation]: z.ZodType<EntityRpcResults[Op], unknown>;
+} = {
+  createEntity: mutationResultSchema,
+  createEntityFromMarkdown: mutationResultSchema,
+  updateEntity: mutationResultSchema,
+  upsertEntity: upsertResultSchema,
+  deleteEntity: booleanResultSchema,
+  storeEmbedding: undefinedResultSchema,
+  reconcileProjectionTargets: undefinedResultSchema,
+  backfillMissingEmbeddings: backfillResultSchema,
+  awaitIndexReady: readinessSchema,
+  getEntity: nullableEntitySchema,
+  getEntityRaw: nullableEntitySchema,
+  listEntities: entityListSchema,
+  countEntities: nonNegativeIntSchema,
+  countEmbeddings: nonNegativeIntSchema,
+  acknowledgeEntityExports: nonNegativeIntSchema,
+  isProjectionOwnedEntity: booleanResultSchema,
+  hasPendingEntityExports: booleanResultSchema,
+  listPendingEntityExports: z.array(entityExportIntentSchema),
+  getEntityCounts: entityCountsSchema,
+  search: z.array(searchResultSchema),
+  searchWithDistances: z.array(distanceResultSchema),
+  projectSemanticSpace: semanticSpaceSchema,
+  getAsyncJobStatus: asyncJobStatusSchema,
+  settleDurableBulkMutationChild: booleanResultSchema,
+  prepareDurableBulkMutation: undefinedResultSchema,
+  finalizeDurableBulkMutationEnqueue: undefinedResultSchema,
+  failDurableBulkMutationEnqueue: undefinedResultSchema,
+};
+
+export function parseEntityRpcResult<Op extends EntityRpcOperation>(
+  request: { operation: Op },
   input: unknown,
-): unknown {
-  switch (request.operation) {
-    case "createEntity":
-    case "createEntityFromMarkdown":
-    case "updateEntity":
-      return mutationResultSchema.parse(input);
-    case "upsertEntity":
-      return mutationResultSchema.extend({ created: z.boolean() }).parse(input);
-    case "deleteEntity":
-      return z.boolean().parse(input);
-    case "storeEmbedding":
-    case "reconcileProjectionTargets":
-      return z.undefined().parse(input);
-    case "backfillMissingEmbeddings":
-      return z
-        .strictObject({
-          queued: z.number().int().nonnegative(),
-          skipped: z.number().int().nonnegative(),
-        })
-        .parse(input);
-    case "awaitIndexReady":
-      return readinessSchema.parse(input);
-    case "getEntity":
-    case "getEntityRaw":
-      return input === null ? null : entitySchema.parse(input);
-    case "listEntities":
-      return z.array(entitySchema).parse(input);
-    case "countEntities":
-    case "countEmbeddings":
-    case "acknowledgeEntityExports":
-      return z.number().int().nonnegative().parse(input);
-    case "isProjectionOwnedEntity":
-    case "hasPendingEntityExports":
-      return z.boolean().parse(input);
-    case "listPendingEntityExports":
-      return z.array(entityExportIntentSchema).parse(input);
-    case "getEntityCounts":
-      return z
-        .array(
-          z.strictObject({
-            entityType: nonEmptyString,
-            count: z.number().int().nonnegative(),
-          }),
-        )
-        .parse(input);
-    case "search":
-      return z.array(searchResultSchema).parse(input);
-    case "searchWithDistances":
-      return z.array(distanceResultSchema).parse(input);
-    case "projectSemanticSpace":
-      return semanticSpaceSchema.parse(input);
-    case "getAsyncJobStatus":
-      return input === null
-        ? null
-        : z
-            .strictObject({
-              status: z.enum(["pending", "processing", "completed", "failed"]),
-              error: z.string().optional(),
-            })
-            .parse(input);
-    case "settleDurableBulkMutationChild":
-      return z.boolean().parse(input);
-    case "prepareDurableBulkMutation":
-    case "finalizeDurableBulkMutationEnqueue":
-    case "failDurableBulkMutationEnqueue":
-      return z.undefined().parse(input);
-  }
+): EntityRpcResults[Op] {
+  return resultSchemas[request.operation].parse(input);
 }
 
 /** Dispatch one validated request against the web-owned entity service. */

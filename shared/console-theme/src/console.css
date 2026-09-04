@@ -1,53 +1,54 @@
 /*
  * Shared operator-console tokens and chrome.
  *
- * Instrument is the console's fixed bioluminescent identity. Paper is the
- * warm editorial climate and may resolve from an injected site theme. All
- * surface-local CSS consumes this semantic --console-* vocabulary.
+ * Both climates alias the injected brain theme. Climate selects data-theme,
+ * so paper consumes its light semantic palette and instrument its dark one.
+ * Console chrome owns no brand colour values of its own.
  */
 
 [data-climate="instrument"] {
-  --console-bg: #0a0819;
-  --console-frame: #0f0d22;
-  --console-card: #14112b;
-  --console-card-soft: #1b1638;
-  --console-bg-deep: #05040f;
-  --console-text: #f1eadd;
-  --console-text-dim: rgba(241, 234, 221, 0.62);
-  --console-text-muted: rgba(241, 234, 221, 0.4);
-  --console-text-faint: rgba(241, 234, 221, 0.22);
-  --console-accent: #ff8b3d;
-  --console-secondary: #818cf8;
-  --console-ok: #68cc8b;
-  --console-warn: #f5c158;
-  --console-err: #e26d6d;
-  --console-on-accent: #0a0819;
+  --console-bg: var(--color-bg);
+  --console-frame: var(--color-bg-subtle);
+  --console-card: var(--color-bg-card);
+  --console-card-soft: var(--color-bg-muted);
+  --console-bg-deep: var(--color-bg-deep);
+  --console-text: var(--color-text);
+  --console-text-dim: var(--color-text-muted);
+  --console-text-muted: var(--color-text-light);
+  --console-text-faint: var(--color-border);
+  --console-accent: var(--color-accent);
+  --console-secondary: var(--color-secondary);
+  --console-ok: var(--color-success);
+  --console-warn: var(--color-warning);
+  --console-err: var(--color-error);
+  --console-on-accent: var(--color-on-accent);
   --console-shadow-card:
-    0 1px 0 rgba(255, 255, 255, 0.025) inset,
-    0 24px 58px -30px rgba(0, 0, 0, 0.72);
+    0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
+    0 24px 58px -30px
+      color-mix(in srgb, var(--console-bg-deep) 72%, transparent);
   color-scheme: dark;
 }
 
 [data-climate="paper"] {
-  --console-bg: var(--color-bg, #ece5d6);
-  --console-frame: var(--color-bg-subtle, #f4efe6);
-  --console-card: var(--color-bg-card, #faf7f0);
-  --console-card-soft: var(--color-bg-muted, #ece5d6);
-  --console-bg-deep: var(--color-bg-deep, #dfd4bc);
-  --console-text: var(--color-text, #211d18);
-  --console-text-dim: var(--color-text-muted, rgba(33, 29, 24, 0.62));
-  --console-text-muted: var(--color-text-light, rgba(33, 29, 24, 0.42));
-  --console-text-faint: var(--color-border, rgba(33, 29, 24, 0.22));
-  --console-accent: var(--color-accent, #c44a1d);
-  --console-secondary: var(--color-secondary, #6b2fa0);
-  --console-ok: var(--color-success, #3d6b5c);
-  --console-warn: var(--palette-warning-text-emphasis-light, #7a4a05);
-  --console-err: var(--color-error, #932f2f);
-  --console-on-accent: var(--color-on-accent, #fff);
+  --console-bg: var(--color-bg);
+  --console-frame: var(--color-bg-subtle);
+  --console-card: var(--color-bg-card);
+  --console-card-soft: var(--color-bg-muted);
+  --console-bg-deep: var(--color-bg-deep);
+  --console-text: var(--color-text);
+  --console-text-dim: var(--color-text-muted);
+  --console-text-muted: var(--color-text-light);
+  --console-text-faint: var(--color-border);
+  --console-accent: var(--color-accent);
+  --console-secondary: var(--color-secondary);
+  --console-ok: var(--color-success);
+  --console-warn: var(--color-warning);
+  --console-err: var(--color-error);
+  --console-on-accent: var(--color-on-accent);
   --console-shadow-card:
-    0 1px 0 rgba(255, 250, 235, 0.65) inset,
-    0 1px 0 rgba(120, 90, 40, 0.05),
-    0 22px 44px -30px rgba(90, 60, 20, 0.3);
+    0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
+    0 22px 44px -30px
+      color-mix(in srgb, var(--console-bg-deep) 30%, transparent);
   color-scheme: light;
 }
 
@@ -64,7 +65,11 @@
     var(--console-accent) 48%,
     transparent
   );
-  --console-accent-dim: color-mix(in srgb, var(--console-accent) 72%, black);
+  --console-accent-dim: color-mix(
+    in srgb,
+    var(--console-accent) 72%,
+    var(--console-bg-deep)
+  );
   --console-accent-soft: color-mix(
     in srgb,
     var(--console-accent) 12%,
@@ -237,7 +242,9 @@
 .session-chip.is-visitor strong {
   color: var(--console-text);
 }
-.session-chip-avatar { display: none; }
+.session-chip-avatar {
+  display: none;
+}
 .pulse {
   width: 7px;
   height: 7px;
@@ -247,10 +254,14 @@
   animation: console-pulse 2.4s ease-in-out infinite;
 }
 @keyframes console-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--console-accent) 50%, transparent);
+  0%,
+  100% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--console-accent) 50%, transparent);
   }
-  55% { box-shadow: 0 0 0 7px transparent; }
+  55% {
+    box-shadow: 0 0 0 7px transparent;
+  }
 }
 
 /* Tablet keeps one line and compresses utilities rather than wrapping. */
@@ -259,30 +270,35 @@
     gap: 12px;
     padding-inline: 16px;
   }
-  .command-chip-hint { display: none; }
+  .command-chip-hint {
+    display: none;
+  }
 }
 
 /* Phone uses a utility row plus a stable surface rail. */
 @media (max-width: 640px) {
-  [data-climate] { --console-strip-height: 102px; }
+  [data-climate] {
+    --console-strip-height: 102px;
+  }
   .console-strip {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(--console-touch) var(--console-touch);
+    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(
+        --console-touch
+      ) var(--console-touch);
     grid-template-areas:
       "mark command climate session"
       "nav nav nav nav";
     gap: 4px 8px;
     min-height: var(--console-strip-height);
-    padding:
-      max(8px, env(safe-area-inset-top))
-      12px
-      6px;
+    padding: max(8px, env(safe-area-inset-top)) 12px 6px;
   }
   .console-mark {
     grid-area: mark;
     overflow: hidden;
   }
-  .console-mark-long { display: none; }
+  .console-mark-long {
+    display: none;
+  }
   .surface-nav {
     grid-area: nav;
     display: grid;
@@ -308,8 +324,12 @@
     padding: 0;
     border-radius: 50%;
   }
-  .command-chip kbd { display: none; }
-  .command-chip-icon { display: inline; }
+  .command-chip kbd {
+    display: none;
+  }
+  .command-chip-icon {
+    display: inline;
+  }
   .climate-chip {
     grid-area: climate;
     width: var(--console-touch);
@@ -340,7 +360,9 @@
     background: transparent;
   }
   .session-chip::before,
-  .session-chip > :not(.session-chip-avatar) { display: none; }
+  .session-chip > :not(.session-chip-avatar) {
+    display: none;
+  }
   .session-chip-avatar {
     display: inline;
     font-size: 10px;
@@ -352,15 +374,25 @@
 }
 
 @media (min-width: 1440px) {
-  [data-climate] { --console-strip-height: 54px; }
-  .surface-nav-link { font-size: 13.5px; }
-  .command-chip { font-size: 13px; }
-  .session-chip { font-size: 11.5px; }
+  [data-climate] {
+    --console-strip-height: 54px;
+  }
+  .surface-nav-link {
+    font-size: 13.5px;
+  }
+  .command-chip {
+    font-size: 13px;
+  }
+  .session-chip {
+    font-size: 11.5px;
+  }
 }
 
 /* ---- cross-surface command palette -------------------------------------- */
 
-.console-palette-open { overflow: hidden; }
+.console-palette-open {
+  overflow: hidden;
+}
 .console-palette-overlay {
   position: fixed;
   inset: 0;
@@ -371,14 +403,17 @@
   background: color-mix(in srgb, var(--console-bg-deep) 68%, transparent);
   backdrop-filter: blur(4px);
 }
-.console-palette-overlay.is-open { display: grid; }
+.console-palette-overlay.is-open {
+  display: grid;
+}
 .console-palette {
   width: min(580px, 100%);
   overflow: hidden;
   border: 1px solid var(--console-rule-strong);
   border-radius: 14px;
   background: var(--console-card);
-  box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.58);
+  box-shadow: 0 40px 90px -20px
+    color-mix(in srgb, var(--console-bg-deep) 58%, transparent);
 }
 .cp-input-row {
   display: flex;
@@ -405,7 +440,9 @@
   font-family: var(--console-ui);
   font-size: 15px;
 }
-.cp-input::placeholder { color: var(--console-text-muted); }
+.cp-input::placeholder {
+  color: var(--console-text-muted);
+}
 .cp-esc {
   padding: 1px 6px;
   border: 1px solid var(--console-rule-strong);
@@ -420,8 +457,12 @@
   overflow-y: auto;
   padding-bottom: 6px;
 }
-.cp-group { padding: 7px 0 4px; }
-.cp-group + .cp-group { border-top: 1px solid var(--console-rule); }
+.cp-group {
+  padding: 7px 0 4px;
+}
+.cp-group + .cp-group {
+  border-top: 1px solid var(--console-rule);
+}
 .cp-group-title {
   padding: 4px 18px 5px;
   color: var(--console-text-muted);
@@ -442,7 +483,9 @@
   cursor: pointer;
   text-decoration: none;
 }
-.cp-row:hover { background: var(--console-rule); }
+.cp-row:hover {
+  background: var(--console-rule);
+}
 .cp-row.is-selected {
   border-left-color: var(--console-accent);
   background: var(--console-accent-soft);
@@ -497,7 +540,9 @@
   font-family: var(--console-mono);
   font-size: 9.5px;
 }
-.cp-foot span:last-child { margin-left: auto; }
+.cp-foot span:last-child {
+  margin-left: auto;
+}
 
 @media (max-width: 640px) {
   .console-palette-overlay {
@@ -520,21 +565,33 @@
     min-height: calc(68px + env(safe-area-inset-top));
     padding: env(safe-area-inset-top) 16px 0;
   }
-  .cp-input { font-size: 16px; }
-  .cp-groups { max-height: none; }
+  .cp-input {
+    font-size: 16px;
+  }
+  .cp-groups {
+    max-height: none;
+  }
   .cp-row {
     min-height: 54px;
     padding: 10px 16px;
   }
-  .cp-tag { display: none; }
+  .cp-tag {
+    display: none;
+  }
   .cp-foot {
     justify-content: center;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
-  .cp-foot span:not(:last-child) { display: none; }
-  .cp-foot span:last-child { margin-left: 0; }
+  .cp-foot span:not(:last-child) {
+    display: none;
+  }
+  .cp-foot span:last-child {
+    margin-left: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulse { animation: none; }
+  .pulse {
+    animation: none;
+  }
 }

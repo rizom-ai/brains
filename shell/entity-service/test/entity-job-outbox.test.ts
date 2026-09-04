@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import {
   PermanentJobEnqueueError,
@@ -96,7 +97,10 @@ describe("entity embedding job outbox", () => {
     const queue = createMockJobQueueService();
     const delivered: string[] = [];
     queue.enqueue = mock(async (request: JobQueueEnqueueRequest) => {
-      const data = request.data as { id?: string };
+      const data = z
+        .object({ id: z.string().optional() })
+        .catch({})
+        .parse(request.data);
       if (data.id === "poisoned") {
         throw new PermanentJobEnqueueError("handler removed during upgrade");
       }

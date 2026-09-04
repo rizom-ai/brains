@@ -45,6 +45,13 @@ export interface JobAttemptClaim {
   executableTypes: readonly string[];
 }
 
+export interface RetireUnownedActiveJobRequest {
+  jobId: string;
+  expectedType: string;
+  reason: string;
+  now: number;
+}
+
 export type EnqueueDecision =
   | { kind: "inserted"; jobId: string }
   | { kind: "replayed"; jobId: string }
@@ -677,6 +684,56 @@ export class JobQueueRepository {
       });
     }
     return true;
+  }
+
+  /**
+   * Terminally retire an exact legacy job only when no attempt can still own or
+   * mutate it. This is intentionally stricter than fail(): retired handlers
+   * cannot consume retries or run terminal callbacks.
+   */
+  public async retireUnownedActiveJob(
+    request: RetireUnownedActiveJobRequest,
+  ): Promise<JobInfo | null> {
+    const reason = request.reason.trim();
+    if (reason.length === 0) {
+      throw new Error("Retired job reason must not be empty");
+    }
+
+    const updated = await this.db
+      .update(jobQueue)
+      .set({
+        status: JOB_STATUS.FAILED,
+        lastError: reason,
+        completedAt: request.now,
+        runtimeUpdatedAt: this.nextRuntimeUpdatedAt(request.now),
+      })
+      .where(
+        and(
+          eq(jobQueue.id, request.jobId),
+          eq(jobQueue.type, request.expectedType),
+          or(
+            eq(jobQueue.status, JOB_STATUS.PENDING),
+            eq(jobQueue.status, JOB_STATUS.PROCESSING),
+          ),
+          isNull(jobQueue.attemptId),
+          isNull(jobQueue.workerSlotId),
+          isNull(jobQueue.workerSessionId),
+          isNull(jobQueue.leaseExpiresAt),
+          isNull(jobQueue.attemptHeartbeatAt),
+          isNull(jobQueue.progress),
+          isNull(jobQueue.result),
+        ),
+      )
+      .returning();
+    const retired = updated[0] ?? null;
+    if (retired) {
+      this.logger.warn("Retired unowned legacy job", {
+        jobId: retired.id,
+        type: retired.type,
+        reason,
+      });
+    }
+    return retired;
   }
 
   public async getStatus(jobId: string): Promise<JobInfo | null> {

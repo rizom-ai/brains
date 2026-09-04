@@ -3,6 +3,7 @@ import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
   CONSOLE_PALETTE_SCRIPT,
+  resolveConsoleThemeCSS,
 } from "@brains/console-theme";
 import type { JSX } from "react";
 import { Colophon } from "./colophon";
@@ -67,12 +68,12 @@ export function DashboardDocument({
             href={input.assetUrls.themeStyles}
           />
         ) : (
-          input.themeCSS !== undefined && (
-            <style
-              data-dashboard-theme
-              dangerouslySetInnerHTML={{ __html: input.themeCSS }}
-            />
-          )
+          <style
+            data-dashboard-theme
+            dangerouslySetInnerHTML={{
+              __html: resolveConsoleThemeCSS(input.themeCSS),
+            }}
+          />
         )}
         {input.assetUrls ? (
           <link

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { createBrowserChatApiPaths } from "@brains/contracts/browser-chat";
+import { createChatApiPaths } from "@brains/contracts/chat";
 import { createWebChatRoutes } from "../src/web-routes";
 
 const ok = (): Promise<Response> => Promise.resolve(new Response("ok"));
 
 describe("Web Chat public API routes", () => {
-  it("registers every browser Chat operation below the configured API path", () => {
-    const apiPath = "/custom/browser-chat";
-    const paths = createBrowserChatApiPaths(apiPath);
+  it("registers every headless Chat operation below the configured API path", () => {
+    const apiPath = "/custom/chat-api";
+    const paths = createChatApiPaths(apiPath);
     const routes = createWebChatRoutes({
       routePath: "/chat",
       apiPath,
@@ -22,10 +22,12 @@ describe("Web Chat public API routes", () => {
         handleRenameSessionRequest: ok,
         handleArchiveSessionRequest: ok,
         handleMessagesRequest: ok,
+        handleContextSessionRequest: ok,
         handleDocumentAttachmentRequest: ok,
         handleImageAttachmentRequest: ok,
         handleJobStatusRequest: ok,
         handleUiAssetRequest: ok,
+        handleUiStylesheetRequest: ok,
         handleUploadRequest: ok,
         handleUploadDownloadRequest: ok,
       },
@@ -38,6 +40,7 @@ describe("Web Chat public API routes", () => {
     expect(registered).toContain(paths.sessionArchive);
     expect(registered).toContain(paths.messages);
     expect(registered).toContain(paths.uploads);
+    expect(registered).toContain(paths.contextSessions);
     expect(registered).toContain(paths.documentAttachments);
     expect(registered).toContain(paths.imageAttachments);
     expect(registered).toContain(paths.jobStatus);

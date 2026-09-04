@@ -8,6 +8,7 @@ import {
 } from "@brains/plugins";
 import {
   createPluginHarness,
+  confirmationArgs,
   expectConfirmation,
   expectSuccess,
 } from "@brains/plugins/test";
@@ -28,8 +29,13 @@ import type { DashboardWidgetRegistration, Plugin } from "@brains/plugins";
 import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
-import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
+import {
+  agentEntitySchema,
+  type AgentEntity,
+  type AgentStatus,
+} from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
+import { z } from "@brains/utils/zod";
 
 function makeAgentEntity(status: AgentStatus): AgentEntity {
   return createTestAgent({
@@ -57,6 +63,45 @@ function createAgentCard(domain: string): Record<string, unknown> {
     ],
   };
 }
+
+/**
+ * The Agent Network widget view, as far as this test walks it. Parsing means a
+ * widget that stops emitting its tabs fails here rather than several optional
+ * chains later against undefined.
+ */
+const networkViewSchema = z.looseObject({
+  view: z.looseObject({
+    blocks: z.array(
+      z.looseObject({
+        type: z.string(),
+        tabs: z
+          .array(
+            z.looseObject({
+              id: z.string(),
+              blocks: z.array(
+                z.looseObject({
+                  type: z.string(),
+                  filter: z
+                    .looseObject({
+                      options: z.array(z.looseObject({ value: z.string() })),
+                    })
+                    .optional(),
+                  items: z
+                    .array(
+                      z.looseObject({
+                        filterValues: z.array(z.string()).optional(),
+                      }),
+                    )
+                    .optional(),
+                }),
+              ),
+            }),
+          )
+          .optional(),
+      }),
+    ),
+  }),
+});
 
 const tempDirs: string[] = [];
 
@@ -282,10 +327,13 @@ describe("AgentDiscoveryPlugin", () => {
         notes: "Local trust note.",
       }),
     });
-    const staleAgent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const staleAgent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(staleAgent).not.toBeNull();
     if (!staleAgent) throw new Error("Expected stale agent fixture");
     await harness.getEntityService().updateEntity({
@@ -306,10 +354,13 @@ describe("AgentDiscoveryPlugin", () => {
 
     await run?.({ signal: new AbortController().signal });
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.name).toBe("Updated Peer Owner");
     expect(agent?.metadata.cardCid).toBe("bafy-updated-card");
@@ -362,10 +413,13 @@ describe("AgentDiscoveryPlugin", () => {
 
     await run?.({ signal: new AbortController().signal });
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.updated).toBe("2026-03-31T00:00:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeUndefined();
     harness.reset();
@@ -412,10 +466,13 @@ describe("AgentDiscoveryPlugin", () => {
 
     await run?.({ signal: new AbortController().signal });
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.cardCid).toBe("bafy-last-good-card");
     expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
@@ -429,12 +486,13 @@ describe("AgentDiscoveryPlugin", () => {
 
     await run?.({ signal: new AbortController().signal });
     await run?.({ signal: new AbortController().signal });
-    const repeatedlyUnavailable = await harness
-      .getEntityService()
-      .getEntity<AgentEntity>({
+    const repeatedlyUnavailable = await harness.getEntityService().getEntity(
+      {
         entityType: "agent",
         id: "peer.example.com",
-      });
+      },
+      agentEntitySchema,
+    );
     expect(repeatedlyUnavailable?.metadata.status).toBe("approved");
     expect(repeatedlyUnavailable?.metadata.cardFailureCount).toBe(3);
     expect(repeatedlyUnavailable?.metadata.cardUnavailableAt).toBeDefined();
@@ -486,10 +544,13 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.getEntityService().createEntity({ entity: original });
     await run?.({ signal: new AbortController().signal });
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(calls).toEqual([
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     ]);
@@ -544,10 +605,13 @@ describe("AgentDiscoveryPlugin", () => {
     failing = false;
     await run?.({ signal: new AbortController().signal });
 
-    const recovered = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const recovered = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(recovered?.metadata.status).toBe("approved");
     expect(recovered?.metadata.cardCid).toBe(testBrainCardPayload.cid);
     expect(recovered?.metadata.cardFailureCount).toBeUndefined();
@@ -610,14 +674,14 @@ describe("AgentDiscoveryPlugin", () => {
     expect(confirmation.summary).toBe(
       "Verify and connect agent connect-followup.example?",
     );
-    const confirmationArgs = confirmation.args as Record<string, unknown>;
-    expect(confirmationArgs).toMatchObject({
+    const args = confirmationArgs(confirmation);
+    expect(args).toMatchObject({
       source: { kind: "url", url: "connect-followup.example" },
       confirmed: true,
     });
-    expect(typeof confirmationArgs["confirmationToken"]).toBe("string");
+    expect(typeof args["confirmationToken"]).toBe("string");
 
-    const result = await harness.executeTool("agent_connect", confirmationArgs);
+    const result = await harness.executeTool("agent_connect", args);
 
     expectSuccess(result);
     expect(result.data).toMatchObject({
@@ -638,10 +702,13 @@ describe("AgentDiscoveryPlugin", () => {
       "https://connect-followup.example/.well-known/agent-card.json",
     ]);
 
-    const saved = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "connect-followup.example",
-    });
+    const saved = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "connect-followup.example",
+      },
+      agentEntitySchema,
+    );
     expect(saved?.metadata.status).toBe("approved");
     expect(saved?.metadata.a2aEndpoint).toBe(
       "https://connect-followup.example/a2a",
@@ -714,7 +781,7 @@ describe("AgentDiscoveryPlugin", () => {
     });
     const result = await harness.executeTool(
       "agent_set_trust_level",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
       { actor: { kind: "user", userId: owner.userId } },
     );
 
@@ -783,7 +850,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_set_trust_level",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -811,7 +878,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_connect",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expect(result).toEqual({
@@ -841,7 +908,7 @@ describe("AgentDiscoveryPlugin", () => {
     expectConfirmation(confirmation);
 
     const result = await harness.executeTool("agent_connect", {
-      ...(confirmation.args as Record<string, unknown>),
+      ...confirmationArgs(confirmation),
       source: { kind: "url", url: "connect-changed.example" },
     });
 
@@ -873,7 +940,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_connect",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -913,7 +980,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const result = await harness.executeTool(
       "agent_connect",
-      confirmation.args as Record<string, unknown>,
+      confirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -950,10 +1017,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("discovered");
     expect(agent?.metadata.url).toBe("https://peer.example.com");
     expect(agent?.metadata.name).toBe("Peer Owner");
@@ -998,10 +1068,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.name).toBe("Peer Owner");
@@ -1045,10 +1118,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
@@ -1089,10 +1165,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const before = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const before = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(before).toBeDefined();
     if (!before) throw new Error("Expected discovered agent");
     await harness.getEntityService().updateEntity({
@@ -1117,10 +1196,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const after = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const after = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(after?.metadata.status).toBe("approved");
     expect(after?.metadata.repoDid).toBe("did:plc:peer");
     expect(after?.metadata.cardCid).toBe("bafy-peer-card");
@@ -1144,10 +1226,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const before = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const before = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(before).toBeDefined();
     if (!before) throw new Error("Expected discovered agent");
     await harness.getEntityService().updateEntity({
@@ -1172,10 +1257,13 @@ describe("AgentDiscoveryPlugin", () => {
       "atproto",
     );
 
-    const after = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const after = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(after?.metadata.status).toBe("approved");
     expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T13:00:00.000Z");
     expect(after?.metadata.cardLastError).toContain("deleted");
@@ -1218,10 +1306,13 @@ describe("AgentDiscoveryPlugin", () => {
 
     await run?.({ signal: new AbortController().signal });
 
-    const expired = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const expired = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(expired?.metadata.status).toBe("archived");
     expect(expired?.metadata.cardCid).toBe("bafy-peer-card");
     harness.reset();
@@ -1269,21 +1360,19 @@ describe("AgentDiscoveryPlugin", () => {
       drawsItself: boolean;
     }> = [];
 
-    harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as {
-        id: string;
-        group: string;
-        rendererName: string;
-        renderer?: { component: unknown };
-      };
-      registrations.push({
-        id: payload.id,
-        group: payload.group,
-        rendererName: payload.rendererName,
-        drawsItself: typeof payload.renderer?.component === "function",
-      });
-      return { success: true };
-    });
+    harness.subscribe<DashboardWidgetRegistration>(
+      "dashboard:register-widget",
+      async (message) => {
+        const payload = message.payload;
+        registrations.push({
+          id: payload.id,
+          group: payload.group,
+          rendererName: payload.rendererName,
+          drawsItself: typeof payload.renderer?.component === "function",
+        });
+        return { success: true };
+      },
+    );
 
     await harness.installPlugin(plugin);
     await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
@@ -1312,11 +1401,14 @@ describe("AgentDiscoveryPlugin", () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     let networkWidget: DashboardWidgetRegistration | undefined;
 
-    harness.subscribe("dashboard:register-widget", async (message) => {
-      const registration = message.payload as DashboardWidgetRegistration;
-      if (registration.id === "agent-network") networkWidget = registration;
-      return { success: true };
-    });
+    harness.subscribe<DashboardWidgetRegistration>(
+      "dashboard:register-widget",
+      async (message) => {
+        const registration = message.payload;
+        if (registration.id === "agent-network") networkWidget = registration;
+        return { success: true };
+      },
+    );
 
     await harness.installPlugin(new AgentDiscoveryPlugin());
     await harness.getEntityService().createEntity({
@@ -1337,21 +1429,7 @@ describe("AgentDiscoveryPlugin", () => {
       caller: null,
       signal: new AbortController().signal,
     });
-    const viewData = data as {
-      view: {
-        blocks: Array<{
-          type: string;
-          tabs?: Array<{
-            id: string;
-            blocks: Array<{
-              type: string;
-              filter?: { options: Array<{ value: string }> };
-              items?: Array<{ filterValues?: string[] }>;
-            }>;
-          }>;
-        }>;
-      };
-    };
+    const viewData = networkViewSchema.parse(data);
     const tabs = viewData.view.blocks.find(
       (block) => block.type === "tabs",
     )?.tabs;

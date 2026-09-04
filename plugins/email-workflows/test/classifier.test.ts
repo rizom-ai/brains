@@ -1,19 +1,30 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import type { IEntityAINamespace } from "@brains/plugins";
+import { genericSpy } from "@brains/test-utils";
 import { createMailClassifier } from "../src/lib/classifier";
 
 type GenerateObject = Pick<IEntityAINamespace, "generateObject">;
+type AIGenerationSchema<T> = Parameters<
+  IEntityAINamespace["generateObject"]
+>[1] & { parse(input: unknown): T };
 
+/**
+ * Records the arguments the classifier sends and answers with `object`,
+ * parsed through the caller's own schema so the fixture has to match what
+ * the classifier actually asked for.
+ */
 function aiReturning(object: unknown): GenerateObject & {
-  calls: unknown[][];
+  calls: Array<[string, AIGenerationSchema<unknown>]>;
 } {
-  const calls: unknown[][] = [];
-  const generate = mock(async (...args: unknown[]) => {
-    calls.push(args);
-    return { object };
-  });
-  return { generateObject: generate as never, calls };
+  const calls: Array<[string, AIGenerationSchema<unknown>]> = [];
+  const generateObject = genericSpy<GenerateObject["generateObject"]>(
+    mock(async (prompt: string, schema: AIGenerationSchema<unknown>) => {
+      calls.push([prompt, schema]);
+      return { object: schema.parse(object) };
+    }),
+  );
+  return { generateObject, calls };
 }
 
 const email: InboundEmail = {
@@ -57,7 +68,8 @@ describe("mail classifier wire schema", () => {
       requestedActions: ["Confirm Tuesday meeting"],
       summary: "A contact proposes meeting Tuesday to review the demo.",
     });
-    const schema = ai.calls[0]?.[1] as { parse(data: unknown): unknown };
+    const schema = ai.calls[0]?.[1];
+    if (!schema) throw new Error("classifier did not call generateObject");
     // The schema handed to the AI accepts the flat wire shape directly.
     expect(() =>
       schema.parse({ decision: "discard", retained: null }),

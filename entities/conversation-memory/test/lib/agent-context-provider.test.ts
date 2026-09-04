@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { AgentContextRequest } from "@brains/contracts";
 import { createMockEntityPluginContext } from "@brains/test-utils";
 import { buildConversationMemoryAgentContext } from "../../src/lib/agent-context-provider";
+import { conversationMemorySearchEntitySchema } from "../../src/lib/conversation-memory-retriever";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import type {
   ActionItemEntity,
@@ -46,14 +47,17 @@ describe("buildConversationMemoryAgentContext", () => {
       createRequest("relay-team"),
     );
 
-    expect(context.entityService.search).toHaveBeenCalledWith({
-      query: "What memory is relevant?",
-      options: {
-        types: ["summary", "decision", "action-item"],
-        limit: 20,
-        visibilityScope: "shared",
+    expect(context.entityService.search).toHaveBeenCalledWith(
+      {
+        query: "What memory is relevant?",
+        options: {
+          types: ["summary", "decision", "action-item"],
+          limit: 20,
+          visibilityScope: "shared",
+        },
       },
-    });
+      conversationMemorySearchEntitySchema,
+    );
     expect(response.items).toHaveLength(1);
     expect(response.items[0]).toMatchObject({
       id: "summary-team",

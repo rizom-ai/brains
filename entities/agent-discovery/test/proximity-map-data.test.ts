@@ -73,7 +73,7 @@ describe("buildProximityMapData", () => {
     const project = mock(async () => projection);
 
     const result = await buildProximityMapData({
-      entityService: { listEntities } as never,
+      entityService: { listEntities },
       semantic: { project },
     });
 
@@ -129,10 +129,10 @@ describe("buildProximityMapData", () => {
   test("surfaces centroid fallback and ignores projection points without agents", async () => {
     const result = await buildProximityMapData({
       entityService: {
-        listEntities: (async (request: { entityType: string }) =>
+        listEntities: async (request) =>
           request.entityType === "agent"
             ? [createTestAgent({ id: "known" })]
-            : []) as never,
+            : [],
       },
       semantic: {
         project: async () => ({
@@ -190,7 +190,7 @@ describe("buildProximityMapData", () => {
       // no embedding yet → dropped
       sightedAgent({ id: "dark", name: "Dark", introducedBy: ["kai"] }),
     ];
-    const project = mock(async () => ({
+    const project = mock(async (): Promise<SemanticSpaceProjection> => ({
       origin: {
         kind: "entity" as const,
         entityId: "brain-character",
@@ -200,43 +200,43 @@ describe("buildProximityMapData", () => {
         {
           entityId: "kai",
           entityType: "agent",
-          coordinates: [1, 0] as [number, number],
+          coordinates: [1, 0],
           distanceToOrigin: 0.3,
         },
         {
           entityId: "vera",
           entityType: "agent",
-          coordinates: [0.5, -1] as [number, number],
+          coordinates: [0.5, -1],
           distanceToOrigin: 0.6,
         },
         {
           entityId: "gone",
           entityType: "agent",
-          coordinates: [-1, 0] as [number, number],
+          coordinates: [-1, 0],
           distanceToOrigin: 0.4,
         },
         {
           entityId: "vale",
           entityType: "agent",
-          coordinates: [0, 1] as [number, number],
+          coordinates: [0, 1],
           distanceToOrigin: 0.35,
         },
         {
           entityId: "cairn",
           entityType: "agent",
-          coordinates: [0, -1] as [number, number],
+          coordinates: [0, -1],
           distanceToOrigin: 0.3,
         },
         {
           entityId: "reed",
           entityType: "agent",
-          coordinates: [0, 1] as [number, number],
+          coordinates: [0, 1],
           distanceToOrigin: 0.55,
         },
         {
           entityId: "far",
           entityType: "agent",
-          coordinates: [1, 1] as [number, number],
+          coordinates: [1, 1],
           distanceToOrigin: 0.9,
         },
       ],
@@ -246,7 +246,7 @@ describe("buildProximityMapData", () => {
 
     const result = await buildProximityMapData({
       entityService: {
-        listEntities: (async () => agents) as never,
+        listEntities: async () => agents,
       },
       semantic: { project },
     });

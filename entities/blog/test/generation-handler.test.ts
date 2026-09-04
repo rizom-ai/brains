@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
+import {
+  BlogGenerationJobHandler,
+  generatedBlogPostSchema,
+  generatedExcerptSchema,
+} from "../src/handlers/blogGenerationJobHandler";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -92,6 +96,7 @@ describe("BlogGenerationJobHandler", () => {
           templateName: "blog:generation",
           representedIdentity: "anchor",
         }),
+        generatedBlogPostSchema,
       );
     });
 
@@ -102,6 +107,7 @@ describe("BlogGenerationJobHandler", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("knowledge base"),
         }),
+        generatedBlogPostSchema,
       );
     });
 
@@ -116,6 +122,7 @@ describe("BlogGenerationJobHandler", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("AI Series"),
         }),
+        generatedBlogPostSchema,
       );
     });
 
@@ -161,6 +168,7 @@ describe("BlogGenerationJobHandler", () => {
             /My Title.*My content|My content.*My Title/s,
           ),
         }),
+        generatedExcerptSchema,
       );
     });
 
@@ -276,7 +284,7 @@ describe("BlogGenerationJobHandler", () => {
     it("should extract author from profile", async () => {
       spyOn(mockContext.identity, "getProfile").mockReturnValue({
         name: "John Doe",
-      } as ReturnType<typeof mockContext.identity.getProfile>);
+      });
 
       await handler.process(
         { title: "Test", content: "Content", excerpt: "Excerpt" },

@@ -1,6 +1,7 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
+import { caughtError } from "@brains/test-utils";
 import {
   PluginEvent,
   PluginManager,
@@ -191,7 +192,7 @@ describe("PluginManager", (): void => {
     }
 
     expect(readyError).toBeInstanceOf(Error);
-    expect((readyError as Error).message).toBe(
+    expect(caughtError(readyError).message).toBe(
       "Plugin plugin-ready-error ready failed",
     );
     expect(pluginManager.getPluginStatus("plugin-ready-error")).toBe(

@@ -4,10 +4,10 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type {
-  ResolvedSiteInfoBody,
-  SiteInfoEntity,
-  SiteInfoBody,
+import {
+  siteInfoSchema,
+  type ResolvedSiteInfoBody,
+  type SiteInfoBody,
 } from "../schemas/site-info-schema";
 import { SiteInfoAdapter } from "../adapters/site-info-adapter";
 
@@ -94,19 +94,19 @@ export class SiteInfoService {
    */
   public async initialize(): Promise<void> {
     try {
-      const siteInfo = (await this.entityService.getEntity({
+      const siteInfo = await this.entityService.getEntity({
         entityType: "site-info",
         id: "site-info",
-      })) as SiteInfoEntity | null;
+      });
 
       // If no site info exists, create one with default values. Re-check
       // immediately before creating defaults because startup directory sync may
       // import the singleton after the first DB miss on cold boot.
       if (!siteInfo) {
-        const recheckedSiteInfo = (await this.entityService.getEntity({
+        const recheckedSiteInfo = await this.entityService.getEntity({
           entityType: "site-info",
           id: "site-info",
-        })) as SiteInfoEntity | null;
+        });
         if (recheckedSiteInfo) return;
 
         this.logger.info("No site info found, creating default site info");
@@ -137,10 +137,13 @@ export class SiteInfoService {
   public async getSiteInfo(): Promise<ResolvedSiteInfoBody> {
     try {
       // Always load fresh from database to avoid stale cache issues
-      const siteInfo = await this.entityService.getEntity<SiteInfoEntity>({
-        entityType: "site-info",
-        id: "site-info",
-      });
+      const siteInfo = await this.entityService.getEntity(
+        {
+          entityType: "site-info",
+          id: "site-info",
+        },
+        siteInfoSchema,
+      );
 
       if (siteInfo) {
         return this.resolveIdentityFallbacks(

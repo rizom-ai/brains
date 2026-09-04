@@ -135,7 +135,7 @@ export abstract class SingletonEntityService<TBody> {
    */
   private async load(): Promise<boolean> {
     try {
-      const entity = await this.entityService.getEntity<BaseEntity>({
+      const entity = await this.entityService.getEntity({
         entityType: this.entityType,
         id: this.entityType,
         visibilityScope: this.readScope,

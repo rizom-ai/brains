@@ -8,13 +8,17 @@ import type {
 import type {
   MessageSender,
   BaseEntity,
+  EntitySchema,
   EntityPluginContext,
   ToolContext,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
-import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
-import { socialPostFrontmatterSchema } from "../schemas/social-post";
+import type { SocialPostFrontmatter } from "../schemas/social-post";
+import {
+  socialPostFrontmatterSchema,
+  socialPostSchema,
+} from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 
 export interface PublishExecutePayload {
@@ -40,13 +44,13 @@ export type ResolveAttachmentFn = (
 
 export interface PublishExecuteEntityService {
   getEntity(request: {
-    entityType: "social-post";
-    id: string;
-  }): Promise<SocialPost | null>;
-  getEntity(request: {
     entityType: string;
     id: string;
   }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
   updateEntity(request: { entity: BaseEntity }): Promise<unknown>;
 }
 
@@ -106,10 +110,10 @@ export class PublishExecuteHandler {
 
     try {
       // Fetch the entity
-      const entity = await this.entityService.getEntity({
-        entityType: "social-post",
-        id: entityId,
-      });
+      const entity = await this.entityService.getEntity(
+        { entityType: "social-post", id: entityId },
+        socialPostSchema,
+      );
 
       if (!entity) {
         await this.reportFailure(

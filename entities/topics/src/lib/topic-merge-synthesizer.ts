@@ -3,7 +3,10 @@ import type { Logger } from "@brains/utils/logger";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { TopicAdapter } from "./topic-adapter";
-import type { TopicMergeSynthesisResult } from "../templates/merge-synthesis-template";
+import {
+  topicMergeSynthesisSchema,
+  type TopicMergeSynthesisResult,
+} from "../templates/merge-synthesis-template";
 
 const adapter = new TopicAdapter();
 
@@ -33,10 +36,11 @@ export class TopicMergeSynthesizer implements ITopicMergeSynthesizer {
       incomingTitle: params.incomingTopic.title,
     });
 
-    return this.context.ai.generate<TopicMergeSynthesisResult>({
-      templateName: "topics:merge-synthesis",
-      representedIdentity: "none",
-      prompt: `Canonical topic candidate:
+    return this.context.ai.generate(
+      {
+        templateName: "topics:merge-synthesis",
+        representedIdentity: "none",
+        prompt: `Canonical topic candidate:
 Title: ${existingParsed.title}
 Content:
 ${existingParsed.content}
@@ -45,6 +49,8 @@ Incoming topic candidate:
 Title: ${params.incomingTopic.title}
 Content:
 ${params.incomingTopic.content}`,
-    });
+      },
+      topicMergeSynthesisSchema,
+    );
   }
 }

@@ -139,7 +139,7 @@ export const ConversationRpcRequestSchema: z.ZodType<
     query: z.string(),
     sessionId: z.string().optional(),
   }),
-]) as z.ZodType<ConversationRpcRequest, unknown>;
+]);
 
 const conversationSchema: z.ZodType<Conversation, unknown> = z.strictObject({
   id: z.string(),
@@ -154,13 +154,9 @@ const conversationSchema: z.ZodType<Conversation, unknown> = z.strictObject({
   updated: z.string(),
 });
 
-function parseMessages(input: unknown): Message[] {
-  return z.array(messageSchema).parse(input) as Message[];
-}
-
-function parseConversations(input: unknown): Conversation[] {
-  return z.array(conversationSchema).parse(input);
-}
+const messagesSchema: z.ZodType<Message[], unknown> = z.array(messageSchema);
+const conversationsSchema: z.ZodType<Conversation[], unknown> =
+  z.array(conversationSchema);
 
 export function parseConversationRpcRequest(
   input: unknown,
@@ -168,28 +164,48 @@ export function parseConversationRpcRequest(
   return ConversationRpcRequestSchema.parse(input);
 }
 
-export function parseConversationRpcResult(
-  request: ConversationRpcRequest,
+/**
+ * What each operation answers. The schema map below is checked against this,
+ * so the two cannot drift, and keying both by operation is what lets
+ * `parseConversationRpcResult` return the operation's own type — callers no
+ * longer re-assert it at the transport boundary.
+ */
+export interface ConversationRpcResults {
+  startConversation: string;
+  addMessage: undefined;
+  getMessages: Message[];
+  countMessages: number;
+  getConversation: Conversation | null;
+  listConversations: Conversation[];
+  searchConversations: Conversation[];
+  updateConversationMetadata: boolean;
+  deleteConversation: boolean;
+}
+
+export type ConversationRpcOperation = keyof ConversationRpcResults;
+
+const resultSchemas: {
+  [Op in ConversationRpcOperation]: z.ZodType<
+    ConversationRpcResults[Op],
+    unknown
+  >;
+} = {
+  startConversation: z.string().min(1),
+  addMessage: z.undefined(),
+  getMessages: messagesSchema,
+  countMessages: z.number().int().nonnegative(),
+  getConversation: conversationSchema.nullable(),
+  listConversations: conversationsSchema,
+  searchConversations: conversationsSchema,
+  updateConversationMetadata: z.boolean(),
+  deleteConversation: z.boolean(),
+};
+
+export function parseConversationRpcResult<Op extends ConversationRpcOperation>(
+  request: { operation: Op },
   input: unknown,
-): unknown {
-  switch (request.operation) {
-    case "startConversation":
-      return z.string().min(1).parse(input);
-    case "addMessage":
-      return z.undefined().parse(input);
-    case "getMessages":
-      return parseMessages(input);
-    case "countMessages":
-      return z.number().int().nonnegative().parse(input);
-    case "getConversation":
-      return input === null ? null : conversationSchema.parse(input);
-    case "listConversations":
-    case "searchConversations":
-      return parseConversations(input);
-    case "updateConversationMetadata":
-    case "deleteConversation":
-      return z.boolean().parse(input);
-  }
+): ConversationRpcResults[Op] {
+  return resultSchemas[request.operation].parse(input);
 }
 
 /** Dispatch one validated request against the web-owned conversation service. */

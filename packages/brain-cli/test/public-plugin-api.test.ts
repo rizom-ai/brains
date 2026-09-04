@@ -187,6 +187,8 @@ describe("@rizom/brain public plugin API surface", () => {
           compilerOptions: {
             rootDir: "..",
             declaration: false,
+            jsx: "react-jsx",
+            jsxImportSource: "react",
             types: ["bun"],
             noUnusedLocals: false,
             noUnusedParameters: false,
@@ -198,7 +200,7 @@ describe("@rizom/brain public plugin API surface", () => {
                 "../test/fixtures/public-authoring/entity/src/index.ts",
               ],
               "@fixture/reading-insights": [
-                "../test/fixtures/public-authoring/service/src/index.ts",
+                "../test/fixtures/public-authoring/service/src/index.tsx",
               ],
             },
           },

@@ -53,13 +53,15 @@ export function getBooleanProp(
 /**
  * Get an array property or default
  */
-export function getArrayProp<T = unknown>(
+export function getArrayProp(
   obj: unknown,
   key: string,
-  defaultValue: T[] = [],
-): T[] {
+  defaultValue: unknown[] = [],
+): unknown[] {
+  // Array.isArray establishes that this is an array, never what is in it, so
+  // the elements stay unknown rather than being asserted to a caller's type.
   const value = getProp(obj, key);
-  return Array.isArray(value) ? (value as T[]) : defaultValue;
+  return Array.isArray(value) ? value : defaultValue;
 }
 
 /**

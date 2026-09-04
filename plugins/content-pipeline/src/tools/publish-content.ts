@@ -129,7 +129,7 @@ async function fetchPublishImageData(
   context: ServicePluginContext,
   coverImageId: string,
 ): Promise<PublishImageData | undefined> {
-  const image = await context.entityService.getEntity<BaseEntity>({
+  const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
   });
@@ -158,7 +158,7 @@ async function fetchPublishDocumentItem(
   context: ServicePluginContext,
   reference: PublishDocumentReference,
 ): Promise<PublishMediaData | undefined> {
-  const entity = await context.entityService.getEntity<BaseEntity>({
+  const entity = await context.entityService.getEntity({
     entityType: "document",
     id: reference.id,
   });

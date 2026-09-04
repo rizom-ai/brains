@@ -15,5 +15,6 @@
  * as `TMember` and let the surrounding `satisfies` check everything else.
  */
 export function genericSpy<TMember>(spy: unknown): TMember {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the whole point of the helper; see the comment above
   return spy as TMember;
 }

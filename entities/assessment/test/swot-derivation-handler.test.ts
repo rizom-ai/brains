@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { ProjectionJsonObjectSchema, resetPromptCache } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createMockProgressReporter } from "@brains/test-utils";
 import { SwotAdapter, SwotAssessmentPlugin } from "../src";
 import { AgentAdapter, SkillAdapter } from "./helpers";
 import {
@@ -185,8 +186,8 @@ describe("SwotDerivationHandler", () => {
       harness.getEntityContext("swot"),
     );
 
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "test" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "test" }, "job-1", reporter);
 
     const entity = await harness.getEntityService().getEntity({
       entityType: "swot",
@@ -269,8 +270,8 @@ describe("SwotDerivationHandler", () => {
       harness.getEntityContext("swot"),
     );
 
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "test" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "test" }, "job-1", reporter);
 
     const derivationPromptEntity = await harness.getEntityService().getEntity({
       entityType: "prompt",
@@ -371,8 +372,8 @@ describe("SwotDerivationHandler", () => {
       harness.getEntityContext("swot"),
     );
 
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "test" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "test" }, "job-1", reporter);
 
     const promptEntity = await harness.getEntityService().getEntity({
       entityType: "prompt",
@@ -500,8 +501,8 @@ describe("SwotDerivationHandler", () => {
       harness.getEntityContext("swot"),
     );
 
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "test" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "test" }, "job-1", reporter);
 
     expect(receivedPrompts[0]).toContain('"candidateMatches"');
     expect(receivedPrompts[0]).toContain('"Research Operations"');
@@ -588,8 +589,8 @@ describe("SwotDerivationHandler", () => {
       harness.getEntityContext("swot"),
     );
 
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "test" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "test" }, "job-1", reporter);
 
     expect(receivedPrompts[1]).toContain("Allowed themes by quadrant:");
     expect(receivedPrompts[1]).toContain('"research systems"');
@@ -662,14 +663,14 @@ describe("SwotDerivationHandler", () => {
       shell.getLogger(),
       harness.getEntityContext("swot"),
     );
-    const reporter = { report: async (): Promise<void> => {} };
+    const reporter = createMockProgressReporter();
 
-    await handler.process({ reason: "first" }, "job-1", reporter as never);
+    await handler.process({ reason: "first" }, "job-1", reporter);
     const first = await harness.getEntityService().getEntity({
       entityType: "swot",
       id: "swot",
     });
-    await handler.process({ reason: "unchanged" }, "job-2", reporter as never);
+    await handler.process({ reason: "unchanged" }, "job-2", reporter);
     const second = await harness.getEntityService().getEntity({
       entityType: "swot",
       id: "swot",
@@ -745,8 +746,8 @@ describe("SwotDerivationHandler", () => {
       shell.getLogger(),
       harness.getEntityContext("swot"),
     );
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "first" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "first" }, "job-1", reporter);
     const first = await harness.getEntityService().getEntity({
       entityType: "swot",
       id: "swot",
@@ -772,7 +773,7 @@ describe("SwotDerivationHandler", () => {
         },
       },
     });
-    await handler.process({ reason: "changed" }, "job-2", reporter as never);
+    await handler.process({ reason: "changed" }, "job-2", reporter);
     const second = await harness.getEntityService().getEntity({
       entityType: "swot",
       id: "swot",
@@ -850,8 +851,8 @@ describe("SwotDerivationHandler", () => {
       harness.getEntityContext("swot"),
     );
 
-    const reporter = { report: async (): Promise<void> => {} };
-    await handler.process({ reason: "first" }, "job-1", reporter as never);
+    const reporter = createMockProgressReporter();
+    await handler.process({ reason: "first" }, "job-1", reporter);
     const sourceSkill = await harness.getEntityService().getEntity({
       entityType: "skill",
       id: "skill-1",
@@ -872,7 +873,7 @@ describe("SwotDerivationHandler", () => {
         },
       },
     });
-    await handler.process({ reason: "second" }, "job-2", reporter as never);
+    await handler.process({ reason: "second" }, "job-2", reporter);
 
     const entities = await harness.getEntityService().listEntities({
       entityType: "swot",

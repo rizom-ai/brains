@@ -122,10 +122,10 @@ export class EntitySearch {
   /**
    * Search entities by query using vector similarity
    */
-  public async search<T extends BaseEntity = BaseEntity>(
+  public async search(
     query: string,
     options?: SearchOptions,
-  ): Promise<SearchResult<T>[]> {
+  ): Promise<SearchResult<BaseEntity>[]> {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
     const {
       limit,
@@ -147,7 +147,7 @@ export class EntitySearch {
     );
 
     if (!this.embeddingsEnabled) {
-      return this.searchLexically<T>(preparedQuery, {
+      return this.searchLexically(preparedQuery, {
         limit,
         offset,
         types,
@@ -189,7 +189,7 @@ export class EntitySearch {
       );
     }
 
-    return this.searchWithAttachedDb<T>(
+    return this.searchWithAttachedDb(
       embeddingArray,
       weightMultiplier,
       [
@@ -204,7 +204,7 @@ export class EntitySearch {
     );
   }
 
-  private async searchLexically<T extends BaseEntity>(
+  private async searchLexically(
     query: string,
     options: {
       readonly limit: number;
@@ -216,7 +216,7 @@ export class EntitySearch {
       readonly includeUngenerated: boolean;
       readonly minScore: number | undefined;
     },
-  ): Promise<SearchResult<T>[]> {
+  ): Promise<SearchResult<BaseEntity>[]> {
     if (!query) return [];
     const conditions: SQL[] = [
       buildKeywordMatch(query),
@@ -269,7 +269,7 @@ export class EntitySearch {
       .limit(options.limit)
       .offset(options.offset);
 
-    return this.mapSearchResults<T>(results, query);
+    return this.mapSearchResults(results, query);
   }
 
   private buildVisibilityConditions(
@@ -321,7 +321,7 @@ export class EntitySearch {
   /**
    * Execute hybrid search against the local embeddings table.
    */
-  private async searchWithAttachedDb<T extends BaseEntity = BaseEntity>(
+  private async searchWithAttachedDb(
     embeddingArray: string,
     weightMultiplier: SQL,
     typeConditions: SQL[],
@@ -329,7 +329,7 @@ export class EntitySearch {
     offset: number,
     query: string,
     minScore: number | undefined,
-  ): Promise<SearchResult<T>[]> {
+  ): Promise<SearchResult<BaseEntity>[]> {
     const alpha = EntitySearch.KEYWORD_ALPHA;
 
     // Materialize the query vector once. Repeating vector32(?) in each score,
@@ -389,7 +389,7 @@ export class EntitySearch {
       .limit(limit)
       .offset(offset);
 
-    return this.mapSearchResults<T>(results, query);
+    return this.mapSearchResults(results, query);
   }
 
   /**
@@ -550,7 +550,7 @@ export class EntitySearch {
   /**
    * Transform raw query rows into SearchResult objects
    */
-  private mapSearchResults<T extends BaseEntity = BaseEntity>(
+  private mapSearchResults(
     results: Array<{
       id: string;
       entityType: string;
@@ -563,14 +563,14 @@ export class EntitySearch {
       weighted_score: number;
     }>,
     query: string,
-  ): SearchResult<T>[] {
-    const searchResults: SearchResult<T>[] = [];
+  ): SearchResult<BaseEntity>[] {
+    const searchResults: SearchResult<BaseEntity>[] = [];
 
     for (const row of results) {
       try {
         const metadata = entityMetadataSchema.parse(row.metadata);
 
-        const entity = this.serializer.reconstructEntity<T>({
+        const entity = this.serializer.reconstructEntity({
           id: row.id,
           entityType: row.entityType,
           content: row.content,

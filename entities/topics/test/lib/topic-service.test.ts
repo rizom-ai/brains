@@ -299,103 +299,90 @@ describe("TopicService", () => {
   });
 
   describe("visibility threading", () => {
-    it("getTopic passes visibility to entityService.getEntity", async () => {
-      const logger = createSilentLogger();
-      const entityService = createMockEntityService();
-      const service = new TopicService(entityService, logger);
+    function seededService(topics: TopicEntity[]): {
+      service: TopicService;
+      shell: ReturnType<typeof createMockShell>;
+    } {
+      const shell = createMockShell();
+      shell.addEntities(topics);
+      return {
+        service: new TopicService(
+          shell.getEntityService(),
+          createSilentLogger(),
+        ),
+        shell,
+      };
+    }
 
-      await service.getTopic("some-id", "restricted");
+    it("getTopic fails closed to public when visibility is omitted", async () => {
+      const { service } = seededService([
+        makeTopic("private-topic", "Private Topic", "Body.", "restricted"),
+      ]);
 
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "some-id",
-        visibilityScope: "restricted",
-      });
-    });
-
-    it("getTopic defaults visibility to public when omitted", async () => {
-      const logger = createSilentLogger();
-      const entityService = createMockEntityService();
-      const service = new TopicService(entityService, logger);
-
-      await service.getTopic("some-id");
-
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "some-id",
-        visibilityScope: "public",
-      });
+      expect(await service.getTopic("private-topic")).toBeNull();
+      const scoped = await service.getTopic("private-topic", "restricted");
+      expect(scoped?.id).toBe("private-topic");
     });
 
     it("getTopic rejects lower-visibility entities returned within the read scope", async () => {
-      const logger = createSilentLogger();
-      const publicTopic = makeTopic(
-        "same-id",
-        "Same ID",
-        "Public content.",
-        "public",
-      );
-      const entityService = createMockEntityService({
-        returns: { getEntity: publicTopic },
-      });
-      const service = new TopicService(entityService, logger);
+      // A shared read scope can see public entities, but the service treats
+      // visibility as a partition key and rejects the cross-partition hit.
+      const { service } = seededService([
+        makeTopic("same-id", "Same ID", "Public content.", "public"),
+      ]);
 
-      const result = await service.getTopic("same-id", "shared");
-
-      expect(result).toBeNull();
+      expect(await service.getTopic("same-id", "shared")).toBeNull();
     });
 
     it("getTopic returns an entity from the requested visibility partition", async () => {
-      const logger = createSilentLogger();
-      const sharedTopic = makeTopic(
-        "same-id-shared",
-        "Same ID",
-        "Shared content.",
-        "shared",
-      );
-      const entityService = createMockEntityService({
-        returns: { getEntity: sharedTopic },
-      });
-      const service = new TopicService(entityService, logger);
+      const { service } = seededService([
+        makeTopic("same-id-shared", "Same ID", "Shared content.", "shared"),
+      ]);
 
       const result = await service.getTopic("same-id-shared", "shared");
 
       expect(result?.id).toBe("same-id-shared");
     });
 
-    it("createTopic checks existence within the requested visibility partition", async () => {
-      const logger = createSilentLogger();
-      const entityService = createMockEntityService();
-      const service = new TopicService(entityService, logger);
+    it("createTopic preserves an existing topic in the requested partition", async () => {
+      const shell = createMockShell();
+      const service = new TopicService(
+        shell.getEntityService(),
+        createSilentLogger(),
+      );
+      const existingId = service.getTopicIdForTitle("Shared Topic", "shared");
+      shell.addEntities([
+        makeTopic(existingId, "Shared Topic", "User-edited body.", "shared"),
+      ]);
 
-      await service.createTopic({
+      const result = await service.createTopic({
         title: "Shared Topic",
-        content: "Body.",
+        content: "Incoming body.",
         visibility: "shared",
       });
 
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: expect.stringContaining("shared"),
-        visibilityScope: "shared",
-      });
+      expect(result?.id).toBe(existingId);
+      expect(result?.content).toContain("User-edited body.");
     });
 
     it("createTopicOptimistic recovers an existing topic within the requested visibility partition", async () => {
-      const logger = createSilentLogger();
-      const existingRestricted = makeTopic(
-        "race-topic-restricted",
-        "Race Topic",
-        "Created by another worker.",
-        "restricted",
+      const shell = createMockShell();
+      const service = new TopicService(
+        shell.getEntityService(),
+        createSilentLogger(),
       );
-      const entityService = createMockEntityService({
-        returns: { getEntity: existingRestricted },
-      });
-      spyOn(entityService, "createEntity").mockRejectedValue(
+      const existingId = service.getTopicIdForTitle("Race Topic", "restricted");
+      shell.addEntities([
+        makeTopic(
+          existingId,
+          "Race Topic",
+          "Created by another worker.",
+          "restricted",
+        ),
+      ]);
+      spyOn(shell.getEntityService(), "createEntity").mockRejectedValue(
         new Error("Entity already exists"),
       );
-      const service = new TopicService(entityService, logger);
 
       const result = await service.createTopicOptimistic({
         title: "Race Topic",
@@ -404,52 +391,46 @@ describe("TopicService", () => {
       });
 
       expect(result.created).toBe(false);
-      expect(result.topic?.id).toBe("race-topic-restricted");
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "race-topic-restricted",
-        visibilityScope: "restricted",
-      });
+      expect(result.topic?.id).toBe(existingId);
+      expect(result.topic?.content).toContain("Created by another worker.");
     });
 
-    it("updateTopic looks up the existing topic within the requested visibility partition", async () => {
-      const logger = createSilentLogger();
-      const existing = makeTopic(
-        "shared-topic-shared",
-        "Shared Topic",
-        "Original body.",
-        "shared",
-      );
-      const entityService = createMockEntityService({
-        returns: { getEntity: existing },
-      });
-      const service = new TopicService(entityService, logger);
+    it("updateTopic updates only within the requested visibility partition", async () => {
+      const { service } = seededService([
+        makeTopic(
+          "shared-topic-shared",
+          "Shared Topic",
+          "Original body.",
+          "shared",
+        ),
+      ]);
 
-      await service.updateTopic(
+      // Wrong partition: the shared-only topic is not updatable as public.
+      expect(
+        await service.updateTopic(
+          "shared-topic-shared",
+          { content: "Updated body." },
+          "public",
+        ),
+      ).toBeNull();
+
+      const updated = await service.updateTopic(
         "shared-topic-shared",
         { content: "Updated body." },
         "shared",
       );
-
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "shared-topic-shared",
-        visibilityScope: "shared",
-      });
+      expect(updated?.content).toContain("Updated body.");
     });
 
-    it("applySynthesizedMerge looks up and updates the existing topic at the requested visibility", async () => {
-      const logger = createSilentLogger();
-      const existing = makeTopic(
-        "restricted-topic-restricted",
-        "Restricted Topic",
-        "Body.",
-        "restricted",
-      );
-      const entityService = createMockEntityService({
-        returns: { getEntity: existing },
-      });
-      const service = new TopicService(entityService, logger);
+    it("applySynthesizedMerge updates the existing topic at the requested visibility", async () => {
+      const { service } = seededService([
+        makeTopic(
+          "restricted-topic-restricted",
+          "Restricted Topic",
+          "Body.",
+          "restricted",
+        ),
+      ]);
 
       await service.applySynthesizedMerge({
         existingId: "restricted-topic-restricted",
@@ -457,34 +438,39 @@ describe("TopicService", () => {
         visibility: "restricted",
       });
 
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "restricted-topic-restricted",
-        visibilityScope: "restricted",
-      });
+      const merged = await service.getTopic(
+        "restricted-topic-restricted",
+        "restricted",
+      );
+      expect(merged?.content).toContain("Merged body.");
     });
 
-    it("mergeTopics looks up each topic at the requested visibility", async () => {
-      const logger = createSilentLogger();
-      const entityService = createMockEntityService();
-      const service = new TopicService(entityService, logger);
+    it("mergeTopics only merges topics visible in the requested partition", async () => {
+      const { service } = seededService([
+        makeTopic("topic-a-shared", "Topic A", "Body A.", "shared"),
+        makeTopic("topic-b-shared", "Topic B", "Body B.", "shared"),
+        makeTopic("topic-c-public", "Topic C", "Body C.", "public"),
+      ]);
 
-      await service.mergeTopics(
+      const merged = await service.mergeTopics(
         ["topic-a-shared", "topic-b-shared"],
         undefined,
         "shared",
       );
 
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "topic-a-shared",
-        visibilityScope: "shared",
-      });
-      expect(entityService.getEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "topic-b-shared",
-        visibilityScope: "shared",
-      });
+      expect(merged?.id).toBe("topic-a-shared");
+      expect(merged?.content).toContain("Body A.");
+      expect(merged?.content).toContain("Body B.");
+      expect(await service.getTopic("topic-b-shared", "shared")).toBeNull();
+
+      // Public-partition topics are invisible to a merge scoped elsewhere.
+      expect(
+        await service.mergeTopics(
+          ["topic-c-public", "topic-a-shared"],
+          undefined,
+          "restricted",
+        ),
+      ).toBeNull();
     });
   });
 });

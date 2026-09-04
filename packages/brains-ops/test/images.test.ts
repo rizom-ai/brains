@@ -1,4 +1,5 @@
 import { createTempDir } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { describe, expect, it } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -320,11 +321,15 @@ members:
     expect(
       probed.every((line) => line.startsWith("docker manifest inspect")),
     ).toBe(true);
-    const matrix = JSON.parse(outputs["images_json"] ?? "[]") as Array<{
-      tag: string;
-      brain_version: string;
-      site_packages: string;
-    }>;
+    const matrix = z
+      .array(
+        z.looseObject({
+          tag: z.string(),
+          brain_version: z.string(),
+          site_packages: z.string(),
+        }),
+      )
+      .parse(JSON.parse(outputs["images_json"] ?? "[]"));
     expect(matrix).toEqual([
       {
         tag: builds[0]?.tag ?? "",

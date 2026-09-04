@@ -1,19 +1,19 @@
 import {
-  BrowserChatApiError,
-  type BrowserChatHistoryMessage,
-  type BrowserChatSession,
-} from "@brains/contracts/browser-chat";
+  ChatApiError,
+  type ChatHistoryMessage,
+  type ChatSession,
+} from "@brains/contracts/chat";
 import type { UIMessage } from "ai";
-import { createWebChatClient } from "./browser-chat-client";
+import { createWebChatClient } from "./web-chat-client";
 import { toUiMessages } from "./history-messages";
 
-export type WebChatSession = BrowserChatSession;
+export type WebChatSession = ChatSession;
 
 export function describeClientFailure(
   error: unknown,
   fallback: string,
 ): string {
-  if (!(error instanceof BrowserChatApiError)) return fallback;
+  if (!(error instanceof ChatApiError)) return fallback;
   if (error.status === 401 || error.status === 403) {
     return "Your operator session may have expired. Refresh or sign in again.";
   }
@@ -25,7 +25,7 @@ export function describeClientFailure(
 export async function fetchWebChatHistory(
   conversationId: string,
 ): Promise<UIMessage[]> {
-  let messages: BrowserChatHistoryMessage[];
+  let messages: ChatHistoryMessage[];
   try {
     messages = await createWebChatClient().getMessages(conversationId);
   } catch (error) {

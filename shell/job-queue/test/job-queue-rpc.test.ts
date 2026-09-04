@@ -26,11 +26,11 @@ class DirectJsonTransport implements JobQueueRpcTransport {
   }
 
   public async request(payload: JobQueueRpcRequest): Promise<unknown> {
-    const decoded = JSON.parse(JSON.stringify(payload)) as unknown;
+    const decoded: unknown = JSON.parse(JSON.stringify(payload));
     const result = await this.owner.handleRpcRequest(decoded);
-    return result === undefined
-      ? undefined
-      : (JSON.parse(JSON.stringify(result)) as unknown);
+    if (result === undefined) return undefined;
+    const encoded: unknown = JSON.parse(JSON.stringify(result));
+    return encoded;
   }
 
   public close(): void {
@@ -59,7 +59,8 @@ async function expectFileMissing(path: string): Promise<void> {
     () => {
       throw new Error(`Expected ${path} not to exist`);
     },
-    (reason) => reason as Error,
+    (reason: unknown) =>
+      reason instanceof Error ? reason : new Error(String(reason)),
   );
   expect(error).toMatchObject({ code: "ENOENT" });
 }

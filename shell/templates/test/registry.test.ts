@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { TemplateRegistry } from "../src/registry";
+import {
+  InMemoryTemplateRegistry,
+  type TemplateRegistry,
+} from "../src/registry";
 import { createTemplate } from "../src/types";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
@@ -9,7 +12,7 @@ describe("TemplateRegistry", () => {
   let registry: TemplateRegistry;
 
   beforeEach(() => {
-    registry = TemplateRegistry.createFresh();
+    registry = InMemoryTemplateRegistry.createFresh();
   });
 
   describe("basic operations", () => {
@@ -269,7 +272,7 @@ describe("TemplateRegistry", () => {
       const logger = createSilentLogger();
       const errorSpy = spyOn(logger, "error");
 
-      const registryWithLogger = TemplateRegistry.createFresh(logger);
+      const registryWithLogger = InMemoryTemplateRegistry.createFresh(logger);
 
       const template = createTemplate({
         name: "test",
@@ -291,7 +294,7 @@ describe("TemplateRegistry", () => {
       const logger = createSilentLogger();
       const errorSpy = spyOn(logger, "error");
 
-      const registryWithLogger = TemplateRegistry.createFresh(logger);
+      const registryWithLogger = InMemoryTemplateRegistry.createFresh(logger);
 
       const template = createTemplate({
         name: "test",
@@ -312,7 +315,7 @@ describe("TemplateRegistry", () => {
       const logger = createSilentLogger();
       const errorSpy = spyOn(logger, "error");
 
-      const registryWithLogger = TemplateRegistry.createFresh(logger);
+      const registryWithLogger = InMemoryTemplateRegistry.createFresh(logger);
 
       // Valid fetch-only template
       const fetchTemplate = createTemplate({

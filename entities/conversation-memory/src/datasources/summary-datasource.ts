@@ -6,7 +6,7 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { SummaryAdapter } from "../adapters/summary-adapter";
-import type { SummaryEntity } from "../schemas/summary";
+import { summarySchema } from "../schemas/summary";
 import type { SummaryListData } from "../templates/summary-list/schema";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
 import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
@@ -58,10 +58,13 @@ export class SummaryDataSource implements DataSource {
     const queryId = params.query?.conversationId ?? params.query?.id;
 
     if (queryId) {
-      const entity = await entityService.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: queryId,
-      });
+      const entity = await entityService.getEntity(
+        {
+          entityType: SUMMARY_ENTITY_TYPE,
+          id: queryId,
+        },
+        summarySchema,
+      );
       if (!entity) throw new Error(`Summary not found: ${queryId}`);
 
       const { entries } = this.adapter.parseBody(entity.content);
@@ -76,10 +79,13 @@ export class SummaryDataSource implements DataSource {
       return outputSchema.parse(detailData);
     }
 
-    const entities = await entityService.listEntities<SummaryEntity>({
-      entityType: SUMMARY_ENTITY_TYPE,
-      options: { limit: params.query?.limit ?? 100 },
-    });
+    const entities = await entityService.listEntities(
+      {
+        entityType: SUMMARY_ENTITY_TYPE,
+        options: { limit: params.query?.limit ?? 100 },
+      },
+      summarySchema,
+    );
 
     const summaries = entities.map((summary) => {
       const { entries } = this.adapter.parseBody(summary.content);

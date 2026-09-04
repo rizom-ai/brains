@@ -17,7 +17,7 @@ describe("AnalyticsPlugin", () => {
         apiToken: "cf_test_token",
         siteTag: "site123",
       },
-    }) as AnalyticsPlugin;
+    });
   });
 
   describe("Plugin Configuration", () => {
@@ -28,7 +28,7 @@ describe("AnalyticsPlugin", () => {
     });
 
     it("should use default configuration when not provided", () => {
-      const defaultPlugin = createAnalyticsPlugin() as AnalyticsPlugin;
+      const defaultPlugin = createAnalyticsPlugin();
       expect(defaultPlugin.id).toBe("analytics");
       expect(defaultPlugin.version).toBe(packageJson.version);
     });
@@ -40,7 +40,7 @@ describe("AnalyticsPlugin", () => {
           apiToken: "cf_custom",
           siteTag: "custom_site",
         },
-      }) as AnalyticsPlugin;
+      });
 
       expect(customPlugin.id).toBe("analytics");
       expect(customPlugin.version).toBe(packageJson.version);

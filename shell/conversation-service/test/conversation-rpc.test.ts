@@ -36,7 +36,7 @@ function captureThrown(invocation: () => unknown): Error {
   try {
     invocation();
   } catch (error) {
-    return error as Error;
+    return error instanceof Error ? error : new Error(String(error));
   }
   throw new Error("Expected invocation to throw");
 }

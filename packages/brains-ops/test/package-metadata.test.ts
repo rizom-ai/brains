@@ -110,9 +110,12 @@ describe("@rizom/ops package metadata", () => {
       encoding: "utf8",
     });
     expect(build.status).toBe(0);
-    expect(
-      readFileSync(join(packageDir, "dist", "brains-ops.js"), "utf8"),
-    ).toContain("watchdog-smoke-brain");
+    const bundledCli = readFileSync(
+      join(packageDir, "dist", "brains-ops.js"),
+      "utf8",
+    );
+    expect(bundledCli).toContain("watchdog-smoke-brain");
+    expect(bundledCli).toContain("recover:retire-legacy-projection-job");
 
     const pack = spawnSync("npm", ["pack", "--json", "--dry-run"], {
       cwd: packageDir,
@@ -198,6 +201,28 @@ describe("@rizom/ops package metadata", () => {
         encoding: "utf8",
       });
       expect(version.status).toBe(0);
+
+      const help = spawnSync("./node_modules/.bin/brains-ops", ["help"], {
+        cwd: projectDir,
+        encoding: "utf8",
+      });
+      expect(help.status).toBe(0);
+      expect(help.stdout).toContain("recover:retire-legacy-projection-job");
+
+      const recovery = spawnSync(
+        "./node_modules/.bin/brains-ops",
+        [
+          "recover:retire-legacy-projection-job",
+          "/missing/brain-jobs.db",
+          "legacy-job",
+          "--type",
+          "skill:project",
+          "--dry-run",
+        ],
+        { cwd: projectDir, encoding: "utf8" },
+      );
+      expect(recovery.status).toBe(1);
+      expect(recovery.stderr).toContain("Job database does not exist");
 
       const init = spawnSync(
         "./node_modules/.bin/brains-ops",

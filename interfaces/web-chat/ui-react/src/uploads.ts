@@ -1,12 +1,12 @@
 import {
-  browserChatUploadRefSchema,
-  browserChatUploadResponseSchema,
-  type BrowserChatUploadRef,
-  type BrowserChatUploadResponse,
-} from "@brains/contracts/browser-chat";
+  chatUploadRefSchema,
+  chatUploadResponseSchema,
+  type ChatUploadRef,
+  type ChatUploadResponse,
+} from "@brains/contracts/chat";
 import type { FileUIPart, UIMessage } from "ai";
 import { defaultWebChatUploadFilename } from "../../src/upload-policy";
-import { getWebChatApiPaths } from "./browser-chat-client";
+import { getWebChatApiPaths } from "./web-chat-client";
 import { getErrorMessage } from "@brains/utils/error";
 
 export const uploadEndpoint: string = getWebChatApiPaths().uploads;
@@ -14,13 +14,13 @@ export const defaultUploadFilename: typeof defaultWebChatUploadFilename =
   defaultWebChatUploadFilename;
 export const uploadPartType = "data-upload" as const;
 
-export type WebChatUploadRef = BrowserChatUploadRef;
-export type WebChatUploadResponse = BrowserChatUploadResponse;
+export type WebChatUploadRef = ChatUploadRef;
+export type WebChatUploadResponse = ChatUploadResponse;
 
-export const webChatUploadRefSchema: typeof browserChatUploadRefSchema =
-  browserChatUploadRefSchema;
-export const webChatUploadResponseSchema: typeof browserChatUploadResponseSchema =
-  browserChatUploadResponseSchema;
+export const webChatUploadRefSchema: typeof chatUploadRefSchema =
+  chatUploadRefSchema;
+export const webChatUploadResponseSchema: typeof chatUploadResponseSchema =
+  chatUploadResponseSchema;
 export type UploadFetch = (
   input: RequestInfo | URL,
   init?: RequestInit,

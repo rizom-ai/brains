@@ -114,30 +114,35 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-active",
   );
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
-    const method = init?.method ?? "GET";
-    if (url === "/api/chat/sessions" && method === "GET") {
-      return Response.json({
-        sessions: [
-          {
-            id: "web-active",
-            title: "Open thread",
-            lastActiveAt: "2026-07-16T10:00:00.000Z",
-          },
-        ],
-      });
-    }
-    if (url === "/api/chat/messages?id=web-active") {
-      return Response.json({ messages: [] });
-    }
-    mutationCalls.push({ url, method });
-    if (method === "DELETE") return Response.json({ deleted: true });
-    if (url.includes("/archive")) {
-      return Response.json({ archived: true });
-    }
-    return Response.json({ renamed: true, title: "Renamed thread" });
-  }) as typeof fetch;
+  // Object.assign rather than an assertion: Bun types `fetch` with a
+  // `preconnect` member, so the stub carries one instead of claiming to.
+  globalThis.fetch = Object.assign(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url === "/api/chat/sessions" && method === "GET") {
+        return Response.json({
+          sessions: [
+            {
+              id: "web-active",
+              title: "Open thread",
+              lastActiveAt: "2026-07-16T10:00:00.000Z",
+            },
+          ],
+        });
+      }
+      if (url === "/api/chat/messages?id=web-active") {
+        return Response.json({ messages: [] });
+      }
+      mutationCalls.push({ url, method });
+      if (method === "DELETE") return Response.json({ deleted: true });
+      if (url.includes("/archive")) {
+        return Response.json({ archived: true });
+      }
+      return Response.json({ renamed: true, title: "Renamed thread" });
+    },
+    { preconnect: originalFetch.preconnect },
+  );
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,

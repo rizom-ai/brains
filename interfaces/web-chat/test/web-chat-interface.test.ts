@@ -3,11 +3,13 @@ import {
   createExternalActorId,
 } from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/auth-service";
+import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
   IAgentService,
   IConversationService,
   InboxSource,
+  RegisteredWebRoute,
   WebRouteDefinition,
   WebRouteMethod,
 } from "@brains/plugins";
@@ -18,6 +20,25 @@ import {
 import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
 import { WebChatInterface } from "../src";
+import { z } from "@brains/utils/zod";
+
+/**
+ * What the runtime upload endpoint puts on the wire.
+ *
+ * Parsing rather than asserting means an endpoint that stops returning `ref`
+ * or `url` fails here, instead of handing the next request an undefined it
+ * interpolates into a URL.
+ */
+const uploadResponseSchema = z.looseObject({
+  id: z.string(),
+  ref: z.looseObject({ kind: z.string(), id: z.string() }),
+  filename: z.string(),
+  mediaType: z.string(),
+  sizeBytes: z.number(),
+  createdAt: z.string(),
+  url: z.string(),
+  downloadUrl: z.string(),
+});
 
 type ChatContext = Parameters<IAgentService["chat"]>[2];
 type AgentResponse = Awaited<ReturnType<IAgentService["chat"]>>;
@@ -449,6 +470,72 @@ describe("WebChatInterface", () => {
     ]);
   });
 
+  it("resolves durable context-session metadata for native Studio messages", async () => {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("stored-context", "web-chat", {
+            metadata: JSON.stringify({
+              contextHandoff: {
+                version: 1,
+                sourceId: "mail-items",
+                itemId: "mail-1",
+                titleSeed: "Project question",
+              },
+            }),
+          }),
+        ],
+        messagesByConversation: { "stored-context": [] },
+      }),
+    );
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const sourceReads: string[] = [];
+    harness
+      .getMockShell()
+      .getInboxRegistry()
+      .registerSource("email-workflows", {
+        sourceId: "mail-items",
+        displayName: "Mail Items",
+        list: async () => [],
+        resolveDetail: async (itemId) => {
+          sourceReads.push(itemId);
+          return {
+            kind: "plain",
+            text: "Durable context detail",
+            truncated: false,
+          };
+        },
+        act: async () => {},
+      });
+    await harness.finalizeRegistration();
+
+    const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "stored-context",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "What should I do?" }],
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(sourceReads).toEqual(["mail-1"]);
+    expect(agent.chatCalls[0]?.context?.attachments?.[0]).toMatchObject({
+      filename: "inbox-source.txt",
+      content: expect.stringContaining("Durable context detail"),
+    });
+  });
+
   it("fails closed when attached Inbox context cannot be resolved", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
@@ -494,13 +581,162 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls).toHaveLength(0);
   });
 
+  it("idempotently opens an actor-owned context session without persisting source detail", async () => {
+    const conversations: Conversation[] = [];
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations,
+        messagesByConversation: {},
+        startConversation: async (request): Promise<string> => {
+          if (!conversations.some((item) => item.id === request.sessionId)) {
+            conversations.push(
+              makeConversation(request.sessionId, request.interfaceType, {
+                channelId: request.channelId,
+                personId: request.personId ?? null,
+                metadata: JSON.stringify(request.metadata),
+              }),
+            );
+          }
+          return request.sessionId;
+        },
+        updateConversationMetadata: async ({
+          conversationId,
+          metadata,
+        }): Promise<boolean> => {
+          const conversation = conversations.find(
+            (item) => item.id === conversationId,
+          );
+          if (!conversation) return false;
+          conversation.metadata = JSON.stringify({
+            ...JSON.parse(conversation.metadata ?? "{}"),
+            ...metadata,
+          });
+          return true;
+        },
+      }),
+    );
+    const sourceReads: string[] = [];
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    harness
+      .getMockShell()
+      .getInboxRegistry()
+      .registerSource("unified-inbox", {
+        sourceId: "mail-items",
+        displayName: "Mail Items",
+        list: async () => [],
+        resolveDetail: async (itemId) => {
+          sourceReads.push(itemId);
+          return {
+            kind: "plain",
+            text: "Private source detail must remain transient.",
+            truncated: false,
+          };
+        },
+        act: async () => {},
+      });
+    await harness.finalizeRegistration();
+
+    const openContext = async (): Promise<Response> =>
+      requireRoute(plugin, "/api/chat/context-sessions", "POST").handler(
+        new Request("http://brain/api/chat/context-sessions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "http://brain",
+          },
+          body: JSON.stringify({
+            version: 1,
+            sourceId: "mail-items",
+            itemId: "mail-1",
+            titleSeed: "Discuss project mail",
+          }),
+        }),
+      );
+
+    const first = await openContext();
+    const second = await openContext();
+    const contextPayloadSchema = z.looseObject({ conversationId: z.string() });
+    const firstPayload = contextPayloadSchema.parse(await first.json());
+    const secondPayload = contextPayloadSchema.parse(await second.json());
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(firstPayload.conversationId).toStartWith("web-context-");
+    expect(secondPayload).toEqual(firstPayload);
+    expect(conversations).toHaveLength(1);
+    expect(conversations[0]?.personId).toBe("prsn_collaborator");
+    expect(JSON.parse(conversations[0]?.metadata ?? "{}")).toMatchObject({
+      title: "Discuss project mail",
+      contextHandoff: {
+        version: 1,
+        sourceId: "mail-items",
+        itemId: "mail-1",
+        titleSeed: "Discuss project mail",
+      },
+      archivedAt: null,
+    });
+    expect(conversations[0]?.metadata).not.toContain("Private source detail");
+    expect(sourceReads).toEqual(["mail-1", "mail-1"]);
+
+    const sessionsResponse = await requireRoute(
+      plugin,
+      "/api/chat/sessions",
+      "GET",
+    ).handler(new Request("http://brain/api/chat/sessions"));
+    expect(await sessionsResponse.json()).toEqual({
+      sessions: [
+        {
+          id: firstPayload.conversationId,
+          title: "Discuss project mail",
+          lastActiveAt: "2026-05-24T00:01:00.000Z",
+          contextHandoff: {
+            version: 1,
+            sourceId: "mail-items",
+            itemId: "mail-1",
+            titleSeed: "Discuss project mail",
+          },
+        },
+      ],
+    });
+  });
+
+  it("fails context handoff closed before creating a conversation", async () => {
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    await harness.finalizeRegistration();
+
+    const response = await requireRoute(
+      plugin,
+      "/api/chat/context-sessions",
+      "POST",
+    ).handler(
+      new Request("http://brain/api/chat/context-sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "http://brain",
+        },
+        body: JSON.stringify({
+          version: 1,
+          sourceId: "missing-source",
+          itemId: "item-1",
+          titleSeed: "Unavailable source",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.text()).toBe("Source context is unavailable");
+  });
+
   it("exposes chat page, AI SDK endpoint, and UI asset routes", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(16);
+    expect(routes).toHaveLength(18);
     expect(routes[0]).toMatchObject({
       path: "/chat",
       method: "GET",
@@ -542,41 +778,51 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[8]).toMatchObject({
+      path: "/api/chat/context-sessions",
+      method: "POST",
+      public: true,
+    });
+    expect(routes[9]).toMatchObject({
       path: "/api/chat/attachments/document",
       method: "GET",
       public: true,
     });
-    expect(routes[9]).toMatchObject({
+    expect(routes[10]).toMatchObject({
       path: "/api/chat/attachments/image",
       method: "GET",
       public: true,
     });
-    expect(routes[10]).toMatchObject({
+    expect(routes[11]).toMatchObject({
       path: "/api/chat/jobs/status",
       method: "GET",
       public: true,
     });
-    expect(routes[11]).toMatchObject({
+    expect(routes[12]).toMatchObject({
       path: "/chat/assets/app.js",
       method: "GET",
       public: true,
     });
-    expect(routes[12]).toMatchObject({
-      path: "/api/chat/uploads",
-      method: "POST",
-      public: true,
-    });
     expect(routes[13]).toMatchObject({
-      path: "/api/chat/uploads",
+      path: "/chat/assets/app.css",
       method: "GET",
       public: true,
     });
     expect(routes[14]).toMatchObject({
-      path: "/api/agent/chat",
+      path: "/api/chat/uploads",
       method: "POST",
       public: true,
     });
     expect(routes[15]).toMatchObject({
+      path: "/api/chat/uploads",
+      method: "GET",
+      public: true,
+    });
+    expect(routes[16]).toMatchObject({
+      path: "/api/agent/chat",
+      method: "POST",
+      public: true,
+    });
+    expect(routes[17]).toMatchObject({
       path: "/api/agent/chat/confirm",
       method: "POST",
       public: true,
@@ -1266,6 +1512,37 @@ describe("WebChatInterface", () => {
     expect(text).toContain("Authentication required");
   });
 
+  it("redirects authenticated Chat to the configured native Studio workspace", async () => {
+    const shell = harness.getMockShell();
+    const getPluginWebRoutes = shell.getPluginWebRoutes.bind(shell);
+    shell.getPluginWebRoutes = (): RegisteredWebRoute[] => [
+      ...getPluginWebRoutes(),
+      {
+        pluginId: "studio",
+        fullPath: "/operator/api/types",
+        definition: {
+          path: "/operator/api/types",
+          method: "GET",
+          public: true,
+          handler: (_request: Request): Response => new Response(),
+        },
+      },
+    ];
+    const plugin = trustedAuthPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/chat", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/chat?session=conversation%2Fone&ignored=yes"),
+    );
+
+    expect(response?.status).toBe(308);
+    expect(response?.headers.get("location")).toBe(
+      "/operator/workspaces/web-chat%3Achat?session=conversation%2Fone",
+    );
+    expect(response?.headers.get("cache-control")).toBe("no-store");
+  });
+
   it("serves the chat page for Trusted users", async () => {
     const plugin = trustedAuthPlugin();
     await harness.installPlugin(plugin);
@@ -1333,7 +1610,10 @@ describe("WebChatInterface", () => {
     // load them from a third party.
     expect(html).not.toContain("fonts.googleapis.com");
     expect(html).not.toContain("fonts.gstatic.com");
-    expect(html).not.toContain("<link");
+    expect(html).not.toContain('rel="preconnect"');
+    expect(html).toContain(
+      '<link data-web-chat-app-styles rel="stylesheet" href="/chat/assets/app.css">',
+    );
   });
 
   it("registers no playbook bootstrap route", async () => {
@@ -1352,6 +1632,7 @@ describe("WebChatInterface", () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/chat/assets/app.js", "GET");
+    const stylesheetRoute = getRoute(plugin, "/chat/assets/app.css", "GET");
 
     const response = await route?.handler(
       new Request("http://brain/chat/assets/app.js"),
@@ -1361,6 +1642,15 @@ describe("WebChatInterface", () => {
     if (response?.status === 200) {
       expect(response.headers.get("content-type")).toContain("text/javascript");
       expect(text).toContain("data-web-chat-app");
+      const stylesheetResponse = await stylesheetRoute?.handler(
+        new Request("http://brain/chat/assets/app.css"),
+      );
+      expect(stylesheetResponse?.headers.get("content-type")).toContain(
+        "text/css",
+      );
+      expect(await stylesheetResponse?.text()).toContain(
+        "var(--console-accent)",
+      );
     } else {
       expect(response?.status).toBe(404);
       expect(text).toContain("not built");
@@ -1392,6 +1682,90 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(403);
     expect(agent.chatCalls).toHaveLength(0);
+  });
+
+  it("keeps the live message stream compatible with the public decoder", async () => {
+    const agent = createSpyAgentService({
+      text: "Decoded response",
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Decode this response" }],
+            },
+          ],
+        }),
+      }),
+    );
+    if (!response) throw new Error("Missing Chat stream response");
+
+    const events = [];
+    for await (const event of readChatProtocolEvents(response)) {
+      events.push(event);
+    }
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "text-delta",
+        delta: "Decoded response",
+      }),
+    );
+    expect(events.at(-1)).toEqual(
+      expect.objectContaining({ type: "text-end" }),
+    );
+  });
+
+  it("keeps streamed tool results compatible with the public decoder", async () => {
+    const agent = createSpyAgentService({
+      text: "Found one note",
+      toolResults: [{ toolName: "note_search", data: { count: 1 } }],
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+    });
+    harness.setAgentService(agent);
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat", "POST");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Find the note" }],
+            },
+          ],
+        }),
+      }),
+    );
+    if (!response) throw new Error("Missing Chat stream response");
+
+    const events = [];
+    for await (const event of readChatProtocolEvents(response)) {
+      events.push(event);
+    }
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "data-tool-result",
+        data: expect.objectContaining({ toolName: "note_search" }),
+      }),
+    );
   });
 
   it("streams approval cards as AI SDK native tool chunks", async () => {
@@ -2214,16 +2588,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const body = (await response?.json()) as {
-      id: string;
-      ref: { kind: string; id: string };
-      filename: string;
-      mediaType: string;
-      sizeBytes: number;
-      createdAt: string;
-      url: string;
-      downloadUrl: string;
-    };
+    const body = uploadResponseSchema.parse(await response?.json());
 
     expect(response?.status).toBe(201);
     expect(body.id).toStartWith("upload-");
@@ -2278,7 +2643,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const body = (await response?.json()) as { id: string };
+    const body = uploadResponseSchema.parse(await response?.json());
 
     expect(response?.status).toBe(201);
     expect(
@@ -2312,10 +2677,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      id: string;
-      url: string;
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     const response = await downloadRoute?.handler(
       new Request(`http://brain${upload.url}`),
@@ -2344,12 +2706,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      filename: string;
-      mediaType: string;
-      sizeBytes: number;
-      url: string;
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     expect(uploadResponse?.status).toBe(201);
     expect(upload).toEqual(
@@ -2518,7 +2875,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const body = (await response?.json()) as { id: string };
+    const body = uploadResponseSchema.parse(await response?.json());
 
     expect(response?.status).toBe(201);
     // Stale dir removed, fresh upload retained.
@@ -2548,9 +2905,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     const response = await chatRoute?.handler(
       new Request("http://brain/api/chat", {
@@ -2599,9 +2954,7 @@ describe("WebChatInterface", () => {
         body: form,
       }),
     );
-    const upload = (await uploadResponse?.json()) as {
-      ref: { kind: string; id: string };
-    };
+    const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
     const response = await chatRoute?.handler(
       new Request("http://brain/api/chat", {

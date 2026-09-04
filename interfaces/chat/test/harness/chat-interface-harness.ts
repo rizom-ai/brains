@@ -833,5 +833,6 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
 export function withToolActivity(
   plugin: ChatInterfaceInstance,
 ): ChatInterfaceWithToolActivity {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
   return plugin as ChatInterfaceWithToolActivity;
 }

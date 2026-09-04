@@ -2,12 +2,17 @@
  * Test utilities for plugin development
  * Import from "@brains/plugins/test" instead of deep paths
  */
-export { createMockShell, type MockShell } from "@brains/test-utils";
+export {
+  createMockShell,
+  createTestEntityAdapter,
+  type MockShell,
+} from "@brains/test-utils";
 export {
   PluginTestHarness,
   createPluginHarness,
   expectSuccess,
   expectError,
+  confirmationArgs,
   expectConfirmation,
   type HarnessOptions,
 } from "./src/test/harness";

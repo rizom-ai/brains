@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 import { MCPService, type Tool } from "@brains/mcp-service";
+import { createMockMessageBus } from "@brains/messaging-service/test";
 import type { IConversationService } from "@brains/conversation-service";
 import type {
   AnchorProfile,
@@ -52,10 +53,6 @@ function createProfileService(): IAnchorProfileService {
       description: "Test",
     })),
   };
-}
-
-function createNoopUnsubscribe(): () => void {
-  return (): void => undefined;
 }
 
 describe("generated artifact cards", () => {
@@ -183,14 +180,7 @@ describe("generated artifact tool loop", () => {
     });
 
     const logger = createSilentLogger();
-    const mcpService = MCPService.createFresh(
-      {
-        send: mock(async () => ({ success: true })),
-        subscribe: mock(() => createNoopUnsubscribe()),
-        unsubscribe: mock(() => undefined),
-      },
-      logger,
-    );
+    const mcpService = MCPService.createFresh(createMockMessageBus(), logger);
     mcpService.registerTool("system", systemGenerate);
     const service = AgentService.createFresh(
       mcpService,

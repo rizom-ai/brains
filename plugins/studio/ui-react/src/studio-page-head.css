@@ -226,7 +226,10 @@
 }
 
 @media (max-width: 640px) {
+  /* The document is the phone scroll region on reading surfaces, so the
+     workspace frame stops owning one of its own. */
   .studio-workspace-frame {
+    overflow: visible;
     padding: 14px 16px calc(28px + env(safe-area-inset-bottom));
   }
 
@@ -316,8 +319,16 @@
   }
 
   .studio-page-head-metadata > span:not(:first-child),
-  .studio-page-head-totals > div:not(:first-child),
   .studio-page-head[data-has-totals="true"] .studio-head-status {
+    display: none;
+  }
+
+  /* The phone head keeps the leading total and anything asking for attention.
+     Dropping every total but the first cost Inbox its warn-toned "High
+     priority" count — the one number triage is actually for — so tone, not
+     position, decides what survives the narrow head. */
+  .studio-page-head-totals
+    > div:not(:first-child):not([data-tone="warn"]):not([data-tone="error"]) {
     display: none;
   }
 
@@ -343,7 +354,6 @@
     pointer-events: none;
   }
 
-  .studio-page-head-action:has(.declarative-action-disclosure[open]),
   .studio-page-head-action:has(.declarative-action-result) {
     max-height: calc(100dvh - 124px);
     overflow-y: auto;
@@ -357,36 +367,19 @@
 
   .studio-page-head-action .declarative-action-control,
   .studio-page-head-action .declarative-action-disclosure,
-  .studio-page-head-action > .btn {
+  .studio-page-head-action > [data-slot="button"] {
     width: fit-content;
     max-width: 100%;
     pointer-events: auto;
   }
 
-  .studio-page-head-action:has(.declarative-action-disclosure[open])
-    .declarative-action-control,
-  .studio-page-head-action:has(.declarative-action-disclosure[open])
-    .declarative-action-disclosure,
   .studio-page-head-action:has(.declarative-action-result)
     .declarative-action-control {
     width: 100%;
   }
 
-  .studio-page-head-action > .btn,
-  .studio-page-head-action .declarative-action-control > .btn,
-  .studio-page-head-action .declarative-action-form > .btn,
-  .studio-page-head-action .declarative-action-disclosure > summary {
+  .studio-page-head-action [data-slot="button"] {
     min-height: var(--console-touch);
-    border-color: var(--console-accent);
-    background: var(--console-accent);
-    color: var(--console-on-accent);
-    box-shadow: 0 8px 24px -12px
-      color-mix(in srgb, var(--console-text) 75%, transparent);
-  }
-
-  .studio-page-head-action .declarative-action-disclosure[open] {
-    max-height: none;
-    overflow-y: visible;
   }
 
   .studio-page-head-action .declarative-action-form,

@@ -15,6 +15,7 @@ import type {
 import {
   parseProjectionStoreRpcResult,
   type ProjectionStoreRpcRequest,
+  type ProjectionStoreRpcResults,
   type ProjectionStoreRpcTransport,
 } from "./projection-rpc";
 import type {
@@ -36,20 +37,23 @@ export class RemoteProjectionStore implements IProjectionStore {
     this.assertOpen = assertOpen;
   }
 
-  private async requestRemote<T>(
-    request: ProjectionStoreRpcRequest,
-  ): Promise<T> {
+  private async requestRemote<TRequest extends ProjectionStoreRpcRequest>(
+    request: TRequest,
+  ): Promise<ProjectionStoreRpcResults[TRequest["operation"]]> {
     this.assertOpen();
     const result = await this.transport.request(request);
-    return parseProjectionStoreRpcResult(request, result) as T;
+    return parseProjectionStoreRpcResult<TRequest["operation"]>(
+      request,
+      result,
+    );
   }
 
   public markDirty(input: MarkProjectionDirtyInput): Promise<number> {
-    return this.requestRemote<number>({ operation: "markDirty", input });
+    return this.requestRemote({ operation: "markDirty", input });
   }
 
   public listPendingInputs(): Promise<ProjectionDirtyInput[]> {
-    return this.requestRemote<ProjectionDirtyInput[]>({
+    return this.requestRemote({
       operation: "listPendingInputs",
     });
   }
@@ -57,21 +61,21 @@ export class RemoteProjectionStore implements IProjectionStore {
   public claimPendingWave(
     input: ClaimProjectionWaveInput,
   ): Promise<ProjectionWave | null> {
-    return this.requestRemote<ProjectionWave | null>({
+    return this.requestRemote({
       operation: "claimPendingWave",
       input,
     });
   }
 
   public listWaveInputs(waveId: string): Promise<ProjectionWaveInput[]> {
-    return this.requestRemote<ProjectionWaveInput[]>({
+    return this.requestRemote({
       operation: "listWaveInputs",
       waveId,
     });
   }
 
   public getWave(waveId: string): Promise<ProjectionWave | null> {
-    return this.requestRemote<ProjectionWave | null>({
+    return this.requestRemote({
       operation: "getWave",
       waveId,
     });
@@ -93,7 +97,7 @@ export class RemoteProjectionStore implements IProjectionStore {
     waveId: string,
     supersededAt: number,
   ): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "supersedeWaveIfStale",
       waveId,
       supersededAt,
@@ -101,7 +105,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   }
 
   public getActiveWave(): Promise<ProjectionWave | null> {
-    return this.requestRemote<ProjectionWave | null>({
+    return this.requestRemote({
       operation: "getActiveWave",
     });
   }
@@ -110,7 +114,7 @@ export class RemoteProjectionStore implements IProjectionStore {
     waveId: string,
     completedAt: number,
   ): Promise<ProjectionWave> {
-    return this.requestRemote<ProjectionWave>({
+    return this.requestRemote({
       operation: "completeWave",
       waveId,
       completedAt,
@@ -118,7 +122,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   }
 
   public failWave(waveId: string, failedAt: number): Promise<ProjectionWave> {
-    return this.requestRemote<ProjectionWave>({
+    return this.requestRemote({
       operation: "failWave",
       waveId,
       failedAt,
@@ -128,7 +132,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   public failWaveWithIncident(
     input: ProjectionIncidentInput,
   ): Promise<ProjectionWave> {
-    return this.requestRemote<ProjectionWave>({
+    return this.requestRemote({
       operation: "failWaveWithIncident",
       input,
     });
@@ -137,7 +141,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   public getUnresolvedProjectionIncidentDiagnostics(
     limit?: number,
   ): Promise<ProjectionIncidentDiagnostics> {
-    return this.requestRemote<ProjectionIncidentDiagnostics>({
+    return this.requestRemote({
       operation: "getUnresolvedProjectionIncidentDiagnostics",
       limit,
     });
@@ -147,7 +151,7 @@ export class RemoteProjectionStore implements IProjectionStore {
     waveId: string,
     rules: readonly ProjectionWaveRuleInput[],
   ): Promise<void> {
-    return this.requestRemote<void>({
+    return this.requestRemote({
       operation: "putWaveRules",
       waveId,
       rules,
@@ -155,7 +159,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   }
 
   public listWaveRules(waveId: string): Promise<ProjectionWaveRule[]> {
-    return this.requestRemote<ProjectionWaveRule[]>({
+    return this.requestRemote({
       operation: "listWaveRules",
       waveId,
     });
@@ -166,7 +170,7 @@ export class RemoteProjectionStore implements IProjectionStore {
     ruleId: string,
     jobId: string,
   ): Promise<ProjectionWaveRule> {
-    return this.requestRemote<ProjectionWaveRule>({
+    return this.requestRemote({
       operation: "queueWaveRule",
       waveId,
       ruleId,
@@ -178,7 +182,7 @@ export class RemoteProjectionStore implements IProjectionStore {
     waveId: string,
     ruleId: string,
   ): Promise<ProjectionWaveRule | null> {
-    return this.requestRemote<ProjectionWaveRule | null>({
+    return this.requestRemote({
       operation: "getWaveRule",
       waveId,
       ruleId,
@@ -188,7 +192,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   public applyRuleResult(
     input: ApplyProjectionRuleResultInput,
   ): Promise<ProjectionWaveRule | null> {
-    return this.requestRemote<ProjectionWaveRule | null>({
+    return this.requestRemote({
       operation: "applyRuleResult",
       input,
     });
@@ -197,7 +201,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   public getRuleMemo(
     input: GetProjectionRuleMemoInput,
   ): Promise<ProjectionRuleMemoValue | null> {
-    return this.requestRemote<ProjectionRuleMemoValue | null>({
+    return this.requestRemote({
       operation: "getRuleMemo",
       input,
     });
@@ -206,21 +210,21 @@ export class RemoteProjectionStore implements IProjectionStore {
   public openCallbackBatch(
     input: BulkMutationInput,
   ): Promise<ProjectionBatchScope> {
-    return this.requestRemote<ProjectionBatchScope>({
+    return this.requestRemote({
       operation: "openCallbackBatch",
       input,
     });
   }
 
   public renewCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
-    return this.requestRemote<void>({
+    return this.requestRemote({
       operation: "renewCallbackBatch",
       scope,
     });
   }
 
   public closeCallbackBatch(scope: ProjectionBatchScope): Promise<void> {
-    return this.requestRemote<void>({
+    return this.requestRemote({
       operation: "closeCallbackBatch",
       scope,
     });
@@ -229,7 +233,7 @@ export class RemoteProjectionStore implements IProjectionStore {
   public openDurableBatchChild(
     input: DurableBulkMutationChildInput,
   ): Promise<ProjectionBatchScope> {
-    return this.requestRemote<ProjectionBatchScope>({
+    return this.requestRemote({
       operation: "openDurableBatchChild",
       input,
     });

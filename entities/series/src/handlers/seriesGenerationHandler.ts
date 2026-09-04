@@ -6,8 +6,8 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
-import type { Series } from "../schemas/series";
 import {
+  seriesSchema,
   seriesFrontmatterSchema,
   createSeriesBodyFormatter,
 } from "../schemas/series";
@@ -29,6 +29,11 @@ interface MemberSummary {
   title?: string | undefined;
   excerpt?: string | undefined;
 }
+
+/** Shape the series description template returns. */
+export const generatedSeriesDescriptionSchema: z.ZodObject<{
+  description: z.ZodString;
+}> = z.object({ description: z.string() });
 
 const memberSummarySchema: z.ZodType<MemberSummary> = z.object({
   title: z.string().optional(),
@@ -56,10 +61,13 @@ export class SeriesGenerationHandler implements JobHandler<
       return { success: false, error: "seriesId or title required" };
     }
 
-    const series = await this.context.entityService.getEntity<Series>({
-      entityType: "series",
-      id: seriesId,
-    });
+    const series = await this.context.entityService.getEntity(
+      {
+        entityType: "series",
+        id: seriesId,
+      },
+      seriesSchema,
+    );
     if (!series) {
       return { success: false, error: `Series not found: ${seriesId}` };
     }
@@ -77,13 +85,14 @@ export class SeriesGenerationHandler implements JobHandler<
       data.prompt ??
       `Series name: ${series.metadata.title}\n\nContent in this series:\n${summaries.join("\n")}`;
 
-    const generated = await this.context.ai.generate<{
-      description: string;
-    }>({
-      prompt,
-      templateName: "series:description",
-      representedIdentity: "none",
-    });
+    const generated = await this.context.ai.generate(
+      {
+        prompt,
+        templateName: "series:description",
+        representedIdentity: "none",
+      },
+      generatedSeriesDescriptionSchema,
+    );
 
     if (!generated.description) {
       return { success: false, error: "Failed to generate description" };

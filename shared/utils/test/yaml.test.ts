@@ -1,6 +1,42 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "../src/zod";
-import { parseYamlDocument } from "../src/yaml";
+import { fromYaml, parseYamlDocument } from "../src/yaml";
+
+/** Compile-time exact type equality; `tsc --noEmit` is the assertion. */
+type Equals<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+
+describe("fromYaml", () => {
+  it("returns unknown so callers must narrow before use", () => {
+    const returnsUnknown: Equals<ReturnType<typeof fromYaml>, unknown> = true;
+    expect(returnsUnknown).toBe(true);
+  });
+
+  it("parses a mapping", () => {
+    const parsed = fromYaml("name: example\nenabled: true");
+    expect(parsed).toEqual({ name: "example", enabled: true });
+  });
+
+  it("parses non-mapping documents without complaint", () => {
+    const list = fromYaml("- a\n- b");
+    if (!Array.isArray(list)) throw new Error("expected a YAML sequence");
+    expect(list).toEqual(["a", "b"]);
+
+    const scalar = fromYaml("just a string");
+    if (typeof scalar !== "string") throw new Error("expected a YAML scalar");
+    expect(scalar).toBe("just a string");
+  });
+
+  it("returns undefined for an empty document", () => {
+    expect(fromYaml("")).toBeUndefined();
+  });
+
+  it("throws on invalid YAML syntax", () => {
+    expect(() => fromYaml("brain: [invalid: yaml: here")).toThrow();
+  });
+});
 
 describe("parseYamlDocument", () => {
   describe("without schema", () => {

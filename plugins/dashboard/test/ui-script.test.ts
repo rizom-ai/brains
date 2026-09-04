@@ -57,8 +57,10 @@ beforeEach(() => {
 
 afterEach(() => {
   window.close();
-  delete (globalThis as Record<string, unknown>)["window"];
-  delete (globalThis as Record<string, unknown>)["document"];
+  // `delete` on globalThis needs the property to be optional; Reflect does the
+  // same removal without asserting the global object into a bag of unknowns.
+  Reflect.deleteProperty(globalThis, "window");
+  Reflect.deleteProperty(globalThis, "document");
 });
 
 describe("dashboard tab behavior", () => {
@@ -249,6 +251,51 @@ describe("dashboard spatial behavior", () => {
     ).toBe(false);
     expect(element("#b").getAttribute("aria-pressed")).toBe("false");
     expect(element("#detail-b").hasAttribute("hidden")).toBe(true);
+  });
+});
+
+describe("dashboard knowledge atlas behavior", () => {
+  it("links territory focus to its map contour and restores the leading territory", () => {
+    window.document.body.innerHTML = `
+      <div data-knowledge-atlas>
+        <div data-knowledge-zone="governance" class="knowledge-zone"></div>
+        <div data-knowledge-zone="learning" class="knowledge-zone"></div>
+        <button data-knowledge-zone-ref="governance" aria-pressed="false">Governance</button>
+        <button data-knowledge-zone-ref="learning" aria-pressed="false">Learning</button>
+      </div>
+      <button id="outside">Outside</button>`;
+
+    runScript();
+
+    expect(
+      element('[data-knowledge-zone="governance"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(true);
+    expect(
+      element('[data-knowledge-zone-ref="governance"]').getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("true");
+
+    focus('[data-knowledge-zone-ref="learning"]');
+    expect(
+      element('[data-knowledge-zone="learning"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(true);
+    expect(
+      element('[data-knowledge-zone="governance"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(false);
+
+    focus("#outside");
+    expect(
+      element('[data-knowledge-zone="governance"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(true);
   });
 });
 

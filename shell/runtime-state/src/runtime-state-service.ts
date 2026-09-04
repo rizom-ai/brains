@@ -1,5 +1,5 @@
 import type { Client } from "@libsql/client";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createRuntimeStateDatabase, type RuntimeStateDB } from "./db";
 import { RuntimeStateStore } from "./runtime-state-store";
@@ -25,7 +25,10 @@ export class RuntimeStateService implements IRuntimeStateService {
     config: RuntimeStateServiceConfig,
     logger?: Logger,
   ): RuntimeStateService {
-    return new RuntimeStateService(config, logger ?? Logger.getInstance());
+    return new RuntimeStateService(
+      config,
+      logger ?? ConsoleLogger.getInstance(),
+    );
   }
 
   private constructor(config: RuntimeStateServiceConfig, logger: Logger) {

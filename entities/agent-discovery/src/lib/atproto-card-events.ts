@@ -16,10 +16,16 @@ import {
   type ResolveHostname,
 } from "@brains/utils/safe-public-fetch";
 import { slugifyUrl } from "@brains/utils/string-utils";
+
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { FetchFn } from "./fetch-agent-card";
-import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
+import {
+  agentEntitySchema,
+  type AgentEntity,
+  type AgentSkill,
+  type AgentStatus,
+} from "../schemas/agent";
 
 const agentAdapter = new AgentAdapter();
 const CARD_UNAVAILABLE_FAILURE_THRESHOLD = 3;
@@ -27,6 +33,18 @@ const pdsRecordResponseSchema = z.looseObject({
   uri: z.string().min(1),
   cid: z.string().min(1),
   value: z.unknown(),
+});
+
+/** The slice of a PLC directory document this module reads. */
+const plcDocumentSchema = z.looseObject({
+  service: z
+    .array(
+      z.looseObject({
+        id: z.string().optional(),
+        serviceEndpoint: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 function toAgentSkills(record: AtprotoBrainCardRecord): AgentSkill[] {
@@ -105,10 +123,13 @@ export async function upsertAgentFromCard(
     );
   }
   const agentId = domainIdFromUrl(siteUrl);
-  const existing = await context.entityService.getEntity<AgentEntity>({
-    entityType: "agent",
-    id: agentId,
-  });
+  const existing = await context.entityService.getEntity(
+    {
+      entityType: "agent",
+      id: agentId,
+    },
+    agentEntitySchema,
+  );
   if (
     existing?.metadata.repoDid &&
     existing.metadata.repoDid !== input.repoDid
@@ -341,9 +362,7 @@ async function resolvePdsEndpoint(
     throw new Error(`PLC lookup failed with HTTP ${response.status}`);
   }
 
-  const document = (await response.json()) as {
-    service?: Array<{ id?: string; serviceEndpoint?: string }>;
-  };
+  const document = plcDocumentSchema.parse(await response.json());
   const endpoint = document.service?.find(
     (service) => service.id === "#atproto_pds",
   )?.serviceEndpoint;
@@ -547,9 +566,12 @@ export async function refreshKnownAgentCards(
     unchanged: 0,
     failed: 0,
   };
-  const agents = await context.entityService.listEntities<AgentEntity>({
-    entityType: "agent",
-  });
+  const agents = await context.entityService.listEntities(
+    {
+      entityType: "agent",
+    },
+    agentEntitySchema,
+  );
   const rawFetch = getFetch(fetchFn);
   const resolvedFetch = createSafePublicFetch({
     fetchFn: rawFetch,
@@ -644,9 +666,12 @@ export function registerAtprotoBrainCardHandlers(
       const parsed = atprotoBrainCardUnavailablePayloadSchema.parse(
         message.payload,
       );
-      const agents = await context.entityService.listEntities<AgentEntity>({
-        entityType: "agent",
-      });
+      const agents = await context.entityService.listEntities(
+        {
+          entityType: "agent",
+        },
+        agentEntitySchema,
+      );
       const matching = agents.filter(
         (agent) => agent.metadata.repoDid === parsed.repoDid,
       );

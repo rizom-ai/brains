@@ -696,7 +696,8 @@ function healthyGitProgress(): Omit<RuntimeHealthCheck, "name"> {
 function parseStoredJobResult(result: unknown): unknown {
   if (typeof result !== "string") return result;
   try {
-    return JSON.parse(result) as unknown;
+    const parsed: unknown = JSON.parse(result);
+    return parsed;
   } catch {
     return result;
   }

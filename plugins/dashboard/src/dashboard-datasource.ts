@@ -131,9 +131,11 @@ export class DashboardDataSource implements DataSource {
 
   async fetch<T>(
     _query: unknown,
-    _outputSchema: DataSourceSchema<T>,
+    outputSchema: DataSourceSchema<T>,
     _context: BaseDataSourceContext,
   ): Promise<T> {
-    return (await this.getDashboardData()) as T;
+    // The caller already hands us the schema for T; parsing through it is what
+    // makes the return type true, where the previous assertion just claimed it.
+    return outputSchema.parse(await this.getDashboardData());
   }
 }

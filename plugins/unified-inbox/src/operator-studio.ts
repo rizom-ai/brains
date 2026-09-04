@@ -207,6 +207,21 @@ function actionsCard(items: ReturnType<typeof entryActions>): InboxCardBlock {
   };
 }
 
+/**
+ * A row's timestamp is read, not parsed. The protocol carries metadata as
+ * opaque strings, so the source that knows a value is a time is the one that
+ * has to render it — the host cannot tell a timestamp from any other string
+ * without guessing at its shape.
+ *
+ * Absolute rather than relative: this snapshot is cached and re-served, so a
+ * "2 hours ago" computed here would age against the reader.
+ */
+export function formatReceivedAt(iso: string): string {
+  const received = new Date(iso);
+  if (Number.isNaN(received.getTime())) return iso;
+  return received.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+}
+
 const inboxWorkspace = defineStudioWorkspace({
   id: "inbox",
   label: "Inbox",
@@ -335,6 +350,10 @@ const inboxWorkspace = defineStudioWorkspace({
           },
         ],
       },
+      // A dead source sits above the work it would have contributed, so the
+      // operator sees it before scanning rows — but below the summary, whose
+      // leading stats block is what the page head promotes into its totals.
+      ...errorBlocks,
       {
         type: "query",
         id: "inbox-query",
@@ -377,7 +396,7 @@ const inboxWorkspace = defineStudioWorkspace({
             description: entry.item.summary,
             metadata: [
               entry.source.displayName,
-              entry.item.receivedAt,
+              formatReceivedAt(entry.item.receivedAt),
               ...(entry.item.threadOrdinal === undefined
                 ? []
                 : [`Message ${entry.item.threadOrdinal} in thread`]),
@@ -392,7 +411,6 @@ const inboxWorkspace = defineStudioWorkspace({
           })),
         },
       },
-      ...errorBlocks,
     ];
     const online = snapshot.sources.filter((source) => source.available).length;
     return {

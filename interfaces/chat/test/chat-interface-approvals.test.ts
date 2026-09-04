@@ -14,7 +14,6 @@ import {
   withToolActivity,
 } from "./harness/chat-interface-harness";
 import type {
-  MockActionEvent,
   MockPostMessage,
   MockSentMessage,
 } from "./harness/chat-interface-harness";
@@ -216,7 +215,7 @@ describe("ChatInterface approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent;
+    };
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     expect(thread.post).toHaveBeenCalledTimes(1);
@@ -347,7 +346,7 @@ describe("ChatInterface approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent);
+    });
 
     expect(thread.post).toHaveBeenCalledTimes(2);
     expect(thread.post).toHaveBeenNthCalledWith(
@@ -466,7 +465,7 @@ describe("ChatInterface approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent);
+    });
 
     expect(approvalMessage?.edit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -523,7 +522,7 @@ describe("ChatInterface approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent);
+    });
 
     expect(approvalMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -604,7 +603,7 @@ describe("ChatInterface approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent);
+    });
 
     expect(approvalMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -656,7 +655,7 @@ describe("ChatInterface approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.confirmPendingAction).not.toHaveBeenCalled();
   });

@@ -119,7 +119,8 @@ async function expectFileMissing(path: string): Promise<void> {
     () => {
       throw new Error(`Expected ${path} not to exist`);
     },
-    (reason) => reason as Error,
+    (reason: unknown) =>
+      reason instanceof Error ? reason : new Error(String(reason)),
   );
   expect(error).toMatchObject({ code: "ENOENT" });
 }

@@ -75,7 +75,7 @@ function captureThrown(invocation: () => unknown): Error {
   try {
     invocation();
   } catch (error) {
-    return error as Error;
+    return error instanceof Error ? error : new Error(String(error));
   }
   throw new Error("Expected invocation to throw");
 }
@@ -144,10 +144,13 @@ describe("entity owner RPC", () => {
     });
     expect(createdEvents).toBe(1);
     expect(
-      await owner.getEntity<Note>({ entityType: "note", id: "remote-note" }),
+      await owner.getEntity<Note>(
+        { entityType: "note", id: "remote-note" },
+        noteSchema,
+      ),
     ).toMatchObject({ title: "Owner boundary" });
     expect(
-      await remote.listEntities<Note>({ entityType: "note" }),
+      await remote.listEntities<Note>({ entityType: "note" }, noteSchema),
     ).toHaveLength(1);
     expect(await remote.countEntities({ entityType: "note" })).toBe(1);
     expect(await remote.getEntityCounts("restricted")).toContainEqual({
@@ -158,17 +161,22 @@ describe("entity owner RPC", () => {
       query: "searchable",
       options: { visibilityScope: "restricted" as const },
     };
-    expect(await remote.search<Note>(searchRequest)).toEqual(
-      await owner.search<Note>(searchRequest),
+    expect(await remote.search(searchRequest)).toEqual(
+      await owner.search(searchRequest),
     );
 
-    const entity = await remote.getEntity<Note>({
-      entityType: "note",
-      id: "remote-note",
-      visibilityScope: "restricted",
-    });
+    const entity = await remote.getEntity<Note>(
+      {
+        entityType: "note",
+        id: "remote-note",
+        visibilityScope: "restricted",
+      },
+      noteSchema,
+    );
     expect(entity).not.toBeNull();
-    expect(remote.serializeEntity(entity as Note)).toContain("Owner boundary");
+    expect(remote.serializeEntity(noteSchema.parse(entity))).toContain(
+      "Owner boundary",
+    );
     expect(remote.deserializeEntity("# Local\n\nbody", "note")).toMatchObject({
       title: "Untitled",
     });

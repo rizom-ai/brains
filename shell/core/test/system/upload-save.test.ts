@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { IConversationService } from "@brains/conversation-service";
+import {
+  expectConfirmationArgs,
+  expectToolConfirmation,
+  expectToolError,
+} from "@brains/test-utils";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UploadSaveHandler } from "@brains/entity-service";
 import type {
@@ -156,20 +161,25 @@ describe("system_create upload preserve", () => {
       context(),
     );
 
-    expect(pending).toMatchObject({
+    // Parsed before the assertions: `toMatchObject` replaces matched fields on
+    // the received object with the matcher itself, so anything read from
+    // `pending` afterwards is the matcher rather than the value.
+    const confirmation = expectToolConfirmation(pending);
+    const confirmationArgs = expectConfirmationArgs(pending);
+
+    expect(confirmation).toMatchObject({
       needsConfirmation: true,
       toolName: "system_create",
       summary: 'Save uploaded file as "Quarterly Report"?',
       preview: expect.stringContaining("Visibility: shared"),
     });
-    expect(pending).toHaveProperty("args.visibility", "shared");
-    expect(pending).toHaveProperty("args.source.transform", "preserve");
+    expect(confirmationArgs).toMatchObject({
+      visibility: "shared",
+      source: { transform: "preserve" },
+    });
     expect(calls).toEqual([]);
 
-    const confirmed = await tool.handler(
-      (pending as { args: Record<string, unknown> }).args,
-      context(),
-    );
+    const confirmed = await tool.handler(confirmationArgs, context());
 
     expect(confirmed).toMatchObject({
       success: true,
@@ -211,20 +221,17 @@ describe("system_create upload preserve", () => {
       context(),
     );
 
-    expect(pending).toMatchObject({
+    const confirmation = expectToolConfirmation(pending);
+    const confirmationArgs = expectConfirmationArgs(pending);
+
+    expect(confirmation).toMatchObject({
       needsConfirmation: true,
       toolName: "system_create",
     });
-    expect(pending).toHaveProperty("args.entityType", "document");
-    expect(pending).toHaveProperty("preview");
-    expect((pending as { preview: string }).preview).toContain(
-      "Entity type: document",
-    );
+    expect(confirmationArgs).toMatchObject({ entityType: "document" });
+    expect(confirmation.preview).toContain("Entity type: document");
 
-    const confirmed = await tool.handler(
-      (pending as { args: Record<string, unknown> }).args,
-      context(),
-    );
+    const confirmed = await tool.handler(confirmationArgs, context());
 
     expect(confirmed).toMatchObject({ success: true });
     expect(calls).toEqual([
@@ -257,7 +264,7 @@ describe("system_create upload preserve", () => {
       },
       context(),
     );
-    const args = (pending as { args: Record<string, unknown> }).args;
+    const args = expectConfirmationArgs(pending);
 
     const swapped = await tool.handler(
       { ...args, title: "Different Title" },
@@ -265,7 +272,7 @@ describe("system_create upload preserve", () => {
     );
 
     expect(swapped).toMatchObject({ success: false });
-    expect((swapped as { error: string }).error).toContain(
+    expect(expectToolError(swapped).error).toContain(
       "do not match the pending approval",
     );
     expect(calls).toEqual([]);

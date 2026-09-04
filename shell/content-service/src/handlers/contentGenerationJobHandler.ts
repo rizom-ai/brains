@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
+import { readString } from "@brains/utils/record-fields";
 // Remove ContentGenerationRequest import - we'll define our own schema
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { ContentService, GenerationContext } from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
@@ -52,7 +53,9 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
     contentService: ContentService,
     entityService: IEntityService,
   ) {
-    this.logger = Logger.getInstance().child("ContentGenerationJobHandler");
+    this.logger = ConsoleLogger.getInstance().child(
+      "ContentGenerationJobHandler",
+    );
     this.contentService = contentService;
     this.entityService = entityService;
   }
@@ -95,7 +98,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
           data.context.conversationHistory;
       }
 
-      const content = await this.contentService.generateContent<unknown>(
+      const content = await this.contentService.generateContent(
         data.templateName,
         generationContext,
       );
@@ -115,9 +118,8 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
 
       // Save the generated content as an entity if entityId and entityType are provided
       if (data.entityId && data.entityType) {
-        const routeId = data.context.data?.["routeId"] as string | undefined;
-        const sectionId = data.context.data?.["sectionId"] as
-          string | undefined;
+        const routeId = readString(data.context.data, "routeId");
+        const sectionId = readString(data.context.data, "sectionId");
 
         // Only save if we have the required metadata
         if (routeId && sectionId) {

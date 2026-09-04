@@ -47,24 +47,16 @@ describe("CLI Interface - Agent Context Integration", () => {
     // Process input which should call agent
     await cliInterface.processInput("Hello world");
 
-    // Verify chat was called
-    expect(chatMock).toHaveBeenCalled();
-    const call = chatMock.mock.calls[0];
-    expect(call).toBeDefined();
-    if (!call) throw new Error("No call found");
-
-    // Verify the context parameter contains channelName: "CLI Terminal"
-    const [message, conversationId, context] = call as [
-      string,
-      string,
-      ChatContext,
-    ];
-    expect(message).toBe("Hello world");
-    expect(conversationId).toBe("cli");
-    expect(context).toBeDefined();
-    expect(context.channelName).toBe("CLI Terminal");
-    expect(context.interfaceType).toBe("cli");
-    expect(context.userPermissionLevel).toBe("admin");
+    // What the CLI hands the agent service is the contract under test.
+    expect(chatMock).toHaveBeenCalledWith(
+      "Hello world",
+      "cli",
+      expect.objectContaining({
+        channelName: "CLI Terminal",
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+      }),
+    );
   });
 
   it("should use same conversation ID for all messages in session", async () => {

@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
 import { MarkdownImageConverter } from "../../src/lib/markdown-image-converter";
 import {
   createSilentLogger,
@@ -350,10 +350,12 @@ slug: my-post
 
 ![Second](https://example.com/second.png)`;
 
+      // Spied before the call: the recorded arguments come back typed by the
+      // member instead of being reached for through an assertion.
+      const createEntity = spyOn(mockEntityService, "createEntity");
       await converter.convert(content, "my-post");
 
-      const calls = (mockEntityService.createEntity as ReturnType<typeof mock>)
-        .mock.calls;
+      const calls = createEntity.mock.calls;
       expect(calls[0]?.[0]?.entity.id).toMatch(/^my-post-inline-/);
       expect(calls[1]?.[0]?.entity.id).toMatch(/^my-post-inline-/);
     });

@@ -408,10 +408,13 @@ export class DocumentPlugin extends ServicePlugin<
     dedupKey: string,
     context: ServicePluginContext,
   ): Promise<DocumentEntity | undefined> {
-    const documents = await context.entityService.listEntities<DocumentEntity>({
-      entityType: "document",
-      options: { filter: { metadata: { dedupKey } } },
-    });
+    const documents = await context.entityService.listEntities(
+      {
+        entityType: "document",
+        options: { filter: { metadata: { dedupKey } } },
+      },
+      documentSchema,
+    );
     return documents[0];
   }
 

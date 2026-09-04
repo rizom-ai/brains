@@ -46,7 +46,7 @@ describe("preflightSiteBuild", () => {
     const result = preflightSiteBuild({
       routes: [route({ path: "/writing/" })],
       layouts: { default: layout },
-      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      getViewTemplate: (name) => Reflect.get(templates, name),
       environment: "production",
       siteUrl: "https://example.test",
       staticAssets: {
@@ -208,7 +208,7 @@ describe("preflightSiteBuild", () => {
     const result = preflightSiteBuild({
       routes: [route()],
       layouts: { default: layout },
-      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      getViewTemplate: (name) => Reflect.get(templates, name),
       environment: "production",
       siteUrl: undefined,
     });
@@ -228,7 +228,7 @@ describe("preflightSiteBuild", () => {
     const result = preflightSiteBuild({
       routes: [route()],
       layouts: { default: layout },
-      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      getViewTemplate: (name) => Reflect.get(templates, name),
       environment: "preview",
       siteUrl: undefined,
     });
@@ -248,7 +248,7 @@ describe("preflightSiteBuild", () => {
     const result = preflightSiteBuild({
       routes: [route()],
       layouts: { default: layout },
-      getViewTemplate: (name) => templates[name as keyof typeof templates],
+      getViewTemplate: (name) => Reflect.get(templates, name),
       environment: "production",
       siteUrl: "   ",
     });

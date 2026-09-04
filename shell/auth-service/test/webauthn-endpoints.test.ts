@@ -8,6 +8,37 @@ import {
 } from "../src/webauthn-endpoints";
 
 /**
+ * Well-formed credential envelopes.
+ *
+ * The endpoints validate the posted body before handing it to the passkey
+ * service, so these tests — which exercise session binding and audit
+ * behaviour, not credential parsing — must post something a browser could
+ * actually have produced.
+ */
+const registrationCredential = JSON.stringify({
+  id: "cred-id",
+  rawId: "cred-id",
+  type: "public-key",
+  clientExtensionResults: {},
+  response: {
+    clientDataJSON: "client-data",
+    attestationObject: "attestation",
+  },
+});
+
+const authenticationCredential = JSON.stringify({
+  id: "cred-id",
+  rawId: "cred-id",
+  type: "public-key",
+  clientExtensionResults: {},
+  response: {
+    clientDataJSON: "client-data",
+    authenticatorData: "auth-data",
+    signature: "signature",
+  },
+});
+
+/**
  * A passkey surface for one flow.
  *
  * Each test drives a single endpoint, so it supplies the two or three
@@ -102,7 +133,7 @@ describe("WebAuthnEndpoints", () => {
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: "{}",
+          body: registrationCredential,
         },
       ),
     );
@@ -167,7 +198,7 @@ describe("WebAuthnEndpoints", () => {
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: "{}",
+          body: registrationCredential,
         },
       ),
     );
@@ -223,7 +254,7 @@ describe("WebAuthnEndpoints", () => {
       new Request("https://brain.example.com/webauthn/authenticate/verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: "{}",
+        body: authenticationCredential,
       }),
     );
 

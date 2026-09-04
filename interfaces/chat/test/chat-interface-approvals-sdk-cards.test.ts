@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
+import type { IConversationService } from "@brains/plugins";
 import {
   MockChatSdk,
   createFetchStub,
@@ -11,10 +12,7 @@ import {
   expectDiscordConfirmationContext,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
-import type {
-  MockActionEvent,
-  MockPostMessage,
-} from "./harness/chat-interface-harness";
+import type { MockPostMessage } from "./harness/chat-interface-harness";
 
 describe("ChatInterface SDK card approvals", () => {
   const suite = setupChatInterfaceTest();
@@ -72,7 +70,7 @@ describe("ChatInterface SDK card approvals", () => {
           isMe: false,
         },
         value: "approval-1",
-      } as MockActionEvent);
+      });
 
       expect(suite.agentService.confirmPendingAction).toHaveBeenCalledWith(
         "discord-discord:guild-123:channel-123:thread-456",
@@ -170,7 +168,7 @@ describe("ChatInterface SDK card approvals", () => {
         isMe: false,
       },
       value: "approval-1",
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.confirmPendingAction).not.toHaveBeenCalled();
   });
@@ -889,8 +887,8 @@ describe("ChatInterface SDK card approvals", () => {
 
   it("restores pending approvals from stored conversation metadata", async () => {
     const conversationId = "discord-discord:guild-123:channel-123:thread-456";
-    suite.harness.getMockShell().getConversationService = (): never =>
-      ({
+    suite.harness.getMockShell().getConversationService =
+      (): IConversationService => ({
         startConversation: mock(() => Promise.resolve(conversationId)),
         addMessage: mock(() => Promise.resolve()),
         getConversation: mock(() => Promise.resolve(null)),
@@ -922,7 +920,7 @@ describe("ChatInterface SDK card approvals", () => {
         updateConversationMetadata: mock(() => Promise.resolve(false)),
         deleteConversation: mock(() => Promise.resolve(false)),
         close: mock(() => {}),
-      }) as never;
+      });
     const plugin = createPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];

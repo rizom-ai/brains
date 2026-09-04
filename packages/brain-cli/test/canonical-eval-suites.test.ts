@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { App, resolve, resolveBundleSelection } from "@brains/app";
+import { caughtError } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
   resolveEvalSelection,
@@ -9,7 +10,8 @@ import {
   type TestCase,
 } from "@brains/ai-evaluation";
 import { internalFullScope } from "@brains/plugins";
-import { fromYaml } from "@brains/utils/yaml";
+import { parseYamlDocument } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import {
   mkdtempSync,
   mkdirSync,
@@ -26,9 +28,23 @@ import { canonicalBrain } from "../src/model/canonical-brain";
 const manifestPath = join(import.meta.dir, "..", "brain.eval.yaml");
 const packageDirectory = join(import.meta.dir, "..");
 const testCasesDirectory = join(packageDirectory, "test-cases");
-const rawManifest = fromYaml<Record<string, unknown>>(
+// Loose: resolveEvalSelection reads manifest keys beyond the ones asserted here.
+const manifestSchema = z.looseObject({
+  plugins: z.record(z.string(), z.record(z.string(), z.unknown())),
+  bundleContract: z.string(),
+  anchor: z.enum(["person", "team", "organization"]),
+  kind: z.string(),
+  suites: z.record(z.string(), z.unknown()),
+});
+
+const manifestResult = parseYamlDocument(
   readFileSync(manifestPath, "utf8"),
+  manifestSchema,
 );
+if (!manifestResult.ok) {
+  throw new Error(`invalid brain.eval.yaml: ${manifestResult.error}`);
+}
+const rawManifest = manifestResult.data;
 const suiteNames = ["headless", "personal", "professional", "team"] as const;
 type SuiteName = (typeof suiteNames)[number];
 
@@ -92,10 +108,7 @@ function createSuiteApp(
   seedDirectory: string,
 ): { app: App; evalHandlers: EvalHandlerRegistry } {
   const directory = createTempDirectory(name);
-  const basePlugins = rawManifest["plugins"] as Record<
-    string,
-    Record<string, unknown>
-  >;
+  const basePlugins = rawManifest.plugins;
   const plugins = {
     ...basePlugins,
     ...(selection.plugins ?? {}),
@@ -115,11 +128,9 @@ function createSuiteApp(
     canonicalBrain,
     { AI_API_KEY: "placeholder-canonical-eval-test" },
     {
-      bundleContract: String(rawManifest["bundleContract"]),
-      anchor:
-        selection.anchor ??
-        (rawManifest["anchor"] as "person" | "team" | "organization"),
-      kind: selection.kind ?? String(rawManifest["kind"]),
+      bundleContract: rawManifest.bundleContract,
+      anchor: selection.anchor ?? rawManifest.anchor,
+      kind: selection.kind ?? rawManifest.kind,
       bundles: selection.bundles,
       ...(selection.add ? { add: selection.add } : {}),
       ...(selection.remove ? { remove: selection.remove } : {}),
@@ -171,9 +182,7 @@ afterEach(() => {
 
 describe("canonical eval recipe ladder", () => {
   test("stages the explicit suite names, selections, and inheritance chain", () => {
-    expect(Object.keys(rawManifest["suites"] as object)).toEqual([
-      ...suiteNames,
-    ]);
+    expect(Object.keys(rawManifest.suites)).toEqual([...suiteNames]);
     expect(suiteSelection("headless")).toMatchObject({
       bundles: ["core"],
       tags: ["recipe-headless"],
@@ -205,12 +214,7 @@ describe("canonical eval recipe ladder", () => {
   });
 
   test("keeps Git disabled for in-process eval boot", () => {
-    const plugins = rawManifest["plugins"] as Record<
-      string,
-      Record<string, unknown>
-    >;
-
-    expect(plugins["directory-sync"]?.["git"]).toBeUndefined();
+    expect(rawManifest.plugins["directory-sync"]?.["git"]).toBeUndefined();
   });
 
   test("resolves every suite to its exact canonical member set", () => {
@@ -335,8 +339,7 @@ describe("canonical eval recipe ladder", () => {
     } finally {
       await app.stop();
     }
-    expect(initializationError).toBeInstanceOf(Error);
-    expect((initializationError as Error).message).toContain(
+    expect(caughtError(initializationError).message).toContain(
       "Seed content contains unregistered entity types: image",
     );
   }, 120_000);

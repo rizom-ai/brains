@@ -155,96 +155,97 @@ const attemptSchema = {
 };
 const optionalAttemptIdSchema = z.string().min(1).optional();
 
-export const JobQueueRpcRequestSchema = z.discriminatedUnion("operation", [
-  z.strictObject({
-    operation: z.literal("enqueue"),
-    request: JobQueueEnqueueRequestSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("dequeue"),
-    claim: claimSchema.optional(),
-    executableTypes: z.array(z.string().min(1)),
-  }),
-  z.strictObject({
-    operation: z.literal("startWorkerSession"),
-    ...stringPairSchema,
-    workerSessionTimeoutMs: z.number().int().positive(),
-  }),
-  z.strictObject({
-    operation: z.literal("heartbeatWorkerSession"),
-    ...stringPairSchema,
-    workerSessionTimeoutMs: z.number().int().positive(),
-  }),
-  z.strictObject({
-    operation: z.literal("endWorkerSession"),
-    ...stringPairSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("renewAttemptLease"),
-    ...attemptSchema,
-    leaseDurationMs: z.number().int().positive(),
-  }),
-  z.strictObject({
-    operation: z.literal("recordAttemptProgress"),
-    ...attemptSchema,
-    progress: progressSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("complete"),
-    jobId: z.string().min(1),
-    result: z.unknown().optional(),
-    attemptId: optionalAttemptIdSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("update"),
-    jobId: z.string().min(1),
-    data: z.unknown(),
-    attemptId: optionalAttemptIdSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("fail"),
-    jobId: z.string().min(1),
-    error: z.strictObject({
-      name: z.string().min(1),
-      message: z.string(),
-      stack: z.string().optional(),
+export const JobQueueRpcRequestSchema: z.ZodType<JobQueueRpcRequest, unknown> =
+  z.discriminatedUnion("operation", [
+    z.strictObject({
+      operation: z.literal("enqueue"),
+      request: JobQueueEnqueueRequestSchema,
     }),
-    attemptId: optionalAttemptIdSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("getStatus"),
-    jobId: z.string().min(1),
-  }),
-  z.strictObject({
-    operation: z.literal("getStatusByEntityId"),
-    entityId: z.string().min(1),
-  }),
-  z.strictObject({ operation: z.literal("getStats") }),
-  z.strictObject({
-    operation: z.literal("getDiagnostics"),
-    now: z.number().optional(),
-  }),
-  z.strictObject({
-    operation: z.literal("getRuntimeUpdates"),
-    cursor: z.strictObject({
-      updatedAt: z.number().nonnegative(),
-      jobId: z.string(),
+    z.strictObject({
+      operation: z.literal("dequeue"),
+      claim: claimSchema.optional(),
+      executableTypes: z.array(z.string().min(1)),
     }),
-    limit: z.number().int().nonnegative(),
-  }),
-  z.strictObject({
-    operation: z.literal("cleanup"),
-    olderThanMs: z.number().nonnegative(),
-  }),
-  z.strictObject({
-    operation: z.literal("getActiveJobs"),
-    types: z.array(z.string()).optional(),
-  }),
-  z.strictObject({
-    operation: z.literal("getFailedJobs"),
-    types: z.array(z.string()).optional(),
-  }),
-]) as z.ZodType<JobQueueRpcRequest, unknown>;
+    z.strictObject({
+      operation: z.literal("startWorkerSession"),
+      ...stringPairSchema,
+      workerSessionTimeoutMs: z.number().int().positive(),
+    }),
+    z.strictObject({
+      operation: z.literal("heartbeatWorkerSession"),
+      ...stringPairSchema,
+      workerSessionTimeoutMs: z.number().int().positive(),
+    }),
+    z.strictObject({
+      operation: z.literal("endWorkerSession"),
+      ...stringPairSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("renewAttemptLease"),
+      ...attemptSchema,
+      leaseDurationMs: z.number().int().positive(),
+    }),
+    z.strictObject({
+      operation: z.literal("recordAttemptProgress"),
+      ...attemptSchema,
+      progress: progressSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("complete"),
+      jobId: z.string().min(1),
+      result: z.unknown().optional(),
+      attemptId: optionalAttemptIdSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("update"),
+      jobId: z.string().min(1),
+      data: z.unknown(),
+      attemptId: optionalAttemptIdSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("fail"),
+      jobId: z.string().min(1),
+      error: z.strictObject({
+        name: z.string().min(1),
+        message: z.string(),
+        stack: z.string().optional(),
+      }),
+      attemptId: optionalAttemptIdSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("getStatus"),
+      jobId: z.string().min(1),
+    }),
+    z.strictObject({
+      operation: z.literal("getStatusByEntityId"),
+      entityId: z.string().min(1),
+    }),
+    z.strictObject({ operation: z.literal("getStats") }),
+    z.strictObject({
+      operation: z.literal("getDiagnostics"),
+      now: z.number().optional(),
+    }),
+    z.strictObject({
+      operation: z.literal("getRuntimeUpdates"),
+      cursor: z.strictObject({
+        updatedAt: z.number().nonnegative(),
+        jobId: z.string(),
+      }),
+      limit: z.number().int().nonnegative(),
+    }),
+    z.strictObject({
+      operation: z.literal("cleanup"),
+      olderThanMs: z.number().nonnegative(),
+    }),
+    z.strictObject({
+      operation: z.literal("getActiveJobs"),
+      types: z.array(z.string()).optional(),
+    }),
+    z.strictObject({
+      operation: z.literal("getFailedJobs"),
+      types: z.array(z.string()).optional(),
+    }),
+  ]);
 
 export function parseJobQueueEnqueueRequest(
   input: unknown,
@@ -256,15 +257,7 @@ export function parseJobQueueRpcRequest(input: unknown): JobQueueRpcRequest {
   return JobQueueRpcRequestSchema.parse(input);
 }
 
-function parseJobInfo(input: unknown): JobInfo {
-  JobInfoSchema.parse(input);
-  return input as JobInfo;
-}
-
-function parseJobInfoList(input: unknown): JobInfo[] {
-  const rows = z.array(z.unknown()).parse(input);
-  return rows.map(parseJobInfo);
-}
+const jobInfoListSchema: z.ZodType<JobInfo[], unknown> = z.array(JobInfoSchema);
 
 const statsSchema: z.ZodType<JobQueueStats, unknown> = z.strictObject({
   pending: z.number().int().nonnegative(),
@@ -303,50 +296,75 @@ const diagnosticsSchema: z.ZodType<JobQueueDiagnostics, unknown> =
     }),
   });
 
-export function parseJobQueueRpcResult(
-  request: JobQueueRpcRequest,
+const runtimeUpdatesSchema: z.ZodType<JobRuntimeUpdate[], unknown> = z.array(
+  z.strictObject({
+    job: JobInfoSchema,
+    cursor: z.strictObject({
+      updatedAt: z.number(),
+      jobId: z.string(),
+    }),
+  }),
+);
+
+const nullableJobInfoSchema: z.ZodType<JobInfo | null, unknown> =
+  JobInfoSchema.nullable();
+const booleanResultSchema = z.boolean();
+
+/**
+ * What each operation answers. The schema map below is checked against this,
+ * so the two cannot drift, and keying both by operation is what lets
+ * `parseJobQueueRpcResult` return the operation's own type — callers no longer
+ * re-assert it at the transport boundary.
+ */
+export interface JobQueueRpcResults {
+  enqueue: string;
+  dequeue: JobInfo | null;
+  getStatus: JobInfo | null;
+  getStatusByEntityId: JobInfo | null;
+  startWorkerSession: undefined;
+  heartbeatWorkerSession: boolean;
+  endWorkerSession: boolean;
+  renewAttemptLease: boolean;
+  recordAttemptProgress: boolean;
+  complete: boolean;
+  update: boolean;
+  fail: boolean;
+  getStats: z.output<typeof statsSchema>;
+  getDiagnostics: z.output<typeof diagnosticsSchema>;
+  getRuntimeUpdates: JobRuntimeUpdate[];
+  cleanup: number;
+  getActiveJobs: JobInfo[];
+  getFailedJobs: JobInfo[];
+}
+
+export type JobQueueRpcOperation = keyof JobQueueRpcResults;
+
+const resultSchemas: {
+  [Op in JobQueueRpcOperation]: z.ZodType<JobQueueRpcResults[Op], unknown>;
+} = {
+  enqueue: z.string().min(1),
+  dequeue: nullableJobInfoSchema,
+  getStatus: nullableJobInfoSchema,
+  getStatusByEntityId: nullableJobInfoSchema,
+  startWorkerSession: z.undefined(),
+  heartbeatWorkerSession: booleanResultSchema,
+  endWorkerSession: booleanResultSchema,
+  renewAttemptLease: booleanResultSchema,
+  recordAttemptProgress: booleanResultSchema,
+  complete: booleanResultSchema,
+  update: booleanResultSchema,
+  fail: booleanResultSchema,
+  getStats: statsSchema,
+  getDiagnostics: diagnosticsSchema,
+  getRuntimeUpdates: runtimeUpdatesSchema,
+  cleanup: z.number().int().nonnegative(),
+  getActiveJobs: jobInfoListSchema,
+  getFailedJobs: jobInfoListSchema,
+};
+
+export function parseJobQueueRpcResult<Op extends JobQueueRpcOperation>(
+  request: { operation: Op },
   input: unknown,
-): unknown {
-  switch (request.operation) {
-    case "enqueue":
-      return z.string().min(1).parse(input);
-    case "dequeue":
-    case "getStatus":
-    case "getStatusByEntityId":
-      return input === null ? null : parseJobInfo(input);
-    case "startWorkerSession":
-      return z.undefined().parse(input);
-    case "heartbeatWorkerSession":
-    case "endWorkerSession":
-    case "renewAttemptLease":
-    case "recordAttemptProgress":
-    case "complete":
-    case "update":
-    case "fail":
-      return z.boolean().parse(input);
-    case "getStats":
-      return statsSchema.parse(input);
-    case "getDiagnostics":
-      return diagnosticsSchema.parse(input);
-    case "getRuntimeUpdates": {
-      const rows = z.array(z.unknown()).parse(input);
-      return rows.map((row): JobRuntimeUpdate => {
-        const parsed = z
-          .strictObject({
-            job: z.unknown(),
-            cursor: z.strictObject({
-              updatedAt: z.number(),
-              jobId: z.string(),
-            }),
-          })
-          .parse(row);
-        return { job: parseJobInfo(parsed.job), cursor: parsed.cursor };
-      });
-    }
-    case "cleanup":
-      return z.number().int().nonnegative().parse(input);
-    case "getActiveJobs":
-    case "getFailedJobs":
-      return parseJobInfoList(input);
-  }
+): JobQueueRpcResults[Op] {
+  return resultSchemas[request.operation].parse(input);
 }

@@ -79,17 +79,20 @@ export interface LinkMetadata {
   [key: string]: unknown;
   title: string;
   status: LinkStatus;
+  capturedAt: string;
 }
 
 type LinkMetadataSchema = z.ZodObject<{
   title: z.ZodString;
   status: z.ZodType<LinkStatus, LinkStatus>;
+  capturedAt: z.ZodString;
 }>;
 
 export const linkMetadataSchema: LinkMetadataSchema =
   linkFrontmatterSchema.pick({
     title: true,
     status: true,
+    capturedAt: true,
   });
 
 /**
@@ -106,3 +109,15 @@ export const linkSchema: ReturnType<
 });
 
 export type LinkEntity = z.output<typeof linkSchema>;
+
+/**
+ * Read the status out of an entity's metadata bag.
+ *
+ * `entityService.getEntity` hands back a `BaseEntity`, whose metadata is
+ * `Record<string, unknown>` — so the stored value has to be validated here
+ * rather than asserted. LinkStatus is a closed union, and an entity carrying
+ * anything else is corrupt; failing loudly beats treating it as a valid state.
+ */
+export function readLinkStatus(metadata: Record<string, unknown>): LinkStatus {
+  return linkStatusSchema.parse(metadata["status"]);
+}

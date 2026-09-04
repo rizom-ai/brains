@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
-import { TemplateRegistry, type Template } from "@brains/templates";
+import {
+  InMemoryTemplateRegistry,
+  type Template,
+  type TemplateRegistry,
+} from "@brains/templates";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -25,7 +29,7 @@ describe("ContentService", () => {
     const mockAIService = createMockAIService();
 
     // Create a fresh TemplateRegistry for each test
-    templateRegistry = TemplateRegistry.createFresh(mockLogger);
+    templateRegistry = InMemoryTemplateRegistry.createFresh(mockLogger);
 
     // Create mock DataSourceRegistry
     const mockDataSourceRegistry = createMockDataSourceRegistry();

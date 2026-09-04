@@ -1,6 +1,8 @@
 import { execSync } from "child_process";
 import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync } from "fs";
 import { resolve as resolvePath } from "path";
+import { readString } from "@brains/utils/record-fields";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { type AppConfig, App } from "@brains/app";
 
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
@@ -152,11 +154,9 @@ function getConfiguredSeedContentPath(
   const directorySync = config?.plugins?.find(
     (plugin) => plugin.id === "directory-sync",
   );
-  const seedContentPath =
-    typeof directorySync?.config === "object" && directorySync.config !== null
-      ? (directorySync.config as { seedContentPath?: unknown }).seedContentPath
-      : undefined;
-  return typeof seedContentPath === "string" ? seedContentPath : undefined;
+  return isPlainRecord(directorySync?.config)
+    ? readString(directorySync.config, "seedContentPath")
+    : undefined;
 }
 
 function createEvalGitRemote(evalDbBase: string): void {

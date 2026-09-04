@@ -70,6 +70,14 @@ class ConversationMemoryEntityAdapter<
   }
 
   public fromMarkdown(markdown: string): Partial<TEntity> {
+    // Irreducible: no object literal is assignable to `Partial<TEntity>` while
+    // TEntity is unresolved, because a subclass may narrow any of these fields.
+    // Carrying the literal entity type through the constructor is not enough —
+    // tried, and it still reports `{ entityType: TEntity["entityType"];
+    // content: string; metadata: TMetadata }` as unassignable, since `content`
+    // and `metadata` are unprovable for the same reason. Removing it needs
+    // TEntity resolved, which means dropping the shared base entirely.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: no object literal is assignable to Partial<TEntity> while TEntity is unresolved
     return {
       entityType: this.entityType,
       content: markdown,

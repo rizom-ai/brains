@@ -40,13 +40,15 @@ import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
 import type {
   MessageHandler,
-  MessageBus,
+  IMessageBus,
   MessageBusSendRequest,
   MessageResponse,
 } from "@brains/messaging-service";
+import { validateMessage } from "@brains/messaging-service";
 import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
+import { defaultQueryResponseSchema } from "@brains/contracts";
 import {
   getVisibleContentVisibilities,
   normalizeContentVisibility,
@@ -61,10 +63,12 @@ import {
   type CreateEntityRequest,
   type UpdateEntityRequest,
   type UpsertEntityRequest,
+  type EntitySchema,
   type GetEntityRequest,
   type ListEntitiesRequest,
   type EntityMutationResult,
   type EntityExportIntent,
+  type CreateInterceptor,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type {
@@ -79,7 +83,7 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
-import type { RenderService } from "@brains/templates";
+import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import {
   ProfileKindRegistry,
@@ -92,9 +96,9 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
+  AIGenerationSchema,
 } from "@brains/ai-service";
 import { createSilentLogger } from "./mock-logger";
-import type { PublicSurface } from "./public-surface";
 
 /**
  * MockShell type — IShell plus test helper methods.
@@ -328,7 +332,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     options.conversationService ?? createDefaultMockConversationService();
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
-  const messageBusSurface: PublicSurface<MessageBus> = {
+  const messageBus: IMessageBus = {
     send: async <T = unknown, R = unknown>(
       request: MessageBusSendRequest<T>,
     ): Promise<MessageResponse<R>> => {
@@ -347,6 +351,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         result = response;
         break;
       }
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the bus is generic in its response type with no schema to check against; the fake stores erased handlers
       return result as MessageResponse<R>;
     },
     subscribe: <T = unknown, R = unknown>(
@@ -357,6 +362,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         messageHandlers.get(type) ??
         new Set<MessageHandler<unknown, unknown>>();
       messageHandlers.set(type, handlers);
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- erasing the handler is what lets one set hold every subscription
       const erased = handler as MessageHandler<unknown, unknown>;
       handlers.add(erased);
       return (): void => {
@@ -383,6 +389,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return Promise.all(
         Array.from(handlers).map(
           async (handler) =>
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note on send()
             (await handler({
               type: request.type,
               payload: request.payload,
@@ -393,16 +400,123 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         ),
       );
     },
-    // Validation belongs to the real bus's schema registry; the fake accepts
-    // whatever a test sends rather than pretending to validate it.
-    validateMessage: <T>(_messageType: string, payload: unknown): T =>
-      payload as T,
+    // The caller supplies the schema, so the fake can validate for real
+    // rather than approximate it.
+    validateMessage,
   };
 
-  // Only the nominal private-field gap remains; the shape is checked above.
-  const messageBus = messageBusSurface as MessageBus;
-
   // --- Entity Service (stateful) ---
+  // Overloaded like the real service: without a schema reads return the
+  // stored BaseEntity view; with one they parse, so T is proven not asserted.
+  async function getEntityFake(
+    request: GetEntityRequest,
+  ): Promise<BaseEntity | null>;
+  async function getEntityFake<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntityFake(
+    request: GetEntityRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
+    const entity = entities.get(request.id);
+    if (entity?.entityType !== request.entityType) return null;
+    const visible =
+      request.visibilityScope === undefined ||
+      getVisibleContentVisibilities(request.visibilityScope).includes(
+        entity.visibility,
+      );
+    if (!visible) return null;
+    return schema ? schema.parse(entity) : entity;
+  }
+
+  // Mirrors the real query layer's ORDER BY: system fields come from the
+  // entity, everything else from metadata; NULLs sort smallest (SQLite),
+  // and nullsFirst forces them ahead regardless of direction.
+  function sortFieldValue(entity: BaseEntity, field: string): unknown {
+    if (field === "id" || field === "created" || field === "updated") {
+      return entity[field];
+    }
+    return entity.metadata[field];
+  }
+
+  function compareBySortFields(
+    left: BaseEntity,
+    right: BaseEntity,
+    sortFields: NonNullable<
+      NonNullable<ListEntitiesRequest["options"]>["sortFields"]
+    >,
+  ): number {
+    for (const { field, direction, nullsFirst } of sortFields) {
+      const a = sortFieldValue(left, field);
+      const b = sortFieldValue(right, field);
+      const aNull = a === null || a === undefined;
+      const bNull = b === null || b === undefined;
+      if (aNull || bNull) {
+        if (aNull && bNull) continue;
+        if (nullsFirst) return aNull ? -1 : 1;
+        // SQLite: NULL is smaller than every value.
+        const nullCmp = aNull ? -1 : 1;
+        if (direction === "desc") return -nullCmp;
+        return nullCmp;
+      }
+      const cmp =
+        typeof a === "number" && typeof b === "number"
+          ? a - b
+          : String(a) < String(b)
+            ? -1
+            : String(a) > String(b)
+              ? 1
+              : 0;
+      if (cmp !== 0) return direction === "desc" ? -cmp : cmp;
+    }
+    return 0;
+  }
+
+  function filterEntitiesFake(request: ListEntitiesRequest): BaseEntity[] {
+    const scope = request.options?.filter?.visibilityScope;
+    const visible = scope
+      ? new Set(getVisibleContentVisibilities(scope))
+      : null;
+    let results = Array.from(entities.values()).filter(
+      (e) =>
+        e.entityType === request.entityType &&
+        (visible === null || visible.has(e.visibility)),
+    );
+    if (request.options?.publishedOnly) {
+      results = results.filter((e) => e.metadata["status"] === "published");
+    }
+    if (request.options?.filter?.metadata) {
+      const filterEntries = Object.entries(request.options.filter.metadata);
+      results = results.filter((e) =>
+        filterEntries.every(([key, value]) => e.metadata[key] === value),
+      );
+    }
+    return results;
+  }
+
+  async function listEntitiesFake(
+    request: ListEntitiesRequest,
+  ): Promise<BaseEntity[]>;
+  async function listEntitiesFake<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntitiesFake(
+    request: ListEntitiesRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity[]> {
+    const sortFields = request.options?.sortFields ?? [
+      { field: "updated", direction: "desc" as const },
+    ];
+    const offset = request.options?.offset ?? 0;
+    const limit = request.options?.limit;
+    const results = filterEntitiesFake(request)
+      .sort((left, right) => compareBySortFields(left, right, sortFields))
+      .slice(offset, limit === undefined ? undefined : offset + limit);
+    return schema ? results.map((entity) => schema.parse(entity)) : results;
+  }
+
   const defaultEntityService: IEntityService = {
     createEntity: async <T extends BaseEntity>(
       request: CreateEntityRequest<T>,
@@ -450,7 +564,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata: {},
       };
       const now = new Date().toISOString();
-      const entity = {
+      const entity: BaseEntity = {
         ...parsed,
         id: request.input.id,
         entityType: request.input.entityType,
@@ -462,7 +576,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         contentHash: computeContentHash(
           parsed.content ?? request.input.markdown,
         ),
-      } as BaseEntity;
+      };
       return defaultEntityService.createEntity({ entity });
     },
     updateEntity: async <T extends BaseEntity>(
@@ -527,50 +641,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       );
       return true;
     },
-    getEntity: async <T extends BaseEntity>(request: {
-      entityType: string;
-      id: string;
-      visibilityScope?: BaseEntity["visibility"];
-    }): Promise<T | null> => {
-      const entity = entities.get(request.id);
-      if (entity?.entityType !== request.entityType) return null;
-      if (request.visibilityScope === undefined) return entity as T;
-      return getVisibleContentVisibilities(request.visibilityScope).includes(
-        entity.visibility,
-      )
-        ? (entity as T)
-        : null;
-    },
-    listEntities: async <T extends BaseEntity>(
-      request: ListEntitiesRequest,
-    ): Promise<T[]> => {
-      const scope = request.options?.filter?.visibilityScope;
-      const visible = scope
-        ? new Set(getVisibleContentVisibilities(scope))
-        : null;
-      let results = Array.from(entities.values()).filter(
-        (e) =>
-          e.entityType === request.entityType &&
-          (visible === null || visible.has(e.visibility)),
-      );
-      if (request.options?.publishedOnly) {
-        results = results.filter((e) => e.metadata["status"] === "published");
-      }
-      if (request.options?.filter?.metadata) {
-        const filterEntries = Object.entries(request.options.filter.metadata);
-        results = results.filter((e) =>
-          filterEntries.every(([key, value]) => e.metadata[key] === value),
-        );
-      }
-      return results as T[];
-    },
+    getEntity: getEntityFake,
+    listEntities: listEntitiesFake,
     search: async () => [],
     searchWithDistances: async () => [],
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) =>
-      ({ content: markdown }) as BaseEntity,
+    deserializeEntity: (markdown: string) => ({ content: markdown }),
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async <T extends BaseEntity>(
       request: UpsertEntityRequest<T>,
@@ -620,7 +698,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return acknowledged;
     },
     getWeightMap: () => ({}),
-    countEntities: async () => 0,
+    countEntities: async (request) => filterEntitiesFake(request).length,
     getEntityCounts: async (
       visibilityScope?: BaseEntity["visibility"],
     ): Promise<Array<{ entityType: string; count: number }>> => {
@@ -640,9 +718,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     // The fake stores serialized entities directly, so there is no separate
     // unresolved form to return.
-    getEntityRaw: async <T extends BaseEntity>(
-      request: GetEntityRequest,
-    ): Promise<T | null> => defaultEntityService.getEntity<T>(request),
+    getEntityRaw: getEntityFake,
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
     // it reports an empty, ready index rather than pretending to search one.
@@ -709,16 +785,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityService = options.entityService ?? defaultEntityService;
 
   // --- Entity Registry ---
-  const createInterceptors = new Map<
-    string,
-    (input: unknown, executionContext: unknown) => Promise<unknown>
-  >();
+  const createInterceptors = new Map<string, CreateInterceptor>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
 
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
       entityTypes.add(type);
-      entityAdapters.set(type, adapter as EntityAdapter<BaseEntity>);
+      entityAdapters.set(type, adapter);
       entityTypeConfigs.set(type, config ?? {});
     },
     unregisterEntityType: (type): void => {
@@ -743,6 +816,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       // A heterogeneous registry cannot prove the stored adapter matches the
       // caller-chosen T; the real EntityRegistry asserts at exactly this point
       // for the same reason.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the comment above
       return adapter as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
@@ -755,18 +829,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEntityTypeConfig,
     getWeightMap: () => ({}),
     registerCreateInterceptor: (type, interceptor) => {
-      createInterceptors.set(
-        type,
-        interceptor as (
-          input: unknown,
-          executionContext: unknown,
-        ) => Promise<unknown>,
-      );
+      createInterceptors.set(type, interceptor);
     },
-    getCreateInterceptor: (type) =>
-      createInterceptors.get(type) as ReturnType<
-        IEntityRegistry["getCreateInterceptor"]
-      >,
+    getCreateInterceptor: (type) => createInterceptors.get(type),
     registerUploadSaveHandler: (registration): void => {
       uploadSaveHandlers.push(registration);
     },
@@ -876,22 +941,22 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   const contentService: IContentService = {
-    generateContent: async <T = unknown>(
+    generateContent: async (
       templateName: string,
       context?: Record<string, unknown>,
-    ) =>
-      ({
-        message: `Generated content for ${templateName}`,
-        summary: "Test summary",
-        description: "Mock generated description for testing",
-        topics: [],
-        sources: [],
-        ...context,
-      }) as T,
+    ) => ({
+      message: `Generated content for ${templateName}`,
+      summary: "Test summary",
+      description: "Mock generated description for testing",
+      topics: [],
+      sources: [],
+      ...context,
+    }),
     formatContent: <T = unknown>(_templateName: string, data: T) =>
       `Formatted: ${JSON.stringify(data)}`,
-    parseContent: <T = unknown>(_templateName: string, content: string): T =>
-      ({ parsed: content }) as T,
+    parseContent: (_templateName: string, content: string): unknown => ({
+      parsed: content,
+    }),
     getTemplate: (name: string): ContentTemplate<unknown> | null => {
       const template = templates.get(name);
       return template ? toContentTemplate(template) : null;
@@ -903,7 +968,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   } satisfies IContentService;
 
   // --- DataSource Registry ---
-  const dataSourceRegistrySurface: PublicSurface<DataSourceRegistry> = {
+  const dataSourceRegistry: DataSourceRegistry = {
     register: (dataSource: DataSource): void => {
       if ("id" in dataSource && typeof dataSource.id === "string") {
         dataSources.set(dataSource.id, dataSource);
@@ -935,7 +1000,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   // Only the nominal private-field gap remains; the shape is checked above.
-  const dataSourceRegistry = dataSourceRegistrySurface as DataSourceRegistry;
 
   // --- Daemon Registry ---
   // --- Insights Registry ---
@@ -1130,7 +1194,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     close: () => {},
   };
 
-  const renderServiceSurface: PublicSurface<RenderService> = {
+  const renderService: ViewTemplateRegistry = {
     get: () => undefined,
     list: () => [],
     validate: () => true,
@@ -1139,8 +1203,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     hasRenderer: () => false,
     listFormats: () => [],
   };
-  // Only the nominal private-field gap remains; the shape is checked above.
-  const renderService = renderServiceSurface as RenderService;
 
   const mcpTransport: IMCPTransport = {
     getMcpServer: (): never => {
@@ -1279,10 +1341,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
 
     // High-level operations
-    generateContent: async <T = unknown>(
+    generateContent: async (
       config: ContentGenerationConfig,
-    ): Promise<T> => {
-      return contentService.generateContent<T>(config.templateName, {
+    ): Promise<unknown> => {
+      return contentService.generateContent(config.templateName, {
         prompt: config.prompt,
         ...(config.conversationHistory && {
           conversationHistory: config.conversationHistory,
@@ -1290,9 +1352,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         ...(config.data && { data: config.data }),
       });
     },
-    generateObject: async <T>(): Promise<{ object: T }> => ({
-      object: {} as T,
-    }),
+    // Parsed through the caller's own schema: an empty object asserted into
+    // T would satisfy any caller while proving nothing.
+    generateObject: async <T>(
+      _prompt: string,
+      schema: AIGenerationSchema<T>,
+    ): Promise<{ object: T }> => ({ object: schema.parse({}) }),
     judge: async <T>(
       input: JudgeInput<T>,
     ): Promise<{
@@ -1317,13 +1382,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       context?: QueryContext,
     ): Promise<DefaultQueryResponse> => {
       const { conversationHistory, ...contextData } = context ?? {};
-      return shell.generateContent<DefaultQueryResponse>({
-        prompt,
-        templateName: "shell:knowledge-query",
-        ...(conversationHistory && { conversationHistory }),
-        ...(context && { data: contextData }),
-        interfacePermissionGrant: "public",
-      });
+      return defaultQueryResponseSchema.parse(
+        await shell.generateContent({
+          prompt,
+          templateName: "shell:knowledge-query",
+          ...(conversationHistory && { conversationHistory }),
+          ...(context && { data: contextData }),
+          interfacePermissionGrant: "public",
+        }),
+      );
     },
 
     // Image generation

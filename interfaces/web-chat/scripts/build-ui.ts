@@ -1,6 +1,7 @@
 import { existsSync } from "fs";
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { createRequire } from "module";
+import { createStylexBunTransform } from "@brains/build-tools";
 import { dirname, join } from "path";
 
 const require = createRequire(import.meta.url);
@@ -20,6 +21,7 @@ const reactAliases: Record<string, string> = {
 
 await mkdir(outdir, { recursive: true });
 
+const stylex = createStylexBunTransform();
 const result = await Bun.build({
   entrypoints: [entrypoint],
   outdir,
@@ -29,6 +31,7 @@ const result = await Bun.build({
   sourcemap: "external",
   naming: "app.js",
   plugins: [
+    stylex.plugin,
     {
       name: "web-chat-aliases",
       setup(build): void {
@@ -67,4 +70,5 @@ if (!result.success) {
   process.exit(1);
 }
 
-console.log(`Built ${join(dirname(outdir), "ui", "app.js")}`);
+await writeFile(join(outdir, "app.css"), `${stylex.css()}\n`);
+console.log(`Built ${join(dirname(outdir), "ui", "app.js")} and app.css`);

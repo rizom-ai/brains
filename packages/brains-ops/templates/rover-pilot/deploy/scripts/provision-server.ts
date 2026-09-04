@@ -30,19 +30,54 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * These scripts are copied verbatim into generated projects, so they stay
+ * dependency-free: the API payloads are checked by hand rather than with a
+ * schema library. readJsonResponse returns unknown; asserting the Hetzner
+ * response shape onto it meant a changed or error payload surfaced as an
+ * undefined field later instead of a failed lookup here.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isHetznerServer(value: unknown): value is HetznerServer {
+  if (!isRecord(value)) return false;
+  if (typeof value["id"] !== "number") return false;
+  if (typeof value["status"] !== "string") return false;
+  const publicNet = value["public_net"];
+  if (publicNet === undefined) return true;
+  if (!isRecord(publicNet)) return false;
+  const ipv4 = publicNet["ipv4"];
+  if (ipv4 === undefined) return true;
+  if (!isRecord(ipv4)) return false;
+  const ip = ipv4["ip"];
+  return ip === undefined || typeof ip === "string";
+}
+
+function readServer(payload: unknown): HetznerServer | undefined {
+  if (!isRecord(payload)) return undefined;
+  const server = payload["server"];
+  return isHetznerServer(server) ? server : undefined;
+}
+
+function readServers(payload: unknown): HetznerServer[] | undefined {
+  if (!isRecord(payload)) return undefined;
+  const servers = payload["servers"];
+  return Array.isArray(servers) && servers.every(isHetznerServer)
+    ? servers
+    : undefined;
+}
+
 async function listServers(): Promise<HetznerServer[]> {
   const url = `${baseUrl}/servers?label_selector=${encodeURIComponent(labelSelector)}`;
   const response = await fetch(url, { headers });
-  const payload = (await readJsonResponse(
-    response,
-    "Hetzner server lookup",
-  )) as {
-    servers?: HetznerServer[];
-  };
-  if (!response.ok || !payload.servers) {
+  const payload = await readJsonResponse(response, "Hetzner server lookup");
+  const servers = readServers(payload);
+  if (!response.ok || !servers) {
     throw new Error(`Hetzner server lookup failed: ${JSON.stringify(payload)}`);
   }
-  return payload.servers;
+  return servers;
 }
 
 async function createServer(): Promise<HetznerServer> {
@@ -58,27 +93,22 @@ async function createServer(): Promise<HetznerServer> {
       labels: { brain: instanceName },
     }),
   });
-  const payload = (await readJsonResponse(
-    response,
-    "Hetzner server create",
-  )) as {
-    server?: HetznerServer;
-  };
-  if (!response.ok || !payload.server) {
+  const payload = await readJsonResponse(response, "Hetzner server create");
+  const server = readServer(payload);
+  if (!response.ok || !server) {
     throw new Error(`Hetzner server create failed: ${JSON.stringify(payload)}`);
   }
-  return payload.server;
+  return server;
 }
 
 async function getServer(id: number): Promise<HetznerServer> {
   const response = await fetch(`${baseUrl}/servers/${id}`, { headers });
-  const payload = (await readJsonResponse(response, "Hetzner server poll")) as {
-    server?: HetznerServer;
-  };
-  if (!response.ok || !payload.server) {
+  const payload = await readJsonResponse(response, "Hetzner server poll");
+  const server = readServer(payload);
+  if (!response.ok || !server) {
     throw new Error(`Hetzner server poll failed: ${JSON.stringify(payload)}`);
   }
-  return payload.server;
+  return server;
 }
 
 let server: HetznerServer | undefined = (await listServers())[0];

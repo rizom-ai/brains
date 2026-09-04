@@ -1,6 +1,7 @@
 import { dynamicTool, type ToolSet } from "ai";
 import type { ActorRef, JsonValue } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
@@ -142,11 +143,9 @@ export function toModelToolOutput(output: unknown): {
 }
 
 function markCachedToolResult(result: unknown): unknown {
-  if (typeof result !== "object" || result === null || Array.isArray(result)) {
-    return result;
-  }
-  if ((result as { success?: unknown }).success !== true) return result;
-  return { ...(result as Record<string, unknown>), cached: true };
+  if (!isPlainRecord(result)) return result;
+  if (result["success"] !== true) return result;
+  return { ...result, cached: true };
 }
 
 function toJsonValue(value: unknown): JsonValue {

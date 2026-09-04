@@ -6,7 +6,10 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { firstSentence } from "@brains/utils/string-utils";
-import type { DecisionEntity } from "../../schemas/conversation-memory";
+import {
+  decisionSchema,
+  type DecisionEntity,
+} from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatTimeRange } from "./format";
 
@@ -87,9 +90,12 @@ function entityBody(entity: DecisionEntity): string {
 export async function buildDecisionsWidgetData(
   context: EntityPluginContext,
 ): Promise<DecisionsWidgetData> {
-  const items = await context.entityService.listEntities<DecisionEntity>({
-    entityType: DECISION_ENTITY_TYPE,
-  });
+  const items = await context.entityService.listEntities(
+    {
+      entityType: DECISION_ENTITY_TYPE,
+    },
+    decisionSchema,
+  );
 
   const sorted = [...items].sort((a, b) => {
     const statusDiff =

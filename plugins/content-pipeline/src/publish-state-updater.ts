@@ -24,7 +24,7 @@ export async function markEntityPublished<
   entity: BaseEntity<TMetadata>,
   result: PublishResult,
   options: MarkPublishedOptions = {},
-): Promise<BaseEntity<TMetadata & Record<string, unknown>>> {
+): Promise<BaseEntity<TMetadata>> {
   const publishTimestampField = options.publishTimestampField ?? "publishedAt";
   const existingPublishedAt = entity.metadata[publishTimestampField];
   const publishedAt =

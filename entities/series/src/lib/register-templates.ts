@@ -2,14 +2,8 @@ import { createTemplate } from "@brains/templates";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { contentVisibilitySchema, paginationInfoSchema } from "@brains/plugins";
-import {
-  SeriesListTemplate,
-  type SeriesListProps,
-} from "../templates/series-list";
-import {
-  SeriesDetailTemplate,
-  type SeriesDetailProps,
-} from "../templates/series-detail";
+import { SeriesListTemplate } from "../templates/series-list";
+import { SeriesDetailTemplate } from "../templates/series-detail";
 
 const seriesFrontmatterSchema = z.object({
   title: z.string(),
@@ -24,7 +18,9 @@ const seriesMetadataSchema = z.object({
 
 const seriesListItemSchema = z.object({
   id: z.string(),
-  entityType: z.string(),
+  // The list component reads this as the literal "series"; the schema has to
+  // prove that rather than let any entity type through.
+  entityType: z.literal("series"),
   content: z.string(),
   created: z.string(),
   updated: z.string(),
@@ -68,10 +64,7 @@ const seriesDetailSchema = z.object({
 
 export function getTemplates(): Record<string, Template> {
   return {
-    "series-list": createTemplate<
-      z.output<typeof seriesListSchema>,
-      SeriesListProps
-    >({
+    "series-list": createTemplate<z.output<typeof seriesListSchema>>({
       name: "series-list",
       description: "Series list page template",
       schema: seriesListSchema,
@@ -81,10 +74,7 @@ export function getTemplates(): Record<string, Template> {
         component: SeriesListTemplate,
       },
     }),
-    "series-detail": createTemplate<
-      z.output<typeof seriesDetailSchema>,
-      SeriesDetailProps
-    >({
+    "series-detail": createTemplate<z.output<typeof seriesDetailSchema>>({
       name: "series-detail",
       description: "Series detail page template",
       schema: seriesDetailSchema,

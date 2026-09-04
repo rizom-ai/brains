@@ -36,6 +36,12 @@ export type NoteGenerationResult = z.output<typeof noteGenerationResultSchema>;
  * Job handler for note generation
  * Handles AI-powered content generation and entity creation
  */
+/** Shape the note generation template returns. */
+export const generatedNoteSchema: z.ZodObject<{
+  title: z.ZodString;
+  body: z.ZodString;
+}> = z.object({ title: z.string(), body: z.string() });
+
 export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
   NoteGenerationJobData,
   NoteGenerationResult
@@ -57,14 +63,14 @@ export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
       message: "Generating note content with AI",
     });
 
-    const generated = await this.context.ai.generate<{
-      title: string;
-      body: string;
-    }>({
-      prompt: data.prompt,
-      templateName: "note:generation",
-      representedIdentity: "none",
-    });
+    const generated = await this.context.ai.generate(
+      {
+        prompt: data.prompt,
+        templateName: "note:generation",
+        representedIdentity: "none",
+      },
+      generatedNoteSchema,
+    );
 
     const title = data.title ?? generated.title;
 

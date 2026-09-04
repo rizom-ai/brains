@@ -11,6 +11,7 @@ import {
   createServicePluginContext,
   type MockShell,
   type ServicePluginContext,
+  createTestEntityAdapter,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
@@ -63,7 +64,7 @@ describe("dashboard widget registration", () => {
         .registerEntityType(
           entityType,
           baseEntitySchema.partial().passthrough(),
-          {} as never,
+          createTestEntityAdapter(entityType),
         );
     }
 
@@ -219,7 +220,10 @@ describe("dashboard widget registration", () => {
         attemptHeartbeatAt: 0,
         runtimeUpdatedAt: 0,
         progress: null,
-        metadata: {} as never,
+        metadata: {
+          operationType: "content_operations",
+          rootJobId: "job-root",
+        },
       },
       {
         id: "job-other",
@@ -242,7 +246,10 @@ describe("dashboard widget registration", () => {
         attemptHeartbeatAt: 0,
         runtimeUpdatedAt: 0,
         progress: null,
-        metadata: {} as never,
+        metadata: {
+          operationType: "content_operations",
+          rootJobId: "job-root",
+        },
       },
     ];
 

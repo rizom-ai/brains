@@ -40,17 +40,20 @@ export class MailTriageOperatorService {
   async list(filters: MailTriageFilter): Promise<MailTriageListResult> {
     const metadata = metadataFilter(filters);
     const [entities, total] = await Promise.all([
-      this.context.entityService.listEntities<MailItemEntity>({
-        entityType: "mail-item",
-        options: {
-          limit: filters.limit,
-          sortFields: [{ field: "receivedAt", direction: "desc" }],
-          filter: {
-            metadata,
-            visibilityScope: "restricted",
+      this.context.entityService.listEntities(
+        {
+          entityType: "mail-item",
+          options: {
+            limit: filters.limit,
+            sortFields: [{ field: "receivedAt", direction: "desc" }],
+            filter: {
+              metadata,
+              visibilityScope: "restricted",
+            },
           },
         },
-      }),
+        mailItemSchema,
+      ),
       this.context.entityService.countEntities({
         entityType: "mail-item",
         options: {
@@ -77,11 +80,14 @@ export class MailTriageOperatorService {
 
   async getSourceRef(id: string, actor: OperatorActor): Promise<string> {
     assertMailTriageAdmin(actor);
-    const entity = await this.context.entityService.getEntity<MailItemEntity>({
-      entityType: "mail-item",
-      id,
-      visibilityScope: "restricted",
-    });
+    const entity = await this.context.entityService.getEntity(
+      {
+        entityType: "mail-item",
+        id,
+        visibilityScope: "restricted",
+      },
+      mailItemSchema,
+    );
     if (!entity) throw new Error("Mail item not found");
     const parsedEntity = mailItemSchema.parse(entity);
     return mailItemAdapter.parseMailItemContent(parsedEntity.content)
@@ -99,11 +105,14 @@ export class MailTriageOperatorService {
       "update",
       actor,
     );
-    const entity = await this.context.entityService.getEntity<MailItemEntity>({
-      entityType: "mail-item",
-      id: action.id,
-      visibilityScope: "restricted",
-    });
+    const entity = await this.context.entityService.getEntity(
+      {
+        entityType: "mail-item",
+        id: action.id,
+        visibilityScope: "restricted",
+      },
+      mailItemSchema,
+    );
     if (!entity) throw new Error("Mail item not found");
 
     const parsedEntity = mailItemSchema.parse(entity);

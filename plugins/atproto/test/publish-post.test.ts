@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+import { caughtError, createMockShell } from "@brains/test-utils";
 import {
   AtprotoPlugin,
   AtprotoProjectionRegistry,
@@ -373,8 +373,7 @@ describe("AT Protocol post publishing", () => {
       });
       throw new Error("Expected invalid dry-run record publish to fail");
     } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain(
+      expect(caughtError(error).message).toContain(
         "Invalid AT Protocol record field title: expected string",
       );
     }
@@ -438,8 +437,7 @@ describe("AT Protocol post publishing", () => {
       await plugin.publishPost(createContext(), { entityId: "post-123" });
       throw new Error("Expected invalid record publish to fail");
     } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain(
+      expect(caughtError(error).message).toContain(
         "Invalid AT Protocol record field title: expected string",
       );
     }
@@ -506,8 +504,7 @@ describe("AT Protocol post publishing", () => {
       );
       throw new Error("Expected private post publish to fail");
     } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain(
+      expect(caughtError(error).message).toContain(
         "Cannot publish non-public post",
       );
     }

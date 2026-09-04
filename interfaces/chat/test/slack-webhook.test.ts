@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
 
-interface ProbeResult {
-  invalidBody: string;
-  invalidStatus: number;
-  validBody: unknown;
-  validStatus: number;
-}
+/** What the probe subprocess prints. Parsed, since it arrives as text. */
+const probeResultSchema = z.looseObject({
+  invalidBody: z.string(),
+  invalidStatus: z.number(),
+  validBody: z.unknown(),
+  validStatus: z.number(),
+});
 
 describe("Slack webhook verification", () => {
   it("accepts valid signatures and rejects invalid signatures", async () => {
@@ -24,7 +26,7 @@ describe("Slack webhook verification", () => {
     ]);
 
     expect(exitCode, stderr).toBe(0);
-    const result = JSON.parse(stdout) as ProbeResult;
+    const result = probeResultSchema.parse(JSON.parse(stdout));
     expect(result.invalidStatus).toBe(401);
     expect(result.invalidBody).toBe("Invalid signature");
     expect(result.validStatus).toBe(200);

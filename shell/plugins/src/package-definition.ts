@@ -143,28 +143,38 @@ export function createPluginPackageDefinition<
 export function isPluginPackageDefinition(
   value: unknown,
 ): value is PluginPackageDefinition {
+  // Reflect.get rather than a Partial<> assertion: the members are read off an
+  // unvalidated value, and `config` is a zod schema — a class instance, so a
+  // plain-record check would wrongly reject it.
   if (value === null || typeof value !== "object") return false;
-  const candidate = value as Partial<RuntimePluginPackageDefinition>;
+  const config: unknown = Reflect.get(value, "config");
   return (
-    candidate.kind === "rizom-plugin-package" &&
-    typeof candidate.id === "string" &&
-    typeof candidate.family === "string" &&
-    candidate.config !== undefined &&
-    typeof candidate.config.safeParse === "function" &&
-    typeof candidate[runtimeFactory] === "function"
+    Reflect.get(value, "kind") === "rizom-plugin-package" &&
+    typeof Reflect.get(value, "id") === "string" &&
+    typeof Reflect.get(value, "family") === "string" &&
+    config !== null &&
+    typeof config === "object" &&
+    typeof Reflect.get(config, "safeParse") === "function" &&
+    typeof Reflect.get(value, runtimeFactory) === "function"
   );
+}
+
+/** The brand is a symbol key the declared type does not carry; check it. */
+function hasRuntimeFactory(
+  definition: PluginPackageDefinition,
+): definition is RuntimePluginPackageDefinition {
+  return typeof Reflect.get(definition, runtimeFactory) === "function";
 }
 
 function runtimeDefinition(
   definition: PluginPackageDefinition,
 ): RuntimePluginPackageDefinition {
-  const candidate = definition as RuntimePluginPackageDefinition;
-  if (typeof candidate[runtimeFactory] !== "function") {
+  if (!hasRuntimeFactory(definition)) {
     throw new Error(
       `Plugin definition "${definition.id}" has no runtime adapter; export the result of a @rizom/brain define helper instead of a hand-written object`,
     );
   }
-  return candidate;
+  return definition;
 }
 
 export function bindPluginPackageMetadata(

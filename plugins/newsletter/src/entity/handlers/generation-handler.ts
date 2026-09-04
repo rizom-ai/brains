@@ -10,17 +10,20 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { type GenerationResult } from "@brains/contracts";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import { baseEntitySchema, type EntityPluginContext } from "@brains/plugins";
 import { fetchVoiceGuidance } from "@brains/contracts";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
 /** Source entity shape consumed by newsletter generation */
-type SourceEntity = BaseEntity<{
-  title: string;
-  slug: string;
-  status: string;
-  excerpt?: string;
-}>;
+const sourceEntitySchema = baseEntitySchema.extend({
+  metadata: z.looseObject({
+    title: z.string(),
+    slug: z.string(),
+    status: z.string(),
+    excerpt: z.string().optional(),
+  }),
+});
+type SourceEntity = z.output<typeof sourceEntitySchema>;
 
 /**
  * Input schema for newsletter generation job
@@ -33,6 +36,12 @@ export interface GenerationJobData {
   subject?: string | undefined;
   addToQueue?: boolean | undefined;
 }
+
+/** Shape the newsletter generation template returns. */
+export const generatedNewsletterSchema: z.ZodObject<{
+  subject: z.ZodString;
+  content: z.ZodString;
+}> = z.object({ subject: z.string(), content: z.string() });
 
 export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
   prompt: z.string().optional().describe("AI generation prompt"),
@@ -100,10 +109,13 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
       const results = await Promise.all(
         sourceEntityIds.map((id) =>
-          this.context.entityService.getEntity<SourceEntity>({
-            entityType,
-            id,
-          }),
+          this.context.entityService.getEntity(
+            {
+              entityType,
+              id,
+            },
+            sourceEntitySchema,
+          ),
         ),
       );
       const posts = results.filter((e): e is SourceEntity => e != null);
@@ -143,15 +155,15 @@ The newsletter should:
       const voiceGuidance = await fetchVoiceGuidance(
         this.context.entityService,
       );
-      const generated = await this.context.ai.generate<{
-        subject: string;
-        content: string;
-      }>({
-        prompt: finalPrompt,
-        templateName: NEWSLETTER_CHANNELS.generation,
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt: finalPrompt,
+          templateName: NEWSLETTER_CHANNELS.generation,
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        generatedNewsletterSchema,
+      );
 
       subject = subject ?? generated.subject;
       content = generated.content;
@@ -171,15 +183,15 @@ The newsletter should:
       const voiceGuidance = await fetchVoiceGuidance(
         this.context.entityService,
       );
-      const generated = await this.context.ai.generate<{
-        subject: string;
-        content: string;
-      }>({
-        prompt,
-        templateName: NEWSLETTER_CHANNELS.generation,
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt,
+          templateName: NEWSLETTER_CHANNELS.generation,
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        generatedNewsletterSchema,
+      );
 
       subject = subject ?? generated.subject;
       content = generated.content;

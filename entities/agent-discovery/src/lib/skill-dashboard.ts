@@ -5,7 +5,7 @@ import {
   type EntityPluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { SkillEntity } from "../schemas/skill";
+import { skillEntitySchema } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
 
 const skillsWidgetDataSchema = z.object({
@@ -49,10 +49,13 @@ export function registerSkillsDashboardWidget(
         definition: skillsWidget,
         load: async ({ signal }) => {
           signal.throwIfAborted();
-          const skills = await context.entityService.listEntities<SkillEntity>({
-            entityType: SKILL_ENTITY_TYPE,
-            options: { limit: 10 },
-          });
+          const skills = await context.entityService.listEntities(
+            {
+              entityType: SKILL_ENTITY_TYPE,
+              options: { limit: 10 },
+            },
+            skillEntitySchema,
+          );
           signal.throwIfAborted();
           return {
             items: skills.map((skill) => ({

@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, access, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -28,7 +29,8 @@ function captureRejection(promise: Promise<unknown>): Promise<Error> {
     () => {
       throw new Error("Expected promise to reject");
     },
-    (error) => error as Error,
+    (error: unknown) =>
+      error instanceof Error ? error : new Error(String(error)),
   );
 }
 
@@ -132,14 +134,19 @@ describe("private local database endpoint", () => {
     await harness.server.initialize();
     await harness.client.initialize();
 
-    const result = (await harness.client.request("echo", {
-      bytes: new Uint8Array([1, 2, 255]),
-      embedding: new Float32Array([0.25, -1.5]),
-    })) as { bytes: Uint8Array; embedding: Float32Array };
+    const result = z
+      .object({
+        bytes: z.instanceof(Uint8Array),
+        embedding: z.instanceof(Float32Array),
+      })
+      .parse(
+        await harness.client.request("echo", {
+          bytes: new Uint8Array([1, 2, 255]),
+          embedding: new Float32Array([0.25, -1.5]),
+        }),
+      );
 
-    expect(result.bytes).toBeInstanceOf(Uint8Array);
     expect([...result.bytes]).toEqual([1, 2, 255]);
-    expect(result.embedding).toBeInstanceOf(Float32Array);
     expect([...result.embedding]).toEqual([0.25, -1.5]);
   });
 

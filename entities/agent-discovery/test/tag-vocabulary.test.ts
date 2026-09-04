@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { createMockEntityService } from "@brains/test-utils";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
 import {
@@ -128,7 +128,7 @@ describe("tag vocabulary", () => {
           return [];
         },
       }),
-    } as EntityPluginContext;
+    };
 
     const vocabulary = await collectTagVocabulary(context, {
       minCount: 1,

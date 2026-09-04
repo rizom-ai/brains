@@ -222,14 +222,13 @@ function wireJsonReviver(_key: string, value: unknown): unknown {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return value;
   }
-  const record = value as Record<string, unknown>;
-  if (!(binaryMarkerKey in record)) return value;
-  const type = record[binaryMarkerKey];
-  const data = record["data"];
+  if (!(binaryMarkerKey in value)) return value;
+  const type: unknown = Reflect.get(value, binaryMarkerKey);
+  const data: unknown = Reflect.get(value, "data");
   if (
     (type !== "uint8" && type !== "float32" && type !== "float64") ||
     typeof data !== "string" ||
-    Object.keys(record).length !== 2
+    Object.keys(value).length !== 2
   ) {
     throw new LocalDatabaseProtocolError(
       "Invalid local database binary representation",

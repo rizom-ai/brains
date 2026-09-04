@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { IAIService } from "@brains/ai-service";
 
@@ -125,7 +125,7 @@ ${this.formatToolCalls(turnResults)}`;
         reasoning: verdict.reasoning,
       };
     } catch (error) {
-      Logger.getInstance().error("LLM Judge failed:", error);
+      ConsoleLogger.getInstance().error("LLM Judge failed:", error);
       return null;
     }
   }

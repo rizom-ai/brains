@@ -364,7 +364,7 @@ function createEvalProjectionContext(params: {
   projectionDecision: "update" | "append";
 }): EntityPluginContext {
   const spaceId = getConversationSpaceId(params.conversation);
-  return {
+  const context: EntityPluginContext = {
     ...params.context,
     spaces: [spaceId],
     conversations: {
@@ -374,12 +374,16 @@ function createEvalProjectionContext(params: {
     },
     ai: {
       ...params.context.ai,
-      generateObject: async () => ({
+      // generateObject promises the caller's chosen T, which a fixed stub
+      // cannot produce. The assertion is scoped to this one member so every
+      // other override in this context is still checked against the real type.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub: generateObject is generic over a caller-chosen output, so a fixed forced value cannot satisfy an arbitrary T
+      generateObject: (async () => ({
         object: {
           decision: params.projectionDecision,
           rationale: "Forced by eval input",
         },
-      }),
+      })) as EntityPluginContext["ai"]["generateObject"],
     },
     entityService: {
       ...params.context.entityService,
@@ -400,7 +404,8 @@ function createEvalProjectionContext(params: {
         };
       },
     },
-  } as EntityPluginContext;
+  };
+  return context;
 }
 
 type SeededMemory = z.output<typeof seededMemorySchema>;
@@ -420,7 +425,7 @@ function createSeededRetrievalContext(
     }),
   );
 
-  return {
+  const seeded: EntityPluginContext = {
     ...context,
     entityService: {
       ...context.entityService,
@@ -428,7 +433,8 @@ function createSeededRetrievalContext(
       listEntities: async ({ entityType }: { entityType: string }) =>
         entities.filter((entity) => entity.entityType === entityType),
     },
-  } as EntityPluginContext;
+  };
+  return seeded;
 }
 
 function toMemoryEntity(memory: SeededMemory): EvalMemoryEntity {

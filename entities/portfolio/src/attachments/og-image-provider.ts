@@ -5,7 +5,7 @@ import {
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
 import type { Project } from "../schemas/project";
-import { projectFrontmatterSchema } from "../schemas/project";
+import { projectFrontmatterSchema, projectSchema } from "../schemas/project";
 import {
   PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
   projectOgImageTemplate,
@@ -15,6 +15,7 @@ import {
 export const createProjectOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<Project, ProjectOgImageTemplateData>({
     sourceEntityType: "project",
+    entitySchema: projectSchema,
     attachmentType: PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
     template: projectOgImageTemplate,
     themeMode: "light",

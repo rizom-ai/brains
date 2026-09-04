@@ -2,6 +2,19 @@
 import type { CSSProperties } from "react";
 import { z } from "@brains/utils/zod";
 
+/**
+ * React's CSSProperties has no index signature for CSS custom properties, so a
+ * `--*` key in an inline style literal is an excess property. Annotating a
+ * binding with the intersection accepts the variable and stays assignable to
+ * the style prop, without asserting the object is something it is not.
+ */
+function progressBarStyle(
+  percentage: number,
+): CSSProperties & Record<`--${string}`, string> {
+  const clamped = Math.max(0, Math.min(100, percentage));
+  return { "--web-chat-progress-value": `${clamped}%` };
+}
+
 interface ProgressData {
   status: "pending" | "processing" | "completed" | "failed";
   operationType: string;
@@ -64,13 +77,7 @@ export function ProgressPart({
           className="web-chat-progress-meter"
           aria-label={`${progress.percentage}% complete`}
         >
-          <span
-            style={
-              {
-                "--web-chat-progress-value": `${Math.max(0, Math.min(100, progress.percentage))}%`,
-              } as CSSProperties
-            }
-          />
+          <span style={progressBarStyle(progress.percentage)} />
         </div>
       ) : null}
     </section>

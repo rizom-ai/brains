@@ -12,7 +12,7 @@ import {
   fetchAgentCard,
   type FetchFn,
 } from "../lib/fetch-agent-card";
-import type { AgentEntity } from "../schemas/agent";
+import { agentEntitySchema } from "../schemas/agent";
 import { getErrorMessage } from "@brains/utils/error";
 
 const agentScanDirectoriesInputSchema = z.object({});
@@ -63,9 +63,12 @@ export async function scanAgentDirectories(
   fetchFn: FetchFn = globalThis.fetch,
   signal?: AbortSignal,
 ): Promise<AgentScanDirectoriesResult> {
-  const allAgents = await context.entityService.listEntities<AgentEntity>({
-    entityType: AGENT_ENTITY_TYPE,
-  });
+  const allAgents = await context.entityService.listEntities(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+    },
+    agentEntitySchema,
+  );
   const peers = allAgents.filter(
     (agent) => agent.metadata.status === "approved",
   );

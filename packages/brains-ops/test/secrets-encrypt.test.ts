@@ -9,9 +9,19 @@ import {
   generateIdentity,
   identityToRecipient,
 } from "age-encryption";
-import { fromYaml } from "@brains/utils/yaml";
+import { parseYamlDocument } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 
 import { encryptPilotSecrets } from "../src/secrets-encrypt";
+
+const secretsSchema = z.record(z.string(), z.string());
+
+function parseSecretsYaml(content: string): Record<string, string> {
+  const result = parseYamlDocument(content, secretsSchema);
+  if (!result.ok)
+    throw new Error(`expected a secrets mapping: ${result.error}`);
+  return result.data;
+}
 
 async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await createTempDir("brains-ops-secrets-");
@@ -297,7 +307,7 @@ discord:
       "privateKeyPem",
     ]);
 
-    const decrypted = fromYaml<Record<string, string>>(
+    const decrypted = parseSecretsYaml(
       await decryptYamlFile(
         join(root, "users/rizom-ai.secrets.yaml.age"),
         identity,
@@ -346,7 +356,7 @@ discord:
       env: { AGE_SECRET_KEY: identity },
     });
 
-    const decrypted = fromYaml<Record<string, string>>(
+    const decrypted = parseSecretsYaml(
       await decryptYamlFile(
         join(root, "users/rizom-ai.secrets.yaml.age"),
         identity,

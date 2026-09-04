@@ -36,7 +36,8 @@ async function captureRejection(promise: Promise<unknown>): Promise<Error> {
     () => {
       throw new Error("Expected promise to reject");
     },
-    (error) => error as Error,
+    (error: unknown) =>
+      error instanceof Error ? error : new Error(String(error)),
   );
 }
 

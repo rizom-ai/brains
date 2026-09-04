@@ -9,6 +9,7 @@ interface VectorCustomTypeValues {
  * Custom type for libSQL vector columns.
  * This allows us to use F32_BLOB in libSQL while maintaining Drizzle compatibility.
  *
+ * Note: This schema is only used for the entity DB's Drizzle migration (legacy).
  * The declared dimension is migration metadata. Runtime writes separately
  * validate vectors against the active embedding provider's dimensions.
  */

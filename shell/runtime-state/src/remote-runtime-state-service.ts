@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type {
   IRuntimeStateService,
   IRuntimeStateStore,
@@ -8,8 +8,8 @@ import type {
 } from "./types";
 import {
   parseRuntimeStateRpcResult,
-  type RuntimeStateRpcRecord,
   type RuntimeStateRpcRequest,
+  type RuntimeStateRpcResults,
   type RuntimeStateRpcTransport,
 } from "./runtime-state-rpc";
 import {
@@ -26,7 +26,7 @@ export class RemoteRuntimeStateService implements IRuntimeStateService {
 
   public constructor(transport: RuntimeStateRpcTransport, logger?: Logger) {
     this.transport = transport;
-    this.logger = (logger ?? Logger.getInstance()).child(
+    this.logger = (logger ?? ConsoleLogger.getInstance()).child(
       "RemoteRuntimeStateService",
     );
   }
@@ -91,14 +91,16 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
     this.assertOpen = assertOpen;
   }
 
-  private async requestRemote<R>(request: RuntimeStateRpcRequest): Promise<R> {
+  private async requestRemote<TRequest extends RuntimeStateRpcRequest>(
+    request: TRequest,
+  ): Promise<RuntimeStateRpcResults[TRequest["operation"]]> {
     this.assertOpen();
     const result = await this.transport.request(request);
-    return parseRuntimeStateRpcResult(request, result) as R;
+    return parseRuntimeStateRpcResult<TRequest["operation"]>(request, result);
   }
 
   public async get(key: string): Promise<T | null> {
-    const value = await this.requestRemote<unknown | null>({
+    const value = await this.requestRemote({
       operation: "get",
       namespace: this.namespace,
       key: normalizeRuntimeStateKey(key),
@@ -107,7 +109,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   public has(key: string): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "has",
       namespace: this.namespace,
       key: normalizeRuntimeStateKey(key),
@@ -115,7 +117,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   public async set(key: string, value: T): Promise<void> {
-    await this.requestRemote<void>({
+    await this.requestRemote({
       operation: "set",
       namespace: this.namespace,
       key: normalizeRuntimeStateKey(key),
@@ -124,7 +126,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   public setIfNotExists(key: string, value: T): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "setIfNotExists",
       namespace: this.namespace,
       key: normalizeRuntimeStateKey(key),
@@ -133,7 +135,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   public delete(key: string): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "delete",
       namespace: this.namespace,
       key: normalizeRuntimeStateKey(key),
@@ -145,7 +147,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   ): Promise<RuntimeStateRecordValue<T>[]> {
     const keyPrefix = options.keyPrefix;
     if (keyPrefix !== undefined) normalizeRuntimeStateKeyPrefix(keyPrefix);
-    const records = await this.requestRemote<RuntimeStateRpcRecord[]>({
+    const records = await this.requestRemote({
       operation: "list",
       namespace: this.namespace,
       ...(keyPrefix !== undefined && { keyPrefix }),
@@ -163,7 +165,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   ): Promise<number> {
     const keyPrefix = options.keyPrefix;
     if (keyPrefix !== undefined) normalizeRuntimeStateKeyPrefix(keyPrefix);
-    return this.requestRemote<number>({
+    return this.requestRemote({
       operation: "clear",
       namespace: this.namespace,
       ...(keyPrefix !== undefined && { keyPrefix }),

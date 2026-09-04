@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   closeSqliteClient,
@@ -46,9 +47,13 @@ async function createLegacyEntityDatabase(): Promise<{
       await readFile(new URL(migrationName, migrations)),
     );
   }
-  const journal = JSON.parse(
-    await readFile(new URL("meta/_journal.json", migrations), "utf8"),
-  ) as { entries: unknown[] };
+  const journal = z
+    .object({ entries: z.array(z.unknown()) })
+    .parse(
+      JSON.parse(
+        await readFile(new URL("meta/_journal.json", migrations), "utf8"),
+      ),
+    );
   await writeFile(
     join(legacyMeta, "_journal.json"),
     JSON.stringify({

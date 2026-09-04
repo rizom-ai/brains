@@ -19,7 +19,13 @@ const catalogIds = [
   ...canonicalBrain.interfaces.map(([id]) => id),
 ];
 
-type TargetRecipeName = "headless" | "personal" | "professional" | "team";
+const targetRecipeNames = [
+  "headless",
+  "personal",
+  "professional",
+  "team",
+] as const;
+type TargetRecipeName = (typeof targetRecipeNames)[number];
 
 interface TargetRecipeSelection {
   bundleContract: "capability-bundles-v1";
@@ -277,7 +283,7 @@ describe("canonical bundle taxonomy", () => {
     expect(canonicalBrain.bundles).toBe(canonicalBundles);
   });
 
-  for (const name of Object.keys(targetRecipes) as TargetRecipeName[]) {
+  for (const name of targetRecipeNames) {
     test(`${name} resolves the exact canonical member set`, () => {
       const resolution = targetResolution(name);
       expect(resolution.activeBundles).toEqual(targetRecipes[name].bundles);

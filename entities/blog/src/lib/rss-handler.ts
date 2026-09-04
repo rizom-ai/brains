@@ -4,7 +4,10 @@ import { SITE_CHANNELS, type SiteBuildStagingPayload } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { BlogPost } from "../schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostSchema,
+} from "../schemas/blog-post";
 import type { BlogPostWithData } from "../datasources/blog-datasource";
 import { generateRSSFeed } from "../rss/feed-generator";
 import { promises as fs } from "fs";
@@ -48,10 +51,10 @@ async function generateRSSAfterBuild(
     `Auto-generating RSS feed after site build (${isPreview ? "all posts" : "published only"})`,
   );
 
-  const allPosts: BlogPost[] = await context.entityService.listEntities({
-    entityType: "post",
-    options: { limit: 1000 },
-  });
+  const allPosts: BlogPost[] = await context.entityService.listEntities(
+    { entityType: "post", options: { limit: 1000 } },
+    blogPostSchema,
+  );
 
   const filteredPosts: BlogPostWithData[] = allPosts
     .filter(

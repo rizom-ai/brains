@@ -4,7 +4,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { createTemplate } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
-import type { DataSource } from "@brains/plugins";
+import type { DataSource, DataSourceSchema } from "@brains/plugins";
 import { createTestConfig } from "../test-helpers";
 
 // Test schemas
@@ -20,12 +20,11 @@ const mockDataSource: DataSource = {
   id: "mock-test-data",
   name: "Mock Test Data Source",
   description: "A test data source for content resolution",
-  async fetch<T>(_query: unknown): Promise<T> {
-    const data = {
+  async fetch<T>(_query: unknown, schema: DataSourceSchema<T>): Promise<T> {
+    return schema.parse({
       title: "DataSource Title",
       content: "This content was fetched from a DataSource",
-    };
-    return data as T;
+    });
   },
 };
 

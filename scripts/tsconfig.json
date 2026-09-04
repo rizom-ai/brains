@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // Repo scripts are executed by bun, never packaged, so they publish no
+    // declarations and are exempt from the isolated-declarations discipline
+    // that the workspace packages carry.
+    "declaration": false,
+    "isolatedDeclarations": false
+  },
+  "include": ["**/*.ts"]
+}

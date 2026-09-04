@@ -123,7 +123,16 @@ const runSummarySchema = z
     conversationId: z.string().optional(),
     completedStates: z.array(z.string()).default([]),
     context: z.record(z.string(), z.unknown()).default({}),
-    evidence: z.array(z.object({ kind: z.string() }).passthrough()).default([]),
+    evidence: z
+      .array(
+        z
+          .object({
+            kind: z.string(),
+            data: z.record(z.string(), z.unknown()).optional(),
+          })
+          .passthrough(),
+      )
+      .default([]),
     gateVerdicts: z
       .array(
         z
@@ -1310,9 +1319,7 @@ describe("PlaybooksPlugin", () => {
     expectSuccess(status);
     const data = parsePlaybookToolData(status.data);
     expect(data.activeRun.currentState).toBe("complete");
-    const visibleEvidenceData = (
-      data.activeRun.evidence[0] as { data?: Record<string, unknown> }
-    ).data;
+    const visibleEvidenceData = data.activeRun.evidence[0]?.data;
     expect(visibleEvidenceData).toEqual({
       entityType: "note",
       entityId: "seed-note",

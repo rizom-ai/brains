@@ -426,6 +426,14 @@ chosen theme:
 
 **Result**: Each site gets its own theme, but all use the same component code!
 
+### Authenticated app and console integration
+
+Sites and authenticated applications are separate styling products. Public sites and Dashboard keep their site-facing CSS/component contracts; Studio and Web Chat compile `@brains/app-ui-react` StyleX controls into static app CSS. They share semantic tokens, not components.
+
+Console climates alias the active theme's `--color-*` values. `instrument` selects `data-theme="dark"`; `paper` selects `data-theme="light"`. The app contract additionally guarantees `--color-bg-card`, `--color-success`, `--color-warning`, `--color-error`, and `--color-on-accent` from `theme-base`. A Brain without a configured site theme receives the neutral fallback owned by `@brains/console-theme`, so core packages do not depend on a separately released public theme.
+
+`resolveConsoleThemeCSS()` hoists configured theme `@import` rules for Studio and Dashboard. Web Chat removes those imports to preserve its no-third-party-request policy.
+
 ---
 
 ## Common Patterns

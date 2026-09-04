@@ -13,6 +13,7 @@ import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   createDataUrl,
   imageAdapter,
+  imageSchema,
   setCoverImageId,
   setOgImageId,
   type Image,
@@ -166,10 +167,13 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
   private async findImageByDedupKey(
     dedupKey: string,
   ): Promise<Image | undefined> {
-    const images = await this.context.entityService.listEntities<Image>({
-      entityType: "image",
-      options: { filter: { metadata: { dedupKey } } },
-    });
+    const images = await this.context.entityService.listEntities(
+      {
+        entityType: "image",
+        options: { filter: { metadata: { dedupKey } } },
+      },
+      imageSchema,
+    );
     return images.find(
       (image) =>
         image.metadata.status !== "pending" &&

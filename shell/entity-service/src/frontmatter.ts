@@ -1,5 +1,7 @@
 import matter from "gray-matter";
 import { z } from "@brains/utils/zod";
+import { objectKeys } from "@brains/utils/object-keys";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { BaseEntity, ContentVisibility } from "./types";
 
 /**
@@ -58,15 +60,15 @@ export function extractMetadata<T extends BaseEntity>(
   const metadata: Record<string, unknown> = {};
 
   // Get all fields from the entity
-  const allFields = Object.keys(entity) as Array<keyof T>;
+  const allFields = objectKeys(entity);
 
   // Determine which fields to include
-  let fieldsToProcess: Array<keyof T>;
+  let fieldsToProcess: Array<keyof T & string>;
   if (includeFields) {
     // If includeFields is specified, only include those
-    fieldsToProcess = includeFields.filter(
-      (field) => !excludedFieldNames.has(String(field)),
-    );
+    fieldsToProcess = includeFields
+      .filter((field) => typeof field === "string")
+      .filter((field) => !excludedFieldNames.has(field));
   } else {
     // Otherwise include all fields except excluded ones
     fieldsToProcess = allFields.filter(
@@ -87,10 +89,10 @@ export function extractMetadata<T extends BaseEntity>(
     if (customSerializers && field in customSerializers) {
       const serializer = customSerializers[field];
       if (serializer) {
-        metadata[field as string] = serializer(value);
+        metadata[field] = serializer(value);
       }
     } else {
-      metadata[field as string] = value;
+      metadata[field] = value;
     }
   }
 
@@ -188,10 +190,10 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
  * `BaseEntityAdapter.parseFrontMatter`, not part of the package API.
  */
 export function stripSystemVisibility(data: unknown): unknown {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+  if (!isPlainRecord(data)) {
     return data;
   }
-  const { visibility: _visibility, ...rest } = data as Record<string, unknown>;
+  const { visibility: _visibility, ...rest } = data;
   return rest;
 }
 

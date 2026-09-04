@@ -1,9 +1,9 @@
 import type { ScheduledJob } from "./scheduler-backend";
 import { triggerGeneration, type GenerationDeps } from "./scheduler-generation";
-import type { SchedulerConfig } from "./types/scheduler";
+import type { ResolvedSchedulerConfig } from "./types/scheduler";
 
 export interface GenerationScheduleRunnerDeps {
-  config: SchedulerConfig;
+  config: ResolvedSchedulerConfig;
   getGenerationDeps: () => GenerationDeps;
   isRunning: () => boolean;
 }
@@ -51,6 +51,6 @@ export class GenerationScheduleRunner {
   }
 
   private get generationSchedules(): Record<string, string> {
-    return this.deps.config.generationSchedules as Record<string, string>;
+    return this.deps.config.generationSchedules;
   }
 }

@@ -1,6 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import { socialPostAdapter } from "../../src/adapters/social-post-adapter";
-import type { SocialPost } from "../../src/schemas/social-post";
+import {
+  socialPostMetadataSchema,
+  type SocialPost,
+} from "../../src/schemas/social-post";
+import { z } from "@brains/utils/zod";
 
 /**
  * Social post format:
@@ -176,8 +180,8 @@ Test roundtrip content`;
         id: "test-123",
         entityType: "social-post",
         visibility: "public",
-        content: partialEntity.content as string,
-        metadata: partialEntity.metadata as SocialPost["metadata"],
+        content: z.string().parse(partialEntity.content),
+        metadata: socialPostMetadataSchema.parse(partialEntity.metadata),
         contentHash: "abc",
         created: "2024-01-15T10:00:00Z",
         updated: "2024-01-15T10:00:00Z",

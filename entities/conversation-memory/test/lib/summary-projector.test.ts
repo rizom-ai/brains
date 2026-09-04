@@ -1,4 +1,5 @@
 import { describe, it, expect, spyOn } from "bun:test";
+import { summarySchema } from "../../src/schemas/summary";
 import { createExternalActorId } from "@brains/contracts";
 import type {
   Conversation,
@@ -576,9 +577,12 @@ describe("SummaryProjector", () => {
     spyOn(context.ai, "generateObject").mockResolvedValue({
       object: { decision: "update", rationale: "test" },
     });
+    // Parsing the fixture through the caller's own schema satisfies the
+    // generic honestly, and fails if the fixture drifts from what the
+    // projector asks for.
     const generateSpy = spyOn(context.ai, "generate").mockImplementation(
-      <T>({ prompt }: { prompt: string }) => {
-        return Promise.resolve({
+      async ({ prompt }, schema) =>
+        schema.parse({
           entries: [
             {
               title: "Chunk",
@@ -592,8 +596,7 @@ describe("SummaryProjector", () => {
               actionItems: [],
             },
           ],
-        } as T);
-      },
+        }),
     );
 
     const projector = new SummaryProjector(
@@ -620,8 +623,8 @@ describe("SummaryProjector", () => {
     spyOn(context.ai, "generateObject").mockResolvedValue({
       object: { decision: "update", rationale: "test" },
     });
-    spyOn(context.ai, "generate").mockImplementation(<T>() => {
-      return Promise.resolve({
+    spyOn(context.ai, "generate").mockImplementation(async (_config, schema) =>
+      schema.parse({
         entries: [
           {
             title: "Chunk",
@@ -633,8 +636,8 @@ describe("SummaryProjector", () => {
             actionItems: [],
           },
         ],
-      } as T);
-    });
+      }),
+    );
 
     const projector = new SummaryProjector(
       context,
@@ -752,19 +755,22 @@ describe("SummaryProjector", () => {
     spyOn(context.entityService, "getEntity").mockResolvedValue(existing);
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     spyOn(context.ai, "generateObject").mockImplementation(
-      <T>(prompt: string) => {
+      async (prompt, schema) => {
         expect(prompt).toContain("90 second delayed projection");
         expect(prompt).not.toContain("Use stored messages");
-        return Promise.resolve({
-          object: { decision: "append", rationale: "new decision" } as T,
-        });
+        return {
+          object: schema.parse({
+            decision: "append",
+            rationale: "new decision",
+          }),
+        };
       },
     );
     spyOn(context.ai, "generate").mockImplementation(
-      <T>({ prompt }: { prompt: string }) => {
+      async ({ prompt }, schema) => {
         expect(String(prompt)).toContain("90 second delayed projection");
         expect(String(prompt)).not.toContain("Use stored messages");
-        return Promise.resolve({
+        return schema.parse({
           entries: [
             {
               title: "Projection delay",
@@ -776,7 +782,7 @@ describe("SummaryProjector", () => {
               actionItems: [],
             },
           ],
-        } as T);
+        });
       },
     );
 
@@ -824,11 +830,14 @@ describe("SummaryProjector", () => {
 
     await projector.projectConversation("conv-1");
 
-    expect(getEntitySpy).toHaveBeenCalledWith({
-      entityType: "summary",
-      id: "conv-1",
-      visibilityScope: "shared",
-    });
+    expect(getEntitySpy).toHaveBeenCalledWith(
+      {
+        entityType: "summary",
+        id: "conv-1",
+        visibilityScope: "shared",
+      },
+      summarySchema,
+    );
   });
 
   it("ignores lower-visibility summaries returned within the configured read scope", async () => {

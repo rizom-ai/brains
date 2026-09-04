@@ -12,18 +12,22 @@ import {
   type MessageArtifactEntity,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import type { UIMessage, UIMessageStreamWriter } from "ai";
 import type { ApprovalResponse } from "./chat-input";
 import { stripInternalEntityMemoryNote } from "./display-content";
-import { writePlanCards, writeTextPart } from "./stream-writer";
+import {
+  writePlanCards,
+  writeTextPart,
+  type StreamWriter,
+} from "./stream-writer";
 
 export interface ActiveStream {
-  writer: UIMessageStreamWriter<UIMessage>;
+  writer: StreamWriter;
 }
 
 interface StreamDeps {
   activeStreams: Map<string, ActiveStream>;
-  agent: AgentNamespace;
+  /** The two calls this stream makes, not the whole agent namespace. */
+  agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
   startProcessingInput(conversationId: string): void;
   endProcessingInput(): void;
   handleAgentResponseToolStatuses(
@@ -43,7 +47,10 @@ interface StreamDeps {
     getEntity: (ref: {
       entityType: string;
       id: string;
-      visibilityScope?: unknown;
+      // The scope the entity service actually accepts. Declared here rather
+      // than as `unknown`, which forced the caller to assert the ref back into
+      // the real request type.
+      visibilityScope?: "public" | "shared" | "restricted" | undefined;
     }) => Promise<MessageArtifactEntity | null | undefined>;
   };
 }
@@ -86,7 +93,7 @@ function hasMatchingApprovalCard(
 }
 
 async function writeUnmatchedApprovalTerminal(
-  writer: UIMessageStreamWriter<UIMessage>,
+  writer: StreamWriter,
   conversationId: string,
   approvalResponse: ApprovalResponse,
   response: Pick<AgentResponse, "cards" | "text">,
@@ -113,7 +120,7 @@ async function writeUnmatchedApprovalTerminal(
 }
 
 interface StreamedChatInput {
-  writer: UIMessageStreamWriter<UIMessage>;
+  writer: StreamWriter;
   conversationId: string;
   message: string;
   permissionLevel: UserPermissionLevel;
@@ -130,12 +137,6 @@ export async function handleStreamedChat(
 ): Promise<void> {
   deps.activeStreams.set(input.conversationId, { writer: input.writer });
   deps.startProcessingInput(input.conversationId);
-  input.writer.write({
-    type: "data-status",
-    id: deps.createId("status"),
-    data: { status: "thinking" },
-    transient: true,
-  });
 
   try {
     const response = await deps.agent.chat(
@@ -171,7 +172,7 @@ export async function handleStreamedChat(
 }
 
 interface StreamedConfirmationsInput {
-  writer: UIMessageStreamWriter<UIMessage>;
+  writer: StreamWriter;
   conversationId: string;
   approvalResponses: ApprovalResponse[];
   permissionLevel: UserPermissionLevel;
@@ -186,15 +187,6 @@ export async function handleStreamedConfirmations(
 ): Promise<void> {
   deps.activeStreams.set(input.conversationId, { writer: input.writer });
   deps.startProcessingInput(input.conversationId);
-  const allApproved = input.approvalResponses.every(
-    (approvalResponse) => approvalResponse.approved,
-  );
-  input.writer.write({
-    type: "data-status",
-    id: deps.createId("status"),
-    data: { status: allApproved ? "approving" : "resolving approvals" },
-    transient: true,
-  });
 
   try {
     for (const approvalResponse of input.approvalResponses) {
@@ -282,7 +274,7 @@ function buildWebChatContext(
 }
 
 export function writeText(
-  writer: UIMessageStreamWriter<UIMessage>,
+  writer: StreamWriter,
   text: string,
   prefix: string,
   createId: (prefix: string) => string,

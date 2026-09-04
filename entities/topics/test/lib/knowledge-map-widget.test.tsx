@@ -14,6 +14,21 @@ import {
   KNOWLEDGE_MAP_WIDGET_ID,
   registerKnowledgeMapDashboardWidget,
 } from "../../src/lib/knowledge-map-widget";
+import { z } from "@brains/utils/zod";
+
+/**
+ * The shell carries a widget's renderer as `unknown` on purpose, so the
+ * dashboard can own the render contract. Checking the value is a function is
+ * the same check the dashboard makes on receipt; asserting the signature
+ * instead would keep passing after the widget stopped supplying a component.
+ */
+const widgetComponentSchema = z.custom<
+  (props: { data: unknown }) => JSX.Element
+>((value) => typeof value === "function", {
+  message: "widget renderer component must be a function",
+});
+
+const widgetDataSchema = z.looseObject({ source: z.unknown() });
 
 describe("registerKnowledgeMapDashboardWidget", () => {
   it("registers one normalized semantic projection once plugins are ready", async () => {
@@ -170,18 +185,18 @@ describe("registerKnowledgeMapDashboardWidget", () => {
     expect(typeof renderer.component).toBe("function");
     expect(renderer.clientStyles).toContain(".kmap");
 
-    const data = (await registration.dataProvider({
-      caller: null,
-      signal: new AbortController().signal,
-    })) as { source?: unknown };
+    const data = widgetDataSchema.parse(
+      await registration.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    );
     // A self-drawing widget carries its own data beside the semantic view.
     expect(data.source).toMatchObject({
       zones: [{ id: "future-of-work", name: "Future of Work" }],
     });
 
-    const Component = renderer.component as (props: {
-      data: unknown;
-    }) => JSX.Element;
+    const Component = widgetComponentSchema.parse(renderer.component);
     const html = render(<Component data={data.source} />);
     // The bespoke SVG field, not the generic spatial block renderer.
     expect(html).toContain("kmap-field--dashboard");

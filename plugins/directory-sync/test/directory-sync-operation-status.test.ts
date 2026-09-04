@@ -15,7 +15,7 @@ function createContext(): ServicePluginContext {
   return {
     ...createMockServicePluginContext(),
     runtimeState: createMockShell().getRuntimeState(),
-  } as ServicePluginContext;
+  };
 }
 
 function createService(
@@ -146,7 +146,7 @@ describe("DirectorySyncOperationStatusService", () => {
     const context = {
       ...base,
       jobs: { ...base.jobs, getStatus, getBatchStatus },
-    } as ServicePluginContext;
+    };
     const service = createService(context);
     await service.initialize();
     const runId = await service.startRun("manual", "pulling");
@@ -305,7 +305,7 @@ describe("DirectorySyncOperationStatusService", () => {
           status: jobStatus,
         }),
       },
-    } as ServicePluginContext;
+    };
     let now = 10_000;
     const service = createService(context, {
       now: () => now,

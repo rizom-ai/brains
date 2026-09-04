@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   createMockEntityPluginContext,
   createSilentLogger,
@@ -11,7 +14,7 @@ const TINY_PNG_BASE64 =
 const TINY_PNG = Buffer.from(TINY_PNG_BASE64, "base64");
 
 function createProgressReporter(): ProgressReporter {
-  const reporter = ProgressReporter.from(async () => {});
+  const reporter = CallbackProgressReporter.from(async () => {});
   if (!reporter) throw new Error("Failed to create progress reporter");
   return reporter;
 }

@@ -10,7 +10,7 @@ export interface LinkExtractionResult {
   summary: string;
 }
 
-const linkExtractionSchema: z.ZodType<LinkExtractionResult> = z.object({
+export const linkExtractionSchema: z.ZodType<LinkExtractionResult> = z.object({
   success: z
     .boolean()
     .describe(

@@ -1,3 +1,5 @@
+import { z } from "@brains/utils/zod";
+
 export type JsonPrimitive = null | boolean | number | string;
 
 export type JsonValue = JsonPrimitive | JsonValue[] | JsonObject;
@@ -53,3 +55,32 @@ export type JsonObjectOutputGuard<T> = [T] extends [readonly unknown[]]
       ? unknown
       : never
     : never;
+
+/**
+ * Runtime counterpart to {@link IsJsonValue}. Lets a caller that owns a
+ * differently-typed schema prove its output really is a JSON document rather
+ * than assert it — `schema.pipe(jsonObjectSchema)` parses with the caller's
+ * schema first, then validates the result is serializable.
+ */
+export const jsonValueSchema: z.ZodType<JsonValue, unknown> = z.lazy(() =>
+  z.union([
+    z.null(),
+    z.boolean(),
+    z
+      .number()
+      .finite()
+      .refine(
+        (value) => !Number.isInteger(value) || Number.isSafeInteger(value),
+        { message: "integer exceeds the JSON-safe range" },
+      ),
+    z.string(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
+);
+
+/** A JSON document with an object at its root. */
+export const jsonObjectSchema: z.ZodType<JsonObject, unknown> = z.record(
+  z.string(),
+  jsonValueSchema,
+);

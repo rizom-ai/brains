@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mockFetch } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { Tool, ToolResponse } from "@brains/plugins";
+import type { ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { AnalyticsPlugin } from "../src/index";
@@ -23,10 +23,7 @@ const analyticsDataSchema = z.object({
 
 const originalFetch = globalThis.fetch;
 
-/**
- * Install a mock fetch that returns responses from the queue in order.
- * Centralizes the single unavoidable cast.
- */
+/** Install a mock fetch that returns responses from the queue in order. */
 function installMockFetch(responses: Response[]): void {
   let callIndex = 0;
   mockFetch(() => {
@@ -60,8 +57,7 @@ async function executeTool(
   toolName: string,
   input: Record<string, unknown>,
 ): Promise<ToolResponse> {
-  const tool = capabilities.tools.find((t) => t.name === toolName) as
-    Tool | undefined;
+  const tool = capabilities.tools.find((t) => t.name === toolName);
   if (!tool) {
     throw new Error(`Tool ${toolName} not found`);
   }

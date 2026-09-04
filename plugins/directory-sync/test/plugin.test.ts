@@ -297,11 +297,21 @@ describe("DirectorySyncPlugin", () => {
       });
       await localHarness.installPlugin(localPlugin);
 
-      const stored = (await statusStore.get("current")) as {
-        activeRun?: unknown;
-        recentRuns: Array<{ id: string; outcome: string; summary: string }>;
-        issues: Array<{ kind: string; message: string }>;
-      };
+      const stored = z
+        .looseObject({
+          activeRun: z.unknown().optional(),
+          recentRuns: z.array(
+            z.looseObject({
+              id: z.string(),
+              outcome: z.string(),
+              summary: z.string(),
+            }),
+          ),
+          issues: z.array(
+            z.looseObject({ kind: z.string(), message: z.string() }),
+          ),
+        })
+        .parse(await statusStore.get("current"));
       expect(stored.activeRun).toBeUndefined();
       expect(stored.recentRuns[0]).toMatchObject({
         id: "interrupted-run",

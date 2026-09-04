@@ -4,6 +4,7 @@ import { createElement as h } from "react";
 import type { ComponentType } from "react";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import site from "../src";
+import { z } from "@brains/utils/zod";
 
 /* Rev-10 home narrative: the growth section carries the system (three stage
    columns under the diagram), the mission band is the quote alone, the
@@ -26,19 +27,36 @@ interface ParsableSchema {
   safeParse(input: unknown): { success: boolean };
 }
 
+/* The group carries schemas and components opaquely, so these check the
+   shape they rely on rather than assert it — a section that stops exposing
+   parse/safeParse, or whose component is not callable, fails here. */
+const parsableSchemaSchema = z.custom<ParsableSchema>(
+  (value) =>
+    typeof value === "object" &&
+    value !== null &&
+    typeof Reflect.get(value, "parse") === "function" &&
+    typeof Reflect.get(value, "safeParse") === "function",
+  "section schema must expose parse and safeParse",
+);
+
+const sectionComponentSchema = z.custom<ComponentType<Record<string, unknown>>>(
+  (value) => typeof value === "function",
+  "section component must be callable",
+);
+
+const propsSchema = z.record(z.string(), z.unknown());
+
 function sectionSchema(id: string): ParsableSchema {
   const def = home?.sections[id];
   if (!def) throw new Error(`home section "${id}" missing`);
-  return def.schema as ParsableSchema;
+  return parsableSchemaSchema.parse(def.schema);
 }
 
 function renderSection(id: string, props: Record<string, unknown>): string {
   const def = home?.sections[id];
   if (!def) throw new Error(`home section "${id}" missing`);
-  const parsed = sectionSchema(id).parse(props) as Record<string, unknown>;
-  /* The group carries components opaquely for the same reason it carries
-     schemas that way; narrow once, as sectionSchema above does. */
-  const component = def.component as ComponentType<Record<string, unknown>>;
+  const parsed = propsSchema.parse(sectionSchema(id).parse(props));
+  const component = sectionComponentSchema.parse(def.component);
   return render(h(component, parsed));
 }
 

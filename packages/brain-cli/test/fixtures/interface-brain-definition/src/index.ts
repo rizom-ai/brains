@@ -8,6 +8,7 @@ import { defineBrain, defineBundle, use } from "@rizom/brain";
 // that is part of what it proves. Read the environment structurally so the test
 // can inject OS-assigned transport ports without adding a dependency.
 const fixtureEnv =
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- this fixture compiles without @types/node on purpose, so `process` has no declared type to narrow
   (globalThis as { process?: { env?: Record<string, string | undefined> } })
     .process?.env ?? {};
 

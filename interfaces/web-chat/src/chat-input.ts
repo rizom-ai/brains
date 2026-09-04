@@ -1,12 +1,12 @@
 import {
-  browserChatApprovalResponsePartSchema,
-  browserChatFilePartSchema,
-  browserChatMessageRequestSchema,
-  browserChatTextPartSchema,
-  browserChatUploadPartSchema,
-  type BrowserChatApprovalResponse,
-  type BrowserChatMessageRequest,
-} from "@brains/contracts/browser-chat";
+  chatApprovalResponsePartSchema,
+  chatFilePartSchema,
+  chatMessageRequestSchema,
+  chatTextPartSchema,
+  chatUploadPartSchema,
+  type ChatApprovalResponse,
+  type ChatMessageRequest,
+} from "@brains/contracts/chat";
 import {
   type ChatAttachment,
   type ScopedRuntimeUploadStore,
@@ -16,11 +16,11 @@ import {
   resolveReferencedUpload as resolveReferencedUploadPart,
 } from "./upload-handlers";
 
-export type ApprovalResponse = BrowserChatApprovalResponse;
-export type ChatRequest = BrowserChatMessageRequest;
+export type ApprovalResponse = ChatApprovalResponse;
+export type ChatRequest = ChatMessageRequest;
 
-export const chatRequestSchema: typeof browserChatMessageRequestSchema =
-  browserChatMessageRequestSchema;
+export const chatRequestSchema: typeof chatMessageRequestSchema =
+  chatMessageRequestSchema;
 
 export interface ParsedUserInput {
   message: string;
@@ -43,7 +43,7 @@ export async function extractLastUserInput(
   const messageParts: string[] = [];
   const attachments: ChatAttachment[] = [];
   for (const part of lastUserMessage.parts ?? []) {
-    const parsedText = browserChatTextPartSchema.safeParse(part);
+    const parsedText = chatTextPartSchema.safeParse(part);
     if (parsedText.success) {
       if (parsedText.data.text.length > 0) {
         messageParts.push(parsedText.data.text);
@@ -51,7 +51,7 @@ export async function extractLastUserInput(
       continue;
     }
 
-    const parsedFile = browserChatFilePartSchema.safeParse(part);
+    const parsedFile = chatFilePartSchema.safeParse(part);
     if (parsedFile.success) {
       const attachment = resolveInlineUploadFilePart(parsedFile.data);
       if (attachment instanceof Response) return attachment;
@@ -59,7 +59,7 @@ export async function extractLastUserInput(
       continue;
     }
 
-    const parsedUploadRef = browserChatUploadPartSchema.safeParse(part);
+    const parsedUploadRef = chatUploadPartSchema.safeParse(part);
     if (parsedUploadRef.success) {
       const attachment = await resolveReferencedUploadPart(
         parsedUploadRef.data.data.ref.id,
@@ -98,7 +98,7 @@ export function extractLatestApprovalResponses(
   if (!lastMessage || lastMessage.role === "user") return [];
 
   return (lastMessage.parts ?? [])
-    .map((part) => browserChatApprovalResponsePartSchema.safeParse(part))
+    .map((part) => chatApprovalResponsePartSchema.safeParse(part))
     .filter((result) => result.success)
     .map((result) => ({
       ...result.data.approval,

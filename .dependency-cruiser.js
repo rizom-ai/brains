@@ -110,14 +110,17 @@ module.exports = {
       name: "plugin-build-scripts-can-use-module-builtin",
       severity: "error",
       comment:
-        "Studio build scripts use createRequire from the module builtin; " +
-        "otherwise they follow the standard plugin boundary",
+        "Studio build scripts use createRequire from the module builtin and the " +
+        "shared build-only compiler; otherwise they follow the standard plugin boundary",
       from: {
         path: "^plugins/studio/scripts/",
       },
       to: {
         path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
-        pathNot: ["^(bun:test|path|fs|fs/promises|crypto|os|url|module)$"],
+        pathNot: [
+          "^(bun:test|path|fs|fs/promises|crypto|os|url|module)$",
+          "^packages/build-tools/",
+        ],
       },
     },
     {
@@ -171,7 +174,7 @@ module.exports = {
       severity: "error",
       comment:
         "web-chat's build scripts legitimately use createRequire from the module " +
-        "builtin; otherwise same restrictions as " +
+        "builtin and the shared build-only compiler; otherwise same restrictions as " +
         "interfaces-can-only-import-shell-and-shared",
       from: {
         path: "^interfaces/web-chat/scripts/",
@@ -181,6 +184,7 @@ module.exports = {
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|module)$", // Allow Node.js/Bun builtins
+          "^packages/build-tools/",
         ],
       },
     },

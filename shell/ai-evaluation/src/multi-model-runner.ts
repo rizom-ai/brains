@@ -1,7 +1,7 @@
 import { resolve as resolvePath } from "path";
 import type { AppConfig } from "@brains/app";
 import { AIService, type IAIService } from "@brains/ai-service";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 
 import type { EvaluationSummary } from "./schemas";
@@ -144,7 +144,7 @@ function createJudgeAiService(judge: string | undefined): IAIService {
       ...(judgeKey ? { apiKey: judgeKey } : {}),
       model: judgeModel,
     },
-    Logger.getInstance(),
+    ConsoleLogger.getInstance(),
   );
 }
 

@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { Button } from "@brains/app-ui-react";
 import type { ReactElement, ReactNode } from "react";
 
 export function AccountButton(props: {
@@ -8,21 +9,21 @@ export function AccountButton(props: {
   tone?: "primary" | "danger";
   disabled?: boolean;
 }): ReactElement {
-  const className = [
-    "people-button",
-    props.tone ? `people-button--${props.tone}` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
   return (
-    <button
-      className={className}
+    <Button
+      variant={
+        props.tone === "danger"
+          ? "danger"
+          : props.tone === "primary"
+            ? "primary"
+            : "outline"
+      }
       type={props.type ?? "button"}
       onClick={props.onClick}
       disabled={props.disabled}
     >
       {props.children}
-    </button>
+    </Button>
   );
 }
 

@@ -24,7 +24,7 @@ import { deckGenerationTemplate } from "./templates/generation-template";
 import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
-import type { DeckEntity } from "./schemas/deck";
+import { deckSchema, type DeckEntity } from "./schemas/deck";
 import { DECK_CAROUSEL_ATTACHMENT_TYPE } from "./attachments/carousel-template";
 import {
   DeckCarouselAttachmentProvider,
@@ -153,10 +153,13 @@ export class DecksPlugin extends EntityPlugin<
       if (entityType !== "deck") return { success: true };
 
       try {
-        const deck = await context.entityService.getEntity<DeckEntity>({
-          entityType: "deck",
-          id: entityId,
-        });
+        const deck = await context.entityService.getEntity(
+          {
+            entityType: "deck",
+            id: entityId,
+          },
+          deckSchema,
+        );
         if (!deck) {
           await context.messaging.send({
             type: PUBLISH_CHANNELS.reportFailure,
@@ -247,16 +250,19 @@ export class DecksPlugin extends EntityPlugin<
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(context.entityService),
       );
-      return context.ai.generate<{
-        title: string;
-        content: string;
-        description: string;
-      }>({
-        prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
-        templateName: "decks:generation",
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      return context.ai.generate(
+        {
+          prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
+          templateName: "decks:generation",
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          description: z.string(),
+        }),
+      );
     });
 
     context.eval.registerHandler(
@@ -264,11 +270,14 @@ export class DecksPlugin extends EntityPlugin<
       async (input: unknown) => {
         const parsed: GenerateDescriptionEvalInput =
           generateDescriptionEvalInputSchema.parse(input);
-        return context.ai.generate<{ description: string }>({
-          prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-          templateName: "decks:description",
-          representedIdentity: "none",
-        });
+        return context.ai.generate(
+          {
+            prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+            templateName: "decks:description",
+            representedIdentity: "none",
+          },
+          z.object({ description: z.string() }),
+        );
       },
     );
   }

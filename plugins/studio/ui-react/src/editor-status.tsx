@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import type { ReactElement } from "react";
 import type { GitSyncState } from "./api";
-import { ConfirmDialog } from "@brains/operator-view-react";
+import { Button, ConfirmDialog } from "@brains/app-ui-react";
 import type { SaveState } from "./editor-workflow";
 
 export function SaveStateNotice(props: {
@@ -21,9 +21,14 @@ export function SaveStateNotice(props: {
       <section className="conflict" role="alert">
         <h4>The manuscript changed elsewhere</h4>
         <p>{state.message}</p>
-        <button type="button" className="btn ghost reload" onClick={onReload}>
+        <Button
+          type="button"
+          variant="ghost"
+          className="reload"
+          onClick={onReload}
+        >
           Reload latest
-        </button>
+        </Button>
       </section>
     );
   }
@@ -148,7 +153,7 @@ export function DeleteDialog(props: {
       cancelLabel="Keep entry"
       confirmLabel={props.deleting ? "Deleting…" : "Delete entry"}
       pending={props.deleting === true}
-      confirmClassName="danger"
+      confirmVariant="danger"
       onCancel={props.onCancel}
       onConfirm={props.onConfirm}
     >

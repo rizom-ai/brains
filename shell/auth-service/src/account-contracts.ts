@@ -38,8 +38,8 @@ export type AuthAccountMutation =
 
 export interface AuthAccountPasskey {
   id: string;
-  transports?: string[];
-  credentialDeviceType?: string;
+  transports?: string[] | undefined;
+  credentialDeviceType?: string | undefined;
   credentialBackedUp: boolean;
   createdAt: number;
   updatedAt: number;
@@ -96,7 +96,7 @@ export interface AuthAccountSnapshot {
    * Studio-owned profile: the profile owns the display name, so it is not
    * self-editable in the Studio Account view.
    */
-  profileEntityId?: string;
+  profileEntityId?: string | undefined;
   passkeys: AuthAccountPasskey[];
   connectedChannels: AuthAccountConnectedChannel[];
   pluginSettings: readonly AuthAccountPluginSettingsForm[];

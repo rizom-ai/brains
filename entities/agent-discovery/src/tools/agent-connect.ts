@@ -16,7 +16,7 @@ import {
   type FetchFn,
 } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
-import type { AgentEntity } from "../schemas/agent";
+import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import { getErrorMessage } from "@brains/utils/error";
 
 const agentConnectInputSchema = z.object({
@@ -69,10 +69,13 @@ async function upsertConnectedAgent(params: {
 }): Promise<{ entity: AgentEntity; created: boolean }> {
   const { context, entityId, card } = params;
   const now = new Date().toISOString();
-  const existing = await context.entityService.getEntity<AgentEntity>({
-    entityType: AGENT_ENTITY_TYPE,
-    id: entityId,
-  });
+  const existing = await context.entityService.getEntity(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+      id: entityId,
+    },
+    agentEntitySchema,
+  );
   const built = buildAgentFromCard(card, { status: "approved" });
   const parsedContent = agentAdapter.fromMarkdown(built.content);
   const metadata = {

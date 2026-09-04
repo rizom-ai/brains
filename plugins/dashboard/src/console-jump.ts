@@ -1,9 +1,11 @@
+import { z } from "@brains/utils/zod";
+
 export interface ConsoleJumpItem {
   id: string;
   title: string;
-  sub?: string;
+  sub?: string | undefined;
   href: string;
-  tag?: string;
+  tag?: string | undefined;
 }
 
 export interface ConsoleJumpGroup {
@@ -11,6 +13,38 @@ export interface ConsoleJumpGroup {
   label: string;
   items: ConsoleJumpItem[];
 }
+
+/** What `/api/console/jump` puts on the wire. */
+export interface ConsoleJumpResponse {
+  groups: ConsoleJumpGroup[];
+}
+
+/**
+ * The response shape, as something a caller can check rather than assume.
+ *
+ * Declared as `z.ZodType<ConsoleJumpResponse, unknown>` so the schema and the
+ * interface cannot drift: changing one without the other stops compiling.
+ */
+export const consoleJumpResponseSchema: z.ZodType<
+  ConsoleJumpResponse,
+  unknown
+> = z.object({
+  groups: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      items: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          sub: z.string().optional(),
+          href: z.string(),
+          tag: z.string().optional(),
+        }),
+      ),
+    }),
+  ),
+});
 
 export interface ConsoleJumpEntityHit {
   entityType: string;

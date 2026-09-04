@@ -11,7 +11,7 @@ import type { EvaluationResult, EvaluationSummary } from "../src/schemas";
 
 /** chalk emits ANSI escapes; strip them so assertions read the text. */
 function plain(lines: readonly string[]): string {
-  // eslint-disable-next-line no-control-regex
+  // eslint-disable-next-line no-control-regex -- the ANSI escape it strips is a control character by definition
   return lines.join("\n").replace(/\[[0-9;]*m/g, "");
 }
 

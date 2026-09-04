@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
+import {
+  baseEntitySchema,
+  createPluginHarness,
+  createTestEntityAdapter,
+  expectSuccess,
+} from "@brains/plugins/test";
 
 import { ObsidianVaultPlugin } from "../src/plugin";
 
@@ -68,21 +73,27 @@ describe("ObsidianVaultPlugin", () => {
     });
 
     const registry = harness.getEntityRegistry();
-    registry.registerEntityType("post", {} as never, {} as never);
-    registry.registerEntityType("note", {} as never, {} as never);
-    registry.registerEntityType("site-info", {} as never, {} as never);
+    // Real adapters rather than `{} as never`: the plugin reads `isSingleton`
+    // and `getBodyTemplate` off whatever the registry hands back, so
+    // registering something usable removes the getAdapter override too.
+    registry.registerEntityType(
+      "post",
+      baseEntitySchema,
+      createTestEntityAdapter("post"),
+    );
+    registry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      createTestEntityAdapter("note"),
+    );
+    registry.registerEntityType(
+      "site-info",
+      baseEntitySchema,
+      createTestEntityAdapter("site-info", { isSingleton: true }),
+    );
     registry.getEffectiveFrontmatterSchema = (
       type: string,
     ): z.ZodObject<z.ZodRawShape> | undefined => schemas.get(type);
-    registry.getAdapter = (entityType: string): never => {
-      if (entityType === "site-info") {
-        return {
-          isSingleton: true,
-          getBodyTemplate: (): string => "",
-        } as never;
-      }
-      return { getBodyTemplate: (): string => "" } as never;
-    };
 
     plugin = new ObsidianVaultPlugin({}, deps);
     await harness.installPlugin(plugin);
@@ -153,7 +164,11 @@ describe("ObsidianVaultPlugin", () => {
 
   it("should skip entity types with no frontmatter schema", async () => {
     const registry = harness.getEntityRegistry();
-    registry.registerEntityType("image", {} as never, {} as never);
+    registry.registerEntityType(
+      "image",
+      baseEntitySchema,
+      createTestEntityAdapter("image"),
+    );
 
     const result = await plugin.syncTemplates();
     expectSuccess(result);

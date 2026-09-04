@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import type {
   BuildContext,
   StaticSiteBuilder,
@@ -33,7 +33,7 @@ const buildContext: BuildContext = {
 describe("runStaticSiteBuild", () => {
   it("scales renderer progress events into the static build progress range", async () => {
     const report = mock(async () => undefined);
-    const reporter = ProgressReporter.from(report);
+    const reporter = CallbackProgressReporter.from(report);
     if (!reporter) {
       throw new Error("Expected progress reporter");
     }

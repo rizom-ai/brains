@@ -47,6 +47,22 @@ export const deckGenerationResultSchema: ReturnType<
 
 export type DeckGenerationResult = z.output<typeof deckGenerationResultSchema>;
 
+/** Shape the deck generation template returns. */
+export const generatedDeckSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+  description: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  content: z.string(),
+  description: z.string(),
+});
+
+/** Shape the deck description template returns. */
+export const generatedDeckDescriptionSchema: z.ZodObject<{
+  description: z.ZodString;
+}> = z.object({ description: z.string() });
+
 /**
  * Job handler for deck generation
  * Handles AI-powered content generation and entity creation
@@ -120,16 +136,15 @@ Add your conclusion here`;
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(this.context.entityService),
       );
-      const generated = await this.context.ai.generate<{
-        title: string;
-        content: string;
-        description: string;
-      }>({
-        prompt: generationPrompt,
-        templateName: "decks:generation",
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt: generationPrompt,
+          templateName: "decks:generation",
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        generatedDeckSchema,
+      );
 
       title = title ?? generated.title;
       content = content ?? generated.content;
@@ -147,13 +162,14 @@ Add your conclusion here`;
         message: "Generating description with AI",
       });
 
-      const descGenerated = await this.context.ai.generate<{
-        description: string;
-      }>({
-        prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: "decks:description",
-        representedIdentity: "none",
-      });
+      const descGenerated = await this.context.ai.generate(
+        {
+          prompt: `Title: ${title}\n\nContent:\n${content}`,
+          templateName: "decks:description",
+          representedIdentity: "none",
+        },
+        generatedDeckDescriptionSchema,
+      );
 
       description = descGenerated.description;
 

@@ -80,7 +80,7 @@ describe("Buttondown Tools", () => {
     it("should include name when provided", async () => {
       let capturedBody: string | undefined;
       mockFetch((_url, options) => {
-        capturedBody = options.body as string;
+        capturedBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
           json: () =>
@@ -123,8 +123,7 @@ describe("Buttondown Tools", () => {
       });
 
       expectError(result);
-      expect(result).toHaveProperty("error");
-      expect((result as { error: string }).error).toContain("Invalid email");
+      expect(result.error).toContain("Invalid email");
     });
 
     it("should detect already subscribed users", async () => {

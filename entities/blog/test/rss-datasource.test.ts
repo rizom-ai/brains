@@ -1,10 +1,12 @@
 import { describe, expect, test, beforeEach, spyOn } from "bun:test";
+import { blogPostSchema } from "../src/schemas/blog-post";
 import { RSSDataSource } from "../src/datasources/rss-datasource";
 import {
   createSilentLogger,
-  createMockEntityService as createBaseMockEntityService,
+  createMockShell,
   createTestEntity,
 } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { z } from "@brains/utils/zod";
@@ -58,15 +60,18 @@ const samplePosts: BlogPost[] = [
 
 describe("RSSDataSource", () => {
   let datasource: RSSDataSource;
+  let shell: MockShell;
   let mockEntityService: IEntityService;
   let context: { entityService: IEntityService };
 
   function setupWithPosts(posts: BlogPost[]): void {
-    spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
+    shell.clearEntities();
+    shell.addEntities(posts);
   }
 
   beforeEach(() => {
-    mockEntityService = createBaseMockEntityService();
+    shell = createMockShell();
+    mockEntityService = shell.getEntityService();
     context = { entityService: mockEntityService };
     datasource = new RSSDataSource(createSilentLogger());
     setupWithPosts(samplePosts);
@@ -155,14 +160,14 @@ describe("RSSDataSource", () => {
     });
 
     test("should validate query parameters", async () => {
-      // eslint-disable-next-line @typescript-eslint/await-thenable
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
       await expect(
         datasource.fetch({}, outputSchema, context),
       ).rejects.toThrow();
     });
 
     test("should validate invalid URL", async () => {
-      // eslint-disable-next-line @typescript-eslint/await-thenable
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
       await expect(
         datasource.fetch(
           {
@@ -203,13 +208,15 @@ describe("RSSDataSource", () => {
       expect(result.xml).not.toContain("<item>");
     });
 
+    // Delegation contract: the fetch is bounded, which output alone cannot show.
     test("should list entities with limit 1000", async () => {
+      const listSpy = spyOn(mockEntityService, "listEntities");
       await datasource.fetch(defaultRSSQuery, outputSchema, context);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: { limit: 1000 },
-      });
+      expect(listSpy).toHaveBeenCalledWith(
+        { entityType: "post", options: { limit: 1000 } },
+        blogPostSchema,
+      );
     });
   });
 });

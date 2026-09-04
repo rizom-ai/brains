@@ -12,8 +12,9 @@ import {
 } from "@brains/site-info";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
-  type BlogPost,
+  blogPostSchema,
   parsePostData,
+  type BlogPost,
   type BlogPostWithData,
 } from "@brains/blog";
 
@@ -50,6 +51,7 @@ export class HomepageDataSource implements DataSource {
       fetchAnchorProfileData(entityService, personalProfileSchema),
       fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
         entityType: "post",
+        entitySchema: blogPostSchema,
         count: 6,
         parse: parsePostData,
       }),

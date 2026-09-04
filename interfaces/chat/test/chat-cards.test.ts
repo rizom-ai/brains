@@ -6,15 +6,18 @@ function progressEvent(
   overrides: Partial<JobProgressEvent> = {},
 ): JobProgressEvent {
   return {
+    id: "job-1",
+    type: "job",
     status: "processing",
     message: undefined,
     metadata: {
-      operationType: "content_generation",
+      operationType: "content_operations",
+      rootJobId: "job-root",
       operationTarget: "Site",
       interfaceType: "discord",
     },
     ...overrides,
-  } as JobProgressEvent;
+  };
 }
 
 describe("buildProgressCard", () => {
@@ -24,9 +27,9 @@ describe("buildProgressCard", () => {
     expect(card.type).toBe("card");
     expect(card.title).toBe("Job processing");
     expect(card.children).toEqual([
-      { type: "text", content: "content generation: Site" },
+      { type: "text", content: "content operations: Site" },
     ]);
-    expect(fallbackText).toBe("Job processing: content generation: Site");
+    expect(fallbackText).toBe("Job processing: content operations: Site");
   });
 
   it("includes the amount line and message when present", () => {
@@ -40,12 +43,12 @@ describe("buildProgressCard", () => {
 
     expect(card.title).toBe("Job failed");
     expect(card.children).toEqual([
-      { type: "text", content: "content generation: Site" },
+      { type: "text", content: "content operations: Site" },
       { type: "text", content: "2/4 (50%)" },
       { type: "text", content: "Build failed: missing template" },
     ]);
     expect(fallbackText).toContain(
-      "Job failed: content generation: Site 2/4 (50%)",
+      "Job failed: content operations: Site 2/4 (50%)",
     );
     expect(fallbackText).toContain("Build failed: missing template");
   });

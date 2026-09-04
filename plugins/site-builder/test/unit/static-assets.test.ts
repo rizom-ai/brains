@@ -1,4 +1,4 @@
-import { describe, test, expect, mock } from "bun:test";
+import { describe, test, expect, spyOn } from "bun:test";
 import {
   writeInlineStaticAssets,
   writePublicAssets,
@@ -11,14 +11,18 @@ describe("ReactBuilder - Snapshotted Public Assets", () => {
   const logger = createSilentLogger();
 
   test("writes nested binary assets from the prepared snapshot", async () => {
-    const originalMkdir = fs.mkdir;
-    const originalWriteFile = fs.writeFile;
     const writes: Array<[string, Uint8Array]> = [];
-    fs.mkdir = mock(() => Promise.resolve(undefined)) as typeof fs.mkdir;
-    fs.writeFile = mock((path: string, content: Uint8Array) => {
-      writes.push([path, content]);
-      return Promise.resolve();
-    }) as typeof fs.writeFile;
+    // spyOn types the stub by the member it replaces and restores it itself,
+    // so neither the signature nor the teardown is asserted into place.
+    const mkdir = spyOn(fs, "mkdir").mockResolvedValue(undefined);
+    const writeFile = spyOn(fs, "writeFile").mockImplementation(
+      async (path, content) => {
+        if (!(content instanceof Uint8Array)) {
+          throw new Error("Expected binary asset content");
+        }
+        writes.push([String(path), content]);
+      },
+    );
 
     try {
       await writePublicAssets(
@@ -36,8 +40,8 @@ describe("ReactBuilder - Snapshotted Public Assets", () => {
         Buffer.from(writes[0]?.[1] ?? []).equals(Buffer.from([0, 1, 2, 3])),
       ).toBe(true);
     } finally {
-      fs.mkdir = originalMkdir;
-      fs.writeFile = originalWriteFile;
+      mkdir.mockRestore();
+      writeFile.mockRestore();
     }
   });
 
@@ -61,19 +65,20 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
     // Given a SitePackage that ships in-memory static assets (e.g.
     // a canvas script loaded via a text import), the builder should
     // write each entry to its declared path inside the output dir.
-    const originalMkdir = fs.mkdir;
-    const originalWriteFile = fs.writeFile;
-
     const mkdirCalls: string[] = [];
     const writeFileCalls: Array<[string, string]> = [];
-    fs.mkdir = mock((path: string) => {
-      mkdirCalls.push(path);
-      return Promise.resolve(undefined);
-    }) as typeof fs.mkdir;
-    fs.writeFile = mock((path: string, content: string) => {
-      writeFileCalls.push([path, content]);
-      return Promise.resolve();
-    }) as typeof fs.writeFile;
+    const mkdir = spyOn(fs, "mkdir").mockImplementation(async (path) => {
+      mkdirCalls.push(String(path));
+      return undefined;
+    });
+    const writeFile = spyOn(fs, "writeFile").mockImplementation(
+      async (path, content) => {
+        if (typeof content !== "string") {
+          throw new Error("Expected inline asset content to be text");
+        }
+        writeFileCalls.push([String(path), content]);
+      },
+    );
 
     try {
       await writeInlineStaticAssets(
@@ -103,15 +108,13 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
       const treeEntry = writeFileCalls.find(([p]) => p.endsWith("tree.js"));
       expect(treeEntry?.[1]).toBe("(function(){/* tree */})();");
     } finally {
-      fs.mkdir = originalMkdir;
-      fs.writeFile = originalWriteFile;
+      mkdir.mockRestore();
+      writeFile.mockRestore();
     }
   });
 
   test("should be a no-op for an empty assets map", async () => {
-    const originalWriteFile = fs.writeFile;
-    const writeFileMock = mock(() => Promise.resolve());
-    fs.writeFile = writeFileMock as typeof fs.writeFile;
+    const writeFileMock = spyOn(fs, "writeFile").mockResolvedValue(undefined);
 
     try {
       await writeInlineStaticAssets(
@@ -122,14 +125,12 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
       );
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
-      fs.writeFile = originalWriteFile;
+      writeFileMock.mockRestore();
     }
   });
 
   test("should be a no-op for an undefined assets map", async () => {
-    const originalWriteFile = fs.writeFile;
-    const writeFileMock = mock(() => Promise.resolve());
-    fs.writeFile = writeFileMock as typeof fs.writeFile;
+    const writeFileMock = spyOn(fs, "writeFile").mockResolvedValue(undefined);
 
     try {
       await writeInlineStaticAssets(
@@ -140,7 +141,7 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
       );
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
-      fs.writeFile = originalWriteFile;
+      writeFileMock.mockRestore();
     }
   });
 
@@ -148,14 +149,13 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
     // `/canvases/tree.js` and `canvases/tree.js` should both land at
     // `<outputDir>/canvases/tree.js` — not at `/canvases/tree.js` on
     // the filesystem root.
-    const originalMkdir = fs.mkdir;
-    const originalWriteFile = fs.writeFile;
-    fs.mkdir = mock(() => Promise.resolve(undefined)) as typeof fs.mkdir;
+    const mkdir = spyOn(fs, "mkdir").mockResolvedValue(undefined);
     const writeFileCalls: string[] = [];
-    fs.writeFile = mock((path: string) => {
-      writeFileCalls.push(path);
-      return Promise.resolve();
-    }) as typeof fs.writeFile;
+    const writeFile = spyOn(fs, "writeFile").mockImplementation(
+      async (path) => {
+        writeFileCalls.push(String(path));
+      },
+    );
 
     try {
       await writeInlineStaticAssets(
@@ -173,18 +173,14 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
         expect(p.startsWith("/tmp/output/")).toBe(true);
       }
     } finally {
-      fs.mkdir = originalMkdir;
-      fs.writeFile = originalWriteFile;
+      mkdir.mockRestore();
+      writeFile.mockRestore();
     }
   });
 
   test("should reject paths that escape the output directory", async () => {
-    const originalMkdir = fs.mkdir;
-    const originalWriteFile = fs.writeFile;
-    const mkdirMock = mock(() => Promise.resolve(undefined));
-    const writeFileMock = mock(() => Promise.resolve());
-    fs.mkdir = mkdirMock as typeof fs.mkdir;
-    fs.writeFile = writeFileMock as typeof fs.writeFile;
+    const mkdirMock = spyOn(fs, "mkdir").mockResolvedValue(undefined);
+    const writeFileMock = spyOn(fs, "writeFile").mockResolvedValue(undefined);
 
     try {
       const writePromise = writeInlineStaticAssets(
@@ -200,8 +196,8 @@ describe("ReactBuilder - Inline Static Assets (from SitePackage)", () => {
       expect(mkdirMock).not.toHaveBeenCalled();
       expect(writeFileMock).not.toHaveBeenCalled();
     } finally {
-      fs.mkdir = originalMkdir;
-      fs.writeFile = originalWriteFile;
+      mkdirMock.mockRestore();
+      writeFileMock.mockRestore();
     }
   });
 });

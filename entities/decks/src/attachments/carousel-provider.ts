@@ -7,7 +7,7 @@ import {
   type RenderPdf,
 } from "@brains/media-page-composer";
 import { parseMarkdown } from "@brains/utils/markdown";
-import type { DeckEntity } from "../schemas/deck";
+import { deckSchema, type DeckEntity } from "../schemas/deck";
 import {
   deckCarouselTemplate,
   type DeckCarouselTemplateData,
@@ -62,10 +62,13 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
       return undefined;
     }
 
-    const deck = await this.context.entityService.getEntity<DeckEntity>({
-      entityType: "deck",
-      id: request.sourceEntityId,
-    });
+    const deck = await this.context.entityService.getEntity(
+      {
+        entityType: "deck",
+        id: request.sourceEntityId,
+      },
+      deckSchema,
+    );
     if (!deck) {
       return undefined;
     }

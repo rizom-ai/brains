@@ -12,6 +12,15 @@ import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import { getTemplateName } from "../templates";
 
+/** Shape the social generation templates produce; ai.generate parses through it. */
+export const generatedPostSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
+  title: z.string(),
+  content: z.string(),
+});
+
 /**
  * Input schema for social post generation job
  */
@@ -119,14 +128,14 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         message: "Shaping content with AI",
       });
 
-      const generated = await this.context.ai.generate<{
-        title: string;
-        content: string;
-      }>({
-        prompt: content,
-        templateName: getTemplateName(platform),
-        ...styleContext,
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt: content,
+          templateName: getTemplateName(platform),
+          ...styleContext,
+        },
+        generatedPostSchema,
+      );
 
       title = generated.title;
       content = generated.content;
@@ -163,18 +172,18 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
       const parsed = slugSchema.safeParse(sourceEntity.metadata);
       const slug = parsed.success ? parsed.data.slug : sourceEntityId;
 
-      const generated = await this.context.ai.generate<{
-        title: string;
-        content: string;
-      }>({
-        prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
+      const generated = await this.context.ai.generate(
+        {
+          prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
 
 Source: ${sourceEntityType}/${slug}
 
 ${sourceEntity.content}`,
-        templateName: getTemplateName(platform),
-        ...styleContext,
-      });
+          templateName: getTemplateName(platform),
+          ...styleContext,
+        },
+        generatedPostSchema,
+      );
 
       title = generated.title;
       content = generated.content;
@@ -191,14 +200,14 @@ ${sourceEntity.content}`,
         message: "Generating social post with AI",
       });
 
-      const generated = await this.context.ai.generate<{
-        title: string;
-        content: string;
-      }>({
-        prompt,
-        templateName: getTemplateName(platform),
-        ...styleContext,
-      });
+      const generated = await this.context.ai.generate(
+        {
+          prompt,
+          templateName: getTemplateName(platform),
+          ...styleContext,
+        },
+        generatedPostSchema,
+      );
 
       title = generated.title;
       content = generated.content;

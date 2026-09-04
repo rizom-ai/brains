@@ -5,6 +5,11 @@ import { DashboardDataSource } from "../src/dashboard-datasource";
 import type { RegisteredWidget } from "../src/widget-registry";
 import { dashboardDataSchema, type DashboardData } from "../src/widget-schema";
 import type { BaseDataSourceContext } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+
+const widgetDataSchema = z.object({
+  summary: z.object({ draft: z.number(), queued: z.number() }),
+});
 
 describe("DashboardDataSource", () => {
   let registry: DashboardWidgetRegistry;
@@ -231,9 +236,10 @@ describe("DashboardDataSource", () => {
         needsAttention: 0,
         dataProvider: async () => ({ summary: { draft: 2, queued: 3 } }),
         digestProvider: (data) => {
-          const summary = (
-            data as { summary: { draft: number; queued: number } }
-          ).summary;
+          // The widget hands its provider untyped data; parsing is what proves
+          // the provider above actually ran, since an unreplaced static
+          // fallback fails here instead of reading back as NaN.
+          const { summary } = widgetDataSchema.parse(data);
           return {
             digest: [
               { label: "Queued", value: String(summary.queued), tone: "warn" },

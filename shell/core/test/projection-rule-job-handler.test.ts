@@ -14,7 +14,7 @@ import {
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import {
   ProjectionRuleJobHandler,
@@ -48,7 +48,7 @@ const executionContext: ProjectionExecutionContext = {
   },
 };
 
-const progressReporter = ProgressReporter.from(async () => {});
+const progressReporter = CallbackProgressReporter.from(async () => {});
 if (!progressReporter) throw new Error("Failed to create progress reporter");
 
 class MemoryExecutionStore implements ProjectionRuleExecutionStore {

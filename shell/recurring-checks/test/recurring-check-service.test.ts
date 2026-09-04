@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockProgressReporter,
+  createSilentLogger,
+} from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
@@ -118,7 +121,7 @@ class TestJobQueue {
     await handler.process(
       data,
       "job",
-      {} as never,
+      createMockProgressReporter(),
       new AbortController().signal,
     );
   }

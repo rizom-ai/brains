@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { getErrorMessage } from "@brains/utils/error";
 import { readdir } from "fs/promises";
 import { tmpdir } from "os";
 import { createElement as h, type JSX } from "react";
@@ -93,7 +94,7 @@ describe("renderOgImagePng", () => {
     }
 
     expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toBe("screenshot boom");
+    expect(getErrorMessage(error)).toBe("screenshot boom");
     expect(await countTempDirs(prefix)).toBe(before);
   });
 });

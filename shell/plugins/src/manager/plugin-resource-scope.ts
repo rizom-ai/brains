@@ -9,6 +9,30 @@ interface PluginIngress {
   drain(): Promise<void>;
 }
 
+/**
+ * `Reflect.get` is declared to return `any`, which spreads through every Proxy
+ * `get` trap below. Declaring the return as `unknown` here re-tightens it once,
+ * so the traps get a checked value without asserting one each time.
+ */
+function reflectGet(target: object, property: PropertyKey): unknown {
+  return Reflect.get(target, property, target);
+}
+
+/**
+ * Call a trapped method. The result is `unknown` for the same reason as above;
+ * callers that need a specific type must establish it themselves.
+ */
+function reflectApply(
+  method: unknown,
+  target: object,
+  args: unknown[],
+): unknown {
+  if (typeof method !== "function") {
+    throw new TypeError("Cannot apply a non-callable trapped member");
+  }
+  return Reflect.apply(method, target, args);
+}
+
 /** Internal resource scope for one plugin registration. */
 export class PluginResourceScope {
   private readonly scope: Scope.CloseableScope;
@@ -181,6 +205,16 @@ export function createPluginScopedShell(
         subscription.stopAdmission();
       }
     },
+    // Scoping is about admission and teardown, not about what the bus can be
+    // asked; these pass straight through to it.
+    collect: (request) => messageBus.collect(request),
+    validateMessage: (message, schema) =>
+      messageBus.validateMessage(message, schema),
+    getHandlerCount: (messageType) => messageBus.getHandlerCount(messageType),
+    getTargetedHandlerCount: (messageType, target) =>
+      messageBus.getTargetedHandlerCount(messageType, target),
+    clearHandlers: (messageType) => messageBus.clearHandlers(messageType),
+    clearAllHandlers: () => messageBus.clearAllHandlers(),
   };
 
   const attachments = shell.getAttachmentRegistry();
@@ -206,10 +240,10 @@ export function createPluginScopedShell(
   const entityRegistry = shell.getEntityRegistry();
   const scopedEntityRegistry = new Proxy(entityRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "registerEntityType" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const entityType = args[0];
           if (typeof entityType === "string") {
             resources.addFinalizer(() =>
@@ -226,10 +260,10 @@ export function createPluginScopedShell(
   const profileKindRegistry = shell.getProfileKindRegistry();
   const scopedProfileKindRegistry = new Proxy(profileKindRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "register" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const pluginId = args[0];
           if (typeof pluginId === "string") {
             resources.addFinalizer(() => target.unregisterPlugin(pluginId));
@@ -244,14 +278,14 @@ export function createPluginScopedShell(
   const channelRegistry = shell.getChannelRegistry();
   const scopedChannelRegistry = new Proxy(channelRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (
         (property === "registerDescriptor" ||
           property === "registerDeliveryProvider") &&
         typeof value === "function"
       ) {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const pluginId = args[0];
           if (typeof pluginId === "string") {
             resources.addFinalizer(() => target.unregisterPlugin(pluginId));
@@ -266,10 +300,10 @@ export function createPluginScopedShell(
   const inboxRegistry = shell.getInboxRegistry();
   const scopedInboxRegistry = new Proxy(inboxRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "registerSource" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const pluginId = args[0];
           if (typeof pluginId === "string") {
             resources.addFinalizer(() => target.unregisterPlugin(pluginId));
@@ -284,10 +318,10 @@ export function createPluginScopedShell(
   const inboxFollowUpRegistry = shell.getInboxFollowUpRegistry();
   const scopedInboxFollowUpRegistry = new Proxy(inboxFollowUpRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "registerKind" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const pluginId = args[0];
           if (typeof pluginId === "string") {
             resources.addFinalizer(() => target.unregisterPlugin(pluginId));
@@ -302,13 +336,16 @@ export function createPluginScopedShell(
   const accountSettingsRegistry = shell.getAccountSettingsRegistry();
   const scopedAccountSettingsRegistry = new Proxy(accountSettingsRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "register" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const registration = Reflect.apply(value, target, args) as Parameters<
-            typeof target.unregister
-          >[0];
-          resources.addFinalizer(() => target.unregister(registration));
+          // The registration is an opaque token: produced by register, handed
+          // straight back to unregister. Forwarding it reflectively keeps it
+          // opaque instead of asserting a parameter type for it here.
+          const registration = reflectApply(value, target, args);
+          resources.addFinalizer((): void => {
+            reflectApply(target.unregister, target, [registration]);
+          });
           return registration;
         };
       }
@@ -319,10 +356,10 @@ export function createPluginScopedShell(
   const operationalHealthRegistry = shell.getOperationalHealthRegistry();
   const scopedOperationalHealthRegistry = new Proxy(operationalHealthRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "register" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const pluginId = args[0];
           if (typeof pluginId === "string") {
             resources.addFinalizer(() => target.unregisterPlugin(pluginId));
@@ -337,10 +374,10 @@ export function createPluginScopedShell(
   const dataSourceRegistry = shell.getDataSourceRegistry();
   const scopedDataSourceRegistry = new Proxy(dataSourceRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "register" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const dataSource = args[0];
           if (
             typeof dataSource === "object" &&
@@ -363,10 +400,10 @@ export function createPluginScopedShell(
   const insightsRegistry = shell.getInsightsRegistry();
   const scopedInsightsRegistry = new Proxy(insightsRegistry, {
     get(target, property): unknown {
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       if (property === "register" && typeof value === "function") {
         return (...args: unknown[]): unknown => {
-          const result = Reflect.apply(value, target, args);
+          const result = reflectApply(value, target, args);
           const insightType = args[0];
           if (typeof insightType === "string") {
             resources.addFinalizer(() => target.unregister(insightType));
@@ -413,7 +450,7 @@ export function createPluginScopedShell(
       if (property === "getInsightsRegistry") {
         return () => scopedInsightsRegistry;
       }
-      const value = Reflect.get(target, property, target) as unknown;
+      const value = reflectGet(target, property);
       return typeof value === "function" ? value.bind(target) : value;
     },
   });

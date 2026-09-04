@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "fs/promises";
+import { caughtError } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { validateSeedContentEntityTypes } from "../src/lib/file-discovery";
@@ -48,7 +49,7 @@ describe("strict seed entity type validation", () => {
       validationError = error;
     }
     expect(validationError).toBeInstanceOf(Error);
-    expect((validationError as Error).message).toContain(
+    expect(caughtError(validationError).message).toContain(
       "Seed content contains unregistered entity types: deck, swot",
     );
   });

@@ -7,7 +7,11 @@ import {
   createSilentLogger,
   createTestEntity,
 } from "@brains/test-utils";
-import { DeckGenerationJobHandler } from "../src/handlers/deckGenerationJobHandler";
+import {
+  DeckGenerationJobHandler,
+  generatedDeckDescriptionSchema,
+  generatedDeckSchema,
+} from "../src/handlers/deckGenerationJobHandler";
 
 describe("DeckGenerationJobHandler", () => {
   let handler: DeckGenerationJobHandler;
@@ -67,6 +71,7 @@ describe("DeckGenerationJobHandler", () => {
             voice: expect.stringContaining("Decisive and evidence-led"),
           },
         }),
+        generatedDeckSchema,
       );
     });
 
@@ -85,6 +90,7 @@ describe("DeckGenerationJobHandler", () => {
           templateName: "decks:description",
           representedIdentity: "none",
         }),
+        generatedDeckDescriptionSchema,
       );
     });
   });

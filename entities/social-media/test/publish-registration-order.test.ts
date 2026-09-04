@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+
+/** What a publish:register message must carry for these tests to mean anything. */
+const publishRegistrationSchema = z.looseObject({
+  entityType: z.string(),
+  provider: z.unknown(),
+});
 import { SocialMediaPlugin } from "../src/plugin";
 import {
   createPluginHarness,
@@ -29,7 +36,7 @@ describe("publish:register ordering", () => {
     // Subscribe AFTER plugin registered (late subscriber)
     const received: Array<{ entityType: string; provider: unknown }> = [];
     harness.subscribe("publish:register", async (msg) => {
-      received.push(msg.payload as { entityType: string; provider: unknown });
+      received.push(publishRegistrationSchema.parse(msg.payload));
       return { success: true };
     });
 
@@ -49,7 +56,7 @@ describe("publish:register ordering", () => {
     // Subscribe BEFORE plugin registered (early subscriber)
     const received: Array<{ entityType: string; provider: unknown }> = [];
     harness.subscribe("publish:register", async (msg) => {
-      received.push(msg.payload as { entityType: string; provider: unknown });
+      received.push(publishRegistrationSchema.parse(msg.payload));
       return { success: true };
     });
 

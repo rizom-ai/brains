@@ -27,9 +27,11 @@ function createKeys(): {
   };
 }
 
+// Returns the concrete Headers instance it builds, so tests can read headers
+// back after signing without narrowing the interface.s HeaderBag union.
 function request(
   body = JSON.stringify({ hello: "world" }),
-): HttpSignatureRequest {
+): HttpSignatureRequest & { headers: Headers } {
   return {
     method: "POST",
     url: "https://receiver.example/a2a",
@@ -78,12 +80,10 @@ describe("HTTP message signatures", () => {
       keyFingerprint: keyFingerprint(publicJwk),
     });
     expect(req.headers).toHaveProperty("get");
-    expect((req.headers as Headers).get("signature-input")).toContain(
+    expect(req.headers.get("signature-input")).toContain(
       'keyid="https://peer.example/.well-known/jwks.json#test-key"',
     );
-    expect((req.headers as Headers).get("content-digest")).toStartWith(
-      "sha-256=:",
-    );
+    expect(req.headers.get("content-digest")).toStartWith("sha-256=:");
   });
 
   it("returns null when no signature is present", async () => {

@@ -13,6 +13,23 @@ import type { IShell } from "../interfaces";
 import type { EvalHandler, InsightHandler } from "../contracts/handlers";
 import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
+
+/**
+ * The two ways `subscribe` may be called, as one discriminated pair.
+ *
+ * Written as a tuple rather than two parameters so that a single check can
+ * narrow the channel and its handler together — see the note on `subscribe`.
+ */
+type SubscribeArgs<T, R> =
+  | [channel: string, handler: MessageHandler<T, R>]
+  | [channel: Channel<T, R>, handler: TypedMessageHandler<T, R>];
+
+/** The channel branch of {@link SubscribeArgs}, carrying its typed handler. */
+function isChannelSubscription<T, R>(
+  subscription: SubscribeArgs<T, R>,
+): subscription is [Channel<T, R>, TypedMessageHandler<T, R>] {
+  return isChannel(subscription[0]);
+}
 import { toPublicAppInfo } from "./public-app-info";
 import { toPublicConversation, toPublicMessage } from "./public-conversations";
 import {
@@ -152,14 +169,22 @@ export function createMessagingNamespace(
 
   return {
     send: sendMessage,
+    /**
+     * The channel and its handler are correlated — a Channel takes a
+     * TypedMessageHandler, a name takes a MessageHandler — and the public
+     * IMessagingNamespace declares that as two call signatures, so callers are
+     * checked. Taking the pair as one tuple is what carries the correlation
+     * into the body: narrowing `channelOrName` on its own leaves the
+     * separately-declared handler as the whole union, so it would take an
+     * assertion per branch to get back what the overloads already guarantee.
+     * {@link isChannelSubscription} narrows both at once instead.
+     */
     subscribe: <T = unknown, R = unknown>(
-      channelOrName: string | Channel<T, R>,
-      handler: MessageHandler<T, R> | TypedMessageHandler<T, R>,
+      ...subscription: SubscribeArgs<T, R>
     ): (() => void) => {
       if (executionOnly) return () => {};
-      if (isChannel(channelOrName)) {
-        const channel = channelOrName;
-        const typedHandler = handler as TypedMessageHandler<T, R>;
+      if (isChannelSubscription(subscription)) {
+        const [channel, typedHandler] = subscription;
 
         const wrappedHandler: MessageHandler<unknown, R> = async (message) => {
           const parseResult = channel.schema.safeParse(message.payload);
@@ -171,16 +196,14 @@ export function createMessagingNamespace(
           }
 
           const { payload: _payload, ...baseMessage } = message;
-          return typedHandler(parseResult.data as T, baseMessage);
+          return typedHandler(parseResult.data, baseMessage);
         };
 
         return messageBus.subscribe(channel.name, wrappedHandler);
       }
 
-      return messageBus.subscribe(
-        channelOrName,
-        handler as MessageHandler<T, R>,
-      );
+      const [name, handler] = subscription;
+      return messageBus.subscribe(name, handler);
     },
     subscribeExecution: <T = unknown, R = unknown>(
       channel: string,

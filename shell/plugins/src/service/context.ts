@@ -43,14 +43,18 @@ export interface IServiceTemplatesNamespace {
   /** Format data using a template formatter */
   format: <T = unknown>(templateName: string, data: T) => string;
 
-  /** Parse content using a template parser */
-  parse: <T = unknown>(templateName: string, content: string) => T;
+  /** Parsed by the template's own formatter; callers narrow what they read. */
+  parse: (templateName: string, content: string) => unknown;
 
-  /** Resolve content from a template (may fetch or generate) */
-  resolve: <T = unknown>(
+  /**
+   * Resolve content from a template. Returns `unknown`: resolution validates
+   * against the template's own schema, which a caller-chosen type parameter
+   * has no relationship to.
+   */
+  resolve: (
     templateName: string,
     options?: ResolutionOptions,
-  ) => Promise<T | null>;
+  ) => Promise<unknown>;
 
   /** Get capabilities of a template */
   getCapabilities: (templateName: string) => {
@@ -116,9 +120,10 @@ export interface ServicePluginContext
   readonly entityService: ServiceEntityService;
 
   /**
-   * Durable bulk-mutation coordination, bound to this plugin's id as the
-   * mutation source. The only route to the durable-batch lifecycle;
-   * `entityService` deliberately excludes it.
+   * Durable bulk-mutation coordination, for plugins that own a projection and
+   * must enqueue and settle their own batches. Deliberately separate from
+   * `entityService`, which omits these, and bound to this plugin's id as the
+   * mutation source so a plugin cannot coordinate under another's name.
    */
   readonly entityCoordination: EntityBulkCoordination;
 
@@ -197,20 +202,13 @@ export function createServicePluginContext(
       format: <T = unknown>(templateName: string, data: T): string => {
         return contentService.formatContent(templateName, data, { pluginId });
       },
-      parse: <T = unknown>(templateName: string, content: string): T => {
-        return contentService.parseContent(templateName, content, pluginId);
-      },
-      resolve: async <T = unknown>(
+      parse: (templateName: string, content: string): unknown =>
+        contentService.parseContent(templateName, content, pluginId),
+      resolve: async (
         templateName: string,
         options?: ResolutionOptions,
-      ): Promise<T | null> => {
-        const result = await contentService.resolveContent(
-          templateName,
-          options,
-          pluginId,
-        );
-        return result as T;
-      },
+      ): Promise<unknown> =>
+        contentService.resolveContent(templateName, options, pluginId),
       getCapabilities: (
         templateName: string,
       ): {

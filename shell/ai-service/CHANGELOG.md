@@ -1,5 +1,89 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.350
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.350
+  - @brains/utils@0.2.0-alpha.350
+  - @brains/conversation-service@0.2.0-alpha.350
+  - @brains/entity-service@0.2.0-alpha.350
+  - @brains/identity-service@0.2.0-alpha.350
+  - @brains/mcp-service@0.2.0-alpha.350
+  - @brains/messaging-service@0.2.0-alpha.350
+  - @brains/templates@0.2.0-alpha.350
+
+## 0.2.0-alpha.349
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.349
+  - @brains/utils@0.2.0-alpha.349
+  - @brains/conversation-service@0.2.0-alpha.349
+  - @brains/entity-service@0.2.0-alpha.349
+  - @brains/identity-service@0.2.0-alpha.349
+  - @brains/mcp-service@0.2.0-alpha.349
+  - @brains/messaging-service@0.2.0-alpha.349
+  - @brains/templates@0.2.0-alpha.349
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.348
+  - @brains/utils@0.2.0-alpha.348
+  - @brains/conversation-service@0.2.0-alpha.348
+  - @brains/entity-service@0.2.0-alpha.348
+  - @brains/identity-service@0.2.0-alpha.348
+  - @brains/mcp-service@0.2.0-alpha.348
+  - @brains/messaging-service@0.2.0-alpha.348
+  - @brains/templates@0.2.0-alpha.348
+
+## 0.2.0-alpha.347
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.347
+  - @brains/utils@0.2.0-alpha.347
+  - @brains/conversation-service@0.2.0-alpha.347
+  - @brains/entity-service@0.2.0-alpha.347
+  - @brains/identity-service@0.2.0-alpha.347
+  - @brains/mcp-service@0.2.0-alpha.347
+  - @brains/messaging-service@0.2.0-alpha.347
+  - @brains/templates@0.2.0-alpha.347
+
+## 0.2.0-alpha.346
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.346
+  - @brains/utils@0.2.0-alpha.346
+  - @brains/conversation-service@0.2.0-alpha.346
+  - @brains/entity-service@0.2.0-alpha.346
+  - @brains/identity-service@0.2.0-alpha.346
+  - @brains/mcp-service@0.2.0-alpha.346
+  - @brains/messaging-service@0.2.0-alpha.346
+  - @brains/templates@0.2.0-alpha.346
+
+## 0.2.0-alpha.345
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.345
+  - @brains/utils@0.2.0-alpha.345
+  - @brains/conversation-service@0.2.0-alpha.345
+  - @brains/entity-service@0.2.0-alpha.345
+  - @brains/identity-service@0.2.0-alpha.345
+  - @brains/mcp-service@0.2.0-alpha.345
+  - @brains/messaging-service@0.2.0-alpha.345
+  - @brains/templates@0.2.0-alpha.345
+
 ## 0.2.0-alpha.344
 
 ### Patch Changes

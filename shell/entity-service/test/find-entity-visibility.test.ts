@@ -139,13 +139,13 @@ describe("findEntityByIdentifier scope propagation", () => {
       metadata: { title: "Resilience Is Not Redundancy" },
       contentHash: "hash",
     };
-    captured.service.listEntities = async <T extends BaseEntity>(
+    captured.service.listEntities = async (
       request: ListEntitiesRequest,
-    ): Promise<T[]> => {
+    ): Promise<BaseEntity[]> => {
       captured.listEntitiesCalls.push(request);
       const metadata = request.options?.filter?.metadata;
       if (metadata !== undefined) return [];
-      return [entity as T];
+      return [entity];
     };
 
     const result = await findEntityByIdentifier(

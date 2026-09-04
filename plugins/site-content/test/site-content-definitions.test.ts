@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { createElement } from "react";
+import type { ReactElement } from "react";
 import type { SiteContentDefinition } from "../src/definitions";
 import { createSiteContentTemplates } from "../src/lib/site-content-definitions";
 
-const TestLayout = (): never => null as never;
+// A real component: `layout` is typed to return a JSX element, so a stub that
+// returns null only fits by asserting the null away.
+const TestLayout = (): ReactElement => createElement("section");
 
 describe("createSiteContentTemplates", () => {
   it("derives schema and formatter from section field definitions", () => {

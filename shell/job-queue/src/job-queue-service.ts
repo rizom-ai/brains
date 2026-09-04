@@ -1,8 +1,7 @@
-import type { JobQueue } from "./schema/job-queue";
 import { PermanentJobEnqueueError } from "./errors";
 import type { JobContextInput } from "./schema/types";
 import { createId } from "@brains/utils/id";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { DEFAULT_WORKER_SESSION_TIMEOUT_MS } from "./types";
 import type {
   IJobQueueService,
@@ -26,7 +25,11 @@ import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createJobQueueDatabase } from "./db";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
-import { JobQueueRepository, type AtomicJobData } from "./job-queue-repository";
+import {
+  JobQueueRepository,
+  type AtomicJobData,
+  type RetireUnownedActiveJobRequest,
+} from "./job-queue-repository";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   OperationProvenanceSchema,
@@ -38,6 +41,7 @@ import {
   parseJobQueueRpcRequest,
   parseJobQueueRpcResult,
   type JobQueueRpcRequest,
+  type JobQueueRpcResults,
   type JobQueueRpcTransport,
 } from "./job-queue-rpc";
 
@@ -112,7 +116,7 @@ export class JobQueueService implements IJobQueueService {
   ): JobQueueService {
     return new JobQueueService(
       config,
-      logger ?? Logger.getInstance(),
+      logger ?? ConsoleLogger.getInstance(),
       runtimeOptions,
     );
   }
@@ -210,12 +214,14 @@ export class JobQueueService implements IJobQueueService {
     return this.repository;
   }
 
-  private async requestRemote<T>(request: JobQueueRpcRequest): Promise<T> {
+  private async requestRemote<TRequest extends JobQueueRpcRequest>(
+    request: TRequest,
+  ): Promise<JobQueueRpcResults[TRequest["operation"]]> {
     if (!this.remoteTransport) {
       throw new Error("Job queue remote transport is not configured");
     }
     const result = await this.remoteTransport.request(request);
-    return parseJobQueueRpcResult(request, result) as T;
+    return parseJobQueueRpcResult<TRequest["operation"]>(request, result);
   }
 
   /**
@@ -329,7 +335,7 @@ export class JobQueueService implements IJobQueueService {
     const { type, data, options } = request;
     const parsedData = this.validateEnqueueData(type, data);
     if (this.remoteTransport) {
-      return this.requestRemote<string>({
+      return this.requestRemote({
         operation: "enqueue",
         request: {
           type,
@@ -509,7 +515,7 @@ export class JobQueueService implements IJobQueueService {
    * direct administrative callers receive one service-local fallback session.
    * Jobs without a local execution handler remain pending.
    */
-  public async dequeue(claim?: JobClaimOptions): Promise<JobQueue | null> {
+  public async dequeue(claim?: JobClaimOptions): Promise<JobInfo | null> {
     const executableTypes = this.handlerRegistry.getRegisteredTypes();
     if (executableTypes.length === 0) return null;
     return this.dequeueForExecutableTypes(executableTypes, claim);
@@ -518,10 +524,10 @@ export class JobQueueService implements IJobQueueService {
   private async dequeueForExecutableTypes(
     executableTypes: string[],
     claim?: JobClaimOptions,
-  ): Promise<JobQueue | null> {
+  ): Promise<JobInfo | null> {
     const ownership = claim ?? (await this.getDirectClaimOptions());
     if (this.remoteTransport) {
-      return this.requestRemote<JobQueue | null>({
+      return this.requestRemote({
         operation: "dequeue",
         claim: ownership,
         executableTypes,
@@ -555,7 +561,7 @@ export class JobQueueService implements IJobQueueService {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<void> {
     if (this.remoteTransport) {
-      await this.requestRemote<void>({
+      await this.requestRemote({
         operation: "startWorkerSession",
         workerSlotId,
         workerSessionId,
@@ -577,7 +583,7 @@ export class JobQueueService implements IJobQueueService {
     workerSessionTimeoutMs: number = DEFAULT_WORKER_SESSION_TIMEOUT_MS,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "heartbeatWorkerSession",
         workerSlotId,
         workerSessionId,
@@ -597,7 +603,7 @@ export class JobQueueService implements IJobQueueService {
     workerSessionId: string,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "endWorkerSession",
         workerSlotId,
         workerSessionId,
@@ -615,7 +621,7 @@ export class JobQueueService implements IJobQueueService {
     leaseDurationMs: number,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "renewAttemptLease",
         jobId,
         attemptId,
@@ -636,7 +642,7 @@ export class JobQueueService implements IJobQueueService {
     progress: ProgressNotification,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "recordAttemptProgress",
         jobId,
         attemptId,
@@ -657,7 +663,7 @@ export class JobQueueService implements IJobQueueService {
     attemptId?: string,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "complete",
         jobId,
         result,
@@ -674,7 +680,7 @@ export class JobQueueService implements IJobQueueService {
     attemptId?: string,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "update",
         jobId,
         data,
@@ -691,7 +697,7 @@ export class JobQueueService implements IJobQueueService {
     attemptId?: string,
   ): Promise<boolean> {
     if (this.remoteTransport) {
-      return this.requestRemote<boolean>({
+      return this.requestRemote({
         operation: "fail",
         jobId,
         error: {
@@ -703,6 +709,16 @@ export class JobQueueService implements IJobQueueService {
       });
     }
     return this.requireRepository().fail(jobId, error, attemptId);
+  }
+
+  /**
+   * Operator-only recovery for an exact retired job with no attempt owner.
+   * Owner-local: operator recovery runs against the database, never a worker.
+   */
+  public retireUnownedActiveJob(
+    request: RetireUnownedActiveJobRequest,
+  ): Promise<JobInfo | null> {
+    return this.requireRepository().retireUnownedActiveJob(request);
   }
 
   private async getDirectClaimOptions(): Promise<JobClaimOptions> {
@@ -724,7 +740,7 @@ export class JobQueueService implements IJobQueueService {
    */
   public async getStatus(jobId: string): Promise<JobInfo | null> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobInfo | null>({
+      return this.requestRemote({
         operation: "getStatus",
         jobId,
       });
@@ -740,7 +756,7 @@ export class JobQueueService implements IJobQueueService {
 
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobInfo | null>({
+      return this.requestRemote({
         operation: "getStatusByEntityId",
         entityId,
       });
@@ -753,14 +769,14 @@ export class JobQueueService implements IJobQueueService {
    */
   public async getStats(): Promise<JobQueueStats> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobQueueStats>({ operation: "getStats" });
+      return this.requestRemote({ operation: "getStats" });
     }
     return this.requireRepository().getStats();
   }
 
   public getDiagnostics(now?: number): Promise<JobQueueDiagnostics> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobQueueDiagnostics>({
+      return this.requestRemote({
         operation: "getDiagnostics",
         now,
       });
@@ -803,7 +819,7 @@ export class JobQueueService implements IJobQueueService {
     limit: number = 1_000,
   ): Promise<JobRuntimeUpdate[]> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobRuntimeUpdate[]>({
+      return this.requestRemote({
         operation: "getRuntimeUpdates",
         cursor,
         limit,
@@ -817,7 +833,7 @@ export class JobQueueService implements IJobQueueService {
    */
   public async cleanup(olderThanMs: number): Promise<number> {
     const deletedCount = this.remoteTransport
-      ? await this.requestRemote<number>({ operation: "cleanup", olderThanMs })
+      ? await this.requestRemote({ operation: "cleanup", olderThanMs })
       : await this.requireRepository().cleanup(olderThanMs);
 
     if (deletedCount > 0) {
@@ -835,7 +851,7 @@ export class JobQueueService implements IJobQueueService {
    */
   public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobInfo[]>({
+      return this.requestRemote({
         operation: "getActiveJobs",
         types,
       });
@@ -858,7 +874,7 @@ export class JobQueueService implements IJobQueueService {
    */
   public async getFailedJobs(types?: string[]): Promise<JobInfo[]> {
     if (this.remoteTransport) {
-      return this.requestRemote<JobInfo[]>({
+      return this.requestRemote({
         operation: "getFailedJobs",
         types,
       });

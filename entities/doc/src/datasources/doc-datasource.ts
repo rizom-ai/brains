@@ -11,7 +11,7 @@ import type {
   EntityDataSourceConfig,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { Doc } from "../schemas/doc";
+import { docSchema, type Doc } from "../schemas/doc";
 import {
   docFrontmatterSchema,
   docWithDataSchema,
@@ -63,8 +63,9 @@ export class DocDataSource extends BaseEntityDataSource<
   readonly name = "Docs Entity DataSource";
   readonly description = "Fetches and transforms doc entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<Doc> = {
     entityType: "doc",
+    entitySchema: docSchema,
     defaultSort: [
       { field: "order" as const, direction: "asc" as const },
       { field: "section" as const, direction: "asc" as const },

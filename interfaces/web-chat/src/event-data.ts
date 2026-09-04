@@ -1,7 +1,7 @@
 import {
-  browserChatProgressEventSchema,
-  browserChatToolStatusEventSchema,
-} from "@brains/contracts/browser-chat";
+  chatProgressEventSchema,
+  chatToolStatusEventSchema,
+} from "@brains/contracts/chat";
 import {
   formatMessageProgressDisplay,
   getToolStatusDisplay,
@@ -59,7 +59,7 @@ export function toProgressData(event: JobProgressEvent): WebChatProgressData {
   if (display.amount) {
     data.amount = display.amount;
   }
-  browserChatProgressEventSchema.parse(data);
+  chatProgressEventSchema.parse(data);
   return data;
 }
 
@@ -108,7 +108,7 @@ export function toToolStatusData(
       };
       break;
   }
-  browserChatToolStatusEventSchema.parse(data);
+  chatToolStatusEventSchema.parse(data);
   return data;
 }
 

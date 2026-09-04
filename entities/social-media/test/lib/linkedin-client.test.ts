@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
-import { createMockLogger } from "@brains/test-utils";
+import { caughtError, createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 const TINY_PNG_BASE64 =
@@ -54,6 +54,14 @@ function getRequestOptions(call: unknown[]): RequestInit {
   return options;
 }
 
+function getRequestUrl(call: unknown[]): string {
+  const url = call[0];
+  if (typeof url !== "string") {
+    throw new Error("Expected a request URL");
+  }
+  return url;
+}
+
 function isRequestInit(value: unknown): value is RequestInit {
   return typeof value === "object" && value !== null;
 }
@@ -76,8 +84,7 @@ async function expectRejectsWith(
     error = err;
   }
 
-  expect(error).toBeInstanceOf(Error);
-  expect((error as Error).message).toMatch(pattern);
+  expect(caughtError(error).message).toMatch(pattern);
 }
 
 describe("LinkedInClient", () => {
@@ -106,7 +113,7 @@ describe("LinkedInClient", () => {
       const result = await client.publish("Hello LinkedIn!", {});
 
       expect(fetchStub).toHaveBeenCalled();
-      const [, options] = fetchStub.mock.calls[1] as [string, RequestInit];
+      const options = getRequestOptions(getMockCall(fetchStub, 1));
       const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
 
       expect(
@@ -166,7 +173,7 @@ describe("LinkedInClient", () => {
       expect(fetchStub).toHaveBeenCalledTimes(4);
       expect(result.id).toBe("urn:li:share:456");
 
-      const [, options] = fetchStub.mock.calls[3] as [string, RequestInit];
+      const options = getRequestOptions(getMockCall(fetchStub, 3));
       const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
@@ -217,7 +224,7 @@ describe("LinkedInClient", () => {
       expect(logger.warn).toHaveBeenCalled();
       expect(result.id).toBe("urn:li:share:789");
 
-      const [, options] = fetchStub.mock.calls[2] as [string, RequestInit];
+      const options = getRequestOptions(getMockCall(fetchStub, 2));
       const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
@@ -279,10 +286,7 @@ describe("LinkedInClient", () => {
       expect(fetchStub).toHaveBeenCalledTimes(4);
       expect(result.id).toBe("urn:li:share:doc456");
 
-      const [initializeUrl] = getMockCall(fetchStub, 1) as [
-        string,
-        RequestInit,
-      ];
+      const initializeUrl = getRequestUrl(getMockCall(fetchStub, 1));
       expect(initializeUrl).toBe(
         "https://api.linkedin.com/rest/documents?action=initializeUpload",
       );
@@ -306,7 +310,7 @@ describe("LinkedInClient", () => {
         "Content-Type": "application/pdf",
       });
 
-      const [publishUrl] = getMockCall(fetchStub, 3) as [string, RequestInit];
+      const publishUrl = getRequestUrl(getMockCall(fetchStub, 3));
       expect(publishUrl).toBe("https://api.linkedin.com/rest/posts");
       const publishOptions = getRequestOptions(getMockCall(fetchStub, 3));
       expect(publishOptions.headers).toMatchObject({
@@ -482,7 +486,7 @@ describe("LinkedInClient", () => {
       );
 
       expect(fetchStub).toHaveBeenCalledTimes(4);
-      const [publishUrl] = getMockCall(fetchStub, 3) as [string, RequestInit];
+      const publishUrl = getRequestUrl(getMockCall(fetchStub, 3));
       expect(publishUrl).toBe("https://api.linkedin.com/rest/posts");
     });
   });
@@ -510,8 +514,7 @@ describe("LinkedInClient", () => {
         error = err;
       }
 
-      expect(error).toBeInstanceOf(Error);
-      const message = (error as Error).message;
+      const message = caughtError(error).message;
       expect(message).toContain("truncated");
       expect(message.length).toBeLessThan(longBody.length);
     });
@@ -540,7 +543,8 @@ describe("LinkedInClient", () => {
       const result = await orgClient.publish("Hello org!", {});
 
       expect(fetchStub).toHaveBeenCalledTimes(1);
-      const [url, options] = fetchStub.mock.calls[0] as [string, RequestInit];
+      const url = getRequestUrl(getMockCall(fetchStub, 0));
+      const options = getRequestOptions(getMockCall(fetchStub, 0));
       expect(url).toContain("/ugcPosts");
       const body = linkedInAuthoredPostBodySchema.parse(
         parseRequestJson(options),
@@ -589,10 +593,7 @@ describe("LinkedInClient", () => {
 
       expect(fetchStub).toHaveBeenCalledTimes(3);
 
-      const [, registerOptions] = fetchStub.mock.calls[0] as [
-        string,
-        RequestInit,
-      ];
+      const registerOptions = getRequestOptions(getMockCall(fetchStub, 0));
       const registerBody = linkedInRegisterUploadBodySchema.parse(
         parseRequestJson(registerOptions),
       );
@@ -640,7 +641,7 @@ describe("LinkedInClient", () => {
       const result = await orgClient.validateCredentials();
       expect(result).toBe(true);
 
-      const [url] = fetchStub.mock.calls[0] as [string, RequestInit];
+      const url = getRequestUrl(getMockCall(fetchStub, 0));
       expect(url).toContain("/organizations/12345");
     });
 

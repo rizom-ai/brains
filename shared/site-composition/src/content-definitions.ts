@@ -1,6 +1,6 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import type { JsonObject } from "@brains/contracts";
-import type { Template, TemplateDataSchema } from "@brains/templates";
+import type { JsonValue } from "@brains/contracts";
+import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import type {
   SiteContentArrayFieldDefinition,
@@ -33,14 +33,20 @@ interface FormatterFieldMapping {
   parser?: (text: string) => unknown;
 }
 
-function applyOptional<T extends z.ZodTypeAny>(
+// Every field schema this module builds produces JSON: optional fields become
+// `.nullable().default(null)`, and null is a JsonPrimitive. Declaring that
+// makes z.object(shape) output a JsonObject, where ZodTypeAny made it
+// Record<string, unknown> and forced the result to be asserted.
+function applyOptional<T extends z.ZodType<JsonValue>>(
   schema: T,
   optional?: boolean,
-): z.ZodTypeAny {
+): z.ZodType<JsonValue> {
   return optional ? schema.nullable().default(null) : schema;
 }
 
-function buildFieldSchema(field: SiteContentFieldDefinition): z.ZodTypeAny {
+function buildFieldSchema(
+  field: SiteContentFieldDefinition,
+): z.ZodType<JsonValue> {
   switch (field.type) {
     case "string":
       return applyOptional(z.string(), field.optional);
@@ -49,7 +55,7 @@ function buildFieldSchema(field: SiteContentFieldDefinition): z.ZodTypeAny {
     case "enum":
       return applyOptional(z.enum(field.options), field.optional);
     case "object": {
-      const shape: Record<string, z.ZodTypeAny> = {};
+      const shape: Record<string, z.ZodType<JsonValue>> = {};
       for (const [key, child] of Object.entries(field.fields)) {
         shape[key] = buildFieldSchema(child);
       }
@@ -70,7 +76,7 @@ function buildFieldSchema(field: SiteContentFieldDefinition): z.ZodTypeAny {
 
 function buildArrayItemSchema(
   field: SiteContentArrayFieldDefinition,
-): z.ZodTypeAny {
+): z.ZodType<JsonValue> {
   const { items } = field;
   switch (items.type) {
     case "string":
@@ -80,7 +86,7 @@ function buildArrayItemSchema(
     case "enum":
       return z.enum(items.options);
     case "object": {
-      const shape: Record<string, z.ZodTypeAny> = {};
+      const shape: Record<string, z.ZodType<JsonValue>> = {};
       for (const [key, child] of Object.entries(items.fields)) {
         shape[key] = buildFieldSchema(child);
       }
@@ -138,7 +144,7 @@ export function createSiteContentTemplate(
   name: string,
   section: SiteContentDefinition["sections"][string],
 ): Template {
-  const shape: Record<string, z.ZodTypeAny> = {};
+  const shape: Record<string, z.ZodType<JsonValue>> = {};
   for (const [key, field] of Object.entries(section.fields)) {
     shape[key] = buildFieldSchema(field);
   }
@@ -154,7 +160,7 @@ export function createSiteContentTemplate(
   return {
     name,
     description: section.description,
-    schema: schema as TemplateDataSchema<JsonObject>,
+    schema,
     formatter,
     requiredPermission: section.requiredPermission ?? "public",
     layout: {

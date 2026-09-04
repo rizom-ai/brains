@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { isErrnoException } from "@brains/utils/predicates";
 import { join, relative, sep } from "path";
 
 /**
@@ -84,9 +85,5 @@ async function collectPublicAssets(
 }
 
 function isNotFoundError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    (error as NodeJS.ErrnoException).code === "ENOENT"
-  );
+  return isErrnoException(error) && error.code === "ENOENT";
 }

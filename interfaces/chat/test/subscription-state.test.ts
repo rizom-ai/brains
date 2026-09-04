@@ -24,6 +24,11 @@ class FakeMemoryStateAdapter implements StateAdapter {
   }
 
   async get<T = unknown>(key: string): Promise<T | null> {
+    // The SDK's StateAdapter declares get/getList generic in the value with no
+    // schema to check against, so a store that holds `unknown` cannot produce
+    // a `T` any other way. The contract is external; there is nothing here to
+    // narrow.
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above
     return (this.values.get(key) as T | undefined) ?? null;
   }
 
@@ -54,6 +59,7 @@ class FakeMemoryStateAdapter implements StateAdapter {
   }
 
   async getList<T = unknown>(key: string): Promise<T[]> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note on get()
     return (this.lists.get(key) ?? []) as T[];
   }
 

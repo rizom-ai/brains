@@ -7,11 +7,10 @@ import {
   BaseEntityAdapter,
   EntityRegistry,
   baseEntitySchema,
-  type BaseEntity,
 } from "@brains/entity-service";
 import { BrainCharacterAdapter } from "@brains/identity-service";
 import { PermissionService } from "@brains/templates";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, expectToolError } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 const confirmationArgsSchema = z.record(z.string(), z.unknown());
@@ -357,7 +356,7 @@ describe("system_update tool", () => {
     });
 
     expect(result).toMatchObject({ success: false });
-    const error = (result as { error: string }).error;
+    const error = expectToolError(result).error;
     expect(error).toContain(
       'Entity type "blog-post" is not available in this brain.',
     );
@@ -376,7 +375,7 @@ describe("system_update tool", () => {
     // (consistent with system_create), and nothing is
     // deleted.
     expect(result).toMatchObject({ success: false });
-    expect((result as { error: string }).error).toContain(
+    expect(expectToolError(result).error).toContain(
       "No pending delete confirmation",
     );
     expect(services.getEntities().get("newsletter-1")).toBeDefined();
@@ -507,10 +506,11 @@ describe("system_update tool", () => {
     expect(updated?.metadata["status"]).toBe("draft");
     expect(updated?.metadata).not.toHaveProperty("publishedAt");
 
-    const updateRequest = services.getLastUpdateRequest() as {
-      entity: BaseEntity & Record<string, unknown>;
-    };
-    expect(updateRequest.entity["status"]).toBe("draft");
+    const updateRequest = services.getLastUpdateRequest();
+    if (!updateRequest) throw new Error("Expected an update to be recorded");
+    expect(
+      z.looseObject({ status: z.string() }).parse(updateRequest.entity).status,
+    ).toBe("draft");
     expect(updateRequest.entity).not.toHaveProperty("publishedAt");
   });
 
@@ -1112,9 +1112,8 @@ describe("system_update tool", () => {
       success: true,
       data: { updated: "metadata-backed-1" },
     });
-    const updateRequest = services.getLastUpdateRequest() as {
-      entity: BaseEntity;
-    };
+    const updateRequest = services.getLastUpdateRequest();
+    if (!updateRequest) throw new Error("Expected an update to be recorded");
     expect(updateRequest.entity.metadata).not.toHaveProperty("publishedAt");
   });
 
@@ -1148,7 +1147,9 @@ describe("system_update tool", () => {
     const originalRegistry = services.entityRegistry;
     services.entityRegistry = {
       ...originalRegistry,
-      getEffectiveFrontmatterSchema: (type: string) =>
+      getEffectiveFrontmatterSchema: (
+        type: string,
+      ): ReturnType<typeof originalRegistry.getEffectiveFrontmatterSchema> =>
         type === "anchor-profile"
           ? z.object({
               name: z.string(),
@@ -1159,7 +1160,7 @@ describe("system_update tool", () => {
               availability: z.string(),
             })
           : originalRegistry.getEffectiveFrontmatterSchema(type),
-    } as typeof services.entityRegistry;
+    };
     tools = createSystemTools(services);
 
     const result = await exec({

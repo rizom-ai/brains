@@ -36,7 +36,10 @@ export async function getRuntimeAppInfo(options: {
     entities: totalEntities,
     entityCounts,
     embeddings: embeddingCount,
-    backgroundWork: summarizeBackgroundWork(queueDiagnostics),
+    backgroundWork: summarizeBackgroundWork(
+      queueDiagnostics,
+      services.jobQueueService.getExecutionRegistrations(),
+    ),
     ai: {
       model: config.ai.model,
       embeddingModel: "text-embedding-3-small",

@@ -1,5 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import type { BaseEntity } from "../src/types";
 import { postSchema, postAdapter } from "./helpers/test-schemas";
 import {
   setupEntityService,
@@ -69,7 +68,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by single metadata field (publishedAt desc)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "publishedAt", direction: "desc" }],
@@ -81,7 +80,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by single metadata field (publishedAt asc)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "publishedAt", direction: "asc" }],
@@ -93,7 +92,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by multiple metadata fields", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [
@@ -108,7 +107,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by system field (created)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "created", direction: "asc" }],
@@ -120,7 +119,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by the entity ID system field", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "id", direction: "desc" }],
@@ -135,7 +134,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should read the highest numeric metadata value through a bounded filter", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         limit: 1,
@@ -148,7 +147,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should combine sortFields with pagination", async () => {
-    const page1 = await ctx.entityService.listEntities<BaseEntity>({
+    const page1 = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "publishedAt", direction: "desc" }],
@@ -160,7 +159,7 @@ describe("listEntities sortFields", () => {
     expect(page1).toHaveLength(2);
     expect(page1.map((r) => r.id)).toEqual(["post-1", "post-3"]);
 
-    const page2 = await ctx.entityService.listEntities<BaseEntity>({
+    const page2 = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "publishedAt", direction: "desc" }],
@@ -174,7 +173,7 @@ describe("listEntities sortFields", () => {
   });
 
   test("should combine sortFields with publishedOnly filter", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "publishedAt", direction: "desc" }],
@@ -197,7 +196,7 @@ describe("listEntities sortFields", () => {
       embedding: mockEmbedding,
     });
 
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         publishedOnly: true,
@@ -223,7 +222,7 @@ describe("listEntities sortFields", () => {
       embedding: mockEmbedding,
     });
 
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         publishedOnly: true,
@@ -239,14 +238,14 @@ describe("listEntities sortFields", () => {
   });
 
   test("should return all entities when no limit is specified", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
     });
     expect(result).toHaveLength(3);
   });
 
   test("should respect explicit limit when provided", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         limit: 2,
@@ -323,7 +322,7 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should sort publishedAt desc without nullsFirst (NULLs last)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [{ field: "publishedAt", direction: "desc" }],
@@ -341,7 +340,7 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should sort publishedAt desc with nullsFirst (NULLs first)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [
@@ -361,7 +360,7 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should sort publishedAt asc with nullsFirst", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [
@@ -381,7 +380,7 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should work with multiple sort fields and nullsFirst", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>({
+    const result = await ctx.entityService.listEntities({
       entityType: "post",
       options: {
         sortFields: [

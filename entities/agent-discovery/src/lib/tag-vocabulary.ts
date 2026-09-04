@@ -1,6 +1,6 @@
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import type { AgentEntity } from "../schemas/agent";
-import type { SkillEntity } from "../schemas/skill";
+import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
+import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
 
@@ -65,8 +65,12 @@ export function buildTagVocabulary(
     .slice(0, topN);
 }
 
+/**
+ * Takes only the entity service it reads from, not the whole plugin context:
+ * a caller that has one — and a test that stubs one — needs nothing else.
+ */
 export async function collectTagVocabulary(
-  context: EntityPluginContext,
+  context: Pick<EntityPluginContext, "entityService">,
   opts: {
     minCount?: number;
     topN?: number;
@@ -78,14 +82,20 @@ export async function collectTagVocabulary(
   const [skills, agents] = await Promise.all([
     opts.includeSkills === false
       ? Promise.resolve([])
-      : context.entityService.listEntities<SkillEntity>({
-          entityType: SKILL_ENTITY_TYPE,
-          options: { filter: { visibilityScope } },
-        }),
-    context.entityService.listEntities<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-      options: { filter: { visibilityScope } },
-    }),
+      : context.entityService.listEntities(
+          {
+            entityType: SKILL_ENTITY_TYPE,
+            options: { filter: { visibilityScope } },
+          },
+          skillEntitySchema,
+        ),
+    context.entityService.listEntities(
+      {
+        entityType: AGENT_ENTITY_TYPE,
+        options: { filter: { visibilityScope } },
+      },
+      agentEntitySchema,
+    ),
   ]);
 
   return buildTagVocabulary(skills, agents, opts);

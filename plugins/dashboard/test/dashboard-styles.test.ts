@@ -51,6 +51,10 @@ describe("DASHBOARD_STYLES", () => {
     expect(DASHBOARD_STYLES).toContain(".knowledge-map-field");
     expect(DASHBOARD_STYLES).toContain(".proximity-map-field");
     expect(DASHBOARD_STYLES).toContain(".knowledge-zone");
+    expect(DASHBOARD_STYLES).toContain(".knowledge-atlas-summary");
+    expect(DASHBOARD_STYLES).toContain(".knowledge-territory-index");
+    expect(DASHBOARD_STYLES).not.toContain(".knowledge-point-glow");
+    expect(DASHBOARD_STYLES).not.toContain(".map-count");
     expect(DASHBOARD_STYLES).toContain(".proximity-node");
     expect(DASHBOARD_STYLES).not.toContain("data-agent-network");
   });

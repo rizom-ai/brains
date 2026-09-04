@@ -135,8 +135,8 @@ describe("AT Protocol boot publishing through the real bootloader", () => {
 
     const cardCalls = putRecord.mock.calls.filter(
       (call) =>
-        (call[0] as { collection?: string }).collection ===
-        "ai.rizom.brain.card",
+        z.looseObject({ collection: z.string().optional() }).parse(call[0])
+          .collection === "ai.rizom.brain.card",
     );
     expect(cardCalls).toHaveLength(1);
   });

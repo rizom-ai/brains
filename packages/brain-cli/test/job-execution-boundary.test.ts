@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
 import defaultSite from "@brains/site-default";
 import {
@@ -430,20 +431,16 @@ describe("canonical durable job execution boundary", () => {
       syncRequestCompletion,
       syncRequestId,
     );
-    const syncResult = syncRequest.result as {
-      gitPulled?: unknown;
-      batchQueued?: unknown;
-      batchId?: unknown;
-    };
-    if (typeof syncResult.batchId !== "string") {
-      throw new Error(
-        `Sync request did not return a batch id: ${JSON.stringify(syncRequest.result)}`,
-      );
-    }
+    const syncResult = z
+      .object({
+        gitPulled: z.boolean(),
+        batchQueued: z.boolean(),
+        batchId: z.string().min(1),
+      })
+      .parse(syncRequest.result);
     expect(syncResult).toMatchObject({
       gitPulled: true,
       batchQueued: true,
-      batchId: syncResult.batchId,
     });
     const importJob = await expectCompletedJob(ownerQueue, importCompletion);
     expect(importJob.metadata.rootJobId).toBe(syncResult.batchId);

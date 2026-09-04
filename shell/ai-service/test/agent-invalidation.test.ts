@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { AgentService } from "../src/agent-service";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
-import type {
-  IBrainCharacterService,
-  IAnchorProfileService,
-} from "@brains/identity-service";
+import type { IAnchorProfileService } from "@brains/identity-service";
 import type { AgentConversationStore } from "../src/turn-processor";
 import type { BrainAgentConfig } from "../src/brain-agent";
 import type { BrainAgent } from "../src/agent-types";
@@ -44,13 +41,13 @@ describe("AgentService invalidation", () => {
           purpose: "Test",
           values: [],
         }),
-      } as IBrainCharacterService,
+      },
       {
         getProfile: () => ({
           name: "Test Anchor",
           description: "Test",
         }),
-      } as IAnchorProfileService,
+      },
       createSilentLogger(),
       { agentFactory: mockAgentFactory },
     );
@@ -112,7 +109,7 @@ describe("AgentService invalidation", () => {
           purpose: "Test",
           values: [],
         }),
-      } as IBrainCharacterService,
+      },
       mockProfileService,
       createSilentLogger(),
       { agentFactory: mockAgentFactory },

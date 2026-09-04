@@ -20,20 +20,40 @@ import { registerDashboardWidget } from "./lib/dashboard-widget";
 import { registerStudioWorkspace } from "./lib/studio-workspace";
 import packageJson from "../package.json";
 
+/** The services the plugin builds during registration, as one unit. */
+interface ContentPipelineRuntime {
+  readonly queueManager: QueueManager;
+  readonly publicationQueueService: PublicationQueueService;
+  readonly providerRegistry: ProviderRegistry;
+  readonly retryTracker: RetryTracker;
+  readonly publishExecutor: PublishExecutor;
+  readonly publishAssetRegistry: PublishAssetRegistry;
+  readonly publishAssetPreflight: PublishAssetPreflight;
+  readonly scheduler: ContentScheduler;
+}
+
 export class ContentPipelinePlugin extends ServicePlugin<
   ContentPipelineConfig,
   ContentPipelineConfigInput
 > {
   private pluginContext?: ServicePluginContext;
-  private queueManager!: QueueManager;
-  private publicationQueueService!: PublicationQueueService;
-  private providerRegistry!: ProviderRegistry;
-  private retryTracker!: RetryTracker;
-  private publishExecutor!: PublishExecutor;
-  private publishAssetRegistry!: PublishAssetRegistry;
-  private publishAssetPreflight!: PublishAssetPreflight;
-  private scheduler!: ContentScheduler;
+  private runtime: ContentPipelineRuntime | null = null;
   private studioRegistered = false;
+
+  /**
+   * The services below are constructed together in onRegister. Holding them as
+   * one nullable object means the compiler proves they are present at every
+   * read, instead of eight `!:` declarations each disabling that check
+   * independently.
+   */
+  private requireRuntime(): ContentPipelineRuntime {
+    if (!this.runtime) {
+      throw new Error(
+        "Content pipeline runtime is unavailable before plugin registration",
+      );
+    }
+    return this.runtime;
+  }
 
   constructor(config: ContentPipelineConfigInput = {}) {
     super("content-pipeline", packageJson, config, contentPipelineConfigSchema);
@@ -44,43 +64,47 @@ export class ContentPipelinePlugin extends ServicePlugin<
   ): Promise<void> {
     this.pluginContext = context;
 
-    this.queueManager = QueueManager.createFresh();
-    this.publicationQueueService = new PublicationQueueService(
+    const queueManager = QueueManager.createFresh();
+    const publicationQueueService = new PublicationQueueService(
       context,
-      this.queueManager,
+      queueManager,
     );
-    this.providerRegistry = ProviderRegistry.createFresh();
-    this.retryTracker = RetryTracker.createFresh();
-    this.publishAssetRegistry = PublishAssetRegistry.createFresh();
-    this.publishAssetPreflight = new PublishAssetPreflight({
+    const providerRegistry = ProviderRegistry.createFresh();
+    const retryTracker = RetryTracker.createFresh();
+    const publishAssetRegistry = PublishAssetRegistry.createFresh();
+    const publishAssetPreflight = new PublishAssetPreflight({
       context,
-      registry: this.publishAssetRegistry,
+      registry: publishAssetRegistry,
     });
-    this.publishExecutor = new PublishExecutor({
+    const publishExecutor = new PublishExecutor({
       context,
-      providerRegistry: this.providerRegistry,
-      publishAssetPreflight: this.publishAssetPreflight,
+      providerRegistry,
+      publishAssetPreflight,
     });
 
-    this.scheduler = createScheduler({
+    const scheduler = createScheduler({
       context,
       config: this.config,
-      queueManager: this.queueManager,
-      providerRegistry: this.providerRegistry,
-      retryTracker: this.retryTracker,
-      publishExecutor: this.publishExecutor,
+      queueManager,
+      providerRegistry,
+      retryTracker,
+      publishExecutor,
       logger: this.logger,
     });
 
+    this.runtime = {
+      queueManager,
+      publicationQueueService,
+      providerRegistry,
+      retryTracker,
+      publishExecutor,
+      publishAssetRegistry,
+      publishAssetPreflight,
+      scheduler,
+    };
+
     subscribeToMessages(context, {
-      queueManager: this.queueManager,
-      publicationQueueService: this.publicationQueueService,
-      providerRegistry: this.providerRegistry,
-      retryTracker: this.retryTracker,
-      publishExecutor: this.publishExecutor,
-      publishAssetRegistry: this.publishAssetRegistry,
-      publishAssetPreflight: this.publishAssetPreflight,
-      scheduler: this.scheduler,
+      ...this.runtime,
       logger: this.logger,
     });
   }
@@ -88,23 +112,24 @@ export class ContentPipelinePlugin extends ServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    await this.publicationQueueService.reconcile(
-      this.providerRegistry.getRegisteredTypes(),
+    const runtime = this.requireRuntime();
+    await runtime.publicationQueueService.reconcile(
+      runtime.providerRegistry.getRegisteredTypes(),
     );
     const workspaceUrl = await registerStudioWorkspace(context, {
-      providerRegistry: this.providerRegistry,
-      queueManager: this.queueManager,
-      publicationQueueService: this.publicationQueueService,
-      retryTracker: this.retryTracker,
-      publishExecutor: this.publishExecutor,
+      providerRegistry: runtime.providerRegistry,
+      queueManager: runtime.queueManager,
+      publicationQueueService: runtime.publicationQueueService,
+      retryTracker: runtime.retryTracker,
+      publishExecutor: runtime.publishExecutor,
     });
     this.studioRegistered = workspaceUrl !== undefined;
     await registerDashboardWidget(context, {
-      providerRegistry: this.providerRegistry,
-      queueManager: this.queueManager,
-      retryTracker: this.retryTracker,
+      providerRegistry: runtime.providerRegistry,
+      queueManager: runtime.queueManager,
+      retryTracker: runtime.retryTracker,
     });
-    await this.scheduler.start();
+    await runtime.scheduler.start();
 
     this.logger.info("Content pipeline plugin started");
   }
@@ -114,12 +139,13 @@ export class ContentPipelinePlugin extends ServicePlugin<
       throw new Error("Plugin context not initialized");
     }
 
+    const runtime = this.requireRuntime();
     return [
       createPublishingManageTool(this.pluginContext, {
-        queueManager: this.queueManager,
-        publicationQueueService: this.publicationQueueService,
-        providerRegistry: this.providerRegistry,
-        publishExecutor: this.publishExecutor,
+        queueManager: runtime.queueManager,
+        publicationQueueService: runtime.publicationQueueService,
+        providerRegistry: runtime.providerRegistry,
+        publishExecutor: runtime.publishExecutor,
       }),
     ];
   }
@@ -133,27 +159,27 @@ export class ContentPipelinePlugin extends ServicePlugin<
   }
 
   public getQueueManager(): QueueManager {
-    return this.queueManager;
+    return this.requireRuntime().queueManager;
   }
 
   public getPublicationQueueService(): PublicationQueueService {
-    return this.publicationQueueService;
+    return this.requireRuntime().publicationQueueService;
   }
 
   public getProviderRegistry(): ProviderRegistry {
-    return this.providerRegistry;
+    return this.requireRuntime().providerRegistry;
   }
 
   public getRetryTracker(): RetryTracker {
-    return this.retryTracker;
+    return this.requireRuntime().retryTracker;
   }
 
   public getPublishAssetRegistry(): PublishAssetRegistry {
-    return this.publishAssetRegistry;
+    return this.requireRuntime().publishAssetRegistry;
   }
 
   public getScheduler(): ContentScheduler {
-    return this.scheduler;
+    return this.requireRuntime().scheduler;
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -163,7 +189,8 @@ export class ContentPipelinePlugin extends ServicePlugin<
       );
       this.studioRegistered = false;
     }
-    await this.scheduler.stop();
+    // Shutdown may run after a failed registration; nothing to stop then.
+    await this.runtime?.scheduler.stop();
   }
 }
 

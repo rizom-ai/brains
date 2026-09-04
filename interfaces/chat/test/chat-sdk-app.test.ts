@@ -1,6 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
 import type { WebRouteDefinition } from "@brains/plugins";
+import { caughtError, createMockShell } from "@brains/test-utils";
 import type { ChatUploadReader } from "../src/types";
 import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
 import type {
@@ -108,7 +109,9 @@ function makeApp(options?: {
         : createUploadStore(),
     buildApp,
   });
-  if (options?.build !== false) discordApp.build({} as never);
+  if (options?.build !== false) {
+    discordApp.build(createMockShell().getRuntimeState());
+  }
   return { discordApp, app, buildApp };
 }
 
@@ -274,9 +277,9 @@ describe("ChatSdkAppHost", () => {
   it("returns 404 when the upload store cannot read the ref", async () => {
     const { discordApp } = makeApp({
       uploadStore: createUploadStore(
-        mock(async () => {
+        mock(async (): Promise<never> => {
           throw new Error("not found");
-        }) as never,
+        }),
       ),
     });
     const response = await uploadRoute(discordApp).handler(
@@ -312,6 +315,6 @@ describe("ChatSdkAppHost", () => {
       caught = error;
     }
     expect(caught).toBeInstanceOf(Error);
-    expect((caught as Error).message).toBe("Chat SDK app not initialized");
+    expect(caughtError(caught).message).toBe("Chat SDK app not initialized");
   });
 });

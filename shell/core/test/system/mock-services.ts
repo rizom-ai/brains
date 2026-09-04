@@ -44,8 +44,15 @@ import { createInsightsRegistry } from "../../src/system/insights";
  * Create mock SystemServices for testing system tools.
  * Stateful: entity store tracks creates/updates/deletes.
  */
+/**
+ * `conversationService` merges per member rather than replacing the whole
+ * service: a test that stubs `getMessages` used to have to assert the gap away,
+ * and then had no working implementation of anything else on it.
+ */
 export function createMockSystemServices(
-  overrides: Partial<SystemServices> = {},
+  overrides: Partial<Omit<SystemServices, "conversationService">> & {
+    conversationService?: Partial<SystemServices["conversationService"]>;
+  } = {},
 ): SystemServices & {
   /** Access the in-memory entity store */
   getEntities: () => Map<string, BaseEntity>;
@@ -58,7 +65,7 @@ export function createMockSystemServices(
   /** Get the last direct create request */
   getLastCreateRequest: () => unknown;
   /** Get the last update request */
-  getLastUpdateRequest: () => unknown;
+  getLastUpdateRequest: () => { entity: BaseEntity } | undefined;
   /** Get the last direct markdown create call */
   getLastMarkdownCreate: () =>
     { entityType: string; id: string; markdown: string } | undefined;
@@ -252,7 +259,9 @@ export function createMockSystemServices(
     visibility?: BaseEntity["visibility"];
   }> = [];
   let lastCreateRequest: unknown;
-  let lastUpdateRequest: unknown;
+  // Typed by what updateEntity is actually handed, so callers read the
+  // recorded request without asserting a shape onto it.
+  let lastUpdateRequest: { entity: BaseEntity } | undefined;
 
   // The in-memory behaviour these tests drive. Left unannotated: several of
   // these members stand in for generic ones, and a concrete return can never
@@ -381,7 +390,7 @@ export function createMockSystemServices(
       return count;
     },
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (md: string) => ({ content: md }) as BaseEntity,
+    deserializeEntity: (md: string) => ({ content: md }),
   };
 
   /**
@@ -502,7 +511,6 @@ export function createMockSystemServices(
     entityService,
     entityRegistry,
     jobs,
-    conversationService,
     runtimeUploads,
     attachments,
     logger: createSilentLogger("system-test"),
@@ -550,6 +558,10 @@ export function createMockSystemServices(
     insights: createInsightsRegistry(),
     permissionService: new PermissionService({}),
     ...overrides,
+    conversationService: {
+      ...conversationService,
+      ...overrides.conversationService,
+    },
     // Test helpers
     getEntities: () => entities,
     addEntities,

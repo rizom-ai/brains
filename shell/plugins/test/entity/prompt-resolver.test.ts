@@ -32,7 +32,7 @@ describe("resolvePrompt", () => {
     });
 
     const result = await resolvePrompt(
-      mockEntityService as IEntityService,
+      mockEntityService,
       "blog:generation",
       "Default fallback prompt",
     );
@@ -48,7 +48,7 @@ describe("resolvePrompt", () => {
     mockGetEntity.mockResolvedValue(null);
 
     const result = await resolvePrompt(
-      mockEntityService as IEntityService,
+      mockEntityService,
       "blog:generation",
       "Default fallback prompt",
     );
@@ -60,7 +60,7 @@ describe("resolvePrompt", () => {
     mockGetEntity.mockRejectedValue(new Error("DB error"));
 
     const result = await resolvePrompt(
-      mockEntityService as IEntityService,
+      mockEntityService,
       "blog:generation",
       "Default fallback prompt",
     );
@@ -78,7 +78,7 @@ describe("resolvePrompt", () => {
     });
 
     const result = await resolvePrompt(
-      mockEntityService as IEntityService,
+      mockEntityService,
       "blog:generation",
       "fallback",
     );
@@ -91,11 +91,7 @@ describe("resolvePrompt", () => {
   it("should convert target to entity ID (colon to dash)", async () => {
     mockGetEntity.mockResolvedValue(null);
 
-    await resolvePrompt(
-      mockEntityService as IEntityService,
-      "social-media:linkedin",
-      "fallback",
-    );
+    await resolvePrompt(mockEntityService, "social-media:linkedin", "fallback");
 
     expect(mockGetEntity).toHaveBeenCalledWith({
       entityType: "prompt",
@@ -108,7 +104,7 @@ describe("resolvePrompt", () => {
       mockGetEntity.mockResolvedValue(null);
 
       await resolvePrompt(
-        mockEntityService as IEntityService,
+        mockEntityService,
         "blog:generation",
         "You write blog posts in a distinctive voice.",
       );
@@ -134,11 +130,7 @@ describe("resolvePrompt", () => {
         metadata: {},
       });
 
-      await resolvePrompt(
-        mockEntityService as IEntityService,
-        "blog:generation",
-        "fallback",
-      );
+      await resolvePrompt(mockEntityService, "blog:generation", "fallback");
 
       expect(mockCreateEntity).not.toHaveBeenCalled();
     });
@@ -146,16 +138,8 @@ describe("resolvePrompt", () => {
     it("should only attempt creation once per target", async () => {
       mockGetEntity.mockResolvedValue(null);
 
-      await resolvePrompt(
-        mockEntityService as IEntityService,
-        "blog:generation",
-        "fallback",
-      );
-      await resolvePrompt(
-        mockEntityService as IEntityService,
-        "blog:generation",
-        "fallback",
-      );
+      await resolvePrompt(mockEntityService, "blog:generation", "fallback");
+      await resolvePrompt(mockEntityService, "blog:generation", "fallback");
 
       expect(mockCreateEntity).toHaveBeenCalledTimes(1);
     });
@@ -167,7 +151,7 @@ describe("resolvePrompt", () => {
       );
 
       const result = await resolvePrompt(
-        mockEntityService as IEntityService,
+        mockEntityService,
         "blog:generation",
         "fallback prompt",
       );
@@ -179,7 +163,7 @@ describe("resolvePrompt", () => {
       mockGetEntity.mockResolvedValue(null);
 
       await resolvePrompt(
-        mockEntityService as IEntityService,
+        mockEntityService,
         "social-media:linkedin",
         "fallback",
       );

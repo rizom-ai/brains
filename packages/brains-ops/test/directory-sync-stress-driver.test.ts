@@ -1,4 +1,5 @@
-import { createTempDir } from "@brains/test-utils";
+import { caughtError, createTempDir } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { describe, expect, it } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -629,9 +630,13 @@ discord:
     expect(result.report.metrics.health.every((sample) => sample.ok)).toBe(
       true,
     );
-    const allHealth = JSON.parse(
-      await readFile(join(artifactsDir, "health-samples.json"), "utf8"),
-    ) as Array<{ ok: boolean }>;
+    const allHealth = z
+      .array(z.looseObject({ ok: z.boolean() }))
+      .parse(
+        JSON.parse(
+          await readFile(join(artifactsDir, "health-samples.json"), "utf8"),
+        ),
+      );
     expect(allHealth.some((sample) => !sample.ok)).toBe(true);
   });
 
@@ -657,8 +662,7 @@ discord:
     } catch (error) {
       failure = error;
     }
-    expect(failure).toBeInstanceOf(Error);
-    expect((failure as Error).message).toBe(
+    expect(caughtError(failure).message).toBe(
       "Smoke health was unavailable before stress testing",
     );
     expect(

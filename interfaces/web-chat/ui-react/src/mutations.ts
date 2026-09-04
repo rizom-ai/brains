@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { describeClientFailure, type WebChatSession } from "./api";
-import { createWebChatClient } from "./browser-chat-client";
+import { createWebChatClient } from "./web-chat-client";
 import { webChatKeys } from "./queries";
 
 export interface WebChatSessionMutationInput {

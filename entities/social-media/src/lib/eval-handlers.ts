@@ -1,5 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { GenerationJobHandler } from "../handlers/generationHandler";
 
@@ -28,12 +28,13 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
       ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
       : (parsed.prompt ?? "Write an engaging LinkedIn post");
 
-    return context.ai.generate<{
-      content: string;
-    }>({
-      prompt: generationPrompt,
-      templateName: `social-media:${parsed.platform}`,
-    });
+    return context.ai.generate(
+      {
+        prompt: generationPrompt,
+        templateName: `social-media:${parsed.platform}`,
+      },
+      z.object({ content: z.string() }),
+    );
   });
 
   // Eval: run the full generation pipeline and verify entity persistence
@@ -41,7 +42,7 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     const parsed: CreateInput = createInputSchema.parse(input);
 
     const progressSteps: Array<{ progress: number; message?: string }> = [];
-    const reporter = ProgressReporter.from(async (n) => {
+    const reporter = CallbackProgressReporter.from(async (n) => {
       const step: { progress: number; message?: string } = {
         progress: n.progress,
       };

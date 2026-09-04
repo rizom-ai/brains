@@ -1,4 +1,12 @@
 /** @jsxImportSource react */
+import {
+  Button,
+  Input,
+  NativeSelect,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@brains/app-ui-react";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import {
@@ -22,6 +30,10 @@ import { errorMessage } from "./ui-utils";
 
 export type BodyMode = "source" | "split" | "preview";
 const BODY_MODES: readonly BodyMode[] = ["source", "split", "preview"];
+
+function isBodyMode(value: string): value is BodyMode {
+  return value === "source" || value === "split" || value === "preview";
+}
 const BODY_MODE_LABELS: Record<BodyMode, string> = {
   source: "Source",
   split: "Split",
@@ -245,13 +257,13 @@ export function AgentAnswerPanel(props: {
       </div>
       <span className="spacer" />
       {props.onReplace && (
-        <button type="button" className="btn" onClick={props.onReplace}>
+        <Button type="button" onClick={props.onReplace}>
           Replace selection
-        </button>
+        </Button>
       )}
-      <button type="button" className="btn ghost" onClick={props.onDismiss}>
+      <Button type="button" variant="ghost" onClick={props.onDismiss}>
         Dismiss
-      </button>
+      </Button>
     </section>
   );
 }
@@ -378,18 +390,20 @@ export function BodyEditor(props: {
   return (
     <div className="body-editor">
       <header className="body-toolbar">
-        <span className="seg body-modes">
-          {BODY_MODES.map((candidate) => (
-            <button
-              key={candidate}
-              type="button"
-              className={candidate === mode ? "mode mode-active" : "mode"}
-              onClick={() => onModeChange(candidate)}
-            >
-              {BODY_MODE_LABELS[candidate]}
-            </button>
-          ))}
-        </span>
+        <Tabs
+          value={mode}
+          onValueChange={(value) => {
+            if (isBodyMode(value)) onModeChange(value);
+          }}
+        >
+          <TabsList className="seg body-modes" aria-label="Editor body view">
+            {BODY_MODES.map((candidate) => (
+              <TabsTrigger key={candidate} className="mode" value={candidate}>
+                {BODY_MODE_LABELS[candidate]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <span className="doc-meta">
           {value.trim() ? value.trim().split(/\s+/).length.toLocaleString() : 0}{" "}
           words · markdown · perfect round-trip
@@ -402,7 +416,7 @@ export function BodyEditor(props: {
           aria-label="AI selection rewrite"
         >
           {agents.length > 0 && (
-            <select
+            <NativeSelect
               aria-label="Assist target"
               value={assistTarget}
               onChange={(event) => {
@@ -417,9 +431,9 @@ export function BodyEditor(props: {
                   {agent.label} — {agent.id}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           )}
-          <input
+          <Input
             type="text"
             value={instruction}
             placeholder={
@@ -431,9 +445,9 @@ export function BodyEditor(props: {
             }
             onChange={(event) => setInstruction(event.currentTarget.value)}
           />
-          <button
+          <Button
             type="button"
-            className="btn assist-run"
+            className="assist-run"
             disabled={
               !selection ||
               instruction.trim().length === 0 ||
@@ -446,17 +460,21 @@ export function BodyEditor(props: {
               : assistTarget === MODEL_ASSIST_TARGET
                 ? "Rewrite selection"
                 : "Ask"}
-          </button>
+          </Button>
           {assistTarget !== MODEL_ASSIST_TARGET && (
             <span className="assist-presets">
               {AGENT_INSTRUCTION_PRESETS.map((preset) => (
-                <button
+                <Button
                   key={preset.label}
                   type="button"
-                  className={
+                  size="xs"
+                  variant={
                     preset.mode === "rewrite" && agentAskMode === "rewrite"
-                      ? "assist-preset assist-preset-active"
-                      : "assist-preset"
+                      ? "secondary"
+                      : "ghost"
+                  }
+                  aria-pressed={
+                    preset.mode === "rewrite" && agentAskMode === "rewrite"
                   }
                   onClick={() => {
                     setInstruction(preset.instruction);
@@ -464,7 +482,7 @@ export function BodyEditor(props: {
                   }}
                 >
                   {preset.label}
-                </button>
+                </Button>
               ))}
             </span>
           )}
@@ -481,16 +499,16 @@ export function BodyEditor(props: {
             <Streamdown>{assistState.suggestion}</Streamdown>
           </div>
           <span className="spacer" />
-          <button type="button" className="btn" onClick={acceptSuggestion}>
+          <Button type="button" onClick={acceptSuggestion}>
             Accept
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn ghost"
+            variant="ghost"
             onClick={() => setAssistState({ kind: "idle" })}
           >
             Discard
-          </button>
+          </Button>
         </section>
       )}
       {assistState.kind === "agent-answer" && (

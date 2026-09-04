@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
+import type { IConversationService } from "@brains/plugins";
 import {
   createCanonicalChatUploadStoreScope,
   createDiscordChatUploadStoreScope,
@@ -774,8 +775,8 @@ describe("ChatInterface uploads", () => {
       content: image,
     });
     const conversationId = "discord-discord:guild-123:channel-123:thread-456";
-    suite.harness.getMockShell().getConversationService = (): never =>
-      ({
+    suite.harness.getMockShell().getConversationService =
+      (): IConversationService => ({
         startConversation: mock(() => Promise.resolve(conversationId)),
         addMessage: mock(() => Promise.resolve()),
         getConversation: mock(() => Promise.resolve(null)),
@@ -807,7 +808,7 @@ describe("ChatInterface uploads", () => {
         updateConversationMetadata: mock(() => Promise.resolve(false)),
         deleteConversation: mock(() => Promise.resolve(false)),
         close: mock(() => {}),
-      }) as never;
+      });
     const plugin = createPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];

@@ -572,18 +572,37 @@ describe("resolveBundleSelection composition", () => {
     const input = { catalogIds, definitions, selected: ["core"] } as const;
 
     const first = resolveBundleSelection(input);
-    (first.activeMembers as string[]).push("mutated");
-    (first.agentInstructions as string[])[0] = "mutated";
-    const firstConfig = first.configByMember["alpha"] as {
-      nested: { enabled: boolean };
-      values: string[];
-    };
-    firstConfig.nested.enabled = false;
-    firstConfig.values.push("mutated");
-    const firstPermission = first.permissionContributions[0]?.config as {
-      anchors: string[];
-    };
-    firstPermission.anchors.push("mutated");
+
+    // This test mutates what the resolver returned, so it has to reach past
+    // the readonly view on purpose. Reflect says that plainly, and — unlike an
+    // assertion — it still fails if the shape is not what it expects.
+    Reflect.apply(Array.prototype.push, first.activeMembers, ["mutated"]);
+    Reflect.set(first.agentInstructions, 0, "mutated");
+
+    const firstConfig = first.configByMember["alpha"];
+    if (typeof firstConfig !== "object") {
+      throw new Error("Expected a resolved config for alpha");
+    }
+    const nested = Reflect.get(firstConfig, "nested");
+    if (typeof nested !== "object" || nested === null) {
+      throw new Error("Expected alpha's config to carry a nested object");
+    }
+    Reflect.set(nested, "enabled", false);
+    const values = Reflect.get(firstConfig, "values");
+    if (!Array.isArray(values)) {
+      throw new Error("Expected alpha's config to carry a values array");
+    }
+    values.push("mutated");
+
+    const firstPermission = first.permissionContributions[0]?.config;
+    if (typeof firstPermission !== "object") {
+      throw new Error("Expected a permission contribution config");
+    }
+    const anchors = Reflect.get(firstPermission, "anchors");
+    if (!Array.isArray(anchors)) {
+      throw new Error("Expected the permission config to carry anchors");
+    }
+    anchors.push("mutated");
 
     const second = resolveBundleSelection(input);
 

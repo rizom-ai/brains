@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { registerMessageHandlers } from "../src/lib/message-handlers";
 import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
-import type { DirectorySync } from "../src/lib/directory-sync";
+import type { SyncHandlerSource } from "../src/lib/message-handlers";
 import { MockEntityAdapter } from "./fixtures";
 
 /**
@@ -11,8 +11,22 @@ import { MockEntityAdapter } from "./fixtures";
  * this message to generate /admin/ config.yml with the correct repo.
  */
 describe("git-sync:get-repo-info message handler", () => {
-  // The repo-info handler doesn't use DirectorySync, so a stub suffices
-  const stubDs = {} as DirectorySync;
+  /** A sync member the repo-info handler never calls: reaching it is the failure. */
+  const notCalled =
+    (name: string): (() => never) =>
+    () => {
+      throw new Error(`${name} is not stubbed in this test`);
+    };
+
+  // The repo-info handler consumes none of these, but it gets a real
+  // SyncHandlerSource rather than an empty object asserted into one — so a
+  // member added to the interface fails here.
+  const stubDs: SyncHandlerSource = {
+    getStatus: notCalled("getStatus"),
+    exportEntities: notCalled("exportEntities"),
+    importEntities: notCalled("importEntities"),
+    removeOrphanedEntities: notCalled("removeOrphanedEntities"),
+  };
 
   function setup(gitConfig?: {
     repo?: string;

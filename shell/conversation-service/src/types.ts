@@ -42,19 +42,24 @@ export interface ConversationMetadata {
  * Options for retrieving messages
  */
 export interface GetMessagesOptions {
-  limit?: number; // Limit number of messages (for recent messages)
-  range?: {
-    // Get specific range of messages (1-based indexing)
-    start: number;
-    end: number;
-  };
+  limit?: number | undefined; // Limit number of messages (for recent messages)
+  range?:
+    | {
+        // Get specific range of messages (1-based indexing)
+        start: number;
+        end: number;
+      }
+    | undefined;
 }
 
 export interface StartConversationRequest {
   sessionId: string;
   interfaceType: string;
   channelId: string;
-  personId?: string;
+  // `| undefined` is load-bearing: this crosses the conversation RPC boundary,
+  // where zod `.optional()` yields `T | undefined` under
+  // exactOptionalPropertyTypes.
+  personId?: string | undefined;
   metadata: ConversationMetadata;
 }
 
@@ -161,7 +166,7 @@ export function parseConversationMessageMetadata(
 ): Record<string, unknown> | null {
   if (typeof metadata === "string") {
     try {
-      const parsed = JSON.parse(metadata) as unknown;
+      const parsed: unknown = JSON.parse(metadata);
       return isRecord(parsed) ? parsed : null;
     } catch {
       return null;
@@ -199,7 +204,7 @@ export interface AddConversationMessageRequest {
   conversationId: string;
   role: MessageRole;
   content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export interface UpdateConversationMetadataRequest {
@@ -208,12 +213,12 @@ export interface UpdateConversationMetadataRequest {
 }
 
 export interface ListConversationsOptions {
-  limit?: number;
-  updatedAfter?: string;
-  interfaceType?: string;
-  sessionId?: string;
-  channelId?: string;
-  personId?: string;
+  limit?: number | undefined;
+  updatedAfter?: string | undefined;
+  interfaceType?: string | undefined;
+  sessionId?: string | undefined;
+  channelId?: string | undefined;
+  personId?: string | undefined;
 }
 
 export interface IConversationService {

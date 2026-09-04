@@ -6,12 +6,14 @@ import {
 } from "@brains/plugins";
 import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { readString } from "@brains/utils/record-fields";
 import type { Logger } from "@brains/utils/logger";
 import { truncateText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
-  type Newsletter,
   newsletterFrontmatterSchema,
+  newsletterSchema,
+  type Newsletter,
 } from "../schemas/newsletter";
 
 interface NewsletterQuery extends BaseQuery {
@@ -87,8 +89,9 @@ export class NewsletterDataSource extends BaseEntityDataSource<
   readonly description =
     "Fetches and transforms newsletter entities for rendering";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<Newsletter> = {
     entityType: "newsletter",
+    entitySchema: newsletterSchema,
     defaultSort: [{ field: "created" as const, direction: "desc" as const }],
     defaultLimit: 10,
     lookupField: "id" as const,
@@ -185,10 +188,13 @@ export class NewsletterDataSource extends BaseEntityDataSource<
     outputSchema: DataSourceSchema<T>,
     entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
-    const newsletter = await entityService.getEntity<Newsletter>({
-      entityType: this.config.entityType,
-      id: id,
-    });
+    const newsletter = await entityService.getEntity(
+      {
+        entityType: this.config.entityType,
+        id: id,
+      },
+      newsletterSchema,
+    );
 
     if (!newsletter) {
       throw new Error(`Newsletter not found: ${id}`);
@@ -208,14 +214,10 @@ export class NewsletterDataSource extends BaseEntityDataSource<
             id: entityId,
           });
           if (entity) {
-            const metadata = entity.metadata as {
-              title?: string;
-              slug?: string;
-            };
             return {
               id: entityId,
-              title: metadata.title ?? entityId,
-              url: `/${entityType}s/${metadata.slug ?? entityId}`,
+              title: readString(entity.metadata, "title") ?? entityId,
+              url: `/${entityType}s/${readString(entity.metadata, "slug") ?? entityId}`,
             };
           }
           return null;

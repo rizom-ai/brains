@@ -192,11 +192,14 @@ describe("entity visibility", () => {
 
     await ctx.entityService.createEntity({ entity });
 
-    const stored = await ctx.entityService.getEntity<VisibilityNote>({
-      entityType: "visibility-note",
-      id: "restricted-note",
-      visibilityScope: "restricted",
-    });
+    const stored = await ctx.entityService.getEntity(
+      {
+        entityType: "visibility-note",
+        id: "restricted-note",
+        visibilityScope: "restricted",
+      },
+      visibilityNoteSchema,
+    );
 
     expect(stored?.visibility).toBe("restricted");
     expect(stored?.metadata).toEqual({ title: "Sensitive" });
@@ -214,10 +217,13 @@ describe("entity visibility", () => {
 
     await ctx.entityService.createEntity({ entity });
 
-    const stored = await ctx.entityService.getEntity<Note>({
-      entityType: "note",
-      id: "public-note",
-    });
+    const stored = await ctx.entityService.getEntity(
+      {
+        entityType: "note",
+        id: "public-note",
+      },
+      noteSchema,
+    );
 
     expect(stored?.visibility).toBe("public");
     expect(
@@ -251,18 +257,27 @@ describe("entity visibility", () => {
       }),
     });
 
-    const publicOnly = await ctx.entityService.listEntities<VisibilityNote>({
-      entityType: "visibility-note",
-      options: { filter: { visibilityScope: "public" } },
-    });
-    const sharedScope = await ctx.entityService.listEntities<VisibilityNote>({
-      entityType: "visibility-note",
-      options: { filter: { visibilityScope: "shared" } },
-    });
-    const adminScope = await ctx.entityService.listEntities<VisibilityNote>({
-      entityType: "visibility-note",
-      options: { filter: { visibilityScope: "restricted" } },
-    });
+    const publicOnly = await ctx.entityService.listEntities(
+      {
+        entityType: "visibility-note",
+        options: { filter: { visibilityScope: "public" } },
+      },
+      visibilityNoteSchema,
+    );
+    const sharedScope = await ctx.entityService.listEntities(
+      {
+        entityType: "visibility-note",
+        options: { filter: { visibilityScope: "shared" } },
+      },
+      visibilityNoteSchema,
+    );
+    const adminScope = await ctx.entityService.listEntities(
+      {
+        entityType: "visibility-note",
+        options: { filter: { visibilityScope: "restricted" } },
+      },
+      visibilityNoteSchema,
+    );
 
     expect(publicOnly.map((entity) => entity.id)).toEqual(["public-doc"]);
     expect(sharedScope.map((entity) => entity.id).sort()).toEqual([
@@ -315,18 +330,27 @@ describe("entity visibility", () => {
       });
     }
 
-    const publicResults = await ctx.entityService.search<VisibilityNote>({
-      query: "Visibility filtering keyword",
-      options: { types: ["visibility-note"], visibilityScope: "public" },
-    });
-    const trustedResults = await ctx.entityService.search<VisibilityNote>({
-      query: "Visibility filtering keyword",
-      options: { types: ["visibility-note"], visibilityScope: "shared" },
-    });
-    const adminResults = await ctx.entityService.search<VisibilityNote>({
-      query: "Visibility filtering keyword",
-      options: { types: ["visibility-note"], visibilityScope: "restricted" },
-    });
+    const publicResults = await ctx.entityService.search(
+      {
+        query: "Visibility filtering keyword",
+        options: { types: ["visibility-note"], visibilityScope: "public" },
+      },
+      visibilityNoteSchema,
+    );
+    const trustedResults = await ctx.entityService.search(
+      {
+        query: "Visibility filtering keyword",
+        options: { types: ["visibility-note"], visibilityScope: "shared" },
+      },
+      visibilityNoteSchema,
+    );
+    const adminResults = await ctx.entityService.search(
+      {
+        query: "Visibility filtering keyword",
+        options: { types: ["visibility-note"], visibilityScope: "restricted" },
+      },
+      visibilityNoteSchema,
+    );
 
     expect(publicResults.map((result) => result.entity.id).sort()).toEqual([
       "public-search-doc",
@@ -359,9 +383,12 @@ describe("entity visibility", () => {
       });
     }
 
-    const unscoped = await ctx.entityService.listEntities<VisibilityNote>({
-      entityType: "visibility-note",
-    });
+    const unscoped = await ctx.entityService.listEntities(
+      {
+        entityType: "visibility-note",
+      },
+      visibilityNoteSchema,
+    );
 
     expect(unscoped.map((entity) => entity.id)).toEqual(["default-public"]);
   });
@@ -394,10 +421,13 @@ describe("entity visibility", () => {
       });
     }
 
-    const unscoped = await ctx.entityService.search<VisibilityNote>({
-      query: "Default scope keyword",
-      options: { types: ["visibility-note"] },
-    });
+    const unscoped = await ctx.entityService.search(
+      {
+        query: "Default scope keyword",
+        options: { types: ["visibility-note"] },
+      },
+      visibilityNoteSchema,
+    );
 
     expect(unscoped.map((result) => result.entity.id)).toEqual([
       "default-search-public",
@@ -422,22 +452,31 @@ describe("entity visibility", () => {
     }
 
     expect(
-      await ctx.entityService.getEntity<VisibilityNote>({
-        entityType: "visibility-note",
-        id: "get-default-public",
-      }),
+      await ctx.entityService.getEntity(
+        {
+          entityType: "visibility-note",
+          id: "get-default-public",
+        },
+        visibilityNoteSchema,
+      ),
     ).not.toBeNull();
     expect(
-      await ctx.entityService.getEntity<VisibilityNote>({
-        entityType: "visibility-note",
-        id: "get-default-shared",
-      }),
+      await ctx.entityService.getEntity(
+        {
+          entityType: "visibility-note",
+          id: "get-default-shared",
+        },
+        visibilityNoteSchema,
+      ),
     ).toBeNull();
     expect(
-      await ctx.entityService.getEntity<VisibilityNote>({
-        entityType: "visibility-note",
-        id: "get-default-restricted",
-      }),
+      await ctx.entityService.getEntity(
+        {
+          entityType: "visibility-note",
+          id: "get-default-restricted",
+        },
+        visibilityNoteSchema,
+      ),
     ).toBeNull();
   });
 
@@ -459,25 +498,34 @@ describe("entity visibility", () => {
     }
 
     expect(
-      await ctx.entityService.getEntity<VisibilityNote>({
-        entityType: "visibility-note",
-        id: "get-shared-public",
-        visibilityScope: "shared",
-      }),
+      await ctx.entityService.getEntity(
+        {
+          entityType: "visibility-note",
+          id: "get-shared-public",
+          visibilityScope: "shared",
+        },
+        visibilityNoteSchema,
+      ),
     ).not.toBeNull();
     expect(
-      await ctx.entityService.getEntity<VisibilityNote>({
-        entityType: "visibility-note",
-        id: "get-shared-shared",
-        visibilityScope: "shared",
-      }),
+      await ctx.entityService.getEntity(
+        {
+          entityType: "visibility-note",
+          id: "get-shared-shared",
+          visibilityScope: "shared",
+        },
+        visibilityNoteSchema,
+      ),
     ).not.toBeNull();
     expect(
-      await ctx.entityService.getEntity<VisibilityNote>({
-        entityType: "visibility-note",
-        id: "get-shared-restricted",
-        visibilityScope: "shared",
-      }),
+      await ctx.entityService.getEntity(
+        {
+          entityType: "visibility-note",
+          id: "get-shared-restricted",
+          visibilityScope: "shared",
+        },
+        visibilityNoteSchema,
+      ),
     ).toBeNull();
   });
 
@@ -504,11 +552,14 @@ describe("entity visibility", () => {
       "get-restricted-restricted",
     ]) {
       expect(
-        await ctx.entityService.getEntity<VisibilityNote>({
-          entityType: "visibility-note",
-          id,
-          visibilityScope: "restricted",
-        }),
+        await ctx.entityService.getEntity(
+          {
+            entityType: "visibility-note",
+            id,
+            visibilityScope: "restricted",
+          },
+          visibilityNoteSchema,
+        ),
       ).not.toBeNull();
     }
   });
@@ -565,7 +616,7 @@ describe("note visibility serialization", () => {
       }),
     });
 
-    const stored = await ctx.entityService.getEntity<BaseEntity>({
+    const stored = await ctx.entityService.getEntity({
       entityType: "note",
       id: "plain-note",
     });
@@ -587,7 +638,7 @@ describe("note visibility serialization", () => {
       }),
     });
 
-    const stored = await ctx.entityService.getEntity<BaseEntity>({
+    const stored = await ctx.entityService.getEntity({
       entityType: "note",
       id: "restricted-plain-note",
       visibilityScope: "restricted",

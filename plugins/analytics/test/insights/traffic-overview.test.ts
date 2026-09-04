@@ -2,8 +2,16 @@ import { describe, it, expect, mock } from "bun:test";
 import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
 import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
 import type { ICoreEntityService } from "@brains/plugins";
+import { createMockEntityService } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 
-const mockEntityService = {} as ICoreEntityService;
+const topPagesSchema = z.array(
+  z.looseObject({ path: z.string(), views: z.number() }),
+);
+
+// A real mock: an empty object asserted into the interface would keep
+// compiling after the insight started reading from the entity service.
+const mockEntityService: ICoreEntityService = createMockEntityService();
 
 function createMockClient(
   overrides: Partial<TrafficStatsClient> = {},
@@ -34,10 +42,7 @@ describe("traffic-overview insight", () => {
     expect(result["pageviews"]).toBe(1200);
     expect(result["visitors"]).toBe(450);
 
-    const topPages = result["topPages"] as Array<{
-      path: string;
-      views: number;
-    }>;
+    const topPages = topPagesSchema.parse(result["topPages"]);
     expect(topPages).toHaveLength(3);
     expect(topPages[0]).toMatchObject({
       path: "/blog/why-institutions-fail",

@@ -62,7 +62,11 @@ export interface OAuthEndpointsOptions {
   authCodeStore: AuthorizationCodePersistence;
   refreshTokenStore: RefreshTokenPersistence;
   resolveSession: (request: Request) => Promise<AuthSessionRecord | undefined>;
-  keyStore: AuthKeyStore;
+  /**
+   * Only the signing key is read here. Asking for the class made the option
+   * nominal, so nothing could stand in for it without being asserted into one.
+   */
+  keyStore: Pick<AuthKeyStore, "getPrivateJwk">;
   clientMetadataDocumentResolver?: ClientMetadataDocumentResolver;
   clientMaintenanceIntervalMs?: number;
   /** Package-private deterministic clock for maintenance lifecycle tests. */
@@ -96,7 +100,7 @@ export class OAuthEndpoints {
   private readonly resolveSession: (
     request: Request,
   ) => Promise<AuthSessionRecord | undefined>;
-  private readonly keyStore: AuthKeyStore;
+  private readonly keyStore: Pick<AuthKeyStore, "getPrivateJwk">;
   private readonly clientMetadataDocumentResolver: ClientMetadataDocumentResolver;
   private readonly clientMaintenanceIntervalMs: number;
   private readonly clientMaintenanceClock: Clock.Clock | undefined;

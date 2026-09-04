@@ -7,7 +7,7 @@ import type {
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { TopicSourceRolePolicy } from "../schemas/config";
-import type { ExtractedTopicData } from "../schemas/extraction";
+import { topicExtractionEnvelopeSchema } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { batchEntities } from "./batch-entities";
 import {
@@ -193,13 +193,14 @@ export async function extractTopicsBatched(
     });
 
     try {
-      const result = await context.ai.generate<{
-        topics: ExtractedTopicData[];
-      }>({
-        prompt,
-        templateName: "topics:extraction",
-        representedIdentity: "none",
-      });
+      const result = await context.ai.generate(
+        {
+          prompt,
+          templateName: "topics:extraction",
+          representedIdentity: "none",
+        },
+        topicExtractionEnvelopeSchema,
+      );
       const topics = result.topics.filter(
         (topic) => topic.relevanceScore >= minRelevanceScore,
       );

@@ -1,13 +1,15 @@
 import type {
-  IEntityService,
+  EntitySchema,
   ISemanticNamespace,
+  ListEntitiesRequest,
   SemanticSpacePoint,
 } from "@brains/plugins";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import type {
-  AgentEntity,
-  AgentFrontmatter,
-  AgentSkill,
+import {
+  agentEntitySchema,
+  type AgentEntity,
+  type AgentFrontmatter,
+  type AgentSkill,
 } from "../schemas/agent";
 import { AGENT_ENTITY_TYPE } from "./constants";
 import {
@@ -36,8 +38,21 @@ export const PROXIMITY_NEIGHBOR_DISTANCE = 0.25;
  * than peers the brain already keeps. */
 export const SIGHTING_GERMINATION_DISTANCE = 0.5;
 
+/**
+ * The one read this builder performs, in the form it performs it.
+ *
+ * `Pick<IEntityService, "listEntities">` carried the member's overloads, which
+ * a plain function cannot satisfy — so every test double asserted itself into
+ * place. Naming the call keeps a double an ordinary function; a real entity
+ * service still satisfies it by construction.
+ */
 export interface ProximityMapDataContext {
-  entityService: Pick<IEntityService, "listEntities">;
+  entityService: {
+    listEntities(
+      request: ListEntitiesRequest,
+      schema: EntitySchema<AgentEntity>,
+    ): Promise<AgentEntity[]>;
+  };
   semantic: ISemanticNamespace;
 }
 
@@ -56,9 +71,12 @@ export async function buildProximityMapData(
   context: ProximityMapDataContext,
 ): Promise<ProximityMapData> {
   const [agents, projection] = await Promise.all([
-    context.entityService.listEntities<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-    }),
+    context.entityService.listEntities(
+      {
+        entityType: AGENT_ENTITY_TYPE,
+      },
+      agentEntitySchema,
+    ),
     context.semantic.project({
       types: [AGENT_ENTITY_TYPE],
       origin: BRAIN_CHARACTER_REFERENCE,

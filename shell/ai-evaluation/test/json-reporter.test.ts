@@ -3,7 +3,24 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { createTempDir } from "@brains/test-utils";
 import { JSONReporter } from "../src/reporters/json-reporter";
-import type { EvaluationResult, EvaluationSummary } from "../src/schemas";
+import {
+  evaluationSummarySchema,
+  type EvaluationResult,
+  type EvaluationSummary,
+} from "../src/schemas";
+import { z } from "@brains/utils/zod";
+
+/**
+ * What a run written with `includeFullResults: false` still has to carry.
+ * Parsing rather than asserting means a reporter that stops writing
+ * `testResults` fails here instead of asserting an undefined into shape.
+ */
+const trimmedRunSchema = z.looseObject({
+  results: z.unknown().optional(),
+  testResults: z
+    .array(z.looseObject({ testCaseId: z.string(), failureCount: z.number() }))
+    .optional(),
+});
 
 /**
  * Output shape, not formatting. The JSON file is what a CI run leaves behind
@@ -65,7 +82,9 @@ function createSummary(
 }
 
 async function readJson(path: string): Promise<EvaluationSummary> {
-  return JSON.parse(await readFile(path, "utf-8")) as EvaluationSummary;
+  return evaluationSummarySchema.parse(
+    JSON.parse(await readFile(path, "utf-8")),
+  );
 }
 
 describe("JSONReporter", () => {
@@ -150,12 +169,9 @@ describe("JSONReporter", () => {
 
     await reporter.report(createSummary());
 
-    const written: {
-      results?: unknown;
-      testResults?: Array<{ testCaseId: string; failureCount: number }>;
-    } = JSON.parse(
-      await readFile(join(outputDirectory, "run.json"), "utf-8"),
-    ) as never;
+    const written = trimmedRunSchema.parse(
+      JSON.parse(await readFile(join(outputDirectory, "run.json"), "utf-8")),
+    );
 
     expect(written.results).toBeUndefined();
     expect(written.testResults).toHaveLength(2);

@@ -243,14 +243,3 @@ export class SkillAdapter extends BaseEntityAdapter<
     return this.buildMarkdown("", input);
   }
 }
-
-export function withEntityDefaults<T extends BaseEntity>(
-  entity: Omit<T, "contentHash" | "created" | "updated">,
-): T {
-  return {
-    ...entity,
-    contentHash: `hash-${entity.id}`,
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  } as T;
-}

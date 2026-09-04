@@ -9,6 +9,7 @@ import {
 import { basename, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseYamlDocument } from "@brains/utils/yaml";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import { isMap, parseDocument } from "yaml";
 import { createDefaultUserRunner } from "./default-user-runner";
@@ -226,7 +227,10 @@ export async function stageLegacyCrossover(
   const pilotPath = join(output, "pilot.yaml");
   const pilotInput = await readFile(pilotPath, "utf8");
   const pilotDocument = parseDocument(pilotInput);
-  const pilotValue = pilotDocument.toJS() as Record<string, unknown>;
+  const pilotValue: unknown = pilotDocument.toJS();
+  if (!isPlainRecord(pilotValue)) {
+    throw new Error(`${pilotPath} is not a YAML mapping`);
+  }
   const migratesCanonicalBundles = Array.isArray(pilotValue["bundles"]);
   const bundleReview = options.bundleReview;
   let pilotOutput: string;

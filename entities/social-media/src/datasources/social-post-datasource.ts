@@ -9,7 +9,7 @@ import type { BaseDataSourceContext, DataSourceSchema } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import type { SocialPost } from "../schemas/social-post";
+import { socialPostSchema, type SocialPost } from "../schemas/social-post";
 import {
   socialPostFrontmatterSchema,
   socialPostWithDataSchema,
@@ -30,8 +30,6 @@ interface SocialPostQuery {
   platform?: "linkedin" | undefined;
   status?:
     "generating" | "draft" | "queued" | "published" | "failed" | undefined;
-  sortByQueue?: boolean | undefined;
-  nextInQueue?: boolean | undefined;
 }
 
 interface SocialPostInput {
@@ -49,8 +47,6 @@ const socialPostQuerySchema: z.ZodType<SocialPostQuery> = z.looseObject({
   status: z
     .enum(["generating", "draft", "queued", "published", "failed"])
     .optional(),
-  sortByQueue: z.boolean().optional(),
-  nextInQueue: z.boolean().optional(),
 });
 
 const socialPostInputSchema: z.ZodType<SocialPostInput> = z.looseObject({
@@ -99,8 +95,9 @@ export class SocialPostDataSource extends BaseEntityDataSource<
   readonly description: string =
     "Fetches and transforms social post entities for queue management and publishing";
 
-  protected readonly config: EntityDataSourceConfig = {
+  protected readonly config: EntityDataSourceConfig<SocialPost> = {
     entityType: "social-post",
+    entitySchema: socialPostSchema,
     defaultSort: [
       {
         field: "publishedAt" as const,
@@ -153,7 +150,9 @@ export class SocialPostDataSource extends BaseEntityDataSource<
   }
 
   /**
-   * Override fetch to handle custom cases: nextInQueue and filtered lists.
+   * Override fetch to handle custom cases: single post by slug and
+   * platform/status-filtered lists. Queue ordering is content-pipeline's
+   * runtime state, not entity metadata, so no queue query exists here.
    */
   override async fetch<T>(
     query: unknown,
@@ -163,61 +162,29 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     const { query: parsedQuery } = this.parseQuery(query);
     const entityService = context.entityService;
 
-    // Case 1: Next in queue
-    if (parsedQuery.nextInQueue) {
-      return this.fetchNextInQueue(outputSchema, entityService);
-    }
-
-    // Case 2: Single post by slug
+    // Case 1: Single post by slug
     if (parsedQuery.id) {
       const { item } = await this.fetchDetail(parsedQuery.id, entityService);
       return outputSchema.parse(this.buildDetailResult(item, null));
     }
 
-    // Case 3: Filtered list
+    // Case 2: Filtered list
     const metadataFilter: Record<string, string> = {};
     if (parsedQuery.platform) metadataFilter["platform"] = parsedQuery.platform;
     if (parsedQuery.status) metadataFilter["status"] = parsedQuery.status;
     const hasFilter = Object.keys(metadataFilter).length > 0;
-
-    const sortFields: EntityDataSourceConfig["defaultSort"] =
-      parsedQuery.sortByQueue
-        ? [{ field: "queueOrder" as const, direction: "asc" as const }]
-        : this.config.defaultSort;
 
     const { items, pagination } = await this.fetchList(
       parsedQuery,
       entityService,
       {
         ...(hasFilter && { filter: { metadata: metadataFilter } }),
-        sortFields,
+        sortFields: this.config.defaultSort,
       },
     );
 
     return outputSchema.parse(
       this.buildListResult(items, pagination, parsedQuery),
     );
-  }
-
-  /**
-   * Fetch the next post in queue (lowest queueOrder with status=queued).
-   */
-  private async fetchNextInQueue<T>(
-    outputSchema: DataSourceSchema<T>,
-    entityService: BaseDataSourceContext["entityService"],
-  ): Promise<T> {
-    const entities = await entityService.listEntities<SocialPost>({
-      entityType: this.config.entityType,
-      options: {
-        filter: { metadata: { status: "queued" } },
-        sortFields: [{ field: "queueOrder", direction: "asc" }],
-        limit: 1,
-      },
-    });
-
-    const entity = entities[0];
-    const post = entity ? parsePostData(entity) : null;
-
-    return outputSchema.parse({ post });
   }
 }

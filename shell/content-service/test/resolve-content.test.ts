@@ -2,8 +2,16 @@ import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
-import { TemplateRegistry, type Template } from "@brains/templates";
-import type { BaseEntity, DataSource } from "@brains/entity-service";
+import {
+  InMemoryTemplateRegistry,
+  type Template,
+  type TemplateRegistry,
+} from "@brains/templates";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  DataSource,
+} from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -26,7 +34,7 @@ describe("ContentService.resolveContent", () => {
     const mockDataSourceRegistry = createMockDataSourceRegistry();
 
     // Create a fresh TemplateRegistry for each test
-    templateRegistry = TemplateRegistry.createFresh(mockLogger);
+    templateRegistry = InMemoryTemplateRegistry.createFresh(mockLogger);
 
     mockDependencies = {
       logger: mockLogger,
@@ -404,17 +412,18 @@ describe("ContentService.resolveContent", () => {
       } = {};
       const mockDataSource: Partial<DataSource> = {
         id: "shell:test-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          capturedContext = context;
-          // Datasource uses context.entityService (not its own)
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.listEntities({
-            entityType: "post",
-            options: { limit: 10 },
-          });
-          return { items: [] };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            capturedContext = context;
+            // Datasource uses context.entityService (not its own)
+            const svc = context.entityService;
+            await svc.listEntities({
+              entityType: "post",
+              options: { limit: 10 },
+            });
+            return { items: [] };
+          },
+        ),
       };
 
       templateRegistry.register("prod-test", mockTemplate);
@@ -450,15 +459,16 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:test-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.listEntities({
-            entityType: "post",
-            options: { limit: 10 },
-          });
-          return { items: [] };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            await svc.listEntities({
+              entityType: "post",
+              options: { limit: 10 },
+            });
+            return { items: [] };
+          },
+        ),
       };
 
       templateRegistry.register("preview-test", mockTemplate);
@@ -495,19 +505,20 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:queue-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Datasource explicitly filters for queued status
-          await svc.listEntities({
-            entityType: "social-post",
-            options: {
-              filter: { metadata: { status: "queued" } },
-              limit: 1,
-            },
-          });
-          return { post: null };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Datasource explicitly filters for queued status
+            await svc.listEntities({
+              entityType: "social-post",
+              options: {
+                filter: { metadata: { status: "queued" } },
+                limit: 1,
+              },
+            });
+            return { post: null };
+          },
+        ),
       };
 
       templateRegistry.register("queue-test", mockTemplate);
@@ -549,19 +560,20 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:series-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Datasource filters on seriesName, not status
-          await svc.listEntities({
-            entityType: "post",
-            options: {
-              filter: { metadata: { seriesName: "My Series" } },
-              limit: 100,
-            },
-          });
-          return { posts: [] };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Datasource filters on seriesName, not status
+            await svc.listEntities({
+              entityType: "post",
+              options: {
+                filter: { metadata: { seriesName: "My Series" } },
+                limit: 100,
+              },
+            });
+            return { posts: [] };
+          },
+        ),
       };
 
       templateRegistry.register("series-test", mockTemplate);
@@ -599,14 +611,15 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:count-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.countEntities({
-            entityType: "post",
-          });
-          return { count: 0 };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            await svc.countEntities({
+              entityType: "post",
+            });
+            return { count: 0 };
+          },
+        ),
       };
 
       templateRegistry.register("count-test", mockTemplate);
@@ -640,18 +653,19 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:count-status-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Count with explicit status filter
-          await svc.countEntities({
-            entityType: "newsletter",
-            options: {
-              filter: { metadata: { status: "draft" } },
-            },
-          });
-          return { count: 0 };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Count with explicit status filter
+            await svc.countEntities({
+              entityType: "newsletter",
+              options: {
+                filter: { metadata: { status: "draft" } },
+              },
+            });
+            return { count: 0 };
+          },
+        ),
       };
 
       templateRegistry.register("count-status-test", mockTemplate);
@@ -692,16 +706,17 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:forward-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Call getEntity - this should be forwarded to base service
-          const entity = await svc.getEntity({
-            entityType: "post",
-            id: "test-id",
-          });
-          return { entity };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Call getEntity - this should be forwarded to base service
+            const entity = await svc.getEntity({
+              entityType: "post",
+              id: "test-id",
+            });
+            return { entity };
+          },
+        ),
       };
 
       templateRegistry.register("forward-test", mockTemplate);
@@ -755,13 +770,15 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:get-entity-published-only-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const entity = await context.entityService.getEntity({
-            entityType: "post",
-            id: "draft-post",
-          });
-          return { found: entity !== null };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const entity = await context.entityService.getEntity({
+              entityType: "post",
+              id: "draft-post",
+            });
+            return { found: entity !== null };
+          },
+        ),
       };
 
       templateRegistry.register("get-entity-published-only-test", mockTemplate);
@@ -790,13 +807,14 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:search-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Call search - this should be forwarded to base service
-          const results = await svc.search({ query: "test query" });
-          return { results };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Call search - this should be forwarded to base service
+            const results = await svc.search({ query: "test query" });
+            return { results };
+          },
+        ),
       };
 
       templateRegistry.register("search-test", mockTemplate);
@@ -819,44 +837,23 @@ describe("ContentService.resolveContent", () => {
     it("should properly proxy class-based entityService (regression for prototype methods)", async () => {
       // Regression test: When using object spread {...baseService} on a class instance,
       // prototype methods are NOT copied. This test uses a class-based mock to catch this.
-      class MockEntityServiceClass {
-        getEntity = mock((_request: { entityType: string; id: string }) =>
-          Promise.resolve(null),
-        );
-        listEntities = mock(
-          (_request: { entityType: string; options?: unknown }) =>
-            Promise.resolve([]),
-        );
-        countEntities = mock(
-          (_request: { entityType: string; options?: unknown }) =>
-            Promise.resolve(0),
-        );
-        search = mock((_request: { query: string; options?: unknown }) =>
-          Promise.resolve([]),
-        );
-        // Methods on prototype (simulating real class behavior)
-        getEntityTypes(): string[] {
-          return ["post", "deck"];
-        }
-        hasEntityType(type: string): boolean {
-          return ["post", "deck"].includes(type);
-        }
-      }
-
-      const classBasedService = new MockEntityServiceClass();
+      // Every member reaches this object through the prototype chain, which is
+      // the shape a class instance has and the shape `{...service}` destroys.
+      // Building it from the real mock rather than a partial class keeps it a
+      // genuine entity service, so no assertion is needed to hand it over.
+      const entityTypeAwareProto = Object.create(
+        mockDependencies.entityService,
+      );
+      entityTypeAwareProto.getEntityTypes = (): string[] => ["post", "deck"];
+      entityTypeAwareProto.hasEntityType = (type: string): boolean =>
+        ["post", "deck"].includes(type);
+      const classBasedService: typeof mockDependencies.entityService =
+        Object.create(entityTypeAwareProto);
 
       // Create new ContentService with class-based entity service
       const classDependencies: ContentServiceDependencies = {
         ...mockDependencies,
-        // Deliberately a partial class instance. The regression under test is
-        // that createScopedEntityService proxies prototype methods, which a
-        // spread of a class instance loses — so the stand-in has to be a class,
-        // and completing IEntityService on it would bury the point. The proxy
-        // forwards the whole interface, so narrowing the dependency is not
-        // available either.
-        entityService:
-          // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
-          classBasedService as unknown as typeof mockDependencies.entityService,
+        entityService: classBasedService,
       };
       const classContentService = new ContentService(classDependencies);
 
@@ -870,18 +867,20 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:class-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc = context.entityService as MockEntityServiceClass;
-          // Call prototype method - this MUST work through the proxy
-          const types = svc.getEntityTypes();
-          const hasPost = svc.hasEntityType("post");
-          // Also call instance methods
-          await svc.listEntities({
-            entityType: "post",
-            options: { limit: 5 },
-          });
-          return { types, hasPost };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Call prototype method - this MUST work through the proxy
+            const types = svc.getEntityTypes();
+            const hasPost = svc.hasEntityType("post");
+            // Also call instance methods
+            await svc.listEntities({
+              entityType: "post",
+              options: { limit: 5 },
+            });
+            return { types, hasPost };
+          },
+        ),
       };
 
       templateRegistry.register("class-proxy-test", mockTemplate);
@@ -920,15 +919,16 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.listEntities({
-            entityType: "post",
-            options: { limit: 10 },
-          });
-          return { items: [] };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            await svc.listEntities({
+              entityType: "post",
+              options: { limit: 10 },
+            });
+            return { items: [] };
+          },
+        ),
       };
 
       templateRegistry.register("vis-list", mockTemplate);
@@ -963,18 +963,19 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-meta-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.listEntities({
-            entityType: "post",
-            options: {
-              filter: { metadata: { seriesName: "S1" } },
-              limit: 5,
-            },
-          });
-          return { items: [] };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            await svc.listEntities({
+              entityType: "post",
+              options: {
+                filter: { metadata: { seriesName: "S1" } },
+                limit: 5,
+              },
+            });
+            return { items: [] };
+          },
+        ),
       };
 
       templateRegistry.register("vis-meta", mockTemplate);
@@ -1012,19 +1013,20 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-override-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Datasource tries to opt up to restricted; build context is public
-          await svc.listEntities({
-            entityType: "post",
-            options: {
-              filter: { visibilityScope: "restricted" },
-              limit: 10,
-            },
-          });
-          return { items: [] };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Datasource tries to opt up to restricted; build context is public
+            await svc.listEntities({
+              entityType: "post",
+              options: {
+                filter: { visibilityScope: "restricted" },
+                limit: 10,
+              },
+            });
+            return { items: [] };
+          },
+        ),
       };
 
       templateRegistry.register("vis-override", mockTemplate);
@@ -1055,15 +1057,16 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-get-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          const entity = await svc.getEntity({
-            entityType: "post",
-            id: "test-id",
-          });
-          return { entity };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            const entity = await svc.getEntity({
+              entityType: "post",
+              id: "test-id",
+            });
+            return { entity };
+          },
+        ),
       };
 
       templateRegistry.register("vis-get", mockTemplate);
@@ -1097,12 +1100,13 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-search-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          const results = await svc.search({ query: "x" });
-          return { results };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            const results = await svc.search({ query: "x" });
+            return { results };
+          },
+        ),
       };
 
       templateRegistry.register("vis-search", mockTemplate);
@@ -1135,12 +1139,13 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-count-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.countEntities({ entityType: "post" });
-          return { count: 0 };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            await svc.countEntities({ entityType: "post" });
+            return { count: 0 };
+          },
+        ),
       };
 
       templateRegistry.register("vis-count", mockTemplate);
@@ -1209,17 +1214,18 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-get-override-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          // Datasource attempts to opt up to "restricted"; build is pinned to public.
-          const entity = await svc.getEntity({
-            entityType: "post",
-            id: "x",
-            visibilityScope: "restricted",
-          });
-          return { entity };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            // Datasource attempts to opt up to "restricted"; build is pinned to public.
+            const entity = await svc.getEntity({
+              entityType: "post",
+              id: "x",
+              visibilityScope: "restricted",
+            });
+            return { entity };
+          },
+        ),
       };
 
       templateRegistry.register("vis-get-override", mockTemplate);
@@ -1250,15 +1256,16 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-search-override-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          const results = await svc.search({
-            query: "x",
-            options: { visibilityScope: "restricted" },
-          });
-          return { results };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            const results = await svc.search({
+              query: "x",
+              options: { visibilityScope: "restricted" },
+            });
+            return { results };
+          },
+        ),
       };
 
       templateRegistry.register("vis-search-override", mockTemplate);
@@ -1289,15 +1296,16 @@ describe("ContentService.resolveContent", () => {
 
       const mockDataSource: Partial<DataSource> = {
         id: "shell:vis-count-override-source",
-        fetch: mock().mockImplementation(async (_query, _schema, context) => {
-          const svc =
-            context.entityService as typeof mockDependencies.entityService;
-          await svc.countEntities({
-            entityType: "post",
-            options: { filter: { visibilityScope: "restricted" } },
-          });
-          return { count: 0 };
-        }),
+        fetch: mock().mockImplementation(
+          async (_query, _schema, context: BaseDataSourceContext) => {
+            const svc = context.entityService;
+            await svc.countEntities({
+              entityType: "post",
+              options: { filter: { visibilityScope: "restricted" } },
+            });
+            return { count: 0 };
+          },
+        ),
       };
 
       templateRegistry.register("vis-count-override", mockTemplate);

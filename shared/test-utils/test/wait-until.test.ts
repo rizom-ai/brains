@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { waitUntil } from "../src/wait-until";
+import { caughtError } from "../src/caught-error";
 
 describe("waitUntil", () => {
   test("returns as soon as the predicate holds", async () => {
@@ -40,8 +41,7 @@ describe("waitUntil", () => {
       thrown = error;
     }
 
-    expect(thrown).toBeInstanceOf(Error);
-    expect((thrown as Error).message).toContain("the job to finish");
+    expect(caughtError(thrown).message).toContain("the job to finish");
   });
 
   test("reports how long it waited so a slow machine is distinguishable", async () => {
@@ -52,7 +52,7 @@ describe("waitUntil", () => {
       thrown = error;
     }
 
-    expect((thrown as Error).message).toMatch(/\d+ms/);
+    expect(caughtError(thrown).message).toMatch(/\d+ms/);
   });
 
   test("surfaces a predicate that throws rather than waiting out the clock", async () => {
@@ -69,6 +69,6 @@ describe("waitUntil", () => {
       thrown = error;
     }
 
-    expect((thrown as Error).message).toBe("predicate exploded");
+    expect(caughtError(thrown).message).toBe("predicate exploded");
   });
 });

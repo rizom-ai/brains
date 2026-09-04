@@ -153,7 +153,7 @@ permissions:
 
       const service = EvaluationService.createFresh({
         agentService,
-        aiService: {} as IAIService,
+        aiService: createAIService(),
         testCasesDirectory: testCaseDirectory,
         evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
       });
@@ -207,7 +207,7 @@ permissions:
 
       const service = EvaluationService.createFresh({
         agentService,
-        aiService: {} as IAIService,
+        aiService: createAIService(),
         testCasesDirectory: testCaseDirectory,
         evalHandlerRegistry: EvalHandlerRegistry.createFresh(),
       });

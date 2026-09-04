@@ -12,6 +12,7 @@ import {
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
+  createTestEntityAdapter,
 } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
 
@@ -65,7 +66,7 @@ describe("Publish Pipeline - Publish Tool", () => {
       .registerEntityType(
         "social-post",
         baseEntitySchema.partial().passthrough(),
-        {} as never,
+        createTestEntityAdapter("social-post"),
       );
   });
 

@@ -3,18 +3,19 @@ import { ProjectDataSource } from "../src/datasources/project-datasource";
 import { PortfolioPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import {
   createMockLogger,
-  createMockEntityService,
+  createMockShell,
   createTestEntity,
 } from "@brains/test-utils";
+import type { MockShell } from "@brains/test-utils";
 
 describe("ProjectDataSource", () => {
   let datasource: ProjectDataSource;
-  let mockEntityService: IEntityService;
+  let shell: MockShell;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
@@ -59,11 +60,9 @@ Outcome for ${title}`;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
-    mockEntityService = createMockEntityService();
-    // Only provide entityService via context - not constructor
-    mockContext = { entityService: mockEntityService };
+    shell = createMockShell();
+    mockContext = { entityService: shell.getEntityService() };
 
-    // Only pass logger to constructor
     datasource = new ProjectDataSource(mockLogger);
   });
 
@@ -74,15 +73,15 @@ Outcome for ${title}`;
     });
 
     it("accepts datasource output before site URL enrichment", async () => {
-      const project = createMockProject(
-        "proj-1",
-        "Published Project",
-        "published-project",
-        "published",
-        2024,
-      );
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([project]);
-      spyOn(mockEntityService, "countEntities").mockResolvedValue(1);
+      shell.addEntities([
+        createMockProject(
+          "proj-1",
+          "Published Project",
+          "published-project",
+          "published",
+          2024,
+        ),
+      ]);
 
       const harness = createPluginHarness({
         dataDir: "/tmp/test-portfolio-template-schema",
@@ -105,69 +104,46 @@ Outcome for ${title}`;
         expect(parsed.projects).toHaveLength(1);
         expect(parsed.projects[0]?.url).toBeNull();
         expect(parsed.projects[0]?.typeLabel).toBeNull();
-        expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+        expect(
+          z.looseObject({ baseUrl: z.null() }).parse(result).baseUrl,
+        ).toBeNull();
         expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
       } finally {
         harness.reset();
       }
     });
 
-    it("should show only published projects when publishedOnly is true", async () => {
-      // When publishedOnly is true, entity service filters at database level
-      // Mock returns only published projects (simulating entity service filtering)
-      const publishedProjects: Project[] = [
+    it("should sort projects by year desc then title asc", async () => {
+      shell.addEntities([
+        createMockProject("proj-1", "Zeta Project", "zeta", "published", 2023),
+        createMockProject("proj-2", "Beta Project", "beta", "published", 2024),
         createMockProject(
-          "proj-1",
-          "Published Project",
-          "published-project",
+          "proj-3",
+          "Alpha Project",
+          "alpha",
           "published",
           2024,
         ),
-        createMockProject(
-          "proj-3",
-          "Another Published",
-          "another-published",
-          "published",
-          2023,
-        ),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        publishedProjects,
-      );
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "project" },
         listSchema,
-        { ...mockContext, publishedOnly: true },
+        mockContext,
       );
 
-      expect(result.projects).toHaveLength(2);
-      expect(
-        result.projects.every(
-          (p: { metadata: { status: string } }) =>
-            p.metadata.status === "published",
-        ),
-      ).toBe(true);
-
-      // Datasource delegates filtering to scoped entityService (via context)
-      // It should NOT pass publishedOnly - filtering happens in content-service
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "project",
-        options: {
-          limit: 10,
-          offset: 0,
-          sortFields: [
-            { field: "year", direction: "desc" },
-            { field: "title", direction: "asc" },
-          ],
-        },
-      });
+      expect(result.projects.map((p: { id: string }) => p.id)).toEqual([
+        "proj-3",
+        "proj-2",
+        "proj-1",
+      ]);
     });
 
-    it("should show all projects (including drafts) when context entityService returns all", async () => {
-      // When context entityService is not scoped (preview mode), it returns all projects
-      const projects: Project[] = [
+    it("should not scope to published itself — filtering is content-service's job", async () => {
+      // The runtime hands datasources a pre-scoped entityService. The contract
+      // here is delegation: the datasource must not pass publishedOnly, or it
+      // would double-filter previews.
+      shell.addEntities([
         createMockProject(
           "proj-1",
           "Published Project",
@@ -182,16 +158,8 @@ Outcome for ${title}`;
           "draft",
           2024,
         ),
-        createMockProject(
-          "proj-3",
-          "Another Draft",
-          "another-draft",
-          "draft",
-          2023,
-        ),
-      ];
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(projects);
+      ]);
+      const listSpy = spyOn(shell.getEntityService(), "listEntities");
 
       const result = await datasource.fetch(
         { entityType: "project" },
@@ -199,26 +167,15 @@ Outcome for ${title}`;
         mockContext,
       );
 
-      expect(result.projects).toHaveLength(3);
-      // Verify we have both published and draft projects
+      // Unscoped service returns drafts too: the datasource passed no filter.
+      expect(result.projects).toHaveLength(2);
       const statuses = result.projects.map(
         (p: { metadata: { status: string } }) => p.metadata.status,
       );
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
-
-      // Datasource delegates filtering to scoped entityService (via context)
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "project",
-        options: {
-          limit: 10,
-          offset: 0,
-          sortFields: [
-            { field: "year", direction: "desc" },
-            { field: "title", direction: "asc" },
-          ],
-        },
-      });
+      const options = listSpy.mock.calls[0]?.[0]?.options ?? {};
+      expect("publishedOnly" in options).toBe(false);
     });
   });
 
@@ -230,24 +187,15 @@ Outcome for ${title}`;
     });
 
     it("should include draft projects in prev/next when context entityService returns all", async () => {
-      // Sort order: by year desc, then title asc
-      // So: proj-2 (2024 Published), proj-3 (2024 Draft), proj-1 (2023 Published)
-      const targetProject = createMockProject(
-        "proj-1",
-        "Published 2023",
-        "published-2023",
-        "published",
-        2023,
-      );
-
-      // DB returns sorted by year desc, title asc
-      const allProjectsSorted: Project[] = [
+      // Sort order: year desc, title asc →
+      // proj-3 (2024 Draft Project), proj-2 (2024 Published 2024), proj-1 (2023)
+      shell.addEntities([
         createMockProject(
-          "proj-3",
-          "Draft Project",
-          "draft-project",
-          "draft",
-          2024,
+          "proj-1",
+          "Published 2023",
+          "published-2023",
+          "published",
+          2023,
         ),
         createMockProject(
           "proj-2",
@@ -256,13 +204,14 @@ Outcome for ${title}`;
           "published",
           2024,
         ),
-        targetProject,
-      ];
-
-      // First call: fetch by slug, Second call: fetch all for navigation
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetProject])
-        .mockResolvedValueOnce(allProjectsSorted);
+        createMockProject(
+          "proj-3",
+          "Draft Project",
+          "draft-project",
+          "draft",
+          2024,
+        ),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "published-2023" } },
@@ -271,25 +220,22 @@ Outcome for ${title}`;
       );
 
       expect(result.project.id).toBe("proj-1");
-      // Sorted by year desc, title asc: proj-3 (2024), proj-2 (2024), proj-1 (2023)
-      // proj-1 is last, so prev is proj-2, next is null
+      // proj-1 is last in sort order, so prev is proj-2, next is null
       expect(result.prevProject?.id).toBe("proj-2");
       expect(result.nextProject).toBeNull();
     });
 
-    it("should exclude draft projects from prev/next when context entityService is scoped", async () => {
-      const targetProject = createMockProject(
-        "proj-2",
-        "Middle Project",
-        "middle-project",
-        "published",
-        2024,
-      );
-
-      // When publishedOnly is true, DB returns only published projects
-      // Sorted by year desc, title asc
-      const publishedProjectsSorted: Project[] = [
-        targetProject, // 2024
+    it("should navigate between the visible projects only", async () => {
+      // With only published projects seeded (as a scoped service would
+      // return), navigation spans exactly those.
+      shell.addEntities([
+        createMockProject(
+          "proj-2",
+          "Middle Project",
+          "middle-project",
+          "published",
+          2024,
+        ),
         createMockProject(
           "proj-1",
           "Published 2023",
@@ -297,14 +243,8 @@ Outcome for ${title}`;
           "published",
           2023,
         ),
-      ];
+      ]);
 
-      // First call: fetch by slug, Second call: fetch all for navigation
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetProject])
-        .mockResolvedValueOnce(publishedProjectsSorted);
-
-      // The context's entityService is already scoped to return only published
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "middle-project" } },
         detailSchema,
@@ -312,16 +252,16 @@ Outcome for ${title}`;
       );
 
       expect(result.project.id).toBe("proj-2");
-      // Sorted by year desc: proj-2 (2024) is first, proj-1 (2023) is second
-      // proj-2 is first, so prev is null, next is proj-1
+      // Sorted by year desc: proj-2 (2024) first, proj-1 (2023) second
       expect(result.prevProject).toBeNull();
       expect(result.nextProject?.id).toBe("proj-1");
     });
 
     it("should render project detail data even when body headings are not structured", async () => {
-      const targetProject = createTestEntity<Project>("project", {
-        id: "city-pulse",
-        content: `---
+      shell.addEntities([
+        createTestEntity<Project>("project", {
+          id: "city-pulse",
+          content: `---
 title: CityPulse
 slug: city-pulse
 status: published
@@ -340,17 +280,14 @@ Sensor data was scattered across vendor silos.
 ## What we built
 
 A normalized public data API and dashboard.`,
-        metadata: {
-          title: "CityPulse",
-          slug: "city-pulse",
-          status: "published",
-          year: 2025,
-        },
-      });
-
-      spyOn(mockEntityService, "listEntities")
-        .mockResolvedValueOnce([targetProject])
-        .mockResolvedValueOnce([targetProject]);
+          metadata: {
+            title: "CityPulse",
+            slug: "city-pulse",
+            status: "published",
+            year: 2025,
+          },
+        }),
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "city-pulse" } },
@@ -426,15 +363,13 @@ Outcome for ${title}`;
     };
 
     it("should include coverImageId in frontmatter for site-builder enrichment", async () => {
-      const projectWithCover = createMockProjectWithCover(
-        "proj-1",
-        "Project with Cover",
-        "project-with-cover",
-        "project-cover-image",
-      );
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([
-        projectWithCover,
+      shell.addEntities([
+        createMockProjectWithCover(
+          "proj-1",
+          "Project with Cover",
+          "project-with-cover",
+          "project-cover-image",
+        ),
       ]);
 
       const result = await datasource.fetch(
@@ -455,16 +390,14 @@ Outcome for ${title}`;
     });
 
     it("should not include coverImageId when not in frontmatter", async () => {
-      const projectWithoutCover = createMockProject(
-        "proj-1",
-        "Project without Cover",
-        "project-without-cover",
-        "published",
-        2024,
-      );
-
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([
-        projectWithoutCover,
+      shell.addEntities([
+        createMockProject(
+          "proj-1",
+          "Project without Cover",
+          "project-without-cover",
+          "published",
+          2024,
+        ),
       ]);
 
       const result = await datasource.fetch(

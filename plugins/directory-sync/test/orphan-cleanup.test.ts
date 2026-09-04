@@ -1,4 +1,4 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, spyOn } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   removeOrphanedEntities,
@@ -138,9 +138,9 @@ describe("removeOrphanedEntities", () => {
       existingFiles: new Set(),
     });
 
-    (
-      deps.entityService.deleteEntity as ReturnType<typeof mock>
-    ).mockRejectedValue(new Error("DB connection lost"));
+    spyOn(deps.entityService, "deleteEntity").mockRejectedValue(
+      new Error("DB connection lost"),
+    );
 
     const result = await removeOrphanedEntities(deps);
 

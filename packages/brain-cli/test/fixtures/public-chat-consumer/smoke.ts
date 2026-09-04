@@ -1,4 +1,4 @@
-import { BROWSER_CHAT_API_VERSION } from "@rizom/brain/chat";
+import { CHAT_API_VERSION } from "@rizom/brain/chat";
 import { createConsumerChatClient, messageRequest } from "./src/index";
 
 const client = createConsumerChatClient(async (input) => {
@@ -24,4 +24,4 @@ if (
   throw new Error("Public Chat contract did not round-trip");
 }
 
-console.log(`public-chat-contract-ok-v${BROWSER_CHAT_API_VERSION}`);
+console.log(`public-chat-contract-ok-v${CHAT_API_VERSION}`);

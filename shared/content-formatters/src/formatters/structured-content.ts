@@ -7,7 +7,6 @@ import type {
   Paragraph,
   PhrasingContent,
   RootContent,
-  List,
   ListItem,
 } from "mdast";
 import { getErrorMessage } from "@brains/utils/error";
@@ -117,7 +116,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    */
   public parse(content: string): T {
     try {
-      const tree = this.processor.parse(content) as Root;
+      const tree = this.processor.parse(content);
       const sections = this.extractSections(tree, 2);
       const data = this.buildDataFromSections(sections, this.config.mappings);
       return this.schema.parse(data);
@@ -433,13 +432,13 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const node of content) {
       if (node.type === "paragraph") {
-        const text = this.extractTextFromParagraph(node as Paragraph);
+        const text = this.extractTextFromParagraph(node);
         if (text) {
           textParts.push(text);
         }
       } else if (node.type === "list") {
         // Extract text from list items
-        const list = node as List;
+        const list = node;
         for (const item of list.children) {
           const itemText = this.extractTextFromListItem(item);
           if (itemText) {
@@ -495,9 +494,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const node of content) {
       if (node.type === "list") {
-        // TypeScript doesn't narrow RootContent to List automatically
-        // so we need to help it understand
-        const listNode = node as List;
+        const listNode = node;
         for (const item of listNode.children) {
           // List.children is already typed as ListItem[]
           const text = this.extractTextFromListItem(item);
@@ -572,7 +569,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const child of listItem.children) {
       if (child.type === "paragraph") {
-        const text = this.extractTextFromParagraph(child as Paragraph);
+        const text = this.extractTextFromParagraph(child);
         if (text) {
           parts.push(text);
         }

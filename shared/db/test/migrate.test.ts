@@ -3,7 +3,7 @@ import { rmSync } from "node:fs";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel, type Logger } from "@brains/utils/logger";
 import { runPackageMigrations } from "../src/migrate";
 
 /**
@@ -28,7 +28,7 @@ afterAll(() => {
 });
 
 function silentLogger(): Logger {
-  return Logger.createFresh({ level: LogLevel.NONE });
+  return ConsoleLogger.createFresh({ level: LogLevel.NONE });
 }
 
 /**

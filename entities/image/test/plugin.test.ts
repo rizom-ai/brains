@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { ImagePlugin } from "../src/image-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -73,7 +73,7 @@ describe("ImagePlugin", () => {
     if (!handler) throw new Error("image:upload-promote handler missing");
     const job = enqueuedJobs[0];
     if (!job) throw new Error("upload promotion job not queued");
-    const reporter = ProgressReporter.from(async () => {});
+    const reporter = CallbackProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
     await handler.process(
       job.data,
@@ -243,7 +243,7 @@ describe("ImagePlugin", () => {
     if (!handler) throw new Error("image:upload-promote handler missing");
     const job = enqueuedJobs[0];
     if (!job) throw new Error("upload promotion job not queued");
-    const reporter = ProgressReporter.from(async () => {});
+    const reporter = CallbackProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
 
     const result = await handler.process(

@@ -1,12 +1,15 @@
 /**
  * Progress notification for long-running operations
  */
+// `| undefined` is load-bearing: progress notifications cross the job-queue
+// RPC boundary, where zod `.optional()` yields `T | undefined` under
+// exactOptionalPropertyTypes.
 export interface ProgressNotification {
   progress: number;
-  total?: number;
-  message?: string;
-  rate?: number; // Items per second
-  eta?: number; // Estimated time remaining in milliseconds
+  total?: number | undefined;
+  message?: string | undefined;
+  rate?: number | undefined; // Items per second
+  eta?: number | undefined; // Estimated time remaining in milliseconds
 }
 
 /**
@@ -38,7 +41,26 @@ export type ProgressCallback = (
  * await someApi(subProgress?.toCallback());
  * ```
  */
-export class ProgressReporter {
+/**
+ * What a progress reporter provides to callers.
+ *
+ * Consumers depend on this rather than on `CallbackProgressReporter`. The class
+ * carries a private callback and a private constructor, so nothing else can be
+ * assignable to it — which is why every test double had to be asserted into
+ * place, a cast that also erased the check on the members it did define.
+ */
+export interface ProgressReporter {
+  createSub(options?: {
+    scale?: { start: number; end: number };
+  }): ProgressReporter;
+  report(notification: ProgressNotification): Promise<void>;
+  startHeartbeat(message: string, intervalMs?: number): void;
+  stopHeartbeat(): void;
+  toCallback(): ProgressCallback;
+}
+
+/** The reporter the runtime constructs: a scaled wrapper around one callback. */
+export class CallbackProgressReporter implements ProgressReporter {
   private readonly callback: ProgressCallback;
   private heartbeatInterval: Timer | undefined;
 
@@ -53,7 +75,21 @@ export class ProgressReporter {
     callback: ProgressCallback | undefined,
   ): ProgressReporter | undefined {
     if (!callback) return undefined;
-    return new ProgressReporter(callback);
+    return new CallbackProgressReporter(callback);
+  }
+
+  /**
+   * A reporter that discards notifications.
+   *
+   * For callers that must supply a reporter but have nowhere to send progress —
+   * a synchronous tool path invoking a job handler directly, for instance.
+   * Unlike `from`, this always returns a reporter, so such callers do not have
+   * to fabricate one.
+   */
+  static noop(): CallbackProgressReporter {
+    return new CallbackProgressReporter(async () => {
+      // Intentionally discards progress.
+    });
   }
 
   /**
@@ -67,7 +103,7 @@ export class ProgressReporter {
     if (scale) {
       const { start, end } = scale;
       const range = end - start;
-      return new ProgressReporter(async (notification) => {
+      return new CallbackProgressReporter(async (notification) => {
         const scaledProgress =
           start + (notification.progress / (notification.total ?? 100)) * range;
         await this.callback({
@@ -78,7 +114,7 @@ export class ProgressReporter {
       });
     }
 
-    return new ProgressReporter(this.callback);
+    return new CallbackProgressReporter(this.callback);
   }
 
   /**

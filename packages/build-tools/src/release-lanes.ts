@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { parseJsonObject } from "./json";
 
 export type ReleaseLane = "core" | "site";
 export type ReleaseWorkflowMode = "standard" | "stable-exit" | "stable-version";
@@ -214,7 +215,7 @@ export async function runWithScopedReleasePackages<T>(
     for (const { dir } of hidden) {
       const manifestPath = join(dir, "package.json");
       const original = await readFile(manifestPath, "utf8");
-      const manifest = JSON.parse(original) as Record<string, unknown>;
+      const manifest = parseJsonObject(original, manifestPath);
       manifest["private"] = true;
       originals.set(manifestPath, original);
       await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

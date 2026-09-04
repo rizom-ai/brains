@@ -32,11 +32,10 @@ export class StyleGuidePlugin extends EntityPlugin<
     context.messaging.subscribe(
       DIRECTORY_SYNC_CHANNELS.initialCompleted,
       async () => {
-        const existing =
-          await context.entityService.getEntity<StyleGuideEntity>({
-            entityType: "style-guide",
-            id: "style-guide",
-          });
+        const existing = await context.entityService.getEntity(
+          { entityType: "style-guide", id: "style-guide" },
+          styleGuideEntitySchema,
+        );
         if (existing) return { success: true };
 
         await context.entityService.createEntity({

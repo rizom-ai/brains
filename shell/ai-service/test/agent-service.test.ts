@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
+import type { AgentResponse } from "../src";
 import {
   createMockMCPService,
   createSilentLogger,
@@ -7,6 +8,7 @@ import {
 } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
+import { createMockMessageBus } from "@brains/messaging-service/test";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
@@ -175,7 +177,7 @@ describe("AgentService", () => {
     it("should send message to agent and return response", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -214,7 +216,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -483,7 +485,7 @@ describe("AgentService", () => {
     it("should include user message in messages array", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -526,7 +528,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -636,7 +638,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -663,7 +665,7 @@ describe("AgentService", () => {
     it("adds native file attachments to the current model turn without mutating stored user text", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -776,7 +778,7 @@ describe("AgentService", () => {
       }));
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -918,7 +920,7 @@ describe("AgentService", () => {
       });
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1013,7 +1015,7 @@ describe("AgentService", () => {
       });
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1068,7 +1070,7 @@ describe("AgentService", () => {
       const uploadAttachmentResolver = createUploadAttachmentResolver({});
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1137,7 +1139,7 @@ describe("AgentService", () => {
       });
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1169,7 +1171,7 @@ describe("AgentService", () => {
     it("does not derive tool availability from source wording", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1258,7 +1260,7 @@ describe("AgentService", () => {
       });
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1279,7 +1281,7 @@ describe("AgentService", () => {
     it("asks for intent when the user submits only a native file attachment", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1360,7 +1362,7 @@ describe("AgentService", () => {
     it("offers image-specific actions for image-only uploads", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1408,7 +1410,7 @@ describe("AgentService", () => {
     it("adds native text attachments to the current model turn without mutating the stored user text", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1465,7 +1467,7 @@ describe("AgentService", () => {
       };
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1512,7 +1514,7 @@ describe("AgentService", () => {
     it("should save messages to ConversationService", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1528,7 +1530,7 @@ describe("AgentService", () => {
     it("should persist chat actor and source metadata on conversation messages", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1612,7 +1614,7 @@ describe("AgentService", () => {
       );
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1677,7 +1679,7 @@ describe("AgentService", () => {
       );
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1723,7 +1725,7 @@ describe("AgentService", () => {
       );
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1767,7 +1769,7 @@ describe("AgentService", () => {
     it("uses configured brain actor id and character name for assistant metadata", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1799,7 +1801,7 @@ describe("AgentService", () => {
     it("keeps a stable assistant actor fallback when no brain actor id is configured", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1844,7 +1846,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1861,13 +1863,8 @@ describe("AgentService", () => {
     });
 
     it("does not pass direct-MCP-only tools to the agent factory", async () => {
-      const unsubscribeFn = mock(() => {});
       const realMCPService = MCPService.createFresh(
-        {
-          send: mock(async () => ({ success: true as const })),
-          subscribe: mock(() => unsubscribeFn),
-          unsubscribe: mock(() => {}),
-        },
+        createMockMessageBus(),
         logger,
       );
       realMCPService.registerTool("system", {
@@ -1939,7 +1936,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -1964,7 +1961,7 @@ describe("AgentService", () => {
     it("should default to public permission level if not specified", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2000,7 +1997,7 @@ describe("AgentService", () => {
       ]);
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2053,7 +2050,7 @@ describe("AgentService", () => {
       ]);
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2090,7 +2087,7 @@ describe("AgentService", () => {
       const agentContextProvider = mock(async () => []);
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2120,7 +2117,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2158,7 +2155,7 @@ describe("AgentService", () => {
       }));
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2229,7 +2226,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2263,7 +2260,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2575,7 +2572,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2604,7 +2601,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2642,7 +2639,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2658,11 +2655,15 @@ describe("AgentService", () => {
           role: "user",
         },
       });
-      const response = (await Reflect.apply(
+      // Deliberately under-arity: the point is what happens when a caller
+      // omits the context the signature requires, which a direct call cannot
+      // express. The annotation states the expected result rather than
+      // asserting it onto Reflect.apply's `any`.
+      const response: AgentResponse = await Reflect.apply(
         service.confirmPendingAction,
         service,
         ["test-conversation", true, "approval:call-1"],
-      )) as Awaited<ReturnType<typeof service.confirmPendingAction>>;
+      );
 
       expect(response.text).toBe("Confirmation requires caller context.");
       expect(deleteHandler).not.toHaveBeenCalled();
@@ -2685,7 +2686,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2761,7 +2762,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2802,10 +2803,7 @@ describe("AgentService", () => {
         throw new Error("bystander chat stalled the queue");
       });
 
-      const bystanderResponse = (await Promise.race([
-        bystander,
-        timeout,
-      ])) as Awaited<typeof bystander>;
+      const bystanderResponse = await Promise.race([bystander, timeout]);
 
       // The bystander gets an informative response and the confirmation is
       // left intact for the authorized actor.
@@ -2842,7 +2840,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -2909,7 +2907,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3010,7 +3008,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3113,7 +3111,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3233,7 +3231,7 @@ describe("AgentService", () => {
       ]);
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3267,7 +3265,7 @@ describe("AgentService", () => {
       ]);
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3306,7 +3304,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3406,7 +3404,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3484,7 +3482,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3556,7 +3554,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3598,13 +3596,8 @@ describe("AgentService", () => {
     it("coerces non-compliant confirmed action results from registered tools", async () => {
       setupConfirmationResponse("Deleted.");
 
-      const unsubscribeFn = mock(() => {});
       const realMCPService = MCPService.createFresh(
-        {
-          send: mock(async () => ({ success: true as const })),
-          subscribe: mock(() => unsubscribeFn),
-          unsubscribe: mock(() => {}),
-        },
+        createMockMessageBus(),
         logger,
       );
       const deleteHandler = mock(async () => JSON.parse('{"success":false}'));
@@ -3652,7 +3645,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3854,7 +3847,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3904,7 +3897,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -3958,7 +3951,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4026,7 +4019,7 @@ describe("AgentService", () => {
     it("should return error when confirming without pending action", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4205,7 +4198,7 @@ describe("AgentService", () => {
     it("should create agent with character from BrainCharacterService", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4229,7 +4222,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mcpWithInstructions,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4247,7 +4240,7 @@ describe("AgentService", () => {
     it("should pass brain-specific agent instructions to agent factory", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4320,7 +4313,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4377,7 +4370,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4449,7 +4442,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4533,7 +4526,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4596,7 +4589,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4695,7 +4688,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,
@@ -4807,7 +4800,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockMCPService,
-        mockConversationService as IConversationService,
+        mockConversationService,
         mockCharacterService,
         mockProfileService,
         logger,

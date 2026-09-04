@@ -1,5 +1,4 @@
 import type {
-  Plugin,
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
@@ -17,6 +16,7 @@ import { createPendingEntity, EntityPlugin } from "@brains/plugins";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { type LinkEntity, linkSchema, type LinkSource } from "./schemas/link";
 import { slugify } from "@brains/utils/string-utils";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import {
   linkConfigSchema,
@@ -25,8 +25,8 @@ import {
 } from "./schemas/link-config";
 import { linkAdapter } from "./adapters/link-adapter";
 import {
+  linkExtractionSchema,
   linkExtractionTemplate,
-  type LinkExtractionResult,
 } from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";
 import { linkDetailTemplate } from "./templates/link-detail";
@@ -110,8 +110,9 @@ export class LinkPlugin extends EntityPlugin<
     if (input.content) {
       try {
         const parsed = this.adapter.fromMarkdown(input.content);
-        const parsedMetadata = parsed.metadata as
-          Record<string, unknown> | undefined;
+        const parsedMetadata = isPlainRecord(parsed.metadata)
+          ? parsed.metadata
+          : undefined;
         const parsedTitle =
           typeof parsedMetadata?.["title"] === "string"
             ? parsedMetadata["title"]
@@ -299,13 +300,16 @@ export class LinkPlugin extends EntityPlugin<
           errorType: fetchResult.errorType,
         };
       }
-      return context.ai.generate<LinkExtractionResult>({
-        templateName: "link:extraction",
-        prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
-        data: { url, hasContent: true },
-        representedIdentity: "none",
-        interfacePermissionGrant: "public",
-      });
+      return context.ai.generate(
+        {
+          templateName: "link:extraction",
+          prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
+          data: { url, hasContent: true },
+          representedIdentity: "none",
+          interfacePermissionGrant: "public",
+        },
+        linkExtractionSchema,
+      );
     });
   }
   private async createPendingLink(
@@ -336,7 +340,7 @@ export class LinkPlugin extends EntityPlugin<
         id: entityId,
         entityType: "link",
         content,
-        metadata: { status: "pending", title: fallbackTitle },
+        metadata: { status: "pending", title: fallbackTitle, capturedAt: now },
         ...(visibility !== undefined ? { visibility } : {}),
         created: now,
         updated: now,
@@ -387,7 +391,7 @@ export class LinkPlugin extends EntityPlugin<
   }
 }
 
-export function createLinkPlugin(config: LinkConfigInput = {}): Plugin {
+export function createLinkPlugin(config: LinkConfigInput = {}): LinkPlugin {
   return new LinkPlugin(config);
 }
 

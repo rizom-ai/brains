@@ -1,6 +1,8 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import { PluginStatus } from "../../src/manager/types";
+import { baseEntitySchema } from "@brains/entity-service";
+import { createTestEntityAdapter } from "@brains/test-utils";
 import type { IShell } from "@brains/plugins";
 import { PluginManager } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
@@ -414,7 +416,11 @@ describe("Plugin shutdown lifecycle", () => {
         });
         shell
           .getEntityRegistry()
-          .registerEntityType("failed-entity", {} as never, {} as never);
+          .registerEntityType(
+            "failed-entity",
+            baseEntitySchema,
+            createTestEntityAdapter("failed-entity"),
+          );
         shell.getDataSourceRegistry().register({
           id: "failed-source",
           name: "Failed source",

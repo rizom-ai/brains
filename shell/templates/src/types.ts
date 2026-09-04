@@ -1,5 +1,6 @@
 import { z, type ZodType } from "@brains/utils/zod";
 import type { JsonObject, JsonObjectOutputGuard } from "@brains/contracts";
+import { jsonObjectSchema } from "@brains/contracts";
 import type { ContentFormatter } from "@brains/content-formatters";
 import type { ReactElement } from "react";
 
@@ -52,22 +53,19 @@ export interface TemplateInput {
 }
 
 /**
- * Helper function to create a type-safe component that automatically parses props
- * using the provided Zod schema
+ * Wrap a component so its props are parsed before it runs.
  *
- * Supports transformation between schema type and component type (e.g., enrichment)
- * @param TSchema - Type validated by schema (e.g., with optional url/typeLabel)
- * @param TComponent - Type expected by component (e.g., with required url/typeLabel)
+ * The schema passed here is the one the *component* consumes. Where
+ * site-builder enriches datasource output before render (filling `url`,
+ * `typeLabel`, and similar), that enriched shape is what must be proven —
+ * so a template declaring a component type distinct from its datasource type
+ * supplies `layout.renderSchema` and this parses against it.
  */
-export function createTypedComponent<TSchema, TComponent = TSchema>(
-  schema: TemplateDataSchema<TSchema>,
+export function createTypedComponent<TComponent>(
+  schema: TemplateDataSchema<TComponent>,
   component: ComponentType<TComponent>,
 ): ComponentType<unknown> {
-  return (props: unknown) => {
-    const parsedProps = schema.parse(props);
-    // Cast is safe: external enrichment transforms TSchema → TComponent before component runs
-    return component(parsedProps as unknown as TComponent);
-  };
+  return (props: unknown) => component(schema.parse(props));
 }
 
 /**
@@ -143,10 +141,22 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
     (
       | {
           schema: TemplateDataSchema<TSchema> & JsonObjectOutputGuard<TSchema>;
-          layout: {
-            component?: ComponentType<TComponent>;
-            fullscreen?: boolean;
-          };
+          layout:
+            | {
+                // The component consumes the datasource shape, so `schema`
+                // already proves its props.
+                component?: ComponentType<NoInfer<TSchema>>;
+                renderSchema?: undefined;
+                fullscreen?: boolean;
+              }
+            | {
+                // The component consumes an enriched shape that site-builder
+                // produces after the datasource; that shape needs its own
+                // schema, because nothing else has checked it.
+                component: ComponentType<TComponent>;
+                renderSchema: TemplateDataSchema<TComponent>;
+                fullscreen?: boolean;
+              };
         }
       | {
           schema: TemplateDataSchema<TSchema>;
@@ -165,14 +175,21 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
 
   const result: LayoutTemplate = {
     ...rest,
-    schema: schema as TemplateDataSchema<JsonObject>,
+    // The guard proves TSchema is JSON-shaped at the call site; piping proves
+    // it of the parsed value too, so the snapshot contract is checked rather
+    // than asserted.
+    schema: z
+      .unknown()
+      .transform((data) => jsonObjectSchema.parse(schema.parse(data))),
     layout: {},
   };
-  if (layout.component) {
-    result.layout.component = createTypedComponent<TSchema, TComponent>(
-      schema,
+  if (layout.renderSchema) {
+    result.layout.component = createTypedComponent(
+      layout.renderSchema,
       layout.component,
     );
+  } else if (layout.component) {
+    result.layout.component = createTypedComponent(schema, layout.component);
   }
   if (layout.fullscreen !== undefined) {
     result.layout.fullscreen = layout.fullscreen;

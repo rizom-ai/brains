@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { createMockShell } from "@brains/plugins/test";
-import type { BaseEntity } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   fetchRecentEntities,
   requireCta,
@@ -13,9 +14,10 @@ function isoDaysAgo(days: number): string {
 
 describe("site datasource helpers", () => {
   describe("fetchRecentEntities", () => {
-    interface Post extends BaseEntity {
-      metadata: { publishedAt?: string };
-    }
+    const postSchema = baseEntitySchema.extend({
+      metadata: z.object({ publishedAt: z.string().optional() }),
+    });
+    type Post = z.output<typeof postSchema>;
 
     function seedPosts(): ReturnType<typeof createMockShell> {
       const shell = createMockShell();
@@ -39,7 +41,12 @@ describe("site datasource helpers", () => {
 
       const ids = await fetchRecentEntities<Post, string>(
         shell.getEntityService(),
-        { entityType: "post", count: 2, parse: (p) => p.id },
+        {
+          entityType: "post",
+          entitySchema: postSchema,
+          count: 2,
+          parse: (p) => p.id,
+        },
       );
 
       // post-3 is newest (largest day offset); count caps to 2
@@ -51,7 +58,12 @@ describe("site datasource helpers", () => {
 
       const ids = await fetchRecentEntities<Post, string>(
         shell.getEntityService(),
-        { entityType: "post", count: 10, parse: (p) => p.id },
+        {
+          entityType: "post",
+          entitySchema: postSchema,
+          count: 10,
+          parse: (p) => p.id,
+        },
       );
 
       expect(ids).toHaveLength(4);

@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { IJobQueueService } from "@brains/job-queue";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import { EntitySerializer } from "./entity-serializer";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
@@ -11,6 +11,7 @@ import {
   parseEntityRpcResult,
   type EntityIndexReadinessRpcOptions,
   type EntityRpcRequest,
+  type EntityRpcResults,
   type EntityRpcTransport,
 } from "./entity-rpc";
 import { RemoteProjectionStore } from "./remote-projection-store";
@@ -38,6 +39,7 @@ import type {
   EntityEventBus,
   EntityMutationResult,
   EntityRegistry,
+  EntitySchema,
   EntitySearchRequest,
   EntityService,
   EntityTypeConfig,
@@ -85,7 +87,7 @@ export class RemoteEntityService implements EntityService {
     this.projectionTransport = options.projectionTransport;
     this.entityRegistry = options.entityRegistry;
     this.jobQueueService = options.jobQueueService;
-    const logger = (options.logger ?? Logger.getInstance()).child(
+    const logger = (options.logger ?? ConsoleLogger.getInstance()).child(
       "RemoteEntityService",
     );
     this.serializer = new EntitySerializer(this.entityRegistry, logger);
@@ -130,10 +132,10 @@ export class RemoteEntityService implements EntityService {
     if (this.closeRequested) throw new Error("Remote entity service is closed");
   }
 
-  private async requestRemote<T>(
-    request: EntityRpcRequest,
+  private async requestRemote<TRequest extends EntityRpcRequest>(
+    request: TRequest,
     options?: { signal?: AbortSignal | undefined },
-  ): Promise<T> {
+  ): Promise<EntityRpcResults[TRequest["operation"]]> {
     this.assertOpen();
     // The owner re-enters this scope before dispatch so writes made inside a
     // worker-run bulk mutation are still fenced against its batch.
@@ -142,7 +144,7 @@ export class RemoteEntityService implements EntityService {
       { request, ...(batchScope !== undefined && { batchScope }) },
       options,
     );
-    return parseEntityRpcResult(request, result) as T;
+    return parseEntityRpcResult<TRequest["operation"]>(request, result);
   }
 
   public getProjectionStore(): RemoteProjectionStore {
@@ -157,16 +159,16 @@ export class RemoteEntityService implements EntityService {
   public createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.requestRemote<EntityMutationResult>({
+    return this.requestRemote({
       operation: "createEntity",
-      request: request as CreateEntityRequest<BaseEntity>,
+      request,
     });
   }
 
   public createEntityFromMarkdown(
     request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult> {
-    return this.requestRemote<EntityMutationResult>({
+    return this.requestRemote({
       operation: "createEntityFromMarkdown",
       request,
     });
@@ -175,33 +177,33 @@ export class RemoteEntityService implements EntityService {
   public updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.requestRemote<EntityMutationResult>({
+    return this.requestRemote({
       operation: "updateEntity",
-      request: request as UpdateEntityRequest<BaseEntity>,
+      request,
     });
   }
 
   public deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
-    return this.requestRemote<boolean>({ operation: "deleteEntity", request });
+    return this.requestRemote({ operation: "deleteEntity", request });
   }
 
   public upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    return this.requestRemote<EntityMutationResult & { created: boolean }>({
+    return this.requestRemote({
       operation: "upsertEntity",
-      request: request as UpsertEntityRequest<BaseEntity>,
+      request,
     });
   }
 
   public storeEmbedding(data: StoreEmbeddingData): Promise<void> {
-    return this.requestRemote<void>({ operation: "storeEmbedding", data });
+    return this.requestRemote({ operation: "storeEmbedding", data });
   }
 
   public reconcileProjectionTargets(
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void> {
-    return this.requestRemote<void>({
+    return this.requestRemote({
       operation: "reconcileProjectionTargets",
       targets,
     });
@@ -209,7 +211,7 @@ export class RemoteEntityService implements EntityService {
 
   public backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
     this.indexReady = false;
-    return this.requestRemote<EmbeddingBackfillResult>({
+    return this.requestRemote({
       operation: "backfillMissingEmbeddings",
     });
   }
@@ -227,7 +229,7 @@ export class RemoteEntityService implements EntityService {
         intervalMs: options.intervalMs,
       }),
     };
-    const status = await this.requestRemote<IndexReadinessStatus>(
+    const status = await this.requestRemote(
       { operation: "awaitIndexReady", options: rpcOptions },
       options.signal ? { signal: options.signal } : undefined,
     );
@@ -235,21 +237,53 @@ export class RemoteEntityService implements EntityService {
     return status;
   }
 
-  public getEntity<T extends BaseEntity>(
+  public async getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  public async getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
-  ): Promise<T | null> {
-    return this.requestRemote<T | null>({ operation: "getEntity", request });
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  public async getEntity(
+    request: GetEntityRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
+    const entity = await this.requestRemote({
+      operation: "getEntity",
+      request,
+    });
+    if (!entity) return null;
+    return schema ? schema.parse(entity) : entity;
   }
 
-  public getEntityRaw<T extends BaseEntity>(
+  public async getEntityRaw(
     request: GetEntityRawRequest,
-  ): Promise<T | null> {
-    return this.requestRemote<T | null>({ operation: "getEntityRaw", request });
+  ): Promise<BaseEntity | null>;
+  public async getEntityRaw<T extends BaseEntity>(
+    request: GetEntityRawRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  public async getEntityRaw(
+    request: GetEntityRawRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
+    const entity = await this.requestRemote({
+      operation: "getEntityRaw",
+      request,
+    });
+    if (!entity) return null;
+    return schema ? schema.parse(entity) : entity;
   }
 
+  public async listEntities(
+    request: ListEntitiesRequest,
+  ): Promise<BaseEntity[]>;
   public async listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
-  ): Promise<T[]> {
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  public async listEntities(
+    request: ListEntitiesRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity[]> {
     const requestedLimit = request.options?.limit;
     let remaining = requestedLimit ?? Number.POSITIVE_INFINITY;
     let offset = request.options?.offset ?? 0;
@@ -262,11 +296,11 @@ export class RemoteEntityService implements EntityService {
         sortFields.push({ field, direction: "asc" });
       }
     }
-    const entities: T[] = [];
+    const entities: BaseEntity[] = [];
 
     while (remaining > 0) {
       const limit = Math.min(remaining, ENTITY_RPC_LIST_PAGE_SIZE);
-      const page = await this.requestRemote<T[]>({
+      const page = await this.requestRemote({
         operation: "listEntities",
         request: {
           entityType: request.entityType,
@@ -284,29 +318,42 @@ export class RemoteEntityService implements EntityService {
       offset += page.length;
     }
 
-    return entities;
+    return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
 
   public countEntities(request: CountEntitiesRequest): Promise<number> {
-    return this.requestRemote<number>({ operation: "countEntities", request });
+    return this.requestRemote({ operation: "countEntities", request });
   }
 
   public getEntityCounts(
     visibilityScope?: ContentVisibility,
   ): Promise<Array<{ entityType: string; count: number }>> {
-    return this.requestRemote<Array<{ entityType: string; count: number }>>({
+    return this.requestRemote({
       operation: "getEntityCounts",
       ...(visibilityScope !== undefined && { visibilityScope }),
     });
   }
 
-  public search<T extends BaseEntity = BaseEntity>(
+  public async search(
     request: EntitySearchRequest,
-  ): Promise<SearchResult<T>[]> {
-    return this.requestRemote<SearchResult<T>[]>({
+  ): Promise<SearchResult<BaseEntity>[]>;
+  public async search<T extends BaseEntity>(
+    request: EntitySearchRequest,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  public async search(
+    request: EntitySearchRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<SearchResult<BaseEntity>[]> {
+    const results = await this.requestRemote({
       operation: "search",
       request,
     });
+    if (!schema) return results;
+    return results.map((result) => ({
+      ...result,
+      entity: schema.parse(result.entity),
+    }));
   }
 
   public searchWithDistances(
@@ -320,14 +367,14 @@ export class RemoteEntityService implements EntityService {
   public projectSemanticSpace(
     request: ProjectSemanticSpaceRequest,
   ): Promise<SemanticSpaceProjection> {
-    return this.requestRemote<SemanticSpaceProjection>({
+    return this.requestRemote({
       operation: "projectSemanticSpace",
       request,
     });
   }
 
   public countEmbeddings(): Promise<number> {
-    return this.requestRemote<number>({ operation: "countEmbeddings" });
+    return this.requestRemote({ operation: "countEmbeddings" });
   }
 
   public serializeEntity(entity: BaseEntity): string {
@@ -359,7 +406,7 @@ export class RemoteEntityService implements EntityService {
 
   public getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
-    error?: string;
+    error?: string | undefined;
   } | null> {
     return this.requestRemote({ operation: "getAsyncJobStatus", jobId });
   }
@@ -369,7 +416,7 @@ export class RemoteEntityService implements EntityService {
     let offset = 0;
     let hasMore = true;
     while (hasMore) {
-      const page = await this.requestRemote<EntityExportIntent[]>({
+      const page = await this.requestRemote({
         operation: "listPendingEntityExports",
         offset,
         limit: ENTITY_RPC_EXPORT_PAGE_SIZE,
@@ -382,7 +429,7 @@ export class RemoteEntityService implements EntityService {
   }
 
   public hasPendingEntityExports(): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "hasPendingEntityExports",
     });
   }
@@ -390,7 +437,7 @@ export class RemoteEntityService implements EntityService {
   public acknowledgeEntityExports(
     request: AcknowledgeEntityExportsRequest,
   ): Promise<number> {
-    return this.requestRemote<number>({
+    return this.requestRemote({
       operation: "acknowledgeEntityExports",
       request: {
         intents: request.intents.map(({ entityType, entityId, revision }) => ({
@@ -405,7 +452,7 @@ export class RemoteEntityService implements EntityService {
   public isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
   ): Promise<boolean> {
-    return this.requestRemote<boolean>({
+    return this.requestRemote({
       operation: "isProjectionOwnedEntity",
       request,
     });

@@ -27,8 +27,11 @@ interface NormalizedStatement {
  * libSQL client exactly: indices and `length` non-enumerable, names enumerable.
  */
 function buildRow(values: unknown[], columns: string[]): Row {
-  const row = {};
-  Object.defineProperty(row, "length", { value: values.length });
+  // Created enumerable by the literal, then hidden: libSQL exposes `length`
+  // and the numeric indices as non-enumerable so `Object.entries(row)` yields
+  // only the named columns.
+  const row: Row = { length: values.length };
+  Object.defineProperty(row, "length", { enumerable: false });
   values.forEach((value, i) => {
     Object.defineProperty(row, i, { value });
     const column = columns[i];
@@ -41,7 +44,7 @@ function buildRow(values: unknown[], columns: string[]): Row {
       });
     }
   });
-  return row as Row;
+  return row;
 }
 
 function buildResultSet(options: {
@@ -273,15 +276,22 @@ class TursoClient implements Client {
     }
 
     const rawStatement = prepared.raw(true);
-    const rawRows = (
+    const rawResult: unknown =
       args === undefined
         ? await rawStatement.all()
-        : await rawStatement.all(args)
-    ) as unknown[][];
+        : await rawStatement.all(args);
+    if (!Array.isArray(rawResult)) {
+      throw new Error("Turso returned a non-array raw result set");
+    }
     return buildResultSet({
       columns,
       columnTypes: columns.map(() => ""),
-      rows: rawRows.map((values) => buildRow(values, columns)),
+      rows: rawResult.map((values: unknown) => {
+        if (!Array.isArray(values)) {
+          throw new Error("Turso returned a non-array raw row");
+        }
+        return buildRow(values, columns);
+      }),
       rowsAffected: 0,
       lastInsertRowid: undefined,
     });
@@ -368,10 +378,17 @@ interface AsyncCloseClient extends Client {
   closeAsync(): Promise<void>;
 }
 
+/** Turso's adapter closes asynchronously; libSQL's client does not. */
+function hasAsyncClose(client: Client): client is AsyncCloseClient {
+  return (
+    "closeAsync" in client &&
+    typeof Reflect.get(client, "closeAsync") === "function"
+  );
+}
+
 /** Await a local checkpoint and durable close across SQLite client engines. */
 export function closeSqliteClient(client: Client): Promise<void> {
-  const closeAsync = (client as Partial<AsyncCloseClient>).closeAsync;
-  if (typeof closeAsync === "function") return closeAsync.call(client);
+  if (hasAsyncClose(client)) return client.closeAsync();
 
   if (client.protocol !== "file") {
     client.close();

@@ -23,28 +23,32 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     const voiceGuidance = formatVoiceGuidance(
       await fetchStyleGuide(context.entityService),
     );
-    return context.ai.generate<{
-      title: string;
-      content: string;
-      excerpt: string;
-    }>({
-      prompt: generationPrompt,
-      templateName: "blog:generation",
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
+    return context.ai.generate(
+      {
+        prompt: generationPrompt,
+        templateName: "blog:generation",
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      },
+      z.object({
+        title: z.string(),
+        content: z.string(),
+        excerpt: z.string(),
+      }),
+    );
   });
 
   context.eval.registerHandler("generateExcerpt", async (input: unknown) => {
     const parsed: GenerateExcerptInput =
       generateExcerptInputSchema.parse(input);
 
-    return context.ai.generate<{
-      excerpt: string;
-    }>({
-      prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-      templateName: "blog:excerpt",
-      representedIdentity: "none",
-    });
+    return context.ai.generate(
+      {
+        prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+        templateName: "blog:excerpt",
+        representedIdentity: "none",
+      },
+      z.object({ excerpt: z.string() }),
+    );
   });
 }

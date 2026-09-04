@@ -23,7 +23,7 @@ export type PublishHandlerResult =
   | { success: true; skipped: true; reason: string }
   | { success: false; error: string };
 
-import type { BlogPost } from "./types";
+import { blogPostSourceSchema } from "./types";
 
 /**
  * Handle publish:completed message to auto-send newsletter
@@ -47,10 +47,13 @@ export async function handlePublishCompleted(
   }
 
   // Fetch the post
-  const post = await entityService.getEntity<BlogPost>({
-    entityType: "post",
-    id: payload.entityId,
-  });
+  const post = await entityService.getEntity(
+    {
+      entityType: "post",
+      id: payload.entityId,
+    },
+    blogPostSourceSchema,
+  );
 
   if (!post) {
     return {

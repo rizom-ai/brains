@@ -10,10 +10,11 @@ import type {
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import {
+  CallbackProgressReporter,
   type ProgressNotification,
-  ProgressReporter,
+  type ProgressReporter,
 } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
 import { actorRefSchema } from "@brains/contracts";
@@ -78,7 +79,9 @@ export abstract class BasePlugin<
    * Get the logger - uses context logger if available, creates temp logger otherwise
    */
   protected get logger(): Logger {
-    return this.context?.logger ?? Logger.createFresh({ context: this.id });
+    return (
+      this.context?.logger ?? ConsoleLogger.createFresh({ context: this.id })
+    );
   }
 
   constructor(
@@ -377,18 +380,20 @@ export abstract class BasePlugin<
     if (!context) return undefined;
 
     const pluginId = this.id;
-    return ProgressReporter.from(async (notification: ProgressNotification) => {
-      await context.messaging.send({
-        type: PLUGIN_CHANNELS.progress(pluginId),
-        payload: {
-          progressToken,
-          notification: {
-            progress: notification.progress,
-            total: notification.total,
-            message: notification.message,
+    return CallbackProgressReporter.from(
+      async (notification: ProgressNotification) => {
+        await context.messaging.send({
+          type: PLUGIN_CHANNELS.progress(pluginId),
+          payload: {
+            progressToken,
+            notification: {
+              progress: notification.progress,
+              total: notification.total,
+              message: notification.message,
+            },
           },
-        },
-      });
-    });
+        });
+      },
+    );
   }
 }
