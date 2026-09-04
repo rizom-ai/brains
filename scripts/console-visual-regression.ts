@@ -3086,7 +3086,7 @@ try {
         }
         if (surface.startsWith("studio-chat")) {
           await waitForText(page, "And the Studio?");
-          await waitForSelector(page, ".web-chat-attached-file");
+          await waitForSelector(page, ".studio-chat-upload");
           if (surface === "studio-chat-sessions") {
             await clickText(
               page,
