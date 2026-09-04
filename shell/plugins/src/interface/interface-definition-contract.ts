@@ -378,6 +378,7 @@ export interface MessageChannelDefinition<
 // A subscription is not an interface concept — a service answers requests on
 // the bus too — so it lives in contracts/ and both families name it there.
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import type { ToolStatusUpdate } from "../message-interface/tool-status";
 
 export type {
   AnySubscriptionDefinition,
@@ -596,6 +597,25 @@ export interface MessageInterfaceDefinitionInput<
         readonly state: TState;
         readonly channel: MessageChannel;
         readonly event: JobProgressEvent;
+      }) => void | Promise<void>)
+    | undefined;
+  /**
+   * What a tool doing something reads as, while it does it.
+   *
+   * The same argument as `progress`, for the other half: a client wants the
+   * tool name and state so it can draw its own row and replace it when the
+   * tool finishes.
+   * Named consumer: @brains/web-chat.
+   *
+   * Unlike `progress` there is no fallback to replace: without this slot a
+   * declared interface sees no tool activity at all.
+   */
+  readonly toolStatus?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly channel: MessageChannel;
+        readonly update: ToolStatusUpdate;
       }) => void | Promise<void>)
     | undefined;
   readonly edit?:

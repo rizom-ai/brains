@@ -46,6 +46,7 @@ import { collectDeniedArtifactCardIds } from "./artifact-access";
 import type { ArtifactEntityRef } from "./artifact-entity";
 import type { ContentVisibility } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
+import type { ToolStatusUpdate } from "./tool-status";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   if (typeof message === "string") return { text: message };
@@ -410,6 +411,30 @@ class DeclarativeMessageInterfacePlugin<
       state: this.requireState(),
       channel: { id: channelId },
       event,
+    });
+  }
+
+  /**
+   * Tool activity, for an interface that draws it.
+   *
+   * Unlike `progress` there is no rendered-sentence fallback to suppress: the
+   * base default is silence, so tool activity was invisible to a declared
+   * interface until it could ask for it.
+   */
+  protected override async handleToolStatusUpdate(
+    update: ToolStatusUpdate,
+  ): Promise<void> {
+    const toolStatus = this.definition.toolStatus;
+    if (!toolStatus) {
+      await super.handleToolStatusUpdate(update);
+      return;
+    }
+    const channelId = update.channelId ?? update.conversationId;
+    await toolStatus({
+      config: this.config,
+      state: this.requireState(),
+      channel: { id: channelId },
+      update,
     });
   }
 
