@@ -18,16 +18,17 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type { PROJECTION_RULE_JOB_TYPE } from "./projection-wave-scheduler";
 
-export interface ProjectionRuleJobData {
-  waveId: string;
-  ruleId: string;
-}
+const projectionRuleJobDataSchema: z.ZodObject<
+  { waveId: z.ZodString; ruleId: z.ZodString },
+  z.core.$strict
+> = z.strictObject({
+  waveId: z.string().trim().min(1),
+  ruleId: z.string().trim().min(1),
+});
 
-const projectionRuleJobDataSchema: z.ZodType<ProjectionRuleJobData> =
-  z.strictObject({
-    waveId: z.string().trim().min(1),
-    ruleId: z.string().trim().min(1),
-  });
+export type ProjectionRuleJobData = z.output<
+  typeof projectionRuleJobDataSchema
+>;
 
 export interface ProjectionRuleJobResult {
   waveId: string;

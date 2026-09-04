@@ -1,59 +1,27 @@
 import { anchorProfileKindSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import type { AgentSkill, AgentStatus } from "../schemas/agent";
+import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 
-interface AgentViewMetadata {
-  name: string;
-  url: string;
-  status: AgentStatus;
-  discoveredAt: string | null;
-  slug: string;
-  repoDid: string | null;
-  brainDid: string | null;
-  anchorDid: string | null;
-  cardUri: string | null;
-  cardCid: string | null;
-  a2aEndpoint: string | null;
-}
-
-interface AgentViewFrontmatter {
-  name: string;
-  kind: "person" | "team" | "organization";
-  organization: string | null;
-  brainName: string;
-  url: string;
-  did: string | null;
-  repoDid: string | null;
-  brainDid: string | null;
-  anchorDid: string | null;
-  cardUri: string | null;
-  cardCid: string | null;
-  a2aEndpoint: string | null;
-  introducedBy: string[] | null;
-  hops: number | null;
-  status: AgentStatus;
-  discoveredAt: string;
-}
-
-export interface AgentSchemaData {
-  id: string;
-  entityType: "agent";
-  content: string;
-  created: string;
-  updated: string;
-  visibility: "public" | "shared" | "restricted";
-  metadata: AgentViewMetadata;
-  contentHash: string;
-  frontmatter: AgentViewFrontmatter;
-  about: string;
-  skills: AgentSkill[];
-  notes: string;
-  url: string | null;
-  typeLabel: string | null;
-}
-
-const nullableString = z.string().nullable().default(null);
-const visibilitySchema = z
+const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
+  .string()
+  .nullable()
+  .default(null);
+type Visibility = "public" | "shared" | "restricted";
+const visibilitySchema: z.ZodPipe<
+  z.ZodOptional<
+    z.ZodUnion<
+      readonly [
+        z.ZodEnum<{
+          public: "public";
+          shared: "shared";
+          restricted: "restricted";
+        }>,
+        z.ZodLiteral<"private">,
+      ]
+    >
+  >,
+  z.ZodTransform<Visibility, Visibility | "private" | undefined>
+> = z
   .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
   .optional()
   .transform((value) => {
@@ -61,13 +29,24 @@ const visibilitySchema = z
     if (value === "private") return "restricted" as const;
     return value;
   });
-const statusSchema = z.enum(["discovered", "approved", "archived"]);
-const skillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-const frontmatterSchema = z.object({
+const frontmatterSchema: z.ZodObject<{
+  name: z.ZodString;
+  kind: typeof anchorProfileKindSchema;
+  organization: typeof nullableString;
+  brainName: z.ZodString;
+  url: z.ZodURL;
+  did: typeof nullableString;
+  repoDid: typeof nullableString;
+  brainDid: typeof nullableString;
+  anchorDid: typeof nullableString;
+  cardUri: typeof nullableString;
+  cardCid: typeof nullableString;
+  a2aEndpoint: z.ZodDefault<z.ZodNullable<z.ZodURL>>;
+  introducedBy: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
+  hops: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  status: typeof agentStatusSchema;
+  discoveredAt: z.ZodString;
+}> = z.object({
   name: z.string(),
   kind: anchorProfileKindSchema,
   organization: nullableString,
@@ -82,13 +61,25 @@ const frontmatterSchema = z.object({
   a2aEndpoint: z.url().nullable().default(null),
   introducedBy: z.array(z.string()).nullable().default(null),
   hops: z.number().nullable().default(null),
-  status: statusSchema,
+  status: agentStatusSchema,
   discoveredAt: z.string(),
 });
-const metadataSchema = z.object({
+const metadataSchema: z.ZodObject<{
+  name: z.ZodString;
+  url: z.ZodURL;
+  status: typeof agentStatusSchema;
+  discoveredAt: typeof nullableString;
+  slug: z.ZodString;
+  repoDid: typeof nullableString;
+  brainDid: typeof nullableString;
+  anchorDid: typeof nullableString;
+  cardUri: typeof nullableString;
+  cardCid: typeof nullableString;
+  a2aEndpoint: z.ZodDefault<z.ZodNullable<z.ZodURL>>;
+}> = z.object({
   name: z.string(),
   url: z.url(),
-  status: statusSchema,
+  status: agentStatusSchema,
   discoveredAt: nullableString,
   slug: z.string(),
   repoDid: nullableString,
@@ -99,7 +90,22 @@ const metadataSchema = z.object({
   a2aEndpoint: z.url().nullable().default(null),
 });
 
-export const agentViewSchema: z.ZodType<AgentSchemaData> = z.object({
+export const agentViewSchema: z.ZodObject<{
+  id: z.ZodString;
+  entityType: z.ZodLiteral<"agent">;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  visibility: typeof visibilitySchema;
+  metadata: typeof metadataSchema;
+  contentHash: z.ZodString;
+  frontmatter: typeof frontmatterSchema;
+  about: z.ZodString;
+  skills: z.ZodArray<typeof agentSkillSchema>;
+  notes: z.ZodString;
+  url: typeof nullableString;
+  typeLabel: typeof nullableString;
+}> = z.object({
   id: z.string(),
   entityType: z.literal("agent"),
   content: z.string(),
@@ -110,11 +116,13 @@ export const agentViewSchema: z.ZodType<AgentSchemaData> = z.object({
   contentHash: z.string(),
   frontmatter: frontmatterSchema,
   about: z.string(),
-  skills: z.array(skillSchema),
+  skills: z.array(agentSkillSchema),
   notes: z.string(),
   url: nullableString,
   typeLabel: nullableString,
 });
+
+export type AgentSchemaData = z.output<typeof agentViewSchema>;
 
 export type AgentView = Omit<AgentSchemaData, "url" | "typeLabel"> & {
   url: string;

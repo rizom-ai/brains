@@ -87,53 +87,35 @@ export interface LifecyclePlaybookConfigInput {
   starterPrompt: string;
 }
 
-export interface PlaybooksConfig {
-  lifecycle: Record<string, LifecyclePlaybookConfig>;
-  triggers: Record<string, boolean>;
-}
+const playbooksConfigSchema: z.ZodObject<
+  {
+    lifecycle: z.ZodDefault<
+      z.ZodRecord<z.ZodString, typeof lifecycleConfigSchema>
+    >;
+    triggers: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodBoolean>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
+    triggers: z.record(z.string(), z.boolean()).default({}),
+  })
+  .strict();
 
-export interface PlaybooksConfigInput {
-  lifecycle?: Record<string, LifecyclePlaybookConfigInput> | undefined;
-  triggers?: Record<string, boolean> | undefined;
-}
+export type PlaybooksConfig = z.output<typeof playbooksConfigSchema>;
+export type PlaybooksConfigInput = z.input<typeof playbooksConfigSchema>;
 
-interface LifecycleStartersRequest {
-  lifecycle?: string | undefined;
-  interfaceType: string;
-  userPermissionLevel: "admin" | "trusted" | "public";
-}
-
-export interface PlaybookEntityMetadata extends Record<string, unknown> {
-  title: string;
-  status: "draft" | "active" | "archived";
-  audience: "admin" | "trusted" | "public";
-  trigger?: string | undefined;
-  lifecycle?: string | undefined;
-  once?: boolean | undefined;
-  starterText?: string | undefined;
-  description?: string | undefined;
-  starterPrompt?: string | undefined;
-  completionMode: "agent-confirmed" | "manual";
-}
-
-export interface PlaybookEntity extends Record<string, unknown> {
-  id: string;
-  entityType: "playbook";
-  content: string;
-  metadata: PlaybookEntityMetadata;
-}
-
-const playbooksConfigSchema: z.ZodType<PlaybooksConfig, PlaybooksConfigInput> =
-  z
-    .object({
-      lifecycle: z.record(z.string(), lifecycleConfigSchema).default({}),
-      triggers: z.record(z.string(), z.boolean()).default({}),
-    })
-    .strict();
-
-const lifecycleStartersRequestSchema: z.ZodType<
-  LifecycleStartersRequest,
-  LifecycleStartersRequest
+const lifecycleStartersRequestSchema: z.ZodObject<
+  {
+    lifecycle: z.ZodOptional<z.ZodString>;
+    interfaceType: z.ZodString;
+    userPermissionLevel: z.ZodEnum<{
+      admin: "admin";
+      trusted: "trusted";
+      public: "public";
+    }>;
+  },
+  z.core.$strict
 > = z
   .object({
     lifecycle: z.string().min(1).optional(),
@@ -142,7 +124,42 @@ const lifecycleStartersRequestSchema: z.ZodType<
   })
   .strict();
 
-const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
+type LifecycleStartersRequest = z.output<typeof lifecycleStartersRequestSchema>;
+
+const playbookEntitySchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    entityType: z.ZodLiteral<"playbook">;
+    content: z.ZodString;
+    metadata: z.ZodObject<
+      {
+        title: z.ZodString;
+        status: z.ZodEnum<{
+          draft: "draft";
+          active: "active";
+          archived: "archived";
+        }>;
+        audience: z.ZodEnum<{
+          admin: "admin";
+          trusted: "trusted";
+          public: "public";
+        }>;
+        trigger: z.ZodOptional<z.ZodString>;
+        lifecycle: z.ZodOptional<z.ZodString>;
+        once: z.ZodOptional<z.ZodBoolean>;
+        starterText: z.ZodOptional<z.ZodString>;
+        description: z.ZodOptional<z.ZodString>;
+        starterPrompt: z.ZodOptional<z.ZodString>;
+        completionMode: z.ZodEnum<{
+          "agent-confirmed": "agent-confirmed";
+          manual: "manual";
+        }>;
+      },
+      z.core.$loose
+    >;
+  },
+  z.core.$loose
+> = z
   .object({
     id: z.string().min(1),
     entityType: z.literal("playbook"),
@@ -163,6 +180,9 @@ const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
       .passthrough(),
   })
   .passthrough();
+
+export type PlaybookEntity = z.output<typeof playbookEntitySchema>;
+export type PlaybookEntityMetadata = PlaybookEntity["metadata"];
 
 const manageInputSchema = {
   action: z.enum(["status", "start", "send-event"]),

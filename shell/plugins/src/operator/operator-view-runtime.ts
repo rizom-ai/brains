@@ -2061,7 +2061,7 @@ function isPanelBlock(
   );
 }
 
-const jsonValueSchema: z.ZodType<JsonValue, unknown> = z.json();
+const jsonValueSchema: ReturnType<typeof z.json> = z.json();
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -2792,7 +2792,20 @@ function normalizeStudioBlock(
   }
 }
 
-const viewSchema: z.ZodType<RuntimeDashboardOperatorView, unknown> = z
+const viewSchema: z.ZodObject<
+  {
+    title: z.ZodOptional<typeof shortTextSchema>;
+    blocks: z.ZodArray<
+      z.ZodUnion<
+        readonly [
+          typeof dashboardPanelBlockSchema,
+          typeof dashboardTabsBlockSchema,
+        ]
+      >
+    >;
+  },
+  z.core.$strict
+> = z
   .object({
     title: shortTextSchema.optional(),
     blocks: z
@@ -2815,7 +2828,22 @@ const viewSchema: z.ZodType<RuntimeDashboardOperatorView, unknown> = z
     }
   });
 
-const digestSchema: z.ZodType<RuntimeDashboardDigest, unknown> = z
+const digestSchema: z.ZodObject<
+  {
+    items: z.ZodArray<
+      z.ZodObject<
+        {
+          label: typeof labelSchema;
+          value: z.ZodString;
+          tone: z.ZodOptional<z.ZodEnum<{ good: "good"; warn: "warn" }>>;
+        },
+        z.core.$strict
+      >
+    >;
+    attention: z.ZodOptional<z.ZodNumber>;
+  },
+  z.core.$strict
+> = z
   .object({
     items: z
       .array(
@@ -2832,9 +2860,31 @@ const digestSchema: z.ZodType<RuntimeDashboardDigest, unknown> = z
   })
   .strict();
 
-const widgetDataSchema: z.ZodType<RuntimeDashboardWidgetData, unknown> = z
-  .object({ view: viewSchema, digest: digestSchema.optional() })
-  .strict();
+const widgetDataSchema: z.ZodObject<
+  { view: typeof viewSchema; digest: z.ZodOptional<typeof digestSchema> },
+  z.core.$strict
+> = z.object({ view: viewSchema, digest: digestSchema.optional() }).strict();
+
+// The widget schemas parse into the runtime contracts declared above; the
+// contracts stay the API, so whatever the schemas yield must satisfy them.
+function expectDashboardOperatorView(
+  value: z.output<typeof viewSchema>,
+): RuntimeDashboardOperatorView {
+  return value;
+}
+function expectDashboardDigest(
+  value: z.output<typeof digestSchema>,
+): RuntimeDashboardDigest {
+  return value;
+}
+function expectDashboardWidgetData(
+  value: z.output<typeof widgetDataSchema>,
+): RuntimeDashboardWidgetData {
+  return value;
+}
+void expectDashboardOperatorView;
+void expectDashboardDigest;
+void expectDashboardWidgetData;
 
 function validationIssues(
   error: z.ZodError,
