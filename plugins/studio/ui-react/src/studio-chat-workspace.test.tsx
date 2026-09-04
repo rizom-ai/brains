@@ -47,6 +47,7 @@ beforeEach(() => {
     document: windowInstance.document,
     navigator: windowInstance.navigator,
     HTMLElement: windowInstance.HTMLElement,
+    HTMLFormElement: windowInstance.HTMLFormElement,
     Element: windowInstance.Element,
     Node: windowInstance.Node,
     Event: windowInstance.Event,
@@ -148,8 +149,10 @@ describe("native Studio Chat workspace", () => {
               prompt:
                 "Help me understand this Inbox item and decide what to do next.",
             },
+            types: [],
             workspaces: [],
             navigate: (href: string) => navigations.push(href),
+            selectEntityType: () => {},
             selectWorkspace: () => {},
           }),
         ),
@@ -182,6 +185,7 @@ describe("native Studio Chat workspace", () => {
             studioBasePath: "/studio",
             sessionId: "conversation-1",
             handoff: null,
+            types: [],
             workspaces: [
               {
                 id: "studio:overview",
@@ -194,6 +198,7 @@ describe("native Studio Chat workspace", () => {
               },
             ],
             navigate: (href: string) => navigations.push(href),
+            selectEntityType: () => {},
             selectWorkspace: () => {},
           }),
         ),

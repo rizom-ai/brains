@@ -64,7 +64,6 @@ import {
   type WebChatConversationAccess,
 } from "./conversation-access";
 import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
-import { deriveConsoleSurfaces } from "@brains/plugins";
 import { renderChatPage, uiAssetFile, uiStylesheetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
@@ -331,7 +330,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleChatPage(request: Request): Promise<Response> {
-    const { principal, permissionLevel, hasChatAccess } =
+    const { principal, hasChatAccess } =
       await this.resolveBrowserAccess(request);
     if (!hasChatAccess) {
       return this.createAuthLoginRequiredResponse(request);
@@ -341,20 +340,30 @@ export class WebChatInterface extends MessageInterfacePlugin<
     const returnTo = encodeURIComponent(
       `${requestUrl.pathname}${requestUrl.search}`,
     );
+    const context = this.getContext();
+    const registeredRoutes = context.webRoutes.getRoutes();
+    const dashboardHref = registeredRoutes
+      .filter((route) => route.pluginId === "dashboard")
+      .map((route) => route.fullPath)
+      .sort((left, right) => left.length - right.length)[0];
+    const studioHref = registeredRoutes.find(
+      (route) => route.pluginId === "studio" && route.fullPath === "/chat",
+    )?.fullPath;
     return new Response(
       renderChatPage({
         apiPath: this.config.apiPath,
-        surfaces: deriveConsoleSurfaces(
-          this.getContext().webRoutes.getRoutes(),
-          {
-            activeId: "web-chat",
-            permissionLevel,
-            hasActiveSession: principal !== undefined,
-            self: { id: "web-chat", href: this.config.routePath },
-          },
-        ),
+        dashboardHref: dashboardHref ?? "/dashboard",
+        ...(studioHref ? { studioHref } : {}),
         sessionHref: `/logout?return_to=${returnTo}`,
-        themeCSS: this.getContext().themeCSS,
+        themeCSS: context.themeCSS,
+        ...(principal
+          ? {
+              principal: {
+                displayName: principal.displayName,
+                role: principal.role,
+              },
+            }
+          : {}),
       }),
       {
         headers: { "Content-Type": "text/html; charset=utf-8" },

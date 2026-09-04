@@ -7,7 +7,7 @@ describe("CONSOLE_PALETTE_SCRIPT", () => {
     expect(CONSOLE_PALETTE_SCRIPT).toContain("encodeURIComponent");
   });
 
-  it("opens from the strip's command chip and the keyboard", () => {
+  it("opens from a surface command trigger and the keyboard", () => {
     expect(CONSOLE_PALETTE_SCRIPT).toContain(".command-chip");
     // Meta+K on macOS, Ctrl+K elsewhere.
     expect(CONSOLE_PALETTE_SCRIPT).toMatch(/metaKey|ctrlKey/);

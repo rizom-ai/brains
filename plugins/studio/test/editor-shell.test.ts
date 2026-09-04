@@ -1,21 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { renderEditorShellHtml } from "../src/editor-shell";
+import {
+  renderEditorShellHtml,
+  type EditorShellOptions,
+} from "../src/editor-shell";
 
-const SHELL_OPTIONS = {
+const SHELL_OPTIONS: EditorShellOptions = {
   assetPath: "/studio/assets/app.js",
   stylesheetPath: "/studio/assets/app.css",
   basePath: "/studio",
-  surfaces: [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      href: "/dashboard",
-      isActive: false,
-    },
-    { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-    { id: "studio", label: "Studio", href: "/studio", isActive: true },
-  ],
+  dashboardHref: "/dashboard",
+  brandName: "Rover Collective",
   sessionHref: "/logout?return_to=%2Fstudio",
+  principal: { displayName: "Mira Reyes", role: "admin" },
 };
 
 describe("renderEditorShellHtml", () => {
@@ -50,29 +46,23 @@ describe("renderEditorShellHtml", () => {
     }
   });
 
-  it("renders the console strip with Studio active", () => {
+  it("boots only the hydrated Studio shell and its identity context", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 
-    expect(html).toContain('class="console-strip"');
-    expect(html).toContain(
-      'Brain <span class="console-mark-long">· <b>Console</b></span>',
-    );
-    expect(html).toContain('href="/dashboard"');
-    expect(html).toContain('href="/chat"');
-    expect(html).toContain(
-      'surface-nav-link is-active" href="/studio" data-console-surface="studio">Studio',
-    );
-    expect(html).toContain("<kbd>⌘K</kbd>");
-    expect(html).toContain('id="climateToggle"');
-    expect(html).toContain('class="climate-chip"');
-    expect(html).toContain('class="session-chip"');
-    expect(html).toContain('href="/logout?return_to=%2Fstudio"');
+    expect(html).not.toContain('class="console-strip"');
+    expect(html).not.toContain('class="surface-nav"');
     expect(html).toContain('<body data-console-host="studio">');
     expect(html).toContain('data-studio-base-path="/studio"');
+    expect(html).toContain('data-studio-dashboard-href="/dashboard"');
+    expect(html).toContain('data-studio-brand-name="Rover Collective"');
+    expect(html).toContain('data-studio-principal-name="Mira Reyes"');
+    expect(html).toContain('data-studio-principal-role="admin"');
+    expect(html).toContain(
+      'data-studio-session-href="/logout?return_to=%2Fstudio"',
+    );
     expect(html).toContain(
       '<link data-studio-app-styles rel="stylesheet" href="/studio/assets/app.css" />',
     );
-    expect(html).toContain("Sign out");
   });
 
   it("loads the shared ramp plus the Studio editorial mono face", () => {

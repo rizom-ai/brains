@@ -85,7 +85,6 @@ import {
 } from "./mutations";
 import { useStudioApi } from "./studio-api-context";
 import {
-  createInboxChatPrefillState,
   createStudioChatHandoffState,
   readStudioChatHandoffState,
 } from "./operator-launch";
@@ -165,14 +164,6 @@ function accountBootstrap(
 interface WorkspaceQueryState {
   query: StudioWorkspaceQuery;
   urlSearch?: string | undefined;
-}
-
-function consoleSurfaceHref(id: "web-chat"): string | undefined {
-  return (
-    document
-      .querySelector(`[data-console-surface="${id}"]`)
-      ?.getAttribute("href") ?? undefined
-  );
 }
 
 export function App(): ReactElement {
@@ -674,14 +665,6 @@ export function App(): ReactElement {
         );
         return;
       }
-      const href = consoleSurfaceHref("web-chat");
-      if (!href) return;
-      window.history.pushState(
-        createInboxChatPrefillState(sourceId, itemId, label),
-        "",
-        href,
-      );
-      window.location.reload();
     },
     [router.history, studioBasePath, workspaces],
   );
@@ -1173,9 +1156,11 @@ export function App(): ReactElement {
           apiPath={activeWorkspace.chatApiPath}
           studioBasePath={studioBasePath}
           sessionId={studioChatSessionId(routeSearch)}
+          types={types}
           workspaces={workspaces}
           handoff={readStudioChatHandoffState(routeState)}
           navigate={(href) => router.history.push(href)}
+          selectEntityType={selectEntityType}
           selectWorkspace={selectWorkspace}
         />
       </Suspense>

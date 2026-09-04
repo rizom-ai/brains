@@ -292,301 +292,6 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   );
   --console-mono: var(--font-label, "JetBrains Mono", ui-monospace, monospace);
   --console-touch: 44px;
-  --console-strip-height: 52px;
-}
-
-/* ---- shared surface strip ------------------------------------------------ */
-
-.console-strip {
-  position: relative;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  min-height: var(--console-strip-height);
-  padding: 0 20px;
-  border-bottom: 1px solid var(--console-rule-strong);
-  background:
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--console-text) 4%, transparent),
-      transparent
-    ),
-    var(--console-frame);
-}
-.console-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-width: max-content;
-  color: var(--console-text-dim);
-  font-family: var(--console-mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-decoration: none;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.console-mark b {
-  color: var(--console-text);
-  font-weight: 500;
-}
-.surface-nav {
-  display: flex;
-  gap: 2px;
-  min-width: 0;
-}
-.surface-nav-link {
-  display: inline-grid;
-  place-items: center;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 7px;
-  color: var(--console-text-muted);
-  font-size: 13px;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.surface-nav-link:hover {
-  color: var(--console-text);
-  background: var(--console-rule);
-}
-.surface-nav-link.is-active {
-  color: var(--console-text);
-  background: color-mix(in srgb, var(--console-text) 8%, transparent);
-  font-weight: 500;
-}
-.command-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  margin-left: auto;
-  padding: 0 10px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--console-card) 62%, transparent);
-  color: var(--console-text-muted);
-  cursor: pointer;
-  font-family: var(--console-ui);
-  font-size: 12.5px;
-}
-.command-chip kbd {
-  padding: 1px 5px;
-  border: 1px solid var(--console-rule-strong);
-  border-bottom-width: 2px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--console-card) 84%, transparent);
-  color: var(--console-text-dim);
-  font-family: var(--console-mono);
-  font-size: 10px;
-}
-.command-chip-icon {
-  display: none;
-  font-family: var(--console-mono);
-  font-size: 17px;
-  line-height: 1;
-}
-.climate-chip {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  min-height: 32px;
-  padding: 0;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--console-card) 62%, transparent);
-  color: var(--console-text-muted);
-  cursor: pointer;
-  font-family: var(--console-mono);
-  font-size: 15px;
-  line-height: 1;
-}
-.climate-chip:hover {
-  color: var(--console-text);
-  background: var(--console-rule);
-}
-.session-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--console-ok-soft);
-  color: var(--console-ok);
-  font-family: var(--console-mono);
-  font-size: 11px;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.session-chip::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--console-ok);
-}
-.session-chip strong {
-  color: var(--console-ok);
-  font-weight: 600;
-}
-/* Visitor state is wayfinding, not a health signal — keep it neutral. */
-.session-chip.is-visitor {
-  background: color-mix(in srgb, var(--console-text) 7%, transparent);
-  color: var(--console-text-dim);
-}
-.session-chip.is-visitor::before {
-  background: var(--console-text-muted);
-}
-.session-chip.is-visitor strong {
-  color: var(--console-text);
-}
-.session-chip-avatar {
-  display: none;
-}
-.pulse {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--console-accent);
-  animation: console-pulse 2.4s ease-in-out infinite;
-}
-@keyframes console-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0
-      color-mix(in srgb, var(--console-accent) 50%, transparent);
-  }
-  55% {
-    box-shadow: 0 0 0 7px transparent;
-  }
-}
-
-/* Tablet keeps one line and compresses utilities rather than wrapping. */
-@media (max-width: 900px) {
-  .console-strip {
-    gap: 12px;
-    padding-inline: 16px;
-  }
-  .command-chip-hint {
-    display: none;
-  }
-}
-
-/* Phone uses a utility row plus a stable surface rail. */
-@media (max-width: 640px) {
-  [data-climate] {
-    --console-strip-height: 102px;
-  }
-  .console-strip {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(
-        --console-touch
-      ) var(--console-touch);
-    grid-template-areas:
-      "mark command climate session"
-      "nav nav nav nav";
-    gap: 4px 8px;
-    min-height: var(--console-strip-height);
-    padding: max(8px, env(safe-area-inset-top)) 12px 6px;
-  }
-  .console-mark {
-    grid-area: mark;
-    overflow: hidden;
-  }
-  .console-mark-long {
-    display: none;
-  }
-  .surface-nav {
-    grid-area: nav;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 4px;
-    padding-top: 4px;
-    border-top: 1px solid var(--console-rule);
-  }
-  .surface-nav-link {
-    min-height: 40px;
-    padding-inline: 6px;
-    font-family: var(--console-mono);
-    font-size: 10px;
-    letter-spacing: 0.04em;
-  }
-  .command-chip {
-    grid-area: command;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    min-height: var(--console-touch);
-    justify-content: center;
-    margin: 0;
-    padding: 0;
-    border-radius: 50%;
-  }
-  .command-chip kbd {
-    display: none;
-  }
-  .command-chip-icon {
-    display: inline;
-  }
-  .climate-chip {
-    grid-area: climate;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    min-height: var(--console-touch);
-    border-radius: 50%;
-  }
-  /* Utility circles keep the 44px target but read as quiet outlines, not
-     solid pucks — the phone strip should whisper like the desktop one. */
-  .command-chip,
-  .climate-chip {
-    border-color: var(--console-rule-strong);
-    background: transparent;
-  }
-  .session-chip {
-    grid-area: session;
-    width: var(--console-touch);
-    height: var(--console-touch);
-    min-height: var(--console-touch);
-    justify-content: center;
-    padding: 0;
-    border: 1px solid color-mix(in srgb, var(--console-ok) 45%, transparent);
-    border-radius: 50%;
-    background: transparent;
-  }
-  .session-chip.is-visitor {
-    border-color: var(--console-rule-strong);
-    background: transparent;
-  }
-  .session-chip::before,
-  .session-chip > :not(.session-chip-avatar) {
-    display: none;
-  }
-  .session-chip-avatar {
-    display: inline;
-    font-size: 10px;
-    font-weight: 600;
-  }
-  .session-chip.is-visitor .session-chip-avatar {
-    color: var(--console-text-muted);
-  }
-}
-
-@media (min-width: 1440px) {
-  [data-climate] {
-    --console-strip-height: 54px;
-  }
-  .surface-nav-link {
-    font-size: 13.5px;
-  }
-  .command-chip {
-    font-size: 13px;
-  }
-  .session-chip {
-    font-size: 11.5px;
-  }
 }
 
 /* ---- cross-surface command palette -------------------------------------- */
@@ -791,12 +496,6 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pulse {
-    animation: none;
-  }
-}
-
 
 * {
   margin: 0;
@@ -854,6 +553,103 @@ body::after {
     var(--console-bg-deep) 115%
   );
   opacity: 0.7;
+}
+
+.public-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 clamp(18px, 4vw, 58px);
+  border-bottom: 1px solid var(--console-rule-strong);
+  background: color-mix(in srgb, var(--console-frame) 94%, transparent);
+}
+.public-header-brand {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+  color: var(--console-text);
+  text-decoration: none;
+}
+.public-header-mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--console-accent);
+  border-radius: 50%;
+  color: var(--console-accent);
+  font-family: var(--console-display);
+  font-size: 12px;
+  font-weight: 620;
+}
+.public-header-brand strong {
+  overflow: hidden;
+  font-family: var(--console-display);
+  font-size: 18px;
+  font-variation-settings:
+    "SOFT" 70,
+    "opsz" 48;
+  font-weight: 570;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.public-header-brand em {
+  color: var(--console-accent);
+  font-weight: 470;
+}
+.public-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.public-header-actions a,
+.public-header-climate {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-family: var(--console-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.public-header-ask {
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid var(--console-accent);
+  background: var(--console-accent);
+  color: var(--console-on-accent);
+}
+.public-header-sign-in {
+  padding: 0 14px;
+  border: 1px solid var(--console-rule-strong);
+  color: var(--console-text);
+}
+.public-header-climate {
+  width: 36px;
+  padding: 0;
+  border: 1px solid var(--console-rule-strong);
+  background: transparent;
+  color: var(--console-text-dim);
+  cursor: pointer;
+}
+.public-header-actions a:hover,
+.public-header-climate:hover {
+  transform: translateY(-1px);
+}
+.public-header-sign-in:hover,
+.public-header-climate:hover {
+  border-color: var(--console-accent);
+  color: var(--console-accent-dim);
 }
 
 .console {
@@ -1087,6 +883,36 @@ body::after {
 @media (max-width: 640px) {
   body {
     font-size: 14px;
+  }
+  .public-header {
+    min-height: calc(58px + env(safe-area-inset-top));
+    padding: max(4px, env(safe-area-inset-top)) 12px 4px;
+  }
+  .public-header-brand {
+    gap: 8px;
+  }
+  .public-header-mark {
+    width: 26px;
+    height: 26px;
+  }
+  .public-header-brand strong {
+    max-width: 145px;
+    font-size: 15px;
+  }
+  .public-header-actions {
+    gap: 4px;
+  }
+  .public-header-actions a,
+  .public-header-climate {
+    min-height: 36px;
+    font-size: 9px;
+  }
+  .public-header-ask,
+  .public-header-sign-in {
+    padding-inline: 10px;
+  }
+  .public-header-climate {
+    display: none;
   }
   .console {
     padding: 12px 0 40px;
@@ -5058,23 +4884,19 @@ body::after {
               "attributes": [
                 [
                   "aria-label",
-                  "Console surfaces",
+                  "Public brain",
                 ],
                 [
                   "class",
-                  "console-strip",
+                  "public-header",
                 ],
               ],
               "children": [
                 {
                   "attributes": [
                     [
-                      "aria-label",
-                      "Console home",
-                    ],
-                    [
                       "class",
-                      "console-mark",
+                      "public-header-brand",
                     ],
                     [
                       "href",
@@ -5085,225 +4907,18 @@ body::after {
                     {
                       "attributes": [
                         [
-                          "class",
-                          "pulse",
-                        ],
-                      ],
-                      "children": [],
-                      "name": "span",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                    {
-                      "attributes": [],
-                      "children": [
-                        {
-                          "type": "text",
-                          "value": "Brain ",
-                        },
-                        {
-                          "attributes": [
-                            [
-                              "class",
-                              "console-mark-long",
-                            ],
-                          ],
-                          "children": [
-                            {
-                              "type": "text",
-                              "value": "· ",
-                            },
-                            {
-                              "attributes": [],
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "value": "Console",
-                                },
-                              ],
-                              "name": "b",
-                              "namespace": "http://www.w3.org/1999/xhtml",
-                              "type": "element",
-                            },
-                          ],
-                          "name": "span",
-                          "namespace": "http://www.w3.org/1999/xhtml",
-                          "type": "element",
-                        },
-                      ],
-                      "name": "span",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                  ],
-                  "name": "a",
-                  "namespace": "http://www.w3.org/1999/xhtml",
-                  "type": "element",
-                },
-                {
-                  "attributes": [
-                    [
-                      "aria-label",
-                      "Console surfaces",
-                    ],
-                    [
-                      "class",
-                      "surface-nav",
-                    ],
-                  ],
-                  "children": [
-                    {
-                      "attributes": [
-                        [
-                          "class",
-                          "surface-nav-link is-active",
-                        ],
-                        [
-                          "data-console-surface",
-                          "dashboard",
-                        ],
-                        [
-                          "href",
-                          "/dashboard",
-                        ],
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "value": "Dashboard",
-                        },
-                      ],
-                      "name": "a",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                  ],
-                  "name": "nav",
-                  "namespace": "http://www.w3.org/1999/xhtml",
-                  "type": "element",
-                },
-                {
-                  "attributes": [
-                    [
-                      "aria-label",
-                      "Search or jump",
-                    ],
-                    [
-                      "class",
-                      "command-chip",
-                    ],
-                    [
-                      "type",
-                      "button",
-                    ],
-                  ],
-                  "children": [
-                    {
-                      "attributes": [
-                        [
-                          "class",
-                          "command-chip-hint",
-                        ],
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "value": "Search or jump…",
-                        },
-                      ],
-                      "name": "span",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                    {
-                      "attributes": [],
-                      "children": [
-                        {
-                          "type": "text",
-                          "value": "⌘K",
-                        },
-                      ],
-                      "name": "kbd",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                    {
-                      "attributes": [
-                        [
                           "aria-hidden",
                           "true",
                         ],
                         [
                           "class",
-                          "command-chip-icon",
+                          "public-header-mark",
                         ],
                       ],
                       "children": [
                         {
                           "type": "text",
-                          "value": "⌕",
-                        },
-                      ],
-                      "name": "span",
-                      "namespace": "http://www.w3.org/1999/xhtml",
-                      "type": "element",
-                    },
-                  ],
-                  "name": "button",
-                  "namespace": "http://www.w3.org/1999/xhtml",
-                  "type": "element",
-                },
-                {
-                  "attributes": [
-                    [
-                      "aria-label",
-                      "Toggle climate",
-                    ],
-                    [
-                      "class",
-                      "climate-chip",
-                    ],
-                    [
-                      "id",
-                      "climateToggle",
-                    ],
-                    [
-                      "type",
-                      "button",
-                    ],
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "value": "◐",
-                    },
-                  ],
-                  "name": "button",
-                  "namespace": "http://www.w3.org/1999/xhtml",
-                  "type": "element",
-                },
-                {
-                  "attributes": [
-                    [
-                      "aria-label",
-                      "Visitor · Sign in",
-                    ],
-                    [
-                      "class",
-                      "session-chip is-visitor",
-                    ],
-                    [
-                      "href",
-                      "/login?return_to=%2Fdashboard",
-                    ],
-                  ],
-                  "children": [
-                    {
-                      "attributes": [],
-                      "children": [
-                        {
-                          "type": "text",
-                          "value": "Visitor",
+                          "value": "T",
                         },
                       ],
                       "name": "span",
@@ -5315,36 +4930,94 @@ body::after {
                       "children": [
                         {
                           "type": "text",
-                          "value": "Sign in",
+                          "value": "Test",
+                        },
+                        {
+                          "attributes": [],
+                          "children": [
+                            {
+                              "type": "text",
+                              "value": " Owner",
+                            },
+                          ],
+                          "name": "em",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
                         },
                       ],
                       "name": "strong",
                       "namespace": "http://www.w3.org/1999/xhtml",
                       "type": "element",
                     },
+                  ],
+                  "name": "a",
+                  "namespace": "http://www.w3.org/1999/xhtml",
+                  "type": "element",
+                },
+                {
+                  "attributes": [
+                    [
+                      "aria-label",
+                      "Public actions",
+                    ],
+                    [
+                      "class",
+                      "public-header-actions",
+                    ],
+                  ],
+                  "children": [
                     {
                       "attributes": [
                         [
-                          "aria-hidden",
-                          "true",
+                          "class",
+                          "public-header-sign-in",
                         ],
                         [
-                          "class",
-                          "session-chip-avatar",
+                          "href",
+                          "/login?return_to=%2Fdashboard",
                         ],
                       ],
                       "children": [
                         {
                           "type": "text",
-                          "value": "VI",
+                          "value": "Sign in",
                         },
                       ],
-                      "name": "span",
+                      "name": "a",
+                      "namespace": "http://www.w3.org/1999/xhtml",
+                      "type": "element",
+                    },
+                    {
+                      "attributes": [
+                        [
+                          "aria-label",
+                          "Toggle climate",
+                        ],
+                        [
+                          "class",
+                          "public-header-climate",
+                        ],
+                        [
+                          "id",
+                          "climateToggle",
+                        ],
+                        [
+                          "type",
+                          "button",
+                        ],
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "value": "◐",
+                        },
+                      ],
+                      "name": "button",
                       "namespace": "http://www.w3.org/1999/xhtml",
                       "type": "element",
                     },
                   ],
-                  "name": "a",
+                  "name": "nav",
                   "namespace": "http://www.w3.org/1999/xhtml",
                   "type": "element",
                 },

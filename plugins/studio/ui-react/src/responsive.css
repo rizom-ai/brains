@@ -179,51 +179,12 @@
   html:has(body[data-console-host="studio"] .studio[data-view="editor"]) {
     overflow: hidden;
   }
-  body[data-console-host="studio"] {
-    --console-strip-height: calc(52px + env(safe-area-inset-top));
-  }
   body[data-console-host="studio"]:has(.studio[data-view="editor"]) {
     overflow: hidden;
   }
   body[data-console-host="studio"]:not(:has(.studio[data-view="editor"])) {
     height: auto;
     min-height: 100%;
-  }
-  body[data-console-host="studio"] .console-strip {
-    grid-template-columns: minmax(0, 1fr) repeat(3, var(--console-touch));
-    grid-template-areas: "nav command climate session";
-    gap: 2px;
-    min-height: var(--console-strip-height);
-    padding: max(4px, env(safe-area-inset-top)) 8px 4px;
-  }
-  body[data-console-host="studio"] .console-mark {
-    display: none;
-  }
-  body[data-console-host="studio"] .surface-nav {
-    display: flex;
-    align-items: center;
-    padding: 0;
-    border-top: 0;
-  }
-  body[data-console-host="studio"] .surface-nav-link:not(.is-active) {
-    display: none;
-  }
-  body[data-console-host="studio"] .surface-nav-link.is-active {
-    min-height: var(--console-touch);
-    padding-inline: 6px;
-    background: transparent;
-    font-family: var(--console-mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  body[data-console-host="studio"] .command-chip,
-  body[data-console-host="studio"] .climate-chip {
-    border-color: transparent;
-    border-radius: 8px;
-  }
-  .studio > .crumbbar {
-    display: none;
   }
   .studio[data-view="editor"] .studio-body {
     overflow: hidden;
@@ -232,7 +193,7 @@
      capping its content row and the context picker sticks instead of riding
      the page away. */
   .studio:not([data-view="editor"]) .studio-body {
-    grid-template-rows: auto auto;
+    grid-template-rows: auto;
     /* Auto tracks stretch into a grid taller than their content, which would
        pad the context picker out to share the leftover viewport. Content sizes
        the rows; anything past the fold overflows into the document scroll. */
@@ -241,17 +202,7 @@
     overflow: visible;
   }
   .rail {
-    overflow: visible;
-    padding: 5px 12px;
-    background: var(--console-card-soft);
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .studio:not([data-view="editor"]) .rail {
-    position: sticky;
-    top: 0;
-    z-index: 12;
-    border-bottom: 1px solid var(--console-rule-strong);
+    display: none;
   }
   .types {
     display: none;

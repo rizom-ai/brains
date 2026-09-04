@@ -465,7 +465,7 @@ describe("DashboardPlugin", () => {
       );
     });
 
-    it("shows the Studio operator door only to an active Public-rank person", async () => {
+    it("redirects every active person from the public Dashboard into Studio", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: await createTempDir("dashboard-public-session-auth-"),
       });
@@ -531,13 +531,20 @@ describe("DashboardPlugin", () => {
           headers: { Cookie: session.cookie },
         }),
       );
-      const html = await response?.text();
 
-      expect(html).toContain("Public member");
-      expect(html).not.toContain("Member Studio Endpoint");
-      expect(html).toContain('data-console-surface="studio"');
-      expect(html).toContain('href="/studio"');
-      expect(html).toContain("Operators → Studio");
+      expect(response?.status).toBe(302);
+      expect(response?.headers.get("location")).toBe("/studio");
+      expect(response?.headers.get("cache-control")).toBe("no-store");
+
+      const previewResponse = await pageRoute?.handler(
+        new Request("http://brain/dashboard?view=public", {
+          headers: { Cookie: session.cookie },
+        }),
+      );
+      const previewHtml = await previewResponse?.text();
+      expect(previewResponse?.status).toBe(200);
+      expect(previewHtml).toContain('class="public-header"');
+      expect(previewHtml).not.toContain("Public member");
     });
 
     it("should remove a tab when all widgets in that group are hidden", async () => {
@@ -625,7 +632,7 @@ describe("DashboardPlugin", () => {
       expect(html).toContain("public projection");
     });
 
-    it("should retain the authenticated user's actual dashboard role", async () => {
+    it("does not project authenticated identity into the public page", async () => {
       const authPlugin = new AuthServicePlugin({
         storageDir: await createTempDir("dashboard-trusted-auth-"),
       });
@@ -663,8 +670,7 @@ describe("DashboardPlugin", () => {
       );
       const html = await response?.text();
 
-      expect(html).toContain("Mira Reyes");
-      expect(html).toContain("Trusted");
+      expect(html).not.toContain("Mira Reyes");
       expect(html).not.toContain("MCP");
       expect(html).not.toContain('href="http://brain/studio"');
       expect(html).not.toContain('href="#people"');
@@ -800,8 +806,7 @@ describe("DashboardPlugin", () => {
       );
       const html = await response?.text();
 
-      expect(html).toContain("Yeehaa");
-      expect(html).toContain("Admin");
+      expect(html).not.toContain("Yeehaa");
       expect(html).not.toContain("MCP");
       expect(html).toContain("Studio");
       expect(html).not.toContain('href="#people"');

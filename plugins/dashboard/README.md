@@ -21,11 +21,13 @@ the same semantic registration, so providers do not duplicate views or depend
 on either host.
 
 Every card request loads entity counts at Public visibility and invokes only
-Public widget callbacks with an anonymous Public caller—even when the browser
-has an Admin session. Session state affects only console chrome: the Studio
-operator door appears when an active session passes Studio's gate. Restricted
-endpoints, interactions, internal paths, private diagnostics, operator activity,
-and widget data do not enter the card.
+Public widget callbacks with an anonymous Public caller. The anonymous page
+uses a public identity masthead with Ask and sign-in actions rather than a
+cross-product console switcher. When Studio is installed, an active session
+enters Studio directly; `?view=public` is the explicit public-preview escape
+from Studio's identity menu. Restricted endpoints, interactions, internal
+paths, private diagnostics, operator activity, and widget data do not enter
+the card.
 
 The host owns all markup, styles, browser behavior, routes, map renderers,
 accessibility, and responsive layout. Widget authors provide no React

@@ -6,7 +6,6 @@ import {
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import {
   canWriteVisibility,
-  deriveConsoleSurfaces,
   permissionToVisibilityScope,
 } from "@brains/plugins";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
@@ -268,19 +267,22 @@ export function createEditorRoutes(
     if (nativeChat && !resolveStudioChatApiPath(getContext())) {
       return new Response("Chat is not configured", { status: 404 });
     }
+    const context = getContext();
+    const dashboardHref = context.webRoutes
+      .getRoutes()
+      .filter((route) => route.pluginId === "dashboard")
+      .map((route) => route.fullPath)
+      .sort((left, right) => left.length - right.length)[0];
+    const profileName = context.identity.getProfile().name.trim();
     return new Response(
       renderEditorShellHtml({
         assetPath,
         stylesheetPath,
         basePath: shellPath,
-        surfaces: deriveConsoleSurfaces(getContext().webRoutes.getRoutes(), {
-          activeId: "studio",
-          permissionLevel: resolution.access.permissionLevel,
-          hasActiveSession: true,
-          self: { id: "studio", href: shellPath },
-        }),
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
-        themeCSS: getContext().themeCSS,
+        dashboardHref: `${dashboardHref ?? "/dashboard"}?view=public`,
+        brandName: profileName || "Brain",
+        themeCSS: context.themeCSS,
         principal: {
           displayName: resolution.access.principal.displayName,
           role: resolution.access.principal.role,

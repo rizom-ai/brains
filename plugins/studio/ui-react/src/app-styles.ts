@@ -4,13 +4,8 @@ export const styles = `
   .boot-status { padding: 48px; }
   .spacer { flex: 1; }
 
-  /* ── crumb bar — surface-local wayfinding below the console strip ── */
-  .crumbbar { display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 40px; border-bottom: 1px solid var(--console-rule-strong); background: linear-gradient(to bottom, color-mix(in srgb, var(--console-text) 4%, transparent), transparent), var(--console-frame); }
-  .crumb { font-size: 13px; color: var(--console-text-dim); }
-  .crumb strong { color: var(--console-text); font-weight: 500; }
-
   /* ── frame ── */
-  .studio-body { flex: 1; display: grid; grid-template-columns: 232px 1fr; align-items: stretch; }
+  .studio-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 232px 1fr; align-items: stretch; }
 
   /* ── rail ── */
   .rail { border-right: 1px solid var(--console-rule-strong); padding: 22px 0 26px; background: linear-gradient(to right, transparent 60%, color-mix(in srgb, var(--console-text) 2.5%, transparent)), var(--console-card-soft); }

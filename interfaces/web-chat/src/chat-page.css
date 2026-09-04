@@ -6,8 +6,7 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-/* Flex column: the console strip sits above the app root, which takes
-   the remaining viewport. */
+/* Flex column: the public Ask masthead sits above the app root. */
 body {
   margin: 0;
   display: flex;
@@ -24,6 +23,84 @@ body {
 }
 #root { display: block; flex: 1; min-height: 0; }
 button, textarea, input { font: inherit; color: inherit; }
+
+.ask-header {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  min-height: 58px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--console-rule-strong);
+  background: color-mix(in srgb, var(--console-frame) 94%, transparent);
+}
+.ask-header-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--console-text);
+  font: 600 10px/1 var(--console-mono);
+  letter-spacing: 0.13em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.ask-header-brand b { color: var(--console-accent-dim); font-weight: 650; }
+.ask-header-mark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--console-accent);
+  border-radius: 50%;
+  color: var(--console-accent);
+  font: 650 12px/1 var(--console-display);
+}
+.ask-header-actions { display: flex; align-items: center; gap: 7px; }
+.ask-header-link {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 11px;
+  border-radius: 7px;
+  color: var(--console-text-dim);
+  font: 600 9px/1 var(--console-mono);
+  letter-spacing: 0.07em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.ask-header-link:hover { background: var(--console-rule); color: var(--console-text); }
+.ask-header-climate,
+.ask-header-identity {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--console-text-dim);
+  cursor: pointer;
+  font: 600 9px/1 var(--console-mono);
+  text-decoration: none;
+}
+.ask-header-identity {
+  border-color: color-mix(in srgb, var(--console-ok) 58%, transparent);
+  background: var(--console-ok-soft);
+  color: var(--console-ok);
+}
+
+@media (max-width: 640px) {
+  .ask-header {
+    min-height: calc(54px + env(safe-area-inset-top));
+    padding: max(4px, env(safe-area-inset-top)) 9px 4px 12px;
+  }
+  .ask-header-mark { display: none; }
+  .ask-header-link { display: none; }
+  .ask-header-climate { border-color: transparent; }
+}
 
 /* ─── Shell (sessions rail + chat surface).
    The chat IS the page, so the shell fills the viewport edge-to-edge.

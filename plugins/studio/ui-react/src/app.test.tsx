@@ -5,9 +5,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
+import chromeStyles from "./studio-chrome.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import { styles } from "./app-styles";
 import { StudioAppView, type StudioAppViewProps } from "./app-view";
+import { StudioChrome } from "./studio-chrome";
 import {
   AgentAnswerPanel,
   AGENT_INSTRUCTION_PRESETS,
@@ -83,6 +85,21 @@ const selectField: FieldDescriptor = {
   options: ["draft", "published"],
 };
 
+describe("Studio shell chrome", () => {
+  it("renders one contextual header without cross-product navigation", () => {
+    const html = renderToStaticMarkup(
+      <StudioChrome contextLabel="Overview" contextBadge={3} />,
+    );
+
+    expect(html).toContain('class="studio-chrome"');
+    expect(html).toContain("Overview");
+    expect(html).toContain("Search or run a command");
+    expect(html).toContain("Your account account menu");
+    expect(html).not.toContain("surface-nav");
+    expect(html).not.toContain(">Dashboard<");
+  });
+});
+
 describe("editor surface styles", () => {
   it("defines the editorial library and manuscript treatment", () => {
     expect(visualRefreshStyles).toContain("232px minmax(0, 1fr)");
@@ -120,7 +137,7 @@ describe("editor surface styles", () => {
     expect(chatStyles).toContain(
       '.studio[data-view="chat"] {\n  display: grid;',
     );
-    expect(chatStyles).toContain("grid-template-rows: minmax(0, 1fr);");
+    expect(chatStyles).toContain("grid-template-rows: auto minmax(0, 1fr);");
     expect(chatStyles).not.toContain("iframe");
     expect(chatStyles).not.toContain("data-web-chat-root");
   });
@@ -142,12 +159,12 @@ describe("editor surface styles", () => {
     }
   });
 
-  it("carries no content-studio wordmark in the crumbbar", () => {
-    // The label added noise without wayfinding value; the crumbbar leads
-    // with the collection breadcrumb directly.
-    expect(styles).not.toContain("crumb-mark");
-    expect(visualRefreshStyles).not.toContain("crumb-mark");
-    expect(responsiveStyles).not.toContain("crumb-mark");
+  it("replaces the crumbbar with one contextual Studio header", () => {
+    expect(styles).not.toContain("crumbbar");
+    expect(visualRefreshStyles).not.toContain("crumbbar");
+    expect(responsiveStyles).not.toContain("console-strip");
+    expect(chromeStyles).toContain(".studio-chrome");
+    expect(chromeStyles).toContain(".studio-chrome-location");
   });
 
   it("separates the save bar's status line from the pipeline readout", () => {
@@ -166,13 +183,14 @@ describe("editor surface styles", () => {
     expect(styles).not.toContain(".pipeline .reload");
   });
 
-  it("keeps phone Studio to two compact chrome bars with one context picker", () => {
+  it("keeps phone Studio to one compact chrome bar with one context picker", () => {
     expect(responsiveStyles).toContain('body[data-console-host="studio"]');
-    expect(responsiveStyles).toContain(
-      'grid-template-areas: "nav command climate session"',
+    expect(responsiveStyles).not.toContain("console-strip");
+    expect(chromeStyles).toMatch(
+      /\.studio-chrome \{[^}]*grid-template-columns: auto minmax\(0, 1fr\) auto/,
     );
-    expect(responsiveStyles).toMatch(
-      /\.studio > \.crumbbar \{[^}]*display: none/,
+    expect(chromeStyles).toMatch(
+      /\.studio-chrome-mobile-navigation \.studio-mobile-switcher \{[^}]*display: grid/,
     );
     expect(responsiveStyles).toMatch(
       /\.studio-mobile-switcher \{[^}]*display: grid/,
@@ -188,7 +206,7 @@ describe("editor surface styles", () => {
       ".studio-mobile-switcher-item[data-highlighted]",
     );
     expect(responsiveStyles).not.toContain("mask-image: linear-gradient");
-    expect(responsiveStyles).toContain("env(safe-area-inset-top)");
+    expect(chromeStyles).toContain("env(safe-area-inset-top)");
   });
 
   it("locks the phone document only for the editor's app shell", () => {
@@ -218,10 +236,10 @@ describe("editor surface styles", () => {
       /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*overflow: visible/,
     );
     expect(responsiveStyles).toMatch(/\.listing \{[^}]*overflow: visible/);
-    // The context picker has to survive a document scroll to stay reachable.
-    expect(responsiveStyles).toMatch(
-      /\.studio:not\(\[data-view="editor"\]\) \.rail \{[^}]*position: sticky/,
-    );
+    // The consolidated header keeps the context picker reachable while the
+    // document scrolls; the duplicate phone rail is removed.
+    expect(chromeStyles).toMatch(/\.studio-chrome \{[^}]*position: sticky/);
+    expect(responsiveStyles).toMatch(/\.rail \{[^}]*display: none/);
   });
 
   it("keeps phone library rows readable without adding another scroll region", () => {

@@ -7,23 +7,6 @@
   background: var(--console-frame);
 }
 
-/* Surface-local context below the shared console strip. */
-.crumbbar {
-  height: 40px;
-  min-height: 40px;
-  padding-inline: 20px;
-  background:
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, white 24%, transparent),
-      transparent
-    ),
-    var(--console-frame);
-}
-.crumb {
-  color: var(--console-text-dim);
-}
-
 /* Library — quiet paper rail and dense editorial index. */
 .studio-body {
   grid-template-columns: 232px minmax(0, 1fr);
@@ -467,7 +450,7 @@
   color: var(--console-on-accent);
 }
 
-/* Desktop manuscript drops the collection rail; the local crumb is its route back. */
+/* Desktop manuscript drops the collection rail; the Studio header links back. */
 @media (min-width: 901px) {
   .studio[data-view="editor"] .studio-body {
     grid-template-columns: 1fr;
@@ -561,15 +544,6 @@
 }
 
 /* Instrument is an authored equivalent, not a naive inversion of paper. */
-[data-climate="instrument"] .crumbbar {
-  background:
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, white 3%, transparent),
-      transparent
-    ),
-    var(--console-frame);
-}
 [data-climate="instrument"] .pipeline {
   border-top-color: var(--console-accent);
   background: var(--console-card-soft);
