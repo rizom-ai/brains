@@ -218,6 +218,14 @@ class DeclarativeMessageInterfacePlugin<
       this.definition.routes?.({
         config: this.config,
         state: this.requireState(),
+        // The same receiver `listen` gets: what carried the message in does
+        // not change what the pipeline owes it.
+        messages: {
+          receiveAuthenticated: (received) =>
+            // No abort signal here: a route holds the request's own, and the
+            // turn outlives the response when the interface streams it.
+            this.receiveAuthenticated(received, new AbortController().signal),
+        },
         jobs: {
           enqueue: async <TDefinition extends AnyServiceJobDefinition>(
             definition: TDefinition,

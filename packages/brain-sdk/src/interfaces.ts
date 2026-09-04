@@ -29,6 +29,11 @@ export type {
 // registration and the daemon that drives it. Named consumer: @brains/mcp.
 export type { IMCPTransport } from "@brains/plugins";
 
+// The agent as an interface holds it, and the shape of who is asking. An
+// interface that puts a turn to the brain directly needs both.
+// Named consumers: @brains/web-chat, @brains/mcp.
+export type { AgentNamespace, ChatContext } from "@brains/plugins";
+
 // What every interface can ask for at registration — both families get the
 // same context, because they are the same kind of thing.
 export type {

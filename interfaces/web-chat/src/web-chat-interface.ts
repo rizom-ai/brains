@@ -1,12 +1,4 @@
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  createExternalActorId,
-  parseAgentResponse,
-} from "@brains/contracts";
-import {
-  chatActionRequestSchema,
-  chatContextHandoffRequestSchema,
-} from "@brains/contracts/chat";
+import { chatContextHandoffRequestSchema } from "@brains/contracts/chat";
 import {
   requireSameOriginJson,
   type AuthPrincipal,
@@ -26,10 +18,8 @@ import {
   type ToolStatusUpdate,
   type UserPermissionLevel,
   type ChatAttachment,
-  type ChatContext,
   coerceConversationMetadata,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -70,6 +60,12 @@ import {
   type BrowserAccess,
   type BrowserAccessReader,
 } from "./browser-access";
+import {
+  handleActionRequest as handleActionRouteRequest,
+  handleRemoteAgentChatRequest as handleRemoteAgentChatRouteRequest,
+  handleRemoteAgentConfirmRequest as handleRemoteAgentConfirmRouteRequest,
+  type AgentRouteDeps,
+} from "./agent-routes";
 import { createWebChatRoutes } from "./web-routes";
 import { resolveStudioChatRedirectPath } from "./studio-chat-redirect";
 import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
@@ -85,22 +81,6 @@ import {
 } from "./upload-handlers";
 
 const webChatInterfaceType = "web-chat";
-const remoteAgentInterfaceType = "remote-agent";
-
-const remoteAgentChatRequestSchema = z
-  .object({
-    message: z.string().min(1),
-    conversationId: z.string().min(1),
-  })
-  .strict();
-
-const remoteAgentConfirmRequestSchema = z
-  .object({
-    conversationId: z.string().min(1),
-    confirmed: z.boolean(),
-    approvalId: z.string().min(1),
-  })
-  .strict();
 
 type AuthSessionResolver = (request: Request) => Promise<boolean>;
 type BrowserPrincipalResolver = (
@@ -373,50 +353,23 @@ export class WebChatInterface extends MessageInterfacePlugin<
     );
   }
 
+  /**
+   * What the two agent-facing routes need, built from the running context.
+   * The handlers themselves are module functions — none of this needed a
+   * plugin to do.
+   */
+  private agentRouteDeps(): AgentRouteDeps {
+    const context = this.getContext();
+    return {
+      access: this.access(),
+      agent: context.agent,
+      messaging: context.messaging,
+      interfaceType: webChatInterfaceType,
+    };
+  }
+
   private async handleActionRequest(request: Request): Promise<Response> {
-    const { principal, permissionLevel, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response("Invalid JSON body", { status: 400 });
-    }
-    const parsed = chatActionRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response("Invalid chat action request", { status: 400 });
-    }
-    const accessError = await this.requireExistingWebChatConversation(
-      parsed.data.conversationId,
-      this.toConversationAccess(permissionLevel, principal),
-    );
-    if (accessError) return accessError;
-
-    const response = await this.getContext().messaging.send({
-      type: AGENT_ACTION_REQUEST_CHANNEL,
-      payload: {
-        conversationId: parsed.data.conversationId,
-        interfaceType: webChatInterfaceType,
-        channelName: "Web Chat",
-        userPermissionLevel: permissionLevel,
-        isAnchor: principal?.isAnchor ?? false,
-        action: parsed.data.action,
-      },
-    });
-
-    if ("noop" in response || !response.success || !response.data) {
-      return new Response("No runtime action handler", { status: 404 });
-    }
-
-    try {
-      return Response.json(parseAgentResponse(response.data));
-    } catch {
-      return new Response("Invalid runtime action response", { status: 502 });
-    }
+    return handleActionRouteRequest(request, this.agentRouteDeps());
   }
 
   private async handleUiAssetRequest(): Promise<Response> {
@@ -472,121 +425,13 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private async handleRemoteAgentChatRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, permissionLevel, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response("Invalid JSON body", { status: 400 });
-    }
-
-    const parsed = remoteAgentChatRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response("Invalid remote agent chat request", { status: 400 });
-    }
-    const accessError = await this.access().ensure(
-      parsed.data.conversationId,
-      remoteAgentInterfaceType,
-      "Remote Agent",
-      this.toConversationAccess(permissionLevel, principal),
-    );
-    if (accessError) return accessError;
-
-    const response = await this.getContext().agent.chat(
-      parsed.data.message,
-      parsed.data.conversationId,
-      this.createRemoteAgentChatContext(
-        parsed.data.conversationId,
-        permissionLevel,
-        principal,
-      ),
-      request.signal,
-    );
-
-    return Response.json(response);
+    return handleRemoteAgentChatRouteRequest(request, this.agentRouteDeps());
   }
 
   private async handleRemoteAgentConfirmRequest(
     request: Request,
   ): Promise<Response> {
-    const { principal, permissionLevel, hasChatAccess } =
-      await this.resolveBrowserAccess(request);
-    if (!hasChatAccess) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response("Invalid JSON body", { status: 400 });
-    }
-
-    const parsed = remoteAgentConfirmRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      return new Response("Invalid remote agent confirm request", {
-        status: 400,
-      });
-    }
-    const accessError = await this.access().requireExisting(
-      parsed.data.conversationId,
-      remoteAgentInterfaceType,
-      this.toConversationAccess(permissionLevel, principal),
-    );
-    if (accessError) return accessError;
-
-    const response = await this.getContext().agent.confirmPendingAction(
-      parsed.data.conversationId,
-      parsed.data.confirmed,
-      parsed.data.approvalId,
-      this.createRemoteAgentChatContext(
-        parsed.data.conversationId,
-        permissionLevel,
-        principal,
-      ),
-      request.signal,
-    );
-
-    return Response.json(response);
-  }
-
-  private createRemoteAgentChatContext(
-    conversationId: string,
-    permissionLevel: UserPermissionLevel,
-    principal: AuthPrincipal | undefined,
-  ): ChatContext {
-    return {
-      userPermissionLevel: permissionLevel,
-      isAnchor: principal?.isAnchor ?? false,
-      interfaceType: remoteAgentInterfaceType,
-      channelId: conversationId,
-      channelName: "Remote Agent",
-      actor: {
-        identity: principal
-          ? {
-              kind: "user",
-              userId: principal.userId,
-              ...(principal.canonicalId
-                ? { canonicalId: principal.canonicalId }
-                : {}),
-            }
-          : {
-              kind: "external",
-              externalActorId: createExternalActorId(
-                remoteAgentInterfaceType,
-                `${remoteAgentInterfaceType}:${conversationId}:browser-user`,
-              ),
-            },
-        interfaceType: remoteAgentInterfaceType,
-        role: "user",
-        displayName: principal?.displayName ?? "Remote agent user",
-      },
-    };
+    return handleRemoteAgentConfirmRouteRequest(request, this.agentRouteDeps());
   }
 
   private async handleChatRequest(request: Request): Promise<Response> {
@@ -949,17 +794,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
     principal: AuthPrincipal | undefined,
   ): WebChatConversationAccess {
     return this.access().toConversationAccess(permissionLevel, principal);
-  }
-
-  private requireExistingWebChatConversation(
-    conversationId: string,
-    access: WebChatConversationAccess,
-  ): Promise<Response | undefined> {
-    return this.access().requireExisting(
-      conversationId,
-      webChatInterfaceType,
-      access,
-    );
   }
 
   private ensureWebChatConversation(

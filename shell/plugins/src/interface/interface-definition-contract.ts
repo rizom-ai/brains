@@ -537,6 +537,16 @@ export interface MessageInterfaceDefinitionInput<
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
         readonly jobs: InterfaceJobs;
+        /**
+         * Handing a turn to the pipeline from a request.
+         *
+         * The same receiver `listen` gets. An interface whose inbound path is
+         * HTTP rather than a socket still wants everything the pipeline does
+         * — tracking what is pending, routing a reply that resolves it,
+         * deciding what the answer is made of — and the only difference is
+         * what carried the message in. Named consumer: @brains/web-chat.
+         */
+        readonly messages: MessageReceiver;
       }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   readonly listen?:
