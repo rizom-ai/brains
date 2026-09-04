@@ -194,6 +194,20 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     }
   });
 
+  it("loads the generated predeploy backup without private workspace dependencies", async () => {
+    const root = await createTempDir("brains-ops-predeploy-import-");
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+    const output = execFileSync(
+      process.execPath,
+      ["-e", 'await import("./deploy/scripts/create-predeploy-backup.ts")'],
+      { cwd: repo, encoding: "utf8" },
+    );
+
+    expect(output).toBe("");
+  });
+
   it("accepts Cloudflare's object result for a successful DNS upsert", async () => {
     const root = await createTempDir("brains-ops-cloudflare-dns-");
     const repo = join(root, "rover-pilot");
