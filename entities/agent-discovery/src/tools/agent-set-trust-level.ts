@@ -94,6 +94,8 @@ async function fetchA2AKeyFingerprint(
 
     return keyFingerprint(parsedKey.data);
   } catch {
+    // No reachable or usable key means no fingerprint to pin, which the
+    // caller handles as an unverified agent rather than an error.
     return null;
   }
 }

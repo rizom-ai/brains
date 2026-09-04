@@ -48,6 +48,8 @@ export class BlogPostAdapter extends BaseEntityAdapter<
 
       return this.buildMarkdown(body, completeFrontmatter);
     } catch {
+      // Stored content is hand-editable. A post whose frontmatter no longer
+      // parses should still render its body rather than disappear.
       return body;
     }
   }

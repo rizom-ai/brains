@@ -48,6 +48,8 @@ export class SiteInfoDataSource implements DataSource {
             description: "A knowledge management system",
           };
     } catch {
+      // The site must still build before its site-info entity exists, so the
+      // placeholder below is the first-run answer as well as the error one.
       siteInfoBody = {
         represents: "anchor",
         title: "Brain",

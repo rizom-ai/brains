@@ -201,6 +201,9 @@ export class StressHealthMonitor {
       if (!response.ok) return undefined;
       return operationalHealthPayloadSchema.parse(JSON.parse(body)).app;
     } catch (error) {
+      // The failed probe is recorded above before this returns, so the run
+      // still reports it. Undefined means no reading, which the acceptance
+      // checks already treat as unhealthy rather than as a pass.
       this.#healthSamples.push({
         timestamp: started.toISOString(),
         endpoint: "/health/operate",

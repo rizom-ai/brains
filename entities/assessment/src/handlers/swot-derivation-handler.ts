@@ -363,6 +363,8 @@ function hasSameSemanticContent(
       }) === JSON.stringify(semantic)
     );
   } catch {
+    // This only asks whether two analyses match. Anything that stops the
+    // comparison means they cannot be shown equal, which is what false says.
     return false;
   }
 }

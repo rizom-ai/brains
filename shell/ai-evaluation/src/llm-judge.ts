@@ -125,6 +125,8 @@ ${this.formatToolCalls(turnResults)}`;
         reasoning: verdict.reasoning,
       };
     } catch (error) {
+      // As above: an unavailable judge yields no verdict, which callers report
+      // as a missing score rather than a failed one.
       ConsoleLogger.getInstance().error("LLM Judge failed:", error);
       return null;
     }

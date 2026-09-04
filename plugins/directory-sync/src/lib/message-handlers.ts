@@ -179,6 +179,8 @@ async function queryGitStatus(
       remote: status.remote ?? null,
     };
   } catch (error) {
+    // Git status is diagnostic detail on a status response. A repo we cannot
+    // read reports no git section rather than failing the whole request.
     logger.debug("Git status unavailable for sync:status:request", { error });
     return null;
   }
