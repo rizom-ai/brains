@@ -4,10 +4,7 @@ import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
-  renderConsoleStripHtml,
   resolveConsoleThemeCSS,
-  type ConsoleStripPrincipal,
-  type ConsoleSurface,
 } from "@brains/console-theme";
 import chatPageStyles from "./chat-page.css" with { type: "text" };
 import responsiveShellStyles from "./responsive-shell.css" with { type: "text" };
@@ -33,13 +30,42 @@ export const uiStylesheetFile: string = join(
 export interface ChatPageOptions {
   /** Configured root for the public headless Chat transport. */
   apiPath: string;
-  /** Console-strip doors, derived from the registered web routes. */
-  surfaces: ConsoleSurface[];
-  /** Sign-out link for the session chip (the page is authenticated-only). */
+  /** Public Dashboard destination. */
+  dashboardHref: string;
+  /** Native authenticated Chat destination when Studio is installed. */
+  studioHref?: string | undefined;
+  /** Sign-out link for authenticated fallback rendering. */
   sessionHref: string;
   /** Runtime-resolved brain theme; the shared default is used when absent. */
   themeCSS?: string | undefined;
-  principal?: ConsoleStripPrincipal | undefined;
+  principal?:
+    | {
+        displayName: string;
+        role: "admin" | "trusted" | "public";
+      }
+    | undefined;
+}
+
+function principalInitials(displayName: string): string {
+  return displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.slice(0, 1).toUpperCase())
+    .join("");
+}
+
+function renderAskHeader(options: ChatPageOptions): string {
+  const studioLink = options.studioHref
+    ? `<a class="ask-header-link" href="${escapeHtml(options.studioHref)}">Open Studio</a>`
+    : "";
+  const sessionLabel = options.principal
+    ? `${escapeHtml(options.principal.displayName)} · ${escapeHtml(options.principal.role)}`
+    : "Authenticated";
+  const sessionInitials = options.principal
+    ? principalInitials(options.principal.displayName)
+    : "AU";
+  return `<header class="ask-header" aria-label="Ask"><a class="ask-header-brand" href="${escapeHtml(options.dashboardHref)}"><span class="ask-header-mark">B</span><span>Brain <b>/ Ask</b></span></a><nav class="ask-header-actions"><a class="ask-header-link" href="${escapeHtml(options.dashboardHref)}">Dashboard</a>${studioLink}<button id="climateToggle" class="ask-header-climate" type="button" aria-label="Toggle climate">◐</button><a class="ask-header-identity" href="${escapeHtml(options.sessionHref)}" aria-label="${sessionLabel} · Sign out">${escapeHtml(sessionInitials)}</a></nav></header>`;
 }
 
 export function renderChatPage(options: ChatPageOptions): string {
@@ -54,14 +80,5 @@ ${chatPageStyles}
 
 ${responsiveShellStyles}
 
-${visualRefreshStyles}</style><link data-web-chat-app-styles rel="stylesheet" href="${uiStylesheetPath}"></head><body>${renderConsoleStripHtml(
-    {
-      surfaces: options.surfaces,
-      session: {
-        kind: "authenticated",
-        sessionHref: options.sessionHref,
-        ...(options.principal ? { principal: options.principal } : {}),
-      },
-    },
-  )}<main id="root" data-web-chat-root data-chat-api-path="${escapeHtml(options.apiPath)}">Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+${visualRefreshStyles}</style><link data-web-chat-app-styles rel="stylesheet" href="${uiStylesheetPath}"></head><body>${renderAskHeader(options)}<main id="root" data-web-chat-root data-chat-api-path="${escapeHtml(options.apiPath)}">Brain Chat</main><script type="module" src="${uiAssetPath}"></script></body></html>`;
 }

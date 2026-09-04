@@ -3,7 +3,6 @@ import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
   CONSOLE_THEME_CSS,
-  renderConsoleStripHtml,
 } from "../src";
 
 function climateBlock(climate: string): string {
@@ -62,29 +61,17 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(climateBlock("paper")).toContain("color-scheme: light");
   });
 
-  it("carries the console strip's chrome styles", () => {
+  it("carries no obsolete cross-product strip chrome", () => {
     for (const selector of [
       ".console-strip",
       ".console-mark",
-      ".surface-nav-link.is-active",
-      ".command-chip",
-      ".climate-chip",
+      ".surface-nav-link",
       ".session-chip",
-      ".pulse",
       "@keyframes console-pulse",
     ]) {
-      expect(CONSOLE_THEME_CSS).toContain(selector);
+      expect(CONSOLE_THEME_CSS).not.toContain(selector);
     }
-  });
-
-  it("defines deliberate tablet and phone chrome instead of flex wrapping", () => {
-    expect(CONSOLE_THEME_CSS).toContain("@media (max-width: 900px)");
-    expect(CONSOLE_THEME_CSS).toContain("@media (max-width: 640px)");
-    expect(CONSOLE_THEME_CSS).toContain(
-      'grid-template-areas:\n      "mark command climate session"',
-    );
     expect(CONSOLE_THEME_CSS).toContain("--console-touch: 44px");
-    expect(CONSOLE_THEME_CSS).not.toContain("flex-wrap: wrap");
   });
 
   it("turns the command palette into a dynamic-viewport phone sheet", () => {
@@ -110,101 +97,10 @@ describe("CONSOLE_THEME_CSS", () => {
   });
 });
 
-describe("renderConsoleStripHtml", () => {
-  const surfaces = [
-    { id: "dashboard", label: "Dashboard", href: "/", isActive: false },
-    { id: "studio", label: "Studio", href: "/studio", isActive: true },
-  ];
-
-  const authenticated = {
-    kind: "authenticated" as const,
-    sessionHref: "/logout",
-  };
-
-  it("uses role-neutral copy when no principal is supplied", () => {
-    const html = renderConsoleStripHtml({ surfaces, session: authenticated });
-
-    expect(html).toContain("Authenticated");
-    expect(html).toContain("Sign out");
-    expect(html).toContain('data-console-surface="dashboard"');
-    expect(html).toContain('data-console-surface="studio"');
-    expect(html).not.toContain("Operator");
-    expect(html).not.toContain("is-visitor");
-  });
-
-  it("renders the principal's name, role, and initials when supplied", () => {
-    const html = renderConsoleStripHtml({
-      surfaces,
-      session: {
-        ...authenticated,
-        principal: { displayName: "Jan Hein Hoogstad", role: "admin" },
-      },
-    });
-
-    expect(html).toContain("Jan Hein Hoogstad · Admin");
-    expect(html).toContain("Sign out");
-    expect(html).toContain(">JH<");
-    expect(html).not.toContain("Authenticated");
-  });
-
-  it("escapes a principal display name before interpolating it", () => {
-    const html = renderConsoleStripHtml({
-      surfaces,
-      session: {
-        ...authenticated,
-        principal: { displayName: '<img src=x onerror="x">', role: "trusted" },
-      },
-    });
-
-    expect(html).not.toContain("<img");
-    expect(html).toContain("&lt;img");
-  });
-
-  it("renders the visitor chip for unauthenticated sessions", () => {
-    const html = renderConsoleStripHtml({
-      surfaces,
-      session: { kind: "visitor", loginHref: "/login" },
-    });
-
-    expect(html).toContain("session-chip is-visitor");
-    expect(html).toContain('href="/login"');
-    expect(html).toContain("Visitor");
-    expect(html).toContain("Sign in");
-  });
-
-  it("links the console mark to homeHref when given, else the dashboard surface", () => {
-    const explicit = renderConsoleStripHtml({
-      surfaces,
-      session: authenticated,
-      homeHref: "/dash",
-    });
-    const derived = renderConsoleStripHtml({
-      surfaces,
-      session: authenticated,
-    });
-
-    expect(explicit).toContain('class="console-mark" href="/dash"');
-    expect(derived).toContain('class="console-mark" href="/"');
-  });
-
-  it("renders the climate toggle between search and session", () => {
-    const html = renderConsoleStripHtml({ surfaces, session: authenticated });
-
-    expect(html).toContain('id="climateToggle"');
-    expect(html).toContain('class="climate-chip"');
-    expect(html.indexOf("command-chip")).toBeLessThan(
-      html.indexOf("climate-chip"),
-    );
-    expect(html.indexOf("climate-chip")).toBeLessThan(
-      html.indexOf("session-chip"),
-    );
-  });
-});
-
 describe("CONSOLE_CLIMATE_SCRIPT", () => {
   it("applies the stored climate immediately but binds the toggle after parse", () => {
-    // The script runs from <head> on chat and the Studio, before the strip
-    // exists in the DOM; binding must wait for DOMContentLoaded there.
+    // The script runs from <head> before each surface-owned toggle exists;
+    // binding must wait for DOMContentLoaded.
     expect(CONSOLE_CLIMATE_SCRIPT).toContain(
       'localStorage.getItem("console.climate")',
     );

@@ -3,10 +3,7 @@ import {
   CONSOLE_FONTS_URL,
   CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
-  renderConsoleStripHtml,
   resolveConsoleThemeCSS,
-  type ConsoleStripPrincipal,
-  type ConsoleSurface,
 } from "@brains/console-theme";
 
 function escapeAttribute(value: string): string {
@@ -17,6 +14,11 @@ function escapeAttribute(value: string): string {
     .replaceAll(">", "&gt;");
 }
 
+export interface EditorShellPrincipal {
+  displayName: string;
+  role: "admin" | "trusted" | "public";
+}
+
 export interface EditorShellOptions {
   /** Module path of the Bun-bundled React app. */
   assetPath: string;
@@ -24,23 +26,24 @@ export interface EditorShellOptions {
   stylesheetPath?: string | undefined;
   /** Normalized configured mount used by client routing and API requests. */
   basePath: string;
-  /** Console-strip doors, derived from the registered web routes. */
-  surfaces: ConsoleSurface[];
-  /** Sign-out link for the authenticated-session chip. */
+  /** Sign-out target exposed to Studio's identity menu. */
   sessionHref: string;
+  /** Public Dashboard target exposed to Studio's identity menu. */
+  dashboardHref: string;
+  /** Active brain identity shown in Studio's wordmark. */
+  brandName: string;
   /** Runtime-resolved brain theme; the shared default is used when absent. */
   themeCSS?: string | undefined;
-  principal?: ConsoleStripPrincipal | undefined;
+  principal?: EditorShellPrincipal | undefined;
 }
 
 /**
  * HTML shell for the first-party Studio editor.
  *
- * Mirrors web-chat's chat-page: the console strip above a root element plus
- * a module script tag pointing at the Bun-bundled React app. Palette and
- * type ramp come from the shared @brains/console-theme sheet — the Studio
- * defaults to the paper climate; the console-wide stored preference wins.
- * Component styles live in the app bundle.
+ * Hosts the Bun-bundled React app as the sole authenticated shell. Palette
+ * and type ramp come from the shared @brains/console-theme sheet — Studio
+ * defaults to the paper climate; the stored preference wins. The hydrated
+ * app owns its compact context and identity chrome.
  */
 export function renderEditorShellHtml(options: EditorShellOptions): string {
   const basePath = options.basePath
@@ -103,15 +106,7 @@ ${CONSOLE_THEME_CSS}
     ${options.stylesheetPath ? `<link data-studio-app-styles rel="stylesheet" href="${escapeAttribute(options.stylesheetPath)}" />` : ""}
   </head>
   <body data-console-host="studio">
-    ${renderConsoleStripHtml({
-      surfaces: options.surfaces,
-      session: {
-        kind: "authenticated",
-        sessionHref: options.sessionHref,
-        ...(options.principal ? { principal: options.principal } : {}),
-      },
-    })}
-    <main id="root" data-studio-root data-studio-base-path="${basePath}"${
+    <main id="root" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeAttribute(options.sessionHref)}" data-studio-dashboard-href="${escapeAttribute(options.dashboardHref)}" data-studio-brand-name="${escapeAttribute(options.brandName)}"${
       options.principal
         ? ` data-studio-principal-name="${escapeAttribute(options.principal.displayName)}" data-studio-principal-role="${escapeAttribute(options.principal.role)}"`
         : ""

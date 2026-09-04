@@ -26,10 +26,10 @@ describe("DASHBOARD_STYLES", () => {
     expect(DASHBOARD_STYLES).toContain('[data-climate="paper"]');
   });
 
-  it("carries the strip chrome only via the sheet", () => {
-    const localStyles = DASHBOARD_STYLES.replace(CONSOLE_THEME_CSS, "");
-    expect(localStyles).not.toContain(".console-strip");
-    expect(localStyles).not.toContain(".session-chip");
+  it("carries public chrome without the retired console strip", () => {
+    expect(DASHBOARD_STYLES).toContain(".public-header");
+    expect(DASHBOARD_STYLES).not.toContain(".console-strip");
+    expect(DASHBOARD_STYLES).not.toContain(".session-chip");
   });
 
   it("provides generic widget action, tab, and filter primitives", () => {

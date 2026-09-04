@@ -43,7 +43,7 @@ describe("renderDashboardPageHtml", () => {
     ).toMatchSnapshot();
   });
 
-  it("keeps the same public card for a signed-in role", () => {
+  it("keeps the public page independent of any supplied session identity", () => {
     const input: DashboardRenderInput = {
       title: "Test Brain",
       baseUrl: "https://brain.test",
@@ -66,7 +66,7 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).not.toContain("Restricted access");
     expect(html).not.toContain("private console widget");
-    expect(html).toContain("Mira");
+    expect(html).not.toContain("Mira");
     expect(html).toContain("What is this");
   });
 
@@ -400,7 +400,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Agent One");
   });
 
-  it("should wrap the console chrome and panels in a single frame", () => {
+  it("places the public masthead outside the dashboard content frame", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -414,12 +414,12 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).toContain('class="frame"');
     expect(html).toContain('class="canvas"');
-    // The strip pins to the top of the viewport on every surface — it
-    // lives OUTSIDE the frame so it never shifts between dashboard, chat,
-    // and the Studio. Masthead, tab bar, and panels stay inside the frame.
+    // Public identity and entry actions sit outside the content card; the
+    // obsolete cross-product console switcher is absent.
     const frameIndex = html.indexOf('class="frame"');
     expect(frameIndex).toBeGreaterThan(-1);
-    expect(html.indexOf('class="console-strip"')).toBeLessThan(frameIndex);
+    expect(html.indexOf('class="public-header"')).toBeLessThan(frameIndex);
+    expect(html).not.toContain('class="console-strip"');
     expect(frameIndex).toBeLessThan(html.indexOf('class="masthead"'));
     expect(frameIndex).toBeLessThan(html.indexOf('class="dashboard-tabs"'));
     expect(frameIndex).toBeLessThan(
@@ -533,54 +533,34 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain("41 embeddings");
   });
 
-  it("should render the shared console strip from derived surfaces", () => {
+  it("renders public identity and entry actions without product tabs", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
       dashboardPath: "/console",
-      surfaces: [
-        {
-          id: "dashboard",
-          label: "Dashboard",
-          href: "/console",
-          isActive: true,
-        },
-        { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-        { id: "studio", label: "Studio", href: "/studio", isActive: false },
-      ],
+      askHref: "/ask",
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
       appInfo: createMockAppInfo({ uptime: 100 }),
       widgets: {},
       authAccess: {
-        principal: {
-          displayName: "Yeehaa",
-          role: "admin",
-          permissionLevel: "admin",
-        },
-        loginUrl: "/login?return_to=%2Fconsole",
+        loginUrl: "/login?return_to=%2Fstudio",
         logoutUrl: "/logout?return_to=%2Fconsole",
       },
     };
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('class="console-strip"');
+    expect(html).toContain('class="public-header"');
     expect(html).toContain('href="/console"');
-    expect(html).toContain('href="/chat"');
-    expect(html).toContain('href="/studio"');
-    expect(html).toContain("Yeehaa");
-    expect(html).toContain("Admin");
-    // Mockup strip chrome: brandmark, command palette hint, session chip.
-    expect(html).toContain("Console");
-    expect(html).toContain("<kbd>⌘K</kbd>");
-    // An authenticated session renders the plain chip (visitor modifier only exists
-    // in the sheet, not in the markup).
-    expect(html).toContain('class="session-chip"');
-    expect(html).not.toContain('class="session-chip is-visitor"');
+    expect(html).toContain('href="/ask"');
+    expect(html).toContain('href="/login?return_to=%2Fstudio"');
+    expect(html).not.toContain('class="console-strip"');
+    expect(html).not.toContain('class="surface-nav"');
+    expect(html).not.toContain("<kbd>⌘K</kbd>");
   });
 
-  it("should render the visitor session chip as neutral", () => {
+  it("renders one explicit public sign-in action", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -596,23 +576,15 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('class="session-chip is-visitor"');
-    expect(html).toContain("Sign in");
+    expect(html).toContain('class="public-header-sign-in"');
+    expect(html).toContain('href="/login?return_to=%2F"');
+    expect(html).not.toContain('class="session-chip');
   });
 
-  it("should omit surface links that are not registered", () => {
+  it("omits Ask when no public conversation door is registered", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
-      surfaces: [
-        {
-          id: "dashboard",
-          label: "Dashboard",
-          href: "/dashboard",
-          isActive: true,
-        },
-        { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-      ],
       character: { role: "", purpose: "", values: [] },
       profile: { name: "Test Owner" },
       appInfo: createMockAppInfo({ uptime: 100 }),
@@ -621,9 +593,8 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('href="/chat"');
-    expect(html).not.toContain('href="/studio"');
-    expect(html).not.toContain(">Studio<");
+    expect(html).not.toContain('class="public-header-ask"');
+    expect(html).not.toContain('href="/ask"');
   });
 
   it("should align the initial theme mode and apply stored climate before styles", () => {
@@ -656,7 +627,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain('localStorage.setItem("console.climate"');
   });
 
-  it("should render the climate toggle in the strip, not the masthead", () => {
+  it("renders the climate toggle in the public masthead", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -679,20 +650,18 @@ describe("renderDashboardPageHtml", () => {
 
     expect(html).not.toContain('class="scoreboard"');
     expect(html).not.toContain('class="masthead-action"');
-    // The toggle is console chrome shared by every surface; it sits in the
-    // strip between the command chip and the session chip.
-    const strip = html.slice(
-      html.indexOf('class="console-strip"'),
+    const publicHeader = html.slice(
+      html.indexOf('class="public-header"'),
       html.indexOf("</header>"),
     );
-    expect(strip).toContain('id="climateToggle"');
-    expect(strip).toContain('class="climate-chip"');
+    expect(publicHeader).toContain('id="climateToggle"');
+    expect(publicHeader).toContain('class="public-header-climate"');
     const masthead = html.slice(
       html.indexOf('class="masthead"'),
       html.indexOf('class="dashboard-tabs"'),
     );
     expect(masthead).not.toContain('id="climateToggle"');
-    expect(html).toContain('href="/logout?return_to=%2Fdashboard"');
+    expect(html).toContain('href="/login?return_to=%2Fdashboard"');
   });
 
   it("renders identity and interaction entry points on Overview", () => {

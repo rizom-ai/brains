@@ -37,12 +37,6 @@ const VIEWPORTS = [
   { width: 390, height: 844 },
 ] as const;
 const CLIMATES = ["instrument", "paper"] as const;
-const SURFACES = [
-  { id: "dashboard", label: "Dashboard", href: "/dashboard", isActive: false },
-  { id: "web-chat", label: "Chat", href: "/chat", isActive: false },
-  { id: "studio", label: "Studio", href: "/studio", isActive: false },
-];
-
 const editCapabilities = {
   canRead: true,
   canCreate: true,
@@ -1430,18 +1424,6 @@ const cardMessages = [
   },
 ];
 
-function activeSurfaces(activeId: string): Array<{
-  id: string;
-  label: string;
-  href: string;
-  isActive: boolean;
-}> {
-  return SURFACES.map((surface) => ({
-    ...surface,
-    isActive: surface.id === activeId,
-  }));
-}
-
 function VisualProximityWidget({
   data,
 }: {
@@ -1457,14 +1439,8 @@ function dashboardInput(): DashboardRenderInput {
   return {
     title: "Rover Collective",
     baseUrl: "http://127.0.0.1",
-    surfaces: [
-      {
-        id: "dashboard",
-        label: "Dashboard",
-        href: "/dashboard",
-        isActive: true,
-      },
-    ],
+    dashboardPath: "/dashboard",
+    askHref: "/ask",
     character: {
       role: "A professional brain for the agentic web",
       purpose: "It captures, connects, and publishes what the network learns.",
@@ -2293,14 +2269,23 @@ async function checkLayout(
     if (!composer || composer.y + composer.height > viewportHeight + 1)
       throw new Error(`chat composer escaped the viewport at ${width}px`);
   }
+  if (surface.startsWith("studio-") && width <= 640) {
+    const chrome = await elementBounds(page, ".studio > .studio-chrome");
+    if (!chrome || chrome.height > 64) {
+      throw new Error(`Studio header exceeded the phone chrome budget`);
+    }
+  }
   if (
     surface.startsWith("studio-") &&
     !surface.startsWith("studio-chat") &&
     width <= 640
   ) {
-    const crumbDisplay = await elementDisplay(page, ".studio > .crumbbar");
-    if (crumbDisplay !== "none") {
-      throw new Error(`Studio crumb bar exceeded the phone chrome budget`);
+    const railDisplay = await elementDisplay(
+      page,
+      ".studio > .studio-body > .rail",
+    );
+    if (railDisplay !== "none") {
+      throw new Error(`Studio rendered a duplicate phone navigation rail`);
     }
     // One phone scroll region, and the right one owns it. The editor is an app
     // shell — fixed pane switcher, pinned save bar — so it locks the document
@@ -2571,8 +2556,10 @@ const server = Bun.serve({
         climateHtml(
           renderChatPage({
             apiPath: "/api/chat",
-            surfaces: activeSurfaces("web-chat"),
+            dashboardHref: "/dashboard",
+            studioHref: "/chat",
             sessionHref: "/logout",
+            principal: { displayName: "Mira Reyes", role: "admin" },
           }),
           request,
         ),
@@ -2610,8 +2597,9 @@ const server = Bun.serve({
             assetPath: "/studio/assets/app.js",
             stylesheetPath: "/studio/assets/app.css",
             basePath: "/studio",
-            surfaces: activeSurfaces("studio"),
             sessionHref: "/logout",
+            dashboardHref: "/dashboard",
+            brandName: "Rover Collective",
             principal: { displayName: "Mira Reyes", role: "admin" },
           }),
           request,

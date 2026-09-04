@@ -390,7 +390,7 @@ describe("Studio active-session gate inversion", () => {
     }
   });
 
-  it("keeps Account and administration behind the single Studio door", async () => {
+  it("keeps Account and administration inside the single Studio shell", async () => {
     const { plugin, sessions } = await setup();
     const route = findRoute(plugin, "/studio");
 
@@ -398,9 +398,9 @@ describe("Studio active-session gate inversion", () => {
       const html = await (
         await route.handler(request("/studio", { cookie }))
       ).text();
-      expect(html).toContain('href="/studio"');
-      expect(html).not.toContain('data-console-surface="admin"');
-      expect(html).not.toContain('data-console-surface="account"');
+      expect(html).toContain('data-studio-base-path="/studio"');
+      expect(html).not.toContain('class="console-strip"');
+      expect(html).not.toContain("data-console-surface=");
     }
   });
 

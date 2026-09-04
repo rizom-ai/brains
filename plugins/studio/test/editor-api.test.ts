@@ -421,7 +421,8 @@ describe("studio editor shell", () => {
     expect(response.headers.get("location")).toBeNull();
     expect(html).toContain("/studio/assets/app.js");
     expect(html).toContain('data-studio-base-path="/studio"');
-    expect(html).toContain('data-console-surface="web-chat"');
+    expect(html).not.toContain('class="console-strip"');
+    expect(html).not.toContain("data-console-surface=");
     expect(html).toContain(
       'href="/logout?return_to=%2Fchat%3Fsession%3Dthread-1"',
     );

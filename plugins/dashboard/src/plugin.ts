@@ -231,7 +231,32 @@ export class DashboardPlugin extends ServicePlugin<
           const ctx = this.ctx;
           const principal =
             await getActiveAuthService()?.resolveSession(request);
-          const sessionPermission = principal?.permissionLevel ?? "public";
+          const requestUrl = new URL(request.url);
+          const registeredRoutes = ctx.webRoutes.getRoutes();
+          const studioPath = registeredRoutes
+            .filter(
+              (route) =>
+                route.pluginId === "studio" && route.fullPath !== "/chat",
+            )
+            .map((route) => route.fullPath)
+            .sort((left, right) => left.length - right.length)[0];
+          if (
+            principal &&
+            studioPath &&
+            requestUrl.searchParams.get("view") !== "public"
+          ) {
+            return new Response(null, {
+              status: 302,
+              headers: {
+                Location: studioPath,
+                "Cache-Control": "no-store",
+              },
+            });
+          }
+          const askHref = registeredRoutes
+            .filter((route) => route.pluginId === "web-chat")
+            .map((route) => route.fullPath)
+            .sort((left, right) => left.length - right.length)[0];
           // The card is invariant across sessions. Public providers always see
           // an anonymous Public caller, and non-public providers never run.
           const visibleWidgets =
@@ -288,8 +313,8 @@ export class DashboardPlugin extends ServicePlugin<
           };
 
           const title = profile.name || "Public Brain";
-          const requestUrl = new URL(request.url);
-          const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
+          const returnTo =
+            studioPath ?? `${requestUrl.pathname}${requestUrl.search}`;
           const encodedReturnTo = encodeURIComponent(returnTo);
           const resolved = resolveWidgetsForRender(
             dashboardData.widgets,
@@ -304,12 +329,7 @@ export class DashboardPlugin extends ServicePlugin<
             widgetScripts: resolved.widgetScripts,
             assetUrls: this.assetUrls,
             dashboardPath: this.config.routePath,
-            surfaces: deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
-              activeId: "dashboard",
-              permissionLevel: sessionPermission,
-              hasActiveSession: principal !== undefined,
-              self: { id: "dashboard", href: this.config.routePath },
-            }),
+            ...(askHref ? { askHref } : {}),
             character,
             profile,
             appInfo: visibleAppInfo,
@@ -317,15 +337,6 @@ export class DashboardPlugin extends ServicePlugin<
               themeCSS: this.config.themeCSS,
             }),
             authAccess: {
-              ...(principal
-                ? {
-                    principal: {
-                      displayName: principal.displayName,
-                      role: principal.role,
-                      permissionLevel: principal.permissionLevel,
-                    },
-                  }
-                : {}),
               loginUrl: `/login?return_to=${encodedReturnTo}`,
               logoutUrl: `/logout?return_to=${encodedReturnTo}`,
             },
