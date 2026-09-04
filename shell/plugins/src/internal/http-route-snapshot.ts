@@ -27,7 +27,7 @@ function readSnapshotProvider(
 ): HttpRouteSnapshotProvider | undefined {
   const value: unknown = Reflect.get(owner, PROVIDER_KEY);
   return typeof value === "function"
-    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Reflect.get returns unknown; the typeof check proves callability, which is the whole contract this provider slot has
+    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Reflect.get returns unknown and the typeof check establishes only callability; the signature comes from bindHttpRouteSnapshot being the sole writer and taking a typed provider
       (value as HttpRouteSnapshotProvider)
     : undefined;
 }

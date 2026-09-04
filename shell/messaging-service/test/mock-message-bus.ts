@@ -19,9 +19,6 @@ export interface MockMessageBusOptions {
 }
 
 /**
- * Create a mock message bus with all methods pre-configured.
- */
-/**
  * Re-apply a generic signature that `mock()` erased.
  *
  * A local copy of `@brains/test-utils`'s `genericSpy`: that package depends on
