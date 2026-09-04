@@ -6,7 +6,7 @@ import {
   type BrainAgentResult,
   type BrainCallOptions,
 } from "@brains/ai-service";
-import { AuthService, type AuthPrincipal } from "@brains/auth-service";
+import { AuthService } from "@brains/auth-service";
 import type { IConversationService } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
@@ -178,13 +178,10 @@ describe("canonical authenticated caller context", () => {
     services.push({ close: (): Promise<void> => agent.shutdown() });
     harness.setAgentService(agent);
 
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: (request): Promise<AuthPrincipal | undefined> =>
-          auth.resolveSession(request),
-      },
-    );
+    // The real auth service, registered the way a brain registers it, so the
+    // interface reaches it through the runtime rather than an injected seam.
+    shell.getAuthRegistry().register(auth);
+    const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
 
     await sendChat(plugin, anchorSession.cookie, "anchor-conversation");

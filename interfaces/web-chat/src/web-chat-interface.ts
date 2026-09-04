@@ -1,7 +1,4 @@
-import {
-  requireSameOriginJson,
-  type AuthPrincipal,
-} from "@brains/auth-service";
+import { requireSameOriginJson } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   type EditMessageRequest,
@@ -62,23 +59,6 @@ import { handleChatRequest as handleChatRouteRequest } from "./chat-route";
 
 const webChatInterfaceType = "web-chat";
 
-type AuthSessionResolver = (request: Request) => Promise<boolean>;
-type BrowserPrincipalResolver = (
-  request: Request,
-) => Promise<AuthPrincipal | undefined>;
-type PermissionLevelResolver = (
-  request: Request,
-) => Promise<UserPermissionLevel>;
-
-export interface WebChatDeps {
-  /** Override how an auth session is detected (used in tests). */
-  resolveAuthSession?: AuthSessionResolver;
-  /** Override authenticated principal resolution (used in tests). */
-  resolveAuthPrincipal?: BrowserPrincipalResolver;
-  /** Override the resolved caller permission level (used in tests). */
-  resolvePermissionLevel?: PermissionLevelResolver;
-}
-
 export class WebChatInterface extends MessageInterfacePlugin<
   WebChatConfig,
   WebChatConfigInput
@@ -86,26 +66,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
   private accessReader: BrowserAccessReader | undefined;
-  private readonly resolveAuthSession: AuthSessionResolver;
-  private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
-  /** Injected in tests; otherwise the runtime's registered auth. */
-  private readonly resolveAuthPrincipal: BrowserPrincipalResolver;
-  private readonly resolveCallerPermissionLevel:
-    PermissionLevelResolver | undefined;
 
-  constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
+  constructor(config: WebChatConfigInput = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
-    this.resolveAuthPrincipal =
-      deps.resolveAuthPrincipal ??
-      ((request): Promise<AuthPrincipal | undefined> =>
-        this.getContext().auth.getCaller()?.resolveSession(request) ??
-        Promise.resolve(undefined));
-    this.resolveAuthSessionOverride = deps.resolveAuthSession;
-    this.resolveAuthSession =
-      deps.resolveAuthSession ??
-      (async (request): Promise<boolean> =>
-        (await this.resolveBrowserAccess(request)).hasChatAccess);
-    this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
   }
 
   protected override async onRegister(
@@ -369,7 +332,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private async handleUploadRequest(request: Request): Promise<Response> {
     return handleUploadRouteRequest(request, {
-      resolveAuthSession: this.resolveAuthSession,
+      resolveAuthSession: (nextRequest) =>
+        this.access().hasSession(nextRequest),
       getUploadStore: () =>
         this.getContext().uploads.scoped(
           createWebChatUploadStoreScope(this.config.apiPath),
@@ -381,7 +345,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleUploadDownloadRouteRequest(request, {
-      resolveAuthSession: this.resolveAuthSession,
+      resolveAuthSession: (nextRequest) =>
+        this.access().hasSession(nextRequest),
       getUploadStore: () =>
         this.getContext().uploads.scoped(
           createWebChatUploadStoreScope(this.config.apiPath),
@@ -526,7 +491,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private async handleJobStatusRequest(request: Request): Promise<Response> {
     return handleJobStatusRouteRequest(request, {
-      resolveAuthSession: this.resolveAuthSession,
+      resolveAuthSession: (nextRequest) =>
+        this.access().hasSession(nextRequest),
       createAuthLoginRequiredResponse: (nextRequest) =>
         this.createAuthLoginRequiredResponse(nextRequest),
       jobs: this.getContext().jobs,
@@ -550,7 +516,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
    */
   private access(): BrowserAccessReader {
     this.accessReader ??= createBrowserAccess({
-      resolveAuthPrincipal: (request) => this.resolveAuthPrincipal(request),
+      resolveAuthPrincipal: (request) =>
+        this.getContext().auth.getCaller()?.resolveSession(request) ??
+        Promise.resolve(undefined),
       createAuthLoginResponse: (request) => {
         const authService = this.getContext().auth.getCaller();
         return (
@@ -562,12 +530,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
         );
       },
       conversations: this.getContext().conversations,
-      ...(this.resolveAuthSessionOverride
-        ? { resolveAuthSessionOverride: this.resolveAuthSessionOverride }
-        : {}),
-      ...(this.resolveCallerPermissionLevel
-        ? { resolvePermissionLevelOverride: this.resolveCallerPermissionLevel }
-        : {}),
     });
     return this.accessReader;
   }

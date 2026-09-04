@@ -4,10 +4,9 @@ import { createPluginHarness } from "../src/test/harness";
 import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
-  type AuthAuditEvent,
-  type AuthImplementation,
   type AuthPrincipal,
 } from "../src";
+import { createStubAuth } from "@brains/test-utils";
 
 /**
  * What `@brains/admin`, `@brains/studio` and `@brains/dashboard` do today by
@@ -24,66 +23,6 @@ const principal: AuthPrincipal = {
   permissionLevel: "admin",
   isAnchor: true,
 };
-
-const auditEvent: AuthAuditEvent = {
-  id: "e-1",
-  action: "operator.viewed",
-  createdAt: 0,
-};
-
-/**
- * The administration half is 19 operations this test never calls; a brain
- * that has auth has all of them, so the stub says so without spelling each
- * one out.
- */
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a Proxy over an interface has no structural shape to satisfy: `new Proxy` types its result from its target, and the target cannot be written without spelling out all 19 operations this test never calls
-const unusedAdministration = new Proxy(
-  {},
-  {
-    get: () => (): never => {
-      throw new Error("Administration is not exercised here");
-    },
-  },
-) as AuthImplementation;
-
-function stubAuth(): AuthImplementation {
-  return {
-    ...unusedAdministration,
-    resolveSession: async () => principal,
-    resolveBearerGrant: async () => undefined,
-    createAuthLoginResponse: () => new Response(null, { status: 302 }),
-    recordAuditEvent: async () => auditEvent,
-    queryAuditEvents: async () => ({
-      events: [auditEvent],
-      actions: [],
-      total: 1,
-    }),
-    getIssuer: () => "https://brain.test",
-    getA2APeerTrust: async () => undefined,
-    getA2ASigningKey: async () => ({
-      privateJwk: {
-        kty: "OKP",
-        crv: "Ed25519",
-        x: "x",
-        kid: "k",
-        use: "sig",
-        alg: "EdDSA",
-        d: "d",
-      },
-      keyId: "k",
-    }),
-    grantA2APeerTrust: async (input: {
-      domain: string;
-      keyFingerprint: string;
-    }) => ({
-      domain: input.domain,
-      keyFingerprint: input.keyFingerprint,
-      grantedLevel: "trusted",
-    }),
-    revokeA2APeerTrust: async () => undefined,
-    resolveIdentityAccess: async () => ({ state: "resolved", principal }),
-  };
-}
 
 describe("reaching auth through the runtime", () => {
   it("hands a service the registered implementation", async () => {
@@ -106,7 +45,10 @@ describe("reaching auth through the runtime", () => {
     if (!plugin) throw new Error("Service plugin was not created");
 
     const harness = createPluginHarness();
-    harness.getMockShell().getAuthRegistry().register(stubAuth());
+    harness
+      .getMockShell()
+      .getAuthRegistry()
+      .register(createStubAuth({ principal }));
     await harness.installPlugin(plugin);
     await plugin.ready?.();
 

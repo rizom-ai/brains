@@ -1,7 +1,4 @@
-import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  createExternalActorId,
-} from "@brains/contracts";
+import { AGENT_ACTION_REQUEST_CHANNEL } from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/auth-service";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
@@ -12,6 +9,7 @@ import type {
   WebRouteDefinition,
   WebRouteMethod,
 } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/plugins";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -20,6 +18,7 @@ import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
 import { WebChatInterface } from "../src";
 import { z } from "@brains/utils/zod";
+import { createStubAuth, createTestPrincipal } from "@brains/test-utils";
 
 /**
  * What the runtime upload endpoint puts on the wire.
@@ -232,38 +231,59 @@ function makeFixedConversationService(input: {
   };
 }
 
-function adminPlugin(): WebChatInterface {
-  return new WebChatInterface({}, { resolveAuthSession: async () => true });
-}
-
-function trustedPlugin(): WebChatInterface {
-  return new WebChatInterface(
-    {},
-    { resolvePermissionLevel: async () => "trusted" },
-  );
-}
-
-function trustedPrincipal(
+/**
+ * The interface with a signed-in browser, built the way production builds it.
+ *
+ * The three constructor seams these replaced (`resolveAuthSession`,
+ * `resolvePermissionLevel`, `resolveAuthPrincipal`) each bypassed the auth
+ * path rather than exercising it, so a package that stopped consulting auth
+ * would still have passed. Registering the principal drives the real path.
+ */
+function signedInPlugin(
+  target: PluginTestHarness<WebChatInterface>,
+  permissionLevel: UserPermissionLevel,
   overrides: Partial<AuthPrincipal> = {},
-): AuthPrincipal {
-  return {
+): WebChatInterface {
+  target
+    .getMockShell()
+    .getAuthRegistry()
+    .register(
+      createStubAuth({
+        principal: createTestPrincipal({ permissionLevel, ...overrides }),
+      }),
+    );
+  return new WebChatInterface();
+}
+
+/** A browser with no session at all. */
+function anonymousPlugin(
+  target: PluginTestHarness<WebChatInterface>,
+): WebChatInterface {
+  target.getMockShell().getAuthRegistry().register(createStubAuth());
+  return new WebChatInterface();
+}
+
+function adminPlugin(
+  target: PluginTestHarness<WebChatInterface>,
+): WebChatInterface {
+  return signedInPlugin(target, "admin");
+}
+
+function trustedPlugin(
+  target: PluginTestHarness<WebChatInterface>,
+): WebChatInterface {
+  return signedInPlugin(target, "trusted");
+}
+
+function trustedAuthPlugin(
+  target: PluginTestHarness<WebChatInterface>,
+): WebChatInterface {
+  return signedInPlugin(target, "trusted", {
     userId: "usr_collaborator",
     personId: "prsn_collaborator",
     displayName: "Collaborator",
-    role: "trusted",
-    status: "active",
-    permissionLevel: "trusted",
     canonicalId: "user:collaborator",
-    isAnchor: false,
-    ...overrides,
-  };
-}
-
-function trustedAuthPlugin(): WebChatInterface {
-  return new WebChatInterface(
-    {},
-    { resolveAuthPrincipal: async () => trustedPrincipal() },
-  );
+  });
 }
 
 function textDataUrl(content: string): string {
@@ -421,7 +441,7 @@ describe("WebChatInterface", () => {
   it("resolves attached Inbox context into a transient agent attachment", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const sourceReads: Array<{
       itemId: string;
@@ -507,7 +527,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: { "stored-context": [] },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const sourceReads: string[] = [];
     harness
@@ -556,7 +576,7 @@ describe("WebChatInterface", () => {
   it("fails closed when attached Inbox context cannot be resolved", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     harness
       .getMockShell()
@@ -633,7 +653,7 @@ describe("WebChatInterface", () => {
       }),
     );
     const sourceReads: string[] = [];
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     harness
       .getMockShell()
@@ -719,7 +739,7 @@ describe("WebChatInterface", () => {
   });
 
   it("fails context handoff closed before creating a conversation", async () => {
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
 
@@ -857,7 +877,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: { "web-session": [] },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     await harness.installPlugin(plugin);
@@ -927,7 +947,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: { "foreign-session": [] },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const received: unknown[] = [];
     harness.subscribe(AGENT_ACTION_REQUEST_CHANNEL, async (message) => {
@@ -954,7 +974,7 @@ describe("WebChatInterface", () => {
   });
 
   it("serves remote-agent chat JSON with server-derived Trusted permission", async () => {
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     const agent = createSpyAgentService({
       text: "Remote response",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -1023,7 +1043,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     await harness.installPlugin(plugin);
@@ -1069,7 +1089,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: { "remote-foreign": [] },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     await harness.installPlugin(plugin);
@@ -1112,7 +1132,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: { "remote-conversation": [] },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     const agent = createSpyAgentService(undefined, {
       text: "Remote confirmed",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
@@ -1144,21 +1164,18 @@ describe("WebChatInterface", () => {
         approvalId: "approval-1",
         context: {
           userPermissionLevel: "admin",
-          isAnchor: false,
+          isAnchor: true,
           interfaceType: "remote-agent",
           channelId: "remote-conversation",
           channelName: "Remote Agent",
           actor: {
             identity: {
-              kind: "external",
-              externalActorId: createExternalActorId(
-                "remote-agent",
-                "remote-agent:remote-conversation:browser-user",
-              ),
+              kind: "user",
+              userId: "usr_test",
             },
             interfaceType: "remote-agent",
             role: "user",
-            displayName: "Remote agent user",
+            displayName: "Test Operator",
           },
         },
       },
@@ -1166,10 +1183,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects remote-agent JSON requests without an auth session", async () => {
-    const plugin = new WebChatInterface(
-      {},
-      { resolveAuthSession: async (): Promise<boolean> => false },
-    );
+    const plugin = anonymousPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/agent/chat", "POST");
 
@@ -1190,7 +1204,7 @@ describe("WebChatInterface", () => {
   it("runs authenticated Trusted web chat at exact Trusted permission", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1250,7 +1264,7 @@ describe("WebChatInterface", () => {
     );
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1304,7 +1318,7 @@ describe("WebChatInterface", () => {
     );
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
 
     const response = await requireRoute(plugin, "/api/chat", "POST").handler(
@@ -1340,7 +1354,7 @@ describe("WebChatInterface", () => {
     );
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1370,13 +1384,9 @@ describe("WebChatInterface", () => {
   });
 
   it("denies suspended Trusted principals", async () => {
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: async (): Promise<AuthPrincipal> =>
-          trustedPrincipal({ status: "suspended" }),
-      },
-    );
+    const plugin = signedInPlugin(harness, "trusted", {
+      status: "suspended",
+    });
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1392,13 +1402,7 @@ describe("WebChatInterface", () => {
   });
 
   it("denies active Public principals", async () => {
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: async (): Promise<AuthPrincipal> =>
-          trustedPrincipal({ role: "public", permissionLevel: "public" }),
-      },
-    );
+    const plugin = signedInPlugin(harness, "public", { role: "public" });
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1415,15 +1419,17 @@ describe("WebChatInterface", () => {
 
   it("resolves the default browser principal once per request", async () => {
     let resolutionCount = 0;
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: async (): Promise<undefined> => {
+    harness
+      .getMockShell()
+      .getAuthRegistry()
+      .register({
+        ...createStubAuth(),
+        resolveSession: async (): Promise<undefined> => {
           resolutionCount += 1;
           return undefined;
         },
-      },
-    );
+      });
+    const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1439,7 +1445,7 @@ describe("WebChatInterface", () => {
   });
 
   it("returns 400 for malformed JSON on the chat endpoint", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1455,7 +1461,7 @@ describe("WebChatInterface", () => {
   });
 
   it("returns 400 for malformed JSON on the chat actions endpoint", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/actions", "POST");
 
@@ -1477,7 +1483,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: { "web-session": [] },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     await harness.installPlugin(plugin);
@@ -1511,7 +1517,7 @@ describe("WebChatInterface", () => {
         interfaceType: "web-chat",
         channelName: "Web Chat",
         userPermissionLevel: "admin",
-        isAnchor: false,
+        isAnchor: true,
         action: { type: "event", event: "NEXT", fromState: "welcome" },
       },
     ]);
@@ -1530,7 +1536,7 @@ describe("WebChatInterface", () => {
   });
 
   it("serves the guest chat page directly for Trusted users", async () => {
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/ask", "GET");
 
@@ -1584,7 +1590,7 @@ describe("WebChatInterface", () => {
   });
 
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/ask", "GET");
 
@@ -1605,7 +1611,7 @@ describe("WebChatInterface", () => {
   it("registers no playbook bootstrap route", async () => {
     // Fresh conversations open on the empty state; playbooks start through
     // explicit commands instead.
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
 
     const bootstrap = plugin
@@ -1676,7 +1682,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1720,7 +1726,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1780,7 +1786,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1836,7 +1842,7 @@ describe("WebChatInterface", () => {
       invalidateAgent: (): void => {},
     };
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1909,7 +1915,7 @@ describe("WebChatInterface", () => {
       invalidateAgent: (): void => {},
     };
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1960,7 +1966,7 @@ describe("WebChatInterface", () => {
       invalidateAgent: (): void => {},
     };
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2023,7 +2029,7 @@ describe("WebChatInterface", () => {
       invalidateAgent: (): void => {},
     };
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2072,7 +2078,7 @@ describe("WebChatInterface", () => {
       invalidateAgent: (): void => {},
     };
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2125,7 +2131,7 @@ describe("WebChatInterface", () => {
       invalidateAgent: (): void => {},
     };
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2168,7 +2174,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2228,7 +2234,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2278,7 +2284,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2326,7 +2332,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2379,7 +2385,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2409,7 +2415,7 @@ describe("WebChatInterface", () => {
   });
 
   it("serves generated PDF document attachments to Admins", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     harness.addEntities([
       {
         id: "deck-carousel",
@@ -2442,7 +2448,7 @@ describe("WebChatInterface", () => {
   });
 
   it("does not serve restricted document attachments to trusted callers", async () => {
-    const plugin = trustedPlugin();
+    const plugin = trustedPlugin(harness);
     harness.addEntities([
       {
         id: "restricted-deck",
@@ -2466,7 +2472,7 @@ describe("WebChatInterface", () => {
   });
 
   it("serves generated image attachments to Admins", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     harness.addEntities([
       {
         id: "mossy-robot",
@@ -2528,7 +2534,7 @@ describe("WebChatInterface", () => {
   });
 
   it("reports queued artifact job status to Trusted users", async () => {
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     const shell = harness.getMockShell();
     shell.jobs.getStatus = async (jobId: string): Promise<JobStatus> =>
       makeJobStatus(jobId, "processing");
@@ -2557,7 +2563,7 @@ describe("WebChatInterface", () => {
   });
 
   it("accepts Trusted multipart text uploads and returns a durable upload ref", async () => {
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2611,10 +2617,7 @@ describe("WebChatInterface", () => {
     const scopedHarness = createPluginHarness<WebChatInterface>({
       dataDir: join(root, "brain-data"),
     });
-    const plugin = new WebChatInterface(
-      {},
-      { resolveAuthSession: async (): Promise<boolean> => true },
-    );
+    const plugin = adminPlugin(scopedHarness);
     await scopedHarness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2648,7 +2651,7 @@ describe("WebChatInterface", () => {
   });
 
   it("serves stored multipart text uploads to Admins", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const downloadRoute = getRoute(plugin, "/api/chat/uploads", "GET");
@@ -2678,7 +2681,7 @@ describe("WebChatInterface", () => {
   });
 
   it("accepts and serves multipart image uploads to Admins", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const downloadRoute = getRoute(plugin, "/api/chat/uploads", "GET");
@@ -2748,7 +2751,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects unsupported multipart upload types", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2769,7 +2772,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects oversized multipart text uploads", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2790,7 +2793,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects oversized uploads via Content-Length before buffering", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2812,7 +2815,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects binary content uploaded under a text filename", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2835,7 +2838,7 @@ describe("WebChatInterface", () => {
   });
 
   it("prunes stale stored uploads when a new upload arrives", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
 
@@ -2874,7 +2877,7 @@ describe("WebChatInterface", () => {
   it("passes durable upload refs to the agent as native text attachments", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
     const chatRoute = getRoute(plugin, "/api/chat", "POST");
@@ -2927,7 +2930,7 @@ describe("WebChatInterface", () => {
   it("passes durable image upload refs to the agent as native file attachments", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
     const chatRoute = getRoute(plugin, "/api/chat", "POST");
@@ -2976,7 +2979,7 @@ describe("WebChatInterface", () => {
   it("rejects invalid durable upload refs", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3025,7 +3028,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3102,7 +3105,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     });
     harness.setAgentService(agent);
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3188,7 +3191,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3260,7 +3263,7 @@ describe("WebChatInterface", () => {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3320,7 +3323,7 @@ describe("WebChatInterface", () => {
   it("routes new user messages instead of replaying old approval responses", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3365,13 +3368,7 @@ describe("WebChatInterface", () => {
           channelId: "test-conversation",
           channelName: "Web Chat",
           actor: expect.objectContaining({
-            identity: {
-              kind: "external",
-              externalActorId: createExternalActorId(
-                "web-chat",
-                "web-chat:test-conversation:browser-user",
-              ),
-            },
+            identity: { kind: "user", userId: "usr_test" },
             interfaceType: "web-chat",
             role: "user",
           }),
@@ -3389,21 +3386,13 @@ describe("WebChatInterface", () => {
   it("propagates authenticated Admin and Anchor facets independently", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: async (): Promise<AuthPrincipal> => ({
-          userId: "usr_owner",
-          personId: "prsn_owner",
-          displayName: "Owner",
-          role: "admin",
-          status: "active",
-          permissionLevel: "admin",
-          canonicalId: "user:owner",
-          isAnchor: true,
-        }),
-      },
-    );
+    const plugin = signedInPlugin(harness, "admin", {
+      userId: "usr_owner",
+      personId: "prsn_owner",
+      displayName: "Owner",
+      canonicalId: "user:owner",
+      isAnchor: true,
+    });
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3440,7 +3429,7 @@ describe("WebChatInterface", () => {
   it("passes inline uploaded text file content to the agent as native attachments", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3485,7 +3474,7 @@ describe("WebChatInterface", () => {
   it("passes inline uploaded image file parts to the agent as native file attachments", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
     const image = pngBytes();
@@ -3529,7 +3518,7 @@ describe("WebChatInterface", () => {
   it("rejects unsupported uploaded file types", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3565,7 +3554,7 @@ describe("WebChatInterface", () => {
   it("rejects binary content in an inline text file part", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3605,7 +3594,7 @@ describe("WebChatInterface", () => {
   it("rejects oversized uploaded text files", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -3698,7 +3687,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
@@ -3743,7 +3732,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
@@ -3783,7 +3772,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
@@ -3819,7 +3808,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
@@ -3864,7 +3853,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = trustedAuthPlugin();
+    const plugin = trustedAuthPlugin(harness);
     await harness.installPlugin(plugin);
 
     const messages = await requireRoute(
@@ -3942,7 +3931,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
 
     const sessions = await requireRoute(
@@ -4030,7 +4019,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
@@ -4059,7 +4048,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
@@ -4074,7 +4063,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects session deletes without an id", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
@@ -4124,7 +4113,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
@@ -4157,7 +4146,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
@@ -4181,7 +4170,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
@@ -4233,7 +4222,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
@@ -4264,7 +4253,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
@@ -4365,7 +4354,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/messages", "GET");
 
@@ -4415,7 +4404,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/messages", "GET");
 
@@ -4447,7 +4436,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects malformed chat POSTs", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -4463,7 +4452,7 @@ describe("WebChatInterface", () => {
   });
 
   it("generates unique conversation ids across many calls", async () => {
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 

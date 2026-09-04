@@ -28,6 +28,11 @@ export { createMockProgressReporter } from "./mock-progress-reporter";
 export { stubMethod } from "./stub-method";
 export { createTestEntityAccess } from "./entity-access";
 export { createTestAppInfo } from "./app-info";
+export {
+  createStubAuth,
+  createTestPrincipal,
+  type StubAuthOptions,
+} from "./stub-auth";
 export { createTestJobContext } from "./job-context";
 export { fetchable, type FetchableDataSource } from "./fetchable-data-source";
 

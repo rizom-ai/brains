@@ -37,14 +37,6 @@ export interface BrowserAccessDeps {
    * deleting and rewriting conversations that it never makes.
    */
   conversations: Pick<IInterfaceConversationsNamespace, "get" | "start">;
-  /**
-   * Overrides used by tests, which stand in for a signed-in browser without
-   * standing up auth. Production leaves both unset.
-   */
-  resolveAuthSessionOverride?:
-    ((request: Request) => Promise<boolean>) | undefined;
-  resolvePermissionLevelOverride?:
-    ((request: Request) => Promise<UserPermissionLevel>) | undefined;
 }
 
 export interface BrowserAccessReader {
@@ -97,23 +89,9 @@ export function createBrowserAccess(
         };
       }
 
-      if (deps.resolvePermissionLevelOverride) {
-        const permissionLevel =
-          await deps.resolvePermissionLevelOverride(request);
-        return {
-          permissionLevel,
-          hasChatAccess:
-            permissionLevel === "admin" || permissionLevel === "trusted",
-        };
-      }
-
-      const hasChatAccess = deps.resolveAuthSessionOverride
-        ? await deps.resolveAuthSessionOverride(request)
-        : false;
-      return {
-        permissionLevel: hasChatAccess ? "admin" : "public",
-        hasChatAccess,
-      };
+      // No session, no chat. The page still renders, at public level, so it
+      // can show its own login door rather than a bare 403.
+      return { permissionLevel: "public", hasChatAccess: false };
     },
 
     async permissionLevel(request): Promise<UserPermissionLevel> {
