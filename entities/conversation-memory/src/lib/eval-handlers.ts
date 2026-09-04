@@ -387,15 +387,8 @@ function createEvalProjectionContext(params: {
     },
     entityService: {
       ...params.context.entityService,
-      // getEntity is declared `<T extends BaseEntity>(request) => Promise<T |
-      // null>`: the caller picks T and the implementation must return it. This
-      // stub can only ever return the one seeded summary, so no honest
-      // signature exists for it — a fixed value cannot satisfy an arbitrary T.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub; see the note above
-      getEntity: (async ({ entityType }: { entityType: string }) =>
-        entityType === "summary"
-          ? params.existing
-          : null) as EntityPluginContext["entityService"]["getEntity"],
+      getEntity: async ({ entityType }: { entityType: string }) =>
+        entityType === "summary" ? params.existing : null,
       listEntities: async () => [],
       deleteEntity: async (request: { entityType: string; id: string }) => {
         params.deleted.push(request);
@@ -436,17 +429,9 @@ function createSeededRetrievalContext(
     ...context,
     entityService: {
       ...context.entityService,
-      // Both promise the caller's chosen entity type, which a fixed set of
-      // seeded memories cannot satisfy. Scoped to these two members so the
-      // rest of the context is checked against the real type.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub; see the note above
-      search: (async () =>
-        searchResults) as EntityPluginContext["entityService"]["search"],
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub; see the note above
-      listEntities: (async ({ entityType }: { entityType: string }) =>
-        entities.filter(
-          (entity) => entity.entityType === entityType,
-        )) as EntityPluginContext["entityService"]["listEntities"],
+      search: async () => searchResults,
+      listEntities: async ({ entityType }: { entityType: string }) =>
+        entities.filter((entity) => entity.entityType === entityType),
     },
   };
   return seeded;

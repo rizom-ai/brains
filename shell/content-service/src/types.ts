@@ -146,9 +146,6 @@ export interface ContentService {
   ): string;
 
   /**
-   * Parse existing content using a template's formatter
-   */
-  /**
    * Parse existing content using a template's formatter. Returns unknown:
    * the formatter parses to the template's own shape.
    */

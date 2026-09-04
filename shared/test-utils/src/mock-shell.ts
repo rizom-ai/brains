@@ -794,8 +794,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
       entityTypes.add(type);
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a heterogeneous registry stores adapters for every entity type in one map
-      entityAdapters.set(type, adapter as EntityAdapter<BaseEntity>);
+      entityAdapters.set(type, adapter);
       entityTypeConfigs.set(type, config ?? {});
     },
     unregisterEntityType: (type): void => {
@@ -956,24 +955,22 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   };
 
   const contentService: IContentService = {
-    generateContent: async <T = unknown>(
+    generateContent: async (
       templateName: string,
       context?: Record<string, unknown>,
-    ) =>
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- generateContent is generic in its output with no schema to check against
-      ({
-        message: `Generated content for ${templateName}`,
-        summary: "Test summary",
-        description: "Mock generated description for testing",
-        topics: [],
-        sources: [],
-        ...context,
-      }) as T,
+    ) => ({
+      message: `Generated content for ${templateName}`,
+      summary: "Test summary",
+      description: "Mock generated description for testing",
+      topics: [],
+      sources: [],
+      ...context,
+    }),
     formatContent: <T = unknown>(_templateName: string, data: T) =>
       `Formatted: ${JSON.stringify(data)}`,
-    parseContent: <T = unknown>(_templateName: string, content: string): T =>
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- parseContent is generic in its output with no schema to check against
-      ({ parsed: content }) as T,
+    parseContent: (_templateName: string, content: string): unknown => ({
+      parsed: content,
+    }),
     getTemplate: (name: string): ContentTemplate<unknown> | null => {
       const template = templates.get(name);
       return template ? toContentTemplate(template) : null;

@@ -118,7 +118,7 @@ module.exports = {
     "@typescript-eslint/explicit-function-return-type": "warn",
     "@typescript-eslint/explicit-module-boundary-types": "warn",
     "@typescript-eslint/no-non-null-assertion": "error",
-    // "@typescript-eslint/no-unnecessary-type-assertion": "error", // Requires type info
+    "@typescript-eslint/no-unnecessary-type-assertion": "error",
     "@typescript-eslint/prefer-nullish-coalescing": "error",
     "@typescript-eslint/prefer-optional-chain": "warn",
     // `@ts-ignore` is banned outright: it suppresses whatever error happens to

@@ -6,32 +6,34 @@ type AnySchema = z.ZodType<unknown, unknown>;
  * Parse `value` through `schema`, preserving the schema's output type even when
  * `schema` arrives as a generic parameter.
  *
- * Why this exists: when a function is generic over `S extends ZodType<unknown,
- * unknown>`, TypeScript resolves `schema.parse` through that *constraint* and
- * returns `unknown`, while the declared return type stays the deferred
- * `z.output<S>`. The two never meet, so every such call site otherwise needs
- * its own assertion. The single assertion lives here instead — the runtime
- * value really is `z.output<S>`, because `schema.parse` produced it.
+ * Why this exists: at a call site whose schema is a deferred generic — say
+ * `definition.metadata` typed as `TDefinition["metadata"]` — TypeScript
+ * resolves `.parse` through the *constraint* and hands back
+ * `Record<string, unknown>`, not `z.output<TDefinition["metadata"]>`. Naming
+ * the schema type as a parameter here is what lets the two meet, so callers
+ * write `parseWithSchema<TDefinition["metadata"]>(schema, value)` instead of
+ * asserting.
+ *
+ * Inside this body the connection needs no assertion: with `S` bound,
+ * `schema.parse` already returns `z.output<S>`.
  */
 export function parseWithSchema<S extends AnySchema>(
   schema: S,
   value: unknown,
 ): z.output<S> {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: parse resolved through a generic constraint returns unknown, and the value really is z.output<S> because parse produced it
-  return schema.parse(value) as z.output<S>;
+  return schema.parse(value);
 }
 
 export type SafeParseResult<T> =
   { success: true; data: T } | { success: false; error: z.ZodError };
 
-/** `safeParse` counterpart to {@link parseWithSchema}, with the same rationale. */
+/** `safeParse` counterpart to {@link parseWithSchema}, for the same reason. */
 export function safeParseWithSchema<S extends AnySchema>(
   schema: S,
   value: unknown,
 ): SafeParseResult<z.output<S>> {
   const result = schema.safeParse(value);
   return result.success
-    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- same deferred-generic gap as parseWithSchema; safeParse produced this value
-      { success: true, data: result.data as z.output<S> }
+    ? { success: true, data: result.data }
     : { success: false, error: result.error };
 }
