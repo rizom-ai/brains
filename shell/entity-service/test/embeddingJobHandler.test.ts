@@ -1,3 +1,4 @@
+import { createMockEntityService, createTestEntity } from "../src/test/index";
 import { describe, expect, test, beforeEach } from "bun:test";
 import { createMockProgressReporter } from "@brains/test-utils";
 import { EmbeddingJobHandler } from "../src/handlers/embeddingJobHandler";
@@ -6,7 +7,6 @@ import type {
   EmbeddingJobData,
   BaseEntity,
 } from "../src/types";
-import { createMockEntityService, createTestEntity } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { mockEmbeddingService } from "./helpers/mock-services";
 

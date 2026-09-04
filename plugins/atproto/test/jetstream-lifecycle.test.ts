@@ -1,6 +1,7 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import { AtprotoPlugin } from "../src/plugin";
 import type {
   JetstreamSocket,

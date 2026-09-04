@@ -1,7 +1,7 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { ProjectAdapter } from "../src/adapters/project-adapter";
 import type { Project } from "../src/schemas/project";
-import { createTestEntity } from "@brains/test-utils";
 
 const DEFAULT_PROJECT_CONTENT = `---
 title: Test Project

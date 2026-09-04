@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import type { DataSourceRegistry, DataSource } from "@brains/entity-service";
+import type { DataSourceRegistry, DataSource } from "../index";
 
 /**
  * Options for configuring mock data source registry return values

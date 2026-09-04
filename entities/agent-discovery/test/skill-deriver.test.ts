@@ -1,10 +1,9 @@
-import { describe, it, expect, mock } from "bun:test";
 import {
   createMemoryRuntimeStateNamespace,
   createMockEntityPluginContext,
-  createSilentLogger,
-  waitUntil,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { describe, it, expect, mock } from "bun:test";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { deferred } from "@brains/utils/deferred";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";

@@ -1,7 +1,8 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { parseInstanceOverrides, resolve, type AppConfig } from "@brains/app";
 import { PluginManager, type Plugin } from "@brains/plugins";
-import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 function resolveProjectionConfig(): AppConfig {

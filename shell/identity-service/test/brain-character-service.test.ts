@@ -1,16 +1,16 @@
+import {
+  createMockEntityService,
+  createTestEntity,
+  spyOnEntityCreate,
+  spyOnEntityGet,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BrainCharacterService } from "../src/brain-character-service";
 import type {
   IEntityService,
   EntityMutationResult,
 } from "@brains/entity-service";
-import {
-  createSilentLogger,
-  createMockEntityService,
-  spyOnEntityGet,
-  spyOnEntityCreate,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { BrainCharacterEntity } from "../src/brain-character-schema";
 
 describe("BrainCharacterService", () => {

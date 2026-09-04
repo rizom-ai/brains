@@ -1,9 +1,9 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { createDirectorySyncTools } from "../../src/tools";
 import type { GitLogEntry, IGitSync } from "../../src/types";
 import { toolResultSchema, type Tool, type ToolContext } from "@brains/plugins";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 function parseToolResult(raw: unknown): z.output<typeof toolResultSchema> {

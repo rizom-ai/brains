@@ -1,3 +1,9 @@
+import {
+  createMockLogger,
+  genericSpy,
+  spyOnMembers,
+  type SpiedMembers,
+} from "@brains/test-utils";
 import { mock } from "bun:test";
 import {
   createEntityPluginContext,
@@ -5,17 +11,14 @@ import {
   type IEntityService,
   type BaseEntity,
   type ResolvedProfileSelection,
-} from "@brains/plugins";
+} from "../index";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishMediaData } from "@brains/contracts";
 import {
   createMockEntityService,
   type MockEntityServiceReturns,
-} from "./mock-entity-service";
-import { createMockLogger } from "./mock-logger";
+} from "@brains/entity-service/test";
 import { createMockShell } from "./mock-shell";
-import { genericSpy } from "./generic-spy";
-import { spyOnMembers, type SpiedMembers } from "./spy-on-members";
 
 /**
  * The namespaces this factory wraps in recording spies.

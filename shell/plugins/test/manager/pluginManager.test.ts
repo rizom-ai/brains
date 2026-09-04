@@ -1,15 +1,14 @@
+import { createMockShell } from "../../src/test/mock-shell";
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { deferred } from "@brains/utils/deferred";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
-import { caughtError } from "@brains/test-utils";
+import { caughtError, createSilentLogger } from "@brains/test-utils";
 import {
   PluginEvent,
   PluginManager,
   PluginStatus,
 } from "../../src/manager/pluginManager";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell } from "@brains/test-utils";
 
 import { match, P } from "ts-pattern";
 

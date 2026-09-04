@@ -8,8 +8,8 @@ import {
   RuntimeUploadRegistry,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
-} from "@brains/plugins";
-import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
+} from "../index";
+import { bindHttpRouteSnapshot } from "../internal/http-route-snapshot";
 import type {
   IShell,
   Plugin,
@@ -34,8 +34,8 @@ import type {
   IDaemonRegistry,
   IInsightsRegistry,
   InsightHandler,
-} from "@brains/plugins";
-import type { RegisteredHttpRoute } from "@brains/plugins/internal/http-routes";
+} from "../index";
+import type { RegisteredHttpRoute } from "../types/http-routes";
 import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
 import type {
@@ -98,7 +98,7 @@ import type {
   JudgeInput,
   AIGenerationSchema,
 } from "@brains/ai-service";
-import { createSilentLogger } from "./mock-logger";
+import { createSilentLogger } from "@brains/test-utils";
 
 /**
  * MockShell type — IShell plus test helper methods.

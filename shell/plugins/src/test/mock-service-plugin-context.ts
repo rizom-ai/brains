@@ -1,3 +1,9 @@
+import {
+  createMockLogger,
+  genericSpy,
+  spyOnMembers,
+  type SpiedMembers,
+} from "@brains/test-utils";
 import { mock } from "bun:test";
 import {
   createServicePluginContext,
@@ -7,16 +13,13 @@ import {
   type ResolvedProfileSelection,
   type MessageSendRequest,
   type MessageResponse,
-} from "@brains/plugins";
+} from "../index";
 import type { Logger } from "@brains/utils/logger";
 import {
   createMockEntityService,
   type MockEntityServiceReturns,
-} from "./mock-entity-service";
-import { createMockLogger } from "./mock-logger";
+} from "@brains/entity-service/test";
 import { createMockShell } from "./mock-shell";
-import { genericSpy } from "./generic-spy";
-import { spyOnMembers, type SpiedMembers } from "./spy-on-members";
 
 /**
  * Return value configuration for mock service plugin context methods

@@ -68,19 +68,24 @@ describe("workspace dependency declarations", () => {
     ).toEqual([]);
   });
 
-  test("the only imports that cannot be declared are the test-utils loop", async () => {
-    // `@brains/test-utils` depends on twenty packages and is imported by the
-    // tests of several of them. Declaring it there closes a loop that turbo
-    // refuses to build, so those imports rely on hoisting and have to until
-    // test-utils stops depending on what it mocks.
+  test("no import is one a manifest could not declare", async () => {
+    // A `would-cycle` finding is an import that cannot be honestly declared:
+    // the package it reaches for already depends on the package reaching, so
+    // adding the entry closes a loop turbo refuses to schedule. Such an import
+    // works only because the package manager hoists workspace packages to the
+    // root, and no manifest edit can fix it — the packages have to move.
     //
-    // Asserted rather than ignored: a second package growing this problem
-    // shows up here instead of being absorbed into an exception.
+    // `@brains/test-utils` used to be the whole of this list. It mocked every
+    // shell service, so it depended on every shell service, and the tests of
+    // those services imported it back. Each service now owns the mock of its
+    // own interface — `@brains/entity-service/test` and the rest — leaving
+    // test-utils a leaf on `@brains/utils` that anything may declare.
     const findings = await findUndeclaredWorkspaceImports(repositoryRoot);
-    const cannotDeclare = findings.filter(({ kind }) => kind === "would-cycle");
 
-    expect([...new Set(cannotDeclare.map(({ missing }) => missing))]).toEqual([
-      "@brains/test-utils",
-    ]);
+    expect(
+      findings
+        .filter(({ kind }) => kind === "would-cycle")
+        .map(({ package: name, missing }) => `${name} -> ${missing}`),
+    ).toEqual([]);
   });
 });

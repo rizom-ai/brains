@@ -1,3 +1,4 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type {
@@ -5,10 +6,7 @@ import type {
   SiteBuilderOptions,
 } from "../../src/types/site-builder-types";
 import type { ServicePluginContext } from "@brains/plugins";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { RouteRegistry } from "@brains/site-engine";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { IAnchorProfileService } from "@brains/plugins";

@@ -1,3 +1,4 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
@@ -5,7 +6,6 @@ import {
   SYSTEM_CHANNELS,
   type BaseEntity,
 } from "@brains/plugins";
-import { createMockEntityPluginContext } from "@brains/test-utils";
 import { registerTopicsDashboardWidget } from "../../src/lib/dashboard-widget";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 

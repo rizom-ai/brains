@@ -1,3 +1,4 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { createDirectorySyncTools } from "../src/tools";
 import type {
@@ -7,7 +8,6 @@ import type {
 } from "../src/types";
 import type { BatchResult } from "../src/lib/batch-operations";
 import type { ServicePluginContext } from "@brains/plugins";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { toolResultSchema, type Tool, type ToolContext } from "@brains/plugins";
 import {

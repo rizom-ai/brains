@@ -1,5 +1,5 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, mock } from "bun:test";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import { createSilentLogger } from "@brains/test-utils";

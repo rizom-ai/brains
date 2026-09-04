@@ -1,6 +1,6 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import type { ToolContext } from "@brains/plugins";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { createDirectorySyncTools } from "../../src/tools";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 

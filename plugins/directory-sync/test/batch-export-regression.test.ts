@@ -1,10 +1,8 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import { BatchOperationsManager } from "../src/lib/batch-operations";
-import {
-  createMockEntityService,
-  createMockServicePluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 /**
  * Regression test: queueSyncBatch should NOT create export operations.

@@ -1,9 +1,9 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect } from "bun:test";
 import {
   buildTopicExtractionPrompt,
   listExistingTopicTitles,
 } from "../../src/lib/extraction-prompt";
-import { createMockEntityService } from "@brains/test-utils";
 import { createMockTopicEntity } from "../fixtures/topic-entities";
 
 describe("extraction-prompt", () => {

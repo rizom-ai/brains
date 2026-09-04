@@ -1,3 +1,4 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   resolveImage,
@@ -9,7 +10,6 @@ import {
 } from "../src/lib/image-resolver";
 import type { Image } from "../src/schemas/image";
 import type { BaseEntity } from "@brains/entity-service";
-import { createMockShell } from "@brains/test-utils";
 
 // Minimal 1x1 pixel PNG (base64)
 const TINY_PNG_BASE64 =

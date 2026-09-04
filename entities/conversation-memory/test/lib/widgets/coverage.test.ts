@@ -1,7 +1,9 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
   type Conversation,
   type Message,
 } from "@brains/plugins";
@@ -11,8 +13,6 @@ import {
 } from "../../../src/lib/widgets/coverage";
 import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
-import { createMockEntityPluginContext } from "@brains/test-utils";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 

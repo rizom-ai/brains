@@ -5,7 +5,7 @@ import {
   type ToolConfirmation,
   type ToolErrorResponse,
   type ToolSuccessResponse,
-} from "@brains/mcp-service";
+} from "../index";
 import { z } from "@brains/utils/zod";
 
 /**

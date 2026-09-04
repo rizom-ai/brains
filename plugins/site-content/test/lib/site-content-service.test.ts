@@ -1,6 +1,6 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentService } from "../../src/lib/site-content-service";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import type { MessageSendRequest, ServicePluginContext } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/plugins";
 import { SiteContentOperations } from "../../src/lib/site-content-operations";

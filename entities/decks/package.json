@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/style-guide": "workspace:*",
     "@brains/test-utils": "workspace:*",

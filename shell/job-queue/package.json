@@ -14,6 +14,7 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/messaging-service": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/node": "^24.13.3",
@@ -23,7 +24,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./effect": "./src/effect.ts",
-    "./migrate": "./src/migrate.ts"
+    "./migrate": "./src/migrate.ts",
+    "./test": "./src/test/index.ts"
   },
   "main": "./src/index.ts",
   "private": true,

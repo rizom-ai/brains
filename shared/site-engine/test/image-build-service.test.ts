@@ -1,3 +1,4 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { markdownToHtml } from "@brains/ui-library";
 import { promises as fs, mkdtempSync } from "fs";
@@ -5,10 +6,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { ImageBuildService } from "../src/image-build-service";
 import { createTestPng } from "./helpers/test-png";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 /** Create a real PNG as a base64 data URL */
 async function createTestDataUrl(

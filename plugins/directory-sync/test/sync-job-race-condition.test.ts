@@ -1,11 +1,9 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type { ImportResult, ExportResult } from "../src/types";
 import type { BaseEntity } from "@brains/plugins";
-import {
-  createMockProgressReporter,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createMockProgressReporter } from "@brains/test-utils";
 
 /**
  * Test for race condition between import and export phases

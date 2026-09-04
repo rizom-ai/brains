@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { DirectorySync } from "../src/lib/directory-sync";
 import {
-  createSilentLogger,
   createMockEntityService,
   createTestEntity,
-} from "@brains/test-utils";
+} from "@brains/entity-service/test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { DirectorySync } from "../src/lib/directory-sync";
+import { createSilentLogger } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import {

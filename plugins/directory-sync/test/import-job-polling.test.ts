@@ -1,3 +1,4 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
@@ -5,10 +6,7 @@ import {
   CallbackProgressReporter,
   type ProgressReporter,
 } from "@brains/utils/progress";
-import {
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { waitForImportJobs } from "../src/lib/import-job-polling";
 import type { ProgressNotification } from "@brains/utils/progress";
 

@@ -1,3 +1,4 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import { runProcessOrThrow } from "@brains/utils/run-process";
 import type { IEmbeddingService } from "@brains/entity-service";
@@ -20,14 +21,10 @@ import {
 import { BunSchedulerBackend } from "@brains/scheduler";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import {
-  createMockJobQueueService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import type { ShellConfigInput } from "../src/config";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { Shell, type ShellDependencies } from "../src/shell";
-import { createTestDirectory } from "@brains/test-utils";
 
 interface TestDirectory {
   dir: string;

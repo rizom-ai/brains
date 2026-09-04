@@ -1,13 +1,12 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
-import { baseEntitySchema } from "@brains/plugins/test";
+import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdirSync, writeFileSync, mkdtempSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
-import { createTestEntity } from "@brains/test-utils";
 
 describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;

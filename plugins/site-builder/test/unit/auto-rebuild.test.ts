@@ -1,13 +1,12 @@
+import {
+  createMockServicePluginContext,
+  type MockServicePluginContext,
+} from "@brains/plugins/test";
 import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
 import { z } from "@brains/utils/zod";
 import { createTestConfig } from "../test-helpers";
-import {
-  createMockServicePluginContext,
-  genericSpy,
-  waitUntil,
-  type MockServicePluginContext,
-} from "@brains/test-utils";
+import { genericSpy, waitUntil } from "@brains/test-utils";
 
 /** The build payload these tests read off an enqueued job. */
 const buildJobDataSchema = z.looseObject({

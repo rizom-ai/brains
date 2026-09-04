@@ -1,3 +1,7 @@
+import {
+  createMockEntityService as createSharedEntityService,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import { createAgentCallTool } from "../src/client";
 import type {
@@ -5,10 +9,6 @@ import type {
   ToolResponse,
   BaseEntity,
 } from "@brains/plugins";
-import {
-  createMockEntityService as createSharedEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
 
 function isError(
   result: ToolResponse,

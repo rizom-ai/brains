@@ -1,3 +1,4 @@
+import { createMockAppInfo } from "@brains/plugins/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
@@ -9,7 +10,6 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "@brains/dashboard";
-import { createMockAppInfo } from "@brains/test-utils";
 import {
   ProximityMap,
   proximityMapScript,

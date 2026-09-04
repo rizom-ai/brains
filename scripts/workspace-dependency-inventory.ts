@@ -30,11 +30,10 @@ export interface UndeclaredImport {
   /**
    * Whether declaring it is possible.
    *
-   * `@brains/test-utils` depends on twenty packages and is imported by the
-   * tests of most of them. Declaring it there is not an omission anyone can
-   * fix by editing a manifest: it closes a loop, and turbo refuses to build a
-   * task graph with one. Those imports work on hoisting and have to, until
-   * test-utils stops depending on what it mocks.
+   * An import whose target already depends on the importer cannot be declared:
+   * the entry closes a loop, and turbo refuses to build a task graph with one.
+   * No manifest edit fixes that — the packages have to move — so it is
+   * reported apart from an ordinary omission rather than counted as one.
    */
   kind: "undeclared" | "would-cycle";
 }

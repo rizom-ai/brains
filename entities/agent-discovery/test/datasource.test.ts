@@ -1,11 +1,12 @@
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { AgentDataSource } from "../src/datasources/agent-datasource";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { createMockLogger, createMockShell } from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
+
 import { createTestAgent } from "./fixtures/agent";
 import { getTemplates } from "../src/lib/register-templates";
 

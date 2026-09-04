@@ -1,3 +1,5 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -7,9 +9,7 @@ import {
 } from "../src/handlers/noteGenerationJobHandler";
 import {
   createSilentLogger,
-  createMockEntityPluginContext,
   createMockProgressReporter,
-  createTestEntity,
 } from "@brains/test-utils";
 import type { Note } from "../src/schemas/note";
 

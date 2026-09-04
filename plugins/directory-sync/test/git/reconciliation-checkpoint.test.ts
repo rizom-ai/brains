@@ -1,13 +1,13 @@
+import {
+  createMockServicePluginContext,
+  createMockShell,
+} from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { runGit } from "./real-git";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServicePluginContext } from "@brains/plugins";
-import {
-  createMockServicePluginContext,
-  createMockShell,
-} from "@brains/test-utils";
 import { GitReconciliationService } from "../../src/lib/git-reconciliation";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type {

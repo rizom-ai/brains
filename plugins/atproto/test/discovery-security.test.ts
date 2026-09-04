@@ -1,6 +1,7 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext, type BaseEntity } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_CARD_DISCOVERED,

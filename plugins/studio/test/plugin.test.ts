@@ -1,8 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { createTempDataDir } from "@brains/plugins/test";
+import {
+  createMockShell,
+  createTempDataDir,
+  type MockShell,
+} from "@brains/plugins/test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+
 import { studioPlugin } from "../src";
 
 function createStudioTestShell(): MockShell {

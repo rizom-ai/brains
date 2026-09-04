@@ -1,9 +1,7 @@
+import { createMockShell as createBaseMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
-import {
-  createMockShell as createBaseMockShell,
-  waitUntil,
-} from "@brains/test-utils";
+import { waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,

@@ -1,3 +1,4 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
@@ -7,10 +8,7 @@ import {
   type SiteImageLookup,
   type SiteImageMap,
 } from "@brains/site-engine";
-import {
-  createMockServicePluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
 import { promises as fs } from "fs";

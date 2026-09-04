@@ -1,9 +1,5 @@
 import { mock } from "bun:test";
-import type {
-  Batch,
-  BatchJobStatus,
-  IBatchJobManager,
-} from "@brains/job-queue";
+import type { Batch, BatchJobStatus, IBatchJobManager } from "../index";
 
 /**
  * Options for configuring mock BatchJobManager behavior

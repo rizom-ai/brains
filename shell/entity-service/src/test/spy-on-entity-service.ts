@@ -1,12 +1,12 @@
+import { genericSpy } from "@brains/test-utils";
 import { spyOn, type Mock } from "bun:test";
-import { genericSpy } from "./generic-spy";
 import type {
   BaseEntity,
   CreateEntityRequest,
   EntityMutationResult,
   GetEntityRequest,
   IEntityService,
-} from "@brains/entity-service";
+} from "../index";
 
 /**
  * Spy on `getEntity`, typed at its `T = BaseEntity` instantiation.

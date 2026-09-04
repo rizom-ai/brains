@@ -1,3 +1,5 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { NewsletterDataSource } from "../src/entity/datasources/newsletter-datasource";
 import { newsletterDetailSchema } from "../src/entity/templates/newsletter-detail";
@@ -5,12 +7,7 @@ import { newsletterListSchema } from "../src/entity/templates/newsletter-list";
 import type { Newsletter } from "../src/entity/schemas/newsletter";
 import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import {
-  createMockLogger,
-  createMockShell,
-  createTestEntity,
-} from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
 
 describe("NewsletterDataSource", () => {
   let datasource: NewsletterDataSource;

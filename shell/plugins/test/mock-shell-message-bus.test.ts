@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createMockShell } from "../src/mock-shell";
+import { createMockShell } from "../src/test/mock-shell";
 
 describe("mock shell message bus", () => {
   const schema = z.object({ id: z.string() });

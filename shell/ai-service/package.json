@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
@@ -29,7 +30,7 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./test": "./test/mock.ts",
+    "./test": "./src/test/index.ts",
     "./env-schema": "./src/env-schema.ts"
   },
   "files": [
