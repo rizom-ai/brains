@@ -1,7 +1,7 @@
 import { SITE_CHANNELS } from "@brains/contracts";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { ProgressCallback } from "@brains/utils/progress";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
 import { randomUUID } from "crypto";
 import { join } from "path";
@@ -54,7 +54,7 @@ export async function runSiteBuild(
 ): Promise<BuildResult> {
   const parsedOptions = SiteBuilderOptionsSchema.parse(options.buildOptions);
 
-  const reporter = ProgressReporter.from(options.progress);
+  const reporter = CallbackProgressReporter.from(options.progress);
   const warnings: string[] = [];
   const diagnostics: SiteBuildDiagnostic[] = [];
   const outputLifecycle =

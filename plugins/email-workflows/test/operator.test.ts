@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
+import type {
+  BaseEntity,
+  EntitySchema,
+  ListEntitiesRequest,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
@@ -138,10 +143,18 @@ describe("mail triage operator service", () => {
     const entityService = harness.getEntityService();
     const originalList = entityService.listEntities.bind(entityService);
     const visibilityScopes: unknown[] = [];
-    const trackingList: typeof entityService.listEntities = (request) => {
+    function trackingList(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+    function trackingList<T extends BaseEntity>(
+      request: ListEntitiesRequest,
+      schema: EntitySchema<T>,
+    ): Promise<T[]>;
+    function trackingList(
+      request: ListEntitiesRequest,
+      schema?: EntitySchema<BaseEntity>,
+    ): Promise<BaseEntity[]> {
       visibilityScopes.push(request.options?.filter?.visibilityScope);
-      return originalList(request);
-    };
+      return schema ? originalList(request, schema) : originalList(request);
+    }
     entityService.listEntities = trackingList;
     const operator = new MailTriageOperatorService(
       harness.getServiceContext("email-workflows"),

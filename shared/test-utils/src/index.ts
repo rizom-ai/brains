@@ -4,11 +4,9 @@
  * Shared test utilities for the brains project.
  * Provides mock builders and helpers to reduce test boilerplate.
  *
- * Every factory is checked against the type it stands in for — `satisfies` on
- * the literal, `PublicSurface<T>` for class types, `genericSpy` where bun's
- * `mock()` erases type parameters — so interface drift fails to compile here
- * rather than leaving a silently stale mock. Test files need no casts of
- * their own.
+ * Every factory is declared against the interface it stands in for, so
+ * interface drift fails to compile here rather than leaving a silently stale
+ * mock. Test files need no casts of their own.
  */
 
 // Logger utilities
@@ -29,6 +27,7 @@ export {
 export { createMockProgressReporter } from "./mock-progress-reporter";
 export { stubMethod } from "./stub-method";
 export { createTestEntityAccess } from "./entity-access";
+export { createTestAppInfo } from "./app-info";
 export { createTestJobContext } from "./job-context";
 export { fetchable, type FetchableDataSource } from "./fetchable-data-source";
 
@@ -131,6 +130,24 @@ export { waitUntil, type WaitUntilOptions } from "./wait-until";
 
 export { spyOnEntityGet, spyOnEntityCreate } from "./spy-on-entity-service";
 export { genericSpy } from "./generic-spy";
+export { ProcessExited, expectProcessExit } from "./process-exit";
+
+// Check a caught value is an Error rather than asserting it into one
+export { caughtError } from "./caught-error";
+
+// A working adapter for a type a test only needs registered
+export {
+  createTestEntityAdapter,
+  type TestEntityAdapterOptions,
+} from "./test-entity-adapter";
+
+// Narrow a tool result to a branch of ToolResponse by parsing, not asserting
+export {
+  expectToolSuccess,
+  expectToolError,
+  expectToolConfirmation,
+  expectConfirmationArgs,
+} from "./tool-response";
 
 // Semantic renderer-output comparison
 export {

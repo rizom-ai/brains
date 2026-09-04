@@ -3,6 +3,7 @@ import type { JobDataSchema } from "@brains/job-queue";
 import type { BaseEntity } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
+
 import { getErrorMessage } from "@brains/utils/error";
 import {
   generateMarkdown,
@@ -111,10 +112,10 @@ function withoutStubLifecycleFields(
  *   }
  *
  *   protected async generate(data: NoteJobData): Promise<GeneratedContent> {
- *     const generated = await this.context.ai.generate<{ title: string; body: string }>({
- *       prompt: data.prompt,
- *       templateName: "note:generation",
- *     });
+ *     const generated = await this.context.ai.generate(
+ *       { prompt: data.prompt, templateName: "note:generation" },
+ *       z.object({ title: z.string(), body: z.string() }),
+ *     );
  *     const title = data.title ?? generated.title;
  *     return {
  *       id: title,
@@ -258,16 +259,16 @@ export abstract class BaseGenerationJobHandler<
         message: `${generatedForSave.title ?? this.entityType} created successfully`,
       });
 
-      return {
+      return this.toResult({
         success: true,
         entityId: result.entityId,
         ...generatedForSave.resultExtras,
-      } as TResult;
+      });
     } catch (error) {
       if (error instanceof GenerationFailure) {
         await this.markPreallocatedStubFailed(data, error.message);
         await this.onGenerationFailure(data, error.message);
-        return { success: false, error: error.message } as TResult;
+        return this.toResult({ success: false, error: error.message });
       }
 
       const errorMessage = getErrorMessage(error);
@@ -279,8 +280,23 @@ export abstract class BaseGenerationJobHandler<
 
       await this.markPreallocatedStubFailed(data, errorMessage);
       await this.onGenerationFailure(data, errorMessage);
-      return JobResult.failure(error) as TResult;
+      return this.toResult(JobResult.failure(error));
     }
+  }
+
+  /**
+   * Widen a common generation result to the subclass's TResult.
+   *
+   * Irreducible here: TResult is chosen by the subclass, and its extra members
+   * arrive through `resultExtras`, a Record<string, unknown>. TypeScript cannot
+   * prove that spreading an untyped bag onto the shared fields reconstructs a
+   * generic TResult. Eliminating it means moving result construction into each
+   * subclass, where TResult is concrete — a change to the handler contract
+   * across eight packages, not a local fix.
+   */
+  private toResult(result: GenerationResult): TResult {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: irreducible without moving result construction into all eight subclasses
+    return result as TResult;
   }
 
   private applyPreallocatedEntityId(

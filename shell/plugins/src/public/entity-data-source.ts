@@ -4,6 +4,7 @@ import type {
   BaseEntity,
   DataSource,
   DataSourceSchema,
+  EntitySchema,
   IEntityService,
   ListOptions,
   PaginationInfo,
@@ -43,7 +44,7 @@ export interface EntityDataSourceDefinition<
   readonly id: string;
   readonly name: string;
   readonly description: string;
-  readonly config: EntityDataSourceConfig;
+  readonly config: EntityDataSourceConfig<TEntity>;
   transform(entity: TEntity): TTransformed;
   list(
     items: TTransformed[],
@@ -82,6 +83,8 @@ export function defineEntityDataSource<
   readonly name: string;
   readonly description: string;
   readonly entityType: string;
+  /** Schema for entities of `entityType`; reads are parsed with it. */
+  readonly entitySchema: EntitySchema<TEntity>;
   readonly defaultSort: SortField[];
   readonly defaultLimit?: number | undefined;
   readonly lookupField?: "slug" | "id" | undefined;
@@ -113,6 +116,7 @@ export function defineEntityDataSource<
     ...(definition.filter ? { filter: definition.filter } : {}),
     config: {
       entityType: definition.entityType,
+      entitySchema: definition.entitySchema,
       defaultSort: definition.defaultSort,
       ...(definition.defaultLimit === undefined
         ? {}
@@ -140,15 +144,37 @@ export function defineEntityDataSource<
  * service itself reaches the projection store and cannot be published;
  * these two methods take and return plain data.
  */
-export interface EntityQueryReader {
-  listEntities<T extends BaseEntity>(request: {
+/**
+ * The two entity reads, as a structural slice a package can name.
+ *
+ * Six packages had each written this pair out by hand to avoid depending on
+ * the entity service, and every change to the read signatures had to be made
+ * six times. Naming it once is what keeps them in step.
+ *
+ * Without a schema these read back the registered `BaseEntity` view; pass the
+ * schema that proves the shape to get a parsed `T`, rather than a bare type
+ * parameter nothing checked.
+ */
+export interface EntityReads {
+  listEntities(request: {
     entityType: string;
     options?: ListOptions;
-  }): Promise<T[]>;
-  getEntity<T extends BaseEntity>(request: {
+  }): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  getEntity(request: {
     entityType: string;
     id: string;
-  }): Promise<T | null>;
+  }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+}
+
+export interface EntityQueryReader extends EntityReads {
   /** Entity types currently registered, for sources that span them. */
   getEntityTypes(): string[];
   /**
@@ -224,15 +250,43 @@ function entityQueryReader(entityService: {
   getEntityTypes: IEntityService["getEntityTypes"];
   projectSemanticSpace: IEntityService["projectSemanticSpace"];
 }): EntityQueryReader {
+  async function listEntities(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<BaseEntity[]>;
+  async function listEntities<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntities<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    return schema
+      ? entityService.listEntities(request, schema)
+      : entityService.listEntities(request);
+  }
+
+  async function getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+  async function getEntity<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntity<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    return schema
+      ? entityService.getEntity(request, schema)
+      : entityService.getEntity(request);
+  }
+
   return {
-    listEntities: <T extends BaseEntity>(request: {
-      entityType: string;
-      options?: ListOptions;
-    }): Promise<T[]> => entityService.listEntities<T>(request),
-    getEntity: <T extends BaseEntity>(request: {
-      entityType: string;
-      id: string;
-    }): Promise<T | null> => entityService.getEntity<T>(request),
+    listEntities,
+    getEntity,
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
     project: (
       request: ProjectSemanticSpaceRequest,

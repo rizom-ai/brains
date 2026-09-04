@@ -21,19 +21,25 @@ export const blogEvals: EntityEvalDeclaration = {
   generatePost: async (input, { ai, entities, template }) => {
     const parsed = generatePostInputSchema.parse(input);
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
-    return ai.generate<{ title: string; content: string; excerpt: string }>({
-      prompt: `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`,
-      templateName: template("generation"),
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
+    return ai.generate(
+      {
+        prompt: `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`,
+        templateName: template("generation"),
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      },
+      z.object({ title: z.string(), content: z.string(), excerpt: z.string() }),
+    );
   },
   generateExcerpt: async (input, { ai, template }) => {
     const parsed = generateExcerptInputSchema.parse(input);
-    return ai.generate<{ excerpt: string }>({
-      prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-      templateName: template("excerpt"),
-      representedIdentity: "none",
-    });
+    return ai.generate(
+      {
+        prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+        templateName: template("excerpt"),
+        representedIdentity: "none",
+      },
+      z.object({ excerpt: z.string() }),
+    );
   },
 };

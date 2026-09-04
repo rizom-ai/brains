@@ -3,7 +3,10 @@ import {
   buildKnowledgeMapData,
   knowledgeMapDataSchema,
 } from "../src/knowledge-map-data";
-import type { KnowledgeMapDataContext } from "../src/knowledge-map-data";
+import type {
+  KnowledgeMapDataContext,
+  ProjectedPoint,
+} from "../src/knowledge-map-data";
 
 /* The data builder projects the whole
    corpus (centerless 2D), turns topics into zones, and files each entity into
@@ -11,41 +14,41 @@ import type { KnowledgeMapDataContext } from "../src/knowledge-map-data";
    members). */
 
 function makeContext(): KnowledgeMapDataContext {
-  const points = [
+  const points: ProjectedPoint[] = [
     {
       entityId: "future-of-work",
       entityType: "topic",
-      coordinates: [0, 0] as [number, number],
+      coordinates: [0, 0],
       distanceToOrigin: 0.2,
     },
     {
       entityId: "workshops",
       entityType: "topic",
-      coordinates: [10, 0] as [number, number],
+      coordinates: [10, 0],
       distanceToOrigin: 0.3,
     },
     {
       entityId: "play-essay",
       entityType: "post",
-      coordinates: [1, 0.5] as [number, number],
+      coordinates: [1, 0.5],
       distanceToOrigin: 0.25,
     },
     {
       entityId: "team-assessment",
       entityType: "skill",
-      coordinates: [9, 0.4] as [number, number],
+      coordinates: [9, 0.4],
       distanceToOrigin: 0.35,
     },
     {
       entityId: "blog-excerpt",
       entityType: "prompt",
-      coordinates: [5, 8] as [number, number],
+      coordinates: [5, 8],
       distanceToOrigin: 0.5,
     },
     {
       entityId: "cococo",
       entityType: "deck",
-      coordinates: [20, 15] as [number, number],
+      coordinates: [20, 15],
       distanceToOrigin: 0.7,
     },
   ];
@@ -149,41 +152,41 @@ describe("buildKnowledgeMapData", () => {
     // normalization would crush the knot into a corner; the builder must
     // spread it while keeping neighborhoods intact.
     const context = makeContext();
-    const clump = [
+    const clump: ProjectedPoint[] = [
       {
         entityId: "future-of-work",
         entityType: "topic",
-        coordinates: [0.01, 0.02] as [number, number],
+        coordinates: [0.01, 0.02],
         distanceToOrigin: 0.2,
       },
       {
         entityId: "workshops",
         entityType: "topic",
-        coordinates: [0.03, 0.01] as [number, number],
+        coordinates: [0.03, 0.01],
         distanceToOrigin: 0.2,
       },
       {
         entityId: "play-essay",
         entityType: "post",
-        coordinates: [0.02, 0.03] as [number, number],
+        coordinates: [0.02, 0.03],
         distanceToOrigin: 0.2,
       },
       {
         entityId: "team-assessment",
         entityType: "skill",
-        coordinates: [0.04, 0.04] as [number, number],
+        coordinates: [0.04, 0.04],
         distanceToOrigin: 0.2,
       },
       {
         entityId: "blog-excerpt",
         entityType: "prompt",
-        coordinates: [0.02, 0.01] as [number, number],
+        coordinates: [0.02, 0.01],
         distanceToOrigin: 0.2,
       },
       {
         entityId: "cococo",
         entityType: "deck",
-        coordinates: [8, 9] as [number, number],
+        coordinates: [8, 9],
         distanceToOrigin: 0.9,
       },
     ];

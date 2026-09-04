@@ -31,7 +31,12 @@ export interface BrowserAccessDeps {
   resolveAuthPrincipal(request: Request): Promise<AuthPrincipal | undefined>;
   /** The 401 auth wants sent, which differs by how login is configured. */
   createAuthLoginResponse(request: Request): Response;
-  conversations: IInterfaceConversationsNamespace;
+  /**
+   * Only the two reads this uses: a browser gate looks a conversation up and
+   * starts one, and asking for the whole namespace would be a claim on
+   * deleting and rewriting conversations that it never makes.
+   */
+  conversations: Pick<IInterfaceConversationsNamespace, "get" | "start">;
   /**
    * Overrides used by tests, which stand in for a signed-in browser without
    * standing up auth. Production leaves both unset.

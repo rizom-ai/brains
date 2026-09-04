@@ -6,7 +6,6 @@ import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
 } from "../../src";
-import type { Plugin } from "../../src";
 
 const sighting = defineEntity({
   type: "sighting",
@@ -32,7 +31,7 @@ describe("notes one package's plugins keep", () => {
         version: "0.1.0",
       },
     );
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       await harness.installPlugin(plugin);
     }
 

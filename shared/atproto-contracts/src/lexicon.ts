@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { isKeyOf, objectEntries } from "@brains/utils/object-keys";
 import cardLexiconJson from "./lexicons/ai.rizom.brain.card.json";
 import deckLexiconJson from "./lexicons/ai.rizom.brain.deck.json";
 import linkLexiconJson from "./lexicons/ai.rizom.brain.link.json";
@@ -166,25 +167,24 @@ export function listCanonicalAtprotoLexicons(): AtprotoLexicon[] {
 export function getCanonicalAtprotoLexicon(
   id: string,
 ): AtprotoLexicon | undefined {
-  if (!(id in canonicalAtprotoLexicons)) return undefined;
-  return canonicalAtprotoLexicons[id as CanonicalAtprotoLexiconId];
+  if (!isKeyOf(canonicalAtprotoLexicons, id)) return undefined;
+  return canonicalAtprotoLexicons[id];
 }
 
 export function getCanonicalAtprotoLexiconMetadata(
   id: string,
 ): AtprotoLexiconMetadata | undefined {
-  if (!(id in canonicalAtprotoLexiconMetadata)) return undefined;
-  const canonicalId = id as CanonicalAtprotoLexiconId;
+  if (!isKeyOf(canonicalAtprotoLexiconMetadata, id)) return undefined;
   return {
-    id: canonicalId,
-    ...canonicalAtprotoLexiconMetadata[canonicalId],
+    id,
+    ...canonicalAtprotoLexiconMetadata[id],
   };
 }
 
 export function listCanonicalAtprotoLexiconMetadata(): AtprotoLexiconMetadata[] {
-  return Object.entries(canonicalAtprotoLexiconMetadata).map(
+  return objectEntries(canonicalAtprotoLexiconMetadata).map(
     ([id, metadata]) => ({
-      id: id as CanonicalAtprotoLexiconId,
+      id,
       ...metadata,
     }),
   );

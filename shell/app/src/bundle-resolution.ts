@@ -4,6 +4,8 @@ import {
   type CapabilityBundleDefinition,
 } from "./bundle-definition";
 import type { PluginConfig } from "./brain-definition";
+import { clonePlainData } from "@brains/utils/clone";
+import { isPlainRecord } from "@brains/utils/predicates";
 
 export interface BundleSelectionInput {
   catalogIds: readonly string[];
@@ -45,29 +47,6 @@ interface ConfigLeafNode {
 
 type ConfigNode = ConfigObjectNode | ConfigLeafNode;
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-
-  const prototype = Object.getPrototypeOf(value) as unknown;
-  return prototype === Object.prototype || prototype === null;
-}
-
-function cloneValue<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneValue(item)) as T;
-  }
-
-  if (isPlainRecord(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, cloneValue(item)]),
-    ) as T;
-  }
-
-  return value;
-}
-
 function valuesEqual(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true;
 
@@ -93,33 +72,41 @@ function valuesEqual(left: unknown, right: unknown): boolean {
   return false;
 }
 
+function configObjectNode(
+  value: Record<string, unknown>,
+  source: string,
+): ConfigObjectNode {
+  return {
+    kind: "object",
+    sources: new Set([source]),
+    children: new Map(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        configNode(item, source),
+      ]),
+    ),
+  };
+}
+
 function configNode(value: unknown, source: string): ConfigNode {
-  if (isPlainRecord(value)) {
-    return {
-      kind: "object",
-      sources: new Set([source]),
-      children: new Map(
-        Object.entries(value).map(([key, item]) => [
-          key,
-          configNode(item, source),
-        ]),
-      ),
-    };
-  }
+  if (isPlainRecord(value)) return configObjectNode(value, source);
 
   return {
     kind: "leaf",
     sources: new Set([source]),
-    value: cloneValue(value),
+    value: clonePlainData(value),
   };
 }
 
-function configNodeValue(node: ConfigNode): unknown {
-  if (node.kind === "leaf") return cloneValue(node.value);
-
+function configObjectNodeValue(node: ConfigObjectNode): PluginConfig {
   return Object.fromEntries(
     [...node.children].map(([key, child]) => [key, configNodeValue(child)]),
   );
+}
+
+function configNodeValue(node: ConfigNode): unknown {
+  if (node.kind === "leaf") return clonePlainData(node.value);
+  return configObjectNodeValue(node);
 }
 
 function collectSources(node: ConfigNode): Set<string> {
@@ -318,10 +305,7 @@ function composeConfig(
     for (const contribution of definition.config ?? []) {
       if (activeMembers && !activeMembers.has(contribution.member)) continue;
 
-      const incoming = configNode(
-        contribution.value,
-        definition.id,
-      ) as ConfigObjectNode;
+      const incoming = configObjectNode(contribution.value, definition.id);
       const existing = configs.get(contribution.member);
       if (!existing) {
         configs.set(contribution.member, incoming);
@@ -341,7 +325,15 @@ function composeConfig(
         incomingSource: definition.id,
         declaredOverride: contribution.overrides,
       });
-      configs.set(contribution.member, merged.node as ConfigObjectNode);
+      // Merging two object nodes returns an object node — mergeConfigNodes
+      // takes its first branch when both sides are objects. Checked rather
+      // than asserted so a future change to that branch fails loudly.
+      if (merged.node.kind !== "object") {
+        throw new Error(
+          `Merging config objects for member "${contribution.member}" produced a leaf`,
+        );
+      }
+      configs.set(contribution.member, merged.node);
 
       if (
         requireUsedOverrides &&
@@ -429,9 +421,7 @@ export function resolveBundleSelection(
   const configByMember = Object.fromEntries(
     activeMembers.flatMap((member) => {
       const config = configNodes.get(member);
-      return config
-        ? [[member, configNodeValue(config) as PluginConfig] as const]
-        : [];
+      return config ? [[member, configObjectNodeValue(config)] as const] : [];
     }),
   );
 
@@ -441,7 +431,7 @@ export function resolveBundleSelection(
       .map(({ member, config, overrides }) => ({
         bundleId: definition.id,
         member,
-        config: cloneValue(config),
+        config: clonePlainData(config),
         ...(overrides ? { overrides } : {}),
       })),
   );

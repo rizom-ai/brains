@@ -71,9 +71,9 @@ export function parseMemoryProjectionEnvelope(
   if (!encoded) return null;
 
   try {
-    const decoded = JSON.parse(
+    const decoded: unknown = JSON.parse(
       Buffer.from(encoded, "base64url").toString("utf8"),
-    ) as unknown;
+    );
     const parsed = memoryProjectionEnvelopeSchema.safeParse(decoded);
     return parsed.success ? parsed.data : null;
   } catch {

@@ -336,9 +336,12 @@ export {
   type EntityDataSourceDefinition,
   type EntityDetailContext,
   type EntityQueryReader,
+  type EntityReads,
 } from "./public/entity-data-source";
 export {
   defineEntity,
+  definitionEntitySchema,
+  parseDefinitionEntity,
   frontmatterInContent,
   defineEntityDashboardWidget,
   defineEntityPackage,
@@ -513,6 +516,10 @@ export type {
   EntityInput,
   EntitySchema,
   EntitySchemaParser,
+  EntitySearchRequest,
+  GetEntityRequest,
+  UpdateEntityRequest,
+  ListEntitiesRequest,
   BaseEntityFrontmatterSchema,
   EntityMutationResult,
   EntityTypeConfig,
@@ -523,6 +530,7 @@ export type {
   EntityBulkCoordination,
   DurableBulkMutationBatch,
   DurableBulkMutationChildRef,
+  DurableBulkMutationCoordinator,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
   SemanticSpaceDistanceRange,
@@ -531,6 +539,8 @@ export type {
   SemanticSpacePoint,
   SemanticSpaceProjection,
   SearchResult,
+  ListOptions,
+  SearchOptions,
 } from "@brains/entity-service";
 export {
   durableBulkMutationChildRefSchema,

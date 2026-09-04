@@ -1330,7 +1330,10 @@ const messages = [
         mediaType: "text/markdown",
         sizeBytes: 4182,
         createdAt: "2026-07-10T11:58:00.000Z",
-        source: { kind: "upload", id: "upload-verdigris" },
+        source: {
+          kind: "upload",
+          id: "upload-7c15b6e4-f51d-4df2-8d55-d4b9e730f6aa",
+        },
       },
     ],
   },
@@ -3083,7 +3086,7 @@ try {
         }
         if (surface.startsWith("studio-chat")) {
           await waitForText(page, "And the Studio?");
-          await waitForSelector(page, ".web-chat-attached-file");
+          await waitForSelector(page, ".studio-chat-upload");
           if (surface === "studio-chat-sessions") {
             await clickText(
               page,

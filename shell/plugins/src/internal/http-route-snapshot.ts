@@ -12,15 +12,31 @@ type HttpRouteSnapshotProvider = () => readonly RegisteredHttpRoute[];
  */
 const PROVIDER_KEY = Symbol.for("brains.httpRouteSnapshotProvider");
 
-interface SnapshotOwner {
-  [PROVIDER_KEY]?: HttpRouteSnapshotProvider;
+/**
+ * Read the bound provider off an owner.
+ *
+ * Callers pass a bare `object`, so the compiler cannot know the branded symbol
+ * is present. A property read (rather than `in`) is what the binding relies on:
+ * scoped owners are get-trap proxies. The single assertion is irreducible —
+ * `typeof value === "function"` establishes callability but not a signature —
+ * and lives here instead of at each of the four read sites, which previously
+ * did not check callability at all.
+ */
+function readSnapshotProvider(
+  owner: object,
+): HttpRouteSnapshotProvider | undefined {
+  const value: unknown = Reflect.get(owner, PROVIDER_KEY);
+  return typeof value === "function"
+    ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Reflect.get returns unknown and the typeof check establishes only callability; the signature comes from bindHttpRouteSnapshot being the sole writer and taking a typed provider
+      (value as HttpRouteSnapshotProvider)
+    : undefined;
 }
 
 export function bindHttpRouteSnapshot(
   owner: object,
   provider: HttpRouteSnapshotProvider,
 ): void {
-  if ((owner as SnapshotOwner)[PROVIDER_KEY]) {
+  if (readSnapshotProvider(owner)) {
     throw new Error("HTTP route snapshot provider is already bound");
   }
   // Configurable: scoped owners are get-trap proxies that re-bind function
@@ -35,20 +51,20 @@ export function bindHttpRouteSnapshot(
 }
 
 export function forwardHttpRouteSnapshot(source: object, target: object): void {
-  const provider = (source as SnapshotOwner)[PROVIDER_KEY];
+  const provider = readSnapshotProvider(source);
   if (!provider) {
     throw new Error("HTTP route snapshot provider is not bound");
   }
   // Scoped owners are proxies whose reads fall through to the bound shell:
   // if the target already resolves a provider, forwarding is satisfied.
-  if ((target as SnapshotOwner)[PROVIDER_KEY]) return;
+  if (readSnapshotProvider(target)) return;
   bindHttpRouteSnapshot(target, provider);
 }
 
 export function getHttpRouteSnapshot(
   owner: object,
 ): readonly RegisteredHttpRoute[] {
-  const provider = (owner as SnapshotOwner)[PROVIDER_KEY];
+  const provider = readSnapshotProvider(owner);
   if (!provider) {
     throw new Error("HTTP route snapshot provider is not bound");
   }

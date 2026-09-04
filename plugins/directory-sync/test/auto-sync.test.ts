@@ -6,7 +6,11 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { createTestEntity, waitUntil } from "@brains/test-utils";
 import type { DirectorySync } from "../src/lib/directory-sync";
-import type { BaseEntity } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntitySchema,
+  GetEntityRequest,
+} from "@brains/plugins";
 import { MockEntityAdapter } from "./fixtures";
 
 describe("DirectorySync AutoSync", () => {
@@ -222,15 +226,23 @@ describe("Export echo suppression", () => {
     });
     const entityService = harness.getEntityService();
     const origGetEntity = entityService.getEntity.bind(entityService);
-    entityService.getEntity = async <T extends BaseEntity>(request: {
-      entityType: string;
-      id: string;
-    }): Promise<T | null> => {
+    function echoGetEntity(
+      request: GetEntityRequest,
+    ): Promise<BaseEntity | null>;
+    function echoGetEntity<T extends BaseEntity>(
+      request: GetEntityRequest,
+      schema: EntitySchema<T>,
+    ): Promise<T | null>;
+    async function echoGetEntity(
+      request: GetEntityRequest,
+      schema?: EntitySchema<BaseEntity>,
+    ): Promise<BaseEntity | null> {
       if (request.entityType === "note" && request.id === "echo-updated") {
-        return entity as T;
+        return schema ? schema.parse(entity) : entity;
       }
-      return origGetEntity(request);
-    };
+      return schema ? origGetEntity(request, schema) : origGetEntity(request);
+    }
+    entityService.getEntity = echoGetEntity;
     await entityService.upsertEntity({ entity });
     const filePath = join(testDir, "echo-updated.md");
     const suppress = spyOn(dirSync, "suppressWatchPaths").mockImplementation(
@@ -307,8 +319,7 @@ describe("Export echo suppression", () => {
       content: "---\n---\nLate embedding update",
     });
     const entityService = harness.getEntityService();
-    entityService.getEntity = async <T extends BaseEntity>(): Promise<T> =>
-      entity as T;
+    entityService.getEntity = async (): Promise<BaseEntity> => entity;
     await dirSync.recordPendingPullDeletes(["remote-deleted.md"]);
     expect(dirSync.isPendingDelete("note", "remote-deleted")).toBe(true);
     expect(existsSync(join(testDir, "remote-deleted.md"))).toBe(false);

@@ -65,11 +65,11 @@ async function selectSwotInput(
 ): Promise<SwotProjectionInput> {
   const [agents, skills, draftPromptBase, refinementPrompt, appInfo] =
     await Promise.all([
-      context.entities.listEntities<BaseEntity>({
+      context.entities.listEntities({
         entityType: "agent",
         options: { limit: 1000 },
       }),
-      context.entities.listEntities<BaseEntity>({
+      context.entities.listEntities({
         entityType: "skill",
         options: { limit: 1000 },
       }),

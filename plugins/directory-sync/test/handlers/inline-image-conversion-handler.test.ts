@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import {
   describe,
   it,
@@ -16,7 +17,8 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
-  ProgressReporter,
+  CallbackProgressReporter,
+  type ProgressReporter,
   type ProgressNotification,
 } from "@brains/utils/progress";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
@@ -33,7 +35,7 @@ describe("InlineImageConversionJobHandler", () => {
 
   const createProgressReporter = (): ProgressReporter => {
     progressCalls = [];
-    const reporter = ProgressReporter.from(
+    const reporter = CallbackProgressReporter.from(
       async (notification: ProgressNotification) => {
         progressCalls.push(notification);
       },
@@ -139,7 +141,7 @@ Here is an image: ![Alt text](https://example.com/image.png)`;
       expect(mockFetcher).toHaveBeenCalled();
 
       // Check that the written content has entity:// reference
-      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
       expect(writtenContent).toContain("entity://image/");
       expect(writtenContent).not.toContain("https://example.com/image.png");
     });

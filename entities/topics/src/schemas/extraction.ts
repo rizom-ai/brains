@@ -27,3 +27,11 @@ export const topicExtractionResponseSchema: z.ZodType<
   TopicExtractionResponse,
   TopicExtractionResponse
 > = z.array(extractedTopicSchema);
+
+/**
+ * Envelope the extraction template returns: `{ topics: [...] }`
+ */
+export const topicExtractionEnvelopeSchema: z.ZodType<
+  { topics: TopicExtractionResponse },
+  { topics: TopicExtractionResponse }
+> = z.object({ topics: topicExtractionResponseSchema });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { FetchLike } from "@brains/utils/fetch-like";
+import { caughtError } from "@brains/test-utils";
 import { AtprotoPdsClient } from "../src";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -330,8 +331,7 @@ describe("AtprotoPdsClient", () => {
       await client.createSession();
       throw new Error("Expected createSession to fail");
     } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toBe("Invalid identifier");
+      expect(caughtError(error).message).toBe("Invalid identifier");
     }
   });
 

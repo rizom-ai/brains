@@ -1,13 +1,13 @@
 import type { QueueEntry } from "./queue-manager";
 import type { ScheduledJob } from "./scheduler-backend";
 import { executeWithProvider, type PublishDeps } from "./scheduler-publish";
-import type { SchedulerConfig } from "./types/scheduler";
+import type { ResolvedSchedulerConfig } from "./types/scheduler";
 
 /** Interval for immediate processing (1 second) */
 const IMMEDIATE_INTERVAL_MS = 1000;
 
 export interface PublishScheduleRunnerDeps {
-  config: SchedulerConfig;
+  config: ResolvedSchedulerConfig;
   getPublishDeps: () => PublishDeps;
   isRunning: () => boolean;
 }
@@ -102,6 +102,6 @@ export class PublishScheduleRunner {
   }
 
   private get entitySchedules(): Record<string, string> {
-    return this.deps.config.entitySchedules as Record<string, string>;
+    return this.deps.config.entitySchedules;
   }
 }

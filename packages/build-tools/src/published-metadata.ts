@@ -16,6 +16,15 @@ export interface PublishedPackageManifest {
   publishExports?: unknown;
 }
 
+/**
+ * Fields the publish transform must strip. Declared as manifest keys so a
+ * rename fails to compile rather than silently stopping the check.
+ */
+const AUTHORING_ONLY_FIELDS = [
+  "publishPeerDependencies",
+  "publishExports",
+] as const satisfies readonly (keyof PublishedPackageManifest)[];
+
 /** Verify the compatibility contract in either registry or tarball metadata. */
 export function assertPublishedCompatibilityMetadata(
   target: PublishedCompatibilityTarget,
@@ -28,11 +37,8 @@ export function assertPublishedCompatibilityMetadata(
       `${target.name}@${target.version} ${source} has @rizom/brain peer range ${JSON.stringify(publishedRange)}; expected ${JSON.stringify(target.brainRange)}`,
     );
   }
-  const authoringOnlyFields = [
-    "publishPeerDependencies",
-    "publishExports",
-  ].filter(
-    (field) => manifest[field as keyof PublishedPackageManifest] !== undefined,
+  const authoringOnlyFields = AUTHORING_ONLY_FIELDS.filter(
+    (field) => manifest[field] !== undefined,
   );
   if (authoringOnlyFields.length > 0) {
     throw new Error(

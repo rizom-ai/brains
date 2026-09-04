@@ -16,18 +16,21 @@ export const projectEvals: EntityEvalDeclaration = {
   generateProject: async (input, { ai, entities, template }) => {
     const parsed = generateProjectEvalInputSchema.parse(input);
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
-    return ai.generate<{
-      title: string;
-      description: string;
-      context: string;
-      problem: string;
-      solution: string;
-      outcome: string;
-    }>({
-      prompt: buildProjectGenerationPrompt(parsed),
-      templateName: template("generation"),
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
+    return ai.generate(
+      {
+        prompt: buildProjectGenerationPrompt(parsed),
+        templateName: template("generation"),
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      },
+      z.object({
+        title: z.string(),
+        description: z.string(),
+        context: z.string(),
+        problem: z.string(),
+        solution: z.string(),
+        outcome: z.string(),
+      }),
+    );
   },
 };

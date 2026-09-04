@@ -20,11 +20,15 @@ export interface MarkPublishedOptions {
 export async function markEntityPublished<
   TMetadata extends Record<string, unknown>,
 >(
-  context: Pick<ServicePluginContext, "entityService">,
+  // Only the one write it makes, named structurally: asking for the whole
+  // entity service would be a claim on reads and deletes this never performs.
+  context: {
+    entityService: Pick<ServicePluginContext["entityService"], "updateEntity">;
+  },
   entity: BaseEntity<TMetadata>,
   result: PublishResult,
   options: MarkPublishedOptions = {},
-): Promise<BaseEntity<TMetadata & Record<string, unknown>>> {
+): Promise<BaseEntity<TMetadata>> {
   const publishTimestampField = options.publishTimestampField ?? "publishedAt";
   const existingPublishedAt = entity.metadata[publishTimestampField];
   const publishedAt =

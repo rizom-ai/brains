@@ -64,7 +64,8 @@ const indexResponseSchema: z.ZodType<AtprotoLexiconRegistryIndex> =
     (value) =>
       typeof value === "object" &&
       value !== null &&
-      Array.isArray((value as { lexicons?: unknown }).lexicons),
+      "lexicons" in value &&
+      Array.isArray(value.lexicons),
     { message: "Expected a lexicon registry index" },
   );
 const lexiconResponseSchema: z.ZodType<AtprotoLexicon> =
@@ -72,7 +73,8 @@ const lexiconResponseSchema: z.ZodType<AtprotoLexicon> =
     (value) =>
       typeof value === "object" &&
       value !== null &&
-      typeof (value as { id?: unknown }).id === "string",
+      "id" in value &&
+      typeof value.id === "string",
     { message: "Expected a canonical lexicon document" },
   );
 const metadataListSchema: z.ZodType<AtprotoLexiconMetadata[]> = z.custom<

@@ -3,6 +3,7 @@ import type {
   ContentVisibility,
   EntityInput,
   EntityMutationResult,
+  EntitySchema,
   EntityServiceClient,
   ListOptions,
   SearchOptions,
@@ -45,23 +46,52 @@ export function createJobEntityAccess(
     }
   };
 
-  return {
-    listEntities: <T extends BaseEntity>(request: {
+  // Each read is declared as the same overload pair the contract carries, so
+  // the schema-bearing form hands the schema straight to the entity service
+  // and the widened form asks for nothing it cannot prove.
+  async function listEntitiesScoped(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<BaseEntity[]>;
+  async function listEntitiesScoped<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntitiesScoped<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    const scopedRequest = {
+      ...request,
+      ...(visibilityScope === undefined
+        ? {}
+        : {
+            options: {
+              ...request.options,
+              filter: { ...request.options?.filter, visibilityScope },
+            },
+          }),
+    };
+    return schema
+      ? entityService.listEntities(scopedRequest, schema)
+      : entityService.listEntities(scopedRequest);
+  }
+
+  async function getEntityScoped(request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: ContentVisibility | undefined;
+  }): Promise<BaseEntity | null>;
+  async function getEntityScoped<T extends BaseEntity>(
+    request: {
       entityType: string;
-      options?: ListOptions;
-    }): Promise<T[]> =>
-      entityService.listEntities<T>({
-        ...request,
-        ...(visibilityScope === undefined
-          ? {}
-          : {
-              options: {
-                ...request.options,
-                filter: { ...request.options?.filter, visibilityScope },
-              },
-            }),
-      }),
-    getEntity: <T extends BaseEntity>({
+      id: string;
+      visibilityScope?: ContentVisibility | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntityScoped<T extends BaseEntity>(
+    {
       entityType,
       id,
       visibilityScope: requested,
@@ -69,23 +99,67 @@ export function createJobEntityAccess(
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility | undefined;
-    }): Promise<T | null> =>
-      entityService.getEntity<T>(
-        scoped({
-          entityType,
-          id,
-          ...(requested !== undefined ? { visibilityScope: requested } : {}),
-        }),
-      ),
-    find: async <T extends BaseEntity>(
-      entityType: string,
-      identifier: string,
-    ): Promise<T | null> =>
-      (await findEntityByIdentifier(
-        entityService,
-        entityType,
-        identifier,
-      )) as T | null,
+    },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const request = scoped({
+      entityType,
+      id,
+      ...(requested !== undefined ? { visibilityScope: requested } : {}),
+    });
+    return schema
+      ? entityService.getEntity(request, schema)
+      : entityService.getEntity(request);
+  }
+
+  async function findScoped(
+    entityType: string,
+    identifier: string,
+  ): Promise<BaseEntity | null>;
+  async function findScoped<T extends BaseEntity>(
+    entityType: string,
+    identifier: string,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function findScoped<T extends BaseEntity>(
+    entityType: string,
+    identifier: string,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found = await findEntityByIdentifier(
+      entityService,
+      entityType,
+      identifier,
+    );
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  async function searchScoped(request: {
+    query: string;
+    options?: SearchOptions;
+  }): Promise<SearchResult<BaseEntity>[]>;
+  async function searchScoped<T extends BaseEntity>(
+    request: { query: string; options?: SearchOptions },
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function searchScoped<T extends BaseEntity>(
+    request: { query: string; options?: SearchOptions },
+    schema?: EntitySchema<T>,
+  ): Promise<SearchResult<BaseEntity>[] | SearchResult<T>[]> {
+    const results = await entityService.search(request);
+    return schema
+      ? results.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : results;
+  }
+
+  return {
+    listEntities: listEntitiesScoped,
+    getEntity: getEntityScoped,
+    find: findScoped,
     getEntityTypes: (): string[] => entityService.getEntityTypes(),
     getEntityCounts: (
       requested?: ContentVisibility,
@@ -102,10 +176,7 @@ export function createJobEntityAccess(
       });
       return entity ? parseDefinitionEntity(definition, entity) : null;
     },
-    search: <T extends BaseEntity = BaseEntity>(request: {
-      query: string;
-      options?: SearchOptions;
-    }): Promise<SearchResult<T>[]> => entityService.search<T>(request),
+    search: searchScoped,
     create: <T extends BaseEntity>(
       entity: EntityInput<T>,
     ): Promise<EntityMutationResult> => {

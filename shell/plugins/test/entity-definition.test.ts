@@ -27,6 +27,8 @@ import type {
   CreateResultAttachment,
   UploadSaveHandlerRegistration,
 } from "@brains/entity-service";
+import type { BaseEntity } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/entity-service";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   AtprotoProjectionRegistry,
@@ -289,6 +291,11 @@ describe("entity package definitions", () => {
     harness.reset();
   });
 
+  const guideEntitySchema = baseEntitySchema.extend({
+    entityType: z.literal("guide"),
+    metadata: z.object({ title: z.string() }),
+  });
+
   it("registers a declared entity data source and serves list queries", async () => {
     // The author declares config plus pure transform/build functions. The
     // runtime keeps every entity read on its own side, so nothing about
@@ -305,6 +312,7 @@ describe("entity package definitions", () => {
           name: "Guide entities",
           description: "Lists guides for templates",
           entityType: "guide",
+          entitySchema: guideEntitySchema,
           defaultSort: [{ field: "created", direction: "desc" }],
           transform: (entity) => ({ id: entity.id }),
           list: (items) => ({ guides: items }),
@@ -446,10 +454,13 @@ describe("entity package definitions", () => {
       generation: {
         input: z.object({ topic: z.string() }),
         generate: async ({ input, ai }) => {
-          const generated = await ai.generate<{ title: string }>({
-            prompt: `Write about ${input.topic}`,
-            templateName: "guide",
-          });
+          const generated = await ai.generate(
+            {
+              prompt: `Write about ${input.topic}`,
+              templateName: "guide",
+            },
+            z.object({ title: z.string() }),
+          );
           return {
             success: true as const,
             content: "A guide",
@@ -1508,8 +1519,8 @@ describe("entity package definitions", () => {
         typeof stored === "object" &&
         stored !== null &&
         "actorId" in stored &&
-        typeof (stored as { actorId: unknown }).actorId === "string"
-          ? { said_by: (stored as { actorId: string }).actorId }
+        typeof stored.actorId === "string"
+          ? { said_by: stored.actorId }
           : stored,
     });
     const definition = defineEntityPackage({
@@ -1927,7 +1938,7 @@ describe("entity package definitions", () => {
       await handler.process(
         { guideId: "first" },
         "job-1",
-        { report: async (): Promise<void> => {} } as never,
+        createMockProgressReporter(),
         new AbortController().signal,
       ),
     ).toEqual({ reindexed: "first" });
@@ -2546,7 +2557,7 @@ describe("entity package definitions", () => {
           {
             entityId: "fishing",
             entityType: "guide",
-            coordinates: [0, 0] as [number, number],
+            coordinates: [0, 0],
             distanceToOrigin: 0,
           },
         ],
@@ -3139,7 +3150,7 @@ describe("declarative entity seeding", () => {
 
   async function readSeed(
     harness: ReturnType<typeof createPluginHarness>,
-  ): Promise<unknown> {
+  ): Promise<BaseEntity | null> {
     return harness.getEntityService().getEntity({
       entityType: "house-style",
       id: "house-style",
@@ -3161,7 +3172,7 @@ describe("declarative entity seeding", () => {
       id: "house-style",
       entityType: "house-style",
     });
-    expect((entity as { content: string }).content).toContain("Write plainly.");
+    expect(entity?.content).toContain("Write plainly.");
 
     harness.reset();
   });
@@ -3180,9 +3191,7 @@ describe("declarative entity seeding", () => {
     await harness.sendMessage("sync:initial:completed", {});
 
     const entity = await readSeed(harness);
-    expect((entity as { content: string }).content).toContain(
-      "Authored by a human.",
-    );
+    expect(entity?.content).toContain("Authored by a human.");
 
     harness.reset();
   });
@@ -3420,7 +3429,7 @@ describe("declarative entity seeding", () => {
             "job-1",
             createMockProgressReporter(),
             new AbortController().signal,
-          ) as Promise<unknown>,
+          ),
       };
     }
 
@@ -3632,7 +3641,7 @@ describe("declarative entity seeding", () => {
             "job-1",
             createMockProgressReporter(),
             new AbortController().signal,
-          ) as Promise<unknown>;
+          );
         },
       };
     }

@@ -4,12 +4,16 @@ import {
   type ContentVisibility,
   type EntityConversationReader,
   type JobEntityAccess,
+  z,
 } from "@brains/sdk/entities";
 import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../schemas/conversation-memory";
+import { actionItemSchema } from "../schemas/conversation-memory";
+import { decisionSchema } from "../schemas/conversation-memory";
 import type { SummaryEntity } from "../schemas/summary";
+import { summarySchema } from "../schemas/summary";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
@@ -32,6 +36,16 @@ const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
 
 type ConversationMemorySearchEntity =
   SummaryEntity | DecisionEntity | ActionItemEntity;
+
+/**
+ * What proves a memory read. The three types share these reads, so the schema
+ * that checks them is the union of their own — each entity parses under
+ * exactly one branch.
+ */
+const conversationMemorySearchSchema: z.ZodType<
+  ConversationMemorySearchEntity,
+  unknown
+> = z.union([summarySchema, decisionSchema, actionItemSchema]);
 
 export interface RetrieveConversationMemoryInput {
   query?: string | undefined;
@@ -156,11 +170,13 @@ export class ConversationMemoryRetriever {
       // Already scoped to what the asker may see: the runtime narrows the
       // reads before a provider gets them, so there is no scope to pass and
       // none to forget.
-      const results =
-        await this.entities.search<ConversationMemorySearchEntity>({
+      const results = await this.entities.search(
+        {
           query,
           options: { types: MEMORY_ENTITY_TYPES, limit: candidateLimit },
-        });
+        },
+        conversationMemorySearchSchema,
+      );
       return results.map((result) => ({
         entity: result.entity,
         score: result.score,
@@ -170,13 +186,16 @@ export class ConversationMemoryRetriever {
 
     const entityGroups = await Promise.all(
       MEMORY_ENTITY_TYPES.map((entityType) =>
-        this.entities.listEntities<ConversationMemorySearchEntity>({
-          entityType,
-          options: {
-            limit: candidateLimit,
-            sortFields: [{ field: "updated", direction: "desc" }],
+        this.entities.listEntities(
+          {
+            entityType,
+            options: {
+              limit: candidateLimit,
+              sortFields: [{ field: "updated", direction: "desc" }],
+            },
           },
-        }),
+          conversationMemorySearchSchema,
+        ),
       ),
     );
 

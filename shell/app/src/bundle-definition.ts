@@ -1,28 +1,7 @@
 import type { PermissionConfig } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-
-  const prototype = Object.getPrototypeOf(value) as unknown;
-  return prototype === Object.prototype || prototype === null;
-}
-
-function cloneValue<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneValue(item)) as T;
-  }
-
-  if (isPlainRecord(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, cloneValue(item)]),
-    ) as T;
-  }
-
-  return value;
-}
+import { clonePlainData } from "@brains/utils/clone";
+import { isPlainRecord } from "@brains/utils/predicates";
 
 export interface BundleConfigContribution {
   member: string;
@@ -109,5 +88,5 @@ export const capabilityBundleDefinitionSchema: z.ZodType<CapabilityBundleDefinit
 export function defineBundle(
   definition: CapabilityBundleDefinition,
 ): CapabilityBundleDefinition {
-  return cloneValue(capabilityBundleDefinitionSchema.parse(definition));
+  return clonePlainData(capabilityBundleDefinitionSchema.parse(definition));
 }

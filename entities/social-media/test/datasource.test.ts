@@ -135,6 +135,7 @@ describe("socialPostDataSource", () => {
           entityType: "social-post",
           options: expect.objectContaining({ limit: 2, offset: 4 }),
         }),
+        expect.anything(),
       );
     });
   });

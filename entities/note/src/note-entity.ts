@@ -91,11 +91,14 @@ export const note: EntityDefinition<"note", typeof noteMetadataSchema> =
         logger,
         template,
       }): Promise<EntityGenerationResult> => {
-        const generated = await ai.generate<{ title: string; body: string }>({
-          prompt: input.prompt,
-          templateName: template("generation"),
-          representedIdentity: "none",
-        });
+        const generated = await ai.generate(
+          {
+            prompt: input.prompt,
+            templateName: template("generation"),
+            representedIdentity: "none",
+          },
+          z.object({ title: z.string(), body: z.string() }),
+        );
         // A note's id is its slugified title, so two notes on one topic would
         // otherwise silently become one.
         const title = await ensureUniqueTitle({
@@ -190,11 +193,14 @@ export const note: EntityDefinition<"note", typeof noteMetadataSchema> =
     evals: {
       generateNote: async (input, { ai, template }) => {
         const parsed = z.object({ prompt: z.string() }).parse(input);
-        return ai.generate<{ title: string; body: string }>({
-          prompt: parsed.prompt,
-          templateName: template("generation"),
-          representedIdentity: "none",
-        });
+        return ai.generate(
+          {
+            prompt: parsed.prompt,
+            templateName: template("generation"),
+            representedIdentity: "none",
+          },
+          z.object({ title: z.string(), body: z.string() }),
+        );
       },
     },
     instructions: NOTE_INSTRUCTIONS,

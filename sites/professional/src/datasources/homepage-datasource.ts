@@ -16,13 +16,15 @@ import {
   type ProfessionalProfile,
 } from "../schemas";
 import {
-  type BlogPost,
+  blogPostSchema,
   parsePostData,
+  type BlogPost,
   type BlogPostWithData,
 } from "@brains/blog";
 import {
-  type DeckEntity,
+  deckSchema,
   parseDeckData,
+  type DeckEntity,
   type DeckWithData,
 } from "@brains/decks";
 
@@ -74,11 +76,13 @@ export class HomepageListDataSource implements DataSource {
       fetchAnchorProfileData(entityService, professionalProfileSchema),
       fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
         entityType: "post",
+        entitySchema: blogPostSchema,
         count: 3,
         parse: parsePostData,
       }),
       fetchRecentEntities<DeckEntity, DeckWithData>(entityService, {
         entityType: "deck",
+        entitySchema: deckSchema,
         count: 3,
         parse: parseDeckData,
       }),

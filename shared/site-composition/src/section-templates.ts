@@ -1,6 +1,5 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import type { JsonObject } from "@brains/contracts";
-import type { Template, TemplateDataSchema } from "@brains/templates";
+import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import type { SiteSectionDefinition, SiteSectionGroup } from "@rizom/site";
 
@@ -104,22 +103,25 @@ export function sectionToTemplate(
   name: string,
   section: SiteSectionDefinition,
 ): Template {
-  const schema = section.schema;
-  if (!(schema instanceof z.ZodObject)) {
+  // Two bindings on purpose. `section.schema` is typed ZodType<JsonObject> —
+  // defineSection proved that — and the template needs it under that type.
+  // Narrowing it with `instanceof z.ZodObject` would replace the output type
+  // with ZodObject's own Record<string, unknown>, losing the proof, so the
+  // shape inspection uses a separate binding.
+  const objectSchema = section.schema;
+  if (!(objectSchema instanceof z.ZodObject)) {
     throw new Error(`Section "${name}" schema must be a zod object.`);
   }
 
-  const formatter = new StructuredContentFormatter(schema, {
+  const formatter = new StructuredContentFormatter(objectSchema, {
     title: section.title,
-    mappings: shapeMappings(schema),
+    mappings: shapeMappings(objectSchema),
   });
 
   return {
     name,
     description: section.description,
-    // `defineSection` proves JSON output at the public authoring boundary;
-    // SiteSectionDefinition intentionally carries the schema opaquely.
-    schema: schema as TemplateDataSchema<JsonObject>,
+    schema: section.schema,
     formatter,
     requiredPermission: section.requiredPermission ?? "public",
     layout: {

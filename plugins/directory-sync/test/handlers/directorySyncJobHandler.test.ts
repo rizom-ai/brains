@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectorySyncJobHandler } from "../../src/handlers/directorySyncJobHandler";
+import { z } from "@brains/utils/zod";
 import {
   createSilentLogger,
   createMockProgressReporter,
@@ -52,7 +53,9 @@ describe("DirectorySyncJobHandler", () => {
 
       expect(result).not.toBeNull();
       // Should not have undefined properties
-      expect(Object.keys(result as object)).toEqual(["operation"]);
+      expect(Object.keys(z.looseObject({}).parse(result))).toEqual([
+        "operation",
+      ]);
     });
   });
 

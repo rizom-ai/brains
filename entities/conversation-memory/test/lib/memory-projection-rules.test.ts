@@ -9,6 +9,7 @@ import {
   createMockEntityPluginContext,
   createMockEntityService,
   createSilentLogger,
+  createTestAppInfo,
 } from "@brains/test-utils";
 import {
   appendMemoryProjectionEnvelope,
@@ -107,10 +108,7 @@ function context(options: {
       getManyWithMessages: async () => [],
     },
     resolvePrompt: async (_reference, fallback) => fallback,
-    appInfo: async () =>
-      ({ ai: { model: "test" } }) as Awaited<
-        ReturnType<ProjectionInputContext["appInfo"]>
-      >,
+    appInfo: async () => createTestAppInfo({ ai: { model: "test" } }),
     identityInput: () => ({}),
   };
 }

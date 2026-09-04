@@ -29,6 +29,7 @@ import { createDeclarativeDaemon } from "./declarative-daemon";
 import { createRuntimeRoute } from "./route-runtime";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
+import { emptyPluginState } from "../base/empty-state";
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
@@ -135,7 +136,7 @@ class DeclarativeInterfacePlugin<
           domain: context.domain,
           logger: this.logger,
         })
-      : (Object.freeze({}) as TState);
+      : emptyPluginState<TState>();
     const jobs = this.jobs(context);
     const routeDefinitions =
       this.definition.routes?.({

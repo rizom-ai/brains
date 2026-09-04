@@ -1,4 +1,9 @@
-import type { UserPermissionLevel } from "@brains/templates";
+import type {
+  ComponentType,
+  TemplateDataSchema,
+  UserPermissionLevel,
+} from "@brains/templates";
+import type { JsonObject } from "@brains/contracts";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
@@ -79,6 +84,7 @@ export interface ServiceChannelReader {
   getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
 }
 import type { z } from "@brains/utils/zod";
+import { parseWithSchema } from "@brains/utils/parse-schema";
 import type {
   ProfileKindDefinition,
   ResolvedProfileSelection,
@@ -244,7 +250,17 @@ export function defineJob<
         kind: "rizom-service-job-binding",
         definition: job,
       });
-      jobHandlers.set(binding, handler as ServiceJobHandler<unknown, unknown>);
+      // Erase here, where TInputSchema is known. A handler taking
+      // Context<TInput> is not assignable to one taking Context<unknown> —
+      // that is contravariance, and asserting it away would let an unvalidated
+      // input reach the handler. Parsing through the job's own input schema is
+      // what makes the erased signature true.
+      jobHandlers.set(binding, async (context) =>
+        handler({
+          ...context,
+          input: parseWithSchema<TInputSchema>(job.input, context.input),
+        }),
+      );
       return binding;
     },
   };
@@ -480,11 +496,24 @@ export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
   format(context: { readonly value: z.output<TSchema> }): string;
 }
 
-export interface ServiceViewDefinition<TSchema extends ServiceSchema> {
+/**
+ * A view schema must produce JSON: its parsed value is stored, serialized to
+ * the browser, and handed to a React component as props.
+ */
+export type ServiceViewSchema = TemplateDataSchema<JsonObject>;
+export type ServiceViewSchemaMap = Record<string, ServiceViewSchema>;
+
+export interface ServiceViewDefinition<TSchema extends ServiceViewSchema> {
   readonly schema: TSchema;
   readonly description?: string | undefined;
   readonly renderers: {
-    readonly web: string | ((value: z.output<TSchema>) => string);
+    /**
+     * A React component receiving the schema-parsed value as props. Views are
+     * mounted with createElement by the site builder, exactly like site
+     * sections — the earlier string-returning form was mounted the same way,
+     * which would have rendered its markup as an escaped text node.
+     */
+    readonly web: ComponentType<z.output<TSchema>>;
   };
 }
 
@@ -503,7 +532,7 @@ interface ServiceDefinitionCore<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
   readonly id: string;
@@ -954,7 +983,7 @@ export type NormalizedServiceDefinitionInput<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > = ServiceDefinitionCore<
   TConfigSchema,
@@ -970,7 +999,7 @@ export type ServiceDefinitionInput<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > = ServiceDefinitionCore<
   TConfigSchema,

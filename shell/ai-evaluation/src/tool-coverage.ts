@@ -1,5 +1,5 @@
 import type { AppConfig } from "@brains/app";
-import type { TestCase, AgentTestCase, SuccessCriteria } from "./schemas";
+import type { TestCase, SuccessCriteria } from "./schemas";
 import { YAMLLoader } from "./loaders/yaml-loader";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
@@ -108,12 +108,10 @@ function collectAssertedToolNames(testCases: TestCase[]): string[] {
   for (const testCase of testCases) {
     if (testCase.type === "plugin") continue;
     collectFromCriteria(tools, testCase.successCriteria);
-    for (const criteria of Object.values(
-      (testCase as AgentTestCase).permissions ?? {},
-    )) {
+    for (const criteria of Object.values(testCase.permissions ?? {})) {
       collectFromCriteria(tools, criteria);
     }
-    for (const turn of (testCase as AgentTestCase).turns) {
+    for (const turn of testCase.turns) {
       collectFromCriteria(tools, turn.successCriteria);
     }
   }

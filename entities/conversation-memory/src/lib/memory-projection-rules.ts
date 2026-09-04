@@ -26,6 +26,8 @@ import type {
   ActionItemEntity,
   DecisionEntity,
 } from "../schemas/conversation-memory";
+import { actionItemSchema } from "../schemas/conversation-memory";
+import { decisionSchema } from "../schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../schemas/summary";
 
 export const DECISION_PROJECTION_ID = "summary-decision-derivation";
@@ -114,15 +116,18 @@ async function selectManagedMemoryInput(
       ids: changedSummaryIds,
       visibilityScope: config.memoryVisibility,
     }),
-    context.entities.listEntities<DecisionEntity | ActionItemEntity>({
-      entityType: target.type,
-      options: {
-        filter: {
-          metadataAnyOf: { sourceSummaryId: changedSummaryIds },
-          visibilityScope: config.memoryVisibility,
+    context.entities.listEntities(
+      {
+        entityType: target.type,
+        options: {
+          filter: {
+            metadataAnyOf: { sourceSummaryId: changedSummaryIds },
+            visibilityScope: config.memoryVisibility,
+          },
         },
       },
-    }),
+      z.union([decisionSchema, actionItemSchema]),
+    ),
   ]);
   const summaries = summaryCandidates.flatMap((candidate): SummaryEntity[] => {
     const parsed = summarySchema.safeParse(candidate);

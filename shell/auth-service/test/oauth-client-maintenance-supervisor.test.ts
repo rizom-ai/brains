@@ -1,12 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import type { AuthorizationCodePersistence } from "../src/auth-code-store";
 import type { OAuthClientPersistence } from "../src/client-store";
-import type { AuthKeyStore } from "../src/key-store";
 import { OAuthClientMaintenanceSupervisor } from "../src/oauth-client-maintenance-supervisor";
 import { OAuthEndpoints } from "../src/oauth-endpoints";
-import type { RefreshTokenPersistence } from "../src/refresh-token-store";
+
+/** A member this test never exercises: reaching it is the failure. */
+function notUsedHere(name: string): () => never {
+  return () => {
+    throw new Error(`${name} is not stubbed in this test`);
+  };
+}
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
   let settle: (() => void) | undefined;
@@ -137,10 +141,22 @@ describe("OAuthClientMaintenanceSupervisor", () => {
         };
         const endpoints = new OAuthEndpoints({
           clientStore,
-          authCodeStore: {} as AuthorizationCodePersistence,
-          refreshTokenStore: {} as RefreshTokenPersistence,
+          // This test drives client maintenance only. Stubbing the other
+          // stores as throwing keeps them real implementations of their
+          // interfaces, so a member added to one fails to compile here rather
+          // than hiding behind `{}` asserted into place.
+          authCodeStore: {
+            createCode: notUsedHere("createCode"),
+            consumeCode: notUsedHere("consumeCode"),
+          },
+          refreshTokenStore: {
+            issueToken: notUsedHere("issueToken"),
+            rotateToken: notUsedHere("rotateToken"),
+            revokeToken: notUsedHere("revokeToken"),
+            revokeTokensForSubject: notUsedHere("revokeTokensForSubject"),
+          },
           resolveSession: async (): Promise<undefined> => undefined,
-          keyStore: {} as AuthKeyStore,
+          keyStore: { getPrivateJwk: notUsedHere("getPrivateJwk") },
           clientMaintenanceIntervalMs: 100,
           clientMaintenanceClock: clock,
         });

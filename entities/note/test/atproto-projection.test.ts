@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createNoteAtprotoProjection } from "../src/atproto-projection";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
-import type { Plugin } from "@brains/plugins";
+
 import notes from "../src";
 import type { Note } from "../src/schemas/note";
 
@@ -71,7 +71,7 @@ describe("note ATProto projection", () => {
       {},
       { name: "@brains/note", version: "0.1.0" },
     );
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       await harness.installPlugin(plugin);
     }
 

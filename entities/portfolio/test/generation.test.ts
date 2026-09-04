@@ -107,11 +107,14 @@ describe("projectGeneration", () => {
     const input = { prompt: "Build something cool", year: 2023 };
     await generate(input);
 
-    expect(context.ai.generate).toHaveBeenCalledWith({
-      prompt: buildProjectGenerationPrompt(input),
-      templateName: "@brains/portfolio:project:generation",
-      representedIdentity: "anchor",
-    });
+    expect(context.ai.generate).toHaveBeenCalledWith(
+      {
+        prompt: buildProjectGenerationPrompt(input),
+        templateName: "@brains/portfolio:project:generation",
+        representedIdentity: "anchor",
+      },
+      expect.anything(),
+    );
   });
 
   // A project needs a year — it is required metadata — so a request without

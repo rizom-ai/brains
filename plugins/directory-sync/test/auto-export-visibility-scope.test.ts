@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { BaseEntity } from "@brains/plugins/test";
+import type {
+  BaseEntity,
+  EntitySchema,
+  GetEntityRequest,
+} from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { createTestEntity, waitUntil } from "@brains/test-utils";
 import { MockEntityAdapter } from "./fixtures";
@@ -28,15 +32,24 @@ type HarnessEntityService = ReturnType<
  */
 function failClosedOnVisibility(entityService: HarnessEntityService): void {
   const inner = entityService.getEntity.bind(entityService);
-  entityService.getEntity = async <T extends BaseEntity>(request: {
-    entityType: string;
-    id: string;
-    visibilityScope?: BaseEntity["visibility"];
-  }): Promise<T | null> =>
-    inner<T>({
+  function scopedGetEntity(
+    request: GetEntityRequest,
+  ): Promise<BaseEntity | null>;
+  function scopedGetEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  function scopedGetEntity(
+    request: GetEntityRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
+    const scoped = {
       ...request,
       visibilityScope: request.visibilityScope ?? "public",
-    });
+    };
+    return schema ? inner(scoped, schema) : inner(scoped);
+  }
+  entityService.getEntity = scopedGetEntity;
 }
 
 describe("auto-export visibility scope", () => {

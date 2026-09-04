@@ -15,7 +15,8 @@ import {
   useNetwork,
 } from "./fixtures/agent-network";
 import { createTestAgent } from "./fixtures/agent";
-import type { AgentEntity } from "../src/schemas/agent";
+
+import { agentEntitySchema } from "../src/schemas/agent";
 
 describe("what a brain card does to the directory", () => {
   it("creates a discovered agent from an ATProto brain card event", async () => {
@@ -34,10 +35,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("discovered");
     expect(agent?.metadata.url).toBe("https://peer.example.com");
     expect(agent?.metadata.name).toBe("Peer Owner");
@@ -81,10 +85,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.name).toBe("Peer Owner");
@@ -127,10 +134,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.url).toBe("https://peer.example.com/a2a");
     expect(agent?.metadata.repoDid).toBe("did:plc:peer");
@@ -171,10 +181,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const before = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const before = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(before).toBeDefined();
     if (!before) throw new Error("Expected discovered agent");
     await harness.getEntityService().updateEntity({
@@ -199,10 +212,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const after = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const after = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(after?.metadata.status).toBe("approved");
     expect(after?.metadata.repoDid).toBe("did:plc:peer");
     expect(after?.metadata.cardCid).toBe("bafy-peer-card");
@@ -226,10 +242,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const before = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const before = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(before).toBeDefined();
     if (!before) throw new Error("Expected discovered agent");
     await harness.getEntityService().updateEntity({
@@ -254,10 +273,13 @@ describe("what a brain card does to the directory", () => {
       "atproto",
     );
 
-    const after = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const after = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(after?.metadata.status).toBe("approved");
     expect(after?.metadata.cardUnavailableAt).toBe("2026-07-22T13:00:00.000Z");
     expect(after?.metadata.cardLastError).toContain("deleted");
@@ -301,10 +323,13 @@ describe("what a brain card does to the directory", () => {
 
     await run?.({ signal: new AbortController().signal });
 
-    const expired = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const expired = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(expired?.metadata.status).toBe("archived");
     expect(expired?.metadata.cardCid).toBe("bafy-peer-card");
     harness.reset();

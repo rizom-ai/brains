@@ -1,16 +1,20 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { instantiatePluginPackageDefinition } from "@brains/plugins";
-import type { EntityAdapter, Plugin } from "@brains/plugins";
+import {
+  instantiatePluginPackageDefinition,
+  type BaseEntity,
+} from "@brains/plugins";
+import type { EntityAdapter } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import notes from "../src";
 import { createNoteContent } from "../src/lib/note-content";
 import type { Note } from "../src/schemas/note";
+import { noteSchema } from "../src/schemas/note";
 
 const TIMESTAMP = "2026-01-01T00:00:00.000Z";
 
 let harness: ReturnType<typeof createPluginHarness>;
-let adapter: EntityAdapter<Note>;
+let adapter: EntityAdapter<BaseEntity>;
 
 beforeAll(async () => {
   harness = createPluginHarness({ logger: createSilentLogger("note-codec") });
@@ -19,8 +23,8 @@ beforeAll(async () => {
     {},
     { name: "@brains/note", version: "0.1.0" },
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
-  adapter = harness.getEntityRegistry().getAdapter<Note>("note");
+  for (const plugin of plugins) await harness.installPlugin(plugin);
+  adapter = harness.getEntityRegistry().getAdapter("note");
 });
 
 afterAll(() => {
@@ -30,7 +34,9 @@ afterAll(() => {
 /** The entity a stored file decodes to, as the registry would build it. */
 function decoded(markdown: string): Note {
   const parsed = adapter.fromMarkdown(markdown);
-  return adapter.schema.parse({
+  // The registry's adapter is typed to BaseEntity, so the note's own schema is
+  // what proves the decoded record is a note.
+  return noteSchema.parse({
     id: "note-1",
     entityType: "note",
     content: parsed.content,

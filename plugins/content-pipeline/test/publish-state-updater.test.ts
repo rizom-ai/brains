@@ -3,6 +3,11 @@ import {
   markEntityPublished,
   updatePublishFrontmatter,
 } from "../src/publish-state-updater";
+import type {
+  BaseEntity,
+  EntityMutationResult,
+  UpdateEntityRequest,
+} from "@brains/plugins";
 
 describe("publish state updater", () => {
   it("updates status and publishedAt in existing frontmatter", () => {
@@ -65,14 +70,14 @@ describe("platform URL retention", () => {
     return {
       context: {
         entityService: {
-          updateEntity: async (request: {
-            entity: { metadata: Record<string, unknown> };
-          }): Promise<{ entityId: string; jobId: string }> => {
+          updateEntity: async <T extends BaseEntity>(
+            request: UpdateEntityRequest<T>,
+          ): Promise<EntityMutationResult> => {
             seen = request.entity.metadata;
-            return { entityId: "post-1", jobId: "job-1" };
+            return { entityId: "post-1", jobId: "job-1", skipped: false };
           },
         },
-      } as Parameters<typeof markEntityPublished>[0],
+      },
       updated: () => seen,
     };
   }

@@ -5,6 +5,12 @@ import type { VariantFunction, VariantValue } from "./variant-types";
 
 export type HeadingLevel = 1 | 2 | 3;
 
+/** Every level maps to a real intrinsic tag, so no level can name a missing one. */
+const HEADING_TAGS = { 1: "h1", 2: "h2", 3: "h3" } as const satisfies Record<
+  HeadingLevel,
+  keyof JSX.IntrinsicElements
+>;
+
 export interface ProseHeadingVariantProps {
   level?: VariantValue<HeadingLevel>;
 }
@@ -46,7 +52,7 @@ export const ProseHeading = ({
   className,
 }: ProseHeadingProps): JSX.Element => {
   const resolvedLevel = level ?? 1;
-  const Tag = `h${resolvedLevel}` as keyof JSX.IntrinsicElements;
+  const Tag = HEADING_TAGS[resolvedLevel];
 
   return (
     <Tag className={cn(proseHeadingVariants({ level }), className)}>

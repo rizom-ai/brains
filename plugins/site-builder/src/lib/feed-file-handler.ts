@@ -1,4 +1,4 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
 import {
   FeedRegistry,
   renderRssFeed,
@@ -36,7 +36,9 @@ export async function writeSiteBuildFeeds(
   for (const declaration of FeedRegistry.getInstance().list()) {
     options.signal.throwIfAborted();
 
-    const entities = await options.entityService.listEntities<BaseEntity>({
+    // The feed only reads base fields, so the widened read is the honest one:
+    // there is no shape here to prove beyond what every entity already has.
+    const entities = await options.entityService.listEntities({
       entityType: declaration.entityType,
       options: { limit: 1000 },
     });

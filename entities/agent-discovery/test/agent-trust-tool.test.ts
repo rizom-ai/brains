@@ -20,6 +20,7 @@ import {
   useNetwork,
 } from "./fixtures/agent-network";
 import { createTestAgent } from "./fixtures/agent";
+import { expectConfirmationArgs } from "@brains/test-utils";
 
 describe("the inbound trust tool", () => {
   it("registers agents_set-trust-level as the explicit inbound trust tool", async () => {
@@ -91,7 +92,7 @@ describe("the inbound trust tool", () => {
     const result = await runTool(
       harness,
       "agents_set-trust-level",
-      confirmation.args as Record<string, unknown>,
+      expectConfirmationArgs(confirmation),
       { kind: "user", userId: owner.userId },
     );
 
@@ -160,7 +161,7 @@ describe("the inbound trust tool", () => {
     const result = await runTool(
       harness,
       "agents_set-trust-level",
-      confirmation.args as Record<string, unknown>,
+      expectConfirmationArgs(confirmation),
     );
 
     expectSuccess(result);

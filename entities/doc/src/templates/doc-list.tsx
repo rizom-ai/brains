@@ -11,7 +11,7 @@ import {
 
 export interface DocListProps {
   docs: DocWithData[];
-  pagination?: PaginationInfo | null;
+  pagination: PaginationInfo | null;
   baseUrl: string | null;
 }
 

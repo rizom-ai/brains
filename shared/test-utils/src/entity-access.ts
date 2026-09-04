@@ -1,8 +1,13 @@
 import type {
   BaseEntity,
+  ContentVisibility,
   EntityInput,
   EntityMutationResult,
+  EntitySchema,
   IEntityService,
+  ListOptions,
+  SearchOptions,
+  SearchResult,
 } from "@brains/plugins";
 import type { JobEntityAccess } from "@brains/plugins";
 
@@ -30,30 +35,116 @@ export function createTestEntityAccess(options: {
   const refuse = (): never => {
     throw new Error(refusal ?? "This job must not write entities");
   };
+  // The reads carry the contract's overload pair, so the schema-bearing form
+  // parses rather than asserts and the widened form promises only BaseEntity.
+  async function listEntities(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<BaseEntity[]>;
+  async function listEntities<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntities<T extends BaseEntity>(
+    request: { entityType: string; options?: ListOptions },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    return schema
+      ? service.listEntities(request, schema)
+      : service.listEntities(request);
+  }
+
+  async function getEntity(request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: ContentVisibility | undefined;
+  }): Promise<BaseEntity | null>;
+  async function getEntity<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntity<T extends BaseEntity>(
+    {
+      entityType,
+      id,
+      visibilityScope,
+    }: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility | undefined;
+    },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const request = {
+      entityType,
+      id,
+      ...(visibilityScope !== undefined ? { visibilityScope } : {}),
+    };
+    return schema
+      ? service.getEntity(request, schema)
+      : service.getEntity(request);
+  }
+
+  async function find(
+    entityType: string,
+    identifier: string,
+  ): Promise<BaseEntity | null>;
+  async function find<T extends BaseEntity>(
+    entityType: string,
+    identifier: string,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function find<T extends BaseEntity>(
+    entityType: string,
+    identifier: string,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found =
+      (await service.getEntity({ entityType, id: identifier })) ??
+      (
+        await service.listEntities({
+          entityType,
+          options: { limit: 1, filter: { metadata: { title: identifier } } },
+        })
+      )[0] ??
+      null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  async function search(request: {
+    query: string;
+    options?: SearchOptions;
+  }): Promise<SearchResult<BaseEntity>[]>;
+  async function search<T extends BaseEntity>(
+    request: { query: string; options?: SearchOptions },
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function search<T extends BaseEntity>(
+    request: { query: string; options?: SearchOptions },
+    schema?: EntitySchema<T>,
+  ): Promise<SearchResult<BaseEntity>[] | SearchResult<T>[]> {
+    const results = await service.search(request);
+    return schema
+      ? results.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : results;
+  }
+
   return {
-    listEntities: (request) => service.listEntities(request),
+    listEntities,
     getEntityCounts: (visibilityScope) =>
       service.getEntityCounts(visibilityScope),
-    getEntity: ({ entityType, id, visibilityScope }) =>
-      service.getEntity({
-        entityType,
-        id,
-        ...(visibilityScope !== undefined ? { visibilityScope } : {}),
-      }),
-    find: async <T extends BaseEntity>(
-      entityType: string,
-      identifier: string,
-    ): Promise<T | null> =>
-      ((await service.getEntity({ entityType, id: identifier })) ??
-        (
-          await service.listEntities({
-            entityType,
-            options: { limit: 1, filter: { metadata: { title: identifier } } },
-          })
-        )[0] ??
-        null) as T | null,
+    getEntity,
+    find,
     getEntityTypes: () => service.getEntityTypes(),
-    search: (request) => service.search(request),
+    search,
     get: async () => null,
     create: <T extends BaseEntity>(
       entity: EntityInput<T>,
@@ -101,7 +192,7 @@ export function createTestEntityAccess(options: {
           visibility: "public",
           contentHash: `hash-${entity.id}`,
           ...entity,
-        } satisfies BaseEntity as T,
+        } satisfies BaseEntity,
       });
     },
   };

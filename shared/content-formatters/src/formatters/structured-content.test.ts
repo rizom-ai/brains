@@ -439,8 +439,9 @@ not-a-number
         caught = error;
       }
 
-      expect(caught).toBeInstanceOf(Error);
-      const err = caught as Error;
+      if (!(caught instanceof Error))
+        throw new Error(`Expected an Error, got: ${String(caught)}`);
+      const err = caught;
       expect(err.message).toContain("Failed to parse structured content");
       expect(err.message).toContain("count");
       expect(err.cause).toBeInstanceOf(z.ZodError);
@@ -468,12 +469,13 @@ not-a-number
         caught = error;
       }
 
-      expect(caught).toBeInstanceOf(Error);
-      const err = caught as Error;
+      if (!(caught instanceof Error))
+        throw new Error(`Expected an Error, got: ${String(caught)}`);
+      const err = caught;
       expect(err.message).toContain("Failed to format structured content");
       expect(err.message).toContain("boom");
-      expect(err.cause).toBeInstanceOf(Error);
-      expect((err.cause as Error).message).toBe("boom");
+      if (!(err.cause instanceof Error)) throw new Error("Expected a cause");
+      expect(err.cause.message).toBe("boom");
     });
 
     it("should handle missing fields gracefully", () => {

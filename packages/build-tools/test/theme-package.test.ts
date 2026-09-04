@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildThemePackage } from "../src/theme-package";
+import { z } from "@brains/utils/zod";
 
 const created: string[] = [];
 
@@ -61,9 +62,11 @@ describe("buildThemePackage", () => {
 
     buildThemePackage({ packageDir, themeCSSOnly: css });
 
-    const module = (await import(
-      `${join(packageDir, "dist", "index.js")}?standalone`
-    )) as { default: string };
+    const module = z
+      .looseObject({ default: z.string() })
+      .parse(
+        await import(`${join(packageDir, "dist", "index.js")}?standalone`),
+      );
     expect(module.default).toBe(css);
   });
 
@@ -105,9 +108,9 @@ describe("buildThemePackage", () => {
       },
     });
 
-    const module = (await import(
-      `${join(packageDir, "dist", "index.js")}?composed`
-    )) as { default: string; themeCSSOnly: string };
+    const module = z
+      .looseObject({ default: z.string(), themeCSSOnly: z.string() })
+      .parse(await import(`${join(packageDir, "dist", "index.js")}?composed`));
     expect(module.default).toBe(".base {}\n\n.own {}");
     expect(module.themeCSSOnly).toBe(".own {}");
   });

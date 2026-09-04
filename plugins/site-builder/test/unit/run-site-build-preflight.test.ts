@@ -164,9 +164,9 @@ describe("runSiteBuild preflight", () => {
         pipelineContext.services.getViewTemplate = (): SiteViewTemplate =>
           template;
         pipelineContext.services.resolveTemplateContent = mock(
-          async (_templateName, resolutionOptions): Promise<never> => {
+          async (_templateName, resolutionOptions): Promise<unknown> => {
             events.push("resolve");
-            return resolutionOptions?.fallback as never;
+            return resolutionOptions?.fallback;
           },
         );
         pipelineContext.services.sendMessage = mock(async (request) => {

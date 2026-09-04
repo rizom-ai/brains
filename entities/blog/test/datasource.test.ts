@@ -14,6 +14,7 @@ import { z } from "@brains/utils/zod";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
 import { getTemplates } from "../src/lib/register-templates";
+import { blogPostSchema } from "../src/schemas/blog-post";
 
 const singlePostSchema = z.object({
   post: z.any(),
@@ -24,6 +25,9 @@ const singlePostSchema = z.object({
 
 const postListSchema = z.object({
   posts: z.array(z.any()),
+  // Read by the pre-enrichment assertion, so it belongs in the schema that
+  // checks the datasource output rather than in a cast at the call site.
+  baseUrl: z.string().nullable().optional(),
 });
 
 const paginationSchema = z.object({
@@ -449,7 +453,7 @@ describe("BlogDataSource", () => {
       expect(parsed.posts).toHaveLength(1);
       expect(parsed.posts[0]?.url).toBeNull();
       expect(parsed.posts[0]?.typeLabel).toBeNull();
-      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(parsed.baseUrl).toBeNull();
       expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
@@ -494,14 +498,17 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 2,
-          offset: 0,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "post",
+          options: {
+            limit: 2,
+            offset: 0,
+            sortFields: [{ field: "publishedAt", direction: "desc" }],
+          },
         },
-      });
+        blogPostSchema,
+      );
 
       expect(result.posts).toHaveLength(2);
     });
@@ -754,14 +761,17 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 3,
-          offset: 3,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "post",
+          options: {
+            limit: 3,
+            offset: 3,
+            sortFields: [{ field: "publishedAt", direction: "desc" }],
+          },
         },
-      });
+        blogPostSchema,
+      );
 
       expect(result.posts).toHaveLength(3);
       expect(result.pagination?.currentPage).toBe(2);
@@ -785,14 +795,17 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 3,
-          offset: 9,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "post",
+          options: {
+            limit: 3,
+            offset: 9,
+            sortFields: [{ field: "publishedAt", direction: "desc" }],
+          },
         },
-      });
+        blogPostSchema,
+      );
 
       expect(result.posts).toHaveLength(1);
       expect(result.pagination?.currentPage).toBe(4);
@@ -855,14 +868,17 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "post",
-        options: {
-          limit: 2,
-          offset: 0,
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "post",
+          options: {
+            limit: 2,
+            offset: 0,
+            sortFields: [{ field: "publishedAt", direction: "desc" }],
+          },
         },
-      });
+        blogPostSchema,
+      );
 
       expect(mockEntityService.countEntities).toHaveBeenCalledWith({
         entityType: "post",

@@ -14,7 +14,9 @@ import {
   toolsOf,
   useNetwork,
 } from "./fixtures/agent-network";
-import type { AgentEntity } from "../src/schemas/agent";
+
+import { agentEntitySchema } from "../src/schemas/agent";
+import { expectConfirmationArgs } from "@brains/test-utils";
 
 describe("the connect tool", () => {
   it("registers agents_connect as the canonical confirmation-gated A2A verification tool", async () => {
@@ -48,7 +50,7 @@ describe("the connect tool", () => {
     // which one is not a decision anyone can make.
     expect(confirmation.summary).toContain("connect-followup.example");
     expect(confirmation.summary).toContain("A2A Agent Card");
-    const confirmationArgs = confirmation.args as Record<string, unknown>;
+    const confirmationArgs = expectConfirmationArgs(confirmation);
     expect(confirmationArgs).toMatchObject({
       source: { kind: "url", url: "connect-followup.example" },
     });
@@ -75,10 +77,13 @@ describe("the connect tool", () => {
       "https://connect-followup.example/.well-known/agent-card.json",
     ]);
 
-    const saved = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "connect-followup.example",
-    });
+    const saved = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "connect-followup.example",
+      },
+      agentEntitySchema,
+    );
     expect(saved?.metadata.status).toBe("approved");
     expect(saved?.metadata.a2aEndpoint).toBe(
       "https://connect-followup.example/a2a",
@@ -103,7 +108,7 @@ describe("the connect tool", () => {
     const result = await runTool(
       harness,
       "agents_connect",
-      confirmation.args as Record<string, unknown>,
+      expectConfirmationArgs(confirmation),
     );
 
     // The runtime shapes a thrown failure; a declared tool carries no code
@@ -133,7 +138,7 @@ describe("the connect tool", () => {
     expectConfirmation(confirmation);
 
     const result = await runTool(harness, "agents_connect", {
-      ...(confirmation.args as Record<string, unknown>),
+      ...expectConfirmationArgs(confirmation),
       source: { kind: "url", url: "connect-changed.example" },
     });
 
@@ -183,7 +188,7 @@ describe("the connect tool", () => {
     const result = await runTool(
       harness,
       "agents_connect",
-      confirmation.args as Record<string, unknown>,
+      expectConfirmationArgs(confirmation),
     );
 
     expectSuccess(result);
@@ -224,7 +229,7 @@ describe("the connect tool", () => {
     const result = await runTool(
       harness,
       "agents_connect",
-      confirmation.args as Record<string, unknown>,
+      expectConfirmationArgs(confirmation),
     );
 
     expectSuccess(result);

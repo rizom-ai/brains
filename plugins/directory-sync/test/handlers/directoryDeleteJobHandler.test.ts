@@ -1,4 +1,4 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, spyOn } from "bun:test";
 import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
 import {
   createSilentLogger,
@@ -147,10 +147,7 @@ describe("DirectoryDeleteJobHandler", () => {
         mockContext,
         createMockDirectorySync({ completePendingDelete }),
       );
-      // Configure mock to reject - requires minimal cast for mock method access
-      const deleteEntityMock = mockContext.entityService
-        .deleteEntity as ReturnType<typeof mock>;
-      deleteEntityMock.mockRejectedValue(
+      spyOn(mockContext.entityService, "deleteEntity").mockRejectedValue(
         new Error("Database connection failed"),
       );
 

@@ -3,7 +3,8 @@ import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
 import { slugify } from "@brains/sdk/entities";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
 import { z } from "@brains/sdk/entities";
-import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
+import type { BlogPostFrontmatter } from "../schemas/blog-post";
+import { blogPostSchema } from "../schemas/blog-post";
 
 /**
  * Input schema for blog generation job
@@ -96,16 +97,19 @@ export const postGeneration: EntityGenerationDeclaration<
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(entities),
       );
-      const generated = await ai.generate<{
-        title: string;
-        content: string;
-        excerpt: string;
-      }>({
-        prompt: `${prompt ?? DEFAULT_POST_PROMPT}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`,
-        templateName: template("generation"),
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await ai.generate(
+        {
+          prompt: `${prompt ?? DEFAULT_POST_PROMPT}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`,
+          templateName: template("generation"),
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          excerpt: z.string(),
+        }),
+      );
       title = title ?? generated.title;
       content = content ?? generated.content;
       excerpt = excerpt ?? generated.excerpt;
@@ -120,11 +124,14 @@ export const postGeneration: EntityGenerationDeclaration<
         total: 100,
         message: "Generating excerpt with AI",
       });
-      const generated = await ai.generate<{ excerpt: string }>({
-        prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: template("excerpt"),
-        representedIdentity: "none",
-      });
+      const generated = await ai.generate(
+        {
+          prompt: `Title: ${title}\n\nContent:\n${content}`,
+          templateName: template("excerpt"),
+          representedIdentity: "none",
+        },
+        z.object({ excerpt: z.string() }),
+      );
       excerpt = generated.excerpt;
     }
 
@@ -135,9 +142,12 @@ export const postGeneration: EntityGenerationDeclaration<
     // A post joins a series at the end unless the caller placed it.
     let finalSeriesIndex = seriesIndex;
     if (seriesName && !seriesIndex) {
-      const posts = await entities.listEntities<BlogPost>({
-        entityType: "post",
-      });
+      const posts = await entities.listEntities(
+        {
+          entityType: "post",
+        },
+        blogPostSchema,
+      );
       finalSeriesIndex =
         posts.filter(
           (candidate) =>

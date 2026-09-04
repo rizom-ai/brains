@@ -39,7 +39,7 @@ export class EntityRegistry implements IEntityRegistry {
    */
   registerEntityType<
     TEntity extends BaseEntity<TMetadata>,
-    TMetadata = Record<string, unknown>,
+    TMetadata extends Record<string, unknown> = Record<string, unknown>,
   >(
     type: string,
     schema: UnknownEntitySchema,
@@ -59,10 +59,7 @@ export class EntityRegistry implements IEntityRegistry {
 
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
-    this.entityAdapters.set(
-      type,
-      adapter as EntityAdapter<BaseEntity<Record<string, unknown>>>,
-    );
+    this.entityAdapters.set(type, adapter);
     if (config) {
       this.entityConfigs.set(type, config);
     }
@@ -101,10 +98,7 @@ export class EntityRegistry implements IEntityRegistry {
    * Get adapter for a specific entity type.
    * If frontmatter extensions have been registered, returns a wrapper with the effective merged schema.
    */
-  getAdapter<
-    TEntity extends BaseEntity<TMetadata>,
-    TMetadata = Record<string, unknown>,
-  >(type: string): EntityAdapter<TEntity, TMetadata> {
+  getAdapter(type: string): EntityAdapter<BaseEntity> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
       throw new Error(
@@ -117,13 +111,16 @@ export class EntityRegistry implements IEntityRegistry {
       adapter.frontmatterSchema,
     );
     if (!effectiveSchema || effectiveSchema === adapter.frontmatterSchema) {
-      return adapter as EntityAdapter<TEntity, TMetadata>;
+      return adapter;
     }
 
-    // Return a prototype-delegating wrapper that overrides only frontmatterSchema
-    return Object.create(adapter, {
-      frontmatterSchema: { value: effectiveSchema, enumerable: true },
-    }) as EntityAdapter<TEntity, TMetadata>;
+    // Delegate to the adapter, overriding only frontmatterSchema.
+    const wrapped: EntityAdapter<BaseEntity> = Object.create(adapter);
+    Object.defineProperty(wrapped, "frontmatterSchema", {
+      value: effectiveSchema,
+      enumerable: true,
+    });
+    return wrapped;
   }
 
   /**

@@ -1,3 +1,4 @@
+import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import { dirname } from "node:path";
@@ -86,10 +87,11 @@ export default [
     // would notice an interface gaining a member or changing a signature, so
     // the mock goes stale while every test using it still passes.
     //
-    // Use `satisfies` on a fully populated literal, `PublicSurface<T>` plus a
-    // single nominal cast for class types, or `genericSpy` where bun's mock()
-    // has erased type parameters. Each of those names its reason; a bare
-    // `as unknown as` does not.
+    // Declare the literal against the interface it stands in for, or use
+    // `genericSpy` where bun's mock() has erased type parameters. Both name
+    // their reason; a bare `as unknown as` does not. Where a service was a
+    // class with private state, the fix was to give consumers an interface —
+    // not to widen the mock.
     files: ["shared/test-utils/src/**/*.ts"],
     rules: {
       "no-restricted-syntax": [
@@ -98,29 +100,25 @@ export default [
           selector:
             "TSAsExpression > TSAsExpression > TSUnknownKeyword.typeAnnotation",
           message:
-            "Do not use `as unknown as` in shared mocks — use `satisfies`, PublicSurface<T>, or genericSpy so interface drift fails to compile.",
+            "Do not use `as unknown as` in shared mocks — declare the literal against the interface, or use genericSpy, so interface drift fails to compile.",
         },
       ],
     },
   },
   {
-    // Test files in the layers Phase 6 has cleared.
+    // `as unknown as` in a test, called out separately from the assertion ban
+    // so the message can say what to reach for instead.
     //
     // A cast on an inline mock does the same damage as one in a shared factory,
     // just locally: it asserts a shape instead of checking it, so the mock goes
-    // stale silently while the test keeps passing. Every cast removed from
-    // these layers was hiding something — a handler declared to take no
-    // argument where the real one is passed a message, a provider asserting a
-    // return shape its contract does not promise, a private method reached
-    // through the class.
+    // stale silently while the test keeps passing. Every cast removed this way
+    // was hiding something — a handler declared to take no argument where the
+    // real one is passed a message, a provider asserting a return shape its
+    // contract does not promise, a private method reached through the class.
     //
     // Reach for, in order: a shared factory from `@brains/test-utils`, an
     // honest narrow type (`Pick<...>` or a local interface), or narrowing the
     // parameter of the code under test when it asks for more than it uses.
-    //
-    // Enabled per layer as each one reaches zero, so the layers already done
-    // cannot regress while the rest are outstanding. Add a layer here when its
-    // count hits zero — `shell` remains.
     files: ["**/*.test.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": [
@@ -169,6 +167,75 @@ export default [
         "error",
         NO_UNSAFE_TEST_CAST,
         NO_SLEEP_SYNCHRONIZATION,
+      ],
+    },
+  },
+  {
+    // Type assertions are banned in shipped source.
+    //
+    // `as T` asserts a shape instead of checking it: the compiler stops
+    // looking and the claim is never tested at runtime. Removing ~185 of them
+    // from this repo turned up real defects each time — an svg+xml laundered
+    // into an ImageFormat, a `<select>` value asserted into a role, deploy
+    // errors read as `success: undefined`, entity sorts on metadata fields
+    // that were stripped before they ever reached the database.
+    //
+    // Reach for, in order: a Zod schema parsed at the boundary, a type
+    // predicate that actually inspects the value, or fixing the upstream type
+    // so the assertion has nothing to correct.
+    //
+    // An assertion that genuinely cannot be removed stays, with a disable
+    // naming why — `eslint-comments/require-description` makes the reason
+    // mandatory, and an unused directive is a warning, which `--max-warnings 0`
+    // turns into a failure. So an exemption left behind after its cast is
+    // gone breaks the build instead of accumulating.
+    //
+    // `as const` is not an assertion in this sense and is not reported.
+    //
+    // Tests are excluded here only so the block below can state the same ban
+    // for them separately; they are not exempt from it.
+    files: ["**/*.{ts,tsx}"],
+    ignores: [
+      "**/test/**",
+      "**/*.test.{ts,tsx}",
+      "**/scripts/**",
+    ],
+    plugins: { "eslint-comments": eslintComments },
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+      "eslint-comments/require-description": [
+        "error",
+        { ignore: ["eslint-enable"] },
+      ],
+    },
+  },
+  {
+    // Tests, which the ban above exempts so the two can be stated separately.
+    //
+    // This started as a per-package allowlist while ~520 assertions were
+    // migrated, and grew until it named every package — at which point the
+    // list said nothing the glob does not. What the migration turned up is
+    // the argument for keeping it on: a fixture whose `operationType` did not
+    // exist, plugin stubs that could never have registered, entity literals
+    // missing `visibility` and `rootJobId`, an `IMessageBus` mock still
+    // implementing two members the interface had dropped, and eleven
+    // assertions on a parameter that already took the narrowed type.
+    //
+    // Both patterns: some packages keep their tests beside the source they
+    // cover rather than under `test/`.
+    files: ["**/test/**/*.{ts,tsx}", "**/*.test.{ts,tsx}"],
+    plugins: { "eslint-comments": eslintComments },
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+      "eslint-comments/require-description": [
+        "error",
+        { ignore: ["eslint-enable"] },
       ],
     },
   },

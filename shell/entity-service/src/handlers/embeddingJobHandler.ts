@@ -1,5 +1,5 @@
 import { ENTITY_CHANNELS } from "@brains/contracts";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { type ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type {
@@ -44,7 +44,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
     embeddingService: IEmbeddingService,
     messageBus?: EntityEventBus,
   ) {
-    this.logger = Logger.getInstance().child("EmbeddingJobHandler");
+    this.logger = ConsoleLogger.getInstance().child("EmbeddingJobHandler");
     this.embeddingService = embeddingService;
     this.entityService = entityService;
     if (messageBus) {

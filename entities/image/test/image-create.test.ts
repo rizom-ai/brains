@@ -4,7 +4,6 @@ import type {
   CreateInput,
   CreateInterceptionResult,
   CreateInterceptor,
-  Plugin,
 } from "@brains/plugins";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -52,7 +51,7 @@ async function install(options: { dataDir?: string } = {}): Promise<Installed> {
     {},
     PACKAGE_METADATA,
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
 
   const interceptor: CreateInterceptor | undefined = harness
     .getEntityRegistry()
@@ -114,7 +113,7 @@ describe("image package registration", () => {
       {},
       PACKAGE_METADATA,
     );
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       const capabilities = await harness.installPlugin(plugin);
       expect(capabilities.tools).toEqual([]);
     }

@@ -120,26 +120,17 @@
       "indexes": {
         "idx_job_queue_ready": {
           "name": "idx_job_queue_ready",
-          "columns": [
-            "status",
-            "priority",
-            "scheduledFor"
-          ],
+          "columns": ["status", "priority", "scheduledFor"],
           "isUnique": false
         },
         "idx_job_queue_type": {
           "name": "idx_job_queue_type",
-          "columns": [
-            "type",
-            "status"
-          ],
+          "columns": ["type", "status"],
           "isUnique": false
         },
         "idx_job_queue_source": {
           "name": "idx_job_queue_source",
-          "columns": [
-            "source"
-          ],
+          "columns": ["source"],
           "isUnique": false
         }
       },

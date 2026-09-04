@@ -187,7 +187,7 @@ describe("Tool Formatters", () => {
     it("should handle null/undefined values", () => {
       const entity = { value: null, other: undefined };
 
-      const result = formatAsEntity(entity as Record<string, unknown>);
+      const result = formatAsEntity(entity);
 
       expect(result).toContain("_none_");
     });

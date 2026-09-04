@@ -5,6 +5,7 @@ import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { LinkStatus, LinkEntity } from "../src/schemas/link";
+import { linkSchema } from "../src/schemas/link";
 import {
   createMockLogger,
   createMockEntityService,
@@ -45,6 +46,7 @@ Summary for ${title}`;
       metadata: {
         title,
         status,
+        capturedAt,
       },
     });
   };
@@ -145,12 +147,17 @@ Summary for ${title}`;
 
       await datasource.fetch({ entityType: "link" }, listSchema, mockContext);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "link",
-        options: expect.objectContaining({
-          sortFields: [{ field: "capturedAt", direction: "desc" }],
-        }),
-      });
+      // The read now carries the schema that proves its rows are links, so the
+      // call has two arguments rather than one.
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "link",
+          options: expect.objectContaining({
+            sortFields: [{ field: "capturedAt", direction: "desc" }],
+          }),
+        },
+        linkSchema,
+      );
     });
   });
 

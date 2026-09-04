@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/sdk/entities";
+import type { BaseEntity, EntitySchema } from "@brains/sdk/entities";
 import {
   sortByPublicationDate,
   type EntityWithPublishedAt,
@@ -21,24 +21,41 @@ import type { SiteInfoCTA } from "@brains/site-composition";
  * satisfy it.
  */
 interface DataSourceEntityService {
-  listEntities<T extends BaseEntity>(request: {
-    entityType: string;
-    options?: { limit?: number } | undefined;
-  }): Promise<T[]>;
+  listEntities<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      options?: { limit?: number } | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
 }
 
-/** Fetch the most recent published entities of a type, newest first. */
+/**
+ * Fetch the most recent published entities of a type, newest first.
+ *
+ * `entitySchema` is what proves the entities are of type `E`. Without it the
+ * caller would be naming a type the read never checked, and `parse` would run
+ * over whatever the store happened to hold.
+ */
 export async function fetchRecentEntities<
   E extends BaseEntity & EntityWithPublishedAt,
   D,
 >(
   entityService: DataSourceEntityService,
-  params: { entityType: string; count: number; parse: (entity: E) => D },
+  params: {
+    entityType: string;
+    entitySchema: EntitySchema<E>;
+    count: number;
+    parse: (entity: E) => D;
+  },
 ): Promise<D[]> {
-  const entities = await entityService.listEntities<E>({
-    entityType: params.entityType,
-    options: { limit: 20 },
-  });
+  const entities = await entityService.listEntities(
+    {
+      entityType: params.entityType,
+      options: { limit: 20 },
+    },
+    params.entitySchema,
+  );
   return entities
     .sort(sortByPublicationDate)
     .slice(0, params.count)

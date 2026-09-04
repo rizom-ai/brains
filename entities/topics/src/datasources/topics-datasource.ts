@@ -8,6 +8,7 @@ import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { toTopicDetail } from "../lib/topic-presenter";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
 import type { TopicListData } from "../templates/topic-list/schema";
+import { topicEntitySchema } from "../schemas/topic";
 
 const SUMMARY_LENGTH = 200;
 
@@ -27,6 +28,7 @@ export const topicsDataSource: EntityDataSourceDefinition<
   name: "Topics Entity DataSource",
   description: "Fetches and transforms topic entities for rendering",
   entityType: TOPIC_ENTITY_TYPE,
+  entitySchema: topicEntitySchema,
   defaultSort: [{ field: "updated", direction: "desc" }],
   defaultLimit: 100,
   transform: (entity: BaseEntity): TopicDetailData => toTopicDetail(entity),

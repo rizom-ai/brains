@@ -1,8 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
-import type {
-  BaseDataSourceContext,
-  SemanticSpaceProjection,
-} from "@brains/plugins";
+import type { SemanticSpaceProjection } from "@brains/plugins";
 import { createMockEntityService } from "@brains/test-utils";
 import { createDeclarativeDataSource } from "@brains/plugins";
 import { fetchable } from "@brains/test-utils";
@@ -39,7 +36,7 @@ describe("ProximityMapDataSource", () => {
     const entityService = {
       ...createMockEntityService({ returns: { listEntities: [agent] } }),
       projectSemanticSpace,
-    } as BaseDataSourceContext["entityService"];
+    };
 
     const datasource = fetchable(
       createDeclarativeDataSource(

@@ -36,6 +36,7 @@ const auditEvent: AuthAuditEvent = {
  * that has auth has all of them, so the stub says so without spelling each
  * one out.
  */
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a Proxy over an interface has no structural shape to satisfy: `new Proxy` types its result from its target, and the target cannot be written without spelling out all 19 operations this test never calls
 const unusedAdministration = new Proxy(
   {},
   {

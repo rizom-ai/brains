@@ -21,7 +21,16 @@ export interface IEntityAINamespace {
     prompt: string,
     context?: Record<string, unknown>,
   ) => Promise<DefaultQueryResponse>;
-  generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+  /**
+   * Generate content from a template and parse the model output through
+   * `schema`. The schema is required for the same reason generateObject takes
+   * one: the model's output is untrusted, and a bare type parameter was a
+   * claim nothing checked.
+   */
+  generate: <T>(
+    config: ContentGenerationConfig,
+    schema: AIGenerationSchema<T>,
+  ) => Promise<T>;
   generateObject: <T>(
     prompt: string,
     schema: AIGenerationSchema<T>,

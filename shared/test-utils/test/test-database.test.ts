@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
+import { caughtError } from "../src/caught-error";
 import { tmpdir } from "node:os";
 import {
   createTempDir,
@@ -115,8 +116,7 @@ describe("createTestDatabase", () => {
       thrown = error;
     }
 
-    expect(thrown).toBeInstanceOf(Error);
-    expect((thrown as Error).message).toBe("migration exploded");
+    expect(caughtError(thrown).message).toBe("migration exploded");
 
     const after = await readdir(tmpdir());
     const leaked = after.filter(

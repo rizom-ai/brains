@@ -20,6 +20,7 @@ import {
 } from "@brains/utils/safe-public-fetch";
 import type { FetchFn } from "./fetch-agent-card";
 import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
+import { agentEntitySchema } from "../schemas/agent";
 import {
   recordConflict,
   recordDiscoveryCandidate,
@@ -104,10 +105,13 @@ export async function upsertAgentFromCard(
     );
   }
   const agentId = domainIdFromUrl(siteUrl);
-  const existing = await context.entities.getEntity<AgentEntity>({
-    entityType: "agent",
-    id: agentId,
-  });
+  const existing = await context.entities.getEntity(
+    {
+      entityType: "agent",
+      id: agentId,
+    },
+    agentEntitySchema,
+  );
   if (
     existing?.metadata.repoDid &&
     existing.metadata.repoDid !== input.repoDid
@@ -320,6 +324,17 @@ function getRepoDidFromCardUri(uri: string): string | null {
   return match?.[1] ?? null;
 }
 
+const plcDocumentSchema = z.object({
+  service: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        serviceEndpoint: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
 async function resolvePdsEndpoint(
   repoDid: string,
   fetchFn: AtprotoCardFetch,
@@ -337,9 +352,9 @@ async function resolvePdsEndpoint(
     throw new Error(`PLC lookup failed with HTTP ${response.status}`);
   }
 
-  const document = (await response.json()) as {
-    service?: Array<{ id?: string; serviceEndpoint?: string }>;
-  };
+  // Parsed at the boundary: a PLC document is someone else's JSON, so its
+  // shape is checked rather than declared.
+  const document = plcDocumentSchema.parse(await response.json());
   const endpoint = document.service?.find(
     (service) => service.id === "#atproto_pds",
   )?.serviceEndpoint;
@@ -539,9 +554,12 @@ export async function refreshKnownAgentCards(
     unchanged: 0,
     failed: 0,
   };
-  const agents = await context.entities.listEntities<AgentEntity>({
-    entityType: "agent",
-  });
+  const agents = await context.entities.listEntities(
+    {
+      entityType: "agent",
+    },
+    agentEntitySchema,
+  );
   const rawFetch = getFetch(fetchFn);
   const resolvedFetch = createSafePublicFetch({
     fetchFn: rawFetch,
@@ -640,9 +658,12 @@ export const agentDiscoveryFromCards: EntityAtprotoDiscovery = {
   },
 
   onCardUnavailable: async (context, card) => {
-    const agents = await context.entities.listEntities<AgentEntity>({
-      entityType: "agent",
-    });
+    const agents = await context.entities.listEntities(
+      {
+        entityType: "agent",
+      },
+      agentEntitySchema,
+    );
     const matching = agents.filter(
       (agent) => agent.metadata.repoDid === card.repoDid,
     );

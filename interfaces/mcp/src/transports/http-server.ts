@@ -72,6 +72,9 @@ function requestOrigin(request: Request): string {
  * registry, so protocol clients cannot retain stale capabilities across
  * registry or permission changes.
  */
+/** What an authenticated caller may claim; anything else is not a level. */
+const permissionLevelSchema = z.enum(["admin", "trusted", "public"]);
+
 export class StreamableHTTPServer {
   private mcpTransport: IMCPTransport | null = null;
   private mcpHandler: McpHttpHandler | null = null;
@@ -371,8 +374,12 @@ export class StreamableHTTPServer {
     this.mcpTransport = mcpTransport ?? null;
     this.mcpHandler = createMcpHandler(
       ({ authInfo }) => {
-        const permissionLevel = authInfo?.extra?.["permissionLevel"] as
-          UserPermissionLevel | undefined;
+        // Parsed at the boundary: `extra` is an open record the auth layer
+        // fills in, so what it holds is checked rather than declared.
+        const claimed = permissionLevelSchema.safeParse(
+          authInfo?.extra?.["permissionLevel"],
+        );
+        const permissionLevel = claimed.success ? claimed.data : undefined;
         return this.mcpTransport
           ? this.mcpTransport.createMcpServer(permissionLevel)
           : mcpServer;

@@ -5,7 +5,28 @@ import {
   shouldResolveContent,
 } from "../src/lib/content-resolver";
 import { createSilentLogger } from "@brains/test-utils";
-import type { ICoreEntityService } from "../src/types";
+import type { BaseEntity, ICoreEntityService } from "../src/types";
+
+/**
+ * A whole image entity, not `{ content }` asserted into one.
+ *
+ * The resolver reads only `content` today; a partial stub asserted into place
+ * would keep compiling if it started reading `metadata` or `visibility`, and
+ * the test would fail on an undefined field instead of saying the stub is
+ * incomplete.
+ */
+function imageEntity(content: string): BaseEntity {
+  return {
+    id: "test-id",
+    entityType: "image",
+    content,
+    contentHash: "image-hash",
+    visibility: "public",
+    metadata: {},
+    created: "2026-01-01T00:00:00.000Z",
+    updated: "2026-01-01T00:00:00.000Z",
+  };
+}
 
 describe("ContentResolver", () => {
   describe("hasImageReferences", () => {
@@ -146,7 +167,7 @@ Some text
       const dataUrl =
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       mockEntityService.getEntityRaw = mock(() =>
-        Promise.resolve({ content: dataUrl } as never),
+        Promise.resolve(imageEntity(dataUrl)),
       );
 
       const content = "![Alt](entity://image/test-id)";
@@ -160,7 +181,7 @@ Some text
     it("should handle multiple references to same image", async () => {
       const dataUrl = "data:image/png;base64,abc123";
       mockEntityService.getEntityRaw = mock(() =>
-        Promise.resolve({ content: dataUrl } as never),
+        Promise.resolve(imageEntity(dataUrl)),
       );
 
       const content =
@@ -192,7 +213,7 @@ Some text
       const dataUrl = "data:image/png;base64,success";
       mockEntityService.getEntityRaw = mock((request: { id: string }) => {
         if (request.id === "found-id") {
-          return Promise.resolve({ content: dataUrl } as never);
+          return Promise.resolve(imageEntity(dataUrl));
         }
         return Promise.resolve(null);
       });
@@ -223,7 +244,7 @@ Some text
     it("should use getEntityRaw to avoid recursion", async () => {
       const dataUrl = "data:image/png;base64,test";
       mockEntityService.getEntityRaw = mock(() =>
-        Promise.resolve({ content: dataUrl } as never),
+        Promise.resolve(imageEntity(dataUrl)),
       );
 
       const content = "![Alt](entity://image/test-id)";

@@ -4,6 +4,7 @@ import type {
   RuntimeOperatorLaunchIntent,
 } from "@brains/plugins";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
@@ -120,6 +121,12 @@ const LazyStudioChatWorkspace = lazy(async () => {
 export function studioChatSessionId(rawSearch: string): string | null {
   const value = new URLSearchParams(rawSearch).get("session")?.trim();
   return value && value.length <= 256 ? value : null;
+}
+
+/** `History.state` is typed `any`; narrow it before handing it to callers. */
+function historyStateRecord(): Record<string, unknown> {
+  const state: unknown = window.history.state;
+  return isPlainRecord(state) ? state : {};
 }
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
@@ -472,9 +479,7 @@ export function App(): ReactElement {
             entityType,
             () =>
               window.history.replaceState(
-                withoutStudioCreatePrefill(
-                  window.history.state as Record<string, unknown>,
-                ),
+                withoutStudioCreatePrefill(historyStateRecord()),
                 "",
                 window.location.href,
               ),

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { createClient } from "@libsql/client";
+import { z } from "@brains/utils/zod";
 import {
   createEmbeddingDatabase,
   ensureEmbeddingIndexes,
@@ -197,8 +198,8 @@ describe("Embedding Database", () => {
 
       expect(result.rows).toHaveLength(1);
       const distance = result.rows[0]?.["distance"];
-      expect(typeof distance).toBe("number");
-      expect(distance as number).toBeLessThan(0.1); // Very similar vectors
+      // Very similar vectors
+      expect(z.number().parse(distance)).toBeLessThan(0.1);
       entityClient.close();
     });
 

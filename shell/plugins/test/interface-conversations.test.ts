@@ -103,9 +103,9 @@ describe("an interface that hosts a conversation", () => {
     );
     // The runtime issues the id, not the caller: a session name is the
     // client's word for a thread, and the brain files it under its own.
-    const { conversationId } = (await started.json()) as {
-      conversationId: string;
-    };
+    const { conversationId } = z
+      .object({ conversationId: z.string() })
+      .parse(await started.json());
     expect(conversationId).toMatch(/^conv-/u);
 
     // The read is wired and answers honestly about something absent, rather

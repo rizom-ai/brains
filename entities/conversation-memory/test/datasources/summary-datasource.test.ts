@@ -5,6 +5,8 @@ import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 import type { SummaryEntry } from "../../src/schemas/summary";
+import { summaryEntrySchema } from "../../src/schemas/summary";
+import { z } from "@brains/utils/zod";
 
 const entry: SummaryEntry = {
   title: "Eval Plan",
@@ -22,6 +24,18 @@ const entry: SummaryEntry = {
  * they are testable without a runtime around them. Finding the entities and
  * paging them is the runtime's half and is tested there.
  */
+/**
+ * What `transform` hands the templates, checked rather than declared: the
+ * definition erases its transform type on the way to the published surface,
+ * so the schema is what proves the shape these assertions read.
+ */
+const transformedSummarySchema = z.looseObject({
+  conversationId: z.string(),
+  entries: z.array(summaryEntrySchema),
+  latestEntry: z.string(),
+  entryCount: z.number(),
+});
+
 describe("summary data source", () => {
   const summary = createMockSummaryEntity({
     id: "conv-123",
@@ -40,11 +54,9 @@ describe("summary data source", () => {
   });
 
   it("parses the entries out of a summary once", () => {
-    const transformed = summaryDataSource.transform(summary) as {
-      conversationId: string;
-      entries: SummaryEntry[];
-      latestEntry: string;
-    };
+    const transformed = transformedSummarySchema.parse(
+      summaryDataSource.transform(summary),
+    );
 
     expect(transformed.conversationId).toBe("conv-123");
     expect(transformed.entries[0]?.title).toBe("Eval Plan");
@@ -91,9 +103,11 @@ describe("summary data source", () => {
   });
 
   it("falls back when a summary has no entries", () => {
-    const empty = summaryDataSource.transform(
-      createMockSummaryEntity({ content: composeSummaryBody([]) }),
-    ) as { latestEntry: string; entryCount: number };
+    const empty = transformedSummarySchema.parse(
+      summaryDataSource.transform(
+        createMockSummaryEntity({ content: composeSummaryBody([]) }),
+      ),
+    );
 
     expect(empty.latestEntry).toBe("No entries");
     expect(empty.entryCount).toBe(0);

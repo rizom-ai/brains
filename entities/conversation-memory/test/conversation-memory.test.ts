@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Plugin } from "@brains/plugins";
+
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -22,7 +22,7 @@ async function install(
     config,
     PACKAGE_METADATA,
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
   return harness;
 }
 
@@ -38,7 +38,7 @@ describe("conversation memory package", () => {
       PACKAGE_METADATA,
     );
     const ruleIds: string[] = [];
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       const capabilities = await harness.installPlugin(plugin);
       ruleIds.push(
         ...(capabilities.projectionRules?.map((rule) => rule.id) ?? []),
@@ -75,7 +75,7 @@ describe("conversation memory package", () => {
       {},
       PACKAGE_METADATA,
     );
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       const capabilities = await harness.installPlugin(plugin);
       expect(capabilities.tools).toEqual([]);
     }

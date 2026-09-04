@@ -10,9 +10,11 @@ import {
   createMockEntityPluginContext,
   createMockEntityService,
   createSilentLogger,
+  createTestAppInfo,
 } from "@brains/test-utils";
 import { createSummaryProjectionRule } from "../../src/lib/summary-rule";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
+import type { EntitySchema } from "@brains/sdk/entities";
 
 const config = summaryConfigSchema.parse({});
 const spaces = ["mcp:team"];
@@ -100,10 +102,7 @@ function inputContext(options: {
     spaces,
     conversations,
     resolvePrompt: async (_reference, fallback): Promise<string> => fallback,
-    appInfo: async () =>
-      ({ ai: { model: "test-model" } }) as Awaited<
-        ReturnType<ProjectionInputContext["appInfo"]>
-      >,
+    appInfo: async () => createTestAppInfo({ ai: { model: "test-model" } }),
     identityInput: () => ({}),
   };
 }
@@ -115,10 +114,11 @@ function executionContext(entries: unknown[]): ProjectionExecutionContext {
   return {
     ai: {
       ...plugin.ai,
-      generateObject: async <T>() =>
-        ({
-          object: { decision: "update", rationale: "test" } as T,
-        }) as { object: T },
+      // The stubbed decision is parsed through the caller's own schema, which
+      // is what proves it is the shape the rule asked for.
+      generateObject: async <T>(_prompt: string, schema: EntitySchema<T>) => ({
+        object: schema.parse({ decision: "update", rationale: "test" }),
+      }),
     },
     logger: createSilentLogger("summary-rule-test"),
   };

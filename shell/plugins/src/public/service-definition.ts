@@ -11,6 +11,7 @@ import type {
   NormalizedServiceDefinitionInput,
   ServiceDefinitionInput,
   ServiceSchemaMap,
+  ServiceViewSchemaMap,
 } from "../service/service-definition-contract";
 
 export { defineAccountSettings } from "../operator/account-settings-definition-contract";
@@ -101,6 +102,7 @@ export type {
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
+  ServiceViewSchemaMap,
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
   ServiceToolDefinition,
@@ -140,7 +142,7 @@ function createServicePackage<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: NormalizedServiceDefinitionInput<
@@ -191,7 +193,7 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceSchemaMap = Record<never, never>,
+  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
 >(
@@ -209,7 +211,7 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceSchemaMap = Record<never, never>,
+  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
 >(
   definition: ServiceDefinitionInput<
@@ -226,7 +228,7 @@ export function defineServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
 >(
   definition:
     | ServiceDefinitionInput<

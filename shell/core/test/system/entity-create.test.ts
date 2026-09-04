@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { authenticatedUserId } from "@brains/contracts";
+import {
+  expectConfirmationArgs,
+  expectToolError,
+  expectToolSuccess,
+} from "@brains/test-utils";
 import { createSystemTools } from "../../src/system/tools";
 import {
   createInputSchema,
@@ -130,8 +135,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
         try {
           const adapter = services.entityRegistry.getAdapter("link");
           const parsed = adapter.fromMarkdown(input.content);
-          const parsedMetadata = parsed.metadata as
-            Record<string, unknown> | undefined;
+          const parsedMetadata = parsed.metadata;
           const parsedTitle =
             typeof parsedMetadata?.["title"] === "string"
               ? parsedMetadata["title"]
@@ -359,10 +363,12 @@ describe("system_create tool", () => {
     value: unknown,
   ): AttachmentRefInput | undefined {
     if (!value || typeof value !== "object") return undefined;
-    const record = value as Record<string, unknown>;
+    const record = z.record(z.string(), z.unknown()).parse(value);
     const nestedSource = record["source"];
     if (nestedSource && typeof nestedSource === "object") {
-      const sourceRecord = nestedSource as Record<string, unknown>;
+      const sourceRecord = z
+        .record(z.string(), z.unknown())
+        .parse(nestedSource);
       if (
         typeof sourceRecord["entityType"] === "string" &&
         typeof sourceRecord["entityId"] === "string" &&
@@ -443,7 +449,9 @@ describe("system_create tool", () => {
       return { ...rest, source: { kind: "attachment", ...sourceAttachment } };
     }
     if (from && typeof from === "object") {
-      const messageId = (from as { messageId?: unknown }).messageId;
+      const messageId = z
+        .looseObject({ messageId: z.unknown() })
+        .parse(from).messageId;
       return {
         ...rest,
         source: {
@@ -499,7 +507,7 @@ describe("system_create tool", () => {
     const promptValue = typeof prompt === "string" ? prompt : undefined;
     let promptSource: EntityRefInput | undefined;
     if (source && typeof source === "object") {
-      const sourceRecord = source as Record<string, unknown>;
+      const sourceRecord = z.record(z.string(), z.unknown()).parse(source);
       if (
         typeof sourceRecord["entityType"] === "string" &&
         typeof sourceRecord["entityId"] === "string"
@@ -628,7 +636,7 @@ describe("system_create tool", () => {
     });
 
     expect(unregistered).toMatchObject({ success: false });
-    expect((unregistered as { error: string }).error).toContain(
+    expect(expectToolError(unregistered).error).toContain(
       'Entity type "blog-post" is not available in this brain.',
     );
     // No confirmation card and no generation job for an unregistered type.
@@ -666,7 +674,7 @@ describe("system_create tool", () => {
     });
 
     expect(result).toMatchObject({ success: false });
-    expect((result as { error: string }).error).toContain("use system_update");
+    expect(expectToolError(result).error).toContain("use system_update");
     expect(result).not.toHaveProperty("needsConfirmation");
 
     const after = await services.entityService.listEntities({
@@ -923,7 +931,7 @@ status: draft
         confirmationToken: z.string(),
       })
       .passthrough()
-      .parse((confirmation as { args: unknown }).args);
+      .parse(expectConfirmationArgs(confirmation));
 
     const result = await execRaw({
       ...confirmationArgs,
@@ -1155,7 +1163,7 @@ status: draft
     });
 
     expect(result).toMatchObject({ success: false });
-    expect((result as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(result).error).toContain("Unrecognized key");
   });
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
@@ -1421,7 +1429,7 @@ status: draft
       content: "Original body.",
     });
 
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.entityId).toBe("interceptor-title");
     const entity = await services.entityService.getEntity({
       entityType: "note",
@@ -1439,7 +1447,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("created");
     expect(data.entityId).toBeDefined();
   });
@@ -1451,7 +1459,7 @@ status: draft
       content: "Body.",
     });
 
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.entityId).toBe("my-cool-note-title");
   });
 
@@ -1500,7 +1508,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data).toEqual({ status: "created", entityId: "approved-deck" });
     expect(services.getLastEnqueuedJob()).toBeUndefined();
     expect(services.getLastMarkdownCreate()).toEqual({
@@ -1544,7 +1552,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("generating");
     expect(data.entityId).toBe("write-about-typescript");
     expect(data.jobId).toBeDefined();
@@ -1562,7 +1570,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
+    expect(expectToolError(result).error).toContain(
       "Invalid input: source: Invalid input",
     );
   });
@@ -1574,7 +1582,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
+    expect(expectToolError(result).error).toContain(
       "URL or upload source creation is supported only for entity types that explicitly handle it",
     );
   });
@@ -1586,7 +1594,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("generating");
 
     const enqueuedJob = services.getLastEnqueuedJob();
@@ -1605,7 +1613,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("generating");
     expect(data.jobId).toBeDefined();
 
@@ -1623,7 +1631,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("generating");
     expect(data.jobId).toBeDefined();
 
@@ -1660,7 +1668,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("created");
     expect(data.entityId).toBeDefined();
     if (!data.entityId) throw new Error("Expected entityId to be defined");
@@ -1682,7 +1690,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", true);
-    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    const data = createOutputSchema.parse(expectToolSuccess(result).data);
     expect(data.status).toBe("generating");
 
     const enqueuedJob = services.getLastEnqueuedJob();
@@ -1699,7 +1707,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain(
+    expect(expectToolError(result).error).toContain(
       "Direct link creation requires full link markdown/frontmatter",
     );
   });
@@ -1711,7 +1719,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain("provide a URL");
+    expect(expectToolError(result).error).toContain("provide a URL");
   });
 
   it("should ignore empty optional strings when queuing generation jobs", async () => {
@@ -1809,18 +1817,14 @@ A saved research link.`;
     });
 
     expect(confirmation).toMatchObject({ needsConfirmation: true });
-    expect(
-      (confirmation as { args: Record<string, unknown> }).args,
-    ).toMatchObject({
+    expect(expectConfirmationArgs(confirmation)).toMatchObject({
       operation: {
         kind: "cover-image",
         target: { entityType: "post", entityId: "my-blog-post" },
       },
     });
 
-    const result = await execGenerateRaw(
-      (confirmation as { args: Record<string, unknown> }).args,
-    );
+    const result = await execGenerateRaw(expectConfirmationArgs(confirmation));
     expect(result).toHaveProperty("success", true);
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
@@ -1872,9 +1876,7 @@ A saved research link.`;
     });
 
     expect(confirmation).toMatchObject({ needsConfirmation: true });
-    expect(
-      (confirmation as { args: Record<string, unknown> }).args,
-    ).toMatchObject({
+    expect(expectConfirmationArgs(confirmation)).toMatchObject({
       operation: {
         kind: "prompt-from-source",
         entityType: "newsletter",
@@ -1885,9 +1887,7 @@ A saved research link.`;
       },
     });
 
-    const result = await execGenerateRaw(
-      (confirmation as { args: Record<string, unknown> }).args,
-    );
+    const result = await execGenerateRaw(expectConfirmationArgs(confirmation));
 
     expect(result).toHaveProperty("success", true);
     const enqueuedJob = services.getLastEnqueuedJob();
@@ -2085,7 +2085,7 @@ A saved research link.`;
     });
 
     expect(result).toMatchObject({ success: false });
-    expect((result as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(result).error).toContain("Unrecognized key");
   });
 
   it("should reject image prompts combined with stale upload refs", async () => {
@@ -2105,7 +2105,7 @@ A saved research link.`;
     });
 
     expect(result).toMatchObject({ success: false });
-    expect((result as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(result).error).toContain("Unrecognized key");
   });
 
   it("should reject attachment generation when the source entity does not exist before confirmation", async () => {
@@ -2381,7 +2381,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(result).error).toContain("Unrecognized key");
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
@@ -2427,7 +2427,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", false);
-    expect((result as { error: string }).error).toContain("Unrecognized key");
+    expect(expectToolError(result).error).toContain("Unrecognized key");
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
   });

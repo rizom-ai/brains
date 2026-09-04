@@ -2,6 +2,18 @@ import { describe, expect, it } from "bun:test";
 import { compileFilter, matchesFilter } from "@/filter-matcher";
 import type { MessageWithPayload, SubscriptionFilter } from "@/types";
 
+/**
+ * A compiled filter source is `string | RegExp`. Checking which it is proves
+ * the compilation actually happened; asserting it would keep passing if
+ * `compileFilter` started handing the wildcard string straight back.
+ */
+function compiledRegExp(source: string | RegExp | undefined): RegExp {
+  if (source instanceof RegExp) {
+    return source;
+  }
+  throw new Error(`Expected a compiled RegExp, got: ${String(source)}`);
+}
+
 function makeMessage(
   overrides: Partial<MessageWithPayload> = {},
 ): MessageWithPayload {
@@ -36,7 +48,7 @@ describe("compileFilter", () => {
   it("compiles a wildcard string into an anchored RegExp", () => {
     const compiled = compileFilter({ source: "plugin:*" });
     expect(compiled.source).toBeInstanceOf(RegExp);
-    const re = compiled.source as RegExp;
+    const re = compiledRegExp(compiled.source);
     expect(re.test("plugin:alpha")).toBe(true);
     expect(re.test("plugin:")).toBe(true);
     expect(re.test("other:alpha")).toBe(false);
@@ -45,7 +57,7 @@ describe("compileFilter", () => {
 
   it("escapes regex metacharacters in literal portions of a wildcard pattern", () => {
     const compiled = compileFilter({ source: "ns.*+name" });
-    const re = compiled.source as RegExp;
+    const re = compiledRegExp(compiled.source);
     expect(re).toBeInstanceOf(RegExp);
     expect(re.test("ns.anything+name")).toBe(true);
     expect(re.test("nsX+name")).toBe(false);

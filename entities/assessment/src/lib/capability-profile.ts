@@ -83,8 +83,11 @@ const capabilityAgentBodySchema = z.object({
 type CapabilityAgentBody = z.infer<typeof capabilityAgentBodySchema>;
 
 function formatSkills(value: unknown): string {
-  if (!Array.isArray(value) || value.length === 0) return "";
-  const skills = value as CapabilityAgentSkill[];
+  // Parsed rather than asserted: the value arrives from stored body JSON, and
+  // a skill list written under an older shape must not reach the formatter.
+  const parsed = z.array(capabilityAgentSkillSchema).safeParse(value);
+  if (!parsed.success || parsed.data.length === 0) return "";
+  const skills = parsed.data;
 
   return skills
     .map((skill) => {

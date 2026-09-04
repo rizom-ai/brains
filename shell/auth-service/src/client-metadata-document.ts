@@ -300,7 +300,7 @@ async function readLimitedBody(
     );
   }
 
-  const body = response.body as ReadableStream<Uint8Array> | null;
+  const body = response.body;
   if (body === null) return "";
   const reader = body.getReader();
   const chunks: Uint8Array[] = [];

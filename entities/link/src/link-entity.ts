@@ -25,14 +25,19 @@ export const link: EntityDefinition<"link", typeof linkMetadataSchema> =
       "A saved external URL or web resource captured for later reference.",
     metadata: linkMetadataSchema,
     config: { projectionSourceRole: "supporting" },
-    // Metadata indexes two of the seven frontmatter fields. The rest — url,
-    // domain, capturedAt, source, description — live in the file and are
-    // carried forward on write. Spelled out by hand this dropped them: decode
-    // returned the body without its frontmatter and encode re-emitted only
-    // the two indexed fields, so a saved link lost its URL.
+    // Metadata indexes three of the seven frontmatter fields — `capturedAt`
+    // among them, because the data source sorts on it at the database rather
+    // than over a fetched page. The rest — url, domain, source, description —
+    // live in the file and are carried forward on write. Spelled out by hand
+    // this dropped them: decode returned the body without its frontmatter and
+    // encode re-emitted only the indexed fields, so a saved link lost its URL.
     markdown: frontmatterInContent((frontmatter) => {
       const parsed = linkFrontmatterSchema.parse(frontmatter);
-      return { title: parsed.title, status: parsed.status };
+      return {
+        title: parsed.title,
+        status: parsed.status,
+        capturedAt: parsed.capturedAt,
+      };
     }),
     templates: {
       extraction: linkExtractionTemplate,

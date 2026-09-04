@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntitySchema,
+  GetEntityRequest,
+} from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
 import {
@@ -116,30 +120,44 @@ describe("declarative service ready", () => {
     // The seed's existence check must see what was written, or idempotence
     // cannot be observed against a mock that always answers null.
     const originalGet = service.getEntity.bind(service);
-    const seededEntity = <T extends BaseEntity>(hit: {
+    const seededEntity = (hit: {
       entityType: string;
       id: string;
-    }): T =>
-      ({
-        id: hit.id,
-        entityType: hit.entityType,
-        content: "",
-        created: "2026-01-01T00:00:00.000Z",
-        updated: "2026-01-01T00:00:00.000Z",
-        visibility: "restricted",
-        metadata: {},
-        contentHash: "seeded",
-      }) as T;
-    service.getEntity = async <T extends BaseEntity>(
-      request: Parameters<typeof originalGet>[0],
-    ): Promise<T | null> => {
+    }): BaseEntity => ({
+      id: hit.id,
+      entityType: hit.entityType,
+      content: "",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      visibility: "restricted",
+      metadata: {},
+      contentHash: "seeded",
+    });
+    // Declared with the service's own overload pair: the seeded stand-in is a
+    // plain BaseEntity, and a caller asking for a proven shape gets it parsed
+    // through the schema it supplied rather than asserted into place.
+    async function getEntityStub(
+      request: GetEntityRequest,
+    ): Promise<BaseEntity | null>;
+    async function getEntityStub<T extends BaseEntity>(
+      request: GetEntityRequest,
+      schema: EntitySchema<T>,
+    ): Promise<T | null>;
+    async function getEntityStub<T extends BaseEntity>(
+      request: GetEntityRequest,
+      schema?: EntitySchema<T>,
+    ): Promise<BaseEntity | T | null> {
       const hit = created.find(
         (entry) =>
           entry.entityType === request.entityType && entry.id === request.id,
       );
-      if (hit) return seededEntity<T>(hit);
-      return originalGet<T>(request);
-    };
+      if (hit) {
+        const seeded = seededEntity(hit);
+        return schema ? schema.parse(seeded) : seeded;
+      }
+      return schema ? originalGet(request, schema) : originalGet(request);
+    }
+    service.getEntity = getEntityStub;
     const plugin = instantiate(definition, {}, "@fixture/md-seeder");
     await harness.installPlugin(plugin);
     await harness.finalizeRegistration();

@@ -53,13 +53,15 @@ export class SummaryExtractor {
     });
 
     try {
-      const raw = await this.ai.generate<unknown>({
-        prompt,
-        templateName: this.templateName,
-        data: { schema: summaryExtractionResultSchema },
-        representedIdentity: "none",
-      });
-      const result = summaryExtractionResultSchema.parse(raw);
+      const result = await this.ai.generate(
+        {
+          prompt,
+          templateName: this.templateName,
+          data: { schema: summaryExtractionResultSchema },
+          representedIdentity: "none",
+        },
+        summaryExtractionResultSchema,
+      );
 
       const extractedEntries = result.entries.slice(0, this.config.maxEntries);
       const entries = extractedEntries

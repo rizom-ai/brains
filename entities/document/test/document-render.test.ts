@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { JobHandler, Plugin } from "@brains/plugins";
+import type { JobHandler } from "@brains/plugins";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
@@ -61,7 +61,7 @@ async function install(
     {},
     PACKAGE_METADATA,
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
 
   const handler = handlers.get("@brains/document-plugin:document:render");
   if (!handler) throw new Error("Document render handler was not registered");

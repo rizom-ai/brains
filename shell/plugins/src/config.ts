@@ -64,8 +64,10 @@ export function isPluginConfigValidationError(
   ) {
     return false;
   }
-  const candidate = error as Error & { pluginId?: unknown; issues?: unknown };
+  // Cross-bundle instanceof can fail, so the shape is checked by reflection
+  // rather than asserted onto the caught error.
   return (
-    typeof candidate.pluginId === "string" && Array.isArray(candidate.issues)
+    typeof Reflect.get(error, "pluginId") === "string" &&
+    Array.isArray(Reflect.get(error, "issues"))
   );
 }

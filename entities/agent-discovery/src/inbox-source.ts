@@ -26,13 +26,16 @@ export const agentSightingsInbox: EntityInboxDeclaration = {
   displayName: "Agent sightings",
 
   list: async (context) => {
-    const entities = await context.entities.listEntities<AgentEntity>({
-      entityType: AGENT_ENTITY_TYPE,
-      options: {
-        limit: SIGHTING_LIMIT,
-        sortFields: [{ field: "created", direction: "desc" }],
+    const entities = await context.entities.listEntities(
+      {
+        entityType: AGENT_ENTITY_TYPE,
+        options: {
+          limit: SIGHTING_LIMIT,
+          sortFields: [{ field: "created", direction: "desc" }],
+        },
       },
-    });
+      agentEntitySchema,
+    );
     return inboxItemListSchema.parse(
       entities.flatMap((entity) => {
         const parsed = parseSighting(entity);
@@ -94,10 +97,13 @@ async function requireSighting(
   context: AgentSightingContext,
   itemId: string,
 ): Promise<AgentEntity> {
-  const entity = await context.entities.getEntity<AgentEntity>({
-    entityType: AGENT_ENTITY_TYPE,
-    id: itemId,
-  });
+  const entity = await context.entities.getEntity(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+      id: itemId,
+    },
+    agentEntitySchema,
+  );
   if (!entity) throw new Error("Agent sighting not found");
   return agentEntitySchema.parse(entity);
 }

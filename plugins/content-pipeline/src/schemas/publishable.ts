@@ -1,3 +1,4 @@
+import { baseEntitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -39,3 +40,33 @@ export const publishableMetadataSchema: z.ZodType<
     .describe("Position in publish queue (lower = sooner)"),
   publishedAt: z.string().datetime().optional(),
 });
+
+type PublishableEntityMetadataSchema = ReturnType<
+  typeof z.looseObject<{
+    status: z.ZodDefault<typeof publishStatusSchema>;
+    queueOrder: z.ZodOptional<z.ZodNumber>;
+    publishedAt: z.ZodOptional<z.ZodString>;
+  }>
+>;
+
+const publishableEntityMetadataSchema: PublishableEntityMetadataSchema =
+  z.looseObject({
+    status: publishStatusSchema.default("draft"),
+    queueOrder: z.number().optional(),
+    publishedAt: z.string().datetime().optional(),
+  });
+
+/**
+ * Read schema for any entity flowing through the publish pipeline. Loose on
+ * metadata: providers receive the full metadata record, so foreign keys must
+ * survive the parse.
+ */
+export const publishableEntitySchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    metadata: PublishableEntityMetadataSchema;
+  }>
+> = baseEntitySchema.extend({
+  metadata: publishableEntityMetadataSchema,
+});
+
+export type PublishableEntity = z.output<typeof publishableEntitySchema>;

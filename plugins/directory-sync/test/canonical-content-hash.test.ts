@@ -4,6 +4,7 @@ import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -99,12 +100,14 @@ describe("contentHash regression: canonical form, not raw content", () => {
         };
       },
     );
-    mockEntityService.getEntity = async <T extends BaseEntity>(request: {
+    mockEntityService.getEntity = async (request: {
       entityType: string;
       id: string;
-    }): Promise<T | null> => {
+    }): Promise<BaseEntity | null> => {
       const found = store.get(`${request.entityType}:${request.id}`);
-      return found ? (found as T) : null;
+      // Parsed, not asserted: the store holds what upsert was given, so this
+      // is also what proves the import wrote a complete entity.
+      return found ? baseEntitySchema.parse(found) : null;
     };
 
     const dirSync = new DirectorySync({

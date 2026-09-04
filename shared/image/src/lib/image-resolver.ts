@@ -1,8 +1,8 @@
-import type { BaseEntity } from "@brains/entity-service";
+import type { BaseEntity, EntitySchema } from "@brains/entity-service";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
-import type { Image, ResolvedImage } from "../schemas/image";
+import { imageSchema, type ResolvedImage } from "../schemas/image";
 
 // Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is
 // the inner YAML, so callers can parse just that slice and skip the body.
@@ -15,10 +15,14 @@ const frontmatterRecordSchema = z.record(z.string(), z.unknown());
  * holding the entity service.
  */
 export interface ImageEntityReader {
-  getEntity<T extends BaseEntity>(request: {
+  getEntity(request: {
     entityType: string;
     id: string;
-  }): Promise<T | null>;
+  }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
 }
 
 /**
@@ -32,10 +36,10 @@ export async function resolveImage(
   imageId: string,
   entityService: ImageEntityReader,
 ): Promise<ResolvedImage | undefined> {
-  const image = await entityService.getEntity<Image>({
-    entityType: "image",
-    id: imageId,
-  });
+  const image = await entityService.getEntity(
+    { entityType: "image", id: imageId },
+    imageSchema,
+  );
 
   if (!image) {
     return undefined;
@@ -66,9 +70,7 @@ function extractFrontmatterStringField(
   const match = FRONTMATTER_BLOCK.exec(entity.content);
   if (!match?.[1]) return undefined;
   try {
-    const parsed = frontmatterRecordSchema.safeParse(
-      fromYaml<unknown>(match[1]),
-    );
+    const parsed = frontmatterRecordSchema.safeParse(fromYaml(match[1]));
     if (parsed.success) {
       const value = parsed.data[field];
       return typeof value === "string" ? value : undefined;

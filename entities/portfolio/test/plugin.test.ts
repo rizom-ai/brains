@@ -172,7 +172,7 @@ describe("portfolio package", () => {
     function adapterFor(
       installed: ReturnType<typeof createPluginHarness>,
     ): EntityAdapter<BaseEntity> {
-      return installed.getEntityRegistry().getAdapter<BaseEntity>("project");
+      return installed.getEntityRegistry().getAdapter("project");
     }
 
     it("indexes the queryable fields and derives a slug", () => {

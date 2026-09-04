@@ -1,5 +1,6 @@
 import { baseEntitySchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
+import { parseWithSchema } from "@brains/utils/parse-schema";
 import type { EntityDefinitionShape, EntityOf } from "./entity-shape";
 
 const entitySchemaCache = new WeakMap<
@@ -32,8 +33,35 @@ export function entitySchema(
   return schema;
 }
 
+/**
+ * The schema a package hands to a read of its own entity type.
+ *
+ * `entitySchema` erases the metadata, so it cannot stand in for the
+ * definition's own shape at a call site. This carries the definition's type
+ * through by parsing with `parseDefinitionEntity`, which proves both
+ * definition-typed fields — so the result is typed without an assertion, and
+ * validated rather than merely declared.
+ */
+export function definitionEntitySchema<
+  TDefinition extends EntityDefinitionShape,
+>(definition: TDefinition): z.ZodType<EntityOf<TDefinition>, unknown> {
+  return z
+    .unknown()
+    .transform((input) => parseDefinitionEntity(definition, input));
+}
+
 export function parseDefinitionEntity<
   TDefinition extends EntityDefinitionShape,
 >(definition: TDefinition, input: unknown): EntityOf<TDefinition> {
-  return entitySchema(definition).parse(input) as EntityOf<TDefinition>;
+  // The erased schema proves the base shape; the definition's own pieces
+  // prove the two definition-typed fields, so no assertion is needed.
+  const parsed = entitySchema(definition).parse(input);
+  return {
+    ...parsed,
+    entityType: definition.type,
+    metadata: parseWithSchema<TDefinition["metadata"]>(
+      definition.metadata,
+      parsed.metadata,
+    ),
+  };
 }

@@ -7,7 +7,9 @@ import { createLinkContent, parseLinkContent } from "../lib/link-content";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
 import type { LinkSource, LinkStatus } from "../schemas/link";
-import type { LinkExtractionResult } from "../templates/extraction-template";
+import { linkStatusSchema } from "../schemas/link";
+
+import { linkExtractionSchema } from "../templates/extraction-template";
 
 /**
  * Input schema for link capture job
@@ -123,7 +125,12 @@ export class LinkCaptureJobHandler {
 
       if (existingEntity) {
         const { frontmatter } = parseLinkContent(existingEntity.content);
-        const status = existingEntity.metadata["status"] as LinkStatus;
+        // Parsed, not asserted: the stored metadata is a record, and a link
+        // written under an older shape must not read back as a valid status.
+        const parsedStatus = linkStatusSchema.safeParse(
+          existingEntity.metadata["status"],
+        );
+        const status = parsedStatus.success ? parsedStatus.data : undefined;
 
         if (status !== "pending") {
           this.logger.info("Link already captured, returning existing", {
@@ -203,15 +210,18 @@ export class LinkCaptureJobHandler {
         message: "Extracting content with AI",
       });
 
-      const extractionResult = await this.ai.generate<LinkExtractionResult>({
-        templateName: this.extractionTemplate,
-        prompt: fetchResult.success
-          ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
-          : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
-        data: { url, hasContent: fetchResult.success },
-        representedIdentity: "none",
-        interfacePermissionGrant: "public",
-      });
+      const extractionResult = await this.ai.generate(
+        {
+          templateName: this.extractionTemplate,
+          prompt: fetchResult.success
+            ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
+            : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
+          data: { url, hasContent: fetchResult.success },
+          representedIdentity: "none",
+          interfacePermissionGrant: "public",
+        },
+        linkExtractionSchema,
+      );
 
       this.logger.debug("AI extraction result", { result: extractionResult });
 

@@ -44,7 +44,7 @@ const slack = createSlackAdapter({
 // declares it required. Runtime initialization resolves or accepts the value.
 const app = new Chat({
   userName: "brain",
-  // eslint-disable-next-line no-restricted-syntax -- SDK mismatch; see above
+  // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-assertions -- SDK mismatch; see above
   adapters: { slack: slack as unknown as Adapter },
   logger,
   state: createMemoryState(),

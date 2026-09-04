@@ -10,6 +10,7 @@ import {
   instantiatePluginPackageDefinition,
   type Plugin,
 } from "../src";
+import { baseEntitySchema } from "@brains/entity-service";
 
 /**
  * What `@brains/profile` needs that the declarative surface could not say:
@@ -90,15 +91,22 @@ describe("declared entity extensions", () => {
     const harness = createPluginHarness(
       options?.profileKind ? { profileKind: options.profileKind } : {},
     );
-    harness.getEntityRegistry().registerEntityType(
-      SYSTEM_TYPE,
-      z.object({}) as never,
-      {
+    harness
+      .getEntityRegistry()
+      .registerEntityType(SYSTEM_TYPE, baseEntitySchema, {
         entityType: SYSTEM_TYPE,
-        schema: z.object({}),
+        // The base schema is this type's schema: the lifecycle under test reads
+        // no metadata, so there is nothing narrower to describe.
+        schema: baseEntitySchema,
         purpose: "The anchor profile.",
-      } as never,
-    );
+        fromMarkdown: () => ({}),
+        toMarkdown: (entity) => entity.content,
+        extractMetadata: () => ({}),
+        parseFrontMatter: <T>(_markdown: string, schema: z.ZodSchema<T>): T =>
+          schema.parse({}),
+        generateFrontMatter: () => "",
+        getBodyTemplate: () => "",
+      });
     return harness;
   }
 

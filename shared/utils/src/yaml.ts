@@ -13,10 +13,11 @@ export function toYaml(content: unknown): string {
 }
 
 /**
- * Parse YAML string to object
+ * Parse a YAML string. The result is `unknown`: callers must narrow it, and
+ * anything wanting a typed document should use `parseYamlDocument` with a schema.
  */
-export function fromYaml<T = unknown>(yamlContent: string): T {
-  return yaml.load(yamlContent) as T;
+export function fromYaml(yamlContent: string): unknown {
+  return yaml.load(yamlContent);
 }
 
 /**

@@ -3,6 +3,10 @@ import { narrowContext } from "../fixtures/narrow-context";
 import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, SearchResult } from "@brains/plugins";
 import { createMockEntityPluginContext } from "@brains/test-utils";
+import {
+  createEntityPluginContext,
+  createMockShell,
+} from "@brains/plugins/test";
 import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-retriever";
 import type {
   ActionItemEntity,
@@ -467,29 +471,26 @@ describe("ConversationMemoryRetriever", () => {
   });
 
   it("lists recent summaries when no query is provided", async () => {
-    const newest = createSummary({
-      id: "newest",
-      channelId: "team",
-      content: "# Conversation Summary\n\nNewest memory.",
-      updated: "2026-01-02T00:00:00.000Z",
-    });
-    // listEntitiesImpl rather than spying afterwards: it is declared without
-    // the type parameter that mock() erases, so the stub needs no cast, and the
-    // factory's listEntities is already a recording mock to assert against.
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async () => [newest],
-    });
+    const shell = createMockShell();
+    shell.addEntities([
+      createSummary({
+        id: "older",
+        channelId: "team",
+        content: "# Conversation Summary\n\nOlder memory.",
+        updated: "2026-01-01T00:00:00.000Z",
+      }),
+      createSummary({
+        id: "newest",
+        channelId: "team",
+        content: "# Conversation Summary\n\nNewest memory.",
+        updated: "2026-01-02T00:00:00.000Z",
+      }),
+    ]);
+    const context = createEntityPluginContext(shell, "conversation-memory");
 
     const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({ limit: 1 });
 
-    expect(context.entityService.listEntities).toHaveBeenCalledWith({
-      entityType: "summary",
-      options: {
-        limit: 4,
-        sortFields: [{ field: "updated", direction: "desc" }],
-      },
-    });
     expect(result.results).toEqual([
       expect.objectContaining({
         id: "newest",

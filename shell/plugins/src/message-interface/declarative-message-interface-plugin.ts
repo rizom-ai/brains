@@ -1,6 +1,7 @@
 import { createExternalActorId } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { uploadNamespaceFor } from "../internal/state-namespace";
+import { emptyPluginState } from "../base/empty-state";
 import type { ChatAttachment } from "../contracts/agent";
 import type {
   ChannelDeliveryInput,
@@ -183,7 +184,7 @@ class DeclarativeMessageInterfacePlugin<
           },
           logger: this.logger,
         })
-      : (Object.freeze({}) as TState);
+      : emptyPluginState<TState>();
     context.channels.registerDescriptor({
       type: this.definition.channel.type,
       displayName: this.definition.channel.displayName,

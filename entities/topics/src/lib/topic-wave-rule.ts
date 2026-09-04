@@ -15,7 +15,7 @@ import type {
   TopicSourceRolePolicy,
   TopicsPluginConfig,
 } from "../schemas/config";
-import { extractedTopicSchema } from "../schemas/extraction";
+import { topicExtractionEnvelopeSchema } from "../schemas/extraction";
 import { topicExtractionTemplate } from "../templates/extraction-template";
 import { TOPIC_ENTITY_TYPE, TOPIC_PROJECTION_ID } from "./constants";
 import { buildTopicExtractionPrompt } from "./extraction-prompt";
@@ -243,17 +243,18 @@ async function deriveTopicIntents(
   ) {
     if (signal.aborted) throw signal.reason;
     const batch = input.sources.slice(index, index + input.maxEntitiesPerBatch);
-    const result = await context.ai.generate<{
-      topics: z.output<typeof extractedTopicSchema>[];
-    }>({
-      prompt: buildSourceBatchPrompt(batch, [
-        ...existingTitles,
-        ...[...desired.values()].map(({ title }) => title),
-      ]),
-      templateName: input.extractionTemplate,
-      representedIdentity: "none",
-    });
-    const extracted = z.array(extractedTopicSchema).parse(result.topics);
+    const result = await context.ai.generate(
+      {
+        prompt: buildSourceBatchPrompt(batch, [
+          ...existingTitles,
+          ...[...desired.values()].map(({ title }) => title),
+        ]),
+        templateName: input.extractionTemplate,
+        representedIdentity: "none",
+      },
+      topicExtractionEnvelopeSchema,
+    );
+    const extracted = result.topics;
     const weight = Math.max(...batch.map((source) => source.weight));
     const canMint = batch.some((source) => source.canMint);
 

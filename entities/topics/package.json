@@ -1,7 +1,7 @@
 {
   "name": "@brains/topics",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.349",
+  "version": "0.2.0-alpha.350",
   "description": "Extract and manage topics from conversations",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",

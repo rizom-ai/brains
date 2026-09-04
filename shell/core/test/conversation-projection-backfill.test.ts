@@ -3,11 +3,12 @@ import { describe, expect, it, mock } from "bun:test";
 import type { Conversation } from "@brains/conversation-service";
 import type { JobsNamespace } from "@brains/job-queue";
 import { createSilentLogger } from "@brains/test-utils";
-import { ProgressReporter } from "@brains/utils/progress";
+
 import {
   ConversationProjectionBackfill,
   type ConversationProjectionBackfillState,
 } from "../src/conversation-projection-backfill";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 
 const timestamp = (second: number): string =>
   `2026-01-01T00:00:${String(second).padStart(2, "0")}.000Z`;
@@ -45,11 +46,8 @@ function activeState(
   };
 }
 
-const reporter =
-  ProgressReporter.from(async () => {}) ??
-  (((): never => {
-    throw new Error("Failed to create progress reporter");
-  })() as never);
+const reporter = CallbackProgressReporter.from(async () => {});
+if (!reporter) throw new Error("Failed to create progress reporter");
 
 function createFixture(options: {
   conversations: Conversation[];

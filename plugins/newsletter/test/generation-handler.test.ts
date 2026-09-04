@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   GenerationJobHandler,
+  generatedNewsletterSchema,
   generationJobSchema,
   type GenerationJobData,
 } from "../src/entity/handlers/generation-handler";
@@ -14,7 +15,10 @@ import {
   type Logger,
 } from "@brains/plugins/test";
 import type { EntityMutationResult } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import {
   newsletterMetadataSchema,
   type NewsletterMetadata,
@@ -36,7 +40,7 @@ describe("GenerationJobHandler", () => {
 
     // Track progress calls
     progressCalls = [];
-    const reporter = ProgressReporter.from(async (notification) => {
+    const reporter = CallbackProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
         progress: notification.progress,
       };
@@ -119,11 +123,14 @@ describe("GenerationJobHandler", () => {
         progressReporter,
       );
 
-      expect(context.ai.generate).toHaveBeenCalledWith({
-        prompt: "Write a systems update",
-        templateName: "newsletter:generation",
-        representedIdentity: "anchor",
-      });
+      expect(context.ai.generate).toHaveBeenCalledWith(
+        {
+          prompt: "Write a systems update",
+          templateName: "newsletter:generation",
+          representedIdentity: "anchor",
+        },
+        generatedNewsletterSchema,
+      );
     });
 
     it("should fail when no content source provided", async () => {
@@ -261,11 +268,13 @@ Content here.`,
       });
 
       // Mock AI generate to return expected shape
-      context.ai.generate = async <T>(): Promise<T> =>
-        ({
-          subject: "Weekly Digest",
-          content: "Here are the latest posts...",
-        }) as T;
+      spyOn(context.ai, "generate").mockImplementation(
+        async (_config, schema) =>
+          schema.parse({
+            subject: "Weekly Digest",
+            content: "Here are the latest posts...",
+          }),
+      );
 
       let capturedMetadata: NewsletterMetadata | undefined;
       const originalCreate = entityService.createEntity.bind(entityService);

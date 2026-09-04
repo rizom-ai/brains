@@ -9,6 +9,7 @@ import type {
   ProjectionWaveInput,
   ProjectionWaveRule,
 } from "@brains/entity-service";
+import type { EntitySchema, ListEntitiesRequest } from "@brains/entity-service";
 import {
   defineProjectionRule,
   PROJECTION_ABSTAINED,
@@ -18,7 +19,10 @@ import {
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import {
   ProjectionRuleJobHandler,
@@ -59,11 +63,13 @@ const executionContext: ProjectionExecutionContext = {
   },
 };
 
-const progressReporter: ProgressReporter =
-  ProgressReporter.from(async () => {}) ??
-  (((): never => {
-    throw new Error("Failed to create progress reporter");
-  })() as never);
+function makeProgressReporter(): ProgressReporter {
+  const reporter = CallbackProgressReporter.from(async () => {});
+  if (!reporter) throw new Error("Failed to create progress reporter");
+  return reporter;
+}
+
+const progressReporter = makeProgressReporter();
 
 class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   readonly inputs: ProjectionWaveInput[];
@@ -510,6 +516,26 @@ describe("declared target authority", () => {
     existing: BaseEntity[];
     store: MemoryExecutionStore;
   }): ProjectionRuleJobHandler {
+    // Declared with the reader's overload pair rather than a bare generic, so
+    // the seeded entities are returned as themselves and a caller that passes
+    // a schema gets them parsed through it.
+    async function listExisting(
+      request: ListEntitiesRequest,
+    ): Promise<BaseEntity[]>;
+    async function listExisting<T extends BaseEntity>(
+      request: ListEntitiesRequest,
+      schema: EntitySchema<T>,
+    ): Promise<T[]>;
+    async function listExisting<T extends BaseEntity>(
+      request: ListEntitiesRequest,
+      schema?: EntitySchema<T>,
+    ): Promise<BaseEntity[] | T[]> {
+      const scope = request.options?.filter?.visibilityScope;
+      const matches = options.existing
+        .filter((entity) => entity.entityType === request.entityType)
+        .filter((entity) => scope === undefined || entity.visibility === scope);
+      return schema ? matches.map((entity) => schema.parse(entity)) : matches;
+    }
     return new ProjectionRuleJobHandler({
       rules: [options.rule],
       store: options.store,
@@ -518,17 +544,7 @@ describe("declared target authority", () => {
         ...inputContext,
         entities: {
           ...inputContext.entities,
-          listEntities: async <T extends BaseEntity>(request: {
-            entityType: string;
-            options?: { filter?: { visibilityScope?: string } } | undefined;
-          }): Promise<T[]> => {
-            const scope = request.options?.filter?.visibilityScope;
-            return options.existing
-              .filter((entity) => entity.entityType === request.entityType)
-              .filter(
-                (entity) => scope === undefined || entity.visibility === scope,
-              ) as T[];
-          },
+          listEntities: listExisting,
         },
       },
       executionContext,

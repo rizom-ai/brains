@@ -108,22 +108,28 @@ describe("link package", () => {
       entityType: "link",
       content,
       visibility: "public",
-      metadata: { status: "draft", title: "Test Article" },
+      metadata: {
+        status: "draft",
+        title: "Test Article",
+        capturedAt: "2025-01-30T10:00:00.000Z",
+      },
       contentHash: "hash",
       created: "2025-01-30T10:00:00.000Z",
       updated: "2025-01-30T10:00:00.000Z",
     });
 
     expect(adapter.toMarkdown(entity)).toContain("Test summary");
-    // Only the two fields the codec indexes come back as metadata; the rest
-    // stay in the content's frontmatter and are carried forward on write.
+    // Only the fields the codec indexes come back as metadata; the rest stay
+    // in the content's frontmatter and are carried forward on write.
     expect(adapter.fromMarkdown(content).metadata).toEqual({
       status: "draft",
       title: "Test Article",
+      capturedAt: "2025-01-30T10:00:00.000Z",
     });
     expect(adapter.extractMetadata(entity)).toEqual({
       status: "draft",
       title: "Test Article",
+      capturedAt: "2025-01-30T10:00:00.000Z",
     });
 
     harness.reset();

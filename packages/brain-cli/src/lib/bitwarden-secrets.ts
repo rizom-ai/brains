@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import { basename, resolve } from "path";
 import { z } from "@brains/utils/zod";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { SecretPair } from "./push-secrets";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -275,6 +276,15 @@ interface BitwardenSdkModule {
   LogLevel?: { Error?: unknown };
 }
 
+/**
+ * A dynamic import of an optional native SDK returns `any`. Check the one
+ * member actually constructed below, so an SDK whose shape has moved fails
+ * with a clear message instead of a TypeError deeper in.
+ */
+function isBitwardenSdkModule(value: unknown): value is BitwardenSdkModule {
+  return isPlainRecord(value) && typeof value["BitwardenClient"] === "function";
+}
+
 async function createSdkClient(): Promise<BitwardenSdkClient> {
   const accessToken = process.env["BWS_ACCESS_TOKEN"];
   if (!accessToken) {
@@ -284,7 +294,12 @@ async function createSdkClient(): Promise<BitwardenSdkClient> {
   }
 
   const packageName = "@bitwarden/sdk-napi";
-  const mod = (await import(packageName)) as BitwardenSdkModule;
+  const mod = await import(packageName);
+  if (!isBitwardenSdkModule(mod)) {
+    throw new Error(
+      `${packageName} did not export a BitwardenClient constructor; the installed SDK version is not supported.`,
+    );
+  }
   const client = new mod.BitwardenClient(undefined, mod.LogLevel?.Error);
   await client.auth().loginAccessToken(accessToken);
   return client;

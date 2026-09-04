@@ -9,7 +9,8 @@ export type {
   TemplateSchemaParser,
 } from "./types";
 export { TemplateSchema, createTypedComponent, createTemplate } from "./types";
-export { TemplateRegistry } from "./registry";
+export { InMemoryTemplateRegistry } from "./registry";
+export type { TemplateRegistry } from "./registry";
 export { TemplateCapabilities } from "./capabilities";
 
 // Permission (merged from @brains/permission-service)

@@ -1,4 +1,5 @@
-import type { IMessageBus, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { SchedulerMessagePublisher } from "../types/scheduler";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
@@ -74,22 +75,23 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
   });
 }
 
-function createMessageBusAdapter(context: ServicePluginContext): IMessageBus {
-  const send: IMessageBus["send"] = async (request) => {
+/**
+ * The scheduler publishes events and reads no responses, so the adapter returns
+ * the publisher it needs rather than a whole message bus whose other members
+ * it would have to stub as no-ops.
+ */
+function createMessageBusAdapter(
+  context: ServicePluginContext,
+): SchedulerMessagePublisher {
+  const send: SchedulerMessagePublisher["send"] = async (request) => {
     return context.messaging.send({
       type: request.type,
       payload: request.payload,
-      ...(request.target !== undefined ? { target: request.target } : {}),
-      ...(request.metadata !== undefined ? { metadata: request.metadata } : {}),
       ...(request.broadcast !== undefined
         ? { broadcast: request.broadcast }
         : {}),
     });
   };
 
-  const subscribe: IMessageBus["subscribe"] = () => () => {};
-  const hasHandlers: IMessageBus["hasHandlers"] = () => false;
-  const unsubscribe: IMessageBus["unsubscribe"] = () => {};
-
-  return { send, subscribe, hasHandlers, unsubscribe };
+  return { send };
 }

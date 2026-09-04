@@ -836,7 +836,8 @@ export const PromptInput = ({
         ? controller.textInput.value
         : (() => {
             const formData = new FormData(form);
-            return (formData.get("message") as string) || "";
+            const message = formData.get("message");
+            return typeof message === "string" ? message : "";
           })();
 
       if (!usingProvider) {
@@ -956,9 +957,9 @@ export const PromptInputTextarea = ({
 
         // Check if the submit button is disabled before submitting
         const { form } = e.currentTarget;
-        const submitButton = form?.querySelector(
+        const submitButton = form?.querySelector<HTMLButtonElement>(
           'button[type="submit"]',
-        ) as HTMLButtonElement | null;
+        );
         if (submitButton?.disabled) {
           return;
         }

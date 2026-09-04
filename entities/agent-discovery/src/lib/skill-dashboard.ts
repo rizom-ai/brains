@@ -4,7 +4,8 @@ import {
   z,
   type EntityDashboardWidgetDeclaration,
 } from "@brains/sdk/entities";
-import type { SkillEntity } from "../schemas/skill";
+
+import { skillEntitySchema } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
 
 const skillsWidgetDataSchema = z.object({
@@ -40,10 +41,13 @@ const skillsWidget = defineDashboardWidget({
 export const skillsWidgetDeclaration: EntityDashboardWidgetDeclaration =
   defineEntityDashboardWidget(skillsWidget, async ({ entities, signal }) => {
     signal.throwIfAborted();
-    const skills = await entities.listEntities<SkillEntity>({
-      entityType: SKILL_ENTITY_TYPE,
-      options: { limit: 10 },
-    });
+    const skills = await entities.listEntities(
+      {
+        entityType: SKILL_ENTITY_TYPE,
+        options: { limit: 10 },
+      },
+      skillEntitySchema,
+    );
     signal.throwIfAborted();
     return {
       items: skills.map((skill) => ({

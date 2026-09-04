@@ -66,11 +66,11 @@ export class EntitySerializer {
   /**
    * Convert a database row to a validated entity, or null if parsing/validation fails
    */
-  public async convertToEntity<T extends BaseEntity>(
+  public async convertToEntity(
     entityData: EntityData,
-  ): Promise<T | null> {
+  ): Promise<BaseEntity | null> {
     try {
-      return this.reconstructEntity<T>(entityData);
+      return this.reconstructEntity(entityData);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       this.logger.error(
@@ -83,15 +83,15 @@ export class EntitySerializer {
   /**
    * Convert multiple database rows to entities, skipping any that fail validation
    */
-  public async convertToEntities<T extends BaseEntity>(
+  public async convertToEntities(
     rows: EntityData[],
     entityType: string,
-  ): Promise<T[]> {
-    const entityList: T[] = [];
+  ): Promise<BaseEntity[]> {
+    const entityList: BaseEntity[] = [];
 
     for (const entityData of rows) {
       try {
-        entityList.push(this.reconstructEntity<T>(entityData));
+        entityList.push(this.reconstructEntity(entityData));
       } catch (error) {
         const errorMessage = getErrorMessage(error);
         this.logger.error(
@@ -107,8 +107,8 @@ export class EntitySerializer {
    * Reconstruct a typed entity from a database row by merging DB fields,
    * metadata, and adapter-parsed content, then validating against the schema
    */
-  public reconstructEntity<T extends BaseEntity>(entityData: EntityData): T {
-    const adapter = this.entityRegistry.getAdapter<T>(entityData.entityType);
+  public reconstructEntity(entityData: EntityData): BaseEntity {
+    const adapter = this.entityRegistry.getAdapter(entityData.entityType);
     const parsedContent = adapter.fromMarkdown(entityData.content);
     // Strip parsed metadata — DB metadata is the source of truth.
     // `system_update({ fields })` mutates DB metadata without touching
@@ -139,15 +139,15 @@ export class EntitySerializer {
   /**
    * Prepare entity for database storage
    */
-  public prepareEntityForStorage<T extends BaseEntity>(
-    entity: T,
+  public prepareEntityForStorage(
+    entity: BaseEntity,
     entityType: string,
   ): {
     markdown: string;
     metadata: Record<string, unknown>;
   } {
     // Get adapter for the entity type
-    const adapter = this.entityRegistry.getAdapter<T>(entityType);
+    const adapter = this.entityRegistry.getAdapter(entityType);
 
     // Convert to markdown using adapter
     const markdown = applyVisibilityToMarkdown(

@@ -23,9 +23,12 @@ export const socialPostEvals: EntityEvalDeclaration = {
       ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
       : (parsed.prompt ?? "Write an engaging LinkedIn post");
 
-    return ai.generate<{ content: string }>({
-      prompt,
-      templateName: getTemplateName(parsed.platform),
-    });
+    return ai.generate(
+      {
+        prompt,
+        templateName: getTemplateName(parsed.platform),
+      },
+      z.object({ content: z.string() }),
+    );
   },
 };

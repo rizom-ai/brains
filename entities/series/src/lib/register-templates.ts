@@ -1,8 +1,4 @@
-import {
-  contentVisibilitySchema,
-  createTemplate,
-  paginationInfoSchema,
-} from "@brains/sdk/entities";
+import { createTemplate, paginationInfoSchema } from "@brains/sdk/entities";
 import type { Template } from "@brains/sdk/entities";
 import { z } from "@brains/sdk/entities";
 import {
@@ -13,34 +9,7 @@ import {
   SeriesDetailTemplate,
   type SeriesDetailProps,
 } from "../templates/series-detail";
-
-const seriesFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-  coverImageId: z.string().nullable().default(null),
-});
-
-const seriesMetadataSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
-});
-
-const seriesListItemSchema = z.object({
-  id: z.string(),
-  entityType: z.string(),
-  content: z.string(),
-  created: z.string(),
-  updated: z.string(),
-  visibility: contentVisibilitySchema,
-  metadata: seriesMetadataSchema,
-  contentHash: z.string(),
-  frontmatter: seriesFrontmatterSchema,
-  description: z.string().nullable().default(null),
-  postCount: z.number(),
-  coverImageUrl: z.string().nullable().default(null),
-  coverImageWidth: z.number().nullable().default(null),
-  coverImageHeight: z.number().nullable().default(null),
-});
+import { seriesListItemSchema } from "../schemas/series";
 
 const seriesListSchema = z.object({
   series: z.array(seriesListItemSchema),

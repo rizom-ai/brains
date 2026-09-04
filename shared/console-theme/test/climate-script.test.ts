@@ -21,9 +21,9 @@ beforeEach(() => {
 
 afterEach(() => {
   window.close();
-  delete (globalThis as Record<string, unknown>)["window"];
-  delete (globalThis as Record<string, unknown>)["document"];
-  delete (globalThis as Record<string, unknown>)["localStorage"];
+  Reflect.deleteProperty(globalThis, "window");
+  Reflect.deleteProperty(globalThis, "document");
+  Reflect.deleteProperty(globalThis, "localStorage");
 });
 
 describe("console climate behavior", () => {

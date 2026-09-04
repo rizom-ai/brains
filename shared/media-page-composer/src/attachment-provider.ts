@@ -4,6 +4,7 @@ import type {
   AttachmentResolveRequest,
   AnchorProfile,
   BaseEntity,
+  EntitySchema,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
@@ -31,10 +32,14 @@ export interface MediaAttachmentContext {
     getProfile(): AnchorProfile;
   };
   readonly entityService: {
-    getEntity<T extends BaseEntity>(request: {
+    getEntity(request: {
       entityType: string;
       id: string;
-    }): Promise<T | null>;
+    }): Promise<BaseEntity | null>;
+    getEntity<T extends BaseEntity>(
+      request: { entityType: string; id: string },
+      schema: EntitySchema<T>,
+    ): Promise<T | null>;
   };
 }
 
@@ -58,6 +63,8 @@ export interface MediaAttachmentProviderConfig<
 > {
   /** Entity type this provider derives its artifact from, e.g. `post`. */
   sourceEntityType: string;
+  /** Schema for entities of `sourceEntityType`; lookups are parsed with it. */
+  entitySchema: EntitySchema<TEntity>;
   /** Semantic attachment type this provider answers to. */
   attachmentType: string;
   template: MediaPageTemplate;
@@ -174,10 +181,13 @@ function createMediaAttachmentProvider<
         return undefined;
       }
 
-      const entity = await context.entityService.getEntity<TEntity>({
-        entityType: config.sourceEntityType,
-        id: request.sourceEntityId,
-      });
+      const entity = await context.entityService.getEntity(
+        {
+          entityType: config.sourceEntityType,
+          id: request.sourceEntityId,
+        },
+        config.entitySchema,
+      );
       if (!entity) return undefined;
 
       const content = await config.buildContent(

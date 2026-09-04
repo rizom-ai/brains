@@ -9,6 +9,7 @@
  */
 
 import type { PermissionLookupContext } from "@brains/plugins";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type {
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
@@ -71,8 +72,8 @@ export function getRawDiscordChannelId(
   message: Pick<RoutedMessage, "raw">,
 ): string | undefined {
   const raw = message.raw;
-  if (typeof raw !== "object" || raw === null) return undefined;
-  const value = (raw as Record<string, unknown>)["channel_id"];
+  if (!isPlainRecord(raw)) return undefined;
+  const value = raw["channel_id"];
   return typeof value === "string" ? value : undefined;
 }
 

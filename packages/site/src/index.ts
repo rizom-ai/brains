@@ -237,14 +237,14 @@ export interface SectionMeta {
  * same schema used by runtime validation, markdown formatting, and editing.
  */
 export interface SiteSectionDefinition<
-  S extends z.ZodType = z.ZodType,
+  S extends z.ZodType = z.ZodType<JsonObject>,
 > extends SectionMeta {
   schema: S;
   component: ComponentType<z.output<S>>;
 }
 
 /** Concise alias used when declaring heterogeneous section maps. */
-export type SectionDefinition<S extends z.ZodType = z.ZodType> =
+export type SectionDefinition<S extends z.ZodType = z.ZodType<JsonObject>> =
   SiteSectionDefinition<S>;
 
 export interface SiteSectionGroup {
@@ -358,7 +358,9 @@ export interface SiteDefinition {
   staticAssets?: Record<string, string> | undefined;
 }
 
-export type SiteDefinitionOverrides = Partial<SiteDefinition>;
+export type SiteDefinitionOverrides = {
+  [K in keyof SiteDefinition]?: SiteDefinition[K] | undefined;
+};
 
 const componentSchema = z.custom<ComponentType<SiteLayoutProps>>(
   (value) => typeof value === "function",
@@ -417,7 +419,10 @@ const entityDisplaySchema = z.strictObject({
 });
 
 const sectionDefinitionSchema = z.strictObject({
-  schema: z.custom<z.ZodType>(
+  // defineSection has already proved JSON output via JsonObjectOutputGuard;
+  // this runtime check confirms it is a zod schema, and the declared type
+  // carries that proof forward instead of erasing it to unknown.
+  schema: z.custom<z.ZodType<JsonObject>>(
     (value) => value instanceof z.ZodType,
     "Expected a Zod schema",
   ),
@@ -442,24 +447,39 @@ const siteContentSchema = z.record(
   z.record(z.string(), jsonObjectSchema),
 );
 
+/**
+ * The fields a site definition may carry. Extracted so overrides can be
+ * validated as a partial of the same shape rather than asserted into it.
+ */
+const siteDefinitionShape = {
+  layouts: z
+    .record(z.string(), componentSchema)
+    .refine((layouts) => typeof layouts["default"] === "function", {
+      message: 'Site layouts must include a "default" component',
+    }),
+  routes: z.array(routeInputSchema),
+  content: siteContentSchema.optional(),
+  sections: z
+    .union([sectionGroupSchema, z.array(sectionGroupSchema)])
+    .optional(),
+  themeOverride: z.string().optional(),
+  headScripts: z.array(z.string()).optional(),
+  entityDisplay: z.record(z.string(), entityDisplaySchema),
+  staticAssets: z.record(z.string(), z.string()).optional(),
+};
+
+/**
+ * Validator for a partial site definition — what a conventional `src/site.tsx`
+ * exports to extend a base package. Whole-definition invariants (route/layout
+ * cross-checks) are deliberately not applied here: they can only be judged
+ * once the override has been merged over its base.
+ */
+export const siteDefinitionOverridesSchema: z.ZodType<SiteDefinitionOverrides> =
+  z.strictObject(siteDefinitionShape).partial();
+
 /** Canonical runtime validator for structural site definitions. */
 export const siteDefinitionSchema: z.ZodType<SiteDefinition> = z
-  .strictObject({
-    layouts: z
-      .record(z.string(), componentSchema)
-      .refine((layouts) => typeof layouts["default"] === "function", {
-        message: 'Site layouts must include a "default" component',
-      }),
-    routes: z.array(routeInputSchema),
-    content: siteContentSchema.optional(),
-    sections: z
-      .union([sectionGroupSchema, z.array(sectionGroupSchema)])
-      .optional(),
-    themeOverride: z.string().optional(),
-    headScripts: z.array(z.string()).optional(),
-    entityDisplay: z.record(z.string(), entityDisplaySchema),
-    staticAssets: z.record(z.string(), z.string()).optional(),
-  })
+  .strictObject(siteDefinitionShape)
   .superRefine((site, context) => {
     const routeIds = new Set<string>();
     for (const [index, route] of site.routes.entries()) {

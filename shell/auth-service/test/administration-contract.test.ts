@@ -41,7 +41,7 @@ const CONTRACT_METHODS = [
   "startPasskeyRegistrationForUser",
   "recordAuditEvent",
   "queryAuditEvents",
-] as const;
+] as const satisfies readonly (keyof AuthAdministration & keyof AuthService)[];
 
 describe("auth administration contract", () => {
   it("is satisfied by AuthService", () => {
@@ -53,19 +53,21 @@ describe("auth administration contract", () => {
 
   it("names only methods AuthService actually has", () => {
     for (const method of CONTRACT_METHODS) {
-      expect(typeof AuthService.prototype[method as keyof AuthService]).toBe(
-        "function",
-      );
+      expect(typeof AuthService.prototype[method]).toBe("function");
     }
   });
 
   it("covers every method the contract declares", () => {
     // The contract is keyof-checked against the list above, so adding a
     // method to the interface without adding it here stops compiling too.
-    const covered: Record<keyof AuthAdministration, true> = Object.fromEntries(
-      CONTRACT_METHODS.map((method) => [method, true]),
-    ) as Record<keyof AuthAdministration, true>;
-    expect(Object.keys(covered)).toHaveLength(CONTRACT_METHODS.length);
+    // Compile-time: any contract method missing from the list above leaves
+    // `Uncovered` non-never, and this declaration stops compiling.
+    type Uncovered = Exclude<
+      keyof AuthAdministration,
+      (typeof CONTRACT_METHODS)[number]
+    >;
+    const noneUncovered: [Uncovered] extends [never] ? true : never = true;
+    expect(noneUncovered).toBe(true);
   });
 });
 

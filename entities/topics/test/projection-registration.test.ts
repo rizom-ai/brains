@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { Plugin, PluginCapabilities } from "@brains/plugins";
+import type { PluginCapabilities } from "@brains/plugins";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
   createPluginHarness,
@@ -35,7 +35,7 @@ async function install(config: Record<string, unknown>): Promise<{
     version: "0.1.0",
   });
   const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins as Plugin[]) {
+  for (const plugin of plugins) {
     capabilities.push(await harness.installPlugin(plugin));
   }
   return { capabilities, enqueue, registerHandler, harness };

@@ -6,6 +6,7 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
+import { z } from "@brains/utils/zod";
 import {
   createMockLogger,
   createMockMessagePublisher,
@@ -181,9 +182,10 @@ describe("ContentScheduler - provider execution", () => {
       const failedMessage = messageBus.sentMessages.find(
         (m) => m.type === PUBLISH_MESSAGES.FAILED,
       );
-      expect((failedMessage?.payload as { willRetry: boolean }).willRetry).toBe(
-        false,
-      );
+      expect(
+        z.looseObject({ willRetry: z.boolean() }).parse(failedMessage?.payload)
+          .willRetry,
+      ).toBe(false);
     });
   });
 });

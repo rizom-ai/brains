@@ -7,6 +7,7 @@ import type {
   PaginationInfo,
 } from "@brains/sdk/entities";
 import type { SocialPost } from "../schemas/social-post";
+import { socialPostSchema } from "../schemas/social-post";
 import {
   socialPostFrontmatterSchema,
   socialPostWithDataSchema,
@@ -54,6 +55,7 @@ export const socialPostDataSource: EntityDataSourceDefinition<
   name: "Social Post DataSource",
   description: "Fetches and transforms social post entities for rendering",
   entityType: "social-post",
+  entitySchema: socialPostSchema,
   defaultSort: [
     { field: "publishedAt", direction: "desc", nullsFirst: true },
     { field: "created", direction: "desc" },

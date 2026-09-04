@@ -6,7 +6,11 @@ import {
   type BaseQuery,
   type PaginationInfo,
 } from "@brains/sdk/entities";
-import { agentFrontmatterSchema, agentWithDataSchema } from "../schemas/agent";
+import {
+  agentFrontmatterSchema,
+  agentWithDataSchema,
+  agentEntitySchema,
+} from "../schemas/agent";
 import type { AgentEntity, AgentWithData } from "../schemas/agent";
 import { parseAgentContent } from "../lib/agent-content";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
@@ -68,6 +72,7 @@ export const agentDataSource: AnyEntityDataSourceDefinition =
     name: "Agent Directory DataSource",
     description: "Fetches and transforms agent entities for rendering",
     entityType: AGENT_ENTITY_TYPE,
+    entitySchema: agentEntitySchema,
     defaultSort: [{ field: "discoveredAt", direction: "desc" }],
     defaultLimit: 50,
     // Agents are addressed by slug in routes; two records of one agent
@@ -97,9 +102,16 @@ export const agentDataSource: AnyEntityDataSourceDefinition =
         selectedStatus: status.success ? status.data : ("all" as const),
       };
     },
+    // Parsed rather than asserted, the way `list` above already does it: the
+    // transform is erased by the definition's published type, so the schema is
+    // what proves each neighbour is an agent.
     detail: ({ item, navigation }): AgentDetailData => ({
-      agent: item as AgentWithData,
-      prevAgent: (navigation?.prev as AgentWithData | undefined) ?? null,
-      nextAgent: (navigation?.next as AgentWithData | undefined) ?? null,
+      agent: agentWithDataSchema.parse(item),
+      prevAgent: navigation?.prev
+        ? agentWithDataSchema.parse(navigation.prev)
+        : null,
+      nextAgent: navigation?.next
+        ? agentWithDataSchema.parse(navigation.next)
+        : null,
     }),
   });

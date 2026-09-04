@@ -90,7 +90,7 @@ describe("DirectorySyncRequestJobHandler", () => {
         }),
       () => createMockGitSync({ pull }),
       createReconciliation(),
-      { createProgressObserver } as never,
+      { createProgressObserver },
     );
 
     const result = await handler.process(

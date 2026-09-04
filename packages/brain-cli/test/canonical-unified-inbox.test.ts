@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fromYaml } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 const repositoryRoot = join(import.meta.dir, "..", "..", "..");
@@ -37,13 +38,13 @@ function asRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Expected a record");
   }
-  return value as Record<string, unknown>;
+  return z.record(z.string(), z.unknown()).parse(value);
 }
 
 describe("canonical unified inbox test app", () => {
   test("keeps email workflows explicit above the professional bundle selection", () => {
     const yaml = stagedFile(TEST_APP_CONFIG);
-    const config = asRecord(fromYaml<unknown>(yaml));
+    const config = asRecord(fromYaml(yaml));
     const plugins = asRecord(config["plugins"]);
     const site = asRecord(config["site"]);
     const email = asRecord(plugins["email"]);

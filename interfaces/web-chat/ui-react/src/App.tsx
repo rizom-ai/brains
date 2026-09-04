@@ -50,6 +50,13 @@ import {
   webChatUploadMaxBytes,
 } from "../../src/upload-policy";
 import { getErrorMessage } from "@brains/utils/error";
+import { isPlainRecord } from "@brains/utils/predicates";
+
+/** `History.state` is typed `any`; narrow it before handing it to callers. */
+function historyStateRecord(): Record<string, unknown> {
+  const state: unknown = window.history.state;
+  return isPlainRecord(state) ? state : {};
+}
 import {
   getLiveStatusMessage,
   isBusyStatus,
@@ -76,9 +83,7 @@ export function App(): React.ReactElement {
   const [inboxHandoff] = useState(() =>
     consumeInboxChatPrefill(window.history.state, () => {
       window.history.replaceState(
-        withoutInboxChatPrefill(
-          window.history.state as Record<string, unknown>,
-        ),
+        withoutInboxChatPrefill(historyStateRecord()),
         "",
         window.location.href,
       );

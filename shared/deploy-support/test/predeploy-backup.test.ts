@@ -12,6 +12,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "@brains/utils/zod";
 
 import {
   capturePredeployBackup,
@@ -251,13 +252,11 @@ db.close(false);
     expect(snapshot.query("PRAGMA quick_check").get()).toEqual({
       quick_check: "ok",
     });
-    const capturedCount = Number(
-      (
-        snapshot.query("SELECT COUNT(*) AS count FROM entries").get() as {
-          count: number;
-        } | null
-      )?.count,
-    );
+    const countRow = z
+      .looseObject({ count: z.number() })
+      .nullable()
+      .parse(snapshot.query("SELECT COUNT(*) AS count FROM entries").get());
+    const capturedCount = Number(countRow?.count);
     snapshot.close(false);
     expect(capturedCount).toBeGreaterThanOrEqual(20);
     expect(capturedCount).toBeLessThanOrEqual(100);
@@ -272,19 +271,22 @@ db.close(false);
       git(contentDir, ["status", "--porcelain=v1", "--untracked-files=all"]),
     ).toBe(originalStatus);
 
-    const manifest = (await Bun.file(
-      join(backupDir, "manifest.json"),
-    ).json()) as {
-      outcome: string;
-      databases: Array<{ quickCheck: string; status: string }>;
-      git: {
-        stagedPatchBytes: number;
-        unstagedPatchBytes: number;
-        untrackedFiles: number;
-        ignoredFiles: number;
-        bundleVerified: boolean;
-      };
-    };
+    const manifestSchema = z.looseObject({
+      outcome: z.string(),
+      databases: z.array(
+        z.looseObject({ quickCheck: z.string(), status: z.string() }),
+      ),
+      git: z.looseObject({
+        stagedPatchBytes: z.number(),
+        unstagedPatchBytes: z.number(),
+        untrackedFiles: z.number(),
+        ignoredFiles: z.number(),
+        bundleVerified: z.boolean(),
+      }),
+    });
+    const manifest = manifestSchema.parse(
+      await Bun.file(join(backupDir, "manifest.json")).json(),
+    );
     expect(manifest.outcome).toBe("verified");
     expect(manifest.databases).toEqual([
       expect.objectContaining({ status: "captured", quickCheck: "ok" }),

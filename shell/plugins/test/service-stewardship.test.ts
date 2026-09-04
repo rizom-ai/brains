@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import type { EntityAdapter, BaseEntity } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/entity-service";
 import { createPluginHarness } from "../src/test/harness";
 import {
   defineServicePlugin,
@@ -15,7 +16,9 @@ const SYSTEM_TYPE = "anchor-doc";
 function minimalAdapter(): EntityAdapter<BaseEntity> {
   return {
     entityType: SYSTEM_TYPE,
-    schema: z.object({}) as never,
+    // The base schema really is this type's schema: the stewardship rules
+    // under test read no metadata, so there is nothing narrower to describe.
+    schema: baseEntitySchema,
     purpose: "A system-owned singleton.",
     fromMarkdown: () => ({}),
     toMarkdown: (entity: BaseEntity) => entity.content,
@@ -23,14 +26,15 @@ function minimalAdapter(): EntityAdapter<BaseEntity> {
     parseFrontMatter: <T>(_markdown: string, schema: z.ZodSchema<T>): T =>
       schema.parse({}),
     generateFrontMatter: () => "",
-  } as never;
+    getBodyTemplate: () => "",
+  };
 }
 
 function harnessWithSystemType(): ReturnType<typeof createPluginHarness> {
   const harness = createPluginHarness();
   harness
     .getEntityRegistry()
-    .registerEntityType(SYSTEM_TYPE, z.object({}) as never, minimalAdapter());
+    .registerEntityType(SYSTEM_TYPE, z.object({}), minimalAdapter());
   return harness;
 }
 

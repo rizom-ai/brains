@@ -1,6 +1,6 @@
 import type { AIModelConfig } from "@brains/ai-service";
 import type { DbConfig } from "@brains/contracts";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel, type Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 
 export function createServiceLogger(
@@ -18,7 +18,7 @@ export function createServiceLogger(
     error: LogLevel.ERROR,
   }[config.logging.level];
 
-  return Logger.createFresh({
+  return ConsoleLogger.createFresh({
     level: logLevel,
     context: config.logging.context,
     format: config.logging.format === "json" ? "json" : "text",

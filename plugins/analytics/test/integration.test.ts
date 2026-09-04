@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mockFetch } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { Plugin, Tool, ToolResponse } from "@brains/plugins";
+import type { Plugin, ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { analyticsPlugin } from "./helpers/install";
@@ -60,8 +60,7 @@ async function executeTool(
   toolName: string,
   input: Record<string, unknown>,
 ): Promise<ToolResponse> {
-  const tool = capabilities.tools.find((t) => t.name === toolName) as
-    Tool | undefined;
+  const tool = capabilities.tools.find((t) => t.name === toolName);
   if (!tool) {
     throw new Error(`Tool ${toolName} not found`);
   }

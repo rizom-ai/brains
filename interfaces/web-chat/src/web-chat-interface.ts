@@ -24,7 +24,6 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   type UIMessage,
-  type UIMessageStreamWriter,
 } from "ai";
 import packageJson from "../package.json";
 import {
@@ -42,6 +41,7 @@ import {
   handleStreamedConfirmations as handleStreamedConfirmationsRoute,
   writeText as writeStreamText,
 } from "./chat-stream";
+import type { StreamWriter } from "./stream-writer";
 import {
   webChatConfigSchema,
   type WebChatConfig,
@@ -536,11 +536,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
         getEntity: (ref: {
           entityType: string;
           id: string;
-          visibilityScope?: unknown;
+          visibilityScope?: "public" | "shared" | "restricted" | undefined;
         }): Promise<MessageArtifactEntity | null | undefined> =>
-          streamContext.entityService.getEntity(
-            ref as Parameters<typeof streamContext.entityService.getEntity>[0],
-          ),
+          streamContext.entityService.getEntity(ref),
       },
     };
     const stream = createUIMessageStream<UIMessage>({
@@ -828,7 +826,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private writeText(
-    writer: UIMessageStreamWriter<UIMessage>,
+    writer: StreamWriter,
     text: string,
     prefix: string,
   ): string {

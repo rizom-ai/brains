@@ -19,10 +19,26 @@ export const LogLevel = {
 } as const;
 export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
 
-/**
- * Logger implementation with Component Interface Standardization pattern
- */
 export type LogFormat = "text" | "json";
+
+/**
+ * What a logger provides to callers.
+ *
+ * Consumers depend on this rather than on `ConsoleLogger`. The class carries
+ * private fields and a private constructor, so nothing else can be assignable
+ * to it — which is why every test double had to be asserted into place, a cast
+ * that also erased the check on the members the double did define.
+ */
+export interface Logger {
+  silly(message: string, ...args: unknown[]): void;
+  verbose(message: string, ...args: unknown[]): void;
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+  child(context: string): Logger;
+  setUseStderr(useStderr: boolean): void;
+}
 
 export interface LoggerOptions {
   level?: LogLevel;
@@ -34,26 +50,21 @@ export interface LoggerOptions {
 }
 
 /**
- * The logging capability, as a structural contract.
+ * The logging capability as plugin authors receive it.
  *
- * `Logger` itself cannot cross a public package boundary: it carries private
- * fields, and the published declarations inline their types rather than
- * importing `@brains/*`, so the inlined copy is nominally distinct from this
- * one and nothing is assignable between them. Anything handed to plugin
- * authors is typed as this interface, which inlines cleanly. `Logger`
- * satisfies it structurally.
+ * This existed because `Logger` was a class carrying private fields, which
+ * cannot cross a public package boundary: the published declarations inline
+ * their types rather than importing `@brains/*`, so the inlined copy was
+ * nominally distinct and nothing was assignable between them. `Logger` is now
+ * an interface and inlines cleanly, so this is the same type under an older
+ * name and the two should be collapsed.
  */
-export interface LoggerContract {
-  debug(message: string, ...args: unknown[]): void;
-  info(message: string, ...args: unknown[]): void;
-  warn(message: string, ...args: unknown[]): void;
-  error(message: string, ...args: unknown[]): void;
-  child(context: string): LoggerContract;
-}
+export type LoggerContract = Logger;
 
-export class Logger {
+/** The logger the runtime constructs: console output, optionally mirrored to a file. */
+export class ConsoleLogger implements Logger {
   /** The singleton instance */
-  private static instance: Logger | null = null;
+  private static instance: ConsoleLogger | null = null;
 
   private level: LogLevel;
   private context: string | undefined;
@@ -87,28 +98,28 @@ export class Logger {
   /**
    * Get the singleton instance of Logger
    */
-  public static getInstance(options?: LoggerOptions): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger(options);
+  public static getInstance(options?: LoggerOptions): ConsoleLogger {
+    if (!ConsoleLogger.instance) {
+      ConsoleLogger.instance = new ConsoleLogger(options);
     } else if (options?.useStderr !== undefined) {
       // Update useStderr if explicitly provided
-      Logger.instance.useStderr = options.useStderr;
+      ConsoleLogger.instance.useStderr = options.useStderr;
     }
-    return Logger.instance;
+    return ConsoleLogger.instance;
   }
 
   /**
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    Logger.instance = null;
+    ConsoleLogger.instance = null;
   }
 
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(options?: LoggerOptions): Logger {
-    return new Logger(options);
+  public static createFresh(options?: LoggerOptions): ConsoleLogger {
+    return new ConsoleLogger(options);
   }
 
   /**
@@ -231,7 +242,7 @@ export class Logger {
    */
   public child(context: string): Logger {
     // Pass file handle directly so children don't open new handles
-    const child = new Logger(
+    const child = new ConsoleLogger(
       {
         level: this.level,
         context,
@@ -253,6 +264,6 @@ export class Logger {
 }
 
 // Export default logger instance
-const defaultLogger: Logger = Logger.getInstance();
+const defaultLogger: Logger = ConsoleLogger.getInstance();
 
 export default defaultLogger;

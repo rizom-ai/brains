@@ -104,6 +104,7 @@ describe("summaryEvalHandlers", () => {
     expect(generateSpy).toHaveBeenCalledTimes(1);
     expect(generateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ templateName: extractionTemplateName }),
+      expect.anything(),
     );
   });
 

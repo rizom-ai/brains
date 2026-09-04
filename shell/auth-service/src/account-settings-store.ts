@@ -203,11 +203,10 @@ export class AuthAccountSettingsStore implements AccountSettingsBackend {
         await this.key,
         decoded(encodedCiphertext),
       );
-      return Object.freeze(
-        storedValuesSchema.parse(
-          JSON.parse(new TextDecoder().decode(plaintext)) as unknown,
-        ),
+      const parsedValues: unknown = JSON.parse(
+        new TextDecoder().decode(plaintext),
       );
+      return Object.freeze(storedValuesSchema.parse(parsedValues));
     } catch {
       throw new Error(
         `Stored account settings for "${identity.packageName}:${identity.definitionId}" could not be decrypted`,

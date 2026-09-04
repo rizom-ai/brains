@@ -6,7 +6,8 @@ import {
   type EntityJobDeclaration,
   type JobEntityAccess,
 } from "@brains/sdk/entities";
-import type { Series } from "../schemas/series";
+
+import { seriesSchema } from "../schemas/series";
 import {
   seriesFrontmatterSchema,
   createSeriesBodyFormatter,
@@ -52,10 +53,13 @@ export const seriesDescriptionJob: EntityJobDeclaration<
       return { success: false, error: "seriesId or title required" };
     }
 
-    const series = await entities.getEntity<Series>({
-      entityType: "series",
-      id: seriesId,
-    });
+    const series = await entities.getEntity(
+      {
+        entityType: "series",
+        id: seriesId,
+      },
+      seriesSchema,
+    );
     if (!series) {
       return { success: false, error: `Series not found: ${seriesId}` };
     }
@@ -76,13 +80,14 @@ export const seriesDescriptionJob: EntityJobDeclaration<
       data.prompt ??
       `Series name: ${series.metadata.title}\n\nContent in this series:\n${summaries.join("\n")}`;
 
-    const generated = await ai.generate<{
-      description: string;
-    }>({
-      prompt,
-      templateName: template("description"),
-      representedIdentity: "none",
-    });
+    const generated = await ai.generate(
+      {
+        prompt,
+        templateName: template("description"),
+        representedIdentity: "none",
+      },
+      z.object({ description: z.string() }),
+    );
 
     if (!generated.description) {
       return { success: false, error: "Failed to generate description" };

@@ -276,13 +276,15 @@ export class EmailReplyDraftOperator {
   private async load(
     mailItemId: string,
   ): Promise<EmailReplyDraftEntity | undefined> {
-    const entity =
-      await this.context.entityService.getEntity<EmailReplyDraftEntity>({
+    const entity = await this.context.entityService.getEntity(
+      {
         entityType: "email-reply-draft",
         id: draftId(mailItemId),
         visibilityScope: "restricted",
-      });
-    return entity ? emailReplyDraftSchema.parse(entity) : undefined;
+      },
+      emailReplyDraftSchema,
+    );
+    return entity ?? undefined;
   }
 
   private async persist(

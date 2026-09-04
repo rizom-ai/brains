@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createElement as h, type JSX } from "react";
 import { z } from "@brains/utils/zod";
 import { createMockEntityService } from "@brains/test-utils";
-import type { BaseEntity } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/plugins";
 import {
   createOgImageProvider,
   createPrintableProvider,
@@ -15,9 +15,10 @@ const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 const TINY_PDF = Buffer.from("%PDF-1.7\n", "utf-8");
 const COVER_DATA_URL = "data:image/png;base64,AAAA";
 
-interface Widget extends BaseEntity {
-  metadata: { title: string; slug: string };
-}
+const widgetSchema = baseEntitySchema.extend({
+  metadata: z.object({ title: z.string(), slug: z.string() }),
+});
+type Widget = z.output<typeof widgetSchema>;
 
 interface WidgetContent {
   title: string;
@@ -98,6 +99,7 @@ function createContext(
 
 const WIDGET_OG_CONFIG = {
   sourceEntityType: "widget",
+  entitySchema: widgetSchema,
   attachmentType: "og-image",
   template: createTemplate(),
   buildContent: async (

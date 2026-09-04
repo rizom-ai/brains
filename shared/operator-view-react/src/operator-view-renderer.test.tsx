@@ -1257,7 +1257,7 @@ describe("sidebar card readouts", () => {
               },
             ],
           },
-        } as RuntimeStudioWorkspaceData,
+        },
         onAction: async () => ({}),
         onOpenEntity: () => {},
       }),

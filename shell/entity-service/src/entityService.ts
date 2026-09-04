@@ -50,12 +50,13 @@ import type {
   EntityExportIntent,
   AcknowledgeEntityExportsRequest,
   EntityRegistry as IEntityRegistry,
+  EntitySchema,
 } from "./types";
 import { getEntitiesRequestSchema } from "./types";
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
@@ -105,7 +106,9 @@ export class EntityService implements IEntityService {
   private searchDbClient: Client;
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
-  private dbInitPromise!: Promise<void>;
+  // Assigned inside the constructor's try block: null until that succeeds, so
+  // initialize() reports the failure instead of awaiting undefined.
+  private dbInitPromise: Promise<void> | null = null;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -202,7 +205,7 @@ export class EntityService implements IEntityService {
       this.embeddingDbClient = emb.client;
 
       this.entityRegistry = options.entityRegistry;
-      this.logger = (options.logger ?? Logger.getInstance()).child(
+      this.logger = (options.logger ?? ConsoleLogger.getInstance()).child(
         "EntityService",
       );
       if (!options.jobQueueService) {
@@ -304,6 +307,11 @@ export class EntityService implements IEntityService {
    * Called by Shell.initialize() before plugins load.
    */
   public async initialize(): Promise<void> {
+    if (!this.dbInitPromise) {
+      throw new Error(
+        "Entity service database initialization never started; construction failed",
+      );
+    }
     await this.dbInitPromise;
   }
 
@@ -608,20 +616,39 @@ export class EntityService implements IEntityService {
     return this.assetRepository.verify(ref);
   }
 
+  public async getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
   public async getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
-  ): Promise<T | null> {
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  public async getEntity(
+    request: GetEntityRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
-    const entity = await this.getEntityRaw<T>({
+    const entity = await this.getEntityRaw({
       entityType,
       id,
-      ...(visibilityScope !== undefined && { visibilityScope }),
+      visibilityScope,
     });
     if (!entity) {
       return null;
     }
 
+    const resolved = await this.resolveEntityContent(
+      entityType,
+      entity,
+      visibilityScope,
+    );
+    return schema ? schema.parse(resolved) : resolved;
+  }
+
+  private async resolveEntityContent(
+    entityType: string,
+    entity: BaseEntity,
+    visibilityScope: ContentVisibility | undefined,
+  ): Promise<BaseEntity> {
     if (shouldResolveContent(entityType) && entity.content) {
       const result = await this.contentResolver.resolve(
         entity.content,
@@ -632,7 +659,6 @@ export class EntityService implements IEntityService {
         return { ...entity, content: result.content };
       }
     }
-
     return entity;
   }
 
@@ -644,7 +670,7 @@ export class EntityService implements IEntityService {
       parsed.ids,
       parsed.visibilityScope,
     );
-    const found = await this.entitySerializer.convertToEntities<BaseEntity>(
+    const found = await this.entitySerializer.convertToEntities(
       data,
       parsed.entityType,
     );
@@ -665,9 +691,17 @@ export class EntityService implements IEntityService {
     );
   }
 
+  public async getEntityRaw(
+    request: GetEntityRawRequest,
+  ): Promise<BaseEntity | null>;
   public async getEntityRaw<T extends BaseEntity>(
     request: GetEntityRawRequest,
-  ): Promise<T | null> {
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  public async getEntityRaw(
+    request: GetEntityRawRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity | null> {
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
     const entityData = await this.entityQueries.getEntityData(
@@ -679,19 +713,29 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    return this.entitySerializer.convertToEntity<T>(entityData);
+    const entity = await this.entitySerializer.convertToEntity(entityData);
+    return entity && schema ? schema.parse(entity) : entity;
   }
 
+  public async listEntities(
+    request: ListEntitiesRequest,
+  ): Promise<BaseEntity[]>;
   public async listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
-  ): Promise<T[]> {
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  public async listEntities(
+    request: ListEntitiesRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity[]> {
     await this.initialize();
     const { entityType, options } = request;
-    return this.entityQueries.listEntities<T>(
+    const entities = await this.entityQueries.listEntities(
       entityType,
       options,
       this.publishedStatusesFor(entityType),
     );
+    return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {
@@ -725,11 +769,28 @@ export class EntityService implements IEntityService {
 
   // ── Search ────────────────────────────────────────────────────────
 
-  public async search<T extends BaseEntity = BaseEntity>(
+  public async search(
     request: EntitySearchRequest,
-  ): Promise<SearchResult<T>[]> {
+  ): Promise<SearchResult<BaseEntity>[]>;
+  public async search<T extends BaseEntity>(
+    request: EntitySearchRequest,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  public async search(
+    request: EntitySearchRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<SearchResult<BaseEntity>[]> {
     await this.initialize();
-    return this.entitySearch.search<T>(request.query, request.options);
+    const results = await this.entitySearch.search(
+      request.query,
+      request.options,
+    );
+    return schema
+      ? results.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : results;
   }
 
   public async searchEntities(

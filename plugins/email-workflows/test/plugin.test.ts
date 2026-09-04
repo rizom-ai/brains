@@ -88,7 +88,7 @@ describe("email workflow plugin", () => {
     const logger = createMockLogger();
     const harness = createPluginHarness({ logger });
     const prompts: string[] = [];
-    const schemas: unknown[] = [];
+    const schemas: Array<{ parse(input: unknown): unknown }> = [];
     harness.getMockShell().generateObject = async <T>(
       prompt: string,
       schema: { parse(input: unknown): T },
@@ -135,7 +135,8 @@ Prioritize collaboration connected to Project Aurora.`,
     // The AI receives the classifier's flat wire schema (strict-mode safe),
     // not the domain decision union.
     expect(schemas).toHaveLength(1);
-    const wireSchema = schemas[0] as { parse(data: unknown): unknown };
+    const wireSchema = schemas[0];
+    if (!wireSchema) throw new Error("no schema handed to the AI");
     expect(() => wireSchema.parse(wireClassification)).not.toThrow();
     expect(items).toHaveLength(1);
     expect(items[0]?.visibility).toBe("restricted");

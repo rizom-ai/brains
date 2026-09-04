@@ -75,11 +75,14 @@ export const socialPostGeneration: EntityGenerationDeclaration<
         message: "Shaping content with AI",
       });
 
-      const generated = await ai.generate<{ title: string; content: string }>({
-        prompt: content,
-        templateName: getTemplateName(platform),
-        ...styleContext,
-      });
+      const generated = await ai.generate(
+        {
+          prompt: content,
+          templateName: getTemplateName(platform),
+          ...styleContext,
+        },
+        z.object({ title: z.string(), content: z.string() }),
+      );
 
       title = generated.title;
       content = generated.content;
@@ -120,15 +123,18 @@ export const socialPostGeneration: EntityGenerationDeclaration<
       const parsed = slugSchema.safeParse(sourceEntity.metadata);
       const slug = parsed.success ? parsed.data.slug : sourceEntityId;
 
-      const generated = await ai.generate<{ title: string; content: string }>({
-        prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
+      const generated = await ai.generate(
+        {
+          prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
 
 Source: ${sourceEntityType}/${slug}
 
 ${sourceEntity.content}`,
-        templateName: getTemplateName(platform),
-        ...styleContext,
-      });
+          templateName: getTemplateName(platform),
+          ...styleContext,
+        },
+        z.object({ title: z.string(), content: z.string() }),
+      );
 
       title = generated.title;
       content = generated.content;
@@ -147,11 +153,14 @@ ${sourceEntity.content}`,
         message: "Generating social post with AI",
       });
 
-      const generated = await ai.generate<{ title: string; content: string }>({
-        prompt,
-        templateName: getTemplateName(platform),
-        ...styleContext,
-      });
+      const generated = await ai.generate(
+        {
+          prompt,
+          templateName: getTemplateName(platform),
+          ...styleContext,
+        },
+        z.object({ title: z.string(), content: z.string() }),
+      );
 
       title = generated.title;
       content = generated.content;

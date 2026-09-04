@@ -1,4 +1,5 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { createMockShell, createTestEntity } from "@brains/test-utils";
 import {
   fetchAnchorProfileData,
   organizationProfileFields,
@@ -101,18 +102,16 @@ describe("profile variants", () => {
   });
 
   test("fetches structured profile data and maps the markdown body to story", async () => {
-    const entityService = {
-      listEntities: mock(() =>
-        Promise.resolve([
-          {
-            content: "---\nname: Ada\nrole: Advisor\n---\nLong biography",
-          },
-        ]),
-      ),
-    };
+    const shell = createMockShell();
+    shell.addEntities([
+      createTestEntity("anchor-profile", {
+        id: "anchor-profile",
+        content: "---\nname: Ada\nrole: Advisor\n---\nLong biography",
+      }),
+    ]);
 
     const profile = await fetchAnchorProfileData(
-      entityService as never,
+      shell.getEntityService(),
       professionalProfileSchema,
     );
 

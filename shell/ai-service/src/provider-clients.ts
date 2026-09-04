@@ -44,11 +44,11 @@ export function getLanguageModel(
   const resolvedModel = resolveTextProvider(model);
 
   if (resolvedModel.provider === "openai" && clients.openaiProvider) {
-    return clients.openaiProvider(resolvedModel.modelId) as LanguageModel;
+    return clients.openaiProvider(resolvedModel.modelId);
   }
 
   if (resolvedModel.provider === "google" && clients.googleProvider) {
-    return clients.googleProvider(resolvedModel.modelId) as LanguageModel;
+    return clients.googleProvider(resolvedModel.modelId);
   }
 
   return clients.anthropicProvider(resolvedModel.modelId);

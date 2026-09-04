@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
-import type { BaseEntity, IRuntimeStateStore } from "@brains/plugins";
+import type {
+  BaseEntity,
+  EntitySchema,
+  IRuntimeStateStore,
+  ListEntitiesRequest,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
@@ -111,18 +116,20 @@ async function persist(
 async function threadedItems(
   harness: ReturnType<typeof createPluginHarness>,
 ): Promise<MailItemEntity[]> {
-  const items = await harness.getEntityService().listEntities<MailItemEntity>({
-    entityType: "mail-item",
-    options: {
-      limit: 100,
-      sortFields: [
-        { field: "receivedAt", direction: "asc" },
-        { field: "id", direction: "asc" },
-      ],
-      filter: { visibilityScope: "restricted" },
+  return harness.getEntityService().listEntities(
+    {
+      entityType: "mail-item",
+      options: {
+        limit: 100,
+        sortFields: [
+          { field: "receivedAt", direction: "asc" },
+          { field: "id", direction: "asc" },
+        ],
+        filter: { visibilityScope: "restricted" },
+      },
     },
-  });
-  return items.map((item) => mailItemSchema.parse(item));
+    mailItemSchema,
+  );
 }
 
 function ordinals(items: MailItemEntity[]): Array<number | undefined> {
@@ -142,29 +149,44 @@ async function setup(): Promise<{
   await harness.installPlugin(new MailItemPlugin());
   const entityService = harness.getEntityService();
   const listEntities = entityService.listEntities.bind(entityService);
-  entityService.listEntities = async <T extends BaseEntity>(
-    request: Parameters<typeof listEntities>[0],
-  ): Promise<T[]> => {
+  // The in-memory fake cannot sort by metadata fields, so emulate the
+  // threadOrdinal sort while keeping the schema-passing overload shape.
+  async function sortedListEntities(
+    request: ListEntitiesRequest,
+  ): Promise<BaseEntity[]>;
+  async function sortedListEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function sortedListEntities(
+    request: ListEntitiesRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<BaseEntity[]> {
     if (request.options?.sortFields?.[0]?.field !== "threadOrdinal") {
-      return listEntities<T>(request);
+      return schema ? listEntities(request, schema) : listEntities(request);
     }
     const { sortFields: _sortFields, ...options } = request.options;
-    const items = await listEntities<MailItemEntity>({
-      ...request,
-      options: {
-        ...options,
-        limit: 1_000,
-        offset: 0,
+    const items = await listEntities(
+      {
+        ...request,
+        options: {
+          ...options,
+          limit: 1_000,
+          offset: 0,
+        },
       },
-    });
-    return items
+      mailItemSchema,
+    );
+    const sorted = items
       .sort(
         (left, right) =>
           (right.metadata.threadOrdinal ?? 0) -
           (left.metadata.threadOrdinal ?? 0),
       )
-      .slice(0, request.options.limit) as T[];
-  };
+      .slice(0, request.options.limit);
+    return schema ? sorted.map((entity) => schema.parse(entity)) : sorted;
+  }
+  entityService.listEntities = sortedListEntities;
   entityService.countEntities = async (request): Promise<number> =>
     (
       await entityService.listEntities({

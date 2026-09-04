@@ -4,6 +4,7 @@ import {
   type SiteBuildArtifactManifest,
 } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
+import { isErrnoException } from "@brains/utils/predicates";
 import { promises as nodeFs } from "fs";
 import { basename, dirname, join, relative, resolve } from "path";
 import {
@@ -462,9 +463,5 @@ function assertSafeBuildId(buildId: string): void {
 }
 
 function isNotFoundError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    (error as NodeJS.ErrnoException).code === "ENOENT"
-  );
+  return isErrnoException(error) && error.code === "ENOENT";
 }

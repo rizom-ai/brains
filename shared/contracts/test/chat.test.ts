@@ -213,11 +213,14 @@ describe("public headless Chat contract", () => {
     const fetchFn: ChatFetch = async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
+      // Annotated rather than asserted: JSON.parse is typed `any`, and naming
+      // the binding `unknown` narrows it without claiming a shape.
+      const parseBody = (raw: string): unknown => JSON.parse(raw);
       requests.push({
         url,
         method,
         ...(typeof init?.body === "string"
-          ? { body: JSON.parse(init.body) as unknown }
+          ? { body: parseBody(init.body) }
           : {}),
       });
 

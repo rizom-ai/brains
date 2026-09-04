@@ -7,6 +7,13 @@ import { createSilentLogger, stubMethod } from "@brains/test-utils";
 import { promises as fs, type PathLike } from "fs";
 import type { FileHandle } from "fs/promises";
 
+/** The bytes a recorded write carried, narrowed by a check rather than a cast. */
+function writtenBytes(written: unknown): Uint8Array {
+  if (written instanceof Uint8Array) return written;
+  if (typeof written === "string") return Buffer.from(written);
+  return new Uint8Array();
+}
+
 describe("ReactBuilder - Snapshotted Public Assets", () => {
   const outputDir = "/tmp/output";
   const logger = createSilentLogger();
@@ -42,7 +49,7 @@ describe("ReactBuilder - Snapshotted Public Assets", () => {
       expect(writes).toHaveLength(1);
       expect(String(writes[0]?.[0])).toBe("/tmp/output/icons/favicon.bin");
       expect(
-        Buffer.from((writes[0]?.[1] as Uint8Array | undefined) ?? []).equals(
+        Buffer.from(writtenBytes(writes[0]?.[1])).equals(
           Buffer.from([0, 1, 2, 3]),
         ),
       ).toBe(true);

@@ -7,6 +7,7 @@ import {
   type EntityQueryReader,
 } from "@brains/sdk/entities";
 import type { Series } from "../schemas/series";
+import { seriesSchema } from "../schemas/series";
 import {
   parseSeriesBody,
   seriesFrontmatterSchema,
@@ -101,9 +102,12 @@ export const seriesDataSource: DataSourceDefinition = defineDataSource({
 });
 
 async function fetchSeriesList(entities: EntityQueryReader): Promise<unknown> {
-  const seriesEntities = await entities.listEntities<Series>({
-    entityType: "series",
-  });
+  const seriesEntities = await entities.listEntities(
+    {
+      entityType: "series",
+    },
+    seriesSchema,
+  );
 
   // Count entities per series across ALL entity types
   const entityCounts = await countEntitiesPerSeries(entities);
@@ -126,12 +130,15 @@ async function fetchSeriesDetail(
   seriesEntity?: Series,
 ): Promise<unknown> {
   if (!seriesEntity) {
-    const candidates = await entities.listEntities<Series>({
-      entityType: "series",
-      options: {
-        filter: { metadata: { title: seriesName } },
+    const candidates = await entities.listEntities(
+      {
+        entityType: "series",
+        options: {
+          filter: { metadata: { title: seriesName } },
+        },
       },
-    });
+      seriesSchema,
+    );
     seriesEntity = candidates[0];
   }
 
@@ -161,12 +168,15 @@ async function fetchSeriesDetailBySlug(
   seriesSlug: string,
   entities: EntityQueryReader,
 ): Promise<unknown> {
-  const candidates = await entities.listEntities<Series>({
-    entityType: "series",
-    options: {
-      filter: { metadata: { slug: seriesSlug } },
+  const candidates = await entities.listEntities(
+    {
+      entityType: "series",
+      options: {
+        filter: { metadata: { slug: seriesSlug } },
+      },
     },
-  });
+    seriesSchema,
+  );
 
   const seriesEntity = candidates[0];
   if (!seriesEntity) {

@@ -1,5 +1,6 @@
 import type { LayoutComponent, PreparedSiteBuild } from "@brains/site-engine";
 import { sha256Hex } from "@brains/utils/hash";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { SiteViewTemplate } from "./site-view-template";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
@@ -92,8 +93,7 @@ function stableSerialize(
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableSerialize(item, nextAncestors)).join(",")}]`;
   }
-  const prototype = Object.getPrototypeOf(value) as unknown;
-  if (prototype !== Object.prototype && prototype !== null) {
+  if (!isPlainRecord(value)) {
     throw new Error("Cannot fingerprint non-plain site input objects");
   }
 

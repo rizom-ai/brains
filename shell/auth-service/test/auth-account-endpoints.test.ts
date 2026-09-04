@@ -17,6 +17,19 @@ import {
 const ISSUER = "https://brain.example.com";
 const tempDirs: string[] = [];
 
+/** The passkey registration options this test reads off the wire. */
+const passkeyOptionsSchema = z.looseObject({
+  challenge: z.string(),
+});
+
+/** The account snapshot fields these tests read off the wire. */
+const accountSnapshotSchema = z.looseObject({
+  account: z.looseObject({
+    displayName: z.string(),
+    profileEntityId: z.string().optional(),
+  }),
+});
+
 async function createService(): Promise<{
   service: AuthService;
   storageDir: string;
@@ -543,9 +556,14 @@ describe("auth account API", () => {
       accountRequest("/auth/account/passkeys/options", session.cookie, {}),
     );
     expect(options.status).toBe(200);
-    const passkeyOptions = await options.json();
+    const passkeyOptions = passkeyOptionsSchema.parse(await options.json());
+    // `challenge` is asserted on its own rather than inside the toMatchObject
+    // below: bun replaces a field matched by an asymmetric matcher with the
+    // matcher itself, and the verification request further down sends this
+    // challenge back. Matching it here would send the matcher instead, so the
+    // request would be rejected for the wrong reason.
+    expect(passkeyOptions.challenge).not.toBe("");
     expect(passkeyOptions).toMatchObject({
-      challenge: expect.any(String),
       user: { name: "Mira", displayName: "Mira" },
       authenticatorSelection: {
         residentKey: "required",
@@ -635,9 +653,7 @@ describe("auth account API", () => {
       accountRequest("/auth/account", session.cookie),
     );
     expect(snapshotResponse.status).toBe(200);
-    const snapshot = (await snapshotResponse.json()) as {
-      account: { displayName: string; profileEntityId?: string };
-    };
+    const snapshot = accountSnapshotSchema.parse(await snapshotResponse.json());
     expect(snapshot.account.displayName).toBe("Ada Lovelace");
     expect(snapshot.account.profileEntityId).toBe(
       "anchor-profile/anchor-profile",
@@ -659,11 +675,13 @@ describe("auth account API", () => {
 
     // ...while a non-Anchor member still renames themselves freely.
     const memberSession = await service.createAuthSession(member.userId);
-    const memberSnapshot = (await (
-      await service.handleRequest(
-        accountRequest("/auth/account", memberSession.cookie),
-      )
-    ).json()) as { account: { profileEntityId?: string } };
+    const memberSnapshot = accountSnapshotSchema.parse(
+      await (
+        await service.handleRequest(
+          accountRequest("/auth/account", memberSession.cookie),
+        )
+      ).json(),
+    );
     expect(memberSnapshot.account.profileEntityId).toBeUndefined();
     const renamed = await service.handleRequest(
       accountRequest("/auth/account/mutations", memberSession.cookie, {

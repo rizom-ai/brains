@@ -2,6 +2,7 @@ import type {
   BaseEntity,
   ContentVisibility,
   EntityInput,
+  EntitySchema,
 } from "@brains/entity-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
@@ -14,6 +15,8 @@ export interface ReconcileEntitiesOptions<
 > {
   context: EntityPluginContext;
   targetType: string;
+  /** Schema for entities of `targetType`; existing entities are parsed with it. */
+  entitySchema: EntitySchema<TEntity>;
   desired: Iterable<TDesired>;
   getId: (desired: TDesired) => string;
   toEntityInput: (desired: TDesired, id: string) => EntityInput<TEntity>;
@@ -38,6 +41,7 @@ export async function reconcileEntities<
 >({
   context,
   targetType,
+  entitySchema,
   desired,
   getId,
   toEntityInput,
@@ -54,10 +58,13 @@ export async function reconcileEntities<
   for (const item of desired) desiredById.set(getId(item), item);
 
   const existing = (
-    await context.entityService.listEntities<TEntity>({
-      entityType: targetType,
-      options: { filter: { visibilityScope: outputVisibility } },
-    })
+    await context.entityService.listEntities(
+      {
+        entityType: targetType,
+        options: { filter: { visibilityScope: outputVisibility } },
+      },
+      entitySchema,
+    )
   ).filter((entity) => entity.visibility === outputVisibility);
   const existingById = new Map(existing.map((entity) => [entity.id, entity]));
 

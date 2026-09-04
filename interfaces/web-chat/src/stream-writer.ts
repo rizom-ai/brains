@@ -5,8 +5,17 @@ import {
 } from "@brains/sdk/interfaces";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 
+/**
+ * The writer as this interface uses it: `write` and nothing else.
+ *
+ * The full SDK writer also carries `merge` and `onError`, which nothing here
+ * calls — and asking for them was the reason every test stream had to be
+ * asserted into place.
+ */
+export type StreamWriter = Pick<UIMessageStreamWriter<UIMessage>, "write">;
+
 export function writeTextPart(
-  writer: UIMessageStreamWriter<UIMessage>,
+  writer: StreamWriter,
   id: string,
   text: string,
 ): void {
@@ -22,10 +31,7 @@ export function writeTextPart(
  * interfaces. Approval-requested cards stream from the approvals
  * directive, which is web-chat's approval UX.
  */
-export function writePlanCards(
-  writer: UIMessageStreamWriter<UIMessage>,
-  plan: ResponsePlan,
-): void {
+export function writePlanCards(writer: StreamWriter, plan: ResponsePlan): void {
   const cards = plan.directives.flatMap((directive): StructuredChatCard[] => {
     switch (directive.kind) {
       case "artifact":

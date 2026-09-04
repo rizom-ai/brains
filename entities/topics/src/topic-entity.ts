@@ -9,7 +9,7 @@ import { createTopicAtprotoProjection } from "./atproto-projection";
 import { topicsDataSource } from "./datasources/topics-datasource";
 import { TOPIC_ENTITY_TYPE } from "./lib/constants";
 import { getTopicTitle, toTopicContentProjection } from "./lib/topic-presenter";
-import { topicMetadataSchema, type TopicEntity } from "./schemas/topic";
+import { topicMetadataSchema, topicEntitySchema } from "./schemas/topic";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicDetailTemplate } from "./templates/topic-detail";
@@ -45,10 +45,13 @@ export const topic: EntityDefinition<
   atproto: createTopicAtprotoProjection(),
   insights: {
     "topic-distribution": async ({ entities, visibilityScope }) => {
-      const topics = await entities.listEntities<TopicEntity>({
-        entityType: TOPIC_ENTITY_TYPE,
-        options: { filter: { visibilityScope } },
-      });
+      const topics = await entities.listEntities(
+        {
+          entityType: TOPIC_ENTITY_TYPE,
+          options: { filter: { visibilityScope } },
+        },
+        topicEntitySchema,
+      );
       return {
         topics: topics.map((entry: BaseEntity) => ({
           topic: entry.id,
@@ -59,13 +62,16 @@ export const topic: EntityDefinition<
   },
   dashboardWidgets: [
     defineEntityDashboardWidget(topicsWidget, async ({ entities }) => {
-      const topics = await entities.listEntities<TopicEntity>({
-        entityType: TOPIC_ENTITY_TYPE,
-        options: {
-          limit: 10,
-          sortFields: [{ field: "updated", direction: "desc" }],
+      const topics = await entities.listEntities(
+        {
+          entityType: TOPIC_ENTITY_TYPE,
+          options: {
+            limit: 10,
+            sortFields: [{ field: "updated", direction: "desc" }],
+          },
         },
-      });
+        topicEntitySchema,
+      );
       return {
         items: topics.map((entry: BaseEntity) => {
           const projected = toTopicContentProjection(entry);

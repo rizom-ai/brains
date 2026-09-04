@@ -20,5 +20,6 @@ import type { EntityDB } from "../../src/db";
  * narrow and prefer a real database where one is affordable.
  */
 export function fakeEntityDb(select: () => unknown): EntityDB {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- drizzle SqliteDatabase has no structural shape a stub can satisfy; see the comment above
   return { select } as unknown as EntityDB;
 }

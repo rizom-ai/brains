@@ -5,7 +5,33 @@ import {
   generateSettingsBase,
 } from "../src/lib/base-generator";
 import type { FieldInfo } from "../src/lib/schema-introspector";
-import { fromYaml } from "@brains/utils/yaml";
+import { fromYaml, parseYamlDocument } from "@brains/utils/yaml";
+import { z } from "@brains/utils/zod";
+
+const viewsSchema = z.looseObject({
+  views: z.array(
+    z.looseObject({
+      name: z.string().optional(),
+      order: z.array(z.string()).optional(),
+      groupBy: z.unknown().optional(),
+    }),
+  ),
+});
+
+const filtersSchema = z.looseObject({
+  filters: z.looseObject({ and: z.array(z.unknown()) }),
+});
+
+function parseBase<T>(content: string, schema: z.ZodType<T>): T {
+  const result = parseYamlDocument(content, schema);
+  if (!result.ok) throw new Error(`invalid base YAML: ${result.error}`);
+  return result.data;
+}
+
+function requireBase(result: string | null): string {
+  if (result === null) throw new Error("expected a generated base");
+  return result;
+}
 
 describe("generateBase", () => {
   it("should filter by entity folder", () => {
@@ -55,9 +81,7 @@ describe("generateBase", () => {
       },
     ];
     const result = generateBase("post", fields);
-    const parsed = fromYaml<{
-      views: { order: string[] }[];
-    }>(result.content);
+    const parsed = parseBase(result.content, viewsSchema);
     const firstView = parsed.views[0];
     expect(firstView?.order).not.toContain("entityType");
   });
@@ -73,9 +97,7 @@ describe("generateBase", () => {
       },
     ];
     const result = generateBase("post", fields);
-    const parsed = fromYaml<{
-      views: { name: string; groupBy?: unknown }[];
-    }>(result.content);
+    const parsed = parseBase(result.content, viewsSchema);
     expect(parsed.views).toHaveLength(2);
     const statusView = parsed.views[1];
     expect(statusView?.name).toBe("By Status");
@@ -87,7 +109,7 @@ describe("generateBase", () => {
       { name: "title", type: "string", required: true },
     ];
     const result = generateBase("topic", fields);
-    const parsed = fromYaml<{ views: unknown[] }>(result.content);
+    const parsed = parseBase(result.content, viewsSchema);
     expect(parsed.views).toHaveLength(1);
   });
 
@@ -246,7 +268,7 @@ describe("generatePipelineBase", () => {
     ];
     const result = generatePipelineBase(entries);
     expect(result).not.toBeNull();
-    const parsed = fromYaml<{ filters: { and: unknown[] } }>(result as string);
+    const parsed = parseBase(requireBase(result), filtersSchema);
     const firstFilter = parsed.filters.and[0];
     // Single type should not need an or-clause
     expect(firstFilter).toBe('file.inFolder("post")');
@@ -267,7 +289,7 @@ describe("generateSettingsBase", () => {
     const entries = ["brain-character", "site-info"];
     const result = generateSettingsBase(entries);
     expect(result).not.toBeNull();
-    const parsed = fromYaml(result as string);
+    const parsed = fromYaml(requireBase(result));
     expect(parsed).toBeDefined();
   });
 
@@ -287,7 +309,7 @@ describe("generateSettingsBase", () => {
     const entries = ["site-info"];
     const result = generateSettingsBase(entries);
     expect(result).not.toBeNull();
-    const parsed = fromYaml<{ filters: { and: unknown[] } }>(result as string);
+    const parsed = parseBase(requireBase(result), filtersSchema);
     const firstFilter = parsed.filters.and[0];
     expect(firstFilter).toBe('file.inFolder("site-info")');
   });

@@ -43,7 +43,7 @@ async function createSource(): Promise<{
       version: "0.1.0",
     },
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
   const context = harness.getReactionContext(AGENT_PLUGIN_ID);
   const resolveDetail = agentSightingsInbox.resolveDetail;
   if (!resolveDetail) throw new Error("The sightings inbox resolves no detail");
@@ -155,18 +155,14 @@ describe("agent sightings Inbox source", () => {
       permissionLevel: "admin",
     });
 
-    const connected = await harness
-      .getEntityService()
-      .getEntity<ReturnType<typeof createTestAgent>>({
-        entityType: "agent",
-        id: "connect.example",
-      });
-    const dismissed = await harness
-      .getEntityService()
-      .getEntity<ReturnType<typeof createTestAgent>>({
-        entityType: "agent",
-        id: "dismiss.example",
-      });
+    const connected = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "connect.example",
+    });
+    const dismissed = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "dismiss.example",
+    });
     expect(connected?.metadata["status"]).toBe("approved");
     expect(dismissed?.metadata["status"]).toBe("archived");
     if (!connected || !dismissed) throw new Error("Expected saved agents");

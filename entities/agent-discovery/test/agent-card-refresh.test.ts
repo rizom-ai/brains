@@ -12,7 +12,8 @@ import {
   AGENT_PLUGIN_ID,
 } from "./fixtures/agent-network";
 import { createTestAgent } from "./fixtures/agent";
-import type { AgentEntity } from "../src/schemas/agent";
+
+import { agentEntitySchema } from "../src/schemas/agent";
 
 describe("known agent cards", () => {
   it("registers known-agent card refresh as a daily recurring check", async () => {
@@ -70,10 +71,13 @@ describe("known agent cards", () => {
         notes: "Local trust note.",
       }),
     });
-    const staleAgent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const staleAgent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(staleAgent).not.toBeNull();
     if (!staleAgent) throw new Error("Expected stale agent fixture");
     await harness.getEntityService().updateEntity({
@@ -100,10 +104,13 @@ describe("known agent cards", () => {
       resolvePublicHostname,
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.status).toBe("approved");
     expect(agent?.metadata.name).toBe("Updated Peer Owner");
     expect(agent?.metadata.cardCid).toBe("bafy-updated-card");
@@ -150,10 +157,13 @@ describe("known agent cards", () => {
       resolvePublicHostname,
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.updated).toBe("2026-03-31T00:00:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeUndefined();
     harness.reset();
@@ -194,10 +204,13 @@ describe("known agent cards", () => {
       resolvePublicHostname,
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(agent?.metadata.cardCid).toBe("bafy-last-good-card");
     expect(agent?.metadata.cardObservedAt).toBe("2026-06-02T12:30:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeDefined();
@@ -223,12 +236,13 @@ describe("known agent cards", () => {
       new Date().toISOString(),
       resolvePublicHostname,
     );
-    const repeatedlyUnavailable = await harness
-      .getEntityService()
-      .getEntity<AgentEntity>({
+    const repeatedlyUnavailable = await harness.getEntityService().getEntity(
+      {
         entityType: "agent",
         id: "peer.example.com",
-      });
+      },
+      agentEntitySchema,
+    );
     expect(repeatedlyUnavailable?.metadata.status).toBe("approved");
     expect(repeatedlyUnavailable?.metadata.cardFailureCount).toBe(3);
     expect(repeatedlyUnavailable?.metadata.cardUnavailableAt).toBeDefined();
@@ -276,10 +290,13 @@ describe("known agent cards", () => {
       resolvePublicHostname,
     );
 
-    const agent = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const agent = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(calls).toEqual([
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     ]);
@@ -334,10 +351,13 @@ describe("known agent cards", () => {
       resolvePublicHostname,
     );
 
-    const recovered = await harness.getEntityService().getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "peer.example.com",
-    });
+    const recovered = await harness.getEntityService().getEntity(
+      {
+        entityType: "agent",
+        id: "peer.example.com",
+      },
+      agentEntitySchema,
+    );
     expect(recovered?.metadata.status).toBe("approved");
     expect(recovered?.metadata.cardCid).toBe(testBrainCardPayload.cid);
     expect(recovered?.metadata.cardFailureCount).toBeUndefined();

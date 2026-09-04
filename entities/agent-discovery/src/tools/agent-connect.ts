@@ -9,6 +9,7 @@ import {
 } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import type { AgentEntity } from "../schemas/agent";
+import { agentEntitySchema } from "../schemas/agent";
 
 const agentConnectInputSchema: z.ZodObject<{
   source: z.ZodObject<{ kind: z.ZodLiteral<"url">; url: z.ZodString }>;
@@ -53,10 +54,13 @@ async function upsertConnectedAgent(params: {
 }): Promise<{ entity: AgentEntity; created: boolean }> {
   const { context, entityId, card } = params;
   const now = new Date().toISOString();
-  const existing = await context.entities.getEntity<AgentEntity>({
-    entityType: AGENT_ENTITY_TYPE,
-    id: entityId,
-  });
+  const existing = await context.entities.getEntity(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+      id: entityId,
+    },
+    agentEntitySchema,
+  );
   const built = buildAgentFromCard(card, { status: "approved" });
   const metadata = {
     ...parseAgentEntity({ content: built.content }).frontmatter,

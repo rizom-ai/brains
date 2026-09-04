@@ -30,7 +30,11 @@ const link: LinkEntity = {
   updated: "2026-05-28T11:00:00.000Z",
   visibility: "public",
   contentHash: "hash",
-  metadata: { title: "AT Protocol", status: "published" },
+  metadata: {
+    title: "AT Protocol",
+    status: "published",
+    capturedAt: "2026-05-28T10:00:00.000Z",
+  },
 };
 
 describe("link ATProto projection", () => {

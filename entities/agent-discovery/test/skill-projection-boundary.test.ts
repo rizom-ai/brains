@@ -20,7 +20,7 @@ async function install(
     PACKAGE_METADATA,
   );
   const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins as Plugin[]) {
+  for (const plugin of plugins) {
     capabilities.push(await harness.installPlugin(plugin));
   }
   return capabilities;

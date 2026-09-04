@@ -1,5 +1,6 @@
 import { z, type JobEntityAccess } from "@brains/sdk/entities";
 import type { SummaryEntity, SummaryTimeRange } from "../../schemas/summary";
+import { summarySchema } from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { parseSummaryBody } from "../summary-body";
 
@@ -91,9 +92,12 @@ function toRow(entry: ExpandedEntry): SummaryEntryRow {
 export async function buildRecentConversationMemoryData(
   entities: JobEntityAccess,
 ): Promise<RecentConversationMemoryData> {
-  const summaries = await entities.listEntities<SummaryEntity>({
-    entityType: SUMMARY_ENTITY_TYPE,
-  });
+  const summaries = await entities.listEntities(
+    {
+      entityType: SUMMARY_ENTITY_TYPE,
+    },
+    summarySchema,
+  );
 
   const expanded = summaries.flatMap(expandSummary);
   expanded.sort((a, b) => b.timeRange.end.localeCompare(a.timeRange.end));

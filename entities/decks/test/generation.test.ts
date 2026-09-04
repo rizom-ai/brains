@@ -95,6 +95,7 @@ describe("deckGeneration", () => {
             voice: expect.stringContaining("Decisive and evidence-led"),
           },
         }),
+        expect.anything(),
       );
     });
 
@@ -109,6 +110,7 @@ describe("deckGeneration", () => {
           templateName: "@brains/decks:deck:description",
           representedIdentity: "none",
         }),
+        expect.anything(),
       );
     });
   });

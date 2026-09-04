@@ -15,10 +15,7 @@ import {
   getPromptActionTokens,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
-import type {
-  ChatInterfaceInstance,
-  MockActionEvent,
-} from "./harness/chat-interface-harness";
+import type { ChatInterfaceInstance } from "./harness/chat-interface-harness";
 
 describe("ChatInterface cards and suggested actions", () => {
   const suite = setupChatInterfaceTest();
@@ -299,7 +296,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: actionToken,
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.chat).toHaveBeenNthCalledWith(
       2,
@@ -414,7 +411,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: actionToken,
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.chat.mock.calls[1]?.[2]).toEqual(
       expect.objectContaining({
@@ -539,7 +536,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: staleToken,
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.chat).toHaveBeenCalledTimes(1);
     expect(thread.post.mock.calls.at(-1)?.[0]).toEqual(
@@ -630,7 +627,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: firstToken,
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.chat).toHaveBeenNthCalledWith(
       3,
@@ -693,7 +690,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: actionToken,
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.chat).toHaveBeenNthCalledWith(
       2,
@@ -775,7 +772,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: actionToken,
-    } as MockActionEvent;
+    };
 
     await promptActionHandler?.(event);
     expect(suite.agentService.chat).toHaveBeenCalledTimes(2);
@@ -862,7 +859,7 @@ describe("ChatInterface cards and suggested actions", () => {
         isMe: false,
       },
       value: actionToken,
-    } as MockActionEvent);
+    });
 
     expect(suite.agentService.chat).toHaveBeenCalledTimes(1);
   });

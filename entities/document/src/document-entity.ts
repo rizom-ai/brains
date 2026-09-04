@@ -9,6 +9,7 @@ import {
   type EntityGenerationJobDeclaration,
   type EntityGenerationResult,
   sourceAttachmentKey,
+  definitionEntitySchema,
 } from "@brains/sdk/entities";
 import {
   countPdfPages,
@@ -81,10 +82,13 @@ const render: EntityGenerationJobDeclaration<typeof renderInput> = {
       // The route found a document for this exact source content. Handing it
       // back unchanged is what makes the write a no-op, and skips the render
       // the provider would otherwise do.
-      const existing = await entities.getEntity<DocumentEntity>({
-        entityType: "document",
-        id: input.entityId,
-      });
+      const existing = await entities.getEntity(
+        {
+          entityType: "document",
+          id: input.entityId,
+        },
+        documentEntitySchema,
+      );
       if (!existing) {
         return {
           success: false,
@@ -189,10 +193,13 @@ async function supersededReferences(
   const references = documentReferences(entity.content);
   const superseded = await Promise.all(
     references.map(async (id) => {
-      const document = await context.entities.getEntity<DocumentEntity>({
-        entityType: "document",
-        id,
-      });
+      const document = await context.entities.getEntity(
+        {
+          entityType: "document",
+          id,
+        },
+        documentEntitySchema,
+      );
       return document !== null &&
         document.metadata.sourceEntityType === source.sourceEntityType &&
         document.metadata.sourceEntityId === source.sourceEntityId &&
@@ -324,10 +331,13 @@ async function findReusableDocument(
   context: EntityCreateContext,
   dedupKey: string,
 ): Promise<DocumentEntity | undefined> {
-  const documents = await context.entities.listEntities<DocumentEntity>({
-    entityType: "document",
-    options: { filter: { metadata: { dedupKey } } },
-  });
+  const documents = await context.entities.listEntities(
+    {
+      entityType: "document",
+      options: { filter: { metadata: { dedupKey } } },
+    },
+    documentEntitySchema,
+  );
   if (documents.length > 1) {
     context.logger.warn("Multiple documents share dedupKey; using first", {
       dedupKey,
@@ -436,3 +446,11 @@ export const document: EntityDefinition<
   },
   instructions: DOCUMENT_INSTRUCTIONS,
 });
+
+/**
+ * The schema document's own reads pass, derived from the declaration above so
+ * there is no second description of the shape to keep in step. Declared after
+ * `document` because it reads from it; every use is inside a function body,
+ * so the forward reference resolves by call time.
+ */
+const documentEntitySchema = definitionEntitySchema(document);

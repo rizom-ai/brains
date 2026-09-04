@@ -8,6 +8,7 @@ import {
   type ProjectionExecutionContext,
   type ProjectionInputContext,
   type ProjectionWriteIntent,
+  type EntitySchema,
 } from "@brains/sdk/entities";
 import type { SummaryConfig } from "../schemas/summary-config";
 import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
@@ -132,13 +133,14 @@ export async function runMemoryRuleChain(
   const executionContext: ProjectionExecutionContext = {
     ai: {
       ...dependencies.ai,
-      generateObject: async <T>() =>
-        ({
-          object: {
-            decision: input.projectionDecision,
-            rationale: "Forced by eval input",
-          } as T,
-        }) as { object: T },
+      // The forced decision is parsed through the caller's own schema, which
+      // is what proves it matches what the rule asked for.
+      generateObject: async <T>(_prompt: string, schema: EntitySchema<T>) => ({
+        object: schema.parse({
+          decision: input.projectionDecision,
+          rationale: "Forced by eval input",
+        }),
+      }),
     },
     logger: dependencies.logger,
   };
@@ -165,21 +167,44 @@ export async function runMemoryRuleChain(
     };
   }
 
+  // Bound before the reader is declared, so the narrowing above holds inside
+  // it: a function body does not inherit a narrowing of an outer binding.
+  const seeded = summary;
+
+  // Declared with the reader's overload pair: the seeded summary is returned
+  // as itself, and a caller that supplies a schema gets it parsed through one.
+  async function getSeededSummary(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+  async function getSeededSummary<T extends BaseEntity>(
+    request: { entityType: string; id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getSeededSummary<T extends BaseEntity>(
+    { entityType, id }: { entityType: string; id: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found = entityType === "summary" && id === seeded.id ? seeded : null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  async function emptyList(): Promise<BaseEntity[]>;
+  async function emptyList<T extends BaseEntity>(
+    request: unknown,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function emptyList(): Promise<never[]> {
+    return [];
+  }
+
   const inputContext: ProjectionInputContext = {
     spaces: [
       `${input.conversation.interfaceType}:${input.conversation.channelId}`,
     ],
     entities: {
-      getEntity: async <T>({
-        entityType,
-        id,
-      }: {
-        entityType: string;
-        id: string;
-      }) =>
-        (entityType === "summary" && id === summary.id
-          ? summary
-          : null) as T | null,
+      getEntity: getSeededSummary,
       getEntities: async ({
         entityType,
         ids,
@@ -188,7 +213,7 @@ export async function runMemoryRuleChain(
         ids: readonly string[];
       }) =>
         entityType === "summary" && ids.includes(summary.id) ? [summary] : [],
-      listEntities: async <T>() => [] as T[],
+      listEntities: emptyList,
       getEntityTypes: () => ["summary", "decision", "action-item"],
       hasEntityType: () => true,
       getEntityTypeConfig: () => {

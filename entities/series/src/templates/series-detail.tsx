@@ -1,6 +1,7 @@
 import type { JsonValue } from "@brains/sdk/entities";
 import type { JSX } from "react";
 import type { SeriesListItem } from "../schemas/series";
+import { readString } from "@brains/utils/record-fields";
 import {
   Card,
   CardTitle,
@@ -102,12 +103,12 @@ export const SeriesDetailTemplate = ({
             {posts.map((member, index) => {
               const memberTitle =
                 member.frontmatter?.title ??
-                (member.metadata?.["title"] as string | undefined) ??
+                readString(member.metadata, "title") ??
                 member.id;
               const seriesIndex = member.frontmatter?.seriesIndex ?? index + 1;
               const excerpt =
                 member.frontmatter?.excerpt ??
-                (member.metadata?.["excerpt"] as string | undefined);
+                readString(member.metadata, "excerpt");
 
               return (
                 <Card key={member.id} variant="horizontal">

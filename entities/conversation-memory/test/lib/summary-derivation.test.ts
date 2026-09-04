@@ -24,6 +24,7 @@ import {
   createMockActionItemEntity,
   createMockDecisionEntity,
 } from "../fixtures/conversation-memory-entities";
+import type { EntitySchema } from "@brains/sdk/entities";
 
 function createDerivationHarness(
   context: Parameters<typeof deriveConversationMemory>[0],
@@ -595,22 +596,24 @@ describe("conversation memory derivation", () => {
       object: { decision: "update", rationale: "test" },
     });
     const generateSpy = spyOn(context.ai, "generate").mockImplementation(
-      <T>({ prompt }: { prompt: string }) => {
-        return Promise.resolve({
-          entries: [
-            {
-              title: "Chunk",
-              summary: String(prompt).includes("Message 5")
-                ? "Final chunk"
-                : "Earlier chunk",
-              startMessageIndex: 1,
-              endMessageIndex: String(prompt).includes("Message 5") ? 1 : 2,
-              keyPoints: [],
-              decisions: [],
-              actionItems: [],
-            },
-          ],
-        } as T);
+      <T>({ prompt }: { prompt: string }, schema: EntitySchema<T>) => {
+        return Promise.resolve(
+          schema.parse({
+            entries: [
+              {
+                title: "Chunk",
+                summary: String(prompt).includes("Message 5")
+                  ? "Final chunk"
+                  : "Earlier chunk",
+                startMessageIndex: 1,
+                endMessageIndex: String(prompt).includes("Message 5") ? 1 : 2,
+                keyPoints: [],
+                decisions: [],
+                actionItems: [],
+              },
+            ],
+          }),
+        );
       },
     );
 
@@ -638,21 +641,25 @@ describe("conversation memory derivation", () => {
     spyOn(context.ai, "generateObject").mockResolvedValue({
       object: { decision: "update", rationale: "test" },
     });
-    spyOn(context.ai, "generate").mockImplementation(<T>() => {
-      return Promise.resolve({
-        entries: [
-          {
-            title: "Chunk",
-            summary: "Chunk summary",
-            startMessageIndex: 1,
-            endMessageIndex: 1,
-            keyPoints: [],
-            decisions: [],
-            actionItems: [],
-          },
-        ],
-      } as T);
-    });
+    spyOn(context.ai, "generate").mockImplementation(
+      <T>(_config: unknown, schema: EntitySchema<T>) => {
+        return Promise.resolve(
+          schema.parse({
+            entries: [
+              {
+                title: "Chunk",
+                summary: "Chunk summary",
+                startMessageIndex: 1,
+                endMessageIndex: 1,
+                keyPoints: [],
+                decisions: [],
+                actionItems: [],
+              },
+            ],
+          }),
+        );
+      },
+    );
 
     const derivation = createDerivationHarness(
       narrowContext(context),
@@ -769,31 +776,37 @@ describe("conversation memory derivation", () => {
     spyOn(context.entityService, "getEntity").mockResolvedValue(existing);
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
     spyOn(context.ai, "generateObject").mockImplementation(
-      <T>(prompt: string) => {
+      <T>(prompt: string, schema: EntitySchema<T>) => {
         expect(prompt).toContain("90 second delayed projection");
         expect(prompt).not.toContain("Use stored messages");
         return Promise.resolve({
-          object: { decision: "append", rationale: "new decision" } as T,
+          object: schema.parse({
+            decision: "append",
+            rationale: "new decision",
+          }),
         });
       },
     );
     spyOn(context.ai, "generate").mockImplementation(
-      <T>({ prompt }: { prompt: string }) => {
+      <T>({ prompt }: { prompt: string }, schema: EntitySchema<T>) => {
         expect(String(prompt)).toContain("90 second delayed projection");
         expect(String(prompt)).not.toContain("Use stored messages");
-        return Promise.resolve({
-          entries: [
-            {
-              title: "Projection delay",
-              summary: "The team chose a 90 second delayed projection window.",
-              startMessageIndex: 1,
-              endMessageIndex: 1,
-              keyPoints: [],
-              decisions: ["Use a 90 second delayed projection window"],
-              actionItems: [],
-            },
-          ],
-        } as T);
+        return Promise.resolve(
+          schema.parse({
+            entries: [
+              {
+                title: "Projection delay",
+                summary:
+                  "The team chose a 90 second delayed projection window.",
+                startMessageIndex: 1,
+                endMessageIndex: 1,
+                keyPoints: [],
+                decisions: ["Use a 90 second delayed projection window"],
+                actionItems: [],
+              },
+            ],
+          }),
+        );
       },
     );
 
@@ -844,11 +857,14 @@ describe("conversation memory derivation", () => {
     // A summary stored as "shared" is invisible to a read that fails closed
     // to public — and a derivation that cannot see one derives a second
     // summary beside it.
-    expect(getEntitySpy).toHaveBeenCalledWith({
-      entityType: "summary",
-      id: "conv-1",
-      visibilityScope: "shared",
-    });
+    expect(getEntitySpy).toHaveBeenCalledWith(
+      {
+        entityType: "summary",
+        id: "conv-1",
+        visibilityScope: "shared",
+      },
+      expect.anything(),
+    );
   });
 
   it("ignores lower-visibility summaries returned within the configured read scope", async () => {

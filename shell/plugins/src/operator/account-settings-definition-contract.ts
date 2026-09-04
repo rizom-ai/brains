@@ -121,14 +121,15 @@ export function defineAccountSettings<
     }
   }
 
-  const fields = Object.freeze(
-    Object.fromEntries(
-      Object.entries(definition.fields).map(([name, field]) => [
-        name,
-        Object.freeze({ ...field }),
-      ]),
-    ),
-  ) as TFields;
+  // Frozen in place rather than rebuilt: Object.fromEntries returns
+  // { [k: string]: V }, dropping the key-to-field mapping TFields carries, and
+  // the result then had to be asserted back to it. `definition.fields` is
+  // already TFields, and the definition it belongs to is frozen here anyway.
+  const fields = definition.fields;
+  for (const field of Object.values(fields)) {
+    Object.freeze(field);
+  }
+  Object.freeze(fields);
 
   return Object.freeze({
     kind: "rizom-account-settings",

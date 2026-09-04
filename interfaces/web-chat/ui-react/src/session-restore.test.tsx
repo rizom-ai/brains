@@ -155,9 +155,11 @@ describe("startup session restoration", () => {
     expect(app?.getAttribute("data-conversation-id")).toMatch(/^web-/);
     expect(app?.getAttribute("data-conversation-id")).not.toBe("web-persisted");
     const textarea = windowInstance.document.querySelector("#web-chat-input");
-    expect((textarea as HTMLTextAreaElement | null)?.value).toBe(
-      "Help me understand this Inbox item and decide what to do next.",
-    );
+    expect(
+      textarea instanceof windowInstance.HTMLTextAreaElement
+        ? textarea.value
+        : undefined,
+    ).toBe("Help me understand this Inbox item and decide what to do next.");
     expect(windowInstance.document.body.textContent).toContain(
       "Project question",
     );

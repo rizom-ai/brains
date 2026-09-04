@@ -11,7 +11,7 @@ import {
 } from "@brains/core";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
 import { OperationContext } from "@brains/operation-context";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
 import {
   MOCK_LOAD_API_KEY,
@@ -119,7 +119,7 @@ describe("projection burst causal evidence", () => {
       await rm(tempRoot, { recursive: true, force: true });
       tempRoot = undefined;
     }
-    Logger.resetInstance();
+    ConsoleLogger.resetInstance();
   });
 
   it(
@@ -128,7 +128,7 @@ describe("projection burst causal evidence", () => {
       tempRoot = await mkdtemp(join(tmpdir(), "projection-causality-"));
       const dataDir = join(tempRoot, "brain-data");
 
-      const logger = Logger.getInstance({ level: LogLevel.ERROR });
+      const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
       const databaseUrl = `file:${join(tempRoot, "brain.db")}`;
       const jobQueueDatabaseUrl = `file:${join(tempRoot, "jobs.db")}`;
       const conversationDatabaseUrl = `file:${join(tempRoot, "conversations.db")}`;

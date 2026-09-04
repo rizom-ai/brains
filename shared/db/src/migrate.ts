@@ -1,5 +1,5 @@
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import {
   applySqlitePragmas,
   createSqliteDatabase,
@@ -38,7 +38,8 @@ export async function runPackageMigrations(
   const { label, config, schema, migrationsFolder, afterMigrate } = options;
   const context = `${label}-migrate`;
   const log =
-    options.logger?.child(context) ?? Logger.getInstance().child(context);
+    options.logger?.child(context) ??
+    ConsoleLogger.getInstance().child(context);
 
   const { db, client, url } = createSqliteDatabase({
     url: config.url,

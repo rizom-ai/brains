@@ -1,6 +1,6 @@
 import { Shell } from "@brains/core";
 import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
 import { preferLocalUrlsForRuntime } from "./runtime-env";
 import {
@@ -66,7 +66,7 @@ export class App {
   }
 
   public async migrate(): Promise<void> {
-    const logger = Logger.getInstance();
+    const logger = ConsoleLogger.getInstance();
     const migrationManager = new MigrationManager(logger);
     // Pass database URL overrides from shellConfig or simple config
     await migrationManager.runAllMigrations({
@@ -82,7 +82,7 @@ export class App {
     processRole?: RuntimeProcessRole,
   ): void {
     // Let shellInitializer build the logger from shellConfig.logging so
-    // logFile, format, and level take effect. Logger.getInstance() ignores
+    // logFile, format, and level take effect. ConsoleLogger.getInstance() ignores
     // options on a pre-existing singleton.
     this.shell = Shell.createFresh(this.buildShellConfig(options), undefined, {
       ...(processRole && { processRole }),
@@ -285,7 +285,7 @@ export class App {
     const logLevel =
       logLevelMap[this.config.logLevel ?? "info"] ?? LogLevel.INFO;
 
-    const logger = Logger.createFresh({
+    const logger = ConsoleLogger.createFresh({
       level: logLevel,
       context: this.config.name,
       useStderr: this.hasCLI, // Use stderr when CLI is active to avoid interfering with Ink UI
@@ -293,7 +293,7 @@ export class App {
 
     // Configure global logger instance to also use stderr if CLI is active
     if (this.hasCLI) {
-      Logger.getInstance().setUseStderr(true);
+      ConsoleLogger.getInstance().setUseStderr(true);
     }
 
     try {
@@ -354,7 +354,7 @@ export class App {
   private requestGracefulShutdown(signal: "SIGINT" | "SIGTERM"): void {
     if (this.signalShutdownFiber) return;
 
-    const logger = Logger.getInstance();
+    const logger = ConsoleLogger.getInstance();
     logger.info(`\nReceived ${signal}, shutting down gracefully...`);
     const shutdown = Effect.tryPromise({
       try: () => this.stop(),

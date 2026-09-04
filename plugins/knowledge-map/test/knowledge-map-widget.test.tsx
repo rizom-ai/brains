@@ -11,6 +11,7 @@ import {
 import { createMockShell } from "@brains/plugins/test";
 import knowledgeMapPackage, { KNOWLEDGE_MAP_WIDGET_ID } from "../src";
 import packageJson from "../package.json";
+import { z } from "@brains/utils/zod";
 
 /** The knowledge-map service, as the runtime would build it. */
 function knowledgeMapPlugin(): Plugin {
@@ -172,15 +173,21 @@ describe("the knowledge map dashboard widget", () => {
     expect(typeof renderer.component).toBe("function");
     expect(renderer.clientStyles).toContain(".kmap");
 
-    const data = (await registration.dataProvider({
-      caller: null,
-      signal: new AbortController().signal,
-    })) as { source?: unknown };
+    const data = z.looseObject({ source: z.unknown() }).parse(
+      await registration.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    );
     // A self-drawing widget carries its own data beside the semantic view.
     expect(data.source).toMatchObject({
       zones: [{ id: "future-of-work", name: "Future of Work" }],
     });
 
+    if (typeof renderer.component !== "function") {
+      throw new Error("The knowledge-map renderer carried no component");
+    }
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `DashboardWidgetRenderer.component` is deliberately `unknown` so the shell depends on no rendering library; the check above establishes callability and only the call signature remains
     const Component = renderer.component as (props: {
       data: unknown;
     }) => JSX.Element;

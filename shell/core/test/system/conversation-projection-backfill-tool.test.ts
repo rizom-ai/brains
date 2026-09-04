@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type -- fixture callbacks stay structurally checked by the production constructor. */
 import { describe, expect, it } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, expectConfirmationArgs } from "@brains/test-utils";
 import { ConversationProjectionBackfill } from "../../src/conversation-projection-backfill";
 import { createConversationProjectionBackfillTools } from "../../src/system/conversation-projection-backfill-tool";
 import { createMockSystemServices } from "./mock-services";
@@ -62,6 +62,10 @@ describe("system_backfill_conversation_projections", () => {
   it("warns about model cost and starts only with its confirmation token", async () => {
     const tool = createTool();
     const pending = await tool.handler({}, adminContext);
+    // Read the args before the matcher assertion below: `toMatchObject`
+    // substitutes matchers into the received object, so reading a field
+    // afterwards yields the matcher rather than what the tool returned.
+    const confirmedArgs = expectConfirmationArgs(pending);
 
     expect(pending).toMatchObject({
       needsConfirmation: true,
@@ -69,10 +73,7 @@ describe("system_backfill_conversation_projections", () => {
       preview: expect.stringContaining("model calls"),
     });
 
-    const started = await tool.handler(
-      (pending as { args: Record<string, unknown> }).args,
-      adminContext,
-    );
+    const started = await tool.handler(confirmedArgs, adminContext);
     expect(started).toMatchObject({
       success: true,
       data: {

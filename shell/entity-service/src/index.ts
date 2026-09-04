@@ -161,6 +161,7 @@ export type {
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
   EntityServiceClient,
+  DurableBulkMutationCoordinator,
   ICoreEntityService,
   IEntitiesNamespace,
   EntityDbConfig,
@@ -214,7 +215,8 @@ export {
 } from "./frontmatter";
 
 // Datasource (merged from @brains/datasource)
-export { DataSourceRegistry } from "./datasource-registry";
+export { InMemoryDataSourceRegistry } from "./datasource-registry";
+export type { DataSourceRegistry } from "./datasource-registry";
 export type {
   DataSource,
   DataSourceSchema,

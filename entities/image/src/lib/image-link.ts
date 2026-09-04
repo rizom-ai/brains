@@ -33,6 +33,8 @@ export function imageLink(input: {
  * fields, and the attachment type is what says which — an `og-image` is the
  * OG image, anything else attached to a target is its cover.
  */
-export function imageFieldFor(attachmentType: string | undefined): string {
+export function imageFieldFor(
+  attachmentType: string | undefined,
+): "coverImageId" | "ogImageId" {
   return attachmentType === "og-image" ? "ogImageId" : "coverImageId";
 }

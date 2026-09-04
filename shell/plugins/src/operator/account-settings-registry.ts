@@ -1,4 +1,6 @@
 import { z } from "@brains/utils/zod";
+import { parseWithSchema } from "@brains/utils/parse-schema";
+import { freeze } from "@brains/utils/freeze";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
@@ -100,6 +102,18 @@ const accountSettingsScalarSchema: z.ZodType<AccountSettingsScalar> = z.union([
   z.boolean(),
   z.null(),
 ]);
+
+/**
+ * A registration is for `definition` when it holds that exact object. The
+ * identity check is what makes the narrowing true, where re-registering
+ * previously asserted the stored registration into the caller's type.
+ */
+function isRegistrationFor<TDefinition extends AnyAccountSettingsDefinition>(
+  registration: AccountSettingsRegistration,
+  definition: TDefinition,
+): registration is AccountSettingsRegistration<TDefinition> {
+  return registration.definition === definition;
+}
 
 function registrationId(packageName: string, definitionId: string): string {
   return Buffer.from(JSON.stringify([packageName, definitionId])).toString(
@@ -218,9 +232,9 @@ export class AccountSettingsRegistry {
     if (existing) {
       if (
         existing.ownerPluginId === input.ownerPluginId &&
-        existing.definition === input.definition
+        isRegistrationFor(existing, input.definition)
       ) {
-        return existing as AccountSettingsRegistration<TDefinition>;
+        return existing;
       }
       throw new Error(
         `Account settings definition "${input.packageName}:${input.definitionId}" is already registered`,
@@ -373,9 +387,12 @@ export class AccountSettingsRegistry {
       identityFor(registration, actorId),
     );
     return stored
-      ? (Object.freeze(
-          registration.definition.schema.parse(stored.values),
-        ) as AccountSettingsValue<TDefinition>)
+      ? freeze(
+          parseWithSchema<TDefinition["schema"]>(
+            registration.definition.schema,
+            stored.values,
+          ),
+        )
       : null;
   }
 
@@ -390,9 +407,12 @@ export class AccountSettingsRegistry {
     return records.map((record) =>
       Object.freeze({
         id: record.actorId,
-        settings: Object.freeze(
-          registration.definition.schema.parse(record.values),
-        ) as AccountSettingsValue<TDefinition>,
+        settings: freeze(
+          parseWithSchema<TDefinition["schema"]>(
+            registration.definition.schema,
+            record.values,
+          ),
+        ),
         revision: record.revision,
       }),
     );

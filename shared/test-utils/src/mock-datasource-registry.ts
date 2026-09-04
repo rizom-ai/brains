@@ -1,6 +1,5 @@
 import { mock } from "bun:test";
 import type { DataSourceRegistry, DataSource } from "@brains/entity-service";
-import type { PublicSurface } from "./public-surface";
 
 /**
  * Options for configuring mock data source registry return values
@@ -40,7 +39,7 @@ export function createMockDataSourceRegistry(
 ): DataSourceRegistry {
   const { returns = {} } = options;
 
-  const registry: PublicSurface<DataSourceRegistry> = {
+  const registry: DataSourceRegistry = {
     register: mock(() => {}),
     unregister: mock(() => {}),
     get: mock(() => returns.get),
@@ -52,6 +51,5 @@ export function createMockDataSourceRegistry(
     clear: mock(() => {}),
   };
 
-  // Only the nominal private-field gap remains; the shape is checked above.
-  return registry as DataSourceRegistry;
+  return registry;
 }

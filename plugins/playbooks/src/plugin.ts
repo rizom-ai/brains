@@ -16,7 +16,6 @@ import {
   parsePlaybookBody,
   playbookEntity,
   type PlaybookBody,
-  type PlaybookEntity as RegisteredPlaybookEntity,
   type PlaybookState,
   type PlaybookTransition,
 } from "./entity";
@@ -33,7 +32,9 @@ import {
   type ToolContext,
 } from "@brains/sdk/services";
 import type { LoggerContract } from "@brains/utils/logger";
-import type { BaseEntity } from "@brains/sdk/entities";
+
+import type { EntityReads } from "@brains/sdk/entities";
+
 import { computeContentHash } from "@brains/utils/hash";
 import {
   getBlockedTransitions,
@@ -145,7 +146,7 @@ const lifecycleStartersRequestSchema: z.ZodType<
   })
   .strict();
 
-const playbookEntitySchema: z.ZodType<PlaybookEntity> = z
+const playbookEntitySchema: z.ZodType<PlaybookEntity, unknown> = z
   .object({
     id: z.string().min(1),
     entityType: z.literal("playbook"),
@@ -274,15 +275,7 @@ export type ManageResult =
   | { success: false; error: string };
 
 /** The two reads the package makes of its own type. */
-export interface PlaybookEntityReader {
-  listEntities<T extends BaseEntity>(request: {
-    entityType: string;
-  }): Promise<T[]>;
-  getEntity<T extends BaseEntity>(request: {
-    entityType: string;
-    id: string;
-  }): Promise<T | null>;
-}
+export type PlaybookEntityReader = EntityReads;
 
 export interface PlaybookOperationsDeps {
   readonly config: PlaybooksConfig;
@@ -613,9 +606,12 @@ export class PlaybookOperations {
   }
 
   private async listPlaybooks(): Promise<ParsedPlaybook[]> {
-    const entities = await this.entities.listEntities<RegisteredPlaybookEntity>(
-      { entityType: "playbook" },
-    );
+    // Read wide and parse below: `playbookEntitySchema` describes the subset
+    // this plugin cares about, not a whole entity, so it cannot stand as the
+    // read's proof — the `safeParse` that follows is where it belongs.
+    const entities = await this.entities.listEntities({
+      entityType: "playbook",
+    });
 
     return entities.flatMap((entity): ParsedPlaybook[] => {
       const parsed = playbookEntitySchema.safeParse(entity);
@@ -784,7 +780,7 @@ export class PlaybookOperations {
   private async getPlaybook(
     playbookId: string,
   ): Promise<ParsedPlaybook | undefined> {
-    const entity = await this.entities.getEntity<RegisteredPlaybookEntity>({
+    const entity = await this.entities.getEntity({
       entityType: "playbook",
       id: playbookId,
     });

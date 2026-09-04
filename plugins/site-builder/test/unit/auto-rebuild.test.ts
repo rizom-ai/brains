@@ -6,6 +6,7 @@ import {
   createMockServicePluginContext,
   type MockServicePluginContext,
 } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 
 interface WavePayload {
   waveId: string;
@@ -20,6 +21,45 @@ const envelope = {
   type: "projection:wave-ready",
   source: "projection-runtime",
 };
+
+/**
+ * What a site-build enqueue carries, parsed from the recorded call.
+ *
+ * The job payload is `unknown` at the enqueue boundary, so the fields these
+ * tests read are checked here rather than declared at each assertion.
+ */
+const enqueuedBuildSchema = z.object({
+  environment: z.string().optional(),
+  outputDir: z.string().optional(),
+  inputGeneration: z.number().optional(),
+});
+
+type EnqueueSpy = MockServicePluginContext["jobs"]["enqueue"];
+
+function enqueuedBuild(
+  enqueue: EnqueueSpy,
+  index: number,
+): z.output<typeof enqueuedBuildSchema> {
+  const call = enqueue.mock.calls[index];
+  if (!call?.[0]) throw new Error(`No enqueue recorded at index ${index}`);
+  return enqueuedBuildSchema.parse(call[0].data);
+}
+
+function inputGenerationOf(
+  enqueue: EnqueueSpy,
+  index: number,
+): number | undefined {
+  return enqueuedBuild(enqueue, index).inputGeneration;
+}
+
+function deduplicationKeyOf(
+  enqueue: EnqueueSpy,
+  index: number,
+): string | undefined {
+  const call = enqueue.mock.calls[index];
+  if (!call?.[0]) throw new Error(`No enqueue recorded at index ${index}`);
+  return call[0].options?.deduplicationKey;
+}
 
 describe("RebuildManager", () => {
   let context: MockServicePluginContext;
@@ -140,10 +180,10 @@ describe("RebuildManager", () => {
     });
     await manager.markBuildFinished("preview", "job-1", 1);
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    const enqueue = context.jobs.enqueue;
     expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(enqueue.mock.calls[0]?.[0]?.data.inputGeneration).toBe(1);
-    expect(enqueue.mock.calls[1]?.[0]?.data.inputGeneration).toBe(3);
+    expect(inputGenerationOf(enqueue, 0)).toBe(1);
+    expect(inputGenerationOf(enqueue, 1)).toBe(3);
     await manager.dispose();
   });
 
@@ -159,13 +199,9 @@ describe("RebuildManager", () => {
     manager.requestBuild("production");
     await Promise.resolve();
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
-    expect(enqueue.mock.calls[0]?.[0]?.options.deduplicationKey).toBe(
-      "site-build:preview",
-    );
-    expect(enqueue.mock.calls[1]?.[0]?.options.deduplicationKey).toBe(
-      "site-build:production",
-    );
+    const enqueue = context.jobs.enqueue;
+    expect(deduplicationKeyOf(enqueue, 0)).toBe("site-build:preview");
+    expect(deduplicationKeyOf(enqueue, 1)).toBe("site-build:production");
     await manager.dispose();
   });
 
@@ -184,10 +220,9 @@ describe("RebuildManager", () => {
     // Wait a tick for the async enqueue call.
     await new Promise((r) => setTimeout(r, 10));
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    const enqueue = context.jobs.enqueue;
     expect(enqueue).toHaveBeenCalled();
-    const call = enqueue.mock.calls[0];
-    const data = call?.[0]?.data;
+    const data = enqueuedBuild(enqueue, 0);
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
 
@@ -207,9 +242,9 @@ describe("RebuildManager", () => {
 
     await new Promise((r) => setTimeout(r, 10));
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    const enqueue = context.jobs.enqueue;
     expect(enqueue).toHaveBeenCalled();
-    const data = enqueue.mock.calls[0]?.[0]?.data;
+    const data = enqueuedBuild(enqueue, 0);
     expect(data.environment).toBe("production");
 
     await manager.dispose();
@@ -278,9 +313,9 @@ describe("RebuildManager", () => {
 
     await new Promise((r) => setTimeout(r, 10));
 
-    const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
+    const enqueue = context.jobs.enqueue;
     expect(enqueue).toHaveBeenCalled();
-    const data = enqueue.mock.calls[0]?.[0]?.data;
+    const data = enqueuedBuild(enqueue, 0);
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");
 

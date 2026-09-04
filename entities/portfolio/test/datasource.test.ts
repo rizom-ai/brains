@@ -4,6 +4,7 @@ import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import { projectEntityPlugin } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
+import { projectSchema } from "../src/schemas/project";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -160,17 +161,20 @@ Outcome for ${title}`;
 
       // Datasource delegates filtering to scoped entityService (via context)
       // It should NOT pass publishedOnly - filtering happens in content-service
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "project",
-        options: {
-          limit: 10,
-          offset: 0,
-          sortFields: [
-            { field: "year", direction: "desc" },
-            { field: "title", direction: "asc" },
-          ],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "project",
+          options: {
+            limit: 10,
+            offset: 0,
+            sortFields: [
+              { field: "year", direction: "desc" },
+              { field: "title", direction: "asc" },
+            ],
+          },
         },
-      });
+        projectSchema,
+      );
     });
 
     it("should show all projects (including drafts) when context entityService returns all", async () => {
@@ -216,17 +220,20 @@ Outcome for ${title}`;
       expect(statuses).toContain("draft");
 
       // Datasource delegates filtering to scoped entityService (via context)
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "project",
-        options: {
-          limit: 10,
-          offset: 0,
-          sortFields: [
-            { field: "year", direction: "desc" },
-            { field: "title", direction: "asc" },
-          ],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "project",
+          options: {
+            limit: 10,
+            offset: 0,
+            sortFields: [
+              { field: "year", direction: "desc" },
+              { field: "title", direction: "asc" },
+            ],
+          },
         },
-      });
+        projectSchema,
+      );
     });
   });
 

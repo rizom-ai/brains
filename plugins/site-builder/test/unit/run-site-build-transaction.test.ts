@@ -5,7 +5,6 @@ import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
-import type { SiteBuildStagingPayload } from "../../src/types/job-types";
 import { runSiteBuild } from "../../src/lib/run-site-build";
 import type { StaticSiteBuilderFactory } from "../../src/lib/static-site-builder";
 import {
@@ -423,9 +422,18 @@ describe("runSiteBuild transactional output", () => {
         ...baseContext.services,
         sendMessage: async (request) => {
           if (request.type === SITE_CHANNELS.buildStaging) {
-            (request.payload as SiteBuildStagingPayload).reportFailure(
-              "RSS feed generation failed: ENOENT",
-            );
+            // Checked rather than asserted: the staging payload carries a
+            // callback, and a build that stopped supplying one would otherwise
+            // fail here with "not a function" rather than saying so.
+            const payload = request.payload;
+            if (typeof payload !== "object" || payload === null) {
+              throw new Error("Expected a staging payload object");
+            }
+            const reportFailure = Reflect.get(payload, "reportFailure");
+            if (typeof reportFailure !== "function") {
+              throw new Error("Staging payload carried no reportFailure");
+            }
+            reportFailure("RSS feed generation failed: ENOENT");
           }
           return baseContext.services.sendMessage(request);
         },

@@ -120,6 +120,7 @@ describe("socialPostGeneration", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("The blog post body"),
         }),
+        expect.anything(),
       );
     });
 

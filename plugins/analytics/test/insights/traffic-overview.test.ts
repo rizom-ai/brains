@@ -2,13 +2,21 @@ import { describe, it, expect, mock } from "bun:test";
 import type { EntityInsightContext } from "@brains/sdk/services";
 import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
 import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
+import {
+  createTestEntityAccess,
+  createMockEntityService,
+} from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 
 // The insight reads nothing from the brain — its data comes from Cloudflare —
 // so the context can be inert.
-const insightContext = {
-  entities: {} as never,
+const insightContext: EntityInsightContext = {
+  entities: createTestEntityAccess({
+    entityService: createMockEntityService(),
+    refuseWrites: "The traffic insight must not write entities",
+  }),
   visibilityScope: "public",
-} as EntityInsightContext;
+};
 
 function createMockClient(
   overrides: Partial<TrafficStatsClient> = {},
@@ -39,10 +47,9 @@ describe("traffic-overview insight", () => {
     expect(result["pageviews"]).toBe(1200);
     expect(result["visitors"]).toBe(450);
 
-    const topPages = result["topPages"] as Array<{
-      path: string;
-      views: number;
-    }>;
+    const topPages = z
+      .array(z.object({ path: z.string(), views: z.number() }))
+      .parse(result["topPages"]);
     expect(topPages).toHaveLength(3);
     expect(topPages[0]).toMatchObject({
       path: "/blog/why-institutions-fail",

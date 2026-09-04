@@ -24,6 +24,8 @@ import type {
   DecisionMetadata,
   MemoryActorReference,
 } from "../schemas/conversation-memory";
+import { actionItemSchema } from "../schemas/conversation-memory";
+import { decisionSchema } from "../schemas/conversation-memory";
 import {
   summaryProjectionDecisionSchema,
   type SummaryProjectionDecision,
@@ -34,6 +36,7 @@ import type {
   SummaryMetadata,
   SummaryParticipant,
 } from "../schemas/summary";
+import { summarySchema } from "../schemas/summary";
 import type { SummaryConfig } from "../schemas/summary-config";
 import {
   SummaryExtractor,
@@ -204,12 +207,14 @@ class SummaryDerivation {
     // Read wide, then filter: an existing summary carries the configured
     // memory visibility, and a read narrower than that would miss it and
     // derive a second summary beside the one already there.
-    const existingCandidate =
-      await this.context.entities.getEntity<SummaryEntity>({
+    const existingCandidate = await this.context.entities.getEntity(
+      {
         entityType: SUMMARY_ENTITY_TYPE,
         id: conversationId,
         visibilityScope: this.config.memoryVisibility,
-      });
+      },
+      summarySchema,
+    );
     const existing =
       existingCandidate?.visibility === this.config.memoryVisibility
         ? existingCandidate
@@ -385,20 +390,26 @@ class SummaryDerivation {
     const limit = this.config.maxEntries * 4;
     const visibilityScope = this.config.memoryVisibility;
     const [decisions, actionItems] = await Promise.all([
-      this.context.entities.listEntities<DecisionEntity>({
-        entityType: DECISION_ENTITY_TYPE,
-        options: {
-          filter: { metadata: { conversationId }, visibilityScope },
-          limit,
+      this.context.entities.listEntities(
+        {
+          entityType: DECISION_ENTITY_TYPE,
+          options: {
+            filter: { metadata: { conversationId }, visibilityScope },
+            limit,
+          },
         },
-      }),
-      this.context.entities.listEntities<ActionItemEntity>({
-        entityType: ACTION_ITEM_ENTITY_TYPE,
-        options: {
-          filter: { metadata: { conversationId }, visibilityScope },
-          limit,
+        decisionSchema,
+      ),
+      this.context.entities.listEntities(
+        {
+          entityType: ACTION_ITEM_ENTITY_TYPE,
+          options: {
+            filter: { metadata: { conversationId }, visibilityScope },
+            limit,
+          },
         },
-      }),
+        actionItemSchema,
+      ),
     ]);
 
     await Promise.all([

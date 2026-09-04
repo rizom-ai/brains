@@ -1,5 +1,6 @@
 import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils/http-utils";
-import type { ImageFormat } from "../schemas/image";
+import { objectEntries } from "@brains/utils/object-keys";
+import { imageFormatSchema, type ImageFormat } from "../schemas/image";
 
 /**
  * Parsed data URL result
@@ -54,7 +55,7 @@ export function createDataUrl(
 /**
  * Magic bytes for common image formats
  */
-const IMAGE_MAGIC_BYTES: Record<string, string> = {
+const IMAGE_MAGIC_BYTES = {
   // PNG: 89 50 4E 47 = iVBORw
   png: "iVBORw",
   // JPEG: FF D8 FF = /9j/
@@ -63,19 +64,34 @@ const IMAGE_MAGIC_BYTES: Record<string, string> = {
   gif: "R0lGOD",
   // WebP: 52 49 46 46 = UklGR (RIFF header)
   webp: "UklGR",
-};
+} satisfies Partial<Record<ImageFormat, string>>;
 
 /**
  * Detect image format from base64 magic bytes
  * @returns format string or null if unknown
  */
 export function detectImageFormat(base64: string): ImageFormat | null {
-  for (const [format, magic] of Object.entries(IMAGE_MAGIC_BYTES)) {
+  for (const [format, magic] of objectEntries(IMAGE_MAGIC_BYTES)) {
     if (base64.startsWith(magic)) {
-      return format as ImageFormat;
+      return format;
     }
   }
   return null;
+}
+
+/**
+ * Normalize a data-URL media subtype to a supported {@link ImageFormat}.
+ *
+ * Returns null for anything outside the union rather than asserting it: a
+ * `data:image/bmp;...` URL parses fine but bmp is not a format this package
+ * supports. `svg+xml` is the subtype SVG data URLs actually carry, while
+ * ImageFormat spells it `svg`.
+ */
+export function toImageFormat(mediaSubtype: string): ImageFormat | null {
+  const normalized = mediaSubtype.toLowerCase();
+  const candidate = normalized === "svg+xml" ? "svg" : normalized;
+  const parsed = imageFormatSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
 }
 
 /**

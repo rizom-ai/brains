@@ -9,6 +9,7 @@ import {
 import { slugify } from "@brains/sdk/entities";
 import { z } from "@brains/sdk/entities";
 import type { BlogPost, BlogPostWithData } from "../schemas/blog-post";
+import { blogPostSchema } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
 import {
   blogViewSchema,
@@ -31,14 +32,17 @@ async function postsInSeries(
   seriesName: string,
   entities: EntityQueryReader,
 ): Promise<BlogPostTransformed[]> {
-  const found = await entities.listEntities<BlogPost>({
-    entityType: "post",
-    options: {
-      limit: 100,
-      filter: { metadata: { seriesName } },
-      sortFields: [{ field: "seriesIndex", direction: "asc" }],
+  const found = await entities.listEntities(
+    {
+      entityType: "post",
+      options: {
+        limit: 100,
+        filter: { metadata: { seriesName } },
+        sortFields: [{ field: "seriesIndex", direction: "asc" }],
+      },
     },
-  });
+    blogPostSchema,
+  );
   return found.map(parsePostData);
 }
 
@@ -61,6 +65,7 @@ export const blogDataSource: EntityDataSourceDefinition<
   name: "Blog Entity DataSource",
   description: "Fetches and transforms blog post entities for rendering",
   entityType: "post",
+  entitySchema: blogPostSchema,
   defaultSort: [{ field: "publishedAt", direction: "desc" }],
   defaultLimit: 10,
   enableNavigation: true,
@@ -95,13 +100,16 @@ export const blogLatestDataSource: DataSourceDefinition = defineDataSource({
   description: "Fetches the most recently published post",
   fetch: async (query, entities) => {
     latestQuerySchema.parse(query ?? {});
-    const published = await entities.listEntities<BlogPost>({
-      entityType: "post",
-      options: {
-        limit: 1,
-        sortFields: [{ field: "publishedAt", direction: "desc" }],
+    const published = await entities.listEntities(
+      {
+        entityType: "post",
+        options: {
+          limit: 1,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
       },
-    });
+      blogPostSchema,
+    );
 
     const latest = published[0];
     // A brain with no posts yet is not an error the page can render around,

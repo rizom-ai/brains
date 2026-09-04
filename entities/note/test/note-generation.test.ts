@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import type { JobHandler } from "@brains/plugins";
-import type { Plugin } from "@brains/plugins";
+import type { EntitySchema } from "@brains/plugins";
+
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
@@ -35,7 +36,7 @@ async function installGeneration(): Promise<{
     {},
     { name: "@brains/note", version: "0.1.0" },
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
 
   const entry = [...handlers.entries()].find(([name]) =>
     name.endsWith(":generation"),
@@ -72,7 +73,7 @@ describe("note generation", () => {
     const calls: unknown[] = [];
     stubMethod(shell, "generateContent", async (config) => {
       calls.push(config);
-      return { title: "Neutral Note", body: "Body text" } as never;
+      return { title: "Neutral Note", body: "Body text" };
     });
 
     await run(handler, { prompt: "Write a note" });
@@ -90,7 +91,7 @@ describe("note generation", () => {
     const { harness, handler } = await installGeneration();
     const shell = harness.getMockShell();
     stubMethod(shell, "generateContent", async () => {
-      return { title: "My Fancy Note!", body: "Body text" } as never;
+      return { title: "My Fancy Note!", body: "Body text" };
     });
 
     await run(handler, { prompt: "Write a note" });
@@ -108,11 +109,15 @@ describe("note generation", () => {
     const { harness, handler } = await installGeneration();
     const shell = harness.getMockShell();
     stubMethod(shell, "generateContent", async () => {
-      return { title: "Taken Title", body: "Body text" } as never;
+      return { title: "Taken Title", body: "Body text" };
     });
-    stubMethod(shell, "generateObject", async () => ({
-      object: { title: "Fresh Title" } as never,
-    }));
+    stubMethod(
+      shell,
+      "generateObject",
+      async <T>(_prompt: string, schema: EntitySchema<T>) => ({
+        object: schema.parse({ title: "Fresh Title" }),
+      }),
+    );
 
     // An existing note under the derived id is the collision.
     await harness.getEntityService().createEntity({

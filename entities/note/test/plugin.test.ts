@@ -6,7 +6,7 @@ import notes from "../src";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
-import { ProgressReporter } from "@brains/utils/progress";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 
 const webChatOperatorContext = {
   interfaceType: "web-chat",
@@ -50,7 +50,7 @@ describe("note package", () => {
       { name: "@brains/note", version: "0.1.0" },
     )[0];
     if (!entityPlugin) throw new Error("Note entity plugin was not created");
-    plugin = entityPlugin as Plugin;
+    plugin = entityPlugin;
     capabilities = await harness.installPlugin(plugin);
   });
 
@@ -85,7 +85,7 @@ describe("note package", () => {
     if (!handler) throw new Error("note:upload-import handler not registered");
     const job = enqueuedJobs[0];
     if (!job) throw new Error("upload import job not queued");
-    const reporter = ProgressReporter.from(async () => {});
+    const reporter = CallbackProgressReporter.from(async () => {});
     if (!reporter) throw new Error("progress reporter not created");
     return handler.process(
       job.data,
@@ -496,7 +496,7 @@ describe("note package", () => {
       if (!handler) {
         throw new Error("note:upload-import handler not registered");
       }
-      const reporter = ProgressReporter.from(async () => {});
+      const reporter = CallbackProgressReporter.from(async () => {});
       if (!reporter) throw new Error("progress reporter not created");
       const jobResult = await handler.process(
         { uploadId: "missing-upload", entityId: "doomed-import" },
@@ -511,9 +511,7 @@ describe("note package", () => {
         id: "doomed-import",
       });
       expect(entity?.metadata).toMatchObject({ status: "failed" });
-      expect(
-        (entity?.metadata as Record<string, unknown>)["error"],
-      ).toBeDefined();
+      expect(entity?.metadata["error"]).toBeDefined();
     });
   });
 });

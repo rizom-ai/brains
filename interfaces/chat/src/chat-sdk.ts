@@ -68,6 +68,7 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
     : undefined;
   // Chat SDK 4.33's SlackAdapter declares botUserId optional while its Adapter
   // contract declares it required. Runtime initialization resolves the value.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: the vendored SDK contradicts itself between SlackAdapter and Adapter, so no honest type describes what it returns
   const compatibleSlackAdapter = slackAdapter as SlackChatAdapter | undefined;
   if (compatibleSlackAdapter && slack?.mode === "socket") {
     options.slackSocketLoop.setAdapter(compatibleSlackAdapter);

@@ -7,9 +7,9 @@ import {
 } from "./instance-overrides";
 import { getPackage, registerPackage } from "./package-registry";
 import {
+  conventionalSiteOverridesSchema,
   extendSite,
   sitePackageSchema,
-  type ConventionalSiteOverrides,
   type SitePackage,
 } from "./site-package";
 import { existsSync, readFileSync } from "fs";
@@ -75,7 +75,7 @@ export function registerConventionalSitePackage(
 
   const composed = extendSite(
     basePackage.data,
-    rawOverrides as ConventionalSiteOverrides,
+    conventionalSiteOverridesSchema.parse(rawOverrides),
   );
   registerPackage(
     CONVENTIONAL_SITE_PACKAGE_REF,

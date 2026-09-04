@@ -5,6 +5,9 @@ import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
   type Plugin,
+  baseEntitySchema,
+  type EntityAdapter,
+  type BaseEntity,
 } from "@brains/plugins";
 import {
   obsidianVault,
@@ -204,13 +207,34 @@ describe("obsidian-vault service", () => {
       logContext: "obsidian-vault-test",
     });
     const registry = harness.getEntityRegistry();
-    registry.registerEntityType("post", {} as never, {} as never);
-    registry.registerEntityType("note", {} as never, {} as never);
+    // A real adapter, minimal: the vault under test reads only the body
+    // template, but registering a stand-in that cannot be one hides which
+    // members it actually depends on.
+    const minimalAdapter = (entityType: string): EntityAdapter<BaseEntity> => ({
+      entityType,
+      schema: baseEntitySchema,
+      purpose: `A ${entityType} for the vault tests.`,
+      fromMarkdown: () => ({}),
+      toMarkdown: (entity: BaseEntity) => entity.content,
+      extractMetadata: () => ({}),
+      parseFrontMatter: <T>(_markdown: string, schema: z.ZodSchema<T>): T =>
+        schema.parse({}),
+      generateFrontMatter: () => "",
+      getBodyTemplate: () => "",
+    });
+    registry.registerEntityType(
+      "post",
+      baseEntitySchema,
+      minimalAdapter("post"),
+    );
+    registry.registerEntityType(
+      "note",
+      baseEntitySchema,
+      minimalAdapter("note"),
+    );
     registry.getEffectiveFrontmatterSchema = (
       type: string,
     ): z.ZodObject<z.ZodRawShape> | undefined => schemas.get(type);
-    registry.getAdapter = (): never =>
-      ({ getBodyTemplate: (): string => "" }) as never;
 
     const definition = obsidianVault(deps);
     bindPluginPackageMetadata(definition, {

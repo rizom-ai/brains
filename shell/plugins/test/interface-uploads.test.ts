@@ -84,14 +84,21 @@ describe("an interface that holds a file", () => {
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(definition, {}));
 
-    const kept = (await harness.executeTool("uploader_keep", {
-      filename: "note.txt",
-      text: "the bytes survive",
-    })) as { success: boolean; data: { kind: string; id: string } };
+    // Parsed rather than asserted: the discriminant is checked, so a tool that
+    // failed cannot read back as a success with undefined fields.
+    const kept = z
+      .object({
+        success: z.literal(true),
+        data: z.object({ kind: z.string(), id: z.string() }),
+      })
+      .parse(
+        await harness.executeTool("uploader_keep", {
+          filename: "note.txt",
+          text: "the bytes survive",
+        }),
+      );
 
-    expect(kept.success).toBe(true);
     expect(kept.data.kind).toBe("upload");
-    expect(typeof kept.data.id).toBe("string");
 
     expect(
       await harness.executeTool("uploader_recall", { id: kept.data.id }),
@@ -147,8 +154,10 @@ describe("an interface that holds a file", () => {
 
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(uploader("first"), {}));
-    const kept = await harness.executeTool("first_keep", { text: "private" });
-    const { id } = (kept as { data: { id: string } }).data;
+    const kept = z
+      .object({ data: z.object({ id: z.string() }) })
+      .parse(await harness.executeTool("first_keep", { text: "private" }));
+    const { id } = kept.data;
 
     // The first interface can read its own file back.
     expect(await harness.executeTool("first_recall", { id })).toEqual({

@@ -29,6 +29,7 @@ import { pLimit } from "@brains/utils/p-limit";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
 import { resolveSafeOutputFile } from "./output-path";
+import { extractFontImports } from "./font-imports";
 
 /**
  * React-based static site builder
@@ -260,22 +261,6 @@ export class ReactBuilder implements StaticSiteBuilder {
     return sectionComponents;
   }
 
-  private extractFontImports(css: string): {
-    imports: string[];
-    cssWithoutImports: string;
-  } {
-    const fontImportRegex =
-      /@import\s+url\([^)]+(?:fonts\.googleapis|fonts\.gstatic)[^)]*\)[^;]*;/g;
-    const imports: string[] = [];
-
-    const cssWithoutImports = css.replace(fontImportRegex, (match) => {
-      imports.push(match);
-      return "";
-    });
-
-    return { imports, cssWithoutImports };
-  }
-
   private async processStyles(
     themeCSS: string,
     signal: AbortSignal,
@@ -288,9 +273,9 @@ export class ReactBuilder implements StaticSiteBuilder {
 
     // Extract font imports from base and theme CSS
     const { imports: baseImports, cssWithoutImports: baseCSSClean } =
-      this.extractFontImports(baseCSS);
+      extractFontImports(baseCSS);
     const { imports: themeImports, cssWithoutImports: themeCSSClean } =
-      this.extractFontImports(themeCSS);
+      extractFontImports(themeCSS);
 
     // Build CSS for Tailwind processing (without font imports)
     const cssForTailwind = themeCSSClean

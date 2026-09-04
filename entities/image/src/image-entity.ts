@@ -19,6 +19,7 @@ import {
   imageMetadataSchema,
   parseDataUrl,
   type Image,
+  imageSchema,
 } from "@brains/image";
 import { buildImageBasePrompt } from "./lib/build-image-base-prompt";
 import {
@@ -190,10 +191,13 @@ const render: EntityGenerationJobDeclaration<typeof renderInput> = {
     const link = input.linkInto ? { linkInto: input.linkInto } : {};
 
     if (input.reuse === true) {
-      const existing = await entities.getEntity<Image>({
-        entityType: "image",
-        id: input.entityId,
-      });
+      const existing = await entities.getEntity(
+        {
+          entityType: "image",
+          id: input.entityId,
+        },
+        imageSchema,
+      );
       if (!existing) {
         return {
           success: false,
@@ -260,9 +264,7 @@ const render: EntityGenerationJobDeclaration<typeof renderInput> = {
  * exist. Refuses rather than generating into nowhere: an image attached to
  * an entity that is not there is work nobody will see.
  */
-async function resolveTarget(
-  context: EntityCreateContext,
-): Promise<
+async function resolveTarget(context: EntityCreateContext): Promise<
   | { readonly kind: "none" }
   | {
       readonly kind: "target";
@@ -295,7 +297,7 @@ function linkFor(
   return {
     entityType: target.entityType,
     entityId: target.id,
-    field: imageFieldFor(attachmentType) as "coverImageId" | "ogImageId",
+    field: imageFieldFor(attachmentType),
   };
 }
 
@@ -499,10 +501,13 @@ async function findReusableImage(
   context: EntityCreateContext,
   dedupKey: string,
 ): Promise<Image | undefined> {
-  const images = await context.entities.listEntities<Image>({
-    entityType: "image",
-    options: { filter: { metadata: { dedupKey } } },
-  });
+  const images = await context.entities.listEntities(
+    {
+      entityType: "image",
+      options: { filter: { metadata: { dedupKey } } },
+    },
+    imageSchema,
+  );
   if (images.length > 1) {
     context.logger.warn("Multiple images share dedupKey; using first", {
       dedupKey,

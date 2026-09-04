@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "bun:test";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
-import type { Plugin } from "@brains/plugins";
+
 import { createPluginHarness } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createTopicAtprotoProjection } from "../src/atproto-projection";
@@ -55,7 +55,7 @@ describe("topic ATProto projection", () => {
       { enableAutoExtraction: false },
       { name: "@brains/topics", version: "0.1.0" },
     );
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       await harness.installPlugin(plugin);
     }
 

@@ -1,4 +1,4 @@
-import type { BaseEntity, ProjectionSourceRole } from "@brains/entity-service";
+import type { ProjectionSourceRole } from "@brains/entity-service";
 import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
 import type { IAuthRegistry } from "../contracts/auth-registry";
@@ -49,6 +49,7 @@ import type {
   ProjectionWriteIntent,
 } from "./projection-rule";
 import type { AnyDataSourceDeclaration } from "../public/entity-data-source";
+import type { EntityReads } from "../public/entity-data-source";
 import type { AnyDashboardWidgetDefinition } from "../operator/operator-definition-contract";
 import type { OperatorCaller } from "../operator/operator-context-contract";
 import type {
@@ -1017,21 +1018,12 @@ export interface MediaAttachmentContext {
   readonly identity: {
     getProfile(): AnchorProfile;
   };
-  readonly entityService: {
-    getEntity<T extends BaseEntity>(request: {
-      entityType: string;
-      id: string;
-    }): Promise<T | null>;
-    /**
-     * Present because a media provider may need a singleton it cannot name by
-     * id — decks resolves the site's theme mode this way before rendering a
-     * carousel.
-     */
-    listEntities<T extends BaseEntity>(request: {
-      entityType: string;
-      options?: { limit?: number };
-    }): Promise<T[]>;
-  };
+  /**
+   * `listEntities` is here, and not only `getEntity`, because a media provider
+   * may need a singleton it cannot name by id — decks resolves the site's
+   * theme mode this way before rendering a carousel.
+   */
+  readonly entityService: EntityReads;
 }
 
 export type AnyEntityDefinition = EntityDefinition<

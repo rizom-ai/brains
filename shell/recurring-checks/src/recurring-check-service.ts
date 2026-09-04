@@ -487,26 +487,25 @@ export class RecurringCheckService {
   async listOpenAlerts(): Promise<RecurringCheckOpenAlert[]> {
     const records = await this.state.list({ keyPrefix: "alert:" });
     return records
-      .filter((record) => {
+      .flatMap((record) => {
+        // flatMap rather than filter+map: the discriminant check narrows
+        // `state` for the projection below, which a separate filter callback
+        // could not carry across.
         const state = record.value;
-        if (state.kind !== "alert" || state.status === "resolved") return false;
-        if (state.includeInInbox !== undefined) return state.includeInInbox;
-        return (
-          this.checks.get(state.checkId)?.definition.includeInInbox !== false
-        );
-      })
-      .map((record) => {
-        const state = record.value as Extract<
-          RecurringCheckState,
-          { kind: "alert" }
-        >;
-        return {
-          id: record.key,
-          checkId: state.checkId,
-          title: state.alert.title,
-          body: state.alert.body,
-          observedAt: state.observedAt,
-        };
+        if (state.kind !== "alert" || state.status === "resolved") return [];
+        const includeInInbox =
+          state.includeInInbox ??
+          this.checks.get(state.checkId)?.definition.includeInInbox !== false;
+        if (!includeInInbox) return [];
+        return [
+          {
+            id: record.key,
+            checkId: state.checkId,
+            title: state.alert.title,
+            body: state.alert.body,
+            observedAt: state.observedAt,
+          },
+        ];
       })
       .sort(
         (left, right) =>

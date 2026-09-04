@@ -3,7 +3,7 @@
  * index signature, and a data source hands the renderer plain JSON, which
  * means every shape on the way down has to satisfy `JsonObject`.
  */
-/* eslint-disable @typescript-eslint/consistent-type-definitions */
+/* eslint-disable @typescript-eslint/consistent-type-definitions -- see the note above: only a type alias gets an implicit index signature, which is what lets these shapes satisfy `JsonObject` on the way to the renderer */
 import { anchorProfileKindSchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import type { AgentSkill, AgentStatus } from "../schemas/agent";

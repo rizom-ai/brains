@@ -60,7 +60,7 @@ async function installWithCapturedCheck(notifyOnNewAgents: boolean): Promise<{
     { notifyOnNewAgents },
     { name: "@brains/agent-discovery", version: "0.1.0" },
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
 
   const check = registered.find(({ id }) => id.endsWith("directory-scan"));
   if (!check) throw new Error("Expected recurring check registration");

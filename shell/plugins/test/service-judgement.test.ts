@@ -4,6 +4,7 @@ import { stubMethod } from "@brains/test-utils";
 import type { JudgeInput } from "../src";
 import type {
   BaseEntity,
+  EntitySchema,
   EntitySearchRequest,
   SearchResult,
 } from "@brains/entity-service";
@@ -58,34 +59,43 @@ describe("a service that decides whether something holds", () => {
     const harness = createPluginHarness();
     const shell = harness.getMockShell();
     let searched: { query: string; excludeTypes: unknown } | undefined;
-    stubMethod(
-      shell.getEntityService(),
-      "search",
-      async <T extends BaseEntity>(
-        request: EntitySearchRequest,
-      ): Promise<SearchResult<T>[]> => {
-        searched = {
-          query: request.query,
-          excludeTypes: request.options?.excludeTypes,
-        };
-        return [
-          {
-            entity: {
-              id: "note-1",
-              entityType: "note",
-              content: "full private body",
-              created: "2026-09-01T00:00:00.000Z",
-              updated: "2026-09-01T00:00:00.000Z",
-              visibility: "public",
-              metadata: {},
-              contentHash: "hash",
-            } as T,
-            excerpt: "the thing shipped on Tuesday",
-            score: 0.9,
-          },
-        ];
-      },
-    );
+    const hit: BaseEntity = {
+      id: "note-1",
+      entityType: "note",
+      content: "full private body",
+      created: "2026-09-01T00:00:00.000Z",
+      updated: "2026-09-01T00:00:00.000Z",
+      visibility: "public",
+      metadata: {},
+      contentHash: "hash",
+    };
+    // The service's own overload pair: without a schema the hit comes back as
+    // the entity it is, and with one it is parsed rather than asserted into
+    // the caller's type.
+    async function searchStub(
+      request: EntitySearchRequest,
+    ): Promise<SearchResult<BaseEntity>[]>;
+    async function searchStub<T extends BaseEntity>(
+      request: EntitySearchRequest,
+      schema: EntitySchema<T>,
+    ): Promise<SearchResult<T>[]>;
+    async function searchStub<T extends BaseEntity>(
+      request: EntitySearchRequest,
+      schema?: EntitySchema<T>,
+    ): Promise<SearchResult<BaseEntity>[] | SearchResult<T>[]> {
+      searched = {
+        query: request.query,
+        excludeTypes: request.options?.excludeTypes,
+      };
+      const result = {
+        excerpt: "the thing shipped on Tuesday",
+        score: 0.9,
+      };
+      return schema
+        ? [{ ...result, entity: schema.parse(hit) }]
+        : [{ ...result, entity: hit }];
+    }
+    stubMethod(shell.getEntityService(), "search", searchStub);
     let judged: { instruction: string; material: string } | undefined;
     stubMethod(shell, "judge", async <T>(input: JudgeInput<T>) => {
       judged = { instruction: input.instruction, material: input.material };

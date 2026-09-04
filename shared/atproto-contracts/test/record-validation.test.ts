@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { objectEntries } from "@brains/utils/object-keys";
 import {
   buildAtprotoRecordSchema,
   canonicalAtprotoRecordSchemas,
@@ -73,12 +74,10 @@ describe("ATProto Zod-backed record schemas", () => {
     expect(listCanonicalAtprotoRecordSchemas()).toHaveLength(
       listCanonicalAtprotoLexicons().length,
     );
-    for (const lexicon of listCanonicalAtprotoLexicons()) {
-      expect(getCanonicalAtprotoRecordSchema(lexicon.id)).toBe(
-        canonicalAtprotoRecordSchemas[
-          lexicon.id as keyof typeof canonicalAtprotoRecordSchemas
-        ],
-      );
+    // Iterate the schema map rather than the lexicon list, so each id is
+    // already a key of the map and needs no narrowing.
+    for (const [id, schema] of objectEntries(canonicalAtprotoRecordSchemas)) {
+      expect(getCanonicalAtprotoRecordSchema(id)).toBe(schema);
     }
   });
 

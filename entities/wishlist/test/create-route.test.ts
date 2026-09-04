@@ -3,6 +3,7 @@ import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
   type Plugin,
+  type CreateExecutionContext,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -35,13 +36,11 @@ describe("the wish create route", () => {
       .getEntityRegistry()
       .getCreateInterceptor("wish");
     if (!interceptor) throw new Error("Create interceptor was not registered");
-    return interceptor(
-      { entityType: "wish", ...input } as never,
-      {
-        interfaceType: "test",
-        actor: { kind: "user", userId: "tester" },
-      } as never,
-    );
+    const executionContext: CreateExecutionContext = {
+      interfaceType: "test",
+      actor: { kind: "user", userId: "tester" },
+    };
+    return interceptor({ entityType: "wish", ...input }, executionContext);
   }
 
   beforeEach(async () => {

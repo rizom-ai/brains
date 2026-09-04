@@ -10,6 +10,7 @@ import {
   type JobEntityAccess,
   type Message,
   type SearchResult,
+  type EntitySchema,
 } from "@brains/sdk/entities";
 import {
   actionItemSchema,
@@ -471,23 +472,84 @@ function seededEntityAccess(memory: SeededMemory[]): JobEntityAccess {
     throw new Error("A retrieval eval does not write entities");
   };
 
-  return {
-    search: async <T extends BaseEntity = BaseEntity>() =>
-      searchResults as unknown as SearchResult<T>[],
-    listEntities: async <T extends BaseEntity>({
-      entityType,
-    }: {
-      entityType: string;
-    }) =>
-      entities.filter(
-        (entity) => entity.entityType === entityType,
-      ) as unknown as T[],
-    getEntity: async <T extends BaseEntity>({ id }: { id: string }) =>
-      (entities.find((entity) => entity.id === id) ?? null) as T | null,
-    find: async <T extends BaseEntity>(entityType: string, id: string) =>
-      (entities.find(
+  // Each read carries the contract's overload pair: the widened form hands
+  // back the seeded entities as themselves, and the schema-bearing form parses
+  // them through the schema the caller supplied rather than asserting a shape.
+  async function search(): Promise<SearchResult<BaseEntity>[]>;
+  async function search<T extends BaseEntity>(
+    request: unknown,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function search<T extends BaseEntity>(
+    _request?: unknown,
+    schema?: EntitySchema<T>,
+  ): Promise<SearchResult<BaseEntity>[] | SearchResult<T>[]> {
+    return schema
+      ? searchResults.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : searchResults;
+  }
+
+  async function listEntities(request: {
+    entityType: string;
+  }): Promise<BaseEntity[]>;
+  async function listEntities<T extends BaseEntity>(
+    request: { entityType: string },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntities<T extends BaseEntity>(
+    { entityType }: { entityType: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    const matches = entities.filter(
+      (entity) => entity.entityType === entityType,
+    );
+    return schema ? matches.map((entity) => schema.parse(entity)) : matches;
+  }
+
+  async function getEntity(request: { id: string }): Promise<BaseEntity | null>;
+  async function getEntity<T extends BaseEntity>(
+    request: { id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntity<T extends BaseEntity>(
+    { id }: { id: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found = entities.find((entity) => entity.id === id) ?? null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  async function find(
+    entityType: string,
+    id: string,
+  ): Promise<BaseEntity | null>;
+  async function find<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function find<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found =
+      entities.find(
         (entity) => entity.entityType === entityType && entity.id === id,
-      ) ?? null) as T | null,
+      ) ?? null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  return {
+    search,
+    listEntities,
+    getEntity,
+    find,
     getEntityTypes: () => [...new Set(entities.map((e) => e.entityType))],
     getEntityCounts: async () =>
       [...new Set(entities.map((e) => e.entityType))].map((entityType) => ({

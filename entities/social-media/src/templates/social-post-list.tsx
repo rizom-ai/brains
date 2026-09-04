@@ -12,8 +12,8 @@ import type { SocialPostView } from "./social-post-view";
 
 export interface SocialPostListProps {
   posts: SocialPostView[];
-  pageTitle?: string;
-  pagination?: PaginationInfo | null;
+  pageTitle?: string | undefined;
+  pagination?: PaginationInfo | null | undefined;
   baseUrl: string | null;
 }
 

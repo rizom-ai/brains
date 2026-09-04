@@ -55,7 +55,7 @@ export async function installAgentDiscovery(
   );
   const tools: Tool[] = [];
   const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins as Plugin[]) {
+  for (const plugin of plugins) {
     const installed = await harness.installPlugin(plugin);
     capabilities.push(installed);
     tools.push(...installed.tools);

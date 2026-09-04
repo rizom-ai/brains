@@ -5,6 +5,8 @@ import {
   type PluginFactory,
 } from "../src/brain-definition";
 import type { SitePackage } from "../src/site-package";
+import { caughtError } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { resolve } from "../src/brain-resolver";
 import { registerPackage } from "../src/package-registry";
 import {
@@ -79,9 +81,20 @@ class MockMcp implements Plugin {
   }
 }
 
+/**
+ * A checked narrowing rather than an assertion: these tests resolve a
+ * definition and read back what the factory was handed, so a resolver that
+ * starts producing a plugin without its config should fail here.
+ */
+function isMockPlugin(plugin: Plugin | undefined): plugin is MockPlugin {
+  return plugin !== undefined && "config" in plugin;
+}
+
 function getConfig(plugin: Plugin | undefined): PluginConfig {
-  expect(plugin).toBeDefined();
-  return (plugin as MockPlugin).config;
+  if (!isMockPlugin(plugin)) {
+    throw new Error("Expected a resolved mock plugin carrying its config");
+  }
+  return plugin.config;
 }
 
 // --- parseInstanceOverrides ---
@@ -506,8 +519,8 @@ describe("parseInstanceOverrides error surfacing", () => {
       caught = e;
     }
     expect(caught).toBeInstanceOf(InstanceOverridesParseError);
-    expect((caught as Error).message).toContain("invalid brain.yaml");
-    expect((caught as Error).message).toContain("logLevel");
+    expect(caughtError(caught).message).toContain("invalid brain.yaml");
+    expect(caughtError(caught).message).toContain("logLevel");
   });
 
   test("throws with nested field path on nested validation failure", () => {
@@ -525,7 +538,7 @@ permissions:
       caught = e;
     }
     expect(caught).toBeInstanceOf(InstanceOverridesParseError);
-    expect((caught as Error).message).toContain("permissions.rules.0.level");
+    expect(caughtError(caught).message).toContain("permissions.rules.0.level");
   });
 
   test("throws on wrong type for array field", () => {
@@ -556,7 +569,7 @@ port: "fourty-two"
       caught = e;
     }
     expect(caught).toBeInstanceOf(InstanceOverridesParseError);
-    const msg = (caught as Error).message;
+    const msg = caughtError(caught).message;
     expect(msg).toContain("logLevel");
     expect(msg).toContain("port");
     expect(msg.split("\n").length).toBeGreaterThan(1);
@@ -775,8 +788,9 @@ describe("resolve with instance overrides", () => {
     );
 
     const ds = config.plugins?.find((p) => p.id === "directory-sync");
-    const dsConfig = getConfig(ds) as Record<string, unknown>;
-    const git = dsConfig["git"] as Record<string, unknown>;
+    const record = z.record(z.string(), z.unknown());
+    const dsConfig = record.parse(getConfig(ds));
+    const git = record.parse(dsConfig["git"]);
 
     // Brain model defaults preserved
     expect(git["authorName"]).toBe("Rover");
@@ -1733,10 +1747,9 @@ describe("resolve with site package", () => {
 
     const config = resolve(def, {});
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
-    const layouts = getConfig(siteBuilder)["layouts"] as Record<
-      string,
-      unknown
-    >;
+    const layouts = z
+      .record(z.string(), z.unknown())
+      .parse(getConfig(siteBuilder)["layouts"]);
 
     expect(layouts["default"]).toBe(mockDefault);
     expect(layouts["minimal"]).toBe(mockMinimal);

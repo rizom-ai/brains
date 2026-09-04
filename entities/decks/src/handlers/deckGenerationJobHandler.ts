@@ -93,16 +93,19 @@ export const deckGeneration: EntityGenerationDeclaration<
       const voiceGuidance = formatVoiceGuidance(
         await fetchStyleGuide(entities),
       );
-      const generated = await ai.generate<{
-        title: string;
-        content: string;
-        description: string;
-      }>({
-        prompt: `${prompt ?? DEFAULT_DECK_PROMPT}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`,
-        templateName: template("generation"),
-        representedIdentity: "anchor",
-        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-      });
+      const generated = await ai.generate(
+        {
+          prompt: `${prompt ?? DEFAULT_DECK_PROMPT}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`,
+          templateName: template("generation"),
+          representedIdentity: "anchor",
+          ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+        },
+        z.object({
+          title: z.string(),
+          content: z.string(),
+          description: z.string(),
+        }),
+      );
       title = title ?? generated.title;
       content = content ?? generated.content;
       description = description ?? generated.description;
@@ -117,11 +120,14 @@ export const deckGeneration: EntityGenerationDeclaration<
         total: 100,
         message: "Generating description with AI",
       });
-      const descGenerated = await ai.generate<{ description: string }>({
-        prompt: `Title: ${title}\n\nContent:\n${content}`,
-        templateName: template("description"),
-        representedIdentity: "none",
-      });
+      const descGenerated = await ai.generate(
+        {
+          prompt: `Title: ${title}\n\nContent:\n${content}`,
+          templateName: template("description"),
+          representedIdentity: "none",
+        },
+        z.object({ description: z.string() }),
+      );
       description = descGenerated.description;
     }
 

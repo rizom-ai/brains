@@ -3,9 +3,10 @@ import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import {
-  TemplateRegistry,
+  InMemoryTemplateRegistry,
   type NonLayoutTemplate,
   type Template,
+  type TemplateRegistry,
 } from "@brains/templates";
 import {
   createSilentLogger,
@@ -30,7 +31,7 @@ describe("ContentService template access", () => {
 
   beforeEach(() => {
     const mockLogger = createSilentLogger();
-    templateRegistry = TemplateRegistry.createFresh(mockLogger);
+    templateRegistry = InMemoryTemplateRegistry.createFresh(mockLogger);
 
     const mockDependencies: ContentServiceDependencies = {
       logger: mockLogger,

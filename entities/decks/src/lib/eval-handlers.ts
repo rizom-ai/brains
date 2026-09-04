@@ -22,23 +22,29 @@ export const deckEvals: EntityEvalDeclaration = {
   generateDeck: async (input, { ai, entities, template }) => {
     const parsed = generateDeckEvalInputSchema.parse(input);
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
-    return ai.generate<{
-      title: string;
-      content: string;
-      description: string;
-    }>({
-      prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
-      templateName: template("generation"),
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
+    return ai.generate(
+      {
+        prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
+        templateName: template("generation"),
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      },
+      z.object({
+        title: z.string(),
+        content: z.string(),
+        description: z.string(),
+      }),
+    );
   },
   generateDescription: async (input, { ai, template }) => {
     const parsed = generateDescriptionEvalInputSchema.parse(input);
-    return ai.generate<{ description: string }>({
-      prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
-      templateName: template("description"),
-      representedIdentity: "none",
-    });
+    return ai.generate(
+      {
+        prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+        templateName: template("description"),
+        representedIdentity: "none",
+      },
+      z.object({ description: z.string() }),
+    );
   },
 };

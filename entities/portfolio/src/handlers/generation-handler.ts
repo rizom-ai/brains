@@ -34,16 +34,19 @@ Use the project request as the primary source of truth. If retrieved knowledge c
 }
 
 /**
- * AI generation output schema
+ * AI generation output schema.
+ *
+ * The schema is the definition; the type is read off it, so the two cannot
+ * drift apart the way a hand-written interface beside a parse would.
  */
-interface GeneratedProjectContent {
-  title: string;
-  description: string;
-  context: string;
-  problem: string;
-  solution: string;
-  outcome: string;
-}
+const generatedProjectContentSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  context: z.string(),
+  problem: z.string(),
+  solution: z.string(),
+  outcome: z.string(),
+});
 
 /**
  * Year is required on a project, so a create request that does not carry one
@@ -100,16 +103,19 @@ export const projectGeneration: EntityGenerationDeclaration<
     });
 
     const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
-    const generated = await ai.generate<GeneratedProjectContent>({
-      prompt: buildProjectGenerationPrompt({
-        prompt,
-        year,
-        ...(input.title === undefined ? {} : { title: input.title }),
-      }),
-      templateName: template("generation"),
-      representedIdentity: "anchor",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
-    });
+    const generated = await ai.generate(
+      {
+        prompt: buildProjectGenerationPrompt({
+          prompt,
+          year,
+          ...(input.title === undefined ? {} : { title: input.title }),
+        }),
+        templateName: template("generation"),
+        representedIdentity: "anchor",
+        ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      },
+      generatedProjectContentSchema,
+    );
 
     const title = input.title ?? generated.title;
     const slug = slugify(title);

@@ -124,7 +124,8 @@
     "@brains/unified-inbox": "0.2.0-alpha.250",
     "@brains/operation-context": "0.2.0-alpha.240",
     "@brains/operator-view-react": "0.2.0-alpha.313",
-    "@brains/assets": "0.2.0-alpha.336"
+    "@brains/assets": "0.2.0-alpha.336",
+    "@brains/app-ui-react": "0.2.0-alpha.347"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -365,6 +366,7 @@
     "core--projection-outputs-fail-closed",
     "core--projection-runtime-guards",
     "core--projection-startup-recovery",
+    "core--projection-wave-completion-race",
     "core--projection-wave-json-boundaries",
     "core--public-authoring-definitions",
     "core--public-plugin-surface-soundness",
@@ -401,6 +403,7 @@
     "core--studio-account-workspace",
     "core--studio-audit-workspace",
     "core--studio-authoring-cutover",
+    "core--studio-control-vocabulary",
     "core--studio-gate-inversion",
     "core--studio-interface-semantics",
     "core--studio-invitations-workspace",

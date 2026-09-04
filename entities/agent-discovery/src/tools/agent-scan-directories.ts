@@ -8,7 +8,8 @@ import {
   fetchAgentCard,
   type FetchFn,
 } from "../lib/fetch-agent-card";
-import type { AgentEntity } from "../schemas/agent";
+
+import { agentEntitySchema } from "../schemas/agent";
 
 const agentScanDirectoriesInputSchema: z.ZodObject<Record<string, never>> =
   z.object({});
@@ -54,9 +55,12 @@ export async function scanAgentDirectories(
   fetchFn: FetchFn = globalThis.fetch,
   signal?: AbortSignal,
 ): Promise<AgentScanDirectoriesResult> {
-  const allAgents = await context.entities.listEntities<AgentEntity>({
-    entityType: AGENT_ENTITY_TYPE,
-  });
+  const allAgents = await context.entities.listEntities(
+    {
+      entityType: AGENT_ENTITY_TYPE,
+    },
+    agentEntitySchema,
+  );
   const peers = allAgents.filter(
     (agent) => agent.metadata.status === "approved",
   );

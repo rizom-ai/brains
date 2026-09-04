@@ -12,6 +12,7 @@ import {
 } from "@brains/plugins";
 import assessmentPackage from "../src";
 import packageJson from "../package.json";
+import { z } from "@brains/utils/zod";
 
 /**
  * Assessment is a service package: it carries config, and the configured
@@ -20,9 +21,11 @@ import packageJson from "../package.json";
 function assessmentPlugins(config: Record<string, unknown> = {}): Plugin[] {
   const metadata = { name: packageJson.name, version: packageJson.version };
   bindPluginPackageMetadata(assessmentPackage, metadata);
-  return [
-    ...instantiatePluginPackageDefinition(assessmentPackage, config, metadata),
-  ] as Plugin[];
+  return instantiatePluginPackageDefinition(
+    assessmentPackage,
+    config,
+    metadata,
+  );
 }
 
 function swotEntityPlugin(): Plugin {
@@ -99,11 +102,13 @@ describe("assessment package", () => {
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as {
-        id: string;
-        group: string;
-        rendererName: string;
-      };
+      const payload = z
+        .object({
+          id: z.string(),
+          group: z.string(),
+          rendererName: z.string(),
+        })
+        .parse(message.payload);
       registrations.push({
         id: payload.id,
         group: payload.group,

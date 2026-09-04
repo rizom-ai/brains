@@ -48,7 +48,7 @@ import type { ScopedRuntimeUploadStore } from "../service/upload-registry";
 import { createEvalFixtures } from "./eval-fixtures";
 import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
-export { parseDefinitionEntity } from "./entity-schema";
+export { definitionEntitySchema, parseDefinitionEntity } from "./entity-schema";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
@@ -153,7 +153,7 @@ function appendToList(
   const { frontmatter } = parseMarkdown(content);
   const dropped = new Set(link.replaces ?? []);
   const held = frontmatter[link.list];
-  const existing = (Array.isArray(held) ? (held as unknown[]) : []).filter(
+  const existing = (Array.isArray(held) ? held : []).filter(
     (item): item is { id: string } =>
       typeof item === "object" &&
       item !== null &&
@@ -291,8 +291,7 @@ function entityAdapter(
         : { content: parsed.content, metadata: parsed.metadata };
       return {
         content: decoded.content,
-        metadata:
-          decoded.metadata as EntityOf<EntityDefinitionShape>["metadata"],
+        metadata: decoded.metadata,
       };
     },
     extractMetadata: (entity) => entity.metadata,

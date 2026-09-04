@@ -113,21 +113,28 @@ export interface ContentService {
   /**
    * Resolve content for a template using multiple resolution strategies
    * Priority order: DataSource fetch -> saved content -> fallback
+   *
+   * Returns `unknown`: the value is validated against the *template's* schema,
+   * which a caller-chosen type parameter has no relationship to. Callers that
+   * need a specific type should parse it.
    */
-  resolveContent<T = unknown>(
+  resolveContent(
     templateName: string,
     options?: ResolutionOptions,
     pluginId?: string,
-  ): Promise<T | null>;
+  ): Promise<unknown>;
 
   /**
-   * Generate content using a template with entity-aware context
+   * Generate content using a template with entity-aware context.
+   *
+   * Returns unknown: generation validates against the template's schema, and
+   * callers parse the shape they need.
    */
-  generateContent<T = unknown>(
+  generateContent(
     templateName: string,
     context?: GenerationContext,
     pluginId?: string,
-  ): Promise<T>;
+  ): Promise<unknown>;
 
   /**
    * Format content using a template's formatter
@@ -139,11 +146,12 @@ export interface ContentService {
   ): string;
 
   /**
-   * Parse existing content using a template's formatter
+   * Parse existing content using a template's formatter. Returns unknown:
+   * the formatter parses to the template's own shape.
    */
-  parseContent<T = unknown>(
+  parseContent(
     templateName: string,
     content: string,
     pluginId?: string,
-  ): T;
+  ): unknown;
 }

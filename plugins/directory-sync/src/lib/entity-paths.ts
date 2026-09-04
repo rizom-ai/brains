@@ -1,5 +1,6 @@
 import type { BaseEntity } from "@brains/plugins";
 import { extname, join } from "path";
+import { readString } from "@brains/utils/record-fields";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";
 import { DOCUMENT_EXTENSIONS } from "./document-file-utils";
 import { toSyncRelativePath } from "./path-utils";
@@ -82,7 +83,7 @@ export function getEntityFileExtension(entity: BaseEntity): string {
     return ".md";
   }
 
-  const format = (entity.metadata as { format?: string }).format;
+  const format = readString(entity.metadata, "format");
   if (format) {
     return getExtensionForFormat(format);
   }

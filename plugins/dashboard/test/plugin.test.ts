@@ -9,6 +9,27 @@ import { createTempDir, genericSpy } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
+
+/**
+ * The dashboard body, parsed rather than declared: the route hands back JSON,
+ * so its shape is checked here instead of asserted at each read.
+ */
+const dashboardBodySchema = z.object({
+  groups: z.array(
+    z.object({
+      id: z.string(),
+      items: z.array(z.record(z.string(), z.string())).default([]),
+    }),
+  ),
+});
+
+async function dashboardBody(
+  response: Response | undefined,
+): Promise<z.output<typeof dashboardBodySchema>> {
+  if (!response) throw new Error("The dashboard route returned no response");
+  return dashboardBodySchema.parse(await response.json());
+}
 
 describe("DashboardPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -241,11 +262,9 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{ id: string; items: Array<{ href: string }> }>;
-      };
+      const data = await dashboardBody(response);
       const tabs = data.groups.find((group) => group.id === "tabs");
-      expect(tabs?.items.map((item) => item.href)).toEqual([
+      expect(tabs?.items.map((item) => item["href"])).toEqual([
         "/dashboard#overview",
         "/dashboard#knowledge",
         "/dashboard#network",
@@ -335,12 +354,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{
-          id: string;
-          items: Array<Record<string, string>>;
-        }>;
-      };
+      const data = await dashboardBody(response);
       const entities = data.groups.find((group) => group.id === "entities");
       expect(entities?.items).toEqual([
         {
@@ -388,9 +402,7 @@ describe("DashboardPlugin", () => {
       );
 
       expect(response?.status).toBe(200);
-      const data = (await response?.json()) as {
-        groups: Array<{ id: string }>;
-      };
+      const data = await dashboardBody(response);
       expect(data.groups.find((group) => group.id === "entities")).toBe(
         undefined,
       );

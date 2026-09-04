@@ -183,9 +183,9 @@ describe("pilot origin CA bootstrap", () => {
       calls.push({ url, init });
 
       if (url.endsWith("/certificates")) {
-        const body = JSON.parse(String(init?.body)) as {
-          hostnames: string[];
-        };
+        const body = z
+          .looseObject({ hostnames: z.array(z.string()) })
+          .parse(JSON.parse(String(init?.body)));
         expect(body.hostnames).toEqual(["rizom.ai", "*.rizom.ai"]);
         return new Response(
           JSON.stringify({

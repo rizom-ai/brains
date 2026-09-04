@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import {
   createMockEntityService as createSharedEntityService,
   createTestEntity,
+  expectToolSuccess,
+  expectToolError,
 } from "@brains/test-utils";
 import { createStockPhotoTools } from "../src/tools";
 import type { StockPhotoProvider, SearchResult } from "../src/lib/types";
@@ -103,7 +105,7 @@ describe("stock-photo tools", () => {
   let entityService: IEntityService;
   let tools: Tool[];
   let enqueuedJobs: Array<{ type: string; data: unknown }>;
-  let jobs: ServicePluginContext["jobs"];
+  let jobs: Pick<ServicePluginContext["jobs"], "enqueue">;
 
   beforeEach(() => {
     provider = createMockProvider();
@@ -114,7 +116,7 @@ describe("stock-photo tools", () => {
         enqueuedJobs.push(request);
         return "queued-stock-photo-job";
       },
-    } as ServicePluginContext["jobs"];
+    };
     tools = createStockPhotoTools("stock-photo", {
       provider,
       entityService,
@@ -179,7 +181,7 @@ describe("stock-photo tools", () => {
       const result = await tool.handler({ query: "mountains" }, mockContext);
 
       expect(result).toMatchObject({ success: true });
-      expect((result as { data: unknown }).data).toEqual(searchResult);
+      expect(expectToolSuccess(result).data).toEqual(searchResult);
     });
 
     it("should pass perPage and page to provider", async () => {
@@ -223,7 +225,7 @@ describe("stock-photo tools", () => {
       const result = await tool.handler({ query: "test" }, mockContext);
 
       expect(result).toMatchObject({ success: false });
-      expect((result as { error: string }).error).toBe("Rate limited");
+      expect(expectToolError(result).error).toBe("Rate limited");
     });
 
     it("should reject invalid input", async () => {
@@ -231,7 +233,7 @@ describe("stock-photo tools", () => {
       const result = await tool.handler({ perPage: 50 }, mockContext);
 
       expect(result).toMatchObject({ success: false });
-      expect((result as { error: string }).error).toContain("Invalid input");
+      expect(expectToolError(result).error).toContain("Invalid input");
     });
   });
 
@@ -252,7 +254,7 @@ describe("stock-photo tools", () => {
       const result = await tool.handler(validInput, mockContext);
 
       expect(result).toMatchObject({ success: true });
-      expect((result as { data: unknown }).data).toEqual({
+      expect(expectToolSuccess(result).data).toEqual({
         imageEntityId: "abc123",
         alreadyExisted: false,
         attribution: {
@@ -314,7 +316,7 @@ describe("stock-photo tools", () => {
       const result = await tool.handler(validInput, mockContext);
 
       expect(result).toMatchObject({ success: true });
-      expect((result as { data: unknown }).data).toMatchObject({
+      expect(expectToolSuccess(result).data).toMatchObject({
         imageEntityId: "existing-id",
         alreadyExisted: true,
       });
@@ -364,7 +366,7 @@ describe("stock-photo tools", () => {
       );
 
       expect(result).toMatchObject({ success: true });
-      expect((result as { data: Record<string, unknown> }).data).toMatchObject({
+      expect(expectToolSuccess(result).data).toMatchObject({
         coverSet: false,
         jobId: "queued-stock-photo-job",
         status: "generating",
@@ -427,7 +429,7 @@ describe("stock-photo tools", () => {
       );
 
       expect(result).toMatchObject({ success: true });
-      expect((result as { data: Record<string, unknown> }).data).toMatchObject({
+      expect(expectToolSuccess(result).data).toMatchObject({
         imageEntityId: "existing-id",
         alreadyExisted: true,
         coverSet: true,
@@ -466,7 +468,7 @@ describe("stock-photo tools", () => {
       );
 
       expect(result).toMatchObject({ success: true });
-      expect((result as { data: Record<string, unknown> }).data).toMatchObject({
+      expect(expectToolSuccess(result).data).toMatchObject({
         imageEntityId: "existing-id",
         alreadyExisted: true,
         coverSet: false,
@@ -497,7 +499,7 @@ describe("stock-photo tools", () => {
       const result = await tool.handler({ photoId: "abc" }, mockContext);
 
       expect(result).toMatchObject({ success: false });
-      expect((result as { error: string }).error).toContain("Invalid input");
+      expect(expectToolError(result).error).toContain("Invalid input");
     });
 
     it("should allow the job to derive the default title", async () => {

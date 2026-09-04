@@ -5,7 +5,8 @@ import type { SiteBuildProfileService } from "./site-build-profile-service";
 export function buildSiteLayoutInfo(
   siteMetadata: SiteMetadata,
   profileService: SiteBuildProfileService,
-  routeRegistry: RouteRegistry,
+  /** Only the navigation items are read; the whole registry is more than this asks. */
+  routeRegistry: Pick<RouteRegistry, "getNavigationItems">,
 ): SiteLayoutInfo {
   const profileBody = profileService.getProfile();
   const primaryItems = routeRegistry.getNavigationItems("primary");

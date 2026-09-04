@@ -1,13 +1,28 @@
 import type {
   BaseEntity,
   ContentVisibility,
-  ICoreEntityService,
+  GetEntityRequest,
+  ListEntitiesRequest,
 } from "./types";
 import { type Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
 
 export type ResolvedEntity =
   { ok: true; entity: BaseEntity } | { ok: false; error: string };
+
+/**
+ * The two reads this lookup performs, in their un-schema'd form.
+ *
+ * Asking for the whole `ICoreEntityService` meant a test double had to satisfy
+ * members that are generic in their entity type, which no concrete function
+ * can do — so doubles asserted their return into `T[]`. Naming what is
+ * actually called keeps a double an ordinary function; a real entity service
+ * still satisfies this by construction.
+ */
+export interface EntityLookupReads {
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+}
 
 /**
  * Find an entity by trying ID, slug, then title lookups.
@@ -17,7 +32,7 @@ export type ResolvedEntity =
  * Defaults to "public" when no scope is provided.
  */
 export async function findEntityByIdentifier(
-  entityService: ICoreEntityService,
+  entityService: EntityLookupReads,
   entityType: string,
   identifier: string,
   logger?: Logger,
@@ -87,7 +102,7 @@ export async function findEntityByIdentifier(
  * @param label - Prefix for the error message, e.g. "Entity" (default) or "Target entity"
  */
 export async function resolveEntityOrError(
-  entityService: ICoreEntityService,
+  entityService: EntityLookupReads,
   entityType: string,
   identifier: string,
   logger?: Logger,

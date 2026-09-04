@@ -90,9 +90,11 @@ describe("a console asking about the rest of the brain", () => {
 
     const [route] = plugin.getWebRoutes?.() ?? [];
     if (!route) throw new Error("console route was not registered");
-    const answer = (await (
-      await route.handler(new Request("http://brain/chat"))
-    ).json()) as { doors: string[] };
+    const answer = z
+      .object({ doors: z.array(z.string()) })
+      .parse(
+        await (await route.handler(new Request("http://brain/chat"))).json(),
+      );
 
     // A console always shows itself, even when nothing else is mounted — the
     // caller reached it through its own gate.

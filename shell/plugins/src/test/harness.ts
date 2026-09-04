@@ -6,7 +6,7 @@ import type {
   ToolConfirmation,
   ToolContext,
 } from "../interfaces";
-import { type z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
 
 type ToolSuccess = z.output<typeof toolSuccessSchema>;
@@ -507,4 +507,18 @@ export function expectConfirmation(
   if (!("needsConfirmation" in result)) {
     throw new Error(`Expected confirmation but got: ${JSON.stringify(result)}`);
   }
+}
+
+/**
+ * The arguments a confirmation carries back, as a record.
+ *
+ * `ToolConfirmation.args` is `unknown` — whatever the tool was called with —
+ * and tests re-submit it to complete the flow. Parsing is what proves the
+ * confirmation carried the arguments through; asserting a record onto it would
+ * keep passing against a confirmation that carried nothing at all.
+ */
+export function confirmationArgs(
+  confirmation: ToolConfirmation,
+): Record<string, unknown> {
+  return z.record(z.string(), z.unknown()).parse(confirmation.args);
 }

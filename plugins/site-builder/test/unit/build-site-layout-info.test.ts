@@ -20,7 +20,7 @@ describe("buildSiteLayoutInfo", () => {
     const result = buildSiteLayoutInfo(
       { title: "Ada", description: "Profile" },
       profileService,
-      routeRegistry as never,
+      routeRegistry,
     );
 
     expect(result.represents).toBe("anchor");
@@ -31,7 +31,7 @@ describe("buildSiteLayoutInfo", () => {
     const result = buildSiteLayoutInfo(
       { represents: "brain", title: "Relay", description: "Shared brain" },
       profileService,
-      routeRegistry as never,
+      routeRegistry,
     );
 
     expect(result.socialLinks).toBeUndefined();

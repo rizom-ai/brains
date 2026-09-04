@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Plugin } from "@brains/plugins";
+
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -22,7 +22,7 @@ async function install(
     config,
     PACKAGE_METADATA,
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
   return harness;
 }
 
@@ -59,7 +59,7 @@ describe("agent discovery package", () => {
       PACKAGE_METADATA,
     );
     const names: string[] = [];
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       const capabilities = await harness.installPlugin(plugin);
       names.push(...capabilities.tools.map(({ name }) => name));
     }

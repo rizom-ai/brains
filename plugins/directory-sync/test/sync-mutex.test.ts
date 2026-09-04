@@ -1,5 +1,6 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
 import { createTempDataDir } from "@brains/plugins/test";
+import { caughtError } from "@brains/test-utils";
 import { DirectorySync } from "../src/lib/directory-sync";
 import {
   createSilentLogger,
@@ -81,7 +82,7 @@ describe("sync mutex", () => {
       await directorySync.queueSyncBatch(context, "test-fail");
       expect.unreachable("Should have thrown");
     } catch (error) {
-      expect((error as Error).message).toBe("DB error");
+      expect(caughtError(error).message).toBe("DB error");
     }
 
     // Should be able to call again after error

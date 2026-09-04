@@ -57,6 +57,7 @@ export function toMessageResponse<R>(
   if (response?.success) {
     return {
       success: true,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the bus carries responses as unknown and only the caller knows R; removing this needs a response schema on Channel, which is a messaging contract change
       data: response.data as R,
     };
   }

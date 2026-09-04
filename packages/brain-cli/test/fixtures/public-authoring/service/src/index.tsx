@@ -94,13 +94,18 @@ export default defineServicePlugin({
   },
 
   // A same-name view reuses the exact schema object and adds web rendering.
+  // Views are React components, the same authoring dialect as site sections.
   views: {
     digest: {
       schema: digestResult,
       description: "A compact reading-digest result.",
       renderers: {
-        web: ({ summary, wordCount }): string =>
-          `<article><strong>${summary}</strong><small>${wordCount} words</small></article>`,
+        web: ({ summary, wordCount }) => (
+          <article>
+            <strong>{summary}</strong>
+            <small>{wordCount} words</small>
+          </article>
+        ),
       },
     },
   },

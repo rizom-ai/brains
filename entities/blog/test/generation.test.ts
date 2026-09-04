@@ -103,6 +103,7 @@ describe("postGeneration", () => {
           prompt: expect.stringContaining("Write about AI"),
           templateName: "@brains/blog:post:generation",
         }),
+        expect.anything(),
       );
     });
 
@@ -113,6 +114,7 @@ describe("postGeneration", () => {
         expect.objectContaining({
           templateName: "@brains/blog:post:generation",
         }),
+        expect.anything(),
       );
     });
 
@@ -123,6 +125,7 @@ describe("postGeneration", () => {
         expect.objectContaining({
           prompt: expect.stringContaining("Foundations"),
         }),
+        expect.anything(),
       );
     });
 
@@ -138,6 +141,7 @@ describe("postGeneration", () => {
       expect(frontmatterOf(result).excerpt).toBe("Generated excerpt");
       expect(context.ai.generate).toHaveBeenCalledWith(
         expect.objectContaining({ templateName: "@brains/blog:post:excerpt" }),
+        expect.anything(),
       );
     });
 

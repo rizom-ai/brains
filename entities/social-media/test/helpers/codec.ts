@@ -34,7 +34,7 @@ export async function postCodec(): Promise<{
   });
   await harness.installPlugin(plugin);
   return {
-    adapter: harness.getEntityRegistry().getAdapter<BaseEntity>("social-post"),
+    adapter: harness.getEntityRegistry().getAdapter("social-post"),
     reset: (): void => {
       harness.reset();
     },

@@ -57,8 +57,8 @@ function createHeadlessConfig(config: AppConfig): AppConfig {
 }
 
 async function routeLogsToStderr(): Promise<void> {
-  const { Logger } = await import("@brains/utils/logger");
-  Logger.getInstance().setUseStderr(true);
+  const { ConsoleLogger } = await import("@brains/utils/logger");
+  ConsoleLogger.getInstance().setUseStderr(true);
 }
 
 async function initializeHeadlessApp(
@@ -105,16 +105,20 @@ async function invokeCliTool(
   input: unknown,
   failureLabel: string,
 ): Promise<void> {
+  // Only the handler call is guarded. Reporting is deliberately outside: a
+  // failure while printing — serializing circular `data`, say — is not the
+  // tool failing, and labelling it as one hides where it went wrong.
+  let result: ToolResponse;
   try {
-    const result = await handler(input, {
+    result = await handler(input, {
       interfaceType: "cli",
       actor: { kind: "service", serviceId: "shell-cli" },
     });
-    printToolResult(result);
   } catch (error) {
     console.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
     process.exit(1);
   }
+  printToolResult(result);
 }
 
 /**
@@ -341,10 +345,10 @@ async function runDiagnostics(
   args: string[],
   App: AppFactory,
 ): Promise<void> {
-  const { Logger, LogLevel } = await import("@brains/utils/logger");
+  const { ConsoleLogger, LogLevel } = await import("@brains/utils/logger");
   // Suppress plugin registration noise — only show warnings and errors
-  Logger.resetInstance();
-  Logger.getInstance({ level: LogLevel.WARN, useStderr: true });
+  ConsoleLogger.resetInstance();
+  ConsoleLogger.getInstance({ level: LogLevel.WARN, useStderr: true });
 
   const subcommand = args[0] ?? "";
 

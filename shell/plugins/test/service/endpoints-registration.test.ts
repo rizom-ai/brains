@@ -92,10 +92,16 @@ describe("context.endpoints.register", () => {
     const context = createBasePluginContext(shell, "admin");
 
     expect(context.plugins.has("chat")).toBe(false);
+    // A real plugin, not an id asserted into one: this test only asks whether
+    // the registry reports it, and a stub that cannot register would be a
+    // problem the assertion could never see.
     shell.addPlugin({
       id: "chat",
+      version: "0.0.0-test",
+      type: "interface",
       packageName: "@brains/chat",
-    } as never);
+      register: async () => ({ tools: [], resources: [] }),
+    });
     expect(context.plugins.has("chat")).toBe(true);
   });
 

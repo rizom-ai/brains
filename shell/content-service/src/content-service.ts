@@ -9,6 +9,7 @@ import type {
   ListOptions,
 } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
+import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry, Template } from "@brains/templates";
@@ -106,11 +107,11 @@ export class ContentService implements IContentService {
    *
    * Note: Templates MUST have a formatter to work with saved content from entities.
    */
-  async resolveContent<T = unknown>(
+  async resolveContent(
     templateName: string,
     options?: ResolutionOptions,
     pluginId?: string,
-  ): Promise<T | null> {
+  ): Promise<unknown> {
     // Apply template scoping if pluginId is provided
     const scopedTemplateName = this.applyTemplateScoping(
       templateName,
@@ -165,15 +166,15 @@ export class ContentService implements IContentService {
               // (authored fields win) instead of the two being mutually
               // exclusive. Absent → classic datasource-wins precedence.
               if (template.overlayFormatter && options?.savedContent) {
-                return (await this.applyContentOverlay(
+                return await this.applyContentOverlay(
                   scopedTemplateName,
                   template,
                   data,
                   options.savedContent,
                   scopedEntityService,
-                )) as T;
+                );
               }
-              return data as T;
+              return data;
             }
           }
         } catch (error) {
@@ -204,7 +205,7 @@ export class ContentService implements IContentService {
               `Resolved content from saved entity for ${scopedTemplateName}`,
             );
             // Use the formatter to parse the content
-            return this.parseContent(scopedTemplateName, entity.content) as T;
+            return this.parseContent(scopedTemplateName, entity.content);
           }
         } catch (error) {
           this.dependencies.logger.debug(
@@ -222,7 +223,7 @@ export class ContentService implements IContentService {
         this.dependencies.logger.debug(
           `Using fallback content for ${scopedTemplateName}`,
         );
-        return validated as T;
+        return validated;
       } catch (error) {
         this.dependencies.logger.debug(
           `Fallback content validation failed for ${scopedTemplateName}`,
@@ -265,10 +266,12 @@ export class ContentService implements IContentService {
       if (overlay === undefined || overlay === null) {
         return base;
       }
-      const merged = {
-        ...(base as Record<string, unknown>),
-        ...(overlay as Record<string, unknown>),
-      };
+      // Both come back from formatters as unknown; an overlay only makes sense
+      // when each side is a record.
+      if (!isPlainRecord(base) || !isPlainRecord(overlay)) {
+        return base;
+      }
+      const merged = { ...base, ...overlay };
       const validated = template.schema.parse(merged);
       this.dependencies.logger.debug(
         `Applied authored content overlay for ${scopedTemplateName}`,
@@ -363,7 +366,7 @@ export class ContentService implements IContentService {
           ) => {
             const entity = await target.getEntity({
               ...request,
-              ...(visibilityScope !== undefined && { visibilityScope }),
+              visibilityScope,
             });
             if (!publishedOnly || !entity) {
               return entity;
@@ -394,11 +397,11 @@ export class ContentService implements IContentService {
   /**
    * Generate content using a template with entity-aware context
    */
-  async generateContent<T = unknown>(
+  async generateContent(
     templateName: string,
     context: GenerationContext = {},
     pluginId?: string,
-  ): Promise<T> {
+  ): Promise<unknown> {
     // Apply template scoping if pluginId is provided
     const scopedTemplateName = this.applyTemplateScoping(
       templateName,
@@ -410,11 +413,8 @@ export class ContentService implements IContentService {
       throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
-    // Cast template to correct type
-    const typedTemplate = template as ContentTemplate<T>;
-
     // Check if template has a DataSource configured
-    if (!typedTemplate.dataSourceId) {
+    if (!template.dataSourceId) {
       throw new Error(
         `Template ${scopedTemplateName} doesn't support content generation. Add dataSourceId to enable generation through DataSource pattern.`,
       );
@@ -422,17 +422,17 @@ export class ContentService implements IContentService {
 
     // Use DataSource pattern for generation
     const dataSource = this.dependencies.dataSourceRegistry.get(
-      typedTemplate.dataSourceId,
+      template.dataSourceId,
     );
 
     if (!dataSource) {
-      throw new Error(`DataSource ${typedTemplate.dataSourceId} not found`);
+      throw new Error(`DataSource ${template.dataSourceId} not found`);
     }
 
     if (!dataSource.generate) {
       // This DataSource doesn't support generation (e.g., fetch-only like system-stats)
       throw new Error(
-        `Template ${scopedTemplateName} uses DataSource ${typedTemplate.dataSourceId} which doesn't support content generation. This template is for data fetching only.`,
+        `Template ${scopedTemplateName} uses DataSource ${template.dataSourceId} which doesn't support content generation. This template is for data fetching only.`,
       );
     }
 
@@ -441,17 +441,17 @@ export class ContentService implements IContentService {
       ...context,
     };
 
-    return dataSource.generate(request, typedTemplate.schema);
+    return dataSource.generate(request, template.schema);
   }
 
   /**
    * Parse existing content using a template's formatter
    */
-  parseContent<T = unknown>(
+  parseContent(
     templateName: string,
     content: string,
     pluginId?: string,
-  ): T {
+  ): unknown {
     // Apply template scoping if pluginId is provided
     const scopedTemplateName = this.applyTemplateScoping(
       templateName,
@@ -463,17 +463,14 @@ export class ContentService implements IContentService {
       throw new Error(`Template not found: ${scopedTemplateName}`);
     }
 
-    // Cast template to correct type
-    const typedTemplate = template as ContentTemplate<T>;
-
-    if (!typedTemplate.formatter) {
+    if (!template.formatter) {
       throw new Error(
         `Template ${scopedTemplateName} does not have a formatter for parsing`,
       );
     }
 
     // Use the formatter to parse the content
-    return typedTemplate.formatter.parse(content);
+    return template.formatter.parse(content);
   }
 
   /**

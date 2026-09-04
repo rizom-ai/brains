@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { App, parseInstanceOverrides, resolve } from "@brains/app";
-import { Logger } from "@brains/utils/logger";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { canonicalBrain } from "../../src/model/canonical-brain";
 
 const cwd = process.cwd();
@@ -30,7 +30,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 // MCP owns stdout. Keep every application diagnostic on stderr so the SDK
 // transport sees a clean JSON-RPC stream.
-Logger.getInstance().setUseStderr(true);
+ConsoleLogger.getInstance().setUseStderr(true);
 
 const app = App.create(config);
 let stopping = false;

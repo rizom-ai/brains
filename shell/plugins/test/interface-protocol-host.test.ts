@@ -157,9 +157,9 @@ describe("an interface that hosts a protocol", () => {
       refusal = error;
     }
 
-    expect(refusal).toBeInstanceOf(Error);
-    expect((refusal as Error).message).toContain(
-      "requires the webserver interface",
-    );
+    if (!(refusal instanceof Error)) {
+      throw new Error("Expected the declaration to refuse with an Error");
+    }
+    expect(refusal.message).toContain("requires the webserver interface");
   });
 });

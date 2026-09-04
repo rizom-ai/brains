@@ -10,6 +10,7 @@ import {
   type ProjectionOwnedEntityRequest,
   type ProjectionJsonObject,
   type ProjectionWriteIntent,
+  type EntitySchema,
 } from "@brains/entity-service";
 import type { LoggerContract } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -94,10 +95,18 @@ export interface ProjectionWaveTrigger {
  * structurally, so it passes itself unchanged.
  */
 export interface ProjectionEntityReader {
-  getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
+  // Schema-less and schema-bearing, as everywhere else: a rule that names the
+  // shape it expects passes the schema that proves it.
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
   getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]>;
+  listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
   listEntities<T extends BaseEntity>(
     request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
   ): Promise<T[]>;
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;

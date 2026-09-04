@@ -1,4 +1,5 @@
 import { lookup } from "dns/promises";
+import { isErrnoException } from "@brains/utils/predicates";
 
 /**
  * Validation result for DNS check
@@ -31,7 +32,7 @@ export async function validateDomain(
       return { valid: false, error: "Invalid URL" };
     }
 
-    const code = (error as NodeJS.ErrnoException).code;
+    const code = isErrnoException(error) ? error.code : undefined;
     if (code === "ENOTFOUND") {
       return { valid: false, error: "Domain does not exist" };
     }

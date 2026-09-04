@@ -4,6 +4,7 @@ import {
 } from "@brains/sdk/entities";
 import { parseSummaryBody } from "../lib/summary-body";
 import type { SummaryEntity, SummaryEntry } from "../schemas/summary";
+import { summarySchema } from "../schemas/summary";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
 import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
@@ -31,6 +32,7 @@ export const summaryDataSource: AnyEntityDataSourceDefinition =
     name: "Summary Entity DataSource",
     description: "Fetches and transforms summary entities for rendering",
     entityType: SUMMARY_ENTITY_TYPE,
+    entitySchema: summarySchema,
     defaultSort: [{ field: "updated", direction: "desc" }],
     defaultLimit: 100,
     transform: (entity: SummaryEntity): TransformedSummary => {

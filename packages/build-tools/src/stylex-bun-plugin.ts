@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { transformSync, type PluginItem } from "@babel/core";
+import { transformSync } from "@babel/core";
 import stylexPlugin, { type Rule as StylexRule } from "@stylexjs/babel-plugin";
 
 declare module "@babel/core" {
@@ -55,9 +55,7 @@ export function transformStylexSource(
     },
     plugins: [
       [
-        // @stylexjs/babel-plugin's callable export is narrower than Babel's
-        // PluginItem declaration even though this is its supported API.
-        stylexPlugin as PluginItem,
+        stylexPlugin,
         {
           dev: false,
           runtimeInjection: false,

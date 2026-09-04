@@ -83,6 +83,10 @@ export function createMockAIService(
     canGenerateImages: mock(() => false),
     updateConfig: mock(() => {}),
     getConfig: mock(() => configReturn),
-    getModel: mock(() => ({}) as ReturnType<IAIService["getModel"]>),
+    // Throws rather than returning an empty object asserted into a language
+    // model: a test that reaches for the model should say so.
+    getModel: mock((): ReturnType<IAIService["getModel"]> => {
+      throw new Error("getModel is not stubbed in the mock AI service");
+    }),
   } satisfies IAIService;
 }

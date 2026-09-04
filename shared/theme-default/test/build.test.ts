@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
+import { z } from "@brains/utils/zod";
+
+/** The built and source modules must both export the CSS as a string. */
+const themeModuleSchema = z.object({ default: z.string() });
 
 const packageDir = join(import.meta.dir, "..");
 
@@ -16,10 +20,10 @@ describe("dist build", () => {
     expect(build.exitCode).toBe(0);
 
     const distPath = join(packageDir, "dist", "index.js");
-    const dist = (await import(distPath)) as { default: string };
-    const src = (await import(join(packageDir, "src", "index.ts"))) as {
-      default: string;
-    };
+    const dist = themeModuleSchema.parse(await import(distPath));
+    const src = themeModuleSchema.parse(
+      await import(join(packageDir, "src", "index.ts")),
+    );
 
     expect(dist.default).toBe(src.default);
     // No ESM imports — the CSS is inlined (the CSS body itself may contain

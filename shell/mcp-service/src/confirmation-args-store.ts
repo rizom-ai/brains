@@ -1,8 +1,10 @@
+import { isPlainRecord } from "@brains/utils/predicates";
+
 function stableForConfirmation(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stableForConfirmation);
-  if (typeof value !== "object" || value === null) return value;
+  if (!isPlainRecord(value)) return value;
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
+    Object.entries(value)
       .filter(([, entryValue]) => entryValue !== undefined)
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, entryValue]) => [key, stableForConfirmation(entryValue)]),

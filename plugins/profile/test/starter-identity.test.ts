@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import {
   brainCharacterBodySchema,
   parseMarkdownWithFrontmatter,
+  type BaseEntity,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
@@ -283,17 +284,26 @@ function createIdentityStore(seed: Record<string, string> = {}): {
   const contents = new Map(Object.entries(seed));
   const creates: string[] = [];
   const store: StarterIdentityStore = {
-    getEntity: async <T>({
+    getEntity: async ({
       entityType,
       id,
     }: {
       entityType: string;
       id: string;
-    }): Promise<T | null> => {
+    }): Promise<BaseEntity | null> => {
       const content = contents.get(id);
       return content === undefined
         ? null
-        : ({ id, entityType, content, metadata: {} } as T);
+        : {
+            id,
+            entityType,
+            content,
+            metadata: {},
+            created: "2026-01-01T00:00:00.000Z",
+            updated: "2026-01-01T00:00:00.000Z",
+            visibility: "restricted",
+            contentHash: `hash-${id}`,
+          };
     },
     create: async (entity): Promise<void> => {
       creates.push(entity.entityType);

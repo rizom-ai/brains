@@ -2,6 +2,7 @@ import { defineEntityDataSource } from "@brains/sdk/entities";
 import type { AnyEntityDataSourceDefinition } from "@brains/sdk/entities";
 import { resolveEntityCoverImage } from "@brains/image";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
+import { deckSchema } from "../schemas/deck";
 import { parseDeckData } from "./parse-helpers";
 import { deckViewSchema } from "../templates/deck-view-schema";
 
@@ -18,6 +19,7 @@ export const deckDataSource: AnyEntityDataSourceDefinition =
     name: "Deck Entity DataSource",
     description: "Fetches and transforms deck entities for rendering",
     entityType: "deck",
+    entitySchema: deckSchema,
     defaultSort: [{ field: "publishedAt", direction: "desc" }],
     defaultLimit: 100,
     transform: (entity: DeckEntity): DeckWithData => parseDeckData(entity),

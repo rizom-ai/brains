@@ -5,7 +5,8 @@ import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import agentDiscovery, { type AgentDiscoveryConfigInput } from "../src";
 import { parseAgentEntity } from "../src/lib/agent-content";
 import type { FetchFn } from "../src/lib/fetch-agent-card";
-import type { AgentEntity } from "../src/schemas/agent";
+
+import { agentEntitySchema } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
 import { useNetwork } from "./fixtures/agent-network";
 
@@ -90,7 +91,7 @@ async function installPackage(
     PACKAGE_METADATA,
   );
   const tools: Tool[] = [];
-  for (const plugin of plugins as Plugin[]) {
+  for (const plugin of plugins) {
     tools.push(...(await harness.installPlugin(plugin)).tools);
   }
   toolsByHarness.set(harness, tools);
@@ -352,14 +353,18 @@ describe("agents_scan-directories", () => {
       unverified: 1,
     });
 
-    const sighted = await entityService.getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "vale.example",
-    });
+    const sighted = await entityService.getEntity(
+      {
+        entityType: "agent",
+        id: "vale.example",
+      },
+      agentEntitySchema,
+    );
     expect(sighted?.metadata.status).toBe("discovered");
     expect(sighted?.metadata.name).toBe("Vale");
     expect(sighted?.visibility).toBe("public");
-    const parsed = parseAgentEntity(sighted as AgentEntity);
+    if (!sighted) throw new Error("Expected the sighted agent to exist");
+    const parsed = parseAgentEntity(sighted);
     // Sighting provenance rides on the agent entity.
     expect(parsed.frontmatter.introducedBy).toEqual([
       "kai.brain",
@@ -421,11 +426,15 @@ describe("agents_scan-directories", () => {
     expectSuccess(result);
     expect(result.data).toMatchObject({ created: 0, updated: 1 });
 
-    const sighted = await entityService.getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "vale.example",
-    });
-    const parsed = parseAgentEntity(sighted as AgentEntity);
+    const sighted = await entityService.getEntity(
+      {
+        entityType: "agent",
+        id: "vale.example",
+      },
+      agentEntitySchema,
+    );
+    if (!sighted) throw new Error("Expected the sighted agent to exist");
+    const parsed = parseAgentEntity(sighted);
     expect(parsed.frontmatter.introducedBy).toEqual([
       "kai.brain",
       "lumen.brain",
@@ -466,11 +475,15 @@ describe("agents_scan-directories", () => {
       alreadyKnown: 1,
     });
 
-    const noor = await entityService.getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "noor.brain",
-    });
-    const parsed = parseAgentEntity(noor as AgentEntity);
+    const noor = await entityService.getEntity(
+      {
+        entityType: "agent",
+        id: "noor.brain",
+      },
+      agentEntitySchema,
+    );
+    if (!noor) throw new Error("Expected the scanned agent to exist");
+    const parsed = parseAgentEntity(noor);
     expect(parsed.frontmatter.introducedBy).toBeUndefined();
 
     harness.reset();
@@ -499,21 +512,28 @@ describe("agents_scan-directories", () => {
       }),
     });
 
-    const before = await entityService.getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "vale.example",
-    });
+    const before = await entityService.getEntity(
+      {
+        entityType: "agent",
+        id: "vale.example",
+      },
+      agentEntitySchema,
+    );
     const result = await runTool(harness, "agents_scan-directories");
 
     expectSuccess(result);
     expect(result.data).toMatchObject({ created: 0, updated: 0 });
 
-    const after = await entityService.getEntity<AgentEntity>({
-      entityType: "agent",
-      id: "vale.example",
-    });
+    const after = await entityService.getEntity(
+      {
+        entityType: "agent",
+        id: "vale.example",
+      },
+      agentEntitySchema,
+    );
     expect(after?.updated).toBe(before?.updated ?? "");
-    const parsed = parseAgentEntity(after as AgentEntity);
+    if (!after) throw new Error("Expected the rescanned agent to exist");
+    const parsed = parseAgentEntity(after);
     expect(parsed.frontmatter.introducedBy).toEqual(["kai.brain"]);
 
     harness.reset();

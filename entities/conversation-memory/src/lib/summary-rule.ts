@@ -17,6 +17,7 @@ import {
   type ProjectionJsonObject,
   type ProjectionRule,
   type ProjectionWriteIntent,
+  type EntitySchema,
 } from "@brains/sdk/entities";
 import {
   ACTION_ITEM_ENTITY_TYPE,
@@ -275,30 +276,96 @@ function toSummaryEntity(source: SelectedConversation): SummaryEntity | null {
   };
 }
 
-function toProjectionWrite(entity: BaseEntity): ProjectedMemoryWrite {
+/**
+ * What the capture harness records about a write.
+ *
+ * A write arrives as `EntityInput`, which is not a whole entity — the runtime
+ * fills in the timestamps and hash. Recording only the fields a projection
+ * write is built from is what lets the harness hold them without claiming
+ * they are complete entities.
+ */
+interface CapturedWrite {
+  readonly id: string;
+  readonly entityType: string;
+  readonly content: string;
+  readonly metadata: Record<string, unknown>;
+  readonly visibility?: BaseEntity["visibility"] | undefined;
+}
+
+const capturedVisibilitySchema = z.enum(["public", "shared", "restricted"]);
+
+/**
+ * Narrow a write to the fields a projection write is built from.
+ *
+ * A write arrives as `EntityInput`, whose id and visibility are both optional
+ * and whose visibility is the raw, pre-normalisation form — so both are read
+ * through a check rather than assumed.
+ */
+function captureOf(entity: {
+  readonly id?: string | undefined;
+  readonly entityType: string;
+  readonly content: string;
+  readonly metadata: Record<string, unknown>;
+  readonly visibility?: unknown;
+}): CapturedWrite {
+  const visibility = capturedVisibilitySchema.safeParse(entity.visibility);
+  return {
+    id: entity.id ?? "",
+    entityType: entity.entityType,
+    content: entity.content,
+    metadata: entity.metadata,
+    ...(visibility.success ? { visibility: visibility.data } : {}),
+  };
+}
+
+function toProjectionWrite(entity: CapturedWrite): ProjectedMemoryWrite {
   return {
     id: entity.id,
     entityType: entity.entityType,
     content: entity.content,
     metadata: ProjectionJsonObjectSchema.parse(entity.metadata),
-    visibility: entity.visibility,
+    visibility: entity.visibility ?? "public",
   };
 }
 
 function createCaptureEntityAccess(input: {
   existing: SummaryEntity | null;
-  captured: BaseEntity[];
+  captured: CapturedWrite[];
 }): JobEntityAccess {
   const written = (
-    entity: BaseEntity,
+    entity: CapturedWrite,
   ): { entityId: string; jobId: string; skipped: boolean } => {
     input.captured.push(entity);
     return { entityId: entity.id, jobId: "summary-rule", skipped: false };
   };
+  // The reads carry the contract's overload pair, so the schema-bearing form
+  // parses the stand-in rather than asserting a shape onto it.
+  async function getEntityStub(request: {
+    entityType: string;
+  }): Promise<BaseEntity | null>;
+  async function getEntityStub<T extends BaseEntity>(
+    request: { entityType: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntityStub<T extends BaseEntity>(
+    { entityType }: { entityType: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found = entityType === SUMMARY_ENTITY_TYPE ? input.existing : null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+  async function listEntitiesStub(): Promise<BaseEntity[]>;
+  async function listEntitiesStub<T extends BaseEntity>(
+    request: unknown,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntitiesStub(): Promise<never[]> {
+    return [];
+  }
   return {
-    getEntity: async <T>({ entityType }: { entityType: string }) =>
-      (entityType === SUMMARY_ENTITY_TYPE ? input.existing : null) as T | null,
-    listEntities: async <T>() => [] as T[],
+    getEntity: getEntityStub,
+    listEntities: listEntitiesStub,
     find: async () => null,
     getEntityTypes: () => [
       SUMMARY_ENTITY_TYPE,
@@ -311,20 +378,19 @@ function createCaptureEntityAccess(input: {
     delete: async () => true,
     create: async <T extends BaseEntity>(
       entity: EntityInput<T>,
-    ): Promise<EntityMutationResult> =>
-      written(entity as unknown as BaseEntity),
+    ): Promise<EntityMutationResult> => written(captureOf(entity)),
     update: async <T extends BaseEntity>(
       entity: T,
-    ): Promise<EntityMutationResult> => written(entity),
+    ): Promise<EntityMutationResult> => written(captureOf(entity)),
     createPending: async <T extends BaseEntity>(
       entity: EntityInput<T> & { readonly id: string },
     ): Promise<{ entityId: string; created: boolean }> => {
-      written(entity as unknown as BaseEntity);
+      written(captureOf(entity));
       return { entityId: entity.id, created: true };
     },
     saveProcessed: async <T extends BaseEntity>(
       entity: EntityInput<T> & { readonly id: string },
-    ) => written(entity as unknown as BaseEntity),
+    ) => written(captureOf(entity)),
   };
 }
 
@@ -370,7 +436,7 @@ export async function deriveSummaryProjection(
     // Treat its first post-upgrade change as a full update rather than appending a
     // partial envelope that would make old memory look authoritative.
     const projectorExisting = previousEnvelope ? storedExisting : null;
-    const captured: BaseEntity[] = [];
+    const captured: CapturedWrite[] = [];
     const result = await deriveConversationMemory(
       {
         ai: context.ai,

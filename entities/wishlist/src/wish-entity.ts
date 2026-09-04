@@ -10,7 +10,7 @@ import {
 import {
   wishFrontmatterSchema,
   wishMetadataSchema,
-  type WishEntity,
+  wishSchema,
 } from "./schemas/wish";
 import { findExistingWish } from "./lib/wish-dedup";
 import { sortWishesByDemand } from "./lib/sort-wishes";
@@ -39,8 +39,8 @@ const resolveWish: NonNullable<
   const description = input.content ?? input.prompt ?? "";
   const existing = await findExistingWish(
     {
-      search: (request) => entities.search<WishEntity>(request),
-      getEntity: (request) => entities.getEntity<WishEntity>(request),
+      search: (request) => entities.search(request, wishSchema),
+      getEntity: (request) => entities.getEntity(request, wishSchema),
       similarityThreshold: 0.85,
     },
     { title, description },
@@ -124,10 +124,13 @@ export const wish: EntityDefinition<"wish", typeof wishMetadataSchema> =
     },
     dashboardWidgets: [
       defineEntityDashboardWidget(topWishesWidget, async ({ entities }) => {
-        const wishes = await entities.listEntities<WishEntity>({
-          entityType: "wish",
-          options: { limit: 10 },
-        });
+        const wishes = await entities.listEntities(
+          {
+            entityType: "wish",
+            options: { limit: 10 },
+          },
+          wishSchema,
+        );
         sortWishesByDemand(wishes);
         return {
           items: wishes.map((entry) => ({

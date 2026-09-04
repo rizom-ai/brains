@@ -130,7 +130,9 @@ describe("ImageOptimizer", () => {
       // Files should not have been rewritten
       for (const f of files) {
         const stat = await fs.stat(join(imagesDir, f));
-        expect(stat.mtimeMs).toBe(mtimes.get(f) as number);
+        const recorded = mtimes.get(f);
+        if (recorded === undefined) throw new Error(`No mtime recorded: ${f}`);
+        expect(stat.mtimeMs).toBe(recorded);
       }
     });
 

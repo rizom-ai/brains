@@ -7,6 +7,7 @@ import type {
   PaginationInfo,
 } from "@brains/sdk/entities";
 import type { Project, ProjectContent } from "../schemas/project";
+import { projectSchema } from "../schemas/project";
 import {
   projectFrontmatterSchema,
   projectWithDataSchema,
@@ -61,6 +62,7 @@ export const projectDataSource: EntityDataSourceDefinition<
   name: "Portfolio Project DataSource",
   description: "Fetches and transforms project entities for rendering",
   entityType: "project",
+  entitySchema: projectSchema,
   defaultSort: [
     { field: "year", direction: "desc" },
     { field: "title", direction: "asc" },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { AuthPrincipal } from "@brains/sdk/interfaces";
 import { createBrowserAccess } from "../src/browser-access";
+import type { Conversation } from "@brains/plugins";
 
 /**
  * The two questions every web-chat route asks first.
@@ -14,16 +15,18 @@ function principal(overrides: Partial<AuthPrincipal> = {}): AuthPrincipal {
   return {
     userId: "user-1",
     personId: "person-1",
+    displayName: "Test User",
+    role: "trusted",
     permissionLevel: "trusted",
     status: "active",
     isAnchor: false,
     ...overrides,
-  } as AuthPrincipal;
+  };
 }
 
 function readerFor(input: {
   principal?: AuthPrincipal | undefined;
-  conversation?: unknown;
+  conversation?: Conversation | null | undefined;
   started?: string[];
 }): ReturnType<typeof createBrowserAccess> {
   return createBrowserAccess({
@@ -31,11 +34,11 @@ function readerFor(input: {
     createAuthLoginResponse: () => new Response("login", { status: 401 }),
     conversations: {
       get: async () => input.conversation ?? null,
-      start: async (request: { sessionId: string }) => {
+      start: async (request) => {
         input.started?.push(request.sessionId);
         return request.sessionId;
       },
-    } as never,
+    },
   });
 }
 

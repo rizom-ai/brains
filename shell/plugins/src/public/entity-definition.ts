@@ -265,3 +265,16 @@ export function frontmatterInContent<TMetadata extends Record<string, unknown>>(
     },
   };
 }
+
+/**
+ * The parse schema a declaration implies.
+ *
+ * A package that reads its own entities through the schema-bearing reads
+ * needs a schema to hand them, and its definition already carries every
+ * piece of one. Deriving it here is what keeps a package from maintaining a
+ * second, hand-written schema beside the declaration that owns the shape.
+ */
+export {
+  definitionEntitySchema,
+  parseDefinitionEntity,
+} from "../entity/entity-schema";

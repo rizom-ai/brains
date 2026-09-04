@@ -5,6 +5,7 @@ import type {
 } from "@brains/sdk/entities";
 import { parseLinkContent } from "../lib/link-content";
 import type { LinkSummary } from "../templates/link-list/schema";
+import { linkSchema } from "../schemas/link";
 
 function toSummary(entity: BaseEntity): LinkSummary {
   const { frontmatter, summary } = parseLinkContent(entity.content);
@@ -28,6 +29,7 @@ export const linksDataSource: AnyEntityDataSourceDefinition =
     name: "Links Entity DataSource",
     description: "Fetches and transforms link entities for rendering",
     entityType: "link",
+    entitySchema: linkSchema,
     defaultSort: [{ field: "capturedAt", direction: "desc" }],
     defaultLimit: 1000,
     lookupField: "id",

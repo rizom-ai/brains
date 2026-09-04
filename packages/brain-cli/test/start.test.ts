@@ -10,6 +10,10 @@ import {
   setCanonicalDefinition,
 } from "../src/lib/definition-registry";
 import { resetBootFn, setBootFn, type BootedBrain } from "../src/lib/boot";
+import type {
+  SignalProcess,
+  SpawnedProcess,
+} from "../src/lib/spawn-bun-runner";
 
 const definition = {
   name: "brain",
@@ -65,27 +69,32 @@ describe("start subprocess lifecycle", () => {
   it("forwards SIGINT to the spawned runner and cleans up listeners", async () => {
     const appDir = createTestBrainDir();
 
-    const fakeProcess = new EventEmitter() as EventEmitter & {
-      env: NodeJS.ProcessEnv;
-      kill: (pid: number, signal?: NodeJS.Signals) => boolean;
-    };
-    fakeProcess.env = process.env;
-    fakeProcess.kill = (): boolean => true;
+    // Object.assign gives the intersection its own type, so the emitter
+    // genuinely carries these members instead of being asserted to.
+    const fakeProcess: EventEmitter & SignalProcess = Object.assign(
+      new EventEmitter(),
+      {
+        env: process.env,
+        kill: (): boolean => true,
+      },
+    );
 
-    const child = new EventEmitter() as EventEmitter & {
-      kill: ReturnType<typeof mock>;
-      exitCode: number | null;
-      killed: boolean;
-    };
-    child.exitCode = null;
-    child.killed = false;
-    child.kill = mock((signal?: string) => {
+    const child: EventEmitter &
+      SpawnedProcess & { kill: ReturnType<typeof mock> } = Object.assign(
+      new EventEmitter(),
+      {
+        exitCode: null,
+        killed: false,
+        kill: mock((): boolean => true),
+      },
+    );
+    child.kill = mock((signal?: number | NodeJS.Signals) => {
       child.killed = true;
       expect(signal).toBe("SIGINT");
       return true;
     });
 
-    const spawnImpl = mock(() => child as never);
+    const spawnImpl = mock((): SpawnedProcess => child);
 
     try {
       const resultPromise = start(
@@ -160,19 +169,24 @@ describe("builtin process supervision", () => {
   });
 
   it("spawns web then worker children instead of booting the parent runtime", async () => {
-    const fakeProcess = new EventEmitter() as EventEmitter & {
-      env: NodeJS.ProcessEnv;
-      kill: (pid: number, signal?: NodeJS.Signals) => boolean;
-    };
-    fakeProcess.env = process.env;
-    fakeProcess.kill = (): boolean => true;
-    const child = new EventEmitter() as EventEmitter & {
-      kill: ReturnType<typeof mock>;
-      exitCode: number | null;
-      killed: boolean;
-    };
-    child.exitCode = null;
-    child.killed = false;
+    // Object.assign gives the intersection its own type, so the emitter
+    // genuinely carries these members instead of being asserted to.
+    const fakeProcess: EventEmitter & SignalProcess = Object.assign(
+      new EventEmitter(),
+      {
+        env: process.env,
+        kill: (): boolean => true,
+      },
+    );
+    const child: EventEmitter &
+      SpawnedProcess & { kill: ReturnType<typeof mock> } = Object.assign(
+      new EventEmitter(),
+      {
+        exitCode: null,
+        killed: false,
+        kill: mock((): boolean => true),
+      },
+    );
     child.kill = mock(() => true);
     const workerChild = Object.assign(new EventEmitter(), {
       kill: mock((_signal?: number | NodeJS.Signals) => true),
@@ -375,19 +389,21 @@ describe("resolveRunnerType", () => {
 
   it("should forward --startup-check to subprocess runners", async () => {
     const appDir = createTestBrainDir();
-    const child = new EventEmitter() as EventEmitter & {
-      kill: ReturnType<typeof mock>;
-      exitCode: number | null;
-      killed: boolean;
-    };
-    child.exitCode = null;
-    child.killed = false;
+    const child: EventEmitter &
+      SpawnedProcess & { kill: ReturnType<typeof mock> } = Object.assign(
+      new EventEmitter(),
+      {
+        exitCode: null,
+        killed: false,
+        kill: mock((): boolean => true),
+      },
+    );
     child.kill = mock(() => true);
 
     let spawnedArgs: string[] = [];
     const spawnImpl = mock((_command: string, args: string[]) => {
       spawnedArgs = args;
-      return child as never;
+      return child;
     });
 
     try {

@@ -51,10 +51,7 @@ const TOOL_STATES: readonly ToolPart["state"][] = [
 const dataRecordSchema = z.record(z.string(), z.unknown());
 
 function narrowToolState(value: string | undefined): ToolPart["state"] {
-  if (value && (TOOL_STATES as readonly string[]).includes(value)) {
-    return value as ToolPart["state"];
-  }
-  return "input-available";
+  return TOOL_STATES.find((state) => state === value) ?? "input-available";
 }
 
 function getRecordValue(data: unknown, key: string): unknown {

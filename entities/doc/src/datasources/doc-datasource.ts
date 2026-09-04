@@ -8,6 +8,7 @@ import type {
   PaginationInfo,
 } from "@brains/sdk/entities";
 import type { Doc } from "../schemas/doc";
+import { docSchema } from "../schemas/doc";
 import {
   docFrontmatterSchema,
   docWithDataSchema,
@@ -49,6 +50,7 @@ export const docDataSource: AnyEntityDataSourceDefinition =
     name: "Docs Entity DataSource",
     description: "Fetches and transforms doc entities for rendering",
     entityType: "doc",
+    entitySchema: docSchema,
     defaultSort: [
       { field: "order", direction: "asc" },
       { field: "section", direction: "asc" },

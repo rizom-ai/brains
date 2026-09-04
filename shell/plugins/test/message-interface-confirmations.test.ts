@@ -59,7 +59,7 @@ function talkback(
       recipient: z.string(),
     },
     listen: async ({ messages, signal, health }) => {
-      receivers.push(messages as Receiver);
+      receivers.push(messages);
       health.ready();
       await new Promise<void>((resolve) => {
         signal.addEventListener("abort", () => resolve(), { once: true });

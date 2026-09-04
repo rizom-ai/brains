@@ -15,6 +15,6 @@ export interface ContentGenerationConfig {
   interfacePermissionGrant?: UserPermissionLevel;
 }
 
-export type GenerateContentFunction = <T = unknown>(
+export type GenerateContentFunction = (
   config: ContentGenerationConfig,
-) => Promise<T>;
+) => Promise<unknown>;

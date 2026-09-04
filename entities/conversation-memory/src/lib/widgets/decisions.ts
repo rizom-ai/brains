@@ -7,6 +7,7 @@ import {
   type JobEntityAccess,
 } from "@brains/sdk/entities";
 import type { DecisionEntity } from "../../schemas/conversation-memory";
+import { decisionSchema } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatTimeRange } from "./format";
 
@@ -87,9 +88,12 @@ function entityBody(entity: DecisionEntity): string {
 export async function buildDecisionsWidgetData(
   entities: JobEntityAccess,
 ): Promise<DecisionsWidgetData> {
-  const items = await entities.listEntities<DecisionEntity>({
-    entityType: DECISION_ENTITY_TYPE,
-  });
+  const items = await entities.listEntities(
+    {
+      entityType: DECISION_ENTITY_TYPE,
+    },
+    decisionSchema,
+  );
 
   const sorted = [...items].sort((a, b) => {
     const statusDiff =

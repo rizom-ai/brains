@@ -6,6 +6,7 @@ import {
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { captureChecks, installAgentDiscovery } from "./fixtures/agent-network";
+import { z } from "@brains/utils/zod";
 
 describe("what the package registers", () => {
   it("should not auto-create agents from a2a call completion events", async () => {
@@ -93,11 +94,13 @@ describe("what the package registers", () => {
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as {
-        id: string;
-        group: string;
-        rendererName: string;
-      };
+      const payload = z
+        .object({
+          id: z.string(),
+          group: z.string(),
+          rendererName: z.string(),
+        })
+        .parse(message.payload);
       registrations.push({
         id: payload.id,
         group: payload.group,

@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  ProgressReporter,
+  CallbackProgressReporter,
   type ProgressNotification,
+  type ProgressReporter,
 } from "@brains/utils/progress";
 import type { StockPhotoEntityWriter } from "../src/lib/set-cover-image";
 import { SelectPhotoJobHandler } from "../src/handlers/select-photo-handler";
@@ -54,7 +55,7 @@ function createEntityService(
 }
 
 function createProgressReporter(): ProgressReporter {
-  const reporter = ProgressReporter.from(
+  const reporter = CallbackProgressReporter.from(
     async (_notification: ProgressNotification) => {},
   );
   if (!reporter) {

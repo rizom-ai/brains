@@ -1,6 +1,22 @@
 import { Database } from "bun:sqlite";
 import { Buffer } from "node:buffer";
 import { appendFileSync } from "node:fs";
+import { isPlainRecord } from "@brains/utils/predicates";
+
+/**
+ * The slice of `@libsql/client` this script uses.
+ *
+ * Declared here because the import is dynamic — the package is optional, and
+ * only the libsql quick-check driver needs it.
+ */
+interface LibsqlModule {
+  createClient(options: { url: string }): {
+    execute(sql: string): Promise<{
+      rows: Array<Record<string | number, unknown>>;
+    }>;
+    close(): void;
+  };
+}
 
 export const DEFAULT_PREDEPLOY_BACKUP_RETENTION_COUNT = 5;
 export const PREDEPLOY_BACKUP_TOOL_VERSION = "brains-predeploy-backup-v1";
@@ -157,10 +173,8 @@ async function quickCheck(
   if (driver === "bun") {
     const database = new Database(path, { readonly: true });
     try {
-      const row = database.query("PRAGMA quick_check").get() as Record<
-        string,
-        unknown
-      > | null;
+      const result: unknown = database.query("PRAGMA quick_check").get();
+      const row = isPlainRecord(result) ? result : null;
       return String(row?.["quick_check"] ?? row?.["0"] ?? "");
     } finally {
       database.close(false);
@@ -168,14 +182,10 @@ async function quickCheck(
   }
 
   const moduleName = "@libsql/client";
-  const libsql = (await import(moduleName)) as {
-    createClient(options: { url: string }): {
-      execute(sql: string): Promise<{
-        rows: Array<Record<string | number, unknown>>;
-      }>;
-      close(): void;
-    };
-  };
+  // Annotated rather than asserted: a dynamic import of an optional dependency
+  // resolves to `any`, so naming the slice this script uses is a checked
+  // assignment instead of a claim about the whole module.
+  const libsql: LibsqlModule = await import(moduleName);
   const client = libsql.createClient({ url: `file:${path}` });
   try {
     const result = await client.execute("PRAGMA quick_check");
@@ -198,9 +208,10 @@ function vectorDigestDatabase(database: Database): {
   const counts: Record<string, number> = {};
   for (const [table, order] of tables) {
     hasher.update(`table:${table}\n`);
-    const rows = database
+    const selected: unknown[] = database
       .query(`SELECT * FROM ${table} ORDER BY ${order}`)
-      .all() as Array<Record<string, unknown>>;
+      .all();
+    const rows = selected.filter(isPlainRecord);
     counts[table] = rows.length;
     for (const row of rows) {
       for (const [key, value] of Object.entries(row)) {

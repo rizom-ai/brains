@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import type { BlogPost } from "../src/schemas/blog-post";
+
+import { blogPostSchema } from "../src/schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
   blogPostMetadataSchema,
 } from "../src/schemas/blog-post";
 import type { EntityAdapter } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 import {
   createPluginHarness,
@@ -85,7 +87,7 @@ describe("blog package", () => {
   // when the package converted. The behaviour is real; it belongs to
   // whichever adapter the registry hands out.
   describe("the post markdown codec", () => {
-    let adapter: EntityAdapter<BlogPost>;
+    let adapter: EntityAdapter<BaseEntity>;
     let harness: ReturnType<typeof createPluginHarness>;
 
     beforeEach(async () => {
@@ -93,7 +95,7 @@ describe("blog package", () => {
         logger: createSilentLogger("blog-codec-test"),
       });
       await harness.installPlugin(postEntityPlugin());
-      adapter = harness.getEntityRegistry().getAdapter<BlogPost>("post");
+      adapter = harness.getEntityRegistry().getAdapter("post");
     });
 
     afterEach(() => {
@@ -186,11 +188,15 @@ describe("blog package", () => {
       }
       // A stored post holds the full markdown, frontmatter included — that
       // is what createPostContent writes and what the entity service keeps.
-      const entity = createTestEntity<BlogPost>("post", {
-        id: "round-trip",
-        content: original,
-        metadata: parsed.metadata,
-      });
+      // The codec returns partial metadata, so the post's own schema is what
+      // proves the assembled record before the adapter writes it back.
+      const entity = blogPostSchema.parse(
+        createTestEntity("post", {
+          id: "round-trip",
+          content: original,
+          metadata: parsed.metadata,
+        }),
+      );
       const written = adapter.toMarkdown(entity);
 
       expect(adapter.fromMarkdown(written).metadata).toEqual(parsed.metadata);

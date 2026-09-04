@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mockFetch } from "@brains/test-utils";
+import { caughtError, mockFetch } from "@brains/test-utils";
 import { CloudflareClient } from "../src/lib/cloudflare-client";
 import type { CloudflareConfig } from "../src/config";
 
@@ -163,7 +163,7 @@ describe("CloudflareClient", () => {
           endDate: "2025-01-31",
         });
       } catch (e) {
-        error = e as Error;
+        error = caughtError(e);
       }
 
       expect(error).not.toBeNull();
@@ -190,7 +190,7 @@ describe("CloudflareClient", () => {
           endDate: "2025-01-31",
         });
       } catch (e) {
-        error = e as Error;
+        error = caughtError(e);
       }
 
       expect(error).not.toBeNull();

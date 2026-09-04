@@ -1349,9 +1349,9 @@ describe("PlaybooksPlugin", () => {
     expect(materials.join("\n")).toContain(
       '"contentPreview":"Rough idea worth remembering."',
     );
-    const visibleEvidenceData = (
-      data.activeRun.evidence[0] as { data?: Record<string, unknown> }
-    ).data;
+    const visibleEvidenceData = z
+      .object({ data: z.record(z.string(), z.unknown()).optional() })
+      .parse(data.activeRun.evidence[0]).data;
     expect(visibleEvidenceData).toEqual({
       entityType: "note",
       entityId: "seed-note",
@@ -1557,13 +1557,10 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-corrupt-snapshot");
 
-    const store = harness
-      .getMockShell()
-      .getRuntimeState()
-      .scoped({
-        namespace: "brains.playbooks.playbooks.runs",
-        schema: playbookRunSchema,
-      });
+    const store = harness.getMockShell().getRuntimeState().scoped({
+      namespace: "brains.playbooks.playbooks.runs",
+      schema: playbookRunSchema,
+    });
     const stored = await store.get(runId);
     if (!stored) throw new Error("Expected stored run");
     await store.set(runId, { ...stored, snapshot: { bogus: true } });
@@ -1583,13 +1580,10 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-drifted-snapshot");
 
-    const store = harness
-      .getMockShell()
-      .getRuntimeState()
-      .scoped({
-        namespace: "brains.playbooks.playbooks.runs",
-        schema: playbookRunSchema,
-      });
+    const store = harness.getMockShell().getRuntimeState().scoped({
+      namespace: "brains.playbooks.playbooks.runs",
+      schema: playbookRunSchema,
+    });
     const stored = await store.get(runId);
     if (!stored) throw new Error("Expected stored run");
     await store.set(runId, {

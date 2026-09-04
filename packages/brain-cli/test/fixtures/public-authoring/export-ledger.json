@@ -354,6 +354,8 @@
         "EntityPublishDeclaration",
         "EntityQueryReader",
         "EntityReactionContext",
+        "EntityReads",
+        "EntitySchema",
         "EntitySemanticReader",
         "FeedItem",
         "fetchSiteInfo",
@@ -404,6 +406,8 @@
         "ProjectionWriteIntent",
         "ProjectSemanticSpaceRequest",
         "PublishMediaData",
+        "definitionEntitySchema",
+        "parseDefinitionEntity",
         "reconcileEntities",
         "ResolvedRuntimeUpload",
         "RuntimeStateScopeOptions",
@@ -741,7 +745,7 @@
         "siteDefinitionSchema",
         "z"
       ],
-      "advanced-with-consumer": [],
+      "advanced-with-consumer": ["siteDefinitionOverridesSchema"],
       "internal/removable": [
         "RizomBrandSuffix",
         "RizomFooterTagline",

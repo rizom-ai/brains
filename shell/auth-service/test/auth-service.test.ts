@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import type { ChannelDescriptor } from "@brains/plugins";
 import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { PermissionService } from "@brains/templates";
-import { Logger, LogLevel } from "@brains/utils/logger";
+import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { NOTIFICATIONS_SEND } from "@brains/contracts";
 import {
@@ -487,7 +487,7 @@ describe("AuthService", () => {
     const storageDir = await tempStorageDir();
     const firstHarness = new PluginTestHarness<AuthServicePlugin>({
       domain: "brain.example.com",
-      logger: Logger.createFresh({ level: LogLevel.ERROR }),
+      logger: ConsoleLogger.createFresh({ level: LogLevel.ERROR }),
     });
     firstHarness.setPermissionService(
       new PermissionService({
@@ -517,7 +517,7 @@ describe("AuthService", () => {
 
     const restartHarness = new PluginTestHarness<AuthServicePlugin>({
       domain: "brain.example.com",
-      logger: Logger.createFresh({ level: LogLevel.ERROR }),
+      logger: ConsoleLogger.createFresh({ level: LogLevel.ERROR }),
     });
     restartHarness.setPermissionService(
       new PermissionService({ admins: ["discord:replacement"] }),
@@ -616,7 +616,7 @@ describe("AuthService", () => {
     const service = new AuthService({
       storageDir,
       issuer: "https://brain.example.com",
-      logger: Logger.createFresh({ level: LogLevel.WARN, logFile }),
+      logger: ConsoleLogger.createFresh({ level: LogLevel.WARN, logFile }),
     });
 
     await service.initialize();
@@ -809,7 +809,18 @@ describe("AuthService", () => {
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: "{}",
+          // The endpoint validates the credential envelope before verifying it,
+          // so this flow test posts a well-formed one.
+          body: JSON.stringify({
+            id: "cred-id",
+            rawId: "cred-id",
+            type: "public-key",
+            clientExtensionResults: {},
+            response: {
+              clientDataJSON: "client-data",
+              attestationObject: "attestation",
+            },
+          }),
         },
       );
 

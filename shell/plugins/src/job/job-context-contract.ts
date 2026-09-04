@@ -3,6 +3,7 @@ import type {
   ContentVisibility,
   EntityInput,
   EntityMutationResult,
+  EntitySchema,
   ListOptions,
   SearchOptions,
   SearchResult,
@@ -66,10 +67,22 @@ export interface EntityConversationReader {
  * declares it — a cycle.
  */
 export interface JobEntityAccess {
-  listEntities<T extends BaseEntity>(request: {
+  /**
+   * Entities of one type. Without a schema these come back as the registered
+   * `BaseEntity` view; pass the schema that proves the shape to get a parsed
+   * `T` instead of a caller-chosen generic nothing checked.
+   */
+  listEntities(request: {
     entityType: string;
     options?: ListOptions;
-  }): Promise<T[]>;
+  }): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      options?: ListOptions;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
   /**
    * Counts per entity type. A read, so ownership does not restrict it; the
    * visibility scope does, and it fails closed to public-only when omitted.
@@ -79,7 +92,8 @@ export interface JobEntityAccess {
   getEntityCounts(
     visibilityScope?: ContentVisibility,
   ): Promise<Array<{ entityType: string; count: number }>>;
-  getEntity<T extends BaseEntity>(request: {
+  /** One entity by id. Schema-less and schema-bearing, as `listEntities`. */
+  getEntity(request: {
     entityType: string;
     id: string;
     /**
@@ -89,7 +103,15 @@ export interface JobEntityAccess {
      * none and writes a second one beside it.
      */
     visibilityScope?: ContentVisibility | undefined;
-  }): Promise<T | null>;
+  }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
   /**
    * The entity someone named, by id, slug, or title.
    *
@@ -98,15 +120,24 @@ export interface JobEntityAccess {
    * that has to honour a human-supplied identifier reaches past this surface
    * for a resolver — which is how `image` came to import one from the shell.
    */
+  find(entityType: string, identifier: string): Promise<BaseEntity | null>;
   find<T extends BaseEntity>(
     entityType: string,
     identifier: string,
+    schema: EntitySchema<T>,
   ): Promise<T | null>;
   getEntityTypes(): string[];
-  search<T extends BaseEntity = BaseEntity>(request: {
+  search(request: {
     query: string;
     options?: SearchOptions;
-  }): Promise<SearchResult<T>[]>;
+  }): Promise<SearchResult<BaseEntity>[]>;
+  search<T extends BaseEntity>(
+    request: {
+      query: string;
+      options?: SearchOptions;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
   /**
    * Typed read: the entity comes back parsed to the definition's own shape,
    * rather than as a `BaseEntity` the caller has to narrow itself.

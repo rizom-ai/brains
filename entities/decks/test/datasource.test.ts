@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { deckDataSource } from "../src/datasources/deck-datasource";
 import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import type { DeckEntity } from "../src/schemas/deck";
+import { deckSchema } from "../src/schemas/deck";
 import type {
   BaseEntity,
   IEntityService,
@@ -123,12 +124,15 @@ describe("DeckDataSource", () => {
 
       await datasource.fetch({ entityType: "deck" }, listSchema, mockContext);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "deck",
-        options: expect.objectContaining({
-          sortFields: [{ field: "publishedAt", direction: "desc" }],
-        }),
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "deck",
+          options: expect.objectContaining({
+            sortFields: [{ field: "publishedAt", direction: "desc" }],
+          }),
+        },
+        deckSchema,
+      );
     });
 
     it("should handle empty deck list", async () => {

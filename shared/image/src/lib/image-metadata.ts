@@ -3,7 +3,6 @@ import {
   detectImageFormat,
   parseDataUrl,
 } from "./image-utils";
-import type { ImageFormat } from "../schemas/image";
 
 /**
  * What an image's bytes say about themselves.
@@ -25,7 +24,7 @@ export function imageMetadataFor(
   const { format, base64 } = parseDataUrl(dataUrl);
   const dimensions = detectImageDimensions(base64);
   return {
-    format: (detectImageFormat(base64) ?? format) as ImageFormat,
+    format: detectImageFormat(base64) ?? format,
     width: dimensions?.width ?? 0,
     height: dimensions?.height ?? 0,
     ...extra,

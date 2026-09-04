@@ -19,11 +19,13 @@ import { z } from "@brains/utils/zod";
  * package stewards them.
  */
 export interface StarterIdentityStore {
-  getEntity<T extends BaseEntity>(request: {
+  // Only `content` is read from what comes back, so the widened read is the
+  // honest one: there is no narrower shape here to prove.
+  getEntity(request: {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
-  }): Promise<T | null>;
+  }): Promise<BaseEntity | null>;
   create(entity: {
     id: string;
     entityType: string;

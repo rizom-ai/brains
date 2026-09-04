@@ -5,6 +5,7 @@ import {
   createMockServicePluginContext,
   createMockProgressReporter,
   createMockEntityService,
+  genericSpy,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
 
@@ -127,8 +128,10 @@ describe("DirectoryImportJobHandler", () => {
         ): Promise<TResult> => mutation(),
       );
       const settleChild = mock(async () => true);
+      // mock() erases type parameters, so the generic member cannot take the
+      // spy directly; genericSpy names that as the only reason.
       entityService.runDurableBulkMutationChild =
-        runChild as typeof entityService.runDurableBulkMutationChild;
+        genericSpy<typeof entityService.runDurableBulkMutationChild>(runChild);
       entityService.settleDurableBulkMutationChild = settleChild;
       const context = createMockServicePluginContext({
         entityService,

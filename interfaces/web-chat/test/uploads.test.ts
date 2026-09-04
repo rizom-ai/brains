@@ -200,12 +200,16 @@ describe("web chat upload protocol", () => {
       }
       if (input === uploadEndpoint) {
         const body = init?.body;
-        expect(body).toBeInstanceOf(FormData);
-        const uploadFile = (body as FormData).get("file");
-        expect(uploadFile).toBeInstanceOf(File);
-        expect((uploadFile as File).name).toBe("notes.md");
-        expect((uploadFile as File).type).toBe("text/markdown");
-        expect(await (uploadFile as File).text()).toBe("# Notes");
+        if (!(body instanceof FormData)) {
+          throw new Error("Expected the upload body to be FormData");
+        }
+        const uploadFile = body.get("file");
+        if (!(uploadFile instanceof File)) {
+          throw new Error("Expected a file part named 'file'");
+        }
+        expect(uploadFile.name).toBe("notes.md");
+        expect(uploadFile.type).toBe("text/markdown");
+        expect(await uploadFile.text()).toBe("# Notes");
         return Response.json(makeUploadResponse(), { status: 201 });
       }
       return new Response("not found", { status: 404 });

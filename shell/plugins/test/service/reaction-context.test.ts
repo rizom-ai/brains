@@ -6,7 +6,6 @@ import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
 } from "../../src";
-import type { Plugin } from "../../src";
 
 const noteSchema = z.object({ title: z.string() });
 
@@ -34,7 +33,7 @@ describe("the context a declared reaction runs in", () => {
         version: "0.1.0",
       },
     );
-    for (const plugin of plugins as Plugin[]) {
+    for (const plugin of plugins) {
       await harness.installPlugin(plugin);
     }
 

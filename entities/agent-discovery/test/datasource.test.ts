@@ -3,6 +3,7 @@ import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import { fetchable, type FetchableDataSource } from "@brains/test-utils";
 import { agentDataSource } from "../src/datasources/agent-datasource";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
+import { agentEntitySchema } from "../src/schemas/agent";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -65,6 +66,9 @@ describe("agent data source", () => {
     const listSchema = z.object({
       agents: z.array(z.any()),
       pagination: z.any().nullable(),
+      // Read by the pre-enrichment assertion below, so it belongs in the
+      // schema that checks the datasource output rather than in a cast.
+      baseUrl: z.string().nullable(),
     });
 
     it("accepts datasource output before site URL enrichment", async () => {
@@ -85,7 +89,7 @@ describe("agent data source", () => {
       expect(parsed.agents).toHaveLength(1);
       expect(parsed.agents[0]?.url).toBeNull();
       expect(parsed.agents[0]?.typeLabel).toBeNull();
-      expect((result as { baseUrl: unknown }).baseUrl).toBeNull();
+      expect(parsed.baseUrl).toBeNull();
       expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
     });
 
@@ -115,12 +119,15 @@ describe("agent data source", () => {
 
       await datasource.fetch({ entityType: "agent" }, listSchema, mockContext);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "agent",
-        options: expect.objectContaining({
-          sortFields: [{ field: "discoveredAt", direction: "desc" }],
-        }),
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "agent",
+          options: expect.objectContaining({
+            sortFields: [{ field: "discoveredAt", direction: "desc" }],
+          }),
+        },
+        agentEntitySchema,
+      );
     });
 
     it("should filter by status at the entity-service level", async () => {
@@ -133,12 +140,15 @@ describe("agent data source", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
-        entityType: "agent",
-        options: expect.objectContaining({
-          filter: { metadata: { status: "approved" } },
-        }),
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "agent",
+          options: expect.objectContaining({
+            filter: { metadata: { status: "approved" } },
+          }),
+        },
+        agentEntitySchema,
+      );
     });
   });
 

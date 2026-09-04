@@ -179,7 +179,7 @@ export function parseConversationMessageMetadata(
 ): Record<string, unknown> | null {
   if (typeof metadata === "string") {
     try {
-      const parsed = JSON.parse(metadata) as unknown;
+      const parsed: unknown = JSON.parse(metadata);
       return isRecord(parsed) ? parsed : null;
     } catch {
       return null;

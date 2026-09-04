@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { JobHandler, Plugin } from "@brains/plugins";
+import type { JobHandler } from "@brains/plugins";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
@@ -10,6 +10,7 @@ import {
 import { imageMetadataSchema } from "@brains/image";
 import type { PublishMediaData } from "@brains/contracts";
 import images from "../src";
+import type { EntitySchema } from "@brains/sdk/entities";
 
 const PACKAGE_METADATA = { name: "@brains/image-plugin", version: "0.1.0" };
 
@@ -30,7 +31,7 @@ async function install(
     canGenerateImages?: boolean;
     generateObject?: <T>(
       prompt: string,
-      schema: unknown,
+      schema: EntitySchema<T>,
     ) => Promise<{ object: T }>;
     resolveAttachment?: () => Promise<PublishMediaData | undefined>;
   } = {},
@@ -70,7 +71,7 @@ async function install(
     {},
     PACKAGE_METADATA,
   );
-  for (const plugin of plugins as Plugin[]) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await harness.installPlugin(plugin);
 
   const handler = (job: "generate" | "render"): JobHandler => {
     const found = handlers.get(`@brains/image-plugin:image:${job}`);
@@ -175,10 +176,16 @@ describe("generating an image", () => {
 
   it("distils a concept from the target's own words before drawing", async () => {
     const { harness, run, prompts } = await install({
-      generateObject: async <T>(): Promise<{ object: T }> =>
-        ({ object: { imagePrompt: "A rope bridge between two cliffs" } }) as {
-          object: T;
-        },
+      // Parsed through the caller's schema, which is what proves the stubbed
+      // object is the shape the job asked for.
+      generateObject: async <T>(
+        _prompt: string,
+        schema: EntitySchema<T>,
+      ): Promise<{ object: T }> => ({
+        object: schema.parse({
+          imagePrompt: "A rope bridge between two cliffs",
+        }),
+      }),
     });
     harness.addEntities([pendingImage("cover-launch-post")]);
 
@@ -219,9 +226,12 @@ describe("generating an image", () => {
   it("does not distil from an image handed over as content", async () => {
     let distilled = 0;
     const { harness, run } = await install({
-      generateObject: async <T>(): Promise<{ object: T }> => {
+      generateObject: async <T>(
+        _prompt: string,
+        schema: EntitySchema<T>,
+      ): Promise<{ object: T }> => {
         distilled += 1;
-        return { object: { imagePrompt: "unused" } } as { object: T };
+        return { object: schema.parse({ imagePrompt: "unused" }) };
       },
     });
     harness.addEntities([pendingImage("a-lighthouse-in-fog")]);

@@ -7,6 +7,7 @@ import {
   type JobEntityAccess,
 } from "@brains/sdk/entities";
 import type { SummaryEntity } from "../../schemas/summary";
+import { summarySchema } from "../../schemas/summary";
 import type { SummaryConfig } from "../../schemas/summary-config";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
 import { SummarySourceReader } from "../summary-source-reader";
@@ -105,12 +106,15 @@ export async function buildSummaryCoverageData(params: {
 }): Promise<SummaryDashboardData> {
   const { entities, conversations: reader, spaces, config } = params;
 
-  const summaries = await entities.listEntities<SummaryEntity>({
-    entityType: SUMMARY_ENTITY_TYPE,
-    options: {
-      sortFields: [{ field: "updated", direction: "desc" }],
+  const summaries = await entities.listEntities(
+    {
+      entityType: SUMMARY_ENTITY_TYPE,
+      options: {
+        sortFields: [{ field: "updated", direction: "desc" }],
+      },
     },
-  });
+    summarySchema,
+  );
 
   if (spaces.length === 0) {
     return {

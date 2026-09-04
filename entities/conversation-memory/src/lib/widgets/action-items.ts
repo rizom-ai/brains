@@ -7,6 +7,7 @@ import {
   type JobEntityAccess,
 } from "@brains/sdk/entities";
 import type { ActionItemEntity } from "../../schemas/conversation-memory";
+import { actionItemSchema } from "../../schemas/conversation-memory";
 import { ACTION_ITEM_ENTITY_TYPE } from "../constants";
 import { channelLabel, formatAge } from "./format";
 
@@ -113,9 +114,12 @@ export async function buildActionItemsWidgetData(
   entities: JobEntityAccess,
   now: Date = new Date(),
 ): Promise<ActionItemsWidgetData> {
-  const items = await entities.listEntities<ActionItemEntity>({
-    entityType: ACTION_ITEM_ENTITY_TYPE,
-  });
+  const items = await entities.listEntities(
+    {
+      entityType: ACTION_ITEM_ENTITY_TYPE,
+    },
+    actionItemSchema,
+  );
 
   const sorted = [...items].sort((a, b) => {
     const statusDiff =

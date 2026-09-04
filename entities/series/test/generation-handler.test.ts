@@ -64,6 +64,7 @@ slug: systems-series
         templateName: "@brains/series:series:description",
         representedIdentity: "none",
       }),
+      expect.anything(),
     );
   });
 });

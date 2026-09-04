@@ -200,7 +200,7 @@ describe("EntityRegistry", (): void => {
       category: entityData.category,
     });
 
-    const retrievedAdapter = registry.getAdapter<Note>("note");
+    const retrievedAdapter = registry.getAdapter("note");
     const markdown = retrievedAdapter.toMarkdown(completeNote);
     expect(markdown).toContain("title: Test Note");
     expect(markdown).toContain("category: testing");
@@ -261,10 +261,10 @@ category: "testing"
 
 This note has frontmatter metadata.`;
 
-    const retrievedAdapter = registry.getAdapter<Note>("note");
-    const parsedContent = retrievedAdapter.fromMarkdown(
-      markdownWithFrontmatter,
-    );
+    const retrievedAdapter = registry.getAdapter("note");
+    const parsedContent = noteSchema
+      .partial()
+      .parse(retrievedAdapter.fromMarkdown(markdownWithFrontmatter));
 
     expect(parsedContent.content).toBe("This note has frontmatter metadata.");
     expect(parsedContent.category).toBe("testing");
