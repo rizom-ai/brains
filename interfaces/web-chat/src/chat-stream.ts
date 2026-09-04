@@ -24,7 +24,7 @@ export interface ActiveStream {
   writer: StreamWriter;
 }
 
-interface StreamDeps {
+export interface StreamDeps {
   activeStreams: Map<string, ActiveStream>;
   /** The two calls this stream makes, not the whole agent namespace. */
   agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
