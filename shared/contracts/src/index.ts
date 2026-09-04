@@ -106,7 +106,6 @@ export {
   type JsonPrimitive,
   type JsonValue,
 } from "./json";
-export { jsonObjectSchema, jsonValueSchema } from "./json";
 export { messageRoleSchema, type MessageRole } from "./message-role";
 export {
   OperationProvenanceSchema,
