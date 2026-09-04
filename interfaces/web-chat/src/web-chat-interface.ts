@@ -58,16 +58,18 @@ import {
   type WebChatConfigInput,
 } from "./config";
 import { toProgressData, toToolStatusData } from "./event-data";
-import {
-  canAccessBrowserConversation,
-  type WebChatConversationAccess,
-} from "./conversation-access";
+import { type WebChatConversationAccess } from "./conversation-access";
 import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
 import { deriveConsoleSurfaces } from "@brains/plugins";
 import { renderChatPage, uiAssetFile, uiStylesheetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
+import {
+  createBrowserAccess,
+  type BrowserAccess,
+  type BrowserAccessReader,
+} from "./browser-access";
 import { createWebChatRoutes } from "./web-routes";
 import { resolveStudioChatRedirectPath } from "./studio-chat-redirect";
 import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
@@ -108,12 +110,6 @@ type PermissionLevelResolver = (
   request: Request,
 ) => Promise<UserPermissionLevel>;
 
-interface BrowserAccess {
-  principal?: AuthPrincipal;
-  permissionLevel: UserPermissionLevel;
-  hasChatAccess: boolean;
-}
-
 export interface WebChatDeps {
   /** Override how an auth session is detected (used in tests). */
   resolveAuthSession?: AuthSessionResolver;
@@ -129,6 +125,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
 > {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
+  private accessReader: BrowserAccessReader | undefined;
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
   /** Injected in tests; otherwise the runtime's registered auth. */
@@ -492,7 +489,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     if (!parsed.success) {
       return new Response("Invalid remote agent chat request", { status: 400 });
     }
-    const accessError = await this.ensureBrowserConversation(
+    const accessError = await this.access().ensure(
       parsed.data.conversationId,
       remoteAgentInterfaceType,
       "Remote Agent",
@@ -536,7 +533,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         status: 400,
       });
     }
-    const accessError = await this.requireExistingBrowserConversation(
+    const accessError = await this.access().requireExisting(
       parsed.data.conversationId,
       remoteAgentInterfaceType,
       this.toConversationAccess(permissionLevel, principal),
@@ -911,28 +908,54 @@ export class WebChatInterface extends MessageInterfacePlugin<
     });
   }
 
+  /**
+   * The access reader, built against the runtime this plugin registered with.
+   *
+   * The logic itself lives in `browser-access.ts` — it is a function of a
+   * principal and the conversation store, and needed no plugin to answer.
+   */
+  private access(): BrowserAccessReader {
+    this.accessReader ??= createBrowserAccess({
+      resolveAuthPrincipal: (request) => this.resolveAuthPrincipal(request),
+      createAuthLoginResponse: (request) => {
+        const authService = this.getContext().auth.getCaller();
+        return (
+          authService?.createAuthLoginResponse(request) ??
+          new Response("Authentication required", {
+            status: 401,
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          })
+        );
+      },
+      conversations: this.getContext().conversations,
+      ...(this.resolveAuthSessionOverride
+        ? { resolveAuthSessionOverride: this.resolveAuthSessionOverride }
+        : {}),
+      ...(this.resolveCallerPermissionLevel
+        ? { resolvePermissionLevelOverride: this.resolveCallerPermissionLevel }
+        : {}),
+    });
+    return this.accessReader;
+  }
+
   private async resolveConversationAccess(
     request: Request,
   ): Promise<WebChatConversationAccess> {
-    const access = await this.resolveBrowserAccess(request);
-    return this.toConversationAccess(access.permissionLevel, access.principal);
+    return this.access().conversationAccess(request);
   }
 
   private toConversationAccess(
     permissionLevel: UserPermissionLevel,
     principal: AuthPrincipal | undefined,
   ): WebChatConversationAccess {
-    return {
-      permissionLevel,
-      ...(principal ? { personId: principal.personId } : {}),
-    };
+    return this.access().toConversationAccess(permissionLevel, principal);
   }
 
   private requireExistingWebChatConversation(
     conversationId: string,
     access: WebChatConversationAccess,
   ): Promise<Response | undefined> {
-    return this.requireExistingBrowserConversation(
+    return this.access().requireExisting(
       conversationId,
       webChatInterfaceType,
       access,
@@ -943,57 +966,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
     conversationId: string,
     access: WebChatConversationAccess,
   ): Promise<Response | undefined> {
-    return this.ensureBrowserConversation(
+    return this.access().ensure(
       conversationId,
       webChatInterfaceType,
       "Web Chat",
       access,
     );
-  }
-
-  private async requireExistingBrowserConversation(
-    conversationId: string,
-    interfaceType: string,
-    access: WebChatConversationAccess,
-  ): Promise<Response | undefined> {
-    const conversation =
-      await this.getContext().conversations.get(conversationId);
-    return canAccessBrowserConversation(conversation, access, interfaceType)
-      ? undefined
-      : new Response("Conversation not found", { status: 404 });
-  }
-
-  private async ensureBrowserConversation(
-    conversationId: string,
-    interfaceType: string,
-    channelName: string,
-    access: WebChatConversationAccess,
-  ): Promise<Response | undefined> {
-    const existing = await this.getContext().conversations.get(conversationId);
-    if (existing) {
-      return canAccessBrowserConversation(existing, access, interfaceType)
-        ? undefined
-        : new Response("Conversation not found", { status: 404 });
-    }
-    if (access.permissionLevel === "trusted" && !access.personId) {
-      return new Response("Forbidden", { status: 403 });
-    }
-
-    await this.getContext().conversations.start({
-      sessionId: conversationId,
-      interfaceType,
-      channelId: conversationId,
-      ...(access.personId ? { personId: access.personId } : {}),
-      metadata: {
-        channelName,
-        interfaceType,
-        channelId: conversationId,
-      },
-    });
-    const created = await this.getContext().conversations.get(conversationId);
-    return canAccessBrowserConversation(created, access, interfaceType)
-      ? undefined
-      : new Response("Conversation not found", { status: 404 });
   }
 
   private getActiveStream(channelId: string | null): ActiveStream | undefined {
@@ -1002,57 +980,17 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async resolveBrowserAccess(request: Request): Promise<BrowserAccess> {
-    const principal = await this.resolveAuthPrincipal(request);
-    if (principal) {
-      const hasChatAccess =
-        principal.status === "active" &&
-        (principal.permissionLevel === "admin" ||
-          principal.permissionLevel === "trusted");
-      return {
-        principal,
-        permissionLevel: hasChatAccess ? principal.permissionLevel : "public",
-        hasChatAccess,
-      };
-    }
-
-    if (this.resolveCallerPermissionLevel) {
-      const permissionLevel = await this.resolveCallerPermissionLevel(request);
-      return {
-        permissionLevel,
-        hasChatAccess:
-          permissionLevel === "admin" || permissionLevel === "trusted",
-      };
-    }
-
-    const hasChatAccess = this.resolveAuthSessionOverride
-      ? await this.resolveAuthSessionOverride(request)
-      : false;
-    return {
-      permissionLevel: hasChatAccess ? "admin" : "public",
-      hasChatAccess,
-    };
-  }
-
-  private async resolvePermissionLevel(
-    request: Request,
-  ): Promise<UserPermissionLevel> {
-    return (await this.resolveBrowserAccess(request)).permissionLevel;
+    return this.access().resolve(request);
   }
 
   private async resolveAttachmentPermissionLevel(
     request: Request,
   ): Promise<UserPermissionLevel> {
-    return this.resolvePermissionLevel(request);
+    return this.access().permissionLevel(request);
   }
 
   private createAuthLoginRequiredResponse(request: Request): Response {
-    const authService = this.getContext().auth.getCaller();
-    if (authService) return authService.createAuthLoginResponse(request);
-
-    return new Response("Authentication required", {
-      status: 401,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+    return this.access().loginRequired(request);
   }
 
   private writeText(
