@@ -25,6 +25,28 @@ export function writeTextPart(
 }
 
 /**
+ * Stream the tool-result directives of a response plan.
+ *
+ * The results come from the plan rather than the response: the runtime decides
+ * what a turn is made of and redacts upload references while building it, so
+ * this writes what it was given rather than re-deciding either.
+ */
+export function writePlanToolResults(
+  writer: StreamWriter,
+  plan: ResponsePlan,
+  createId: (prefix: string) => string,
+): void {
+  for (const directive of plan.directives) {
+    if (directive.kind !== "tool-result") continue;
+    writer.write({
+      type: "data-tool-result",
+      id: createId("tool"),
+      data: directive.result,
+    });
+  }
+}
+
+/**
  * Stream the card directives of a response plan. Text is written by the
  * caller (it needs display stripping); denied artifacts are not exposed
  * at all — not even their card metadata — matching the discrete-message

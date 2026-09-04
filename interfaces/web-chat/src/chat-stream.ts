@@ -4,7 +4,6 @@ import {
   buildMessageSourceMetadata,
   buildResponsePlan,
   collectDeniedArtifactCardIds,
-  redactUploadRefs,
   type AgentNamespace,
   type AgentResponse,
   type ChatAttachment,
@@ -18,6 +17,7 @@ import {
   writePlanCards,
   writeTextPart,
   type StreamWriter,
+  writePlanToolResults,
 } from "./stream-writer";
 
 export interface ActiveStream {
@@ -157,13 +157,7 @@ export async function handleStreamedChat(
     );
     const plan = buildResponsePlan(response, { deniedCardIds });
     writeText(input.writer, response.text, "text", deps.createId);
-    for (const toolResult of response.toolResults ?? []) {
-      input.writer.write({
-        type: "data-tool-result",
-        id: deps.createId("tool"),
-        data: redactUploadRefs(toolResult),
-      });
-    }
+    writePlanToolResults(input.writer, plan, deps.createId);
     writePlanCards(input.writer, plan);
   } finally {
     deps.endProcessingInput();

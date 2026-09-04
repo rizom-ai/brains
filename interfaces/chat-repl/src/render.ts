@@ -94,6 +94,11 @@ export function renderTerminalAnswer(
       case "approvals":
         approvalCards.push(...directive.cards);
         break;
+      case "tool-result":
+        // A terminal prints the answer, not the machinery behind it: the text
+        // already says what the tool did, and a raw result block would repeat
+        // it in a shape nobody reads.
+        break;
       default:
         if (
           directive.card.kind === "tool-approval" &&

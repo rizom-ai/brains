@@ -201,7 +201,7 @@ describe("buildResponsePlan", () => {
     args: {},
   };
 
-  it("orders text, denied, deliverable, supplemental directives and collects job ids", () => {
+  it("orders text, tool results, denied, deliverable, supplemental directives and collects job ids", () => {
     const plan = buildResponsePlan(
       {
         text: "Done",
@@ -218,6 +218,10 @@ describe("buildResponsePlan", () => {
     expect(plan.directives).toEqual([
       { kind: "text", text: "Done" },
       {
+        kind: "tool-result",
+        result: { toolName: "system_create", jobId: "job-1" },
+      },
+      {
         kind: "denied-artifact",
         card: { ...deniedAttachmentCard, jobId: "job-2" },
       },
@@ -225,6 +229,49 @@ describe("buildResponsePlan", () => {
       { kind: "supplemental", card: sourcesCard },
     ]);
     expect(plan.jobIds).toEqual(["job-1", "job-2"]);
+  });
+
+  it("carries tool results as directives, redacted, after the text", () => {
+    // A tool result is part of what the answer is made of, so the plan has to
+    // name it: an interface that renders results — web-chat draws each one —
+    // could otherwise only reach them by taking the whole response, which is
+    // the coupling the plan exists to remove. Redaction happens here rather
+    // than per interface, so no interface can forget it and leak an upload
+    // reference into a rendered result.
+    const plan = buildResponsePlan(
+      {
+        text: "Saved",
+        cards: [],
+        toolResults: [
+          {
+            toolName: "system_create",
+            jobId: "job-1",
+            args: { file: { kind: "upload", id: "upload-1" } },
+            data: { entityId: "note-1" },
+          },
+        ],
+      },
+      {},
+    );
+
+    expect(plan.directives).toEqual([
+      { kind: "text", text: "Saved" },
+      {
+        kind: "tool-result",
+        result: {
+          toolName: "system_create",
+          jobId: "job-1",
+          args: { file: "uploaded file" },
+          data: { entityId: "note-1" },
+        },
+      },
+    ]);
+  });
+
+  it("emits no tool-result directive when the response carries none", () => {
+    const plan = buildResponsePlan({ text: "Hello", cards: [] }, {});
+
+    expect(plan.directives).toEqual([{ kind: "text", text: "Hello" }]);
   });
 
   it("moves requested approval cards into the approvals directive when confirmations exist", () => {

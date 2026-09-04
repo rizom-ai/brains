@@ -97,6 +97,18 @@ function attachmentEvents(writes: unknown[]): string[] {
   );
 }
 
+function toolResultEvents(writes: unknown[]): unknown[] {
+  return writes.flatMap((write) =>
+    typeof write === "object" &&
+    write !== null &&
+    "type" in write &&
+    write.type === "data-tool-result" &&
+    "data" in write
+      ? [write.data]
+      : [],
+  );
+}
+
 describe("chat stream", () => {
   it("does not stream internal entity memory footer text from chat responses", async () => {
     const { writer, writes } = createWriter();
@@ -124,6 +136,46 @@ describe("chat stream", () => {
     expect(streamedText).toBe("Completed: Updated anchor profile.");
     expect(streamedText).not.toContain("Entities affected this turn");
     expect(streamedText).not.toContain("Reference these IDs directly");
+  });
+
+  it("streams each tool result from the response plan, with uploads redacted", async () => {
+    // The frames come from the plan's directives rather than the raw response:
+    // the runtime decides what a turn is made of, and it redacts upload
+    // references there so no interface can forget to.
+    const { writer, writes } = createWriter();
+    const deps = createDeps({
+      chat: mock(async () => ({
+        text: "Saved",
+        toolResults: [
+          {
+            toolName: "system_create",
+            args: { file: { kind: "upload", id: "upload-1" } },
+            data: { entityId: "note-1" },
+          },
+        ],
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      })),
+    });
+
+    await handleStreamedChat(
+      {
+        writer,
+        conversationId: "conversation-1",
+        message: "Save this",
+        permissionLevel: "admin",
+        attachments: [],
+        interfaceType: "web-chat",
+      },
+      deps,
+    );
+
+    expect(toolResultEvents(writes)).toEqual([
+      {
+        toolName: "system_create",
+        args: { file: "uploaded file" },
+        data: { entityId: "note-1" },
+      },
+    ]);
   });
 
   it("attributes authenticated runtime principals to web-chat actors", async () => {

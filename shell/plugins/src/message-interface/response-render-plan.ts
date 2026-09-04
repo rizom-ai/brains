@@ -2,8 +2,31 @@ import type {
   AgentResponse,
   PendingConfirmation,
   StructuredChatCard,
+  ToolResultData,
 } from "../contracts/agent";
 import { formatConfirmationResult } from "./confirmation-result";
+import { redactUploadRefs, redactUploadRefsInRecord } from "./upload-redaction";
+
+/**
+ * A tool result with its upload references replaced by a plain label.
+ *
+ * Conditional rather than spread so the optional members stay absent when the
+ * result carries none — the repo runs `exactOptionalPropertyTypes`, and an
+ * explicit `undefined` is a different value from a missing key.
+ */
+function redactToolResult(result: ToolResultData): ToolResultData {
+  return {
+    toolName: result.toolName,
+    ...(result.jobId === undefined ? {} : { jobId: result.jobId }),
+    ...(result.args === undefined
+      ? {}
+      : { args: redactUploadRefsInRecord(result.args) }),
+    ...(result.data === undefined
+      ? {}
+      : { data: redactUploadRefs(result.data) }),
+    ...(result.error === undefined ? {} : { error: result.error }),
+  };
+}
 
 export interface ConfirmationResponsePartsInput {
   response: AgentResponse;
@@ -135,6 +158,7 @@ export type ToolApprovalChatCard = Extract<
  * drift between interfaces.
  *
  * - `text` — the main response text (may be empty; renderers decide).
+ * - `tool-result` — one tool result, already redacted.
  * - `denied-artifact` — an artifact the user's permission level may not
  *   receive; render at most a mention, never the content.
  * - `artifact` — a deliverable artifact card.
@@ -147,6 +171,15 @@ export type ToolApprovalChatCard = Extract<
  */
 export type ResponseRenderDirective =
   | { kind: "text"; text: string }
+  /**
+   * One tool result, with upload references already redacted.
+   *
+   * An interface that draws results — web-chat writes each as its own frame —
+   * would otherwise have to take the whole `AgentResponse` to reach them,
+   * which is the coupling this plan exists to remove. Redacting here rather
+   * than at each interface means none can forget to.
+   */
+  | { kind: "tool-result"; result: ToolResultData }
   | { kind: "denied-artifact"; card: AttachmentChatCard }
   | { kind: "artifact"; card: AttachmentChatCard }
   | { kind: "supplemental"; card: SupplementalChatCard }
@@ -172,6 +205,10 @@ export function buildResponsePlan(
   const confirmations = response.pendingConfirmations ?? [];
   const directives: ResponseRenderDirective[] = [
     { kind: "text", text: response.text },
+    ...(response.toolResults ?? []).map((result): ResponseRenderDirective => ({
+      kind: "tool-result",
+      result: redactToolResult(result),
+    })),
     ...getDeniedAttachmentCards(response.cards, access.deniedCardIds).map(
       (card): ResponseRenderDirective => ({ kind: "denied-artifact", card }),
     ),
