@@ -1,22 +1,27 @@
 import { baseEntityParserSchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 
-export type DocumentMimeType = "application/pdf";
-
-export const documentMimeTypeSchema: z.ZodType<DocumentMimeType> =
+export const documentMimeTypeSchema: z.ZodLiteral<"application/pdf"> =
   z.literal("application/pdf");
 
-export type DocumentIngestionStatus = "pending" | "draft" | "failed";
+export type DocumentMimeType = z.output<typeof documentMimeTypeSchema>;
 
-export const documentIngestionStatusSchema: z.ZodType<DocumentIngestionStatus> =
-  z.enum(["pending", "draft", "failed"]);
+export const documentIngestionStatusSchema: z.ZodEnum<{
+  pending: "pending";
+  draft: "draft";
+  failed: "failed";
+}> = z.enum(["pending", "draft", "failed"]);
+
+export type DocumentIngestionStatus = z.output<
+  typeof documentIngestionStatusSchema
+>;
 
 type DocumentMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
-  mimeType: z.ZodType<DocumentMimeType>;
+  mimeType: typeof documentMimeTypeSchema;
   filename: z.ZodString;
   pageCount: z.ZodOptional<z.ZodNumber>;
-  status: z.ZodOptional<z.ZodType<DocumentIngestionStatus>>;
+  status: z.ZodOptional<typeof documentIngestionStatusSchema>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
   sourceEntityType: z.ZodOptional<z.ZodString>;

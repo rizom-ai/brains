@@ -3,7 +3,6 @@ import {
   actorRefFromLegacy,
   actorRefSchema,
   messageRoleSchema,
-  type ActorRef,
   type MessageRole,
 } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
@@ -59,19 +58,14 @@ export interface StartConversationRequest {
   metadata: ConversationMetadata;
 }
 
-export interface ConversationMessageActor {
-  identity: ActorRef;
-  interfaceType: string;
-  role: MessageRole;
-  displayName?: string | undefined;
-  username?: string | undefined;
-  isBot?: boolean | undefined;
-}
-
-export const conversationMessageActorSchema: z.ZodType<
-  ConversationMessageActor,
-  ConversationMessageActor
-> = z.object({
+export const conversationMessageActorSchema: z.ZodObject<{
+  identity: typeof actorRefSchema;
+  interfaceType: z.ZodString;
+  role: typeof messageRoleSchema;
+  displayName: z.ZodOptional<z.ZodString>;
+  username: z.ZodOptional<z.ZodString>;
+  isBot: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   identity: actorRefSchema,
   interfaceType: z.string(),
   role: messageRoleSchema,
@@ -80,9 +74,12 @@ export const conversationMessageActorSchema: z.ZodType<
   isBot: z.boolean().optional(),
 });
 
-const conversationMessageActorParserSchema: z.ZodType<
-  ConversationMessageActor,
-  unknown
+export type ConversationMessageActor = z.output<
+  typeof conversationMessageActorSchema
+>;
+
+const conversationMessageActorParserSchema: z.ZodPreprocess<
+  typeof conversationMessageActorSchema
 > = z.preprocess(
   normalizeLegacyConversationMessageActor,
   conversationMessageActorSchema,
@@ -143,19 +140,20 @@ export type ConversationMessageSource = z.output<
   typeof conversationMessageSourceSchema
 >;
 
-export interface ConversationMessageMetadata {
-  [key: string]: unknown;
-  actor?: ConversationMessageActor | undefined;
-  source?: ConversationMessageSource | undefined;
-}
-
-export const conversationMessageMetadataSchema: z.ZodType<
-  ConversationMessageMetadata,
-  unknown
+export const conversationMessageMetadataSchema: z.ZodObject<
+  {
+    actor: z.ZodOptional<typeof conversationMessageActorParserSchema>;
+    source: z.ZodOptional<typeof conversationMessageSourceSchema>;
+  },
+  z.core.$loose
 > = z.looseObject({
   actor: conversationMessageActorParserSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
 });
+
+export type ConversationMessageMetadata = z.output<
+  typeof conversationMessageMetadataSchema
+>;
 
 export function parseConversationMessageMetadata(
   metadata: unknown,
