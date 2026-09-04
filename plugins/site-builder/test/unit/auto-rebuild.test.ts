@@ -5,6 +5,7 @@ import { createTestConfig } from "../test-helpers";
 import {
   createMockServicePluginContext,
   genericSpy,
+  waitUntil,
   type MockServicePluginContext,
 } from "@brains/test-utils";
 
@@ -202,11 +203,14 @@ describe("RebuildManager", () => {
 
     manager.requestBuild();
 
-    // The debounce fires immediately on first trigger (leading edge).
-    // Wait a tick for the async enqueue call.
-    await new Promise((r) => setTimeout(r, 10));
+    // The debounce fires immediately on first trigger (leading edge), so the
+    // enqueue is what to wait for — not ten milliseconds, which only had to
+    // be longer than the enqueue usually takes.
+    await waitUntil(
+      () => enqueue.mock.calls.length > 0,
+      "the build to be enqueued",
+    );
 
-    expect(enqueue).toHaveBeenCalled();
     const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
@@ -225,9 +229,11 @@ describe("RebuildManager", () => {
 
     manager.requestBuild();
 
-    await new Promise((r) => setTimeout(r, 10));
+    await waitUntil(
+      () => enqueue.mock.calls.length > 0,
+      "the build to be enqueued",
+    );
 
-    expect(enqueue).toHaveBeenCalled();
     const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("production");
 
@@ -295,9 +301,11 @@ describe("RebuildManager", () => {
 
     manager.requestBuild("production");
 
-    await new Promise((r) => setTimeout(r, 10));
+    await waitUntil(
+      () => enqueue.mock.calls.length > 0,
+      "the build to be enqueued",
+    );
 
-    expect(enqueue).toHaveBeenCalled();
     const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");

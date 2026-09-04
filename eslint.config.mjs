@@ -138,6 +138,8 @@ export default [
       "shell/core/test/**/*.ts",
       "shell/plugins/test/**/*.ts",
       "shared/media-renderer/test/**/*.ts",
+      "plugins/site-builder/test/**/*.ts",
+      "plugins/atproto/test/**/*.ts",
       "interfaces/a2a/test/**/*.ts",
       "interfaces/chat/test/**/*.ts",
     ],
