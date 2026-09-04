@@ -1,18 +1,11 @@
 import { z } from "@brains/utils/zod";
-import type { EnrichedSocialPost } from "../schemas/social-post";
+import {
+  platformSchema,
+  socialPostStatusSchema,
+  sourceEntityTypeSchema,
+  type EnrichedSocialPost,
+} from "../schemas/social-post";
 
-const platformSchema: z.ZodEnum<{ linkedin: "linkedin" }> = z.enum([
-  "linkedin",
-]);
-const statusSchema: z.ZodEnum<{
-  generating: "generating";
-  draft: "draft";
-  queued: "queued";
-  published: "published";
-  failed: "failed";
-}> = z.enum(["generating", "draft", "queued", "published", "failed"]);
-const sourceEntityTypeSchema: z.ZodEnum<{ post: "post"; deck: "deck" }> =
-  z.enum(["post", "deck"]);
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
   .string()
   .nullable()
@@ -52,7 +45,7 @@ const documentAttachmentSchema: z.ZodObject<{ id: z.ZodString }> = z.object({
 const frontmatterSchema: z.ZodObject<{
   title: z.ZodString;
   platform: typeof platformSchema;
-  status: typeof statusSchema;
+  status: typeof socialPostStatusSchema;
   coverImageId: typeof nullableString;
   documents: z.ZodDefault<
     z.ZodNullable<z.ZodArray<typeof documentAttachmentSchema>>
@@ -64,7 +57,7 @@ const frontmatterSchema: z.ZodObject<{
 }> = z.object({
   title: z.string(),
   platform: platformSchema,
-  status: statusSchema,
+  status: socialPostStatusSchema,
   coverImageId: nullableString,
   documents: z.array(documentAttachmentSchema).nullable().default(null),
   publishedAt: nullableString,
@@ -75,7 +68,7 @@ const frontmatterSchema: z.ZodObject<{
 const metadataSchema: z.ZodObject<{
   title: z.ZodString;
   platform: typeof platformSchema;
-  status: typeof statusSchema;
+  status: typeof socialPostStatusSchema;
   publishedAt: typeof nullableString;
   platformPostId: typeof nullableString;
   slug: z.ZodString;
@@ -83,7 +76,7 @@ const metadataSchema: z.ZodObject<{
 }> = z.object({
   title: z.string(),
   platform: platformSchema,
-  status: statusSchema,
+  status: socialPostStatusSchema,
   publishedAt: nullableString,
   platformPostId: nullableString,
   slug: z.string(),

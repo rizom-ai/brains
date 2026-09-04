@@ -4,12 +4,10 @@ import { createTemplate } from "@brains/plugins";
 /**
  * Schema for AI-generated LinkedIn post
  */
-export interface LinkedInPost {
-  title: string;
-  content: string;
-}
-
-export const linkedinPostSchema: z.ZodType<LinkedInPost> = z.object({
+export const linkedinPostSchema: z.ZodObject<{
+  title: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
   title: z
     .string()
     .max(80)
@@ -22,6 +20,8 @@ export const linkedinPostSchema: z.ZodType<LinkedInPost> = z.object({
       "The LinkedIn post content, formatted for readability and engagement on LinkedIn.",
     ),
 });
+
+export type LinkedInPost = z.output<typeof linkedinPostSchema>;
 
 /**
  * Unified template for AI-powered LinkedIn post generation

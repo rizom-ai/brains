@@ -2,15 +2,13 @@ import { createTemplate } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 // Schema for the AI response
-export interface LinkExtractionResult {
-  success: boolean;
-  error: string;
-  title: string;
-  description: string;
-  summary: string;
-}
-
-export const linkExtractionSchema: z.ZodType<LinkExtractionResult> = z.object({
+export const linkExtractionSchema: z.ZodObject<{
+  success: z.ZodBoolean;
+  error: z.ZodString;
+  title: z.ZodString;
+  description: z.ZodString;
+  summary: z.ZodString;
+}> = z.object({
   success: z
     .boolean()
     .describe(
@@ -38,6 +36,8 @@ export const linkExtractionSchema: z.ZodType<LinkExtractionResult> = z.object({
       "A 1-2 paragraph summary of the main content. Leave empty string if success is false.",
     ),
 });
+
+export type LinkExtractionResult = z.output<typeof linkExtractionSchema>;
 
 export const linkExtractionTemplate: ReturnType<
   typeof createTemplate<LinkExtractionResult>

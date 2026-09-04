@@ -7,27 +7,23 @@ import type { EntityPluginContext } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
-import type { LinkSource, LinkStatus } from "../schemas/link";
-import { readLinkStatus } from "../schemas/link";
+import {
+  linkStatusSchema,
+  readLinkStatus,
+  type LinkSource,
+} from "../schemas/link";
 import { linkExtractionSchema } from "../templates/extraction-template";
 
 /**
  * Input schema for link capture job
  */
-export interface LinkCaptureMetadata {
-  interfaceId?: string | undefined;
-  userId?: string | undefined;
-  channelId?: string | undefined;
-  channelName?: string | undefined;
-  timestamp?: string | undefined;
-}
-
-export interface LinkCaptureJobData {
-  url: string;
-  metadata?: LinkCaptureMetadata | undefined;
-}
-
-const linkCaptureMetadataSchema: z.ZodType<LinkCaptureMetadata> = z.object({
+const linkCaptureMetadataSchema: z.ZodObject<{
+  interfaceId: z.ZodOptional<z.ZodString>;
+  userId: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  timestamp: z.ZodOptional<z.ZodString>;
+}> = z.object({
   interfaceId: z.string().optional(),
   userId: z.string().optional(),
   channelId: z.string().optional(),
@@ -35,31 +31,38 @@ const linkCaptureMetadataSchema: z.ZodType<LinkCaptureMetadata> = z.object({
   timestamp: z.string().optional(),
 });
 
-export const linkCaptureJobSchema: z.ZodType<LinkCaptureJobData> = z.object({
+export type LinkCaptureMetadata = z.output<typeof linkCaptureMetadataSchema>;
+
+export const linkCaptureJobSchema: z.ZodObject<{
+  url: z.ZodURL;
+  metadata: z.ZodOptional<typeof linkCaptureMetadataSchema>;
+}> = z.object({
   url: z.url(),
   metadata: linkCaptureMetadataSchema.optional(),
 });
 
+export type LinkCaptureJobData = z.output<typeof linkCaptureJobSchema>;
+
 /**
  * Result schema for link capture job
  */
-export interface LinkCaptureResult {
-  success: boolean;
-  entityId?: string | undefined;
-  title?: string | undefined;
-  url?: string | undefined;
-  status?: LinkStatus | undefined;
-  error?: string | undefined;
-}
-
-export const linkCaptureResultSchema: z.ZodType<LinkCaptureResult> = z.object({
+export const linkCaptureResultSchema: z.ZodObject<{
+  success: z.ZodBoolean;
+  entityId: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  url: z.ZodOptional<z.ZodString>;
+  status: z.ZodOptional<typeof linkStatusSchema>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
   success: z.boolean(),
   entityId: z.string().optional(),
   title: z.string().optional(),
   url: z.string().optional(),
-  status: z.enum(["pending", "draft", "published"]).optional(),
+  status: linkStatusSchema.optional(),
   error: z.string().optional(),
 });
+
+export type LinkCaptureResult = z.output<typeof linkCaptureResultSchema>;
 
 export interface LinkCaptureJobHandlerOptions {
   jinaApiKey?: string;
