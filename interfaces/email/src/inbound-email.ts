@@ -13,26 +13,34 @@ import {
 import type { IRuntimeStateStore, MessageSender } from "@brains/plugins";
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 
-export interface EmailImapConfig {
-  host: string;
-  port: number;
-  user: string;
-  password: string;
-  mailbox: string;
-  pollMode: "idle" | "interval";
-  pollIntervalMs: number;
-}
+export const emailImapConfigSchema: z.ZodObject<{
+  host: z.ZodString;
+  port: ReturnType<typeof z.coerce.number<number | string>>;
+  user: z.ZodString;
+  password: z.ZodString;
+  mailbox: z.ZodDefault<z.ZodString>;
+  pollMode: z.ZodDefault<z.ZodEnum<{ idle: "idle"; interval: "interval" }>>;
+  pollIntervalMs: z.ZodDefault<
+    ReturnType<typeof z.coerce.number<number | string>>
+  >;
+}> = z.object({
+  host: z.string().min(1),
+  port: z.coerce.number<number | string>().int().min(1).max(65_535),
+  user: z.string().min(1),
+  password: z.string().min(1),
+  mailbox: z.string().min(1).default("INBOX"),
+  pollMode: z.enum(["idle", "interval"]).default("idle"),
+  pollIntervalMs: z.coerce
+    .number<number | string>()
+    .int()
+    .positive()
+    .default(60_000),
+});
 
-export interface EmailImapConfigInput {
-  host: string;
-  port: number | string;
-  user: string;
-  password: string;
-  mailbox?: string | undefined;
-  pollMode?: "idle" | "interval" | undefined;
-  pollIntervalMs?: number | string | undefined;
-}
+export type EmailImapConfig = z.output<typeof emailImapConfigSchema>;
+export type EmailImapConfigInput = z.input<typeof emailImapConfigSchema>;
 
 export interface InboundEmailSourceMessage {
   uid: number;

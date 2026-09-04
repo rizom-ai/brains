@@ -59,6 +59,7 @@ import {
 
 export type {
   LifecyclePlaybookConfig,
+  LifecyclePlaybookConfigInput,
   LifecycleStarterRegistrationResponse,
   LifecycleStartersResponse,
   PlaybookStarter,
@@ -77,15 +78,6 @@ import {
 } from "./run-store";
 
 export const PLAYBOOKS_LIFECYCLE_STARTERS = "playbooks:lifecycle-starters";
-
-export interface LifecyclePlaybookConfigInput {
-  trigger: string;
-  playbookId: string;
-  once?: boolean | undefined;
-  starterText: string;
-  description?: string | undefined;
-  starterPrompt: string;
-}
 
 const playbooksConfigSchema: z.ZodObject<
   {

@@ -11,27 +11,16 @@ import type { LifecycleStarterRegistration } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
-export interface LifecyclePlaybookConfig {
-  trigger: string;
-  playbookId: string;
-  once: boolean;
-  starterText: string;
-  description?: string | undefined;
-  starterPrompt: string;
-}
-
-interface LifecyclePlaybookConfigInput {
-  trigger: string;
-  playbookId: string;
-  once?: boolean | undefined;
-  starterText: string;
-  description?: string | undefined;
-  starterPrompt: string;
-}
-
-export const lifecycleConfigSchema: z.ZodType<
-  LifecyclePlaybookConfig,
-  LifecyclePlaybookConfigInput
+export const lifecycleConfigSchema: z.ZodObject<
+  {
+    trigger: z.ZodString;
+    playbookId: z.ZodString;
+    once: z.ZodDefault<z.ZodBoolean>;
+    starterText: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    starterPrompt: z.ZodString;
+  },
+  z.core.$strict
 > = z
   .object({
     trigger: z.string().min(1),
@@ -42,6 +31,11 @@ export const lifecycleConfigSchema: z.ZodType<
     starterPrompt: z.string().min(1),
   })
   .strict();
+
+export type LifecyclePlaybookConfig = z.output<typeof lifecycleConfigSchema>;
+export type LifecyclePlaybookConfigInput = z.input<
+  typeof lifecycleConfigSchema
+>;
 
 export interface PlaybookStarter {
   id: string;

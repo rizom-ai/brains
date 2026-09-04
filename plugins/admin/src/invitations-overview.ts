@@ -9,35 +9,44 @@ import { formatWorkspaceDate, requireAuthService } from "./workspace-format";
 
 export const EXPIRING_INVITATION_WINDOW_MS: number = 3 * 24 * 60 * 60 * 1_000;
 
-export interface InvitationAttention {
-  readonly id: string;
-  readonly displayName: string;
-  readonly state: string;
-  readonly reason: "expiring" | "delivery-failed";
-  readonly expiresAt?: number | undefined;
-}
+const invitationAttentionSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    displayName: z.ZodString;
+    state: z.ZodString;
+    reason: z.ZodEnum<{
+      expiring: "expiring";
+      "delivery-failed": "delivery-failed";
+    }>;
+    expiresAt: z.ZodOptional<z.ZodNumber>;
+  },
+  z.core.$strict
+> = z.strictObject({
+  id: z.string(),
+  displayName: z.string(),
+  state: z.string(),
+  reason: z.enum(["expiring", "delivery-failed"]),
+  expiresAt: z.number().optional(),
+});
 
-export interface InvitationsOverviewData {
-  readonly invitations: readonly InvitationAttention[];
-  readonly expiringCount: number;
-  readonly failureCount: number;
-}
+export type InvitationAttention = z.output<typeof invitationAttentionSchema>;
 
-const invitationAttentionSchema: z.ZodType<InvitationAttention> =
-  z.strictObject({
-    id: z.string(),
-    displayName: z.string(),
-    state: z.string(),
-    reason: z.enum(["expiring", "delivery-failed"]),
-    expiresAt: z.number().optional(),
-  });
+const invitationsOverviewDataSchema: z.ZodObject<
+  {
+    invitations: z.ZodArray<typeof invitationAttentionSchema>;
+    expiringCount: z.ZodNumber;
+    failureCount: z.ZodNumber;
+  },
+  z.core.$strict
+> = z.strictObject({
+  invitations: z.array(invitationAttentionSchema),
+  expiringCount: z.number().int().nonnegative(),
+  failureCount: z.number().int().nonnegative(),
+});
 
-const invitationsOverviewDataSchema: z.ZodType<InvitationsOverviewData> =
-  z.strictObject({
-    invitations: z.array(invitationAttentionSchema),
-    expiringCount: z.number().int().nonnegative(),
-    failureCount: z.number().int().nonnegative(),
-  });
+export type InvitationsOverviewData = z.output<
+  typeof invitationsOverviewDataSchema
+>;
 
 const invitationsOverviewWidget = defineDashboardWidget({
   id: "expiring-invitations",

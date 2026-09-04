@@ -5,7 +5,6 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import {
   directoryProjectionBatchRefSchema,
   type CleanupResult,
-  type DirectoryProjectionBatchRef,
   type IDirectorySync,
 } from "../types";
 import { z } from "@brains/utils/zod";
@@ -14,16 +13,13 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-interface DirectoryCleanupJobData {
-  projectionBatch?: DirectoryProjectionBatchRef | undefined;
-}
-
-const directoryCleanupJobSchema: z.ZodType<
-  DirectoryCleanupJobData,
-  DirectoryCleanupJobData
-> = z.object({
+const directoryCleanupJobSchema: z.ZodObject<{
+  projectionBatch: z.ZodOptional<typeof directoryProjectionBatchRefSchema>;
+}> = z.object({
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
 });
+
+type DirectoryCleanupJobData = z.output<typeof directoryCleanupJobSchema>;
 
 export class DirectoryCleanupJobHandler extends BaseJobHandler<
   "directory-cleanup",

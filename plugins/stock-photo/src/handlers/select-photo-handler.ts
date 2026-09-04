@@ -7,25 +7,18 @@ import { imageAdapter } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
-export interface SelectPhotoJobData {
-  photoId: string;
-  downloadLocation: string;
-  photographerName: string;
-  photographerUrl: string;
-  sourceUrl: string;
-  imageUrl: string;
-  title?: string | undefined;
-  alt?: string | undefined;
-  targetEntityType?: string | undefined;
-  targetEntityId?: string | undefined;
-}
-
-export type SelectPhotoJobDataInput = SelectPhotoJobData;
-
-export const selectPhotoJobSchema: z.ZodType<
-  SelectPhotoJobData,
-  SelectPhotoJobDataInput
-> = z.object({
+export const selectPhotoJobSchema: z.ZodObject<{
+  photoId: z.ZodString;
+  downloadLocation: z.ZodURL;
+  photographerName: z.ZodString;
+  photographerUrl: z.ZodURL;
+  sourceUrl: z.ZodURL;
+  imageUrl: z.ZodURL;
+  title: z.ZodOptional<z.ZodString>;
+  alt: z.ZodOptional<z.ZodString>;
+  targetEntityType: z.ZodOptional<z.ZodString>;
+  targetEntityId: z.ZodOptional<z.ZodString>;
+}> = z.object({
   photoId: z.string(),
   downloadLocation: z.url(),
   photographerName: z.string(),
@@ -37,6 +30,9 @@ export const selectPhotoJobSchema: z.ZodType<
   targetEntityType: z.string().optional(),
   targetEntityId: z.string().optional(),
 });
+
+export type SelectPhotoJobData = z.output<typeof selectPhotoJobSchema>;
+export type SelectPhotoJobDataInput = z.input<typeof selectPhotoJobSchema>;
 
 export interface SelectPhotoJobResult {
   imageEntityId: string;

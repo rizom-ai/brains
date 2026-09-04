@@ -5,21 +5,19 @@ import type { InboundEmailSelection } from "./inbound-email";
 const DEFAULT_MAX_LOCATORS = 20_000;
 const DEFAULT_RETENTION_MS = 90 * 24 * 60 * 60 * 1_000;
 
-const emailSourceRefSchema: z.ZodType<string, string> = z
+const emailSourceRefSchema: z.ZodString = z
   .string()
   .regex(/^imap:[a-f0-9]{64}$/);
 
-interface EmailSourceLocatorValue {
-  sourceRef: string;
-  mailbox: string;
-  uidValidity: string;
-  uid: number;
-  recordedAt: string;
-}
-
-export const emailSourceLocatorSchema: z.ZodType<
-  EmailSourceLocatorValue,
-  EmailSourceLocatorValue
+export const emailSourceLocatorSchema: z.ZodObject<
+  {
+    sourceRef: z.ZodString;
+    mailbox: z.ZodString;
+    uidValidity: z.ZodString;
+    uid: z.ZodNumber;
+    recordedAt: z.ZodISODateTime;
+  },
+  z.core.$strict
 > = z.strictObject({
   sourceRef: emailSourceRefSchema,
   mailbox: z.string().min(1).max(1_000),

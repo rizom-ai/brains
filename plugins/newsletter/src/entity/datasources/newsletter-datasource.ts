@@ -16,6 +16,10 @@ import {
   newsletterStatusSchema,
   type Newsletter,
 } from "../schemas/newsletter";
+import type {
+  NewsletterListData,
+  NewsletterListItem,
+} from "../templates/newsletter-list";
 
 const newsletterQuerySchema: z.ZodObject<
   {
@@ -62,23 +66,6 @@ function getNewsletterBody(newsletter: Newsletter): string {
   } catch {
     return newsletter.content;
   }
-}
-
-interface NewsletterListData {
-  newsletters: NewsletterListItem[];
-  totalCount: number;
-  pagination: PaginationInfo | null;
-}
-
-/** Enriched newsletter summary for list views. */
-interface NewsletterListItem {
-  id: string;
-  subject: string;
-  status: string;
-  excerpt: string;
-  created: string;
-  sentAt: string | null;
-  url: string;
 }
 
 /**

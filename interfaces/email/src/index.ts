@@ -22,8 +22,7 @@ import packageJson from "../package.json";
 import {
   createInboundEmailClient,
   intakeInboundEmail,
-  type EmailImapConfig,
-  type EmailImapConfigInput,
+  emailImapConfigSchema,
   type InboundEmailClientFactory,
   type InboundEmailCursor,
 } from "./inbound-email";
@@ -56,63 +55,44 @@ export type {
 export { createInboundEmailSourceRef } from "./inbound-email";
 export type { InboundEmailSleep } from "./inbound-supervisor";
 
-export interface EmailConfig {
-  transport: "resend";
-  apiKey?: string | undefined;
-  from?: string | undefined;
-  imap?: EmailImapConfig | undefined;
-}
-
-export interface EmailConfigInput {
-  transport?: "resend" | undefined;
-  apiKey?: string | undefined;
-  from?: string | undefined;
-  imap?: EmailImapConfigInput | undefined;
-}
-
-interface ResendEmailResponse {
-  id?: string | undefined;
-}
-
-const emailImapConfigSchema: z.ZodType<EmailImapConfig, EmailImapConfigInput> =
-  z.object({
-    host: z.string().min(1),
-    port: z.coerce.number<number | string>().int().min(1).max(65_535),
-    user: z.string().min(1),
-    password: z.string().min(1),
-    mailbox: z.string().min(1).default("INBOX"),
-    pollMode: z.enum(["idle", "interval"]).default("idle"),
-    pollIntervalMs: z.coerce
-      .number<number | string>()
-      .int()
-      .positive()
-      .default(60_000),
-  });
-
 // Unset env vars interpolate to empty strings in brain.yaml; an optional
 // outbound setting left empty means "absent", not invalid — inbound-only
 // postures must still boot.
-const optionalConfigString = z
+const optionalConfigString: z.ZodOptional<
+  z.ZodUnion<
+    [z.ZodPipe<z.ZodString, z.ZodTransform<undefined, string>>, z.ZodString]
+  >
+> = z
   .string()
   .max(0)
   .transform((): undefined => undefined)
   .or(z.string().min(1))
   .optional();
 
-const emailConfigSchema: z.ZodType<EmailConfig, EmailConfigInput> = z.object({
+const emailConfigSchema: z.ZodObject<{
+  transport: z.ZodDefault<z.ZodLiteral<"resend">>;
+  apiKey: typeof optionalConfigString;
+  from: typeof optionalConfigString;
+  imap: z.ZodOptional<typeof emailImapConfigSchema>;
+}> = z.object({
   transport: z.literal("resend").default("resend"),
   apiKey: optionalConfigString,
   from: optionalConfigString,
   imap: emailImapConfigSchema.optional(),
 });
 
-const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
-  z.looseObject({
-    id: z.string().trim().min(1).max(1_000).optional(),
-  });
+export type EmailConfig = z.output<typeof emailConfigSchema>;
+export type EmailConfigInput = z.input<typeof emailConfigSchema>;
+
+const resendEmailResponseSchema: z.ZodObject<
+  { id: z.ZodOptional<z.ZodString> },
+  z.core.$loose
+> = z.looseObject({
+  id: z.string().trim().min(1).max(1_000).optional(),
+});
 
 type EmailDeliveryThreading = NonNullable<ChannelDeliveryInput["threading"]>;
-const emailMessageIdSchema = z
+const emailMessageIdSchema: z.ZodString = z
   .string()
   .trim()
   .min(1)
@@ -120,13 +100,30 @@ const emailMessageIdSchema = z
   .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value), {
     message: "Email threading identifiers cannot contain controls",
   });
-const emailDeliveryThreadingSchema: z.ZodType<
-  EmailDeliveryThreading,
-  EmailDeliveryThreading
+const emailDeliveryThreadingSchema: z.ZodObject<
+  {
+    inReplyTo: z.ZodString;
+    references: z.ZodArray<z.ZodString>;
+  },
+  z.core.$strict
 > = z.strictObject({
   inReplyTo: emailMessageIdSchema,
   references: z.array(emailMessageIdSchema).max(100),
 });
+
+function expectEmailDeliveryThreading(
+  value: z.output<typeof emailDeliveryThreadingSchema>,
+): EmailDeliveryThreading {
+  return value;
+}
+void expectEmailDeliveryThreading;
+
+function expectEmailDeliveryThreadingInput(
+  value: EmailDeliveryThreading,
+): z.input<typeof emailDeliveryThreadingSchema> {
+  return value;
+}
+void expectEmailDeliveryThreadingInput;
 
 export type EmailSendResult =
   { status: "sent"; id?: string } | { status: "failed" };

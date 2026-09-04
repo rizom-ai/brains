@@ -34,24 +34,18 @@ import type { DashboardAssetUrls } from "./render/types";
 import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
-export interface DashboardConfig {
-  version: string;
-  routePath: string;
-  themeCSS?: string | undefined;
-}
+const dashboardConfigSchema: z.ZodObject<{
+  version: z.ZodDefault<z.ZodString>;
+  routePath: z.ZodDefault<z.ZodString>;
+  themeCSS: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  version: z.string().default("1.0.0"),
+  routePath: z.string().default("/dashboard"),
+  themeCSS: z.string().optional(),
+});
 
-export interface DashboardConfigInput {
-  version?: string | undefined;
-  routePath?: string | undefined;
-  themeCSS?: string | undefined;
-}
-
-const dashboardConfigSchema: z.ZodType<DashboardConfig, DashboardConfigInput> =
-  z.object({
-    version: z.string().default("1.0.0"),
-    routePath: z.string().default("/dashboard"),
-    themeCSS: z.string().optional(),
-  });
+export type DashboardConfig = z.output<typeof dashboardConfigSchema>;
+export type DashboardConfigInput = z.input<typeof dashboardConfigSchema>;
 
 const registerWidgetPayloadSchema = z
   .object({
