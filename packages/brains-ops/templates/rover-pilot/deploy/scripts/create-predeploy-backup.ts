@@ -1,7 +1,17 @@
 import { Database } from "bun:sqlite";
 import { Buffer } from "node:buffer";
 import { appendFileSync } from "node:fs";
-import { isPlainRecord } from "@brains/utils/predicates";
+
+const getPrototypeOf: (value: object) => object | null = Object.getPrototypeOf;
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const prototype = getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
 
 /**
  * The slice of `@libsql/client` this script uses.
