@@ -1,7 +1,7 @@
 {
   "name": "@brains/studio",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.350",
+  "version": "0.2.0-alpha.351",
   "description": "Studio plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/app-ui-react": "workspace:*",
