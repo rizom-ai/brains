@@ -37,6 +37,7 @@ describe("offline legacy pilot migration", () => {
     expect(migrated).toEqual({
       brainVersion: "0.2.0-alpha.231",
       bundleContract: "capability-bundles-v1",
+      imageContract: "isolated-sites-v1",
       bundles: [
         "core",
         "media",
@@ -92,6 +93,7 @@ describe("offline legacy pilot migration", () => {
     expect(pilotYaml).not.toContain("preset:");
     expect(pilotYaml).not.toContain("schemaVersion:");
     expect(pilotYaml).toContain("bundleContract: capability-bundles-v1");
+    expect(pilotYaml).toContain("imageContract: isolated-sites-v1");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(cohortYaml).toContain("bundlesOverride:");
     expect(parseYamlDocument(pilotYaml, pilotSchema).ok).toBe(true);
