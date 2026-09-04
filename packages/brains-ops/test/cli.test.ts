@@ -196,6 +196,24 @@ describe("brains-ops parseArgs", () => {
     });
   });
 
+  it("parses exact legacy projection job recovery arguments", () => {
+    const result = parseArgs([
+      "recover:retire-legacy-projection-job",
+      "/data/brain-jobs.db",
+      "job-legacy",
+      "--type",
+      "skill:project",
+      "--confirm",
+      "retire:job-legacy",
+    ]);
+    expect(result.command).toBe("recover:retire-legacy-projection-job");
+    expect(result.args).toEqual(["/data/brain-jobs.db", "job-legacy"]);
+    expect(result.flags).toMatchObject({
+      type: "skill:project",
+      confirm: "retire:job-legacy",
+    });
+  });
+
   it("defaults to help when no args", () => {
     const result = parseArgs([]);
     expect(result.command).toBe("help");
@@ -229,6 +247,74 @@ discord:
   - bob
 `,
   } satisfies Record<string, string>;
+
+  it("runs exact unowned legacy projection recovery behind confirmation", async () => {
+    const calls: unknown[] = [];
+    const result = await runCommand(
+      {
+        command: "recover:retire-legacy-projection-job",
+        args: ["/data/brain-jobs.db", "job-legacy"],
+        flags: {
+          type: "skill:project",
+          confirm: "retire:job-legacy",
+        },
+      },
+      {
+        legacyProjectionJobRecoveryRunner: async (options) => {
+          calls.push(options);
+          return {
+            databasePath: "/data/brain-jobs.db",
+            retired: true,
+            job: {
+              id: "job-legacy",
+              type: "skill:project",
+              status: "failed",
+              retryCount: 0,
+              maxRetries: 3,
+              createdAt: 1,
+              startedAt: 2,
+              completedAt: 3,
+            },
+          };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      message:
+        "Retired unowned legacy projection job job-legacy (skill:project)",
+    });
+    expect(calls).toEqual([
+      {
+        databasePath: "/data/brain-jobs.db",
+        jobId: "job-legacy",
+        jobType: "skill:project",
+        confirmation: "retire:job-legacy",
+        dryRun: false,
+      },
+    ]);
+  });
+
+  it("requires dry-run or exact confirmation for legacy job recovery", async () => {
+    const missingGate = await runCommand({
+      command: "recover:retire-legacy-projection-job",
+      args: ["/data/brain-jobs.db", "job-legacy"],
+      flags: { type: "skill:project" },
+    });
+    const unsupportedType = await runCommand({
+      command: "recover:retire-legacy-projection-job",
+      args: ["/data/brain-jobs.db", "job-legacy"],
+      flags: { type: "site-build", "dry-run": true },
+    });
+
+    expect(missingGate.success).toBe(false);
+    expect(missingGate.message).toContain("Usage:");
+    expect(unsupportedType).toEqual({
+      success: false,
+      message: "Unsupported legacy projection job type: site-build",
+    });
+  });
 
   it("creates repo skeleton for init command", async () => {
     const root = await createTempDir("brains-ops-run-");

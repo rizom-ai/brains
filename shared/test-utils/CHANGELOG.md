@@ -1,5 +1,214 @@
 # @brains/test-utils
 
+## 0.2.0-alpha.350
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.350
+  - @brains/utils@0.2.0-alpha.350
+  - @brains/ai-service@0.2.0-alpha.350
+  - @brains/content-service@0.2.0-alpha.350
+  - @brains/conversation-service@0.2.0-alpha.350
+  - @brains/entity-service@0.2.0-alpha.350
+  - @brains/identity-service@0.2.0-alpha.350
+  - @brains/job-queue@0.2.0-alpha.350
+  - @brains/mcp-service@0.2.0-alpha.350
+  - @brains/messaging-service@0.2.0-alpha.350
+  - @brains/plugins@0.2.0-alpha.350
+  - @brains/runtime-state@0.2.0-alpha.350
+  - @brains/templates@0.2.0-alpha.350
+
+## 0.2.0-alpha.349
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.349
+  - @brains/utils@0.2.0-alpha.349
+  - @brains/ai-service@0.2.0-alpha.349
+  - @brains/content-service@0.2.0-alpha.349
+  - @brains/conversation-service@0.2.0-alpha.349
+  - @brains/entity-service@0.2.0-alpha.349
+  - @brains/identity-service@0.2.0-alpha.349
+  - @brains/job-queue@0.2.0-alpha.349
+  - @brains/mcp-service@0.2.0-alpha.349
+  - @brains/messaging-service@0.2.0-alpha.349
+  - @brains/plugins@0.2.0-alpha.349
+  - @brains/runtime-state@0.2.0-alpha.349
+  - @brains/templates@0.2.0-alpha.349
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.348
+  - @brains/utils@0.2.0-alpha.348
+  - @brains/ai-service@0.2.0-alpha.348
+  - @brains/content-service@0.2.0-alpha.348
+  - @brains/conversation-service@0.2.0-alpha.348
+  - @brains/entity-service@0.2.0-alpha.348
+  - @brains/identity-service@0.2.0-alpha.348
+  - @brains/job-queue@0.2.0-alpha.348
+  - @brains/mcp-service@0.2.0-alpha.348
+  - @brains/messaging-service@0.2.0-alpha.348
+  - @brains/plugins@0.2.0-alpha.348
+  - @brains/runtime-state@0.2.0-alpha.348
+  - @brains/templates@0.2.0-alpha.348
+
+## 0.2.0-alpha.347
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.347
+  - @brains/utils@0.2.0-alpha.347
+  - @brains/ai-service@0.2.0-alpha.347
+  - @brains/content-service@0.2.0-alpha.347
+  - @brains/conversation-service@0.2.0-alpha.347
+  - @brains/entity-service@0.2.0-alpha.347
+  - @brains/identity-service@0.2.0-alpha.347
+  - @brains/job-queue@0.2.0-alpha.347
+  - @brains/mcp-service@0.2.0-alpha.347
+  - @brains/messaging-service@0.2.0-alpha.347
+  - @brains/plugins@0.2.0-alpha.347
+  - @brains/runtime-state@0.2.0-alpha.347
+  - @brains/templates@0.2.0-alpha.347
+
+## 0.2.0-alpha.346
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.346
+  - @brains/utils@0.2.0-alpha.346
+  - @brains/ai-service@0.2.0-alpha.346
+  - @brains/content-service@0.2.0-alpha.346
+  - @brains/conversation-service@0.2.0-alpha.346
+  - @brains/entity-service@0.2.0-alpha.346
+  - @brains/identity-service@0.2.0-alpha.346
+  - @brains/job-queue@0.2.0-alpha.346
+  - @brains/mcp-service@0.2.0-alpha.346
+  - @brains/messaging-service@0.2.0-alpha.346
+  - @brains/plugins@0.2.0-alpha.346
+  - @brains/runtime-state@0.2.0-alpha.346
+  - @brains/templates@0.2.0-alpha.346
+
+## 0.2.0-alpha.345
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.345
+  - @brains/utils@0.2.0-alpha.345
+  - @brains/ai-service@0.2.0-alpha.345
+  - @brains/content-service@0.2.0-alpha.345
+  - @brains/conversation-service@0.2.0-alpha.345
+  - @brains/entity-service@0.2.0-alpha.345
+  - @brains/identity-service@0.2.0-alpha.345
+  - @brains/job-queue@0.2.0-alpha.345
+  - @brains/mcp-service@0.2.0-alpha.345
+  - @brains/messaging-service@0.2.0-alpha.345
+  - @brains/plugins@0.2.0-alpha.345
+  - @brains/runtime-state@0.2.0-alpha.345
+  - @brains/templates@0.2.0-alpha.345
+
+## 0.2.0-alpha.344
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.344
+  - @brains/utils@0.2.0-alpha.344
+  - @brains/ai-service@0.2.0-alpha.344
+  - @brains/content-service@0.2.0-alpha.344
+  - @brains/conversation-service@0.2.0-alpha.344
+  - @brains/entity-service@0.2.0-alpha.344
+  - @brains/identity-service@0.2.0-alpha.344
+  - @brains/job-queue@0.2.0-alpha.344
+  - @brains/mcp-service@0.2.0-alpha.344
+  - @brains/messaging-service@0.2.0-alpha.344
+  - @brains/plugins@0.2.0-alpha.344
+  - @brains/runtime-state@0.2.0-alpha.344
+  - @brains/templates@0.2.0-alpha.344
+
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.343
+  - @brains/utils@0.2.0-alpha.343
+  - @brains/ai-service@0.2.0-alpha.343
+  - @brains/content-service@0.2.0-alpha.343
+  - @brains/conversation-service@0.2.0-alpha.343
+  - @brains/entity-service@0.2.0-alpha.343
+  - @brains/identity-service@0.2.0-alpha.343
+  - @brains/job-queue@0.2.0-alpha.343
+  - @brains/mcp-service@0.2.0-alpha.343
+  - @brains/messaging-service@0.2.0-alpha.343
+  - @brains/plugins@0.2.0-alpha.343
+  - @brains/runtime-state@0.2.0-alpha.343
+  - @brains/templates@0.2.0-alpha.343
+
+## 0.2.0-alpha.342
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.342
+  - @brains/utils@0.2.0-alpha.342
+  - @brains/ai-service@0.2.0-alpha.342
+  - @brains/content-service@0.2.0-alpha.342
+  - @brains/conversation-service@0.2.0-alpha.342
+  - @brains/entity-service@0.2.0-alpha.342
+  - @brains/identity-service@0.2.0-alpha.342
+  - @brains/job-queue@0.2.0-alpha.342
+  - @brains/mcp-service@0.2.0-alpha.342
+  - @brains/messaging-service@0.2.0-alpha.342
+  - @brains/plugins@0.2.0-alpha.342
+  - @brains/runtime-state@0.2.0-alpha.342
+  - @brains/templates@0.2.0-alpha.342
+
+## 0.2.0-alpha.341
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.341
+  - @brains/utils@0.2.0-alpha.341
+  - @brains/ai-service@0.2.0-alpha.341
+  - @brains/content-service@0.2.0-alpha.341
+  - @brains/conversation-service@0.2.0-alpha.341
+  - @brains/entity-service@0.2.0-alpha.341
+  - @brains/identity-service@0.2.0-alpha.341
+  - @brains/job-queue@0.2.0-alpha.341
+  - @brains/mcp-service@0.2.0-alpha.341
+  - @brains/messaging-service@0.2.0-alpha.341
+  - @brains/plugins@0.2.0-alpha.341
+  - @brains/runtime-state@0.2.0-alpha.341
+  - @brains/templates@0.2.0-alpha.341
+
+## 0.2.0-alpha.340
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.340
+  - @brains/utils@0.2.0-alpha.340
+  - @brains/ai-service@0.2.0-alpha.340
+  - @brains/content-service@0.2.0-alpha.340
+  - @brains/conversation-service@0.2.0-alpha.340
+  - @brains/entity-service@0.2.0-alpha.340
+  - @brains/identity-service@0.2.0-alpha.340
+  - @brains/job-queue@0.2.0-alpha.340
+  - @brains/mcp-service@0.2.0-alpha.340
+  - @brains/messaging-service@0.2.0-alpha.340
+  - @brains/plugins@0.2.0-alpha.340
+  - @brains/runtime-state@0.2.0-alpha.340
+  - @brains/templates@0.2.0-alpha.340
+
 ## 0.2.0-alpha.339
 
 ### Patch Changes

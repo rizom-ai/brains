@@ -5,12 +5,25 @@ import type {
   RuntimeOperatorLaunchIntent,
 } from "@brains/plugins";
 import {
+  Button,
   ConfirmDialog,
+  buttonClassName,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@brains/app-ui-react";
+import {
+  OperatorActionButton,
   OperatorViewRenderer,
   operatorViewRendererStyles,
 } from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { styles } from "./app-styles";
+import { STUDIO_OPERATOR_COMPONENTS } from "./app-controls";
 import type {
   AgentTarget,
   StudioWorkspaceInfo,
@@ -44,6 +57,13 @@ import {
 } from "./editor-status";
 import { PublicationActions } from "./publication-actions";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
+import {
+  declarativeStudioPageHead,
+  StudioPageHead,
+  studioAccessRequirement,
+  type StudioPageHeadModel,
+} from "./studio-page-head";
 import {
   entityPublicationState,
   entityTitle,
@@ -133,7 +153,7 @@ export function StudioAppStatus(props: {
 }): ReactElement {
   return (
     <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <p
         className={
           props.error ? "status status-error boot-status" : "status boot-status"
@@ -155,7 +175,7 @@ export function StudioAccountWorkspaceView(props: {
 }): ReactElement {
   return (
     <div className="studio" data-view="account">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">Account</span>
         <span className="spacer" />
@@ -253,6 +273,39 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       workspace.pluginId === "content-pipeline" &&
       workspace.entityTypes.includes(selectedEntityType),
   );
+  const entityCount = entities?.length ?? 0;
+  const listingHead: StudioPageHeadModel = {
+    kicker: "Content library",
+    access: studioAccessRequirement("trusted"),
+    title: activeType?.label ?? entityType ?? "Library",
+    metadata: [
+      `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
+      "Sorted by updated",
+    ],
+    totals: [],
+  };
+  const editorHead: StudioPageHeadModel = {
+    kicker: collectionLabel,
+    access: studioAccessRequirement("trusted"),
+    title: heading ?? "Editor",
+    metadata: [
+      `${entryLabel} · ${
+        mode.kind === "create"
+          ? "new"
+          : mode.kind === "edit"
+            ? entityPublicationState(mode.entity)
+            : "browse"
+      }`,
+    ],
+    totals: [],
+  };
+  const declarativeHead =
+    activeWorkspace && declarativeWorkspaceData
+      ? declarativeStudioPageHead(
+          activeWorkspace,
+          declarativeWorkspaceData.view,
+        )
+      : null;
   return (
     <div
       className="studio"
@@ -260,13 +313,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <header className="crumbbar">
         <span className="crumb">
           {editing && !entitySchema.isSingleton ? (
-            <button type="button" onClick={backToList}>
+            <Button type="button" variant="link" onClick={backToList}>
               {collectionLabel}
-            </button>
+            </Button>
           ) : (
             collectionLabel
           )}
@@ -296,39 +349,53 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <main className="declarative-workspace">
               <p className="status status-error">{workspaceError}</p>
             </main>
-          ) : declarativeWorkspaceData ? (
-            <OperatorViewRenderer
-              data={declarativeWorkspaceData}
-              onOpenEntity={openWorkspaceEntity}
-              onLaunch={openWorkspaceLaunch}
-              onAction={performDeclarativeAction}
-              query={workspaceQuery}
-              {...(activeWorkspaceId
-                ? {
-                    onQueryChange: (query: StudioWorkspaceQuery) =>
-                      onWorkspaceQueryChange(activeWorkspaceId, query, query),
-                  }
-                : {})}
-            />
+          ) : declarativeWorkspaceData && declarativeHead ? (
+            <div className="studio-workspace-frame">
+              <StudioPageHead
+                model={declarativeHead}
+                {...(declarativeHead.primaryAction
+                  ? {
+                      action: (
+                        <OperatorActionButton
+                          action={declarativeHead.primaryAction}
+                          onAction={performDeclarativeAction}
+                          components={STUDIO_OPERATOR_COMPONENTS}
+                        />
+                      ),
+                    }
+                  : {})}
+              />
+              <OperatorViewRenderer
+                data={declarativeWorkspaceData}
+                components={STUDIO_OPERATOR_COMPONENTS}
+                renderHead={false}
+                onOpenEntity={openWorkspaceEntity}
+                onLaunch={openWorkspaceLaunch}
+                onAction={performDeclarativeAction}
+                query={workspaceQuery}
+                {...(activeWorkspaceId
+                  ? {
+                      onQueryChange: (query: StudioWorkspaceQuery) =>
+                        onWorkspaceQueryChange(activeWorkspaceId, query, query),
+                    }
+                  : {})}
+              />
+            </div>
           ) : null
         ) : !editing ? (
           <main className="listing">
-            <div className="listing-head">
-              <h3>{activeType?.label ?? entityType}</h3>
-              <span className="meta">
-                {entities?.length ?? 0}{" "}
-                {entities?.length === 1 ? "entity" : "entities"} · sorted by
-                updated
-              </span>
-              <button
-                type="button"
-                className="btn"
-                disabled={!canCreate}
-                onClick={startCreate}
-              >
-                New {entryLabel.toLowerCase()}
-              </button>
-            </div>
+            <StudioPageHead
+              model={listingHead}
+              action={
+                <Button
+                  type="button"
+                  disabled={!canCreate}
+                  onClick={startCreate}
+                >
+                  New {entryLabel.toLowerCase()}
+                </Button>
+              }
+            />
             {(entities ?? []).map((entity, index) => (
               <button
                 type="button"
@@ -374,27 +441,47 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               if (canEdit) save();
             }}
           >
-            <nav className="studio-mobile-modes" aria-label="Editor view">
-              {MOBILE_EDITOR_PANES.map((pane) => (
-                <button
-                  key={pane}
-                  type="button"
-                  className={
-                    pane === mobilePane
-                      ? "studio-mobile-mode is-active"
-                      : "studio-mobile-mode"
-                  }
-                  disabled={pane !== "details" && !entitySchema.hasBody}
-                  onClick={() => {
-                    setMobilePane(pane);
-                    if (pane === "write") setBodyMode("source");
-                    if (pane === "preview") setBodyMode("preview");
-                  }}
+            <StudioPageHead
+              model={editorHead}
+              action={
+                <Button
+                  type="submit"
+                  className="studio-editor-head-save"
+                  disabled={!canEdit || saveState.kind === "saving"}
                 >
-                  {pane}
-                </button>
-              ))}
-            </nav>
+                  {saveState.kind === "saving" ? "Saving…" : "Save changes"}
+                </Button>
+              }
+            />
+            <Tabs
+              className="studio-mobile-tabs"
+              value={mobilePane}
+              onValueChange={(value) => {
+                const pane = MOBILE_EDITOR_PANES.find(
+                  (candidate) => candidate === value,
+                );
+                if (!pane) return;
+                setMobilePane(pane);
+                if (pane === "write") setBodyMode("source");
+                if (pane === "preview") setBodyMode("preview");
+              }}
+            >
+              <TabsList
+                className="studio-mobile-modes"
+                aria-label="Editor view"
+              >
+                {MOBILE_EDITOR_PANES.map((pane) => (
+                  <TabsTrigger
+                    key={pane}
+                    value={pane}
+                    className="studio-mobile-mode"
+                    disabled={pane !== "details" && !entitySchema.hasBody}
+                  >
+                    {pane}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
             <aside className="colophon">
               <div className="form-title">
                 <h2>
@@ -487,13 +574,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               )}
             </section>
             <footer className="pipeline">
-              <button
+              <Button
                 type="submit"
-                className="save-btn"
+                className="studio-editor-phone-save"
                 disabled={!canEdit || saveState.kind === "saving"}
               >
                 {saveState.kind === "saving" ? "Saving…" : "Save"}
-              </button>
+              </Button>
               {syncStatus?.directorySync && (
                 <PipelineStations
                   view={derivePipeline({
@@ -536,31 +623,37 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 !entitySchema.isSingleton &&
                 canDelete && (
                   <>
-                    <button
-                      type="button"
-                      className="btn danger"
-                      onClick={() =>
-                        dispatchEditor({ type: "deleteRequested" })
-                      }
-                    >
-                      Delete
-                    </button>
-                    <details className="studio-mobile-more">
-                      <summary aria-label="More document actions">•••</summary>
-                      <button
+                    <span className="studio-desktop-delete">
+                      <Button
                         type="button"
-                        onClick={(event) => {
-                          // Fold the disclosure so it isn't left hanging open
-                          // behind the confirmation dialog's scrim.
-                          event.currentTarget
-                            .closest("details")
-                            ?.removeAttribute("open");
-                          dispatchEditor({ type: "deleteRequested" });
-                        }}
+                        variant="danger"
+                        onClick={() =>
+                          dispatchEditor({ type: "deleteRequested" })
+                        }
                       >
-                        Delete entry
-                      </button>
-                    </details>
+                        Delete
+                      </Button>
+                    </span>
+                    <span className="studio-mobile-more">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className={buttonClassName("ghost", "icon")}
+                          aria-label="More document actions"
+                        >
+                          •••
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() =>
+                              dispatchEditor({ type: "deleteRequested" })
+                            }
+                          >
+                            Delete entry
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </span>
                   </>
                 )}
             </footer>
@@ -582,7 +675,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           titleId="discard-navigation-title"
           cancelLabel="Keep editing"
           confirmLabel="Discard and continue"
-          confirmClassName="danger"
+          confirmVariant="danger"
           onCancel={onNavigationReset}
           onConfirm={onNavigationProceed}
         >

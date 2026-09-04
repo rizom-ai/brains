@@ -1,4 +1,12 @@
 /** @jsxImportSource react */
+import {
+  Button,
+  Input,
+  NativeSelect,
+  Switch,
+  Textarea,
+} from "@brains/app-ui-react";
+import { Select as SelectPrimitive } from "radix-ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactElement } from "react";
 import type {
@@ -86,6 +94,23 @@ export function visibleFieldValues(
   );
 }
 
+const MOBILE_TYPE_PREFIX = "type:";
+const MOBILE_WORKSPACE_PREFIX = "workspace:";
+
+export function studioMobileSelection(
+  value: string,
+): { kind: "type" | "workspace"; id: string } | null {
+  if (value.startsWith(MOBILE_TYPE_PREFIX)) {
+    const id = value.slice(MOBILE_TYPE_PREFIX.length);
+    return id.length > 0 ? { kind: "type", id } : null;
+  }
+  if (value.startsWith(MOBILE_WORKSPACE_PREFIX)) {
+    const id = value.slice(MOBILE_WORKSPACE_PREFIX.length);
+    return id.length > 0 ? { kind: "workspace", id } : null;
+  }
+  return null;
+}
+
 export function TypeSwitcher(props: {
   types: EntityTypeInfo[];
   active: string | null;
@@ -110,6 +135,76 @@ export function TypeSwitcher(props: {
       ),
     }))
     .filter((group) => group.types.length > 0);
+  const primaryTypeGroups = groups.filter(
+    (group) => group.label === "Content" || group.label === "Collections",
+  );
+  const secondaryTypeGroups = groups.filter(
+    (group) => group.label === "Site" || group.label === "System",
+  );
+  const mobileTypeLabel = (info: EntityTypeInfo): string =>
+    info.isSingleton ? info.label : `${info.label} · ${info.count}`;
+  const mobileWorkspaceLabel = (workspace: StudioWorkspaceInfo): string => {
+    const badge = props.workspaceBadges?.[workspace.id] ?? 0;
+    return badge > 0 ? `${workspace.label} · ${badge}` : workspace.label;
+  };
+  const mobileGroups = [
+    ...(overviewWorkspace
+      ? [
+          {
+            label: "Home",
+            options: [
+              {
+                value: `${MOBILE_WORKSPACE_PREFIX}${overviewWorkspace.id}`,
+                label: mobileWorkspaceLabel(overviewWorkspace),
+              },
+            ],
+          },
+        ]
+      : []),
+    ...primaryTypeGroups.map((group) => ({
+      label: group.label,
+      options: group.types.map((info) => ({
+        value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
+        label: mobileTypeLabel(info),
+      })),
+    })),
+    ...(operationWorkspaces.length > 0
+      ? [
+          {
+            label: "Operations",
+            options: operationWorkspaces.map((workspace) => ({
+              value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
+              label: mobileWorkspaceLabel(workspace),
+            })),
+          },
+        ]
+      : []),
+    ...secondaryTypeGroups.map((group) => ({
+      label: group.label,
+      options: group.types.map((info) => ({
+        value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
+        label: mobileTypeLabel(info),
+      })),
+    })),
+  ];
+  const activeMobileView = props.active
+    ? `${MOBILE_TYPE_PREFIX}${props.active}`
+    : props.activeWorkspace
+      ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
+      : "";
+  const activeMobileLabel = mobileGroups
+    .flatMap((group) => group.options)
+    .find((option) => option.value === activeMobileView)?.label;
+  const selectMobileView = (value: string): void => {
+    const selection = studioMobileSelection(value);
+    if (selection?.kind === "type") {
+      props.onSelect(selection.id);
+      return;
+    }
+    if (selection?.kind === "workspace") {
+      props.onSelectWorkspace?.(selection.id);
+    }
+  };
   const renderGroup = (group: (typeof groups)[number]): ReactElement => (
     <section className="rail-group" key={group.label}>
       <div className="rail-title">{group.label}</div>
@@ -137,67 +232,128 @@ export function TypeSwitcher(props: {
   );
 
   return (
-    <nav className="types">
-      {overviewWorkspace && (
-        <section className="rail-group rail-group--overview">
-          <ul>
-            <li>
-              <button
-                type="button"
-                className={
-                  overviewWorkspace.id === props.activeWorkspace
-                    ? "type workspace-type active"
-                    : "type workspace-type"
-                }
-                onClick={() => props.onSelectWorkspace?.(overviewWorkspace.id)}
-              >
-                {overviewWorkspace.label}
-                {(props.workspaceBadges?.[overviewWorkspace.id] ?? 0) > 0 && (
-                  <span className="count count--attention">
-                    {props.workspaceBadges?.[overviewWorkspace.id]}
-                  </span>
-                )}
-              </button>
-            </li>
-          </ul>
-        </section>
-      )}
-      {groups
-        .filter(
-          (group) => group.label === "Content" || group.label === "Collections",
-        )
-        .map(renderGroup)}
-      {operationWorkspaces.length > 0 && (
-        <section className="rail-group rail-group--operations">
-          <div className="rail-title">Operations</div>
-          <ul>
-            {operationWorkspaces.map((workspace) => (
-              <li key={workspace.id}>
+    <>
+      <SelectPrimitive.Root
+        value={activeMobileView}
+        onValueChange={selectMobileView}
+      >
+        <SelectPrimitive.Trigger
+          className="studio-mobile-switcher"
+          aria-label="Studio view"
+        >
+          <span className="studio-mobile-switcher-label">Browse</span>
+          <SelectPrimitive.Value placeholder="Choose a Studio view">
+            <span className="studio-mobile-switcher-value">
+              {activeMobileLabel}
+            </span>
+          </SelectPrimitive.Value>
+          <SelectPrimitive.Icon
+            className="studio-mobile-switcher-chevron"
+            aria-hidden="true"
+          >
+            ↓
+          </SelectPrimitive.Icon>
+        </SelectPrimitive.Trigger>
+        <SelectPrimitive.Portal>
+          <SelectPrimitive.Content
+            className="studio-mobile-switcher-content"
+            position="popper"
+            sideOffset={6}
+            align="start"
+          >
+            <SelectPrimitive.ScrollUpButton className="studio-mobile-switcher-scroll">
+              ↑
+            </SelectPrimitive.ScrollUpButton>
+            <SelectPrimitive.Viewport className="studio-mobile-switcher-viewport">
+              {mobileGroups.map((group) => (
+                <SelectPrimitive.Group
+                  className="studio-mobile-switcher-group"
+                  key={`mobile:${group.label}`}
+                >
+                  <SelectPrimitive.Label className="studio-mobile-switcher-group-label">
+                    {group.label}
+                  </SelectPrimitive.Label>
+                  {group.options.map((option) => (
+                    <SelectPrimitive.Item
+                      className="studio-mobile-switcher-item"
+                      value={option.value}
+                      key={option.value}
+                    >
+                      <SelectPrimitive.ItemText>
+                        {option.label}
+                      </SelectPrimitive.ItemText>
+                      <SelectPrimitive.ItemIndicator className="studio-mobile-switcher-indicator">
+                        ✓
+                      </SelectPrimitive.ItemIndicator>
+                    </SelectPrimitive.Item>
+                  ))}
+                </SelectPrimitive.Group>
+              ))}
+            </SelectPrimitive.Viewport>
+            <SelectPrimitive.ScrollDownButton className="studio-mobile-switcher-scroll">
+              ↓
+            </SelectPrimitive.ScrollDownButton>
+          </SelectPrimitive.Content>
+        </SelectPrimitive.Portal>
+      </SelectPrimitive.Root>
+      <nav className="types">
+        {overviewWorkspace && (
+          <section className="rail-group rail-group--overview">
+            <ul>
+              <li>
                 <button
                   type="button"
                   className={
-                    workspace.id === props.activeWorkspace
+                    overviewWorkspace.id === props.activeWorkspace
                       ? "type workspace-type active"
                       : "type workspace-type"
                   }
-                  onClick={() => props.onSelectWorkspace?.(workspace.id)}
+                  onClick={() =>
+                    props.onSelectWorkspace?.(overviewWorkspace.id)
+                  }
                 >
-                  {workspace.label}
-                  {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
+                  {overviewWorkspace.label}
+                  {(props.workspaceBadges?.[overviewWorkspace.id] ?? 0) > 0 && (
                     <span className="count count--attention">
-                      {props.workspaceBadges?.[workspace.id]}
+                      {props.workspaceBadges?.[overviewWorkspace.id]}
                     </span>
                   )}
                 </button>
               </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {groups
-        .filter((group) => group.label === "Site" || group.label === "System")
-        .map(renderGroup)}
-    </nav>
+            </ul>
+          </section>
+        )}
+        {primaryTypeGroups.map(renderGroup)}
+        {operationWorkspaces.length > 0 && (
+          <section className="rail-group rail-group--operations">
+            <div className="rail-title">Operations</div>
+            <ul>
+              {operationWorkspaces.map((workspace) => (
+                <li key={workspace.id}>
+                  <button
+                    type="button"
+                    className={
+                      workspace.id === props.activeWorkspace
+                        ? "type workspace-type active"
+                        : "type workspace-type"
+                    }
+                    onClick={() => props.onSelectWorkspace?.(workspace.id)}
+                  >
+                    {workspace.label}
+                    {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
+                      <span className="count count--attention">
+                        {props.workspaceBadges?.[workspace.id]}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {secondaryTypeGroups.map(renderGroup)}
+      </nav>
+    </>
   );
 }
 
@@ -225,9 +381,14 @@ function ImageField(props: {
       {current && (
         <p className="image-ref">
           <code>{current}</code>
-          <button type="button" onClick={() => onChange("")}>
+          <Button
+            type="button"
+            variant="link"
+            size="xs"
+            onClick={() => onChange("")}
+          >
             Clear
-          </button>
+          </Button>
         </p>
       )}
       <label className="upload-zone">
@@ -286,19 +447,21 @@ function StringListField(props: {
         {values.map((value) => (
           <span className="tag" key={value}>
             {value}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-xs"
               aria-label={`Remove ${value}`}
               onClick={() =>
                 props.onChange(values.filter((item) => item !== value))
               }
             >
               ×
-            </button>
+            </Button>
           </span>
         ))}
         <span className="tag tag-add">
-          <input
+          <Input
             type="text"
             value={pending}
             aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
@@ -311,9 +474,15 @@ function StringListField(props: {
               }
             }}
           />
-          <button type="button" aria-label="Add tag" onClick={add}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Add tag"
+            onClick={add}
+          >
             +
-          </button>
+          </Button>
         </span>
       </div>
     </div>
@@ -375,29 +544,26 @@ export function FieldAssistControls(props: {
         ) : (
           <span className="field-assist-copy">{state.suggestion}</span>
         )}
-        <button
+        <Button
           type="button"
-          className="field-assist-action"
+          size="xs"
           onClick={() => onApply(state.field, state.suggestion)}
         >
           Apply
-        </button>
-        <button
-          type="button"
-          className="field-assist-action ghost"
-          onClick={onDiscard}
-        >
+        </Button>
+        <Button type="button" variant="ghost" size="xs" onClick={onDiscard}>
           Discard
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="field-assist-controls">
-      <button
+      <Button
         type="button"
-        className="field-assist-run"
+        variant="outline"
+        size="xs"
         disabled={active && state.kind === "loading"}
         onClick={() => onRun(variant, descriptor.name)}
       >
@@ -406,7 +572,7 @@ export function FieldAssistControls(props: {
           : variant === "summarise"
             ? "Summarise body"
             : `Suggest ${descriptor.label.toLowerCase()}`}
-      </button>
+      </Button>
       {active && state.kind === "error" && (
         <span className="status status-error">{state.message}</span>
       )}
@@ -444,10 +610,9 @@ export function Field(props: {
     return (
       <label className="field field-inline">
         <span className="field-label">{descriptor.label}</span>
-        <input
-          type="checkbox"
+        <Switch
           checked={value === true}
-          onChange={(event) => onChange(event.currentTarget.checked)}
+          onCheckedChange={(checked) => onChange(checked)}
         />
       </label>
     );
@@ -457,7 +622,7 @@ export function Field(props: {
     return (
       <label className="field">
         {label}
-        <select
+        <NativeSelect
           value={text}
           required={required}
           onChange={(event) => onChange(event.currentTarget.value)}
@@ -468,7 +633,7 @@ export function Field(props: {
               {option}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
     );
   }
@@ -477,7 +642,7 @@ export function Field(props: {
     return (
       <label className="field">
         {label}
-        <textarea
+        <Textarea
           value={text}
           required={required}
           rows={4}
@@ -506,7 +671,7 @@ export function Field(props: {
           {descriptor.label}
           <em className="kind">read-only</em>
         </span>
-        <textarea
+        <Textarea
           value={JSON.stringify(value ?? null, null, 2)}
           disabled
           rows={4}
@@ -518,7 +683,7 @@ export function Field(props: {
   return (
     <label className="field">
       {label}
-      <input
+      <Input
         type={
           descriptor.widget === "number"
             ? "number"

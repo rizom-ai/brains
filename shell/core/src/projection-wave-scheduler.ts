@@ -127,6 +127,8 @@ export class ProjectionWaveScheduler {
     return this.runExclusive(async () => {
       const activeWave = await this.store.getActiveWave();
       if (activeWave?.id !== waveId) {
+        const settledWave = await this.store.getWave(waveId);
+        if (settledWave?.status === "completed") return settledWave;
         throw new Error(`Projection wave "${waveId}" is not active`);
       }
       const advanced = await this.advanceWave(activeWave);

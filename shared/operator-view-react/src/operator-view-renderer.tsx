@@ -11,7 +11,6 @@ import type {
   RuntimePreparedConfirmation,
   RuntimeOperatorScalar,
 } from "@brains/plugins";
-import { WidgetTabs } from "@brains/ui-library";
 import {
   createContext,
   useContext,
@@ -19,10 +18,17 @@ import {
   useId,
   useRef,
   useState,
+  type ButtonHTMLAttributes,
+  type ComponentType,
+  type InputHTMLAttributes,
   type ReactElement,
   type ReactNode,
+  type SelectHTMLAttributes,
 } from "react";
-import { ConfirmDialog } from "./confirm-dialog";
+import {
+  ConfirmDialog as CssConfirmDialog,
+  type ConfirmDialogProps,
+} from "./confirm-dialog";
 
 export type OperatorViewQuery = Readonly<
   Record<string, string | number | undefined>
@@ -30,14 +36,174 @@ export type OperatorViewQuery = Readonly<
 
 type RuntimeBlock = RuntimeStudioOperatorView["blocks"][number];
 
+export type OperatorControlVariant =
+  "primary" | "secondary" | "danger" | "ghost";
+
+export interface OperatorControlButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: OperatorControlVariant | undefined;
+}
+
+export interface OperatorTabsProps {
+  label: string;
+  value: string;
+  tabs: readonly {
+    value: string;
+    label: ReactNode;
+    count?: number | undefined;
+    content: ReactNode;
+  }[];
+  onValueChange: (value: string) => void;
+}
+
+export interface OperatorDisclosureProps {
+  title: string;
+  triggerLabel: ReactNode;
+  children: ReactNode;
+  className?: string | undefined;
+}
+
+export interface OperatorViewComponents {
+  readonly engine: "css" | "app";
+  readonly Button: ComponentType<OperatorControlButtonProps>;
+  readonly Input: ComponentType<InputHTMLAttributes<HTMLInputElement>>;
+  readonly Select: ComponentType<SelectHTMLAttributes<HTMLSelectElement>>;
+  readonly ConfirmDialog: ComponentType<ConfirmDialogProps>;
+  readonly Disclosure: ComponentType<OperatorDisclosureProps>;
+  readonly Tabs: ComponentType<OperatorTabsProps>;
+}
+
+function cssButtonClassName(variant: OperatorControlVariant): string {
+  if (variant === "danger") return "btn danger";
+  if (variant === "ghost" || variant === "secondary") return "btn ghost";
+  return "btn";
+}
+
+function CssButton({
+  variant = "primary",
+  className,
+  ...props
+}: OperatorControlButtonProps): ReactElement {
+  const controlClass = cssButtonClassName(variant);
+  return (
+    <button
+      className={className ? `${controlClass} ${className}` : controlClass}
+      {...props}
+    />
+  );
+}
+
+function CssInput(props: InputHTMLAttributes<HTMLInputElement>): ReactElement {
+  return <input {...props} />;
+}
+
+function CssSelect(
+  props: SelectHTMLAttributes<HTMLSelectElement>,
+): ReactElement {
+  return <select {...props} />;
+}
+
+function CssDisclosure(props: OperatorDisclosureProps): ReactElement {
+  return (
+    <details className={props.className}>
+      <summary>{props.triggerLabel}</summary>
+      {props.children}
+    </details>
+  );
+}
+
+function CssTabs(props: OperatorTabsProps): ReactElement {
+  const active = props.tabs.find((tab) => tab.value === props.value);
+  return (
+    <div className="declarative-tabs">
+      <div role="tablist" aria-label={props.label}>
+        {props.tabs.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            role="tab"
+            aria-selected={tab.value === active?.value}
+            onClick={() => props.onValueChange(tab.value)}
+          >
+            {tab.label}
+            {tab.count !== undefined ? ` (${tab.count})` : ""}
+          </button>
+        ))}
+      </div>
+      {active && <div role="tabpanel">{active.content}</div>}
+    </div>
+  );
+}
+
+function StaticAllTabs(props: {
+  id: string;
+  label: string;
+  defaultValue: string;
+  tabs: OperatorTabsProps["tabs"];
+}): ReactElement {
+  return (
+    <div data-ui-tabs data-ui-tabs-default={props.defaultValue}>
+      <div className="widget-tabs" role="tablist" aria-label={props.label}>
+        {props.tabs.map((tab) => {
+          const active = tab.value === props.defaultValue;
+          return (
+            <button
+              key={tab.value}
+              id={`${props.id}-tab-${tab.value}`}
+              className={active ? "widget-tab is-active" : "widget-tab"}
+              type="button"
+              role="tab"
+              data-ui-tab={tab.value}
+              aria-controls={`${props.id}-panel-${tab.value}`}
+              aria-selected={active}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className="widget-tab-count">{tab.count}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {props.tabs.map((tab) => {
+        const active = tab.value === props.defaultValue;
+        return (
+          <div
+            key={tab.value}
+            id={`${props.id}-panel-${tab.value}`}
+            className={active ? "is-active" : undefined}
+            data-ui-panel={tab.value}
+            role="tabpanel"
+            aria-labelledby={`${props.id}-tab-${tab.value}`}
+            hidden={!active}
+          >
+            {tab.content}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CSS_COMPONENTS: OperatorViewComponents = {
+  engine: "css",
+  Button: CssButton,
+  Input: CssInput,
+  Select: CssSelect,
+  ConfirmDialog: CssConfirmDialog,
+  Disclosure: CssDisclosure,
+  Tabs: CssTabs,
+};
+
 interface OperatorRendererHost {
   readonly resolveLink?:
     ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
   readonly renderAllTabs: boolean;
+  readonly components: OperatorViewComponents;
 }
 
 const OperatorRendererHostContext = createContext<OperatorRendererHost>({
   renderAllTabs: false,
+  components: CSS_COMPONENTS,
 });
 
 function displayScalar(value: RuntimeOperatorScalar): string {
@@ -263,6 +429,7 @@ function presentedActionResult(
 }
 
 function ActionResult(props: { result: PresentedActionResult }): ReactElement {
+  const { Button } = useContext(OperatorRendererHostContext).components;
   return (
     <section className="declarative-action-result" aria-live="polite">
       <strong>{props.result.title}</strong>
@@ -273,15 +440,15 @@ function ActionResult(props: { result: PresentedActionResult }): ReactElement {
             <dd>
               <code>{field.value}</code>
               {field.copyable && (
-                <button
+                <Button
                   type="button"
-                  className="btn ghost"
+                  variant="ghost"
                   onClick={() =>
                     void navigator.clipboard.writeText(field.value)
                   }
                 >
                   Copy
-                </button>
+                </Button>
               )}
             </dd>
           </div>
@@ -294,6 +461,7 @@ function ActionResult(props: { result: PresentedActionResult }): ReactElement {
 function ActionFormFields(props: {
   action: RuntimeOperatorActionControl;
 }): ReactElement {
+  const { Input, Select } = useContext(OperatorRendererHostContext).components;
   const initial = plainRecord(props.action.input) ?? {};
   const [selected, setSelected] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -331,7 +499,7 @@ function ActionFormFields(props: {
           return (
             <label key={field.name}>
               <span>{label}</span>
-              <select
+              <Select
                 name={field.name}
                 defaultValue={typeof value === "string" ? value : undefined}
                 required={field.required}
@@ -347,7 +515,7 @@ function ActionFormFields(props: {
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           );
         }
@@ -359,7 +527,7 @@ function ActionFormFields(props: {
         return (
           <label key={field.name}>
             <span>{label}</span>
-            <input
+            <Input
               name={field.name}
               type={
                 field.secret
@@ -386,19 +554,23 @@ function ActionFormFields(props: {
  * confirmation is marked, anything attached to a row stays subordinate to it,
  * and a standalone action is the surface's primary call to action.
  */
-function actionClassName(
+function actionVariant(
   action: RuntimeOperatorActionControl,
   subordinate: boolean,
-): string {
-  if (action.confirmation) return "btn danger";
-  return subordinate ? "btn ghost" : "btn";
+): OperatorControlVariant {
+  if (action.confirmation) return "danger";
+  return subordinate ? "ghost" : "primary";
 }
 
-function ActionButton(props: {
+export function OperatorActionButton(props: {
   action: RuntimeOperatorActionControl;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   subordinate?: boolean;
+  components?: OperatorViewComponents | undefined;
 }): ReactElement {
+  const host = useContext(OperatorRendererHostContext);
+  const components = props.components ?? host.components;
+  const { Button, ConfirmDialog, Disclosure } = components;
   const titleId = useId();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -488,41 +660,45 @@ function ActionButton(props: {
       }}
     >
       <ActionFormFields action={props.action} />
-      <button
+      <Button
         type="submit"
-        className={actionClassName(props.action, props.subordinate === true)}
+        variant={actionVariant(props.action, props.subordinate === true)}
         disabled={pending || props.action.disabled === true}
       >
         {pending
           ? "Working…"
           : (props.action.form.submitLabel ?? props.action.label)}
-      </button>
+      </Button>
     </form>
   ) : null;
   return (
     <>
-      <ActionControl className="declarative-action-control">
+      <ActionControl
+        className="declarative-action-control"
+        data-control-engine={components.engine}
+      >
         {props.action.form ? (
           props.action.form.presentation === "disclosure" ? (
-            <details key={actionKey} className="declarative-action-disclosure">
-              <summary>{props.action.label}</summary>
+            <Disclosure
+              key={actionKey}
+              className="declarative-action-disclosure"
+              title={props.action.label}
+              triggerLabel={props.action.label}
+            >
               {actionForm}
-            </details>
+            </Disclosure>
           ) : (
             actionForm
           )
         ) : (
-          <button
+          <Button
             type="button"
-            className={actionClassName(
-              props.action,
-              props.subordinate === true,
-            )}
+            variant={actionVariant(props.action, props.subordinate === true)}
             disabled={pending || props.action.disabled === true}
             onClick={() => void start(props.action)}
           >
             {pending ? "Working…" : props.action.label}
-          </button>
+          </Button>
         )}
         {message && (
           <small
@@ -561,7 +737,7 @@ function Actions(props: {
   return (
     <div className="declarative-actions">
       {props.actions.map((action, index) => (
-        <ActionButton
+        <OperatorActionButton
           key={`${action.actionId}:${action.capabilityId ?? "static"}:${index}`}
           action={action}
           onAction={props.onAction}
@@ -764,6 +940,7 @@ function ListBlock(props: {
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
   openId?: string | undefined;
 }): ReactElement {
+  const { Button } = useContext(OperatorRendererHostContext).components;
   const [activeFilter, setActiveFilter] = useState(
     props.block.filter?.defaultValue ?? "all",
   );
@@ -785,16 +962,17 @@ function ListBlock(props: {
           aria-label={props.block.filter.label}
         >
           {props.block.filter.options.map((option) => (
-            <button
+            <Button
               key={option.value}
               type="button"
+              variant={activeFilter === option.value ? "primary" : "ghost"}
               aria-pressed={activeFilter === option.value}
               data-emphasis={option.emphasis}
               onClick={() => setActiveFilter(option.value)}
             >
               {option.label}
               {option.count !== undefined ? ` (${option.count})` : ""}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -818,64 +996,123 @@ function TableBlock(props: {
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
+  query: OperatorViewQuery;
+  onQueryChange: (query: OperatorViewQuery) => void;
   openId?: string | undefined;
 }): ReactElement {
-  if (props.block.rows.length === 0) {
-    return <p className="declarative-empty">{props.block.empty}</p>;
-  }
   const hasActions = props.block.rows.some(
     (row) => (row.actions?.length ?? 0) > 0,
   );
+  const compactRows: readonly RuntimeListItem[] = props.block.rows.flatMap(
+    (row): RuntimeListItem[] => {
+      if (!row.compact) return [];
+      return [
+        {
+          id: row.id,
+          title: row.compact.title,
+          ...(row.compact.description
+            ? { description: row.compact.description }
+            : {}),
+          ...(row.compact.metadata ? { metadata: row.compact.metadata } : {}),
+          ...(row.compact.badges ? { badges: row.compact.badges } : {}),
+          ...(row.compact.count !== undefined
+            ? { count: row.compact.count }
+            : {}),
+          ...(row.compact.tone ? { tone: row.compact.tone } : {}),
+          ...(row.link ? { link: row.link } : {}),
+          ...(row.actions ? { actions: row.actions } : {}),
+        },
+      ];
+    },
+  );
+  const hasUnannotatedRows = props.block.rows.some((row) => !row.compact);
+  const table =
+    props.block.rows.length === 0 ? (
+      <p className="declarative-empty">{props.block.empty}</p>
+    ) : (
+      <>
+        {compactRows.length > 0 && (
+          <div className="declarative-compact-rows">
+            <ListItems
+              items={compactRows}
+              onAction={props.onAction}
+              onOpenEntity={props.onOpenEntity}
+              onLaunch={props.onLaunch}
+              openId={props.openId}
+            />
+          </div>
+        )}
+        <div
+          className="declarative-table-scroll operator-table-scroll"
+          {...(compactRows.length > 0
+            ? {
+                "data-has-unannotated": hasUnannotatedRows ? "true" : "false",
+              }
+            : {})}
+        >
+          <table className="declarative-table operator-table">
+            <thead>
+              <tr>
+                {props.block.columns.map((column) => (
+                  <th key={column.key} data-align={column.align ?? "start"}>
+                    {column.label}
+                  </th>
+                ))}
+                {hasActions && <th data-align="end">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {props.block.rows.map((row) => (
+                <tr
+                  key={row.id}
+                  {...(row.compact ? { "data-compact-row": "true" } : {})}
+                  {...(props.openId === row.id
+                    ? { "aria-current": "true" }
+                    : {})}
+                >
+                  {props.block.columns.map((column, index) => {
+                    const value = displayCell(row.cells[column.key]);
+                    return (
+                      <td key={column.key} data-align={column.align ?? "start"}>
+                        {index === 0 && row.link ? (
+                          <OperatorLink
+                            target={row.link}
+                            onOpenEntity={props.onOpenEntity}
+                            onLaunch={props.onLaunch}
+                          >
+                            {value}
+                          </OperatorLink>
+                        ) : (
+                          value
+                        )}
+                      </td>
+                    );
+                  })}
+                  {hasActions && (
+                    <td data-align="end">
+                      <Actions
+                        actions={row.actions ?? []}
+                        onAction={props.onAction}
+                        subordinate
+                      />
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    );
+  if (!props.block.query) return table;
   return (
-    <div className="declarative-table-scroll operator-table-scroll">
-      <table className="declarative-table operator-table">
-        <thead>
-          <tr>
-            {props.block.columns.map((column) => (
-              <th key={column.key} data-align={column.align ?? "start"}>
-                {column.label}
-              </th>
-            ))}
-            {hasActions && <th data-align="end">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {props.block.rows.map((row) => (
-            <tr
-              key={row.id}
-              {...(props.openId === row.id ? { "aria-current": "true" } : {})}
-            >
-              {props.block.columns.map((column, index) => {
-                const value = displayCell(row.cells[column.key]);
-                return (
-                  <td key={column.key} data-align={column.align ?? "start"}>
-                    {index === 0 && row.link ? (
-                      <OperatorLink
-                        target={row.link}
-                        onOpenEntity={props.onOpenEntity}
-                        onLaunch={props.onLaunch}
-                      >
-                        {value}
-                      </OperatorLink>
-                    ) : (
-                      value
-                    )}
-                  </td>
-                );
-              })}
-              {hasActions && (
-                <td data-align="end">
-                  <Actions
-                    actions={row.actions ?? []}
-                    onAction={props.onAction}
-                    subordinate
-                  />
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="declarative-table-collection">
+      <QueryBlock
+        block={props.block.query}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+      />
+      {table}
     </div>
   );
 }
@@ -979,10 +1216,14 @@ function ProgressBlock(props: {
 }
 
 function QueryBlock(props: {
-  block: Extract<RuntimeStudioOperatorPanelBlock, { type: "query" }>;
+  block: Pick<
+    Extract<RuntimeStudioOperatorPanelBlock, { type: "query" }>,
+    "controls" | "pagination"
+  >;
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
+  const { Button, Select } = useContext(OperatorRendererHostContext).components;
   const change = (key: string, value: string): void => {
     const next: Record<string, string | number | undefined> = {
       ...props.query,
@@ -1002,7 +1243,7 @@ function QueryBlock(props: {
         {props.block.controls.map((control) => (
           <label key={control.key}>
             <span>{control.label}</span>
-            <select
+            <Select
               value={control.value ?? ""}
               onChange={(event) => change(control.key, event.target.value)}
             >
@@ -1013,7 +1254,7 @@ function QueryBlock(props: {
                   {option.count === undefined ? "" : ` (${option.count})`}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         ))}
       </div>
@@ -1029,9 +1270,9 @@ function QueryBlock(props: {
               : `${pagination.offset + 1}–${shown} of ${pagination.total}`}
           </span>
           <span className="declarative-pager">
-            <button
+            <Button
               type="button"
-              className="btn ghost"
+              variant="ghost"
               disabled={pagination.offset === 0}
               onClick={() =>
                 props.onQueryChange({
@@ -1042,10 +1283,10 @@ function QueryBlock(props: {
               }
             >
               Previous
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="btn ghost"
+              variant="ghost"
               disabled={shown >= pagination.total}
               onClick={() =>
                 props.onQueryChange({
@@ -1056,7 +1297,7 @@ function QueryBlock(props: {
               }
             >
               {pagination.label ?? "Next"}
-            </button>
+            </Button>
           </span>
         </footer>
       )}
@@ -1320,6 +1561,8 @@ function PanelBlock(props: {
           onAction={props.onAction}
           onOpenEntity={props.onOpenEntity}
           onLaunch={props.onLaunch}
+          query={props.query}
+          onQueryChange={props.onQueryChange}
         />
       );
     case "matrix":
@@ -1334,7 +1577,9 @@ function PanelBlock(props: {
     case "spatial":
       return <SpatialBlock block={props.block} />;
     case "action":
-      return <ActionButton action={props.block} onAction={props.onAction} />;
+      return (
+        <OperatorActionButton action={props.block} onAction={props.onAction} />
+      );
     case "actions":
       return <Actions actions={props.block.items} onAction={props.onAction} />;
   }
@@ -1395,6 +1640,8 @@ function DetailBlock(props: {
         onAction={props.onAction}
         onOpenEntity={props.onOpenEntity}
         onLaunch={props.onLaunch}
+        query={query}
+        onQueryChange={onQueryChange}
         openId={requested}
       />
     );
@@ -1623,79 +1870,56 @@ function ViewBlock(props: {
       />
     );
   }
+  const tabs = props.block.tabs.map((tab) => ({
+    value: tab.id,
+    label: tab.label,
+    ...(tab.count !== undefined ? { count: tab.count } : {}),
+    content: tab.blocks.map((block, index) => (
+      <section
+        className={`operator-block operator-block--${block.type}`}
+        key={block.id ?? `${block.type}:${index}`}
+      >
+        <ViewBlock
+          block={block}
+          onAction={props.onAction}
+          onOpenEntity={props.onOpenEntity}
+          onLaunch={props.onLaunch}
+          query={props.query}
+          onQueryChange={props.onQueryChange}
+        />
+      </section>
+    )),
+  }));
   if (host.renderAllTabs) {
     return (
-      <WidgetTabs
+      <StaticAllTabs
         id={`operator-${props.block.id}`}
         label={props.block.label}
         defaultValue={props.block.defaultTab}
-        tabs={props.block.tabs.map((tab) => ({
-          value: tab.id,
-          label: tab.label,
-          ...(tab.count !== undefined ? { count: tab.count } : {}),
-          content: tab.blocks.map((block, index) => (
-            <section
-              className={`operator-block operator-block--${block.type}`}
-              key={block.id ?? `${block.type}:${index}`}
-            >
-              <ViewBlock
-                block={block}
-                onAction={props.onAction}
-                onOpenEntity={props.onOpenEntity}
-                onLaunch={props.onLaunch}
-                query={props.query}
-                onQueryChange={props.onQueryChange}
-              />
-            </section>
-          )),
-        }))}
+        tabs={tabs}
       />
     );
   }
   const requestedTab = tabQueryKey ? props.query[tabQueryKey] : undefined;
   const activeTab =
     typeof requestedTab === "string" ? requestedTab : localActiveTab;
-  const active =
-    props.block.tabs.find((tab) => tab.id === activeTab) ?? props.block.tabs[0];
+  const activeValue = tabs.some((tab) => tab.value === activeTab)
+    ? activeTab
+    : (tabs[0]?.value ?? "");
+  const { Tabs } = host.components;
   return (
-    <div className="declarative-tabs">
-      <div role="tablist" aria-label={props.block.label}>
-        {props.block.tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={tab.id === active?.id}
-            onClick={() => {
-              if (tabQueryKey) {
-                props.onQueryChange({ [tabQueryKey]: tab.id });
-              } else {
-                setLocalActiveTab(tab.id);
-              }
-            }}
-          >
-            {tab.label}
-            {tab.count !== undefined ? ` (${tab.count})` : ""}
-          </button>
-        ))}
-      </div>
-      {active && (
-        <div role="tabpanel">
-          {active.blocks.map((block, index) => (
-            <section key={block.id ?? `${block.type}:${index}`}>
-              <ViewBlock
-                block={block}
-                onAction={props.onAction}
-                onOpenEntity={props.onOpenEntity}
-                onLaunch={props.onLaunch}
-                query={props.query}
-                onQueryChange={props.onQueryChange}
-              />
-            </section>
-          ))}
-        </div>
-      )}
-    </div>
+    <Tabs
+      label={props.block.label}
+      value={activeValue}
+      tabs={tabs}
+      onValueChange={(value) => {
+        if (tabQueryKey) {
+          props.onQueryChange({ [tabQueryKey]: value });
+        } else {
+          setLocalActiveTab(value);
+        }
+      }}
+    />
   );
 }
 
@@ -1725,6 +1949,10 @@ export interface OperatorViewRendererProps {
   resolveLink?:
     ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
   renderAllTabs?: boolean | undefined;
+  /** Host-owned controls; Dashboard keeps the CSS defaults, Studio supplies app controls. */
+  components?: OperatorViewComponents | undefined;
+  /** Studio may render the normalized head while this renderer keeps the body. */
+  renderHead?: boolean | undefined;
 }
 
 export function OperatorViewRenderer(
@@ -1737,22 +1965,28 @@ export function OperatorViewRenderer(
   const totals =
     props.renderAllTabs !== true && lead?.type === "stats" ? lead : null;
   const bodyBlocks = totals ? blocks.slice(1) : blocks;
-  const { kicker, description, status } = props.data.view;
+  const { kicker, description, status, primaryAction } = props.data.view;
   const hasHead =
     Boolean(title) ||
     Boolean(kicker) ||
+    Boolean(description) ||
     totals !== null ||
-    status !== undefined;
+    status !== undefined ||
+    primaryAction !== undefined;
 
   return (
     <OperatorRendererHostContext.Provider
       value={{
         resolveLink: props.resolveLink,
         renderAllTabs: props.renderAllTabs === true,
+        components: props.components ?? CSS_COMPONENTS,
       }}
     >
-      <main className="declarative-workspace operator-view">
-        {hasHead && (
+      <main
+        className="declarative-workspace operator-view"
+        data-control-engine={(props.components ?? CSS_COMPONENTS).engine}
+      >
+        {props.renderHead !== false && hasHead && (
           <header className="declarative-head">
             <div className="declarative-head-copy">
               {kicker && <span className="declarative-kicker">{kicker}</span>}
@@ -1771,6 +2005,12 @@ export function OperatorViewRenderer(
               )}
               {totals && (
                 <StatsBlock block={totals} className="declarative-totals" />
+              )}
+              {primaryAction && (
+                <OperatorActionButton
+                  action={primaryAction}
+                  onAction={props.onAction}
+                />
               )}
             </div>
           </header>

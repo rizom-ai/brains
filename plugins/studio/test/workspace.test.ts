@@ -57,6 +57,14 @@ function findRoute(
   return route;
 }
 
+function enableChatCapability(shell: MockShell): void {
+  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
+  shell.getPluginPackageName = (pluginId): string | undefined =>
+    pluginId === "web-chat"
+      ? "@brains/web-chat"
+      : getPluginPackageName(pluginId);
+}
+
 async function createSessionCookie(shell: MockShell): Promise<string> {
   const authPlugin = new AuthServicePlugin({
     storageDir: await createTempDataDir("brains-studio-workspace-auth-"),
@@ -129,6 +137,44 @@ describe("optional Studio workspaces", () => {
       { id: "studio:overview" },
       { id: "studio:account" },
     ]);
+  });
+
+  it("admits the host-owned Chat workspace only when Chat is active", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    enableChatCapability(shell);
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const payload = z
+      .object({
+        workspaces: z.array(
+          z.object({
+            id: z.string(),
+            pluginId: z.string(),
+            label: z.string(),
+            rendererName: z.string(),
+            priority: z.number(),
+            permission: z.string(),
+            chatApiPath: z.string().optional(),
+          }),
+        ),
+      })
+      .parse(await response.json());
+
+    expect(response.status).toBe(200);
+    expect(payload.workspaces).toContainEqual({
+      id: "web-chat:chat",
+      pluginId: "studio",
+      label: "Chat",
+      rendererName: "StudioChatWorkspace",
+      priority: -80,
+      permission: "trusted",
+      chatApiPath: "/api/chat",
+    });
   });
 
   it("registers universal Studio follow-ups at a non-default mount", async () => {
@@ -425,6 +471,7 @@ describe("optional Studio workspaces", () => {
         label: "Overview",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: -100,
+        permission: "trusted",
         entityTypes: [],
         badge: 0,
       },
@@ -434,6 +481,7 @@ describe("optional Studio workspaces", () => {
         label: "Account",
         rendererName: "StudioAccountWorkspace",
         priority: 0,
+        permission: "public",
         entityTypes: [],
       },
       {
@@ -442,6 +490,7 @@ describe("optional Studio workspaces", () => {
         label: "Publishing",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: 40,
+        permission: "trusted",
         entityTypes: ["post"],
       },
     ]);

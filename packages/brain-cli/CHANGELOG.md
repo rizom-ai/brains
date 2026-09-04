@@ -1,5 +1,77 @@
 # @rizom/brain
 
+## 0.2.0-alpha.350
+
+### Minor Changes
+
+- [`401ad40`](https://github.com/rizom-ai/brains/commit/401ad4006eb0fb1054a86e618d0473842648fd4e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Unify authenticated app controls around statically compiled StyleX and Radix primitives, make Studio, Web Chat, and Dashboard consume the active Brain theme through shared semantic tokens, and package the generated application styles with the browser bundles. Preserve Dashboard's server-rendered CSS boundary and integrate the native Studio Chat workspace with the shared control and asset contracts.
+
+### Patch Changes
+
+- [#213](https://github.com/rizom-ai/brains/pull/213) [`03ee6c8`](https://github.com/rizom-ai/brains/commit/03ee6c80afaac5ea72e415beb0eb7a4a48dccfc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid falsely failing a projection-rule job when a concurrent coordination sweep has already completed its wave.
+
+## 0.2.0-alpha.349
+
+### Minor Changes
+
+- [`62f8fda`](https://github.com/rizom-ai/brains/commit/62f8fda906f869e456d4d879266d8eb62e9d37de) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore `@rizom/brain/chat` as the headless Chat domain and transport contract after its temporary alpha rollback. The restored surface uses neutral `Chat*` names and provides versioned schemas, bounded API paths, bounded session context locators, a stateless stream decoder, and a fetch-injected client without exporting presentation logic. Keep that decoder aligned with emitted redacted tool-result events while leaving transient presentation status host-owned. Add the capability-gated native Studio Chat working room, durable Inbox context handoff, and conditional `/chat` redirect while retaining standalone Web Chat for Chat-only composition.
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- [#212](https://github.com/rizom-ai/brains/pull/212) [`a83bc11`](https://github.com/rizom-ai/brains/commit/a83bc11cb9af7e1f499d58dd8cb4cf3538807823) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Detect active durable jobs whose types are absent from the finalized execution inventory and report operational health as degraded. Add an exact, confirmation-gated operator recovery command that can terminally retire only known pre-scheduler projection jobs after atomically proving they have no attempt ownership or partial progress.
+
+## 0.2.0-alpha.347
+
+### Patch Changes
+
+- [`7acc0c9`](https://github.com/rizom-ai/brains/commit/7acc0c935b0cee5881e746bbb71d2cafaef2dd78) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redesign the public Dashboard knowledge map as a calmer semantic atlas with collision-relaxed territory contours, restrained source marks, compact projection metrics, and a keyboard-focusable ranked territory index.
+
+## 0.2.0-alpha.346
+
+### Minor Changes
+
+- [#210](https://github.com/rizom-ai/brains/pull/210) [`03ab79e`](https://github.com/rizom-ai/brains/commit/03ab79e0adbd6bfcef6b486ba67eaef8389007da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Remove the prematurely published `@rizom/brain/chat` entry and restore standalone Web Chat to its prior internal transport contract.
+
+## 0.2.0-alpha.345
+
+### Minor Changes
+
+- [#209](https://github.com/rizom-ai/brains/pull/209) [`2dd75e8`](https://github.com/rizom-ai/brains/commit/2dd75e873689ca6d425d42aa8f2598bc8d8e2245) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish `@rizom/brain/chat` as the browser-safe, framework-neutral Chat domain and transport contract. The new subpath provides versioned schemas, bounded API paths, and a fetch-injected client for conversations, messages, streaming, uploads, approvals, actions, progress, and durable job status without exporting React, routing, cache, storage, or other presentation logic.
+
+## 0.2.0-alpha.344
+
+### Patch Changes
+
+- [`f574291`](https://github.com/rizom-ai/brains/commit/f574291f157b5488ffd97ee408f07b60528a3268) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore System as the final public Dashboard tab with responsive public-health, runtime, surface, semantic projection, and render-check summaries while keeping private diagnostics and operator activity out of the card.
+
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- [#205](https://github.com/rizom-ai/brains/pull/205) [`5c2a8e3`](https://github.com/rizom-ai/brains/commit/5c2a8e35478c5d3d6fe26873d48bd2ff0a53e8f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish a new immutable Brain artifact for fleet images built on the required Bun 1.4 runtime.
+
+- [#206](https://github.com/rizom-ai/brains/pull/206) [`5e7d4d9`](https://github.com/rizom-ai/brains/commit/5e7d4d9880451d1c18ddbf4878315e638e01fae1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Gate stateful deployments on a canonical verified rollback snapshot covering online SQLite captures, exact Git checkout state, deployed configuration, and sanitized container metadata.
+
+## 0.2.0-alpha.342
+
+### Minor Changes
+
+- [#203](https://github.com/rizom-ai/brains/pull/203) [`edd7b41`](https://github.com/rizom-ai/brains/commit/edd7b41e1f47d25d99b3758d3f370d04e8911dfa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Extend Studio's declarative operator contract with collection-owned query controls, source-declared compact table rows, and one explicit top-level primary action. Expose each admitted workspace's host-enforced permission floor, render one Studio-owned page head across declarative and fixed surfaces, co-locate Audit and Invitations controls with their tables, reflow annotated collections behind a two-bar phone chrome, and place each explicit primary action in the desktop head or phone action bar without provider-authored security text or heuristic action hoisting.
+
+## 0.2.0-alpha.341
+
+### Patch Changes
+
+- [#199](https://github.com/rizom-ai/brains/pull/199) [`a2f6ce1`](https://github.com/rizom-ai/brains/commit/a2f6ce12f60c67068b38d4ed32a523267b2a435f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Include an explicit template render version in static-site input fingerprints so output-affecting template changes invalidate retained generations.
+
+## 0.2.0-alpha.340
+
+### Patch Changes
+
+- [#198](https://github.com/rizom-ai/brains/pull/198) [`00aaaf7`](https://github.com/rizom-ai/brains/commit/00aaaf7723322c8000e07e964bb81de64941a2e3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Derive the docs homepage freshness label from the latest documentation entity update instead of displaying a hardcoded month.
+
 ## 0.2.0-alpha.339
 
 ### Patch Changes

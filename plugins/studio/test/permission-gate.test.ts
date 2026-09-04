@@ -3,7 +3,7 @@ import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
-import type { ZodType } from "@brains/utils/zod";
+import { z, type ZodType } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "../src";
 
 interface SessionMatrix {
@@ -195,6 +195,14 @@ async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
   };
 }
 
+function enableChatCapability(shell: MockShell): void {
+  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
+  shell.getPluginPackageName = (pluginId): string | undefined =>
+    pluginId === "web-chat"
+      ? "@brains/web-chat"
+      : getPluginPackageName(pluginId);
+}
+
 async function setup(): Promise<{
   shell: MockShell;
   plugin: StudioPlugin;
@@ -208,6 +216,40 @@ async function setup(): Promise<{
 }
 
 describe("Studio active-session gate inversion", () => {
+  it("discloses Chat to Trusted operators but not active Public sessions", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const sessions = await createSessionMatrix(shell);
+    enableChatCapability(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const route = findRoute(plugin, "/studio/api/types");
+
+    const trustedResponse = await route.handler(
+      request("/studio/api/types", { cookie: sessions.trusted }),
+    );
+    const workspaceListSchema = z.looseObject({
+      workspaces: z.array(z.looseObject({ id: z.string() })),
+    });
+    const trustedPayload = workspaceListSchema.parse(
+      await trustedResponse.json(),
+    );
+    const publicResponse = await route.handler(
+      request("/studio/api/types", { cookie: sessions.public }),
+    );
+    const publicPayload = workspaceListSchema.parse(
+      await publicResponse.json(),
+    );
+
+    expect(trustedResponse.status).toBe(200);
+    expect(trustedPayload.workspaces.map(({ id }) => id)).toContain(
+      "web-chat:chat",
+    );
+    expect(publicResponse.status).toBe(200);
+    expect(publicPayload.workspaces.map(({ id }) => id)).not.toContain(
+      "web-chat:chat",
+    );
+  });
+
   it("inventories every API route under its exact capability floor", async () => {
     const { plugin, sessions } = await setup();
     const apiRoutes = apiRouteRequests();
@@ -257,6 +299,7 @@ describe("Studio active-session gate inversion", () => {
               label: "Account",
               rendererName: "StudioAccountWorkspace",
               priority: 0,
+              permission: "public",
               entityTypes: [],
             },
           ],

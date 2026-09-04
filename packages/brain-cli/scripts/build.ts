@@ -23,8 +23,10 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
 import {
+  assertProductionReactBundle,
   findInternalDeclarationImports,
   formatDeclarationLeakError,
+  productionReactJsx,
 } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
@@ -34,6 +36,7 @@ mkdirSync(outdir, { recursive: true });
 const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
 
 copyDeployScripts(join(packageDir, "templates", "deploy", "scripts"), [
+  "create-predeploy-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
@@ -58,6 +61,12 @@ function findMonorepoRoot(): string {
 const monorepoRoot = findMonorepoRoot();
 const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
 const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
+const webChatUiStylesheetPath = join(
+  webChatPackageDir,
+  "dist",
+  "ui",
+  "app.css",
+);
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
 const studioUiDirectory = join(studioPackageDir, "dist", "ui");
@@ -95,6 +104,12 @@ if (webChatBuildResult.exitCode !== 0) {
 }
 if (!existsSync(webChatUiAssetPath)) {
   console.error(`Web chat UI asset not found at ${webChatUiAssetPath}`);
+  process.exit(1);
+}
+if (!existsSync(webChatUiStylesheetPath)) {
+  console.error(
+    `Web chat UI stylesheet not found at ${webChatUiStylesheetPath}`,
+  );
   process.exit(1);
 }
 
@@ -142,12 +157,6 @@ if (envSchemaResult.exitCode !== 0) {
 console.log("Building @rizom/brain...");
 
 // Native modules, lazy-loaded SDKs, and the JSX runtime.
-const productionJsx = {
-  runtime: "automatic",
-  importSource: "react",
-  development: false,
-} as const;
-
 const sharedExternals = [
   "@libsql/client",
   "libsql",
@@ -185,7 +194,7 @@ async function bundle(opts: {
     format: "esm",
     minify: true,
     sourcemap: opts.sourcemap,
-    jsx: productionJsx,
+    jsx: productionReactJsx,
     external: sharedExternals,
     naming: `${opts.name}.js`,
   });
@@ -195,6 +204,11 @@ async function bundle(opts: {
       console.error(log);
     }
     process.exit(1);
+  }
+  for (const output of result.outputs) {
+    if (output.path.endsWith(".js")) {
+      assertProductionReactBundle(await output.text(), output.path);
+    }
   }
 }
 
@@ -224,6 +238,10 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "interfaces.ts"),
   },
   {
+    name: "chat",
+    source: join(import.meta.dir, "..", "src", "entries", "chat.ts"),
+  },
+  {
     name: "templates",
     source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
   },
@@ -245,7 +263,7 @@ async function bundleLibraries(): Promise<void> {
     minify: true,
     splitting: true,
     sourcemap: "linked",
-    jsx: productionJsx,
+    jsx: productionReactJsx,
     external: sharedExternals,
     naming: {
       entry: "[name].js",
@@ -259,6 +277,11 @@ async function bundleLibraries(): Promise<void> {
       console.error(log);
     }
     process.exit(1);
+  }
+  for (const output of result.outputs) {
+    if (output.path.endsWith(".js")) {
+      assertProductionReactBundle(await output.text(), output.path);
+    }
   }
 }
 
@@ -379,6 +402,7 @@ cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
 
 mkdirSync(bundledWebChatUiDir, { recursive: true });
 cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
+cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));

@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-08-15 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-08-30 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -191,14 +191,6 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§5</span>Interfaces</summary>
         <div class="cards">
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Studio consolidation</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">rename CMS to Studio, absorb administration and Account presentation without moving auth authority, gate each capability explicitly, create an operator Overview, and turn Dashboard into the public brain card.</div>
-          <div class="card-file">studio-consolidation.md</div>
-        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Astryx adoption pilot</span>
@@ -217,11 +209,11 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
-            <span class="card-name">Research: Studio UX coherence</span>
+            <span class="card-name">Studio Chat integration</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">design research: settle Studio's single visual and interaction grammar across library, workspaces, Account, editor, and chat — and what it becomes on a phone — before further build phases are cut.</div>
-          <div class="card-file">studio-ux-research.md</div>
+          <div class="card-desc">move the authenticated browser Chat presentation into a conditional fixed Studio workspace while Web Chat retains API, streaming, session, upload, and conversation authority.</div>
+          <div class="card-file">studio-chat-integration.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
@@ -246,6 +238,22 @@
           </div>
           <div class="card-desc">parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.</div>
           <div class="card-file">message-feedback.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">One control vocabulary for the app</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">one control vocabulary for the app: split sites from app so each gets the styling engine its customisation contract allows (Tailwind and <code>@brains/ui-library</code> for sites and Dashboard, StyleX plus Radix for Studio and Chat), share brand identity as a token contract rather than components, and let each brain's console follow its own theme so the palette stops being declared twice.</div>
+          <div class="card-file">studio-control-vocabulary.md</div>
+        </div>
+        <div class="card status-done">
+          <div class="card-head">
+            <span class="card-name">Research: Studio UX coherence</span>
+            <span class="badge badge-done">Done</span>
+          </div>
+          <div class="card-desc">one host-owned page head, collection query line, source-declared compact-row reflow, explicit primary-action placement, two-bar phone chrome, and fixed-workspace frame across library, editor, Account, Overview, and declarative workspaces;</div>
+          <div class="card-file">studio-ux-research.md</div>
         </div>
         </div>
       </details>

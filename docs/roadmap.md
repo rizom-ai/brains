@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-08-15
+Last updated: 2026-08-30
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -67,7 +67,7 @@ The product is one brain, composed from fixed **capability bundles** — named g
 - **`core`** — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery.
 - **`media`** — documents and images.
 - **`automation`** — playbooks and onboarding.
-- **`web`** — HTTP, auth, account/admin, Dashboard, and CMS.
+- **`web`** — HTTP, auth, account/admin, Dashboard, and Studio.
 - **`chat`** — platform chat, web chat, email, notifications, and conversation memory.
 - **`site`** — site-info, site-content, site-builder, and analytics.
 - **`publishing`** — blog/post, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows.
@@ -170,16 +170,18 @@ The chat and editing surfaces brains speak through, kept transport-neutral so Di
 
 Plans:
 
+- [studio-control-vocabulary.md](./plans/studio-control-vocabulary.md) — one control vocabulary for the app: split sites from app so each gets the styling engine its customisation contract allows (Tailwind and `@brains/ui-library` for sites and Dashboard, StyleX plus Radix for Studio and Chat), share brand identity as a token contract rather than components, and let each brain's console follow its own theme so the palette stops being declared twice.
 - [astryx-adoption.md](./plans/astryx-adoption.md) — exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any Studio or shared adoption.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — add an optional installable, network-first PWA shell for Dashboard/Studio/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.
-- [studio-consolidation.md](./plans/studio-consolidation.md) — rename CMS to Studio, absorb administration and Account presentation without moving auth authority, gate each capability explicitly, create an operator Overview, and turn Dashboard into the public brain card.
-- [studio-ux-research.md](./plans/studio-ux-research.md) — design research: settle Studio's single visual and interaction grammar across library, workspaces, Account, editor, and chat — and what it becomes on a phone — before further build phases are cut.
+- [studio-chat-integration.md](./plans/studio-chat-integration.md) — move the authenticated browser Chat presentation into a conditional fixed Studio workspace while Web Chat retains API, streaming, session, upload, and conversation authority.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.
 - [message-feedback.md](./plans/message-feedback.md) — parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.
 
 Shipped from this section:
 
+- [Studio's responsive interface grammar](./plans/studio-ux-research.md) — one host-owned page head, collection query line, source-declared compact-row reflow, explicit primary-action placement, two-bar phone chrome, and fixed-workspace frame across library, editor, Account, Overview, and declarative workspaces;
+- Studio consolidation — the CMS was renamed to Studio; administration and Account presentation moved into its capability-gated workspace shell without moving auth authority; Overview became the operator home; Dashboard became the anonymous public brain card;
 - inbound email intake — `interfaces/email` owns the inbound half of the email channel (IMAP daemon, at-least-once `EMAIL_INBOUND` events, sender identity enrichment), plus the private locator-backed bounded source reader used by Admin detail, drafting, and confirmed sends. Deliberately non-conversational: inbound mail never reaches agent chat;
 - [the unified inbox](../plugins/unified-inbox/README.md) — live source-owned attention, Admin Studio and headless readers, linkable facets, verified contacts, destination-owned universal and source-declared launches, bounded transient source detail, recurring-check and mail sources, and title-only digest without a second store;
 - [`@brains/email-workflows`](../plugins/email-workflows/README.md) — one opt-in email feature package grouping safe derived triage, new-mail Inbox projection, and private bounded source reads while retaining its tested reply backend dormant and outside runtime composition.

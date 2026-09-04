@@ -1,5 +1,137 @@
 # @brains/app
 
+## 0.2.0-alpha.350
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.350
+  - @brains/utils@0.2.0-alpha.350
+  - @brains/core@0.2.0-alpha.350
+  - @brains/plugins@0.2.0-alpha.350
+  - @brains/runtime-state@0.2.0-alpha.350
+  - @brains/templates@0.2.0-alpha.350
+
+## 0.2.0-alpha.349
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.349
+  - @brains/utils@0.2.0-alpha.349
+  - @brains/core@0.2.0-alpha.349
+  - @brains/plugins@0.2.0-alpha.349
+  - @brains/runtime-state@0.2.0-alpha.349
+  - @brains/templates@0.2.0-alpha.349
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- Updated dependencies [[`a83bc11`](https://github.com/rizom-ai/brains/commit/a83bc11cb9af7e1f499d58dd8cb4cf3538807823)]:
+  - @brains/core@0.2.0-alpha.348
+  - @brains/site-composition@0.2.0-alpha.348
+  - @brains/utils@0.2.0-alpha.348
+  - @brains/plugins@0.2.0-alpha.348
+  - @brains/runtime-state@0.2.0-alpha.348
+  - @brains/templates@0.2.0-alpha.348
+
+## 0.2.0-alpha.347
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.347
+  - @brains/utils@0.2.0-alpha.347
+  - @brains/core@0.2.0-alpha.347
+  - @brains/plugins@0.2.0-alpha.347
+  - @brains/runtime-state@0.2.0-alpha.347
+  - @brains/templates@0.2.0-alpha.347
+
+## 0.2.0-alpha.346
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.346
+  - @brains/utils@0.2.0-alpha.346
+  - @brains/core@0.2.0-alpha.346
+  - @brains/plugins@0.2.0-alpha.346
+  - @brains/runtime-state@0.2.0-alpha.346
+  - @brains/templates@0.2.0-alpha.346
+
+## 0.2.0-alpha.345
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.345
+  - @brains/utils@0.2.0-alpha.345
+  - @brains/core@0.2.0-alpha.345
+  - @brains/plugins@0.2.0-alpha.345
+  - @brains/runtime-state@0.2.0-alpha.345
+  - @brains/templates@0.2.0-alpha.345
+
+## 0.2.0-alpha.344
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.344
+  - @brains/utils@0.2.0-alpha.344
+  - @brains/core@0.2.0-alpha.344
+  - @brains/plugins@0.2.0-alpha.344
+  - @brains/runtime-state@0.2.0-alpha.344
+  - @brains/templates@0.2.0-alpha.344
+
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.343
+  - @brains/utils@0.2.0-alpha.343
+  - @brains/core@0.2.0-alpha.343
+  - @brains/plugins@0.2.0-alpha.343
+  - @brains/runtime-state@0.2.0-alpha.343
+  - @brains/templates@0.2.0-alpha.343
+
+## 0.2.0-alpha.342
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.342
+  - @brains/utils@0.2.0-alpha.342
+  - @brains/core@0.2.0-alpha.342
+  - @brains/plugins@0.2.0-alpha.342
+  - @brains/runtime-state@0.2.0-alpha.342
+  - @brains/templates@0.2.0-alpha.342
+
+## 0.2.0-alpha.341
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.341
+  - @brains/utils@0.2.0-alpha.341
+  - @brains/core@0.2.0-alpha.341
+  - @brains/plugins@0.2.0-alpha.341
+  - @brains/runtime-state@0.2.0-alpha.341
+  - @brains/templates@0.2.0-alpha.341
+
+## 0.2.0-alpha.340
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.340
+  - @brains/utils@0.2.0-alpha.340
+  - @brains/core@0.2.0-alpha.340
+  - @brains/plugins@0.2.0-alpha.340
+  - @brains/runtime-state@0.2.0-alpha.340
+  - @brains/templates@0.2.0-alpha.340
+
 ## 0.2.0-alpha.339
 
 ### Patch Changes

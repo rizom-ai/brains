@@ -28,6 +28,7 @@ describe("Studio Account workspace declaration", () => {
         label: "Account",
         rendererName: "StudioAccountWorkspace",
         priority: 0,
+        permission: "public",
         entityTypes: [],
       },
     ]);

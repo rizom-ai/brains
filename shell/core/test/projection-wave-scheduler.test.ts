@@ -398,6 +398,27 @@ describe("ProjectionWaveScheduler", () => {
     ]);
   });
 
+  it("accepts advancement after a coordination sweep already completed the wave", async () => {
+    const store = new MemoryProjectionStore(documentInputs(100));
+    store.claimedWave.status = "completed";
+    store.claimedWave.completedAt = 10;
+    const scheduler = new ProjectionWaveScheduler({
+      store,
+      queue: new MemoryProjectionQueue(),
+      graph,
+      rules: [topicRule, skillRule],
+      createWaveId: (): string => "unused",
+      now: (): number => 20,
+    });
+
+    const advanced = await scheduler.advanceActiveWave("wave-1");
+
+    expect(advanced).toMatchObject({
+      id: "wave-1",
+      status: "completed",
+    });
+  });
+
   it("reconstructs rule records after interruption immediately after claim", async () => {
     const store = new MemoryProjectionStore(documentInputs(2));
     store.active = true;

@@ -131,8 +131,12 @@ slug: test-series
 
       const filePath = join(seriesDir, `${entity.id}.md`);
       await waitUntil(
-        () => existsSync(filePath),
-        "the subscriber to export the updated series",
+        () =>
+          existsSync(filePath) &&
+          readFileSync(filePath, "utf-8").includes(
+            "coverImageId: series-test-cover",
+          ),
+        "the subscriber to complete the updated series export",
       );
 
       const fileContent = readFileSync(filePath, "utf-8");
@@ -176,8 +180,12 @@ Some content here.`;
 
       const filePath = join(seriesDir, `${entity.id}.md`);
       await waitUntil(
-        () => existsSync(filePath),
-        "the subscriber to export the updated series",
+        () =>
+          existsSync(filePath) &&
+          readFileSync(filePath, "utf-8").includes(
+            "coverImageId: series-ecosystem-cover",
+          ),
+        "the subscriber to complete the updated series export",
       );
 
       const fileContent = readFileSync(filePath, "utf-8");
@@ -241,8 +249,12 @@ slug: test-series
       // Check that file was written with CURRENT content (from DB), not stale payload
       const filePath = join(seriesDir, "series-stale-test.md");
       await waitUntil(
-        () => existsSync(filePath),
-        "the subscriber to export the stale-event series",
+        () =>
+          existsSync(filePath) &&
+          readFileSync(filePath, "utf-8").includes(
+            "coverImageId: series-test-cover",
+          ),
+        "the subscriber to complete the stale-event series export",
       );
 
       const fileContent = readFileSync(filePath, "utf-8");

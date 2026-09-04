@@ -9,6 +9,7 @@ export interface SiteViewTemplate {
   name: string;
   schema: SiteViewTemplateSchema;
   pluginId: string;
+  renderVersion?: string;
   renderers: {
     web?: ((props: JsonObject) => ReactElement) | string;
     image?: ((props: JsonObject) => ReactElement) | string;

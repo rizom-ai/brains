@@ -174,6 +174,23 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
             {
               "attributes": [
                 [
+                  "data-dashboard-theme",
+                  "true",
+                ],
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "value": "<theme-css>",
+                },
+              ],
+              "name": "style",
+              "namespace": "http://www.w3.org/1999/xhtml",
+              "type": "element",
+            },
+            {
+              "attributes": [
+                [
                   "data-dashboard-styles",
                   "true",
                 ],
@@ -185,53 +202,54 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
 "/*
  * Shared operator-console tokens and chrome.
  *
- * Instrument is the console's fixed bioluminescent identity. Paper is the
- * warm editorial climate and may resolve from an injected site theme. All
- * surface-local CSS consumes this semantic --console-* vocabulary.
+ * Both climates alias the injected brain theme. Climate selects data-theme,
+ * so paper consumes its light semantic palette and instrument its dark one.
+ * Console chrome owns no brand colour values of its own.
  */
 
 [data-climate="instrument"] {
-  --console-bg: #0a0819;
-  --console-frame: #0f0d22;
-  --console-card: #14112b;
-  --console-card-soft: #1b1638;
-  --console-bg-deep: #05040f;
-  --console-text: #f1eadd;
-  --console-text-dim: rgba(241, 234, 221, 0.62);
-  --console-text-muted: rgba(241, 234, 221, 0.4);
-  --console-text-faint: rgba(241, 234, 221, 0.22);
-  --console-accent: #ff8b3d;
-  --console-secondary: #818cf8;
-  --console-ok: #68cc8b;
-  --console-warn: #f5c158;
-  --console-err: #e26d6d;
-  --console-on-accent: #0a0819;
+  --console-bg: var(--color-bg);
+  --console-frame: var(--color-bg-subtle);
+  --console-card: var(--color-bg-card);
+  --console-card-soft: var(--color-bg-muted);
+  --console-bg-deep: var(--color-bg-deep);
+  --console-text: var(--color-text);
+  --console-text-dim: var(--color-text-muted);
+  --console-text-muted: var(--color-text-light);
+  --console-text-faint: var(--color-border);
+  --console-accent: var(--color-accent);
+  --console-secondary: var(--color-secondary);
+  --console-ok: var(--color-success);
+  --console-warn: var(--color-warning);
+  --console-err: var(--color-error);
+  --console-on-accent: var(--color-on-accent);
   --console-shadow-card:
-    0 1px 0 rgba(255, 255, 255, 0.025) inset,
-    0 24px 58px -30px rgba(0, 0, 0, 0.72);
+    0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
+    0 24px 58px -30px
+      color-mix(in srgb, var(--console-bg-deep) 72%, transparent);
   color-scheme: dark;
 }
 
 [data-climate="paper"] {
-  --console-bg: var(--color-bg, #ece5d6);
-  --console-frame: var(--color-bg-subtle, #f4efe6);
-  --console-card: var(--color-bg-card, #faf7f0);
-  --console-card-soft: var(--color-bg-muted, #ece5d6);
-  --console-bg-deep: var(--color-bg-deep, #dfd4bc);
-  --console-text: var(--color-text, #211d18);
-  --console-text-dim: var(--color-text-muted, rgba(33, 29, 24, 0.62));
-  --console-text-muted: var(--color-text-light, rgba(33, 29, 24, 0.42));
-  --console-text-faint: var(--color-border, rgba(33, 29, 24, 0.22));
-  --console-accent: var(--color-accent, #c44a1d);
-  --console-secondary: var(--color-secondary, #6b2fa0);
-  --console-ok: var(--color-success, #3d6b5c);
-  --console-warn: var(--palette-warning-text-emphasis-light, #7a4a05);
-  --console-err: var(--color-error, #932f2f);
-  --console-on-accent: var(--color-on-accent, #fff);
+  --console-bg: var(--color-bg);
+  --console-frame: var(--color-bg-subtle);
+  --console-card: var(--color-bg-card);
+  --console-card-soft: var(--color-bg-muted);
+  --console-bg-deep: var(--color-bg-deep);
+  --console-text: var(--color-text);
+  --console-text-dim: var(--color-text-muted);
+  --console-text-muted: var(--color-text-light);
+  --console-text-faint: var(--color-border);
+  --console-accent: var(--color-accent);
+  --console-secondary: var(--color-secondary);
+  --console-ok: var(--color-success);
+  --console-warn: var(--color-warning);
+  --console-err: var(--color-error);
+  --console-on-accent: var(--color-on-accent);
   --console-shadow-card:
-    0 1px 0 rgba(255, 250, 235, 0.65) inset,
-    0 1px 0 rgba(120, 90, 40, 0.05),
-    0 22px 44px -30px rgba(90, 60, 20, 0.3);
+    0 1px 0 color-mix(in srgb, var(--console-text) 3%, transparent) inset,
+    0 22px 44px -30px
+      color-mix(in srgb, var(--console-bg-deep) 30%, transparent);
   color-scheme: light;
 }
 
@@ -248,7 +266,11 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     var(--console-accent) 48%,
     transparent
   );
-  --console-accent-dim: color-mix(in srgb, var(--console-accent) 72%, black);
+  --console-accent-dim: color-mix(
+    in srgb,
+    var(--console-accent) 72%,
+    var(--console-bg-deep)
+  );
   --console-accent-soft: color-mix(
     in srgb,
     var(--console-accent) 12%,
@@ -421,7 +443,9 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
 .session-chip.is-visitor strong {
   color: var(--console-text);
 }
-.session-chip-avatar { display: none; }
+.session-chip-avatar {
+  display: none;
+}
 .pulse {
   width: 7px;
   height: 7px;
@@ -431,10 +455,14 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   animation: console-pulse 2.4s ease-in-out infinite;
 }
 @keyframes console-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--console-accent) 50%, transparent);
+  0%,
+  100% {
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--console-accent) 50%, transparent);
   }
-  55% { box-shadow: 0 0 0 7px transparent; }
+  55% {
+    box-shadow: 0 0 0 7px transparent;
+  }
 }
 
 /* Tablet keeps one line and compresses utilities rather than wrapping. */
@@ -443,30 +471,35 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     gap: 12px;
     padding-inline: 16px;
   }
-  .command-chip-hint { display: none; }
+  .command-chip-hint {
+    display: none;
+  }
 }
 
 /* Phone uses a utility row plus a stable surface rail. */
 @media (max-width: 640px) {
-  [data-climate] { --console-strip-height: 102px; }
+  [data-climate] {
+    --console-strip-height: 102px;
+  }
   .console-strip {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(--console-touch) var(--console-touch);
+    grid-template-columns: minmax(0, 1fr) var(--console-touch) var(
+        --console-touch
+      ) var(--console-touch);
     grid-template-areas:
       "mark command climate session"
       "nav nav nav nav";
     gap: 4px 8px;
     min-height: var(--console-strip-height);
-    padding:
-      max(8px, env(safe-area-inset-top))
-      12px
-      6px;
+    padding: max(8px, env(safe-area-inset-top)) 12px 6px;
   }
   .console-mark {
     grid-area: mark;
     overflow: hidden;
   }
-  .console-mark-long { display: none; }
+  .console-mark-long {
+    display: none;
+  }
   .surface-nav {
     grid-area: nav;
     display: grid;
@@ -492,8 +525,12 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     padding: 0;
     border-radius: 50%;
   }
-  .command-chip kbd { display: none; }
-  .command-chip-icon { display: inline; }
+  .command-chip kbd {
+    display: none;
+  }
+  .command-chip-icon {
+    display: inline;
+  }
   .climate-chip {
     grid-area: climate;
     width: var(--console-touch);
@@ -524,7 +561,9 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     background: transparent;
   }
   .session-chip::before,
-  .session-chip > :not(.session-chip-avatar) { display: none; }
+  .session-chip > :not(.session-chip-avatar) {
+    display: none;
+  }
   .session-chip-avatar {
     display: inline;
     font-size: 10px;
@@ -536,15 +575,25 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
 }
 
 @media (min-width: 1440px) {
-  [data-climate] { --console-strip-height: 54px; }
-  .surface-nav-link { font-size: 13.5px; }
-  .command-chip { font-size: 13px; }
-  .session-chip { font-size: 11.5px; }
+  [data-climate] {
+    --console-strip-height: 54px;
+  }
+  .surface-nav-link {
+    font-size: 13.5px;
+  }
+  .command-chip {
+    font-size: 13px;
+  }
+  .session-chip {
+    font-size: 11.5px;
+  }
 }
 
 /* ---- cross-surface command palette -------------------------------------- */
 
-.console-palette-open { overflow: hidden; }
+.console-palette-open {
+  overflow: hidden;
+}
 .console-palette-overlay {
   position: fixed;
   inset: 0;
@@ -555,14 +604,17 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   background: color-mix(in srgb, var(--console-bg-deep) 68%, transparent);
   backdrop-filter: blur(4px);
 }
-.console-palette-overlay.is-open { display: grid; }
+.console-palette-overlay.is-open {
+  display: grid;
+}
 .console-palette {
   width: min(580px, 100%);
   overflow: hidden;
   border: 1px solid var(--console-rule-strong);
   border-radius: 14px;
   background: var(--console-card);
-  box-shadow: 0 40px 90px -20px rgba(0, 0, 0, 0.58);
+  box-shadow: 0 40px 90px -20px
+    color-mix(in srgb, var(--console-bg-deep) 58%, transparent);
 }
 .cp-input-row {
   display: flex;
@@ -589,7 +641,9 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   font-family: var(--console-ui);
   font-size: 15px;
 }
-.cp-input::placeholder { color: var(--console-text-muted); }
+.cp-input::placeholder {
+  color: var(--console-text-muted);
+}
 .cp-esc {
   padding: 1px 6px;
   border: 1px solid var(--console-rule-strong);
@@ -604,8 +658,12 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   overflow-y: auto;
   padding-bottom: 6px;
 }
-.cp-group { padding: 7px 0 4px; }
-.cp-group + .cp-group { border-top: 1px solid var(--console-rule); }
+.cp-group {
+  padding: 7px 0 4px;
+}
+.cp-group + .cp-group {
+  border-top: 1px solid var(--console-rule);
+}
 .cp-group-title {
   padding: 4px 18px 5px;
   color: var(--console-text-muted);
@@ -626,7 +684,9 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   cursor: pointer;
   text-decoration: none;
 }
-.cp-row:hover { background: var(--console-rule); }
+.cp-row:hover {
+  background: var(--console-rule);
+}
 .cp-row.is-selected {
   border-left-color: var(--console-accent);
   background: var(--console-accent-soft);
@@ -681,7 +741,9 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   font-family: var(--console-mono);
   font-size: 9.5px;
 }
-.cp-foot span:last-child { margin-left: auto; }
+.cp-foot span:last-child {
+  margin-left: auto;
+}
 
 @media (max-width: 640px) {
   .console-palette-overlay {
@@ -704,23 +766,35 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     min-height: calc(68px + env(safe-area-inset-top));
     padding: env(safe-area-inset-top) 16px 0;
   }
-  .cp-input { font-size: 16px; }
-  .cp-groups { max-height: none; }
+  .cp-input {
+    font-size: 16px;
+  }
+  .cp-groups {
+    max-height: none;
+  }
   .cp-row {
     min-height: 54px;
     padding: 10px 16px;
   }
-  .cp-tag { display: none; }
+  .cp-tag {
+    display: none;
+  }
   .cp-foot {
     justify-content: center;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
-  .cp-foot span:not(:last-child) { display: none; }
-  .cp-foot span:last-child { margin-left: 0; }
+  .cp-foot span:not(:last-child) {
+    display: none;
+  }
+  .cp-foot span:last-child {
+    margin-left: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulse { animation: none; }
+  .pulse {
+    animation: none;
+  }
 }
 
 
@@ -1331,33 +1405,217 @@ body::after {
   font-style: italic;
   text-align: center;
 }
-.map-count {
-  position: absolute;
-  top: 8%;
-  left: 4%;
-  pointer-events: none;
+.knowledge-atlas-summary {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr auto;
+  align-items: center;
+  min-height: 64px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid var(--console-rule-strong);
+  border-radius: 8px 8px 4px 4px;
+  background: color-mix(in srgb, var(--console-bg-deep) 64%, transparent);
 }
-.map-count b {
-  display: block;
+.knowledge-atlas-summary > div {
+  padding: 0 18px;
+  border-right: 1px solid var(--console-rule);
+}
+.knowledge-atlas-summary strong {
   color: var(--console-text);
   font-family: var(--console-display);
-  font-size: clamp(34px, 4vw, 48px);
+  font-size: 23px;
   font-variation-settings:
-    "opsz" 144,
+    "opsz" 72,
     "SOFT" 20;
-  font-weight: 330;
-  letter-spacing: -0.04em;
-  line-height: 0.85;
-  text-shadow: 0 0 26px
-    color-mix(in srgb, var(--console-accent) 25%, transparent);
+  font-weight: 430;
+  line-height: 1;
 }
-.map-count span {
+.knowledge-atlas-summary span {
   display: block;
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--console-text-muted);
   font-family: var(--console-mono);
   font-size: 8px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.knowledge-atlas-summary > p {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 18px;
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.knowledge-atlas-summary > p i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentcolor;
+  box-shadow: 0 0 0 5px color-mix(in srgb, currentcolor 9%, transparent);
+}
+.knowledge-atlas-summary > p.is-current {
+  color: var(--console-ok);
+}
+.knowledge-atlas-summary > p.is-waiting {
+  color: var(--console-warn);
+}
+.knowledge-map-field {
+  display: grid;
+  grid-template-columns: minmax(0, 2.25fr) minmax(250px, 0.75fr);
+  min-height: 480px;
+  border-radius: 4px 4px 8px 8px;
+  background: var(--console-bg-deep);
+}
+.knowledge-map-field > .map-empty {
+  grid-column: 1 / -1;
+}
+.knowledge-map-canvas {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--console-secondary) 4%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--console-secondary) 4%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 48px 48px;
+}
+.knowledge-map-canvas::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    var(--console-bg-deep),
+    transparent 11%,
+    transparent 91%,
+    var(--console-bg-deep)
+  );
+  opacity: 0.58;
+}
+.knowledge-map-canvas svg {
+  position: relative;
+  z-index: 1;
+  min-height: 480px;
+}
+.knowledge-map-coordinates {
+  position: absolute;
+  z-index: 2;
+  inset: 15px 18px auto;
+  display: flex;
+  justify-content: space-between;
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.knowledge-territory-index {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  border-left: 1px solid var(--console-rule-strong);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--console-card-soft) 42%, transparent),
+    color-mix(in srgb, var(--console-frame) 52%, transparent)
+  );
+}
+.knowledge-territory-index > header {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--console-rule);
+}
+.knowledge-territory-index h3 {
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 20px;
+  font-variation-settings: "SOFT" 35;
+  font-weight: 460;
+  line-height: 1.1;
+}
+.knowledge-territory-index header p {
+  margin-top: 4px;
+  color: var(--console-text-muted);
+  font-size: 11px;
+}
+.knowledge-territory-index ol {
+  padding: 6px 0;
+  list-style: none;
+}
+.knowledge-territory-index button {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  min-height: 39px;
+  padding: 0 16px 0 14px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--console-text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.knowledge-territory-index button:hover,
+.knowledge-territory-index button:focus-visible,
+.knowledge-territory-index button.is-active {
+  border-left-color: var(--console-secondary);
+  outline: 0;
+  background: var(--console-secondary-soft);
+  color: var(--console-text);
+}
+.knowledge-territory-index button > span {
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8px;
+}
+.knowledge-territory-index button > strong {
+  overflow: hidden;
+  color: currentcolor;
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.045em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.knowledge-territory-index button > b {
+  min-width: 25px;
+  color: var(--console-secondary);
+  font-family: var(--console-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}
+.knowledge-index-more {
+  padding: 11px 18px;
+  border-top: 1px solid var(--console-rule);
+  color: var(--console-text-muted);
+  font-family: var(--console-display);
+  font-size: 11px;
+  font-style: italic;
+}
+.knowledge-index-note {
+  position: absolute;
+  inset: auto 16px 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--console-rule);
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  line-height: 1.55;
   text-transform: uppercase;
 }
 .map-legend {
@@ -1416,41 +1674,73 @@ body::after {
   text-transform: none;
 }
 
-/* Knowledge is drawn as territories in a centerless semantic sky. */
+/* Knowledge is a quiet semantic atlas: contours carry shape, the index carries detail. */
 .knowledge-weave,
-.knowledge-zone-edge {
+.knowledge-zone-contour {
   fill: none;
   stroke: var(--console-secondary);
   stroke-linecap: round;
-  stroke-width: 1;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: map-draw 1.45s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+  animation: map-draw 1.15s cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
 }
 .knowledge-weave {
-  opacity: 0.19;
-  stroke-width: 0.75;
+  opacity: 0.13;
+  stroke-width: 0.7;
 }
-.knowledge-zone-edge {
-  opacity: 0.42;
-  stroke-dasharray: 3 5;
+.knowledge-weave.is-major {
+  opacity: 0.24;
+  stroke-dasharray: 3 7;
 }
-.knowledge-zone text {
+.knowledge-zone-contour {
+  fill: color-mix(in srgb, var(--console-secondary) 2.5%, transparent);
+  stroke-opacity: 0.23;
+  stroke-width: 0.85;
+}
+.knowledge-zone-contour.is-middle {
+  fill: color-mix(in srgb, var(--console-secondary) 4%, transparent);
+  stroke-opacity: 0.34;
+}
+.knowledge-zone-contour.is-inner {
+  stroke-opacity: 0.22;
+}
+.knowledge-zone.is-active .knowledge-zone-contour {
+  fill: color-mix(in srgb, var(--console-secondary) 6.5%, transparent);
+  stroke-opacity: 0.58;
+}
+.knowledge-zone-anchor {
   fill: var(--console-secondary);
+  opacity: 0.72;
+}
+.knowledge-zone-label,
+.knowledge-zone-count,
+.knowledge-map-axis text {
   stroke: var(--console-bg-deep);
   stroke-width: 4px;
   paint-order: stroke;
   font-family: var(--console-mono);
+  text-transform: uppercase;
+}
+.knowledge-zone-label {
+  fill: var(--console-text-dim);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+.knowledge-zone-count {
+  fill: var(--console-secondary);
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-anchor: middle;
-  text-transform: uppercase;
+}
+.knowledge-map-axis text {
+  fill: var(--console-text-faint);
+  font-size: 7px;
+  letter-spacing: 0.1em;
 }
 .knowledge-point {
   transform-box: fill-box;
   transform-origin: center;
-  animation: map-bloom 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+  animation: map-bloom 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
 }
 .knowledge-point-mark {
   fill: var(--console-text-faint);
@@ -1458,20 +1748,14 @@ body::after {
 .knowledge-point.is-published .knowledge-point-mark {
   fill: var(--console-warn);
 }
-.knowledge-point.is-published .knowledge-point-glow {
-  fill: var(--console-warn);
-  opacity: 0.35;
-  animation: map-breathe 4.8s ease-in-out infinite;
-}
 .knowledge-point.is-skill .knowledge-point-mark {
   fill: var(--console-ok);
 }
 .knowledge-point.is-signal .knowledge-point-mark {
   fill: none;
   stroke: var(--console-text-dim);
-  stroke-width: 1.3;
+  stroke-width: 1;
 }
-
 /* Proximity uses semantic distance as radius and affinity as threads. */
 .proximity-stratum circle {
   fill: none;
@@ -1625,25 +1909,59 @@ body::after {
     max-width: none;
     transform: translateX(-18%);
   }
-  .map-count {
-    top: 6%;
-    left: 4%;
-    padding: 7px 9px;
-    border: 1px solid var(--console-rule);
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--console-bg-deep) 84%, transparent);
-    backdrop-filter: blur(4px);
+  .knowledge-atlas-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .map-count b {
-    font-size: 29px;
+  .knowledge-atlas-summary > div {
+    padding: 0 10px;
   }
-  .map-count span {
-    max-width: 11ch;
-    margin-top: 5px;
+  .knowledge-atlas-summary strong {
+    font-size: 20px;
+  }
+  .knowledge-atlas-summary span {
     font-size: 6.5px;
-    line-height: 1.45;
+    line-height: 1.4;
   }
-  .knowledge-zone text,
+  .knowledge-atlas-summary > p {
+    grid-column: 1 / -1;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 10px;
+    border-top: 1px solid var(--console-rule);
+  }
+  .knowledge-map-field {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .knowledge-map-canvas {
+    min-height: 320px;
+  }
+  .knowledge-map-canvas svg {
+    width: 140%;
+    min-height: 320px;
+    transform: translateX(-15%);
+  }
+  .knowledge-zone-label {
+    font-size: 10px;
+  }
+  .knowledge-zone-count {
+    font-size: 10px;
+  }
+  .knowledge-territory-index {
+    min-height: 270px;
+    border-top: 1px solid var(--console-rule-strong);
+    border-left: 0;
+  }
+  .knowledge-territory-index ol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .knowledge-territory-index button {
+    padding-inline: 11px;
+  }
+  .knowledge-index-note {
+    display: none;
+  }
   .proximity-node text {
     font-size: 16px;
   }
@@ -1663,9 +1981,8 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   .knowledge-weave,
-  .knowledge-zone-edge,
+  .knowledge-zone-contour,
   .knowledge-point,
-  .knowledge-point-glow,
   .proximity-spore,
   .proximity-center-halo,
   .proximity-node-glow {
@@ -1673,6 +1990,478 @@ body::after {
     opacity: 1;
     stroke-dashoffset: 0;
     transform: none;
+  }
+}
+
+
+.system-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(270px, 0.86fr);
+  gap: var(--col-gap);
+  align-items: start;
+  min-width: 0;
+}
+.system-main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--col-gap);
+  min-width: 0;
+}
+.system-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--col-gap);
+  min-width: 0;
+}
+.system-health-card,
+.system-checks-card {
+  grid-column: 1 / -1;
+}
+.system-health-card {
+  padding: 16px 18px 0;
+  overflow: hidden;
+}
+.system-health-lead {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 4px 0 17px;
+}
+.system-health-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid color-mix(in srgb, var(--console-ok) 30%, transparent);
+  border-radius: 50%;
+  background: var(--console-ok-soft);
+}
+.system-health-orbit.is-degraded {
+  border-color: color-mix(in srgb, var(--console-warn) 30%, transparent);
+  background: color-mix(in srgb, var(--console-warn) 13%, transparent);
+}
+.system-health-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid color-mix(in srgb, var(--console-ok) 24%, transparent);
+  border-radius: 50%;
+}
+.system-health-orbit.is-degraded::after {
+  border-color: color-mix(in srgb, var(--console-warn) 24%, transparent);
+}
+.system-health-orbit i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--console-ok);
+  box-shadow: 0 0 14px var(--console-ok);
+}
+.system-health-orbit.is-degraded i {
+  background: var(--console-warn);
+  box-shadow: 0 0 14px var(--console-warn);
+}
+.system-health-lead > div,
+.system-index-copy {
+  min-width: 0;
+}
+.system-health-lead strong {
+  display: block;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 20px;
+  font-variation-settings: "SOFT" 40;
+  font-weight: 520;
+}
+.system-health-lead p {
+  margin-top: 2px;
+  color: var(--console-text-muted);
+  font-size: 12.5px;
+}
+.system-health-pill,
+.system-scope-mark {
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--console-ok) 36%, transparent);
+  border-radius: 100px;
+  color: var(--console-ok);
+  font-family: var(--console-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.system-health-pill.is-degraded {
+  border-color: color-mix(in srgb, var(--console-warn) 36%, transparent);
+  color: var(--console-warn);
+}
+.system-health-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 -18px;
+  border-top: 1px solid var(--console-rule);
+  background: color-mix(in srgb, var(--console-card-soft) 32%, transparent);
+}
+.system-health-metrics div {
+  padding: 12px 18px 14px;
+  border-left: 1px solid var(--console-rule);
+}
+.system-health-metrics div:first-child {
+  border-left: 0;
+}
+.system-health-metrics span,
+.system-health-metrics small {
+  display: block;
+  font-family: var(--console-mono);
+  text-transform: uppercase;
+}
+.system-health-metrics span {
+  color: var(--console-text-faint);
+  font-size: 8.5px;
+  letter-spacing: 0.13em;
+}
+.system-health-metrics strong {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--console-text);
+  font-family: var(--console-display);
+  font-size: 23px;
+  font-weight: 500;
+}
+.system-health-metrics small {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--console-ok);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+.system-index-gauge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 96px;
+}
+.system-index-ring {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--console-rule-strong) 0 100%,
+    var(--console-rule-strong) 100%
+  );
+}
+.system-index-ring.is-ready {
+  background: conic-gradient(
+    var(--console-ok) 0 100%,
+    var(--console-rule-strong) 100%
+  );
+  box-shadow: 0 0 28px color-mix(in srgb, var(--console-ok) 9%, transparent);
+}
+.system-index-ring span {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--console-card);
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.system-index-ring.is-ready span {
+  color: var(--console-ok);
+}
+.system-index-copy strong {
+  color: var(--console-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+.system-index-copy p {
+  margin-top: 3px;
+  color: var(--console-text-muted);
+  font-size: 12px;
+}
+.system-inline-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 11px;
+}
+.system-inline-facts span {
+  padding: 2px 6px;
+  border: 1px solid var(--console-rule);
+  border-radius: 2px;
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  text-transform: uppercase;
+}
+.system-kv {
+  display: flex;
+  flex-direction: column;
+}
+.system-kv > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--console-rule);
+}
+.system-kv > div:first-child {
+  border-top: 0;
+}
+.system-kv dt {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.system-kv dd {
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  text-align: right;
+}
+.system-kv dd i,
+.system-surfaces-card li i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--console-ok);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--console-ok) 70%, transparent);
+  vertical-align: 1px;
+}
+.system-kv dd i[data-state="waiting"],
+.system-surfaces-card li i[data-state="soon"] {
+  background: var(--console-warn);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--console-warn) 60%, transparent);
+}
+.system-surfaces-card li i[data-state="offline"] {
+  background: var(--console-err);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--console-err) 60%, transparent);
+}
+.system-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 11px;
+  padding-top: 12px;
+  border-top: 1px solid var(--console-rule);
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  text-transform: uppercase;
+}
+.system-pipeline span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.system-pipeline span::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--console-rule-strong);
+}
+.system-pipeline span.is-done {
+  color: var(--console-text-muted);
+}
+.system-pipeline span.is-done::before {
+  background: var(--console-ok);
+}
+.system-pipeline > i {
+  flex: 1;
+  min-width: 8px;
+  height: 1px;
+  background: var(--console-rule-strong);
+}
+.system-checks-card {
+  padding-bottom: 9px;
+}
+.system-checks-head,
+.system-check-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 68px;
+  gap: 12px;
+  align-items: center;
+}
+.system-checks-head {
+  padding: 2px 5px 7px;
+  color: var(--console-text-faint);
+  font-family: var(--console-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.system-check-row {
+  padding: 9px 5px;
+  border-top: 1px solid var(--console-rule);
+}
+.system-check-row strong,
+.system-check-row small {
+  display: block;
+}
+.system-check-row strong {
+  color: var(--console-text-dim);
+  font-family: var(--console-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.system-check-row small {
+  margin-top: 2px;
+  color: var(--console-text-faint);
+  font-size: 10px;
+}
+.system-check-row > span:not(.system-status-pill) {
+  color: var(--console-text-muted);
+  font-family: var(--console-mono);
+  font-size: 9.5px;
+}
+.system-status-pill {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.system-status-pill.is-current {
+  color: var(--console-ok);
+  background: var(--console-ok-soft);
+}
+.system-status-pill.is-waiting {
+  color: var(--console-warn);
+  background: color-mix(in srgb, var(--console-warn) 13%, transparent);
+}
+.system-runtime-card {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--console-text) 2.5%, transparent),
+      transparent 48%
+    ),
+    var(--console-card);
+}
+.system-surfaces-card ul {
+  list-style: none;
+}
+.system-surfaces-card li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-top: 1px solid var(--console-rule);
+}
+.system-surfaces-card li:first-child {
+  border-top: 0;
+}
+.system-surfaces-card li > span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.system-surfaces-card li strong {
+  color: var(--console-text-dim);
+  font-size: 12px;
+  font-weight: 500;
+}
+.system-surfaces-card li small {
+  color: var(--console-ok);
+  font-family: var(--console-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.system-surfaces-card li small[data-state="soon"] {
+  color: var(--console-warn);
+}
+.system-surfaces-card li small[data-state="offline"] {
+  color: var(--console-err);
+}
+.system-scope-card {
+  background:
+    linear-gradient(135deg, var(--console-ok-soft), transparent 55%),
+    var(--console-card);
+}
+.system-scope-card p {
+  color: var(--console-text-muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+@media (max-width: 960px) {
+  .system-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .system-side {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .system-main,
+  .system-side {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .system-health-lead {
+    grid-template-columns: auto 1fr;
+  }
+  .system-health-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .system-health-metrics {
+    grid-template-columns: 1fr;
+  }
+  .system-health-metrics div {
+    border-top: 1px solid var(--console-rule);
+    border-left: 0;
+  }
+  .system-health-metrics div:first-child {
+    border-top: 0;
+  }
+  .system-checks-head {
+    display: none;
+  }
+  .system-check-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .system-check-row > span:not(.system-status-pill) {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .system-health-lead {
+    grid-template-columns: 1fr;
+  }
+  .system-health-orbit,
+  .system-health-pill {
+    grid-column: 1;
+  }
+  .system-index-gauge {
+    align-items: flex-start;
+  }
+  .system-index-ring {
+    width: 68px;
+    height: 68px;
+  }
+  .system-index-ring span {
+    width: 54px;
+    height: 54px;
   }
 }
 
@@ -2286,14 +3075,26 @@ body::after {
   font-size: 12.5px;
 }
 
+/* Values are a right-hand readout, not a fixed-width one. Short states keep
+   their line; free-form detail (a build id, a render failure) wraps inside the
+   column instead of running out of the card and off the page. */
 .declarative-key-values dd,
 .declarative-group dd {
+  min-width: 0;
   margin: 0;
   color: var(--console-text);
   font-family: var(--console-mono);
   font-size: 12px;
-  text-align: right;
-  white-space: nowrap;
+  /* space-between already parks a short value against the right edge, so the
+     box hugs its own text and this alignment never shows. It only takes effect
+     once a long value wraps onto its own line, where ragged-left mono is the
+     readable form. */
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.declarative-key-values > div {
+  flex-wrap: wrap;
 }
 
 .declarative-group dl > div {
@@ -2333,11 +3134,15 @@ body::after {
   font-weight: 550;
 }
 
+/* A notice may carry one line per incident (site-builder joins its previous
+   build failures with newlines), so the breaks it authored have to survive. */
 .declarative-notice p {
   margin: 3px 0 0;
   color: var(--console-text-dim);
   font-size: 12.5px;
   line-height: 1.5;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .declarative-notice[data-tone="warn"] {
@@ -2437,11 +3242,11 @@ body::after {
   width: min(720px, 100%);
 }
 
-.declarative-action-disclosure {
+[data-control-engine="css"] .declarative-action-disclosure {
   width: min(720px, 100%);
 }
 
-.declarative-action-disclosure > summary {
+[data-control-engine="css"] .declarative-action-disclosure > summary {
   width: fit-content;
   padding: 7px 11px;
   border: 1px solid var(--console-rule-accent);
@@ -2454,20 +3259,24 @@ body::after {
   list-style: none;
 }
 
-.declarative-action-disclosure > summary::-webkit-details-marker {
+[data-control-engine="css"]
+  .declarative-action-disclosure
+  > summary::-webkit-details-marker {
   display: none;
 }
 
-.declarative-action-disclosure > summary::before {
+[data-control-engine="css"] .declarative-action-disclosure > summary::before {
   content: "+";
   margin-right: 7px;
 }
 
-.declarative-action-disclosure[open] > summary {
+[data-control-engine="css"] .declarative-action-disclosure[open] > summary {
   margin-bottom: 14px;
 }
 
-.declarative-action-disclosure[open] > summary::before {
+[data-control-engine="css"]
+  .declarative-action-disclosure[open]
+  > summary::before {
   content: "−";
 }
 
@@ -2483,8 +3292,8 @@ body::after {
   font: 10px var(--console-mono);
 }
 
-.declarative-action-form input,
-.declarative-action-form select {
+[data-control-engine="css"] .declarative-action-form input,
+[data-control-engine="css"] .declarative-action-form select {
   min-height: 38px;
   border: 1px solid var(--console-rule-strong);
   border-radius: 7px;
@@ -2605,6 +3414,14 @@ body::after {
   min-width: 0;
 }
 
+/* Titles, descriptions, and metadata carry whatever a source wrote — entity
+   ids, URLs, addresses — so they break rather than run past the column. */
+.declarative-list strong,
+.declarative-list p,
+.declarative-list small {
+  overflow-wrap: anywhere;
+}
+
 .declarative-list strong {
   color: var(--console-text);
   font-family: var(--console-display);
@@ -2659,9 +3476,11 @@ body::after {
 }
 
 .declarative-list-trailing > span:not(.declarative-badge) {
+  min-width: 0;
   color: var(--console-text-dim);
   font-family: var(--console-mono);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .declarative-tags {
@@ -2671,8 +3490,13 @@ body::after {
   margin-top: 7px;
 }
 
+/* The protocol lets a source spend 160 characters on a tag or badge. A pill
+   that refuses to wrap turns that into a page-width overrun, so the pill holds
+   its own measure and wraps inside itself instead. Short states are unchanged:
+   they never reach the wrap. */
 .declarative-tags > span,
 .declarative-badge {
+  max-width: 100%;
   padding: 2px 9px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--console-text) 7%, transparent);
@@ -2681,7 +3505,7 @@ body::after {
   font-size: 9.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .declarative-badge[data-tone="warn"] {
@@ -2816,8 +3640,8 @@ body::after {
   background: color-mix(in srgb, var(--console-card) 62%, transparent);
 }
 
-.declarative-filter button,
-.declarative-tabs [role="tab"] {
+[data-control-engine="css"] .declarative-filter button,
+[data-control-engine="css"] .declarative-tabs [role="tab"] {
   min-height: 28px;
   padding: 0 13px;
   border: 0;
@@ -2830,23 +3654,33 @@ body::after {
   white-space: nowrap;
 }
 
-.declarative-filter button:hover,
-.declarative-tabs [role="tab"]:hover {
+[data-control-engine="css"] .declarative-filter button:hover,
+[data-control-engine="css"] .declarative-tabs [role="tab"]:hover {
   color: var(--console-text);
 }
 
-.declarative-filter button[aria-pressed="true"],
-.declarative-tabs [role="tab"][aria-selected="true"] {
+[data-control-engine="css"] .declarative-filter button[aria-pressed="true"],
+[data-control-engine="css"]
+  .declarative-tabs
+  [role="tab"][aria-selected="true"] {
   background: var(--console-text);
   color: var(--console-frame);
   font-weight: 500;
 }
 
-.declarative-filter button[data-emphasis="attention"] {
+[data-control-engine="css"]
+  .declarative-filter
+  button[data-emphasis="attention"] {
   color: var(--console-warn);
 }
 
 /* ---- tables ------------------------------------------------------------- */
+
+/* Compact rows are semantic alternates for narrow screens, not a second
+   desktop collection. Unannotated rows remain in the ordinary table. */
+.declarative-compact-rows {
+  display: none;
+}
 
 .declarative-table-scroll {
   max-width: 100%;
@@ -2955,7 +3789,7 @@ body::after {
   text-transform: uppercase;
 }
 
-.declarative-query select {
+[data-control-engine="css"] .declarative-query select {
   min-height: 32px;
   padding: 0 9px;
   border: 1px solid var(--console-rule-strong);
@@ -3290,13 +4124,41 @@ body::after {
   }
 }
 
+@media (max-width: 640px) {
+  .declarative-flow ol {
+    display: grid;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .declarative-flow li {
+    min-width: 0;
+    padding: 0 0 8px 24px;
+  }
+
+  .declarative-flow li > span {
+    position: absolute;
+    top: 4px;
+    left: 0;
+  }
+
+  .declarative-flow li:not(:last-child)::after {
+    top: 14px;
+    right: auto;
+    bottom: -5px;
+    left: 4px;
+    width: 1px;
+    height: auto;
+  }
+}
+
 @media (max-width: 720px) {
   .declarative-blocks {
     grid-template-columns: 1fr;
   }
 
   .declarative-matrix {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
   .declarative-list > li {
@@ -3311,6 +4173,46 @@ body::after {
 
   .declarative-query label {
     min-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .declarative-compact-rows {
+    display: block;
+  }
+
+  .declarative-table tr[data-compact-row="true"],
+  .declarative-table-scroll[data-has-unannotated="false"] {
+    display: none;
+  }
+
+  .declarative-table-scroll[data-has-unannotated="true"] {
+    padding-bottom: 5px;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .declarative-compact-rows .declarative-list > li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-height: var(--console-touch);
+    padding: 11px 2px;
+  }
+
+  .declarative-compact-rows .declarative-list-trailing {
+    justify-content: flex-end;
+  }
+
+  .declarative-compact-rows .declarative-list strong {
+    color: var(--console-text);
+    font-size: 14px;
+  }
+
+  .declarative-compact-rows .declarative-list p,
+  .declarative-compact-rows .declarative-list small {
+    margin-top: 3px;
   }
 }
 
@@ -3493,6 +4395,29 @@ body::after {
   gap: 12px;
 }
 
+/* A card in the aside is ~220px of content box; the body grid's 128px minimum
+   track would need 257px for two stats and push the card open. Inside a card
+   the tracks share whatever width there is, and the readout is sized to fit
+   that measure rather than hyphenating a one-word state down its middle. */
+.declarative-card .declarative-stats {
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+.declarative-card .declarative-stats > div {
+  padding: 11px 12px 12px;
+}
+
+.declarative-card .declarative-stats dd {
+  font-size: 17px;
+}
+
+/* Last resort only: break a value that still cannot fit, rather than let it
+   sit on top of its neighbour. */
+.declarative-stats dd,
+.declarative-totals dd {
+  overflow-wrap: break-word;
+}
+
 .declarative-card > div + div {
   margin-top: 12px;
 }
@@ -3663,6 +4588,41 @@ body::after {
 
 .declarative-detail-pane .declarative-links {
   gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .declarative-compact-rows
+    .declarative-list
+    > li:has(> .declarative-list-trailing .declarative-actions)
+    > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .declarative-compact-rows
+    .declarative-list-trailing:has(.declarative-actions) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+  }
+}
+
+/* ---- author text: the renderer owns width, the source owns words --------- */
+
+/* Every selector below renders a string some plugin wrote. The protocol bounds
+   how long those may be — 160 characters for a label, 500 for a title, 4,000
+   for a description — but not their shape, so an entity id, URL, or address
+   with no break opportunity would run past its column and take the document
+   with it. Blocks that already scroll (tables) or ellipsize (action results)
+   are deliberately absent. */
+.declarative-spatial li strong,
+.declarative-spatial li span,
+.declarative-flow strong,
+.declarative-progress strong,
+.declarative-progress p,
+.declarative-meters dd,
+.declarative-links a,
+.declarative-inline-link {
+  overflow-wrap: anywhere;
 }
 
 
@@ -4630,6 +5590,55 @@ body::after {
                           "namespace": "http://www.w3.org/1999/xhtml",
                           "type": "element",
                         },
+                        {
+                          "attributes": [
+                            [
+                              "aria-selected",
+                              "false",
+                            ],
+                            [
+                              "class",
+                              "dashboard-tab",
+                            ],
+                            [
+                              "data-dashboard-tab-link",
+                              "system",
+                            ],
+                            [
+                              "data-ui-tab",
+                              "system",
+                            ],
+                            [
+                              "href",
+                              "#system",
+                            ],
+                            [
+                              "id",
+                              "dashboard-tab-system",
+                            ],
+                            [
+                              "role",
+                              "tab",
+                            ],
+                          ],
+                          "children": [
+                            {
+                              "attributes": [],
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "value": "System",
+                                },
+                              ],
+                              "name": "span",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                          ],
+                          "name": "a",
+                          "namespace": "http://www.w3.org/1999/xhtml",
+                          "type": "element",
+                        },
                       ],
                       "name": "nav",
                       "namespace": "http://www.w3.org/1999/xhtml",
@@ -5124,7 +6133,7 @@ body::after {
                                           "children": [
                                             {
                                               "type": "text",
-                                              "value": "public topics · semantic space",
+                                              "value": "public topics · semantic atlas",
                                             },
                                           ],
                                           "name": "span",
@@ -5139,39 +6148,17 @@ body::after {
                                     {
                                       "attributes": [
                                         [
+                                          "aria-label",
+                                          "Knowledge map summary",
+                                        ],
+                                        [
                                           "class",
-                                          "knowledge-map-field map-field",
+                                          "knowledge-atlas-summary",
                                         ],
                                       ],
                                       "children": [
                                         {
-                                          "attributes": [
-                                            [
-                                              "class",
-                                              "map-empty",
-                                            ],
-                                          ],
-                                          "children": [
-                                            {
-                                              "type": "text",
-                                              "value": "The public knowledge map will grow as topics are indexed.",
-                                            },
-                                          ],
-                                          "name": "div",
-                                          "namespace": "http://www.w3.org/1999/xhtml",
-                                          "type": "element",
-                                        },
-                                        {
-                                          "attributes": [
-                                            [
-                                              "aria-hidden",
-                                              "true",
-                                            ],
-                                            [
-                                              "class",
-                                              "map-count",
-                                            ],
-                                          ],
+                                          "attributes": [],
                                           "children": [
                                             {
                                               "attributes": [],
@@ -5181,7 +6168,7 @@ body::after {
                                                   "value": "0",
                                                 },
                                               ],
-                                              "name": "b",
+                                              "name": "strong",
                                               "namespace": "http://www.w3.org/1999/xhtml",
                                               "type": "element",
                                             },
@@ -5196,6 +6183,128 @@ body::after {
                                               "name": "span",
                                               "namespace": "http://www.w3.org/1999/xhtml",
                                               "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [],
+                                          "children": [
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "0",
+                                                },
+                                              ],
+                                              "name": "strong",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "mapped sources",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [],
+                                          "children": [
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "0",
+                                                },
+                                              ],
+                                              "name": "strong",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "territories",
+                                                },
+                                              ],
+                                              "name": "span",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "div",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "is-waiting",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [],
+                                              "children": [],
+                                              "name": "i",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "type": "text",
+                                              "value": "Waiting",
+                                            },
+                                          ],
+                                          "name": "p",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "knowledge-map-field map-field",
+                                        ],
+                                        [
+                                          "data-knowledge-atlas",
+                                          "true",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "map-empty",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "value": "The public knowledge map will grow as topics are indexed.",
                                             },
                                           ],
                                           "name": "div",
@@ -5627,6 +6736,1638 @@ body::after {
                                     },
                                   ],
                                   "name": "article",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                              ],
+                              "name": "section",
+                              "namespace": "http://www.w3.org/1999/xhtml",
+                              "type": "element",
+                            },
+                            {
+                              "attributes": [
+                                [
+                                  "aria-labelledby",
+                                  "dashboard-tab-system",
+                                ],
+                                [
+                                  "class",
+                                  "dashboard-tab-panel",
+                                ],
+                                [
+                                  "data-dashboard-group",
+                                  "system",
+                                ],
+                                [
+                                  "data-dashboard-tab-panel",
+                                  "true",
+                                ],
+                                [
+                                  "data-ui-panel",
+                                  "system",
+                                ],
+                                [
+                                  "id",
+                                  "system",
+                                ],
+                                [
+                                  "role",
+                                  "tabpanel",
+                                ],
+                              ],
+                              "children": [
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "tab-section-head",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [],
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "value": "System",
+                                        },
+                                      ],
+                                      "name": "h2",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "header",
+                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                  "type": "element",
+                                },
+                                {
+                                  "attributes": [
+                                    [
+                                      "class",
+                                      "system-layout",
+                                    ],
+                                  ],
+                                  "children": [
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "system-main",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-health-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "System health",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-from",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "public snapshot · just now",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-health-lead",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "aria-hidden",
+                                                      "true",
+                                                    ],
+                                                    [
+                                                      "class",
+                                                      "system-health-orbit is-healthy",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [],
+                                                      "name": "i",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "All public systems operational",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "No advertised public surface reports an outage.",
+                                                        },
+                                                      ],
+                                                      "name": "p",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "system-health-pill is-healthy",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Healthy",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-health-metrics",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Public surfaces",
+                                                        },
+                                                      ],
+                                                      "name": "span",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "1 / 1",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "online",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Knowledge map",
+                                                        },
+                                                      ],
+                                                      "name": "span",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Waiting",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "projection",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Network map",
+                                                        },
+                                                      ],
+                                                      "name": "span",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Waiting",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "directory",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-index-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Semantic index",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-from",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "public projection",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-index-gauge",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "aria-label",
+                                                      "Public semantic projection is waiting for data",
+                                                    ],
+                                                    [
+                                                      "class",
+                                                      "system-index-ring",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "—",
+                                                        },
+                                                      ],
+                                                      "name": "span",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "system-index-copy",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Awaiting data",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "The projection will appear when public topics are indexed.",
+                                                        },
+                                                      ],
+                                                      "name": "p",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [
+                                                        [
+                                                          "class",
+                                                          "system-inline-facts",
+                                                        ],
+                                                      ],
+                                                      "children": [
+                                                        {
+                                                          "attributes": [],
+                                                          "children": [
+                                                            {
+                                                              "type": "text",
+                                                              "value": "0 entities",
+                                                            },
+                                                          ],
+                                                          "name": "span",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                        {
+                                                          "attributes": [],
+                                                          "children": [
+                                                            {
+                                                              "type": "text",
+                                                              "value": "0 territories",
+                                                            },
+                                                          ],
+                                                          "name": "span",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                        {
+                                                          "attributes": [],
+                                                          "children": [
+                                                            {
+                                                              "type": "text",
+                                                              "value": "0 points",
+                                                            },
+                                                          ],
+                                                          "name": "span",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                      ],
+                                                      "name": "div",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-content-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Public content",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-from",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "dashboard render",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-kv",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Knowledge map",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "attributes": [
+                                                            [
+                                                              "data-state",
+                                                              "waiting",
+                                                            ],
+                                                          ],
+                                                          "children": [],
+                                                          "name": "i",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Waiting",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Network map",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "attributes": [
+                                                            [
+                                                              "data-state",
+                                                              "waiting",
+                                                            ],
+                                                          ],
+                                                          "children": [],
+                                                          "name": "i",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Waiting",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Public entities",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "0",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "dl",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "aria-label",
+                                                  "Public content pipeline",
+                                                ],
+                                                [
+                                                  "class",
+                                                  "system-pipeline",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "is-done",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "entities",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [],
+                                                  "name": "i",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "indexed",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [],
+                                                  "name": "i",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "is-done",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "published",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-checks-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Public system checks",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-from",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "this render",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-checks-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Operation",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Updated",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Status",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-check-row",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "public-card-render",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "dashboard · 0 public entities",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "now",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "system-status-pill is-current",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "current",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-check-row",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "knowledge-map-refresh",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "topics · 0 public territories",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "this render",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "system-status-pill is-waiting",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "waiting",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-check-row",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "agent-proximity-scan",
+                                                        },
+                                                      ],
+                                                      "name": "strong",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "agent-discovery · 0 public agents",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "this render",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "system-status-pill is-waiting",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "waiting",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "div",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                    {
+                                      "attributes": [
+                                        [
+                                          "class",
+                                          "system-side",
+                                        ],
+                                      ],
+                                      "children": [
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-runtime-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Runtime",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-from",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "public metadata",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "system-kv",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Version",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "v0.0.0",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Uptime",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "1m",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Entities",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "0 public",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Surfaces",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "1/1 online",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Rendered",
+                                                        },
+                                                      ],
+                                                      "name": "dt",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "attributes": [
+                                                            [
+                                                              "datetime",
+                                                              "<rendered-at-iso>",
+                                                            ],
+                                                          ],
+                                                          "children": [
+                                                            {
+                                                              "attributes": [],
+                                                              "children": [],
+                                                              "name": "rendered-at",
+                                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                                              "type": "element",
+                                                            },
+                                                          ],
+                                                          "name": "time",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                      ],
+                                                      "name": "dd",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "div",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "dl",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-surfaces-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Public surfaces",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-from",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "1 online",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "attributes": [],
+                                                  "children": [
+                                                    {
+                                                      "attributes": [],
+                                                      "children": [
+                                                        {
+                                                          "attributes": [
+                                                            [
+                                                              "data-state",
+                                                              "online",
+                                                            ],
+                                                          ],
+                                                          "children": [],
+                                                          "name": "i",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                        {
+                                                          "attributes": [],
+                                                          "children": [
+                                                            {
+                                                              "type": "text",
+                                                              "value": "Dashboard",
+                                                            },
+                                                          ],
+                                                          "name": "strong",
+                                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                                          "type": "element",
+                                                        },
+                                                      ],
+                                                      "name": "span",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                    {
+                                                      "attributes": [
+                                                        [
+                                                          "data-state",
+                                                          "online",
+                                                        ],
+                                                      ],
+                                                      "children": [
+                                                        {
+                                                          "type": "text",
+                                                          "value": "Online",
+                                                        },
+                                                      ],
+                                                      "name": "small",
+                                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                                      "type": "element",
+                                                    },
+                                                  ],
+                                                  "name": "li",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "ul",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                        {
+                                          "attributes": [
+                                            [
+                                              "class",
+                                              "card system-scope-card",
+                                            ],
+                                          ],
+                                          "children": [
+                                            {
+                                              "attributes": [
+                                                [
+                                                  "class",
+                                                  "card-head",
+                                                ],
+                                              ],
+                                              "children": [
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "card-title",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Visibility",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                                {
+                                                  "attributes": [
+                                                    [
+                                                      "class",
+                                                      "system-scope-mark",
+                                                    ],
+                                                  ],
+                                                  "children": [
+                                                    {
+                                                      "type": "text",
+                                                      "value": "Public",
+                                                    },
+                                                  ],
+                                                  "name": "span",
+                                                  "namespace": "http://www.w3.org/1999/xhtml",
+                                                  "type": "element",
+                                                },
+                                              ],
+                                              "name": "div",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                            {
+                                              "attributes": [],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "value": "This view reports public service health only. Private memory, internal paths, and operator activity remain in Studio.",
+                                                },
+                                              ],
+                                              "name": "p",
+                                              "namespace": "http://www.w3.org/1999/xhtml",
+                                              "type": "element",
+                                            },
+                                          ],
+                                          "name": "article",
+                                          "namespace": "http://www.w3.org/1999/xhtml",
+                                          "type": "element",
+                                        },
+                                      ],
+                                      "name": "aside",
+                                      "namespace": "http://www.w3.org/1999/xhtml",
+                                      "type": "element",
+                                    },
+                                  ],
+                                  "name": "div",
                                   "namespace": "http://www.w3.org/1999/xhtml",
                                   "type": "element",
                                 },
@@ -6172,6 +8913,60 @@ body::after {
     });
   }
 
+  function setupKnowledgeAtlas(root) {
+    var controls = Array.prototype.slice.call(
+      root.querySelectorAll("[data-knowledge-zone-ref]"),
+    );
+    var zones = Array.prototype.slice.call(
+      root.querySelectorAll("[data-knowledge-zone]"),
+    );
+    if (!controls.length || !zones.length) return;
+    var fallback = controls[0].getAttribute("data-knowledge-zone-ref") || "";
+
+    function activate(id) {
+      controls.forEach(function (control) {
+        var active = control.getAttribute("data-knowledge-zone-ref") === id;
+        control.classList.toggle("is-active", active);
+        control.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+      zones.forEach(function (zone) {
+        zone.classList.toggle(
+          "is-active",
+          zone.getAttribute("data-knowledge-zone") === id,
+        );
+      });
+    }
+
+    function controlFrom(event) {
+      var target = event.target;
+      var control = target && target.closest
+        ? target.closest("[data-knowledge-zone-ref]")
+        : null;
+      return control && control.closest("[data-knowledge-atlas]") === root
+        ? control
+        : null;
+    }
+
+    root.addEventListener("pointerover", function (event) {
+      var control = controlFrom(event);
+      var id = control && control.getAttribute("data-knowledge-zone-ref");
+      if (id) activate(id);
+    });
+    root.addEventListener("focusin", function (event) {
+      var control = controlFrom(event);
+      var id = control && control.getAttribute("data-knowledge-zone-ref");
+      if (id) activate(id);
+    });
+    root.addEventListener("pointerleave", function () {
+      activate(fallback);
+    });
+    root.addEventListener("focusout", function (event) {
+      if (!root.contains(event.relatedTarget)) activate(fallback);
+    });
+
+    activate(fallback);
+  }
+
   var tabRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-tabs]"));
   if (tabRoots.length) {
     document.documentElement.classList.add("dashboard-tabs-ready");
@@ -6183,6 +8978,11 @@ body::after {
 
   var spatialRoots = Array.prototype.slice.call(document.querySelectorAll("[data-ui-spatial]"));
   spatialRoots.forEach(setupSpatial);
+
+  var knowledgeAtlasRoots = Array.prototype.slice.call(
+    document.querySelectorAll("[data-knowledge-atlas]"),
+  );
+  knowledgeAtlasRoots.forEach(setupKnowledgeAtlas);
 })();"
 ,
                 },

@@ -432,12 +432,6 @@ const directorySyncWorkspace = defineStudioWorkspace({
             label: "Repository",
             blocks: [repository],
           },
-          {
-            type: "action",
-            id: "sync-now",
-            action: syncNowAction,
-            input: {},
-          },
         ],
       },
     ];
@@ -453,6 +447,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
           : {}),
         tone: data.health === "healthy" ? "good" : "warn",
       },
+      primaryAction: { action: syncNowAction, input: {} },
       blocks,
     };
   },

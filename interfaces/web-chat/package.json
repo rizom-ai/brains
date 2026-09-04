@@ -1,10 +1,11 @@
 {
   "name": "@brains/web-chat",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.339",
+  "version": "0.2.0-alpha.350",
   "description": "Web chat interface for Brains",
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",
+    "@brains/app-ui-react": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
@@ -29,6 +30,7 @@
     "use-stick-to-bottom": "^1.1.6"
   },
   "devDependencies": {
+    "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
@@ -52,7 +54,7 @@
     "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test",
+    "test": "bun test --preload @brains/build-tools/stylex-test-preload",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"

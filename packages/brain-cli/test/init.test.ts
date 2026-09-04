@@ -1048,13 +1048,30 @@ describe("brain init", () => {
       expect(workflow).toContain(
         "ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null",
       );
+      expect(workflow).toContain("Create verified predeploy backup");
+      expect(workflow).toContain(
+        "bun deploy/scripts/create-predeploy-backup.ts",
+      );
+      expect(workflow).toContain(
+        "TARGET_HANDLE: ${{ github.event.repository.name }}",
+      );
+      expect(workflow).toContain(
+        "TARGET_VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
+      );
+      expect(workflow).toContain("SERVICE_NAME: brain");
       expect(workflow).toContain("Release stale Kamal deploy lock");
       expect(workflow).toContain("kamal lock release || true");
+      const backupIndex = workflow.indexOf(
+        "bun deploy/scripts/create-predeploy-backup.ts",
+      );
+      const lockIndex = workflow.indexOf("kamal lock release || true");
       const deployIndex = workflow.indexOf("kamal setup --skip-push");
       const watchdogIndex = workflow.indexOf(
         "bun deploy/scripts/install-health-watchdog.ts",
       );
-      expect(deployIndex).toBeGreaterThan(-1);
+      expect(backupIndex).toBeGreaterThan(-1);
+      expect(lockIndex).toBeGreaterThan(backupIndex);
+      expect(deployIndex).toBeGreaterThan(lockIndex);
       expect(workflow).toContain("Install container health watchdog");
       expect(watchdogIndex).toBeGreaterThan(deployIndex);
       expect(workflow).toContain("PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}");
@@ -1088,6 +1105,11 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, "deploy", "scripts", "helpers.ts"))).toBe(
         true,
       );
+      expect(
+        existsSync(
+          join(testDir, "deploy", "scripts", "create-predeploy-backup.ts"),
+        ),
+      ).toBe(true);
       expect(
         existsSync(
           join(testDir, "deploy", "scripts", "install-health-watchdog.ts"),

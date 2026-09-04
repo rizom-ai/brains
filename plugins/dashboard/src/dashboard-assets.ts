@@ -1,5 +1,8 @@
 import type { WebRouteDefinition } from "@brains/plugins";
-import { CONSOLE_PALETTE_SCRIPT } from "@brains/console-theme";
+import {
+  CONSOLE_PALETTE_SCRIPT,
+  resolveConsoleThemeCSS,
+} from "@brains/console-theme";
 import { computeContentHash } from "@brains/utils/hash";
 import { DASHBOARD_STYLES } from "./render/styles";
 import { DASHBOARD_UI_SCRIPT } from "./render/ui-script";
@@ -52,14 +55,12 @@ export class DashboardAssetRegistry {
     return {
       dashboardStyles: this.dashboardStylesUrl,
       dashboardScript: this.dashboardScriptUrl,
-      ...(options.themeCSS !== undefined && {
-        themeStyles: this.register(
-          "theme",
-          "css",
-          "text/css; charset=utf-8",
-          options.themeCSS,
-        ),
-      }),
+      themeStyles: this.register(
+        "theme",
+        "css",
+        "text/css; charset=utf-8",
+        resolveConsoleThemeCSS(options.themeCSS),
+      ),
     };
   }
 

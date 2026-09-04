@@ -97,6 +97,7 @@ export function backendBootstrapEnvSchema(backend: string): string {
  * package-metadata.test.ts fails on drift.
  */
 export const deployScriptNames = [
+  "create-predeploy-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
@@ -129,6 +130,7 @@ export function copyDeployScripts(
  * owner-customized and left alone.
  */
 const deployScriptFingerprints: Record<DeployScriptName, string> = {
+  "create-predeploy-backup.ts": "brains-predeploy-backup-v1",
   "install-health-watchdog.ts": "/usr/local/sbin/brains-health-watchdog",
   "provision-server.ts": 'requireEnv("HCLOUD_TOKEN")',
   "update-dns.ts": 'requireEnv("CF_API_TOKEN")',

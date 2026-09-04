@@ -1,5 +1,148 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.350
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.350
+  - @brains/contracts@0.2.0-alpha.350
+  - @brains/operator-view-react@0.2.0-alpha.350
+  - @brains/ui-library@0.2.0-alpha.350
+  - @brains/utils@0.2.0-alpha.350
+  - @brains/auth-service@0.2.0-alpha.350
+  - @brains/plugins@0.2.0-alpha.350
+
+## 0.2.0-alpha.349
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.349
+  - @brains/contracts@0.2.0-alpha.349
+  - @brains/operator-view-react@0.2.0-alpha.349
+  - @brains/ui-library@0.2.0-alpha.349
+  - @brains/utils@0.2.0-alpha.349
+  - @brains/auth-service@0.2.0-alpha.349
+  - @brains/plugins@0.2.0-alpha.349
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.348
+  - @brains/contracts@0.2.0-alpha.348
+  - @brains/operator-view-react@0.2.0-alpha.348
+  - @brains/ui-library@0.2.0-alpha.348
+  - @brains/utils@0.2.0-alpha.348
+  - @brains/auth-service@0.2.0-alpha.348
+  - @brains/plugins@0.2.0-alpha.348
+
+## 0.2.0-alpha.347
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.347
+  - @brains/contracts@0.2.0-alpha.347
+  - @brains/operator-view-react@0.2.0-alpha.347
+  - @brains/ui-library@0.2.0-alpha.347
+  - @brains/utils@0.2.0-alpha.347
+  - @brains/auth-service@0.2.0-alpha.347
+  - @brains/plugins@0.2.0-alpha.347
+
+## 0.2.0-alpha.346
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.346
+  - @brains/contracts@0.2.0-alpha.346
+  - @brains/operator-view-react@0.2.0-alpha.346
+  - @brains/ui-library@0.2.0-alpha.346
+  - @brains/utils@0.2.0-alpha.346
+  - @brains/auth-service@0.2.0-alpha.346
+  - @brains/plugins@0.2.0-alpha.346
+
+## 0.2.0-alpha.345
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.345
+  - @brains/contracts@0.2.0-alpha.345
+  - @brains/operator-view-react@0.2.0-alpha.345
+  - @brains/ui-library@0.2.0-alpha.345
+  - @brains/utils@0.2.0-alpha.345
+  - @brains/auth-service@0.2.0-alpha.345
+  - @brains/plugins@0.2.0-alpha.345
+
+## 0.2.0-alpha.344
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.344
+  - @brains/contracts@0.2.0-alpha.344
+  - @brains/operator-view-react@0.2.0-alpha.344
+  - @brains/ui-library@0.2.0-alpha.344
+  - @brains/utils@0.2.0-alpha.344
+  - @brains/auth-service@0.2.0-alpha.344
+  - @brains/plugins@0.2.0-alpha.344
+
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.343
+  - @brains/contracts@0.2.0-alpha.343
+  - @brains/operator-view-react@0.2.0-alpha.343
+  - @brains/ui-library@0.2.0-alpha.343
+  - @brains/utils@0.2.0-alpha.343
+  - @brains/auth-service@0.2.0-alpha.343
+  - @brains/plugins@0.2.0-alpha.343
+
+## 0.2.0-alpha.342
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.342
+  - @brains/contracts@0.2.0-alpha.342
+  - @brains/operator-view-react@0.2.0-alpha.342
+  - @brains/ui-library@0.2.0-alpha.342
+  - @brains/utils@0.2.0-alpha.342
+  - @brains/auth-service@0.2.0-alpha.342
+  - @brains/plugins@0.2.0-alpha.342
+
+## 0.2.0-alpha.341
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.341
+  - @brains/contracts@0.2.0-alpha.341
+  - @brains/operator-view-react@0.2.0-alpha.341
+  - @brains/ui-library@0.2.0-alpha.341
+  - @brains/utils@0.2.0-alpha.341
+  - @brains/auth-service@0.2.0-alpha.341
+  - @brains/plugins@0.2.0-alpha.341
+
+## 0.2.0-alpha.340
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.340
+  - @brains/contracts@0.2.0-alpha.340
+  - @brains/operator-view-react@0.2.0-alpha.340
+  - @brains/ui-library@0.2.0-alpha.340
+  - @brains/utils@0.2.0-alpha.340
+  - @brains/auth-service@0.2.0-alpha.340
+  - @brains/plugins@0.2.0-alpha.340
+
 ## 0.2.0-alpha.339
 
 ### Patch Changes

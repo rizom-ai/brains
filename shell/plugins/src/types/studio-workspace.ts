@@ -92,6 +92,7 @@ export interface StudioWorkspaceDescriptor {
   label: string;
   rendererName: StudioWorkspaceRendererName;
   priority: number;
+  permission: UserPermissionLevel;
   urlQuery?: true | undefined;
   aliases?: readonly StudioWorkspaceAlias[] | undefined;
   entityTypes: string[];

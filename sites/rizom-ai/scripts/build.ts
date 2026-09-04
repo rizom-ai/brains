@@ -1,6 +1,8 @@
 import {
+  assertProductionReactBundle,
   findInternalDeclarationImports,
   formatDeclarationLeakError,
+  productionReactJsx,
 } from "@brains/build-tools";
 import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
@@ -19,6 +21,7 @@ const result = await Bun.build({
   splitting: false,
   sourcemap: "external",
   minify: false,
+  jsx: productionReactJsx,
   external: [
     "react",
     "react/*",
@@ -34,6 +37,12 @@ if (!result.success) {
     console.error(log);
   }
   process.exit(1);
+}
+
+for (const output of result.outputs) {
+  if (output.path.endsWith(".js")) {
+    assertProductionReactBundle(await output.text(), output.path);
+  }
 }
 
 const declarationPath = join(distDir, "index.d.ts");

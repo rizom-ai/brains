@@ -40,6 +40,43 @@ When a push changes only deploy contract files and no generated `users/<handle>/
 
 They are scaffolded from `@rizom/ops`, then versioned in this repo like any other deploy contract.
 
+## Verified pre-deploy rollback snapshots
+
+Deploy creates and verifies one target-scoped rollback snapshot after SSH and image readiness, immediately before optional stale-lock release and `kamal setup`. A snapshot failure stops the workflow before container replacement. A genuinely new server with no runtime or persistent state reports `not applicable`; persistent state without an identifiable runtime fails closed.
+
+Each snapshot contains transaction-consistent online captures of the six canonical SQLite databases, database hashes and `quick_check` results, the deployed `brain.yaml`, sanitized container and mount metadata, and the Directory Sync checkout. Git capture includes all refs, an observed remote head, staged and unstaged binary patches, and mode-preserving archives of untracked and ignored files. Capture performs no checkout mutation or remote write.
+
+Verified snapshots are finalized atomically under:
+
+```text
+/opt/brain-state/backups/predeploy-<handle>-<target>-<UTC timestamp>/
+```
+
+Files use mode `0600` and the directory uses `0700`. A `.incomplete` directory is diagnostic evidence, never a rollback point. Checksums and the versioned manifest must verify before finalization. The default retention is five verified snapshots per target; incomplete or unverified directories do not count, and the snapshot created by the current deployment is never pruned.
+
+These are same-server rollback snapshots, not off-host disaster recovery. There is no normal skip and no automatic restore. Restoration requires separate approval: stop replacement/application processes, recheck the selected snapshot's checksums, preserve the current state, restore databases and exact Git state, then validate health, queues, Git checkpoints, durable export intents, preview, and production output before reopening the target.
+
+## Retired projection job recovery
+
+A pre-scheduler projection job can remain active after its handler type is retired. Current runtime health reports active job types missing from the finalized execution inventory as degraded. Do not restart repeatedly or relax the snapshot idle gate.
+
+Use the recovery command only after read-only evidence proves all of the following for one exact row:
+
+- its type is one of the command's fixed legacy projection types;
+- the installed runtime no longer contains that handler;
+- attempt, worker-session, lease, and heartbeat ownership are all absent;
+- no durable progress snapshot or result exists.
+
+Preview the exact row first:
+
+```sh
+bunx --package @rizom/ops@<exact-version> brains-ops \
+  recover:retire-legacy-projection-job \
+  /data/brain-jobs.db <job-id> --type <legacy-type> --dry-run
+```
+
+After separate operator review, replace `--dry-run` with the exact confirmation `--confirm retire:<job-id>`. The command atomically fences against ownership or progress appearing between inspection and retirement, and fails closed if the row changed. It is not a general job cancellation API and cannot retire arbitrary job types. Require operational health and a fully idle queue afterward, then run the unchanged canonical predeploy snapshot and Deploy workflow.
+
 ## Canonical contract crossover maintenance window
 
 Do not run this procedure without explicit operator approval. The canonical desired state, canonical `@rizom/ops`, and unified runtime image form one contract and must move or roll back together. Complete `docs/canonical-crossover-record.md` as the approval evidence without adding secret values.

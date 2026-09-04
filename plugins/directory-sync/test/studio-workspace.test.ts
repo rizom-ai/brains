@@ -147,8 +147,13 @@ describe("directory-sync Studio workspace", () => {
     });
     const rendered = await registration.dataProvider(adminActor);
     expect(rendered).toMatchObject({
-      view: { title: "Content sync", kicker: "Durability operations" },
+      view: {
+        title: "Content sync",
+        kicker: "Durability operations",
+        primaryAction: { actionId: "sync-now", label: "Sync now", input: {} },
+      },
     });
+    expect(JSON.stringify(rendered)).not.toContain('"id":"sync-now"');
     expect(JSON.stringify(rendered)).toContain('"type":"columns"');
     expect(JSON.stringify(rendered)).toContain('"type":"flow"');
     expect(JSON.stringify(rendered)).toContain('"direction":"bidirectional"');

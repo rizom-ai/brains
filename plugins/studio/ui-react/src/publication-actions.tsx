@@ -4,7 +4,7 @@ import type {
   PublishingActionResult,
   PublishConfirmationArgs,
 } from "./api";
-import { ConfirmDialog } from "@brains/operator-view-react";
+import { Button, ConfirmDialog } from "@brains/app-ui-react";
 import { errorMessage } from "./ui-utils";
 
 export function isPublishingActionError(
@@ -35,7 +35,7 @@ export function PublishConfirmationDialog(props: {
       confirmLabel={props.confirming ? "Publishing…" : "Confirm publication"}
       pending={props.confirming}
       sectionClassName="publication-modal"
-      confirmClassName="publish-confirm"
+      confirmVariant="primary"
       onCancel={props.onCancel}
       onConfirm={props.onConfirm}
     >
@@ -125,24 +125,24 @@ export function PublicationActions(props: {
       )}
       {props.status !== "published" && (
         <div className="publication-action-buttons">
-          <button
+          <Button
             type="button"
-            className="btn ghost"
+            variant="ghost"
             disabled={disabled}
             onClick={() => void execute(lifecycleAction, "lifecycle")}
           >
             {busy === "lifecycle" ? "Working…" : lifecycleLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn publication-publish-now"
+            className="publication-publish-now"
             disabled={disabled}
             onClick={() =>
               void execute({ type: "publish", ...target }, "publish")
             }
           >
             {busy === "publish" ? "Preparing…" : "Publish now"}
-          </button>
+          </Button>
         </div>
       )}
       {props.status === "published" && (

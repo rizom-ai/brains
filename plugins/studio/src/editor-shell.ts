@@ -4,6 +4,7 @@ import {
   CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   renderConsoleStripHtml,
+  resolveConsoleThemeCSS,
   type ConsoleStripPrincipal,
   type ConsoleSurface,
 } from "@brains/console-theme";
@@ -19,12 +20,16 @@ function escapeAttribute(value: string): string {
 export interface EditorShellOptions {
   /** Module path of the Bun-bundled React app. */
   assetPath: string;
+  /** Static StyleX stylesheet emitted beside the app bundle. */
+  stylesheetPath?: string | undefined;
   /** Normalized configured mount used by client routing and API requests. */
   basePath: string;
   /** Console-strip doors, derived from the registered web routes. */
   surfaces: ConsoleSurface[];
   /** Sign-out link for the authenticated-session chip. */
   sessionHref: string;
+  /** Runtime-resolved brain theme; the shared default is used when absent. */
+  themeCSS?: string | undefined;
   principal?: ConsoleStripPrincipal | undefined;
 }
 
@@ -44,7 +49,7 @@ export function renderEditorShellHtml(options: EditorShellOptions): string {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
   return `<!doctype html>
-<html lang="en" data-climate="paper">
+<html lang="en" data-climate="paper" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -54,7 +59,10 @@ export function renderEditorShellHtml(options: EditorShellOptions): string {
     <link href="${CONSOLE_FONTS_URL}" rel="stylesheet" />
     <script>${CONSOLE_CLIMATE_SCRIPT}</script>
     <script>${CONSOLE_PALETTE_SCRIPT}</script>
-    <style>
+    <style data-console-theme>
+${resolveConsoleThemeCSS(options.themeCSS)}
+    </style>
+    <style data-studio-shell-styles>
 ${CONSOLE_THEME_CSS}
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { height: 100%; }
@@ -92,8 +100,9 @@ ${CONSOLE_THEME_CSS}
         padding: 48px;
       }
     </style>
+    ${options.stylesheetPath ? `<link data-studio-app-styles rel="stylesheet" href="${escapeAttribute(options.stylesheetPath)}" />` : ""}
   </head>
-  <body>
+  <body data-console-host="studio">
     ${renderConsoleStripHtml({
       surfaces: options.surfaces,
       session: {

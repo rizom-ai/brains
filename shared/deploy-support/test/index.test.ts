@@ -105,6 +105,41 @@ describe("deploy templates", () => {
     expect(isStaleDeployMounts("service: custom\n", "brain")).toBe(false);
   });
 
+  it("ships one canonical verified predeploy backup command", () => {
+    expect(deployScriptNames).toContain("create-predeploy-backup.ts");
+    const snapshotCommand = readFileSync(
+      resolveDeployScriptPath("create-predeploy-backup.ts"),
+      "utf8",
+    );
+
+    for (const marker of [
+      "VACUUM INTO",
+      "database.serialize()",
+      "PRAGMA quick_check",
+      "sha256sum --check",
+      ".incomplete",
+      "DEFAULT_PREDEPLOY_BACKUP_RETENTION_COUNT = 5",
+    ]) {
+      expect(snapshotCommand).toContain(marker);
+    }
+    expect(snapshotCommand).toMatch(/"bundle",\s*"verify"/);
+    expect(snapshotCommand).not.toContain(".Config.Env");
+    expect(snapshotCommand).not.toMatch(/cp\\s+[^\\n]*\\.db/);
+
+    const workflow = renderDeployWorkflow({
+      secretNames: [],
+      bootstrapSecrets: [],
+    });
+    const backupIndex = workflow.indexOf(
+      "bun deploy/scripts/create-predeploy-backup.ts",
+    );
+    const lockIndex = workflow.indexOf("kamal lock release");
+    const deployIndex = workflow.indexOf("kamal setup --skip-push");
+    expect(backupIndex).toBeGreaterThan(-1);
+    expect(lockIndex).toBeGreaterThan(backupIndex);
+    expect(deployIndex).toBeGreaterThan(lockIndex);
+  });
+
   it("ships a dedicated host watchdog installer that records incidents before restart", () => {
     expect(deployScriptNames).toContain("install-health-watchdog.ts");
     const installer = readFileSync(

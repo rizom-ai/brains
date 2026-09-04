@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.339",
+  "version": "0.2.0-alpha.350",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
@@ -47,6 +47,7 @@
     "@brains/chat": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/content-pipeline": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/conversation-memory": "workspace:*",
     "@brains/core": "workspace:*",
     "@brains/dashboard": "workspace:*",
@@ -109,6 +110,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./chat": {
+      "types": "./dist/chat.d.ts",
+      "import": "./dist/chat.js"
     },
     "./cli": "./dist/brain.js",
     "./model": {

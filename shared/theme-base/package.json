@@ -1,7 +1,7 @@
 {
   "name": "@brains/theme-base",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.339",
+  "version": "0.2.0-alpha.350",
   "description": "Shared base CSS utilities for all Brain themes",
   "dependencies": {},
   "devDependencies": {
@@ -21,6 +21,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "type": "module",

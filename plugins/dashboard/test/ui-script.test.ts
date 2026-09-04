@@ -254,6 +254,51 @@ describe("dashboard spatial behavior", () => {
   });
 });
 
+describe("dashboard knowledge atlas behavior", () => {
+  it("links territory focus to its map contour and restores the leading territory", () => {
+    window.document.body.innerHTML = `
+      <div data-knowledge-atlas>
+        <div data-knowledge-zone="governance" class="knowledge-zone"></div>
+        <div data-knowledge-zone="learning" class="knowledge-zone"></div>
+        <button data-knowledge-zone-ref="governance" aria-pressed="false">Governance</button>
+        <button data-knowledge-zone-ref="learning" aria-pressed="false">Learning</button>
+      </div>
+      <button id="outside">Outside</button>`;
+
+    runScript();
+
+    expect(
+      element('[data-knowledge-zone="governance"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(true);
+    expect(
+      element('[data-knowledge-zone-ref="governance"]').getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("true");
+
+    focus('[data-knowledge-zone-ref="learning"]');
+    expect(
+      element('[data-knowledge-zone="learning"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(true);
+    expect(
+      element('[data-knowledge-zone="governance"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(false);
+
+    focus("#outside");
+    expect(
+      element('[data-knowledge-zone="governance"]').classList.contains(
+        "is-active",
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("dashboard filter behavior", () => {
   it("filters multi-value rows, updates controls, and reveals an empty state", () => {
     window.document.body.innerHTML = `

@@ -42,6 +42,10 @@ const setupResultSchema = z.strictObject({
 });
 const statusResultSchema = z.strictObject({ status: z.string() });
 
+function titleCase(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
 const invitePeer = defineWorkspaceAction({
   name: "invite-external-peer-person",
   label: "Invite peer person",
@@ -296,6 +300,20 @@ const peerTabProvider = defineStudioWorkspace({
             role: peer.role,
             verification: peer.verificationStatus,
             linked: formatWorkspaceDate(peer.createdAt),
+          },
+          compact: {
+            title: peerOriginLabel(peer.peerId),
+            metadata: [
+              peer.displayName,
+              titleCase(peer.role),
+              formatWorkspaceDate(peer.createdAt),
+            ],
+            badges: [
+              {
+                label: titleCase(peer.verificationStatus),
+                tone: peer.verificationStatus === "verified" ? "good" : "warn",
+              },
+            ],
           },
         })),
       },

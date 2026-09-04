@@ -8,6 +8,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import operatorViewRendererStyles from "./operator-view-renderer.css" with { type: "text" };
 import { OperatorViewRenderer } from "./operator-view-renderer";
 
 const data: RuntimeStudioWorkspaceData = {
@@ -167,6 +168,164 @@ describe("OperatorViewRenderer", () => {
     ).not.toContain("declarative-totals");
   });
 
+  it("keeps server-backed query controls with their table collection", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Audit",
+            blocks: [
+              {
+                type: "table",
+                id: "events",
+                empty: "No events.",
+                query: {
+                  controls: [
+                    {
+                      key: "actor",
+                      label: "Actor",
+                      allLabel: "All actors",
+                      options: [{ value: "mira", label: "Mira" }],
+                    },
+                  ],
+                  pagination: { offset: 0, limit: 25, total: 1 },
+                },
+                columns: [{ key: "event", label: "Event" }],
+                rows: [{ id: "event-1", cells: { event: "Signed in" } }],
+              },
+            ],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: {},
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('class="declarative-table-collection"');
+    expect(html).toContain("All actors");
+    expect(html).toContain("1–1 of 1");
+    expect(html.indexOf("All actors")).toBeLessThan(html.indexOf("Signed in"));
+  });
+
+  it("reflows only source-annotated table rows into the compact list grammar", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "People",
+            blocks: [
+              {
+                type: "table",
+                id: "people",
+                empty: "No people.",
+                columns: [
+                  { key: "person", label: "Person" },
+                  { key: "role", label: "Role" },
+                ],
+                rows: [
+                  {
+                    id: "mira",
+                    cells: { person: "Mira Reyes", role: "Admin" },
+                    compact: {
+                      title: "Mira Reyes",
+                      description: "Owns this brain",
+                      metadata: ["Admin", "This brain"],
+                      badges: [{ label: "Active", tone: "good" }],
+                      count: 3,
+                      tone: "neutral",
+                    },
+                    link: { kind: "detail", itemId: "mira" },
+                    actions: [
+                      {
+                        actionId: "review-person",
+                        label: "Review",
+                        input: { userId: "mira" },
+                      },
+                    ],
+                  },
+                  {
+                    id: "legacy",
+                    cells: { person: "Legacy row", role: "Trusted" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+        query: {},
+        onQueryChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('class="declarative-compact-rows"');
+    expect(html).toContain('data-compact-row="true"');
+    expect(html).toContain('data-has-unannotated="true"');
+    expect(html).toContain("Owns this brain");
+    expect(html).toContain("Admin · This brain");
+    expect(html).toContain('class="declarative-badge" data-tone="good"');
+    expect(html).toContain("Legacy row");
+    expect(html.match(/Review/g)).toHaveLength(2);
+    expect(operatorViewRendererStyles).toMatch(
+      /@media \(max-width: 640px\)[\s\S]*\.declarative-compact-rows/,
+    );
+    expect(operatorViewRendererStyles).toContain(
+      '.declarative-table-scroll[data-has-unannotated="false"]',
+    );
+    expect(operatorViewRendererStyles).toContain(
+      ".declarative-list-trailing:has(.declarative-actions)",
+    );
+  });
+
+  it("can delegate the head without returning its totals to the body", () => {
+    const delegated = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Reading library",
+            primaryAction: {
+              actionId: "refresh",
+              label: "Refresh library",
+              input: {},
+            },
+            blocks: [
+              { type: "stats", items: [{ label: "Saved", value: 1 }] },
+              { type: "notice", tone: "neutral", text: "Ready." },
+            ],
+          },
+        },
+        renderHead: false,
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+    const selfRendered = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Reading library",
+            primaryAction: {
+              actionId: "refresh",
+              label: "Refresh library",
+              input: {},
+            },
+            blocks: [],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+
+    expect(delegated).not.toContain("declarative-head");
+    expect(delegated).not.toContain("Saved");
+    expect(delegated).toContain("Ready.");
+    expect(selfRendered).toContain("Refresh library");
+  });
+
   it("declares a layout span per block so the host grid can differentiate width", () => {
     const html = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
@@ -226,11 +385,11 @@ describe("OperatorViewRenderer", () => {
     );
 
     // A standalone action is the workspace's primary call to action.
-    expect(html).toContain('class="btn">Run sync now');
+    expect(html).toMatch(/class="btn"[^>]*>Run sync now/);
     // Needing confirmation is the signal that an action is consequential.
-    expect(html).toContain('class="btn danger">Purge exports');
+    expect(html).toMatch(/class="btn danger"[^>]*>Purge exports/);
     // Row-level actions stay subordinate to the row they belong to.
-    expect(html).toContain('class="btn ghost">Open');
+    expect(html).toMatch(/class="btn ghost"[^>]*>Open/);
   });
 });
 
@@ -1043,4 +1202,134 @@ describe("OperatorViewRenderer pagination", () => {
     expect(first).toMatch(/Previous<\/button>/);
     expect(first).toContain('disabled=""');
   });
+});
+
+describe("sidebar card readouts", () => {
+  // A card in the aside column is roughly 220px of content box. Every block a
+  // widget may put there has to survive that measure, because a source like
+  // site-builder's Site health emits free-form build detail, not the one-word
+  // states the rest of the fixture uses.
+
+  it("lets a long key-value wrap instead of holding it on one line", () => {
+    // white-space: nowrap here pushed a 90-character build detail straight out
+    // of the card and off the document.
+    expect(operatorViewRendererStyles).not.toMatch(
+      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*white-space: nowrap/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*overflow-wrap: anywhere/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-key-values > div \{[^}]*flex-wrap: wrap/,
+    );
+  });
+
+  it("sizes stats to the card rather than breaking a state mid-word", () => {
+    // The body grid's 128px minimum track needs 257px for two stats, which a
+    // 220px card cannot give without opening up.
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-card \.declarative-stats \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(0, 1fr\)\)/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-card \.declarative-stats dd \{[^}]*font-size: 17px/,
+    );
+  });
+
+  it("keeps the line breaks a notice authored", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-notice p \{[^}]*white-space: pre-line/,
+    );
+  });
+
+  it("renders one failure per line in a joined notice", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorViewRenderer, {
+        data: {
+          view: {
+            title: "Site health",
+            blocks: [
+              {
+                type: "notice",
+                id: "build-failures",
+                title: "Previous build failures",
+                tone: "error",
+                text: "production · job-7f21c: Route failed.\npreview · job-7f20a: Timed out.",
+              },
+            ],
+          },
+        },
+        onAction: async () => ({}),
+        onOpenEntity: () => {},
+      }),
+    );
+    // The separator has to reach the DOM for pre-line to have anything to keep.
+    expect(html).toContain("job-7f21c");
+    expect(html).toContain("job-7f20a");
+    expect(html).toMatch(/Route failed\.\s*\n\s*preview/);
+  });
+});
+
+describe("author-supplied text cannot break the page", () => {
+  // The protocol lets a source spend 500 characters on a list title, 4,000 on a
+  // description, and 160 on each tag or badge. This renderer decides width from
+  // the block's meaning, so none of those may reach past their column.
+
+  it("breaks unbroken tokens in list text", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-list strong,[\s\S]*?\.declarative-list small \{[^}]*overflow-wrap: anywhere/,
+    );
+  });
+
+  it("lets a long pill wrap inside its own measure", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*max-width: 100%/,
+    );
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*overflow-wrap: anywhere/,
+    );
+    // nowrap here turned a 160-character badge into a page-width overrun.
+    expect(operatorViewRendererStyles).not.toMatch(
+      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*white-space: nowrap/,
+    );
+  });
+
+  it("keeps trailing row metadata inside the row", () => {
+    expect(operatorViewRendererStyles).toMatch(
+      /\.declarative-list-trailing > span:not\(\.declarative-badge\) \{[^}]*overflow-wrap: anywhere/,
+    );
+  });
+});
+
+describe("every author-text surface has a break guard", () => {
+  // Kept as one list so a new text-bearing block cannot quietly ship without
+  // deciding what happens to a string that has nowhere to break.
+  const guarded = [
+    ".declarative-spatial li strong",
+    ".declarative-spatial li span",
+    ".declarative-flow strong",
+    ".declarative-progress strong",
+    ".declarative-progress p",
+    ".declarative-meters dd",
+    ".declarative-links a",
+    ".declarative-inline-link",
+  ];
+
+  // Read the one rule that owns this contract rather than searching the whole
+  // sheet: a lazy match across blocks would happily find some other
+  // overflow-wrap and pass without the selector being guarded at all.
+  const contract =
+    /---- author text[\s\S]*?\n([^{]*)\{([^}]*)\}/.exec(
+      operatorViewRendererStyles,
+    ) ?? undefined;
+
+  it("declares the contract as a single rule", () => {
+    expect(contract).toBeDefined();
+    expect(contract?.[2]).toContain("overflow-wrap: anywhere");
+  });
+
+  for (const selector of guarded) {
+    it(`breaks unbroken tokens in ${selector}`, () => {
+      expect(contract?.[1]).toContain(selector);
+    });
+  }
 });

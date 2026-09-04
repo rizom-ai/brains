@@ -2,11 +2,12 @@
   "name": "@brains/build-tools",
   "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.2.0-alpha.339",
+  "version": "0.2.0-alpha.350",
   "description": "Internal build and publish tooling: publishable-manifest transforms and declaration leak checks",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./stylex-test-preload": "./src/stylex-test-preload.ts"
   },
   "bin": {
     "publish-manifest": "./src/cli.ts"
@@ -14,6 +15,11 @@
   "files": [
     "src"
   ],
+  "dependencies": {
+    "@babel/core": "^7.26.8",
+    "@stylexjs/babel-plugin": "^0.19.0",
+    "@types/babel__core": "^7.20.5"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",

@@ -4,6 +4,7 @@ import {
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
+  type OperatorView,
   type OperatorViewBlock,
   type RuntimeStudioOperatorBlock,
   type RuntimeStudioOperatorColumnsBlock,
@@ -22,6 +23,25 @@ import {
 } from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
+
+function titleCase(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
+}
+
+function invitationTone(state: string): "good" | "warn" | "neutral" | "error" {
+  switch (state) {
+    case "claimed":
+    case "sent":
+      return "good";
+    case "failed":
+      return "error";
+    case "expired":
+    case "cancelled":
+      return "warn";
+    default:
+      return "neutral";
+  }
+}
 
 const invitationQuerySchema = z.strictObject({
   state: z.enum(["pending", "history"]).optional().default("pending"),
@@ -137,6 +157,9 @@ type InvitationAction =
   | typeof cancelInvitation
   | typeof confirmManualDelivery;
 type InvitationBlock = OperatorViewBlock<InvitationAction>;
+type InvitationPrimaryAction = NonNullable<
+  OperatorView<typeof createInvitation>["primaryAction"]
+>;
 type InvitationTotalsBlock = Extract<
   RuntimeStudioOperatorPanelBlock,
   { type: "stats" }
@@ -185,20 +208,19 @@ export function composeInvitationTabSections(
       'Invitations tab composition block "invitation-totals" must be stats',
     );
   }
-  const creationId = blocks.some((block) => block.id === "create-invitation")
-    ? "create-invitation"
-    : "create-invitation-unavailable";
+  const unavailable = blocks.some(
+    (block) => block.id === "create-invitation-unavailable",
+  )
+    ? [requiredInvitationRegion(blocks, "create-invitation-unavailable")]
+    : [];
   return {
     totals,
     blocks: [
       {
         type: "columns",
         id: "invitation-layout",
-        primary: [
-          requiredInvitationRegion(blocks, "invitation-query"),
-          requiredInvitationRegion(blocks, "invitations"),
-        ],
-        aside: [requiredInvitationRegion(blocks, creationId), ...peerAside],
+        primary: [requiredInvitationRegion(blocks, "invitations")],
+        aside: [...unavailable, ...peerAside],
       },
     ],
   };
@@ -250,70 +272,59 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
     const deliveryModes = Array.from(
       new Set(data.channels.flatMap((channel) => channel.deliveryModes)),
     );
+    let primaryAction: InvitationPrimaryAction | undefined;
     if (data.channels.length > 0 && deliveryModes.length > 0) {
-      blocks.push({
-        type: "card",
-        id: "create-invitation",
-        label: "Add a person",
-        blocks: [
-          {
-            type: "text",
-            text: "Issue a single-use passkey setup link through an available delivery channel.",
-          },
-          {
-            type: "action",
-            action: createInvitation,
-            input: { idempotencyKey: data.idempotencyKey },
-            form: {
-              presentation: "disclosure",
-              submitLabel: "Create invitation",
-              fields: {
-                displayName: { label: "Display name", control: "text" },
-                role: {
-                  label: "Role",
-                  control: "select",
-                  options: [
-                    { value: "trusted", label: "Trusted" },
-                    { value: "admin", label: "Admin" },
-                  ],
-                },
-                deliveryType: {
-                  label: "Delivery channel",
-                  control: "select",
-                  options: data.channels.map((channel) => ({
-                    value: channel.type,
-                    label: channel.displayName,
-                  })),
-                },
-                deliverySubject: {
-                  label: "Delivery destination",
-                  labelBy: {
-                    field: "deliveryType",
-                    values: data.channels.map((channel) => ({
-                      value: channel.type,
-                      label: channel.subjectLabel,
-                    })),
-                  },
-                  control: "text",
-                },
-                deliveryLabel: {
-                  label: "Delivery label (optional)",
-                  control: "text",
-                },
-                deliveryMode: {
-                  label: "Delivery mode",
-                  control: "select",
-                  options: deliveryModes.map((mode) => ({
-                    value: mode,
-                    label: mode === "automatic" ? "Automatic" : "Manual",
-                  })),
-                },
-              },
+      primaryAction = {
+        action: createInvitation,
+        input: { idempotencyKey: data.idempotencyKey },
+        form: {
+          presentation: "disclosure",
+          submitLabel: "Create invitation",
+          fields: {
+            displayName: { label: "Display name", control: "text" },
+            role: {
+              label: "Role",
+              control: "select",
+              options: [
+                { value: "trusted", label: "Trusted" },
+                { value: "admin", label: "Admin" },
+              ],
             },
-            result: setupResultPresentation,
+            deliveryType: {
+              label: "Delivery channel",
+              control: "select",
+              options: data.channels.map((channel) => ({
+                value: channel.type,
+                label: channel.displayName,
+              })),
+            },
+            deliverySubject: {
+              label: "Delivery destination",
+              labelBy: {
+                field: "deliveryType",
+                values: data.channels.map((channel) => ({
+                  value: channel.type,
+                  label: channel.subjectLabel,
+                })),
+              },
+              control: "text",
+            },
+            deliveryLabel: {
+              label: "Delivery label (optional)",
+              control: "text",
+            },
+            deliveryMode: {
+              label: "Delivery mode",
+              control: "select",
+              options: deliveryModes.map((mode) => ({
+                value: mode,
+                label: mode === "automatic" ? "Automatic" : "Manual",
+              })),
+            },
           },
-        ],
-      });
+        },
+        result: setupResultPresentation,
+      };
     } else {
       blocks.push({
         type: "notice",
@@ -322,10 +333,14 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
         text: "No invitation delivery channel is currently available.",
       });
     }
-    blocks.push(
-      {
-        type: "query",
-        id: "invitation-query",
+    blocks.push({
+      type: "table",
+      id: "invitations",
+      empty:
+        data.query.state === "pending"
+          ? "No pending invitations."
+          : "No invitation history yet.",
+      query: {
         controls: [
           {
             key: "state",
@@ -351,68 +366,75 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           total: data.selectedTotal,
         },
       },
-      {
-        type: "table",
-        id: "invitations",
-        empty:
-          data.query.state === "pending"
-            ? "No pending invitations."
-            : "No invitation history yet.",
-        columns: [
-          { key: "person", label: "Person" },
-          { key: "role", label: "Role" },
-          { key: "state", label: "State" },
-          { key: "destination", label: "Destination" },
-          { key: "updated", label: "Updated" },
-        ],
-        rows: data.invitations.map((invitation) => ({
-          id: invitation.id,
-          cells: {
-            person: invitation.displayName,
-            role: invitation.role,
-            state: invitation.state,
-            destination: invitation.destination,
-            updated: formatWorkspaceDate(invitation.updatedAt),
-          },
-          actions: TERMINAL_INVITATION_STATES.has(invitation.state)
-            ? []
-            : [
-                ...(invitation.deliveryAttemptId
-                  ? [
-                      {
-                        action: confirmManualDelivery,
-                        input: {
-                          invitationId: invitation.id,
-                          deliveryAttemptId: invitation.deliveryAttemptId,
-                        },
+      columns: [
+        { key: "person", label: "Person" },
+        { key: "role", label: "Role" },
+        { key: "state", label: "State" },
+        { key: "destination", label: "Destination" },
+        { key: "updated", label: "Updated" },
+      ],
+      rows: data.invitations.map((invitation) => ({
+        id: invitation.id,
+        cells: {
+          person: invitation.displayName,
+          role: invitation.role,
+          state: invitation.state,
+          destination: invitation.destination,
+          updated: formatWorkspaceDate(invitation.updatedAt),
+        },
+        compact: {
+          title: invitation.displayName,
+          metadata: [
+            titleCase(invitation.role),
+            invitation.destination,
+            formatWorkspaceDate(invitation.updatedAt),
+          ],
+          badges: [
+            {
+              label: titleCase(invitation.state),
+              tone: invitationTone(invitation.state),
+            },
+          ],
+          tone: invitationTone(invitation.state),
+        },
+        actions: TERMINAL_INVITATION_STATES.has(invitation.state)
+          ? []
+          : [
+              ...(invitation.deliveryAttemptId
+                ? [
+                    {
+                      action: confirmManualDelivery,
+                      input: {
+                        invitationId: invitation.id,
+                        deliveryAttemptId: invitation.deliveryAttemptId,
                       },
-                    ]
-                  : []),
-                ...(invitation.state !== "sending"
-                  ? [
-                      {
-                        action: resendInvitation,
-                        input: { invitationId: invitation.id },
-                        capability: {
-                          id:
-                            invitation.state === "failed"
-                              ? "retry-invitation"
-                              : "resend-invitation",
-                          label:
-                            invitation.state === "failed" ? "Retry" : "Resend",
-                        },
-                        result: setupResultPresentation,
+                    },
+                  ]
+                : []),
+              ...(invitation.state !== "sending"
+                ? [
+                    {
+                      action: resendInvitation,
+                      input: { invitationId: invitation.id },
+                      capability: {
+                        id:
+                          invitation.state === "failed"
+                            ? "retry-invitation"
+                            : "resend-invitation",
+                        label:
+                          invitation.state === "failed" ? "Retry" : "Resend",
                       },
-                    ]
-                  : []),
-                {
-                  action: cancelInvitation,
-                  input: { invitationId: invitation.id },
-                },
-              ],
-        })),
-      },
-    );
+                      result: setupResultPresentation,
+                    },
+                  ]
+                : []),
+              {
+                action: cancelInvitation,
+                input: { invitationId: invitation.id },
+              },
+            ],
+      })),
+    });
     return {
       kicker: "Access administration",
       title: "Invitations",
@@ -422,6 +444,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
         label: `${data.pendingCount} pending`,
         tone: data.failureCount > 0 ? "warn" : "neutral",
       },
+      ...(primaryAction ? { primaryAction } : {}),
       blocks,
     };
   },

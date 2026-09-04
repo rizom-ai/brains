@@ -38,24 +38,23 @@ describe("CONSOLE_THEME_CSS", () => {
     expect(CONSOLE_THEME_CSS).toMatch(/--console-mono:[^;]*JetBrains Mono/);
   });
 
-  it("keeps instrument values fixed and paper values theme-adaptive", () => {
-    // Instrument is the console's own identity; paper follows an injected
-    // site theme (shell themeCSS) when present, falling back to the Studio
-    // editor's paper values.
-    const instrument = climateBlock("instrument");
-    expect(instrument).not.toContain("--color-");
-    expect(instrument).toContain("--console-bg: #0a0819");
-    expect(instrument).toContain("--console-accent: #ff8b3d");
-    expect(climateBlock("paper")).toContain("var(--color-bg");
-    expect(climateBlock("paper")).toContain("var(--color-accent");
+  it("aliases both climates to the injected semantic theme", () => {
+    for (const climate of ["instrument", "paper"]) {
+      const block = climateBlock(climate);
+      expect(block).toContain("--console-bg: var(--color-bg)");
+      expect(block).toContain("--console-accent: var(--color-accent)");
+      expect(block).toContain("--console-warn: var(--color-warning)");
+      expect(block).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
+    }
   });
 
-  it("does not reuse dark-only tokens in the paper climate", () => {
-    const paper = climateBlock("paper");
-    expect(paper).not.toContain("--color-bg-dark");
-    expect(paper).not.toContain("var(--color-warning-text-emphasis,");
-    expect(paper).toContain("--palette-warning-text-emphasis-light");
-    expect(paper).toContain("#7a4a05");
+  it("uses contract tokens rather than theme-private palette values", () => {
+    for (const climate of ["instrument", "paper"]) {
+      const block = climateBlock(climate);
+      expect(block).not.toContain("--palette-");
+      expect(block).not.toContain("--color-warning-text-emphasis");
+      expect(block).not.toContain("--color-bg-dark");
+    }
   });
 
   it("sets the matching color-scheme per climate", () => {

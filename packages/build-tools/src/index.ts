@@ -5,6 +5,10 @@ export {
   type DeclarationLeakOptions,
 } from "./declaration-leaks";
 export {
+  assertProductionReactBundle,
+  productionReactJsx,
+} from "./production-react-bundle";
+export {
   preparePublishManifest,
   restorePublishManifest,
   type PreparePublishManifestOptions,
@@ -33,6 +37,13 @@ export {
   type PublishedCompatibilityTarget,
   type PublishedPackageManifest,
 } from "./published-metadata";
+export {
+  createStylexBunTransform,
+  transformStylexSource,
+  type StylexBunTransform,
+  type StylexBunTransformOptions,
+  type StylexTransformResult,
+} from "./stylex-bun-plugin";
 export {
   buildThemePackage,
   type BuildThemePackageOptions,

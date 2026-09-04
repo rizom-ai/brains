@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { getErrorMessage } from "@brains/utils/error";
 import {
   existsSync,
   mkdirSync,

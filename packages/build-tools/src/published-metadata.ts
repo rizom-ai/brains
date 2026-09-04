@@ -5,6 +5,10 @@ export interface PublishedCompatibilityTarget {
 }
 
 export interface PublishedPackageManifest {
+  // Identity travels with both shapes this models — a registry packument and a
+  // tarball's package.json — so readers can assert on what they parsed.
+  name?: string;
+  version?: string;
   dependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;

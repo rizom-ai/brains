@@ -106,6 +106,7 @@ export function buildConsoleJumpGroups(options: {
     { id: "overview", label: "Overview" },
     { id: "knowledge", label: "Knowledge" },
     { id: "network", label: "Network" },
+    { id: "system", label: "System" },
   ]
     .filter(
       ({ id, label }) =>

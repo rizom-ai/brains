@@ -56,6 +56,21 @@ interface DashboardWidgetRegistration {
   digestProvider: (data: unknown) => unknown;
 }
 
+function findTableById(value: unknown, id: string): unknown {
+  if (value === null || typeof value !== "object") return undefined;
+  if (
+    Reflect.get(value, "id") === id &&
+    Reflect.get(value, "type") === "table"
+  ) {
+    return value;
+  }
+  for (const child of Object.values(value)) {
+    const result = findTableById(child, id);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+}
+
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
   let plugin: SiteBuilderPlugin;
@@ -297,7 +312,15 @@ describe("SiteBuilderPlugin", () => {
         status: { label: "Test Site" },
       },
     });
-    expect(JSON.stringify(initialWorkspace)).toContain('"id":"routes"');
+    expect(initialWorkspace).not.toHaveProperty("view.primaryAction");
+    expect(findTableById(initialWorkspace, "routes")).toMatchObject({
+      rows: [
+        {
+          id: "home",
+          compact: { title: "Home", metadata: ["/"] },
+        },
+      ],
+    });
     expect(JSON.stringify(initialWorkspace)).toContain('"path":"/"');
 
     const result = await actionHandler(

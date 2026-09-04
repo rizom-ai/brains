@@ -9,6 +9,10 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "class",
           "declarative-workspace operator-view",
         ],
+        [
+          "data-control-engine",
+          "css",
+        ],
       ],
       "children": [
         {

@@ -7,7 +7,11 @@ import type {
   ProjectionWave,
   ProjectionWaveRule,
 } from "@brains/entity-service";
-import type { JobInfo, JobQueueDiagnostics } from "@brains/job-queue";
+import type {
+  JobExecutionRegistration,
+  JobInfo,
+  JobQueueDiagnostics,
+} from "@brains/job-queue";
 import type {
   DaemonStatusInfo,
   RuntimeHealthCheck,
@@ -16,7 +20,10 @@ import type {
 import { getErrorMessage } from "@brains/utils/error";
 import type { ShellServices } from "./types/shell-types";
 import type { ProjectionRuntimeDiagnostics } from "./projection-runtime-supervisor";
-import { summarizeBackgroundWork } from "./background-work-status";
+import {
+  findUndeclaredActiveJobTypes,
+  summarizeBackgroundWork,
+} from "./background-work-status";
 
 interface ProcessSignals {
   fileDescriptors: number | null;
@@ -61,7 +68,7 @@ export interface RuntimeReadinessOptions {
   };
   jobQueueService: Pick<
     ShellServices["jobQueueService"],
-    "getDiagnostics" | "getStatus"
+    "getDiagnostics" | "getExecutionRegistrations" | "getStatus"
   >;
   daemonRegistry: Pick<ShellServices["daemonRegistry"], "getStatuses">;
   operationalHealthRegistry: Pick<
@@ -193,6 +200,34 @@ function queueProgressCheck(
         status: "healthy",
         message: "Due jobs are being claimed",
         details: { queue },
+      };
+}
+
+function jobExecutionInventoryCheck(
+  diagnostics: JobQueueDiagnostics | null,
+  registrations: readonly JobExecutionRegistration[] | null,
+): RuntimeHealthCheck {
+  if (!diagnostics || !registrations) {
+    return {
+      name: "job-execution-inventory",
+      status: "degraded",
+      message: "Job execution inventory is unavailable",
+    };
+  }
+
+  const jobs = findUndeclaredActiveJobTypes(diagnostics, registrations);
+  const count = jobs.reduce((total, entry) => total + entry.count, 0);
+  return count === 0
+    ? {
+        name: "job-execution-inventory",
+        status: "healthy",
+        message: "Every active job type has a declared executor",
+      }
+    : {
+        name: "job-execution-inventory",
+        status: "degraded",
+        message: `${count} active job(s) have no declared executor`,
+        details: { jobs },
       };
 }
 
@@ -412,6 +447,7 @@ export async function getRuntimeReadiness(
   const [
     entityResult,
     queueResult,
+    executionRegistrationsResult,
     daemonResult,
     processResult,
     projectionResult,
@@ -422,6 +458,9 @@ export async function getRuntimeReadiness(
       internalFullScope("runtime readiness database probe"),
     ),
     options.jobQueueService.getDiagnostics(now),
+    Promise.resolve().then(() =>
+      options.jobQueueService.getExecutionRegistrations(),
+    ),
     options.daemonRegistry.getStatuses(),
     (options.readProcessSignals ?? readLinuxProcessSignals)(),
     options.projectionRuntimeSupervisor.getDiagnostics(),
@@ -431,6 +470,10 @@ export async function getRuntimeReadiness(
 
   const diagnostics =
     queueResult.status === "fulfilled" ? queueResult.value : null;
+  const executionRegistrations =
+    executionRegistrationsResult.status === "fulfilled"
+      ? executionRegistrationsResult.value
+      : null;
   const daemonStatuses =
     daemonResult.status === "fulfilled" ? daemonResult.value : [];
   const processSignals =
@@ -463,6 +506,7 @@ export async function getRuntimeReadiness(
     ),
     workerCheck(diagnostics),
     queueProgressCheck(diagnostics),
+    jobExecutionInventoryCheck(diagnostics, executionRegistrations),
     leaseCheck(diagnostics),
     projectionResult.status === "fulfilled"
       ? projectionCheck(projectionDiagnostics)

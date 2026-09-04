@@ -1,10 +1,17 @@
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
-  agentEventActionSchema,
   createExternalActorId,
   parseAgentResponse,
 } from "@brains/contracts";
-import { getActiveAuthService, type AuthPrincipal } from "@brains/auth-service";
+import {
+  chatActionRequestSchema,
+  chatContextHandoffRequestSchema,
+} from "@brains/contracts/chat";
+import {
+  getActiveAuthService,
+  requireSameOriginJson,
+  type AuthPrincipal,
+} from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
   type AgentResponse,
@@ -21,6 +28,7 @@ import {
   type UserPermissionLevel,
   type ChatAttachment,
   type ChatContext,
+  coerceConversationMetadata,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -55,12 +63,14 @@ import {
   canAccessBrowserConversation,
   type WebChatConversationAccess,
 } from "./conversation-access";
+import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
 import { deriveConsoleSurfaces } from "@brains/plugins";
-import { renderChatPage, uiAssetFile } from "./chat-page";
+import { renderChatPage, uiAssetFile, uiStylesheetFile } from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
+import { resolveStudioChatRedirectPath } from "./studio-chat-redirect";
 import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
@@ -75,12 +85,6 @@ import {
 
 const webChatInterfaceType = "web-chat";
 const remoteAgentInterfaceType = "remote-agent";
-const chatActionRequestSchema = z
-  .object({
-    conversationId: z.string().min(1),
-    action: agentEventActionSchema,
-  })
-  .strict();
 
 const remoteAgentChatRequestSchema = z
   .object({
@@ -218,6 +222,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleArchiveSessionRequest(request),
         handleMessagesRequest: (request): Promise<Response> =>
           this.handleMessagesRequest(request),
+        handleContextSessionRequest: (request): Promise<Response> =>
+          this.handleContextSessionRequest(request),
         handleDocumentAttachmentRequest: (request): Promise<Response> =>
           this.handleDocumentAttachmentRequest(request),
         handleImageAttachmentRequest: (request): Promise<Response> =>
@@ -226,6 +232,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleJobStatusRequest(request),
         handleUiAssetRequest: (): Promise<Response> =>
           this.handleUiAssetRequest(),
+        handleUiStylesheetRequest: (): Promise<Response> =>
+          this.handleUiStylesheetRequest(),
         handleUploadRequest: (request): Promise<Response> =>
           this.handleUploadRequest(request),
         handleUploadDownloadRequest: (request): Promise<Response> =>
@@ -331,11 +339,25 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
 
     const requestUrl = new URL(request.url);
+    const studioChatPath = resolveStudioChatRedirectPath(
+      this.getContext().webRoutes.getRoutes(),
+      requestUrl,
+    );
+    if (studioChatPath) {
+      return new Response(null, {
+        status: 308,
+        headers: {
+          Location: studioChatPath,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
     const returnTo = encodeURIComponent(
       `${requestUrl.pathname}${requestUrl.search}`,
     );
     return new Response(
       renderChatPage({
+        apiPath: this.config.apiPath,
         surfaces: deriveConsoleSurfaces(
           this.getContext().webRoutes.getRoutes(),
           {
@@ -346,6 +368,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           },
         ),
         sessionHref: `/logout?return_to=${returnTo}`,
+        themeCSS: this.getContext().themeCSS,
       }),
       {
         headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -400,14 +423,28 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   private async handleUiAssetRequest(): Promise<Response> {
-    const file = Bun.file(uiAssetFile);
+    return this.handleBuiltUiFile(
+      uiAssetFile,
+      "text/javascript; charset=utf-8",
+    );
+  }
+
+  private async handleUiStylesheetRequest(): Promise<Response> {
+    return this.handleBuiltUiFile(uiStylesheetFile, "text/css; charset=utf-8");
+  }
+
+  private async handleBuiltUiFile(
+    path: string,
+    contentType: string,
+  ): Promise<Response> {
+    const file = Bun.file(path);
     if (!(await file.exists())) {
       return new Response("Web chat UI asset not built", { status: 404 });
     }
 
     return new Response(file, {
       headers: {
-        "Content-Type": "text/javascript; charset=utf-8",
+        "Content-Type": contentType,
         "Cache-Control": "no-cache",
       },
     });
@@ -417,7 +454,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleUploadRouteRequest(request, {
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
-        this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
+        this.getContext().uploads.scoped(
+          createWebChatUploadStoreScope(this.config.apiPath),
+        ),
     });
   }
 
@@ -427,7 +466,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return handleUploadDownloadRouteRequest(request, {
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
-        this.getContext().uploads.scoped(createWebChatUploadStoreScope()),
+        this.getContext().uploads.scoped(
+          createWebChatUploadStoreScope(this.config.apiPath),
+        ),
     });
   }
 
@@ -590,11 +631,14 @@ export class WebChatInterface extends MessageInterfacePlugin<
       this.toConversationAccess(permissionLevel, principal),
     );
     if (accessError) return accessError;
+    const inboxContext =
+      parsed.data.inboxContext ??
+      (await this.resolveStoredContextHandoff(conversationId));
     const inboxAttachment =
-      approvalResponses.length === 0 && parsed.data.inboxContext
+      approvalResponses.length === 0 && inboxContext
         ? await this.resolveInboxAttachment(
-            parsed.data.inboxContext.sourceId,
-            parsed.data.inboxContext.itemId,
+            inboxContext.sourceId,
+            inboxContext.itemId,
             permissionLevel,
             request.signal,
           )
@@ -700,6 +744,22 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return createUIMessageStreamResponse({ stream });
   }
 
+  private async resolveStoredContextHandoff(
+    conversationId: string,
+  ): Promise<{ sourceId: string; itemId: string } | undefined> {
+    const conversation =
+      await this.getContext().conversations.get(conversationId);
+    const parsed = chatContextHandoffRequestSchema.safeParse(
+      coerceConversationMetadata(conversation?.metadata)["contextHandoff"],
+    );
+    return parsed.success
+      ? {
+          sourceId: parsed.data.sourceId,
+          itemId: parsed.data.itemId,
+        }
+      : undefined;
+  }
+
   private async resolveInboxAttachment(
     sourceId: string,
     itemId: string,
@@ -738,6 +798,31 @@ export class WebChatInterface extends MessageInterfacePlugin<
     } catch {
       return inboxContextUnavailable();
     }
+  }
+
+  private async handleContextSessionRequest(
+    request: Request,
+  ): Promise<Response> {
+    const requestDenied = requireSameOriginJson(request);
+    if (requestDenied) return requestDenied;
+
+    return handleContextSessionRouteRequest(request, {
+      conversations: this.getContext().conversations,
+      resolveAccess: (nextRequest) =>
+        this.resolveConversationAccess(nextRequest),
+      interfaceType: webChatInterfaceType,
+      authorizeSource: async ({
+        sourceId,
+        itemId,
+        permissionLevel,
+        signal,
+      }): Promise<boolean> => {
+        const source = this.getContext().inbox.getSource(sourceId);
+        if (!source?.resolveDetail) return false;
+        await source.resolveDetail(itemId, { permissionLevel }, signal);
+        return true;
+      },
+    });
   }
 
   private async handleSessionsRequest(request: Request): Promise<Response> {

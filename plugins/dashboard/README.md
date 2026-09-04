@@ -1,13 +1,15 @@
 # @brains/dashboard
 
-Public brain card fed by public declarative data.
+Public brain card fed by public declarative data. The Knowledge tab presents public topic projections as a quiet semantic atlas with ranked territory detail rather than exposing internal diagnostics.
 
-The Dashboard route is anonymous-facing and always renders exactly three tabs:
-**Overview**, **Knowledge**, and **Network**. Overview explains the brain's
-public identity and ownership boundary, lists public contact doors and entity
-holdings, and shows advertised skills in the mockup's fixed four-card
+The Dashboard route is anonymous-facing and always renders exactly four tabs:
+**Overview**, **Knowledge**, **Network**, and **System**. Overview explains the
+brain's public identity and ownership boundary, lists public contact doors and
+entity holdings, and shows advertised skills in the mockup's fixed four-card
 composition. Knowledge renders the public topic/corpus projection as a semantic
-map; Network renders the public agent directory as a proximity map.
+map; Network renders the public agent directory as a proximity map. System is
+always last and summarizes public surface availability, map freshness, runtime
+metadata, and render-time checks without exposing private operations.
 
 The Dashboard registry accepts only `DeclarativeOperatorWidget` registrations.
 Plugin packages declare widgets with `defineDashboardWidget()` from
@@ -22,8 +24,8 @@ Every card request loads entity counts at Public visibility and invokes only
 Public widget callbacks with an anonymous Public caller—even when the browser
 has an Admin session. Session state affects only console chrome: the Studio
 operator door appears when an active session passes Studio's gate. Restricted
-endpoints, interactions, operational diagnostics, activity, and widget data do
-not enter the card.
+endpoints, interactions, internal paths, private diagnostics, operator activity,
+and widget data do not enter the card.
 
 The host owns all markup, styles, browser behavior, routes, map renderers,
 accessibility, and responsive layout. Widget authors provide no React

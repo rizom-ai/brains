@@ -1,5 +1,35 @@
 # @brains/ops
 
+## 0.2.0-alpha.350
+
+## 0.2.0-alpha.349
+
+## 0.2.0-alpha.348
+
+### Patch Changes
+
+- [#212](https://github.com/rizom-ai/brains/pull/212) [`a83bc11`](https://github.com/rizom-ai/brains/commit/a83bc11cb9af7e1f499d58dd8cb4cf3538807823) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Detect active durable jobs whose types are absent from the finalized execution inventory and report operational health as degraded. Add an exact, confirmation-gated operator recovery command that can terminally retire only known pre-scheduler projection jobs after atomically proving they have no attempt ownership or partial progress.
+
+## 0.2.0-alpha.347
+
+## 0.2.0-alpha.346
+
+## 0.2.0-alpha.345
+
+## 0.2.0-alpha.344
+
+## 0.2.0-alpha.343
+
+### Patch Changes
+
+- [#206](https://github.com/rizom-ai/brains/pull/206) [`5e7d4d9`](https://github.com/rizom-ai/brains/commit/5e7d4d9880451d1c18ddbf4878315e638e01fae1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Gate stateful deployments on a canonical verified rollback snapshot covering online SQLite captures, exact Git checkout state, deployed configuration, and sanitized container metadata.
+
+## 0.2.0-alpha.342
+
+## 0.2.0-alpha.341
+
+## 0.2.0-alpha.340
+
 ## 0.2.0-alpha.339
 
 ## 0.2.0-alpha.338

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 
+import { Button, ConfirmDialog, Input, Switch } from "@brains/app-ui-react";
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
   type AuthAccountMutation,
@@ -24,6 +25,8 @@ import {
   type AccountMutationResponse,
 } from "./account-api";
 import accountStyles from "./account-view.css" with { type: "text" };
+import pageHeadStyles from "../studio-page-head.css" with { type: "text" };
+import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
 
 export interface AccountBootstrap {
   displayName: string;
@@ -47,6 +50,13 @@ export interface AccountAppProps {
   bootstrap: AccountBootstrap;
   initialAccount?: AuthAccountSnapshot;
   client?: AccountClient;
+}
+
+interface AccountConfirmation {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  action: () => void;
 }
 
 const defaultClient: AccountClient = {
@@ -80,6 +90,9 @@ export function AccountApp({
   const [status, setStatus] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState<AccountConfirmation | null>(
+    null,
+  );
 
   useEffect(() => {
     if (initialAccount) return;
@@ -147,58 +160,73 @@ export function AccountApp({
   };
 
   const revokePasskey = (credentialId: string): void => {
-    if (
-      !window.confirm(
-        "Revoke this passkey? You will not be able to use it again.",
-      )
-    )
-      return;
-    void run("Revoking passkey…", "Passkey revoked.", () =>
-      mutate({
-        action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokePasskey,
-        confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokePasskey,
-        credentialId,
-      }),
-    );
+    setConfirmation({
+      title: "Revoke this passkey?",
+      message: "You will not be able to use this passkey again.",
+      confirmLabel: "Revoke passkey",
+      action: () => {
+        void run("Revoking passkey…", "Passkey revoked.", () =>
+          mutate({
+            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokePasskey,
+            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokePasskey,
+            credentialId,
+          }),
+        );
+      },
+    });
   };
 
   const revokeSession = (sessionId: string): void => {
-    if (!window.confirm("End this browser session?")) return;
-    void run("Ending session…", "Session ended.", () =>
-      mutate({
-        action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeSession,
-        confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeSession,
-        sessionId,
-      }),
-    );
+    setConfirmation({
+      title: "End this browser session?",
+      message: "That browser will need a passkey to sign in again.",
+      confirmLabel: "End session",
+      action: () => {
+        void run("Ending session…", "Session ended.", () =>
+          mutate({
+            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeSession,
+            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeSession,
+            sessionId,
+          }),
+        );
+      },
+    });
   };
 
   const revokeOtherSessions = (): void => {
-    if (!window.confirm("End every other browser session?")) return;
-    void run("Ending other sessions…", "Other sessions ended.", () =>
-      mutate({
-        action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeOtherSessions,
-        confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeOtherSessions,
-      }),
-    );
+    setConfirmation({
+      title: "End every other browser session?",
+      message: "Your current browser will remain signed in.",
+      confirmLabel: "End other sessions",
+      action: () => {
+        void run("Ending other sessions…", "Other sessions ended.", () =>
+          mutate({
+            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeOtherSessions,
+            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeOtherSessions,
+          }),
+        );
+      },
+    });
   };
 
   const revokeAllSessions = (): void => {
-    if (
-      !window.confirm(
-        "Sign out every session, including this one? You will need your passkey to return.",
-      )
-    )
-      return;
-    void run("Signing out everywhere…", "Signed out.", async () => {
-      await client.mutateAccount({
-        action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions,
-        confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions,
-      });
-      window.location.assign(
-        `/login?return_to=${encodeURIComponent(bootstrap.routePath)}`,
-      );
-      return undefined;
+    setConfirmation({
+      title: "Sign out everywhere?",
+      message:
+        "This ends every session, including this one. You will need your passkey to return.",
+      confirmLabel: "Sign out everywhere",
+      action: () => {
+        void run("Signing out everywhere…", "Signed out.", async () => {
+          await client.mutateAccount({
+            action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions,
+            confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions,
+          });
+          window.location.assign(
+            `/login?return_to=${encodeURIComponent(bootstrap.routePath)}`,
+          );
+          return undefined;
+        });
+      },
     });
   };
 
@@ -211,22 +239,20 @@ export function AccountApp({
       <style>
         {detailStyles}
         {accountStyles}
+        {pageHeadStyles}
       </style>
       <div className="account-shell">
-        <header className="account-hero">
-          <div>
-            <h1>Account</h1>
-            <p>identity · passkeys · sessions</p>
-          </div>
-          <div className="account-hero-meta">
-            <span>
-              signed in as <strong>{title}</strong>
-            </span>
-            <span>
-              permission <strong>{role}</strong>
-            </span>
-          </div>
-        </header>
+        <StudioPageHead
+          model={{
+            kicker: "Your identity",
+            access: studioAccessRequirement("public"),
+            title: "Account",
+            metadata: [`${title} · ${roleLabel(role)}`],
+            description:
+              "Manage identity, passkeys, connected channels, and signed-in sessions.",
+            totals: [],
+          }}
+        />
         <p
           className={`account-status${error ? " is-error" : ""}`}
           role="status"
@@ -281,15 +307,16 @@ export function AccountApp({
                         bootstrap.studioPath,
                         current.profileEntityId,
                       ) ? (
-                        <a
-                          className="people-text-action"
-                          href={studioEntityHref(
-                            bootstrap.studioPath,
-                            current.profileEntityId,
-                          )}
-                        >
-                          Edit in Studio →
-                        </a>
+                        <Button asChild variant="link">
+                          <a
+                            href={studioEntityHref(
+                              bootstrap.studioPath,
+                              current.profileEntityId,
+                            )}
+                          >
+                            Edit in Studio →
+                          </a>
+                        </Button>
                       ) : undefined
                     }
                   />
@@ -301,7 +328,7 @@ export function AccountApp({
                 >
                   <form className="name-form" onSubmit={saveName}>
                     <label htmlFor="display-name">Local account name</label>
-                    <input
+                    <Input
                       id="display-name"
                       maxLength={200}
                       autoComplete="name"
@@ -379,14 +406,13 @@ export function AccountApp({
                       >
                         {field.label}
                         {field.control === "checkbox" ? (
-                          <input
+                          <Switch
                             id={`setting-${settings.id}-${field.name}`}
                             name={field.name}
-                            type="checkbox"
                             defaultChecked={field.value === true}
                           />
                         ) : (
-                          <input
+                          <Input
                             id={`setting-${settings.id}-${field.name}`}
                             name={field.name}
                             type={
@@ -430,27 +456,32 @@ export function AccountApp({
                         Save settings
                       </AccountButton>
                       {settings.configured ? (
-                        <button
-                          className="people-text-action people-text-action--danger"
+                        <Button
+                          variant="danger"
                           disabled={busy}
                           type="button"
-                          onClick={() => {
-                            if (!window.confirm(`Remove ${settings.title}?`)) {
-                              return;
-                            }
-                            void run(
-                              `Removing ${settings.title}…`,
-                              `${settings.title} removed.`,
-                              () =>
-                                client.mutatePluginSettings({
-                                  action: "delete",
-                                  definitionId: settings.id,
-                                }),
-                            );
-                          }}
+                          onClick={() =>
+                            setConfirmation({
+                              title: `Remove ${settings.title}?`,
+                              message:
+                                "The stored settings for this integration will be removed.",
+                              confirmLabel: "Remove settings",
+                              action: () => {
+                                void run(
+                                  `Removing ${settings.title}…`,
+                                  `${settings.title} removed.`,
+                                  () =>
+                                    client.mutatePluginSettings({
+                                      action: "delete",
+                                      definitionId: settings.id,
+                                    }),
+                                );
+                              },
+                            })
+                          }
                         >
                           Remove
-                        </button>
+                        </Button>
                       ) : null}
                     </div>
                   </form>
@@ -468,21 +499,21 @@ export function AccountApp({
                     value={`${passkey.credentialBackedUp ? "Synced credential" : "Device credential"} · added ${formatDate(passkey.createdAt, true)}`}
                     action={
                       current.passkeys.length > 1 ? (
-                        <button
-                          className="people-text-action people-text-action--danger"
+                        <Button
+                          variant="danger"
                           disabled={busy}
                           type="button"
                           onClick={() => revokePasskey(passkey.id)}
                         >
                           Revoke
-                        </button>
+                        </Button>
                       ) : undefined
                     }
                   />
                 ))}
                 <div className="people-inline-actions">
-                  <button
-                    className="people-text-action"
+                  <Button
+                    variant="link"
                     disabled={busy}
                     type="button"
                     onClick={() =>
@@ -494,7 +525,7 @@ export function AccountApp({
                     }
                   >
                     Add passkey
-                  </button>
+                  </Button>
                 </div>
               </AccountDetailSection>
 
@@ -509,14 +540,14 @@ export function AccountApp({
                     value={`Started ${formatDate(session.createdAt)}`}
                     action={
                       !session.current ? (
-                        <button
-                          className="people-text-action people-text-action--danger"
+                        <Button
+                          variant="danger"
                           disabled={busy}
                           type="button"
                           onClick={() => revokeSession(session.id)}
                         >
                           End
-                        </button>
+                        </Button>
                       ) : undefined
                     }
                   />
@@ -550,6 +581,25 @@ export function AccountApp({
           </section>
         )}
       </div>
+      {confirmation && (
+        <ConfirmDialog
+          mark="!"
+          title={confirmation.title}
+          titleId="account-confirmation-title"
+          cancelLabel="Cancel"
+          confirmLabel={confirmation.confirmLabel}
+          confirmVariant="danger"
+          pending={busy}
+          onCancel={() => setConfirmation(null)}
+          onConfirm={() => {
+            const action = confirmation.action;
+            setConfirmation(null);
+            action();
+          }}
+        >
+          <p>{confirmation.message}</p>
+        </ConfirmDialog>
+      )}
     </>
   );
 }

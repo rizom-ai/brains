@@ -91,6 +91,7 @@
     "test:scripts": "bun test scripts/",
     "test:unit": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "visual:console": "bun scripts/console-visual-regression.ts",
     "workspace:affected": "turbo run test --filter=[HEAD^1]",
     "workspace:check": "manypkg check",

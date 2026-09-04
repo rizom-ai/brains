@@ -40,6 +40,7 @@ export interface ViewTemplateSchemaOutput {
   schema: unknown;
   description?: string | undefined;
   pluginId: string;
+  renderVersion?: string | undefined;
   renderers: {
     web?: RendererFunction | string | undefined;
     image?: RendererFunction | string | undefined;
@@ -59,6 +60,7 @@ export const ViewTemplateSchema: z.ZodType<ViewTemplateSchemaOutput> = z.object(
     schema: z.any(), // ZodType can't be validated at runtime
     description: z.string().optional(),
     pluginId: z.string(),
+    renderVersion: z.string().min(1).optional(),
     renderers: z.object({
       web: z.union([rendererFunctionSchema, z.string()]).optional(),
       image: z.union([rendererFunctionSchema, z.string()]).optional(),
@@ -75,6 +77,8 @@ export interface ViewTemplate<T extends JsonObject = JsonObject> {
   schema: TemplateDataSchema<T>;
   description?: string;
   pluginId: string; // ID of the plugin that registered this template
+  /** Stable author-owned version for output-affecting renderer behavior. */
+  renderVersion?: string;
 
   // Format-specific renderers
   renderers: {

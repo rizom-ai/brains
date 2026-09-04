@@ -21,6 +21,15 @@ const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
 const ARTIFACT_DIR = path.join(ROOT, "test/visual/console/artifacts");
 const UPDATE = process.argv.includes("--update");
+const SURFACE_FILTER = process.argv
+  .find((argument) => argument.startsWith("--surface="))
+  ?.slice("--surface=".length);
+const VIEWPORT_FILTER = process.argv
+  .find((argument) => argument.startsWith("--viewport="))
+  ?.slice("--viewport=".length);
+const CLIMATE_FILTER = process.argv
+  .find((argument) => argument.startsWith("--climate="))
+  ?.slice("--climate=".length);
 const FIXED_NOW = Date.parse("2026-07-11T16:40:00.000Z");
 const VIEWPORTS = [
   { width: 1440, height: 1000 },
@@ -148,6 +157,29 @@ const overviewWorkspaceData = {
                 id: "overview-activity-list",
                 empty: "No recent autonomous activity.",
                 items: [
+                  // A row at the protocol's edges. Sources may legally send a
+                  // 500-character title, 20 metadata entries, and 160-character
+                  // tags and badges; the renderer decides width from the
+                  // block's meaning, so none of that may reach the page edge.
+                  {
+                    id: "unbroken-tokens",
+                    title:
+                      "Rebuilt https://preview.example.com/notes/quiet-infrastructure?build=20260711163352a7f3&environment=preview",
+                    description:
+                      "Reconciled against operator+publishing.pipeline.20260711163352@notifications.example.com after the render retry.",
+                    metadata: [
+                      "Site",
+                      "build-20260711163352a7f3-preview-reconciliation",
+                    ],
+                    tags: ["reconciliation/publishing-pipeline-preview-build"],
+                    badges: [
+                      {
+                        label: "awaiting-operator-acknowledgement",
+                        tone: "warn",
+                      },
+                    ],
+                    tone: "warn",
+                  },
                   {
                     id: "mail-triage",
                     title: "9 mail items triaged",
@@ -214,6 +246,62 @@ const overviewWorkspaceData = {
               },
             ],
           },
+          // The site-builder Site health widget, shaped exactly as
+          // plugins/site-builder emits it through sourcePanelBlocks: a stats
+          // pair, key-values carrying free-form build detail, a joined
+          // multi-failure notice, and its links. Sidebar cards elsewhere in
+          // this fixture only ever hold one-word values, which is why nothing
+          // here caught long detail strings escaping the aside column.
+          {
+            type: "card",
+            id: "source-site-builder-site-health",
+            label: "Site health",
+            tone: "warn",
+            blocks: [
+              {
+                type: "stats",
+                items: [
+                  { label: "Preview", value: "published", tone: "good" },
+                  { label: "Live", value: "failed", tone: "warn" },
+                ],
+              },
+              {
+                type: "key-values",
+                items: [
+                  {
+                    label: "Preview detail",
+                    value:
+                      "14 published routes · build-20260711-163352-a7f3 · 2026-07-11T16:33:52.458Z",
+                  },
+                  {
+                    label: "Live detail",
+                    value:
+                      "Route /notes/quiet-infrastructure failed to render: missing template binding for hero.image.",
+                  },
+                ],
+              },
+              {
+                type: "notice",
+                id: "build-failures",
+                title: "Previous build failures",
+                tone: "error",
+                text: "production · job-7f21c · 2026-07-11T16:31:02.220Z: Route /notes/quiet-infrastructure failed to render.\npreview · job-7f20a · 2026-07-11T16:22:10.004Z: Timed out after 120s.",
+              },
+              {
+                type: "links",
+                items: [
+                  {
+                    label: "Open preview",
+                    target: { external: "https://preview.example.com" },
+                  },
+                  {
+                    label: "Open in Studio",
+                    target: { launch: { target: "site" } },
+                  },
+                ],
+              },
+            ],
+          },
           {
             type: "card",
             id: "overview-sources",
@@ -239,11 +327,6 @@ const administrationWorkspaceData = {
     title: "Administration",
     description:
       "Manage local people, invitation delivery, external provenance, and security history.",
-    status: {
-      label: "Admin only",
-      detail: "Access administration",
-      tone: "neutral",
-    },
     blocks: [
       {
         type: "stats",
@@ -289,6 +372,15 @@ const administrationWorkspaceData = {
                         status: "Active",
                         brain: "This brain",
                       },
+                      compact: {
+                        title: "Mira Reyes",
+                        metadata: [
+                          "Admin",
+                          "This brain",
+                          "2 passkeys · 1 channel",
+                        ],
+                        badges: [{ label: "Active", tone: "good" }],
+                      },
                       link: { kind: "detail", itemId: "mira" },
                     },
                     {
@@ -299,6 +391,15 @@ const administrationWorkspaceData = {
                         status: "Active",
                         brain: "grace.example",
                       },
+                      compact: {
+                        title: "Grace Hopper",
+                        metadata: [
+                          "Trusted",
+                          "grace.example",
+                          "1 passkey · 2 channels",
+                        ],
+                        badges: [{ label: "Active", tone: "good" }],
+                      },
                       link: { kind: "detail", itemId: "grace" },
                     },
                     {
@@ -308,6 +409,16 @@ const administrationWorkspaceData = {
                         role: "Public",
                         status: "Suspended",
                         brain: "This brain",
+                      },
+                      compact: {
+                        title: "Sam Lee",
+                        metadata: [
+                          "Public",
+                          "This brain",
+                          "0 passkeys · 1 channel",
+                        ],
+                        badges: [{ label: "Suspended", tone: "warn" }],
+                        tone: "warn",
                       },
                       link: { kind: "detail", itemId: "sam" },
                     },
@@ -342,6 +453,15 @@ const administrationWorkspaceData = {
                               person: "Grace Hopper",
                               verification: "Verified",
                               linked: "Aug 12, 2026",
+                            },
+                            compact: {
+                              title: "grace.example",
+                              metadata: [
+                                "Grace Hopper",
+                                "Trusted",
+                                "Aug 12, 2026",
+                              ],
+                              badges: [{ label: "Verified", tone: "good" }],
                             },
                           },
                         ],
@@ -417,10 +537,48 @@ const administrationInvitationsWorkspaceData = {
     title: "Administration",
     description:
       "Manage local people, invitation delivery, external provenance, and security history.",
-    status: {
-      label: "Admin only",
-      detail: "Access administration",
-      tone: "neutral",
+    primaryAction: {
+      actionId: "create-invitation",
+      label: "Add a person",
+      input: { idempotencyKey: "visual-request" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+        fields: [
+          {
+            name: "displayName",
+            label: "Display name",
+            control: "text",
+            required: true,
+          },
+          {
+            name: "deliveryType",
+            label: "Delivery channel",
+            control: "select",
+            required: true,
+            options: [{ value: "email", label: "Private email" }],
+          },
+          {
+            name: "deliverySubject",
+            label: "Email address",
+            control: "text",
+            required: true,
+          },
+        ],
+      },
+      result: {
+        title: "Invitation setup",
+        fields: [
+          { name: "status", label: "Status" },
+          {
+            name: "setupUrl",
+            label: "Single-use setup URL",
+            copyable: true,
+            sensitive: true,
+          },
+          { name: "expiresAt", label: "Expires" },
+        ],
+      },
     },
     blocks: [
       {
@@ -454,25 +612,23 @@ const administrationInvitationsWorkspaceData = {
                 id: "invitation-layout",
                 primary: [
                   {
-                    type: "query",
-                    id: "invitation-query",
-                    controls: [
-                      {
-                        key: "state",
-                        label: "View",
-                        value: "pending",
-                        options: [
-                          { value: "pending", label: "Pending", count: 1 },
-                          { value: "history", label: "History", count: 4 },
-                        ],
-                      },
-                    ],
-                    pagination: { offset: 0, limit: 25, total: 1 },
-                  },
-                  {
                     type: "table",
                     id: "invitations",
                     empty: "No pending invitations.",
+                    query: {
+                      controls: [
+                        {
+                          key: "state",
+                          label: "View",
+                          value: "pending",
+                          options: [
+                            { value: "pending", label: "Pending", count: 1 },
+                            { value: "history", label: "History", count: 4 },
+                          ],
+                        },
+                      ],
+                      pagination: { offset: 0, limit: 25, total: 1 },
+                    },
                     columns: [
                       { key: "person", label: "Person" },
                       { key: "role", label: "Role" },
@@ -489,6 +645,15 @@ const administrationInvitationsWorkspaceData = {
                           state: "Pending",
                           destination: "jordan@example.com",
                           updated: "Aug 26, 2026",
+                        },
+                        compact: {
+                          title: "Jordan Rivera",
+                          metadata: [
+                            "Trusted",
+                            "jordan@example.com",
+                            "Aug 26, 2026",
+                          ],
+                          badges: [{ label: "Pending", tone: "neutral" }],
                         },
                         actions: [
                           {
@@ -508,50 +673,6 @@ const administrationInvitationsWorkspaceData = {
                   },
                 ],
                 aside: [
-                  {
-                    type: "card",
-                    id: "create-invitation",
-                    label: "Add a person",
-                    blocks: [
-                      {
-                        type: "text",
-                        text: "Issue a single-use passkey setup link through a confirmed delivery channel.",
-                      },
-                      {
-                        type: "action",
-                        actionId: "create-invitation",
-                        label: "Add a person",
-                        input: { idempotencyKey: "visual-request" },
-                        form: {
-                          presentation: "disclosure",
-                          submitLabel: "Create invitation",
-                          fields: [
-                            {
-                              name: "displayName",
-                              label: "Display name",
-                              control: "text",
-                              required: true,
-                            },
-                            {
-                              name: "deliveryType",
-                              label: "Delivery channel",
-                              control: "select",
-                              required: true,
-                              options: [
-                                { value: "email", label: "Private email" },
-                              ],
-                            },
-                            {
-                              name: "deliverySubject",
-                              label: "Email address",
-                              control: "text",
-                              required: true,
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
                   {
                     type: "card",
                     id: "invite-peer",
@@ -595,6 +716,525 @@ const administrationInvitationsWorkspaceData = {
             id: "audit",
             label: "Audit",
             blocks: [{ type: "text", text: "Audit loads on selection." }],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const administrationAuditWorkspaceData = {
+  view: {
+    kicker: "Security history",
+    title: "Administration",
+    description:
+      "Manage local people, invitation delivery, external provenance, and security history.",
+    blocks: [
+      {
+        type: "stats",
+        id: "audit-totals",
+        items: [
+          { label: "Matching", value: 212 },
+          { label: "Actors", value: 4 },
+        ],
+      },
+      {
+        type: "tabs",
+        id: "administration-tabs",
+        label: "Administration sections",
+        defaultTab: "audit",
+        queryKey: "tab",
+        tabs: [
+          {
+            id: "people",
+            label: "People",
+            blocks: [{ type: "text", text: "People load on selection." }],
+          },
+          {
+            id: "invitations",
+            label: "Invitations",
+            count: 1,
+            blocks: [{ type: "text", text: "Invitations load on selection." }],
+          },
+          {
+            id: "audit",
+            label: "Audit",
+            blocks: [
+              {
+                type: "detail",
+                id: "audit-detail",
+                queryKey: "selected",
+                empty: "Select an event to inspect its audit record.",
+                master: {
+                  type: "table",
+                  id: "audit-events",
+                  empty: "No audit events match these filters.",
+                  query: {
+                    controls: [
+                      {
+                        key: "actorUserId",
+                        label: "Actor",
+                        allLabel: "All actors",
+                        options: [
+                          { value: "mira", label: "Mira Reyes" },
+                          { value: "system", label: "System" },
+                        ],
+                      },
+                      {
+                        key: "action",
+                        label: "Action",
+                        allLabel: "All actions",
+                        options: [
+                          { value: "role", label: "Changed an account role" },
+                          { value: "setup", label: "Created a setup link" },
+                        ],
+                      },
+                    ],
+                    pagination: {
+                      offset: 0,
+                      limit: 25,
+                      total: 212,
+                    },
+                  },
+                  columns: [
+                    { key: "when", label: "When" },
+                    { key: "actor", label: "Actor" },
+                    { key: "action", label: "Action" },
+                    { key: "target", label: "Target" },
+                  ],
+                  rows: [
+                    {
+                      id: "audit-1",
+                      cells: {
+                        when: "Aug 30, 2026",
+                        actor: "Mira Reyes",
+                        action: "Changed an account role",
+                        target: "Grace Hopper",
+                      },
+                      compact: {
+                        title: "Changed an account role",
+                        metadata: ["Mira Reyes", "Grace Hopper"],
+                        badges: [{ label: "Aug 30, 2026" }],
+                      },
+                      link: { kind: "detail", itemId: "audit-1" },
+                    },
+                    {
+                      id: "audit-2",
+                      cells: {
+                        when: "Aug 29, 2026",
+                        actor: "System",
+                        action: "Created a setup link",
+                        target: "Jordan Rivera",
+                      },
+                      compact: {
+                        title: "Created a setup link",
+                        metadata: ["System", "Jordan Rivera"],
+                        badges: [{ label: "Aug 29, 2026" }],
+                      },
+                      link: { kind: "detail", itemId: "audit-2" },
+                    },
+                    {
+                      id: "audit-3",
+                      cells: {
+                        when: "Aug 28, 2026",
+                        actor: "Mira Reyes",
+                        action: "Revoked account grants",
+                        target: "Sam Lee",
+                      },
+                      compact: {
+                        title: "Revoked account grants",
+                        metadata: ["Mira Reyes", "Sam Lee"],
+                        badges: [{ label: "Aug 28, 2026" }],
+                      },
+                      link: { kind: "detail", itemId: "audit-3" },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+// The unified-inbox workspace, shaped as plugins/unified-inbox emits it: a
+// three-stat summary, query controls with a pager, and a master/detail split
+// whose rows carry an urgency badge, source metadata, and the verbs that clear
+// them. It is the widest block set any workspace uses and the only surface
+// where `detail` opens a reading pane, which is why it needs its own capture
+// rather than being assumed to behave like Administration.
+const inboxWorkspaceData = {
+  refreshAfterMs: 20_000,
+  view: {
+    kicker: "Live source-owned attention",
+    title: "Inbox",
+    description:
+      "Triage incoming work without creating a second copy of source state.",
+    status: {
+      label: "2 of 3 sources online",
+      detail: "some sources unavailable",
+      tone: "warn",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "inbox-summary",
+        items: [
+          { label: "Open", value: 3, caption: "across sources" },
+          {
+            label: "High priority",
+            value: 1,
+            caption: "needs attention",
+            tone: "warn",
+          },
+          { label: "Matching", value: 3, caption: "current filter" },
+        ],
+      },
+      {
+        type: "notice",
+        id: "inbox-source-errors",
+        title: "Ledger archive",
+        tone: "error",
+        text: "Source unavailable: the archive host refused the connection at 09:02.",
+      },
+      {
+        type: "query",
+        id: "inbox-query",
+        controls: [
+          {
+            kind: "select",
+            key: "source",
+            label: "Source",
+            value: "all",
+            options: [
+              { value: "all", label: "All sources" },
+              { value: "smoke-mailbox", label: "Smoke mailbox" },
+              { value: "agent-sightings", label: "Agent sightings" },
+            ],
+          },
+          {
+            kind: "select",
+            key: "urgency",
+            label: "Urgency",
+            value: "all",
+            options: [
+              { value: "all", label: "Any urgency" },
+              { value: "high", label: "High only" },
+            ],
+          },
+        ],
+        pagination: { offset: 0, limit: 10, total: 3 },
+      },
+      {
+        type: "detail",
+        id: "inbox-detail",
+        queryKey: "selected",
+        empty: "Select an item to read its source content.",
+        master: {
+          type: "list",
+          id: "inbox-items",
+          empty: "Nothing needs attention for these filters.",
+          items: [
+            {
+              id: "smoke-mailbox::msg-4180",
+              title: "Verdigris pigment supplier cannot meet the July run",
+              description:
+                "They can cover half the order and asked whether a substitute binder is acceptable.",
+              metadata: [
+                "Smoke mailbox",
+                "2026-07-11 09:14 UTC",
+                "Message 3 in thread",
+              ],
+              badges: [{ label: "high priority", tone: "warn" }],
+              link: { detail: { itemId: "smoke-mailbox::msg-4180" } },
+            },
+            {
+              id: "agent-sightings::natalie-0912",
+              title: "Natalie reported a stale profile on natalie.rizom.ai",
+              description: "The published bio predates the June role change.",
+              metadata: ["Agent sightings", "2026-07-11 08:02 UTC"],
+              badges: [{ label: "normal priority" }],
+              link: { detail: { itemId: "agent-sightings::natalie-0912" } },
+            },
+            {
+              id: "smoke-mailbox::msg-4166",
+              title: "Invoice 2026-118 acknowledged",
+              description: "No reply needed; filed against the trust series.",
+              metadata: ["Smoke mailbox", "2026-07-10 16:40 UTC"],
+              badges: [{ label: "normal priority" }],
+              link: { detail: { itemId: "smoke-mailbox::msg-4166" } },
+            },
+          ],
+        },
+      },
+    ],
+  },
+};
+
+const contentSyncWorkspaceData = {
+  view: {
+    kicker: "Content operations",
+    title: "Content sync",
+    description:
+      "Keep durable entities, the content directory, and its Git remote converged.",
+    status: { label: "Watching", detail: "main · clean", tone: "good" },
+    primaryAction: {
+      actionId: "sync-now",
+      label: "Sync now",
+      input: {},
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "sync-summary",
+        items: [
+          { label: "Files", value: 84, caption: "markdown + images" },
+          { label: "Entity types", value: 12, caption: "within scope" },
+          { label: "Issues", value: 0, caption: "all clear", tone: "good" },
+        ],
+      },
+      {
+        type: "flow",
+        id: "sync-flow",
+        label: "Convergence path",
+        steps: [
+          { id: "database", label: "Entity database", status: "complete" },
+          { id: "directory", label: "Content directory", status: "complete" },
+          {
+            id: "git",
+            label: "origin/main",
+            status: "complete",
+            detail: "0 ahead · 0 behind",
+          },
+        ],
+      },
+      {
+        type: "columns",
+        id: "sync-body",
+        primary: [
+          {
+            type: "card",
+            id: "sync-source-card",
+            label: "Source directory",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "Path", value: "brain-data" },
+                  { label: "Last import", value: "11 Jul 2026, 16:32" },
+                  { label: "Watch", value: "enabled" },
+                ],
+              },
+            ],
+          },
+        ],
+        aside: [
+          {
+            type: "card",
+            id: "sync-automation-card",
+            label: "Automation",
+            blocks: [
+              {
+                type: "notice",
+                tone: "good",
+                text: "Exports are current and the remote has no pending changes.",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const siteWorkspaceData = {
+  view: {
+    kicker: "Website operations",
+    title: "Site control",
+    description:
+      "Build a proof with public drafts, then update the live site from published content.",
+    status: {
+      label: "Rizom field notes",
+      detail: "2 environments",
+      tone: "good",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "site-summary",
+        items: [
+          { label: "Routes", value: 31, caption: "configured" },
+          { label: "Active builds", value: 0, caption: "none running" },
+          {
+            label: "Warnings",
+            value: 1,
+            caption: "latest builds",
+            tone: "warn",
+          },
+        ],
+      },
+      {
+        type: "columns",
+        id: "site-body",
+        primary: [
+          {
+            type: "card",
+            id: "preview-card",
+            label: "Preview",
+            tone: "good",
+            blocks: [
+              {
+                type: "key-values",
+                items: [
+                  { label: "State", value: "published" },
+                  { label: "Built", value: "11 Jul 2026, 16:33" },
+                  { label: "Routes", value: 31 },
+                ],
+              },
+              {
+                type: "actions",
+                items: [
+                  {
+                    actionId: "build-preview",
+                    label: "Build preview",
+                    input: {},
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "production-card",
+            label: "Production",
+            tone: "warn",
+            blocks: [
+              {
+                type: "notice",
+                tone: "warn",
+                title: "One warning",
+                text: "The notes index contains one draft-only link.",
+              },
+              {
+                type: "actions",
+                items: [
+                  {
+                    actionId: "build-production",
+                    label: "Build production",
+                    input: {},
+                    confirmation: {
+                      kind: "static",
+                      message:
+                        "Replace the live site with the latest published build?",
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        aside: [
+          {
+            type: "card",
+            id: "site-routes",
+            label: "Route sample",
+            blocks: [
+              {
+                type: "list",
+                empty: "No routes.",
+                items: [
+                  { id: "home", title: "/", description: "Home" },
+                  { id: "notes", title: "/notes/", description: "Notes" },
+                  { id: "about", title: "/about/", description: "About" },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+const publishingWorkspaceData = {
+  view: {
+    kicker: "External delivery",
+    title: "Publishing",
+    description:
+      "Review the queue, recover failures, and send saved entities to registered providers.",
+    status: {
+      label: "1 needs attention",
+      detail: "no active run",
+      tone: "warn",
+    },
+    blocks: [
+      {
+        type: "stats",
+        id: "publishing-summary",
+        items: [
+          { label: "Queued", value: 3, caption: "awaiting dispatch" },
+          { label: "Generating", value: 0, caption: "in progress" },
+          {
+            label: "Needs attention",
+            value: 1,
+            caption: "failed",
+            tone: "warn",
+          },
+          { label: "Published", value: 18, caption: "all time" },
+        ],
+      },
+      {
+        type: "query",
+        id: "publishing-query",
+        controls: [
+          {
+            kind: "select",
+            key: "state",
+            label: "Queue state",
+            value: "all",
+            options: [
+              { value: "all", label: "All" },
+              { value: "queued", label: "Queued", count: 3 },
+              { value: "failed", label: "Failed", count: 1 },
+            ],
+          },
+        ],
+        pagination: { offset: 0, limit: 10, total: 4 },
+      },
+      {
+        type: "list",
+        id: "publishing-items",
+        empty: "The publishing queue is empty.",
+        items: [
+          {
+            id: "post:quiet-infrastructure",
+            title: "Quiet infrastructure",
+            description: "Queued for the newsletter provider.",
+            metadata: ["Post", "Newsletter", "position 1"],
+            badges: [{ label: "queued" }],
+            actions: [
+              {
+                actionId: "remove",
+                label: "Remove",
+                input: { id: "quiet-infrastructure" },
+              },
+            ],
+          },
+          {
+            id: "post:field-notes",
+            title: "Notes from the rhizome",
+            description: "Provider rejected the last delivery attempt.",
+            metadata: ["Post", "Newsletter", "2 retries left"],
+            badges: [{ label: "failed", tone: "warn" }],
+            actions: [
+              {
+                actionId: "retry",
+                label: "Retry",
+                input: { id: "field-notes" },
+              },
+            ],
           },
         ],
       },
@@ -652,6 +1292,12 @@ const sessions = [
     id: "responsive",
     title: "Responsive console audit",
     lastActiveAt: "2026-07-10T12:04:00.000Z",
+    contextHandoff: {
+      version: 1,
+      sourceId: "unified-inbox",
+      itemId: "inbox-responsive-audit",
+      titleSeed: "Responsive console audit",
+    },
   },
   {
     id: "cards",
@@ -684,7 +1330,10 @@ const messages = [
         mediaType: "text/markdown",
         sizeBytes: 4182,
         createdAt: "2026-07-10T11:58:00.000Z",
-        source: { kind: "upload", id: "upload-verdigris" },
+        source: {
+          kind: "upload",
+          id: "upload-7c15b6e4-f51d-4df2-8d55-d4b9e730f6aa",
+        },
       },
     ],
   },
@@ -1346,6 +1995,30 @@ async function clickSelector(
   if (!clicked) throw new Error(`Could not click ${selector}`);
 }
 
+async function pointerDownSelector(
+  page: Bun.WebView,
+  selector: string,
+): Promise<void> {
+  await waitForSelector(page, selector);
+  const dispatched = await evaluatePageWith(
+    page,
+    (candidateSelector) => {
+      const candidate = document.querySelector(candidateSelector);
+      if (!(candidate instanceof HTMLElement)) return false;
+      candidate.dispatchEvent(
+        new PointerEvent("pointerdown", {
+          bubbles: true,
+          button: 0,
+          pointerType: "mouse",
+        }),
+      );
+      return true;
+    },
+    selector,
+  );
+  if (!dispatched) throw new Error(`Could not press ${selector}`);
+}
+
 async function clickText(
   page: Bun.WebView,
   selector: string,
@@ -1364,6 +2037,27 @@ async function clickText(
   );
   if (!clicked)
     throw new Error(`Could not find ${selector} containing ${text}`);
+}
+
+async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
+  const originalPath = await page.evaluate<string>("location.pathname");
+  await clickSelector(page, ".studio-mobile-switcher");
+  await waitForSelector(page, ".studio-mobile-switcher-content");
+  const expanded = await page.evaluate<boolean>(
+    'document.querySelector(".studio-mobile-switcher")?.getAttribute("aria-expanded") === "true"',
+  );
+  if (!expanded) throw new Error("Studio phone context picker did not open");
+
+  await clickText(page, '[role="option"]', "Field notes");
+  await waitForPage("Studio phone context navigation", () =>
+    page.evaluate<boolean>('location.pathname === "/studio/entities/posts"'),
+  );
+  await evaluatePage(page, () => history.back());
+  await waitForPage("Studio phone context return", () =>
+    page.evaluate<boolean>(
+      `location.pathname === ${JSON.stringify(originalPath)}`,
+    ),
+  );
 }
 
 async function fillLabel(
@@ -1427,7 +2121,7 @@ async function elementDisplay(
   selector: string,
 ): Promise<string> {
   return page.evaluate<string>(
-    `getComputedStyle(document.querySelector(${JSON.stringify(selector)})).display`,
+    `(() => { const element = document.querySelector(${JSON.stringify(selector)}); return element ? getComputedStyle(element).display : "missing"; })()`,
   );
 }
 
@@ -1553,6 +2247,21 @@ async function addVisualInitScript(
   });
 }
 
+/**
+ * Studio splits into two phone layout contracts: app-shell surfaces (the
+ * editor and its dialogs) hold fixed chrome around scrolling panes, while
+ * reading surfaces scroll the document like any other page.
+ */
+function isStudioAppShellSurface(surface: string): boolean {
+  return (
+    surface === "studio-editor" ||
+    surface === "studio-delete" ||
+    surface === "studio-conflict" ||
+    surface === "studio-invalid" ||
+    surface === "studio-upload"
+  );
+}
+
 async function checkLayout(
   page: Bun.WebView,
   surface: string,
@@ -1561,7 +2270,11 @@ async function checkLayout(
 ): Promise<void> {
   const dimensions = await evaluatePage(page, () => ({
     clientWidth: document.documentElement.clientWidth,
+    clientHeight: document.documentElement.clientHeight,
     scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight,
+    rootOverflowY: getComputedStyle(document.documentElement).overflowY,
+    bodyOverflowY: getComputedStyle(document.body).overflowY,
   }));
   if (dimensions.scrollWidth !== dimensions.clientWidth) {
     throw new Error(
@@ -1582,12 +2295,195 @@ async function checkLayout(
   }
   if (
     surface.startsWith("studio-") &&
-    surface !== "studio-library" &&
-    surface !== "studio-account" &&
-    surface !== "studio-overview" &&
-    !surface.startsWith("studio-administration")
+    !surface.startsWith("studio-chat") &&
+    width <= 640
   ) {
-    const modes = await elementDisplay(page, ".studio-mobile-modes");
+    const crumbDisplay = await elementDisplay(page, ".studio > .crumbbar");
+    if (crumbDisplay !== "none") {
+      throw new Error(`Studio crumb bar exceeded the phone chrome budget`);
+    }
+    // One phone scroll region, and the right one owns it. The editor is an app
+    // shell — fixed pane switcher, pinned save bar — so it locks the document
+    // and scrolls its panes. Reading surfaces are documents: locking them
+    // would pin the mobile browser's collapsible URL bar open, costing more
+    // viewport than the chrome budget ever saves, so the document scrolls and
+    // nothing nested may scroll with it.
+    const scrollRegions = await evaluatePage(page, () =>
+      Array.from(document.querySelectorAll<HTMLElement>("*"))
+        .filter((element) => {
+          const overflowY = getComputedStyle(element).overflowY;
+          return (
+            (overflowY === "auto" || overflowY === "scroll") &&
+            element.scrollHeight > element.clientHeight + 1
+          );
+        })
+        .map((element) => element.className.toString().slice(0, 60)),
+    );
+    const hasOpenActionSheet =
+      surface === "studio-administration-invitations-form";
+    if (hasOpenActionSheet) {
+      const dialog = await elementBounds(page, '[role="dialog"]');
+      if (!dialog || dialog.y + dialog.height > viewportHeight + 1) {
+        throw new Error(`Studio action sheet escaped the phone viewport`);
+      }
+    } else if (isStudioAppShellSurface(surface)) {
+      if (
+        dimensions.scrollHeight > dimensions.clientHeight + 1 &&
+        dimensions.rootOverflowY !== "hidden" &&
+        dimensions.bodyOverflowY !== "hidden"
+      ) {
+        throw new Error(
+          `Studio editor created a second phone scroll region (${dimensions.scrollHeight} > ${dimensions.clientHeight})`,
+        );
+      }
+    } else if (scrollRegions.length > 0) {
+      throw new Error(
+        `Studio nested a phone scroll region inside the document: ${JSON.stringify(scrollRegions)}`,
+      );
+    } else if (
+      dimensions.rootOverflowY === "hidden" ||
+      dimensions.bodyOverflowY === "hidden"
+    ) {
+      throw new Error(
+        `Studio locked the phone document scroll on a reading surface`,
+      );
+    }
+    const head = await elementBounds(page, ".studio-page-head");
+    if (!head || head.y > 132) {
+      const chrome = await evaluatePage(page, () =>
+        [
+          ".console-strip",
+          ".rail",
+          ".studio-mobile-switcher",
+          ".studio-body",
+          ".studio-workspace-frame",
+          ".listing",
+          ".account-studio-pane",
+        ].map((selector) => {
+          const element = document.querySelector(selector);
+          if (!(element instanceof HTMLElement)) return `${selector}: absent`;
+          const bounds = element.getBoundingClientRect();
+          return `${selector}: y=${Math.round(bounds.y)} h=${Math.round(bounds.height)} display=${getComputedStyle(element).display}`;
+        }),
+      );
+      throw new Error(
+        `Studio content starts too low at ${width}px (${head?.y ?? "missing"})\n  ${chrome.join("\n  ")}`,
+      );
+    }
+    const expectsPrimaryAction =
+      surface === "studio-library" ||
+      surface.startsWith("studio-administration-invitations");
+    if (expectsPrimaryAction) {
+      const action = await elementBounds(page, ".studio-page-head-action");
+      const bottomInset = action
+        ? dimensions.clientHeight - (action.y + action.height)
+        : -1;
+      if (
+        !action ||
+        action.y < -1 ||
+        action.x < 11 ||
+        action.x + action.width > dimensions.clientWidth - 11 ||
+        bottomInset < 11 ||
+        bottomInset > 14
+      ) {
+        throw new Error(
+          `Studio primary action did not float inside the phone viewport: ${JSON.stringify(action)}`,
+        );
+      }
+    }
+    const switcherState = await evaluatePage(page, () => {
+      const rail = document.querySelector(".rail");
+      if (!(rail instanceof HTMLElement)) return undefined;
+      if (getComputedStyle(rail).display === "none") {
+        return { visible: false, overflow: false, focusReached: true };
+      }
+      const switcher = rail.querySelector(".studio-mobile-switcher");
+      const desktopTypes = rail.querySelector(".types");
+      if (!(switcher instanceof HTMLButtonElement)) {
+        return { visible: true, overflow: false, focusReached: false };
+      }
+      switcher.focus();
+      const focusReached = document.activeElement === switcher;
+      switcher.blur();
+      const railBounds = rail.getBoundingClientRect();
+      const switcherBounds = switcher.getBoundingClientRect();
+      return {
+        visible: getComputedStyle(switcher).display !== "none",
+        overflow: rail.scrollWidth > rail.clientWidth + 1,
+        focusReached,
+        desktopTypesHidden:
+          desktopTypes instanceof HTMLElement &&
+          getComputedStyle(desktopTypes).display === "none",
+        height: railBounds.height,
+        triggerWidth: switcherBounds.width,
+        availableWidth: railBounds.width - 24,
+      };
+    });
+    if (
+      switcherState?.visible &&
+      (switcherState.overflow ||
+        switcherState.desktopTypesHidden !== true ||
+        switcherState.height > 56 ||
+        Math.abs(switcherState.triggerWidth - switcherState.availableWidth) > 1)
+    ) {
+      throw new Error(
+        `Studio phone context picker exceeded its chrome budget: ${JSON.stringify(switcherState)}`,
+      );
+    }
+    if (!hasOpenActionSheet && switcherState?.focusReached === false) {
+      throw new Error(`Studio phone context picker was not keyboard reachable`);
+    }
+    if (surface.startsWith("studio-administration")) {
+      const compactDisplay = await elementDisplay(
+        page,
+        ".declarative-compact-rows",
+      );
+      const annotatedTableDisplay = await elementDisplay(
+        page,
+        '.declarative-table-scroll[data-has-unannotated="false"]',
+      );
+      if (compactDisplay === "none" || annotatedTableDisplay !== "none") {
+        throw new Error(
+          `Studio administration did not reflow its annotated phone rows`,
+        );
+      }
+    }
+  }
+  if (surface.startsWith("studio-chat")) {
+    const destinations = await elementDisplay(
+      page,
+      ".studio-chat-mobile-destinations",
+    );
+    if (width <= 700 !== (destinations !== "none")) {
+      throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
+    }
+    const workspace = await elementBounds(page, ".studio-chat-room");
+    const composer = await elementBounds(page, ".studio-chat-composer");
+    if (!workspace || !composer) {
+      throw new Error(`Studio Chat workspace did not render at ${width}px`);
+    }
+    if (composer.y + composer.height > viewportHeight + 1) {
+      throw new Error(
+        `Studio Chat composer escaped the viewport at ${width}px`,
+      );
+    }
+    if (width <= 700) {
+      const destinationBar = await elementBounds(
+        page,
+        ".studio-chat-mobile-destinations",
+      );
+      if (
+        !destinationBar ||
+        composer.y + composer.height > destinationBar.y + 1
+      ) {
+        throw new Error(
+          `Studio Chat composer overlapped mobile destinations at ${width}px`,
+        );
+      }
+    }
+  }
+  if (isStudioAppShellSurface(surface)) {
+    const modes = await elementDisplay(page, ".studio-mobile-tabs");
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`Studio responsive mode mismatch at ${width}px`);
     if (width <= 900) {
@@ -1632,7 +2528,12 @@ await mkdir(ARTIFACT_DIR, { recursive: true });
 const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
 const studioAsset = path.join(studioUiDirectory, "studio-app.js");
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
-await Promise.all([readFile(studioAsset), readFile(chatAsset)]).catch(() => {
+const chatStyles = path.join(ROOT, "interfaces/web-chat/dist/ui/app.css");
+await Promise.all([
+  readFile(studioAsset),
+  readFile(chatAsset),
+  readFile(chatStyles),
+]).catch(() => {
   throw new Error(
     "Build @brains/studio and @brains/web-chat UI assets before visual regression.",
   );
@@ -1647,7 +2548,9 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
   fixturePng.data[offset + 2] = 92;
   fixturePng.data[offset + 3] = 255;
 }
-const fixtureImage = PNG.sync.write(fixturePng);
+// PNG.sync.write hands back a Node Buffer, whose ArrayBufferLike backing is not
+// a BodyInit. The view is the same bytes without a copy of the pixel data.
+const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 
 const pendingUploadResponses = new Set<() => void>();
 const server = Bun.serve({
@@ -1667,6 +2570,7 @@ const server = Bun.serve({
       return new Response(
         climateHtml(
           renderChatPage({
+            apiPath: "/api/chat",
             surfaces: activeSurfaces("web-chat"),
             sessionHref: "/logout",
           }),
@@ -1677,6 +2581,10 @@ const server = Bun.serve({
     if (url.pathname === "/chat/assets/app.js")
       return new Response(await readFile(chatAsset), {
         headers: { "content-type": "text/javascript" },
+      });
+    if (url.pathname === "/chat/assets/app.css")
+      return new Response(await readFile(chatStyles), {
+        headers: { "content-type": "text/css" },
       });
     if (url.pathname === "/api/chat/sessions") return json({ sessions });
     if (url.pathname === "/api/chat/uploads")
@@ -1699,6 +2607,7 @@ const server = Bun.serve({
         climateHtml(
           renderEditorShellHtml({
             assetPath: "/studio/assets/app.js",
+            stylesheetPath: "/studio/assets/app.css",
             basePath: "/studio",
             surfaces: activeSurfaces("studio"),
             sessionHref: "/logout",
@@ -1710,9 +2619,14 @@ const server = Bun.serve({
       );
     if (url.pathname.startsWith("/studio/assets/")) {
       const publicPath = url.pathname.slice("/studio/assets/".length);
-      const filePath = publicPath === "app.js" ? "studio-app.js" : publicPath;
+      const filePath =
+        publicPath === "app.js"
+          ? "studio-app.js"
+          : publicPath === "app.css"
+            ? "studio-app.css"
+            : publicPath;
       if (
-        !/^(?:studio-app\.js|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+        !/^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
           filePath,
         )
       ) {
@@ -1724,7 +2638,9 @@ const server = Bun.serve({
           headers: {
             "content-type": filePath.endsWith(".map")
               ? "application/json"
-              : "text/javascript",
+              : filePath.endsWith(".css")
+                ? "text/css"
+                : "text/javascript",
           },
         },
       );
@@ -1739,8 +2655,58 @@ const server = Bun.serve({
             label: "Overview",
             rendererName: "DeclarativeOperatorWorkspace",
             priority: -100,
+            permission: "trusted",
             entityTypes: [],
             badge: 3,
+          },
+          {
+            id: "web-chat:chat",
+            pluginId: "studio",
+            label: "Chat",
+            rendererName: "StudioChatWorkspace",
+            priority: -80,
+            permission: "trusted",
+            chatApiPath: "/api/chat",
+            entityTypes: [],
+          },
+          {
+            id: "unified-inbox:inbox",
+            pluginId: "unified-inbox",
+            label: "Inbox",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 20,
+            permission: "admin",
+            urlQuery: true,
+            entityTypes: [],
+            badge: 3,
+          },
+          {
+            id: "content-pipeline:publishing",
+            pluginId: "content-pipeline",
+            label: "Publishing",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 40,
+            permission: "trusted",
+            urlQuery: true,
+            entityTypes: [],
+          },
+          {
+            id: "site-builder:site",
+            pluginId: "site-builder",
+            label: "Site",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 35,
+            permission: "trusted",
+            entityTypes: [],
+          },
+          {
+            id: "directory-sync:sync",
+            pluginId: "directory-sync",
+            label: "Content sync",
+            rendererName: "DeclarativeOperatorWorkspace",
+            priority: 30,
+            permission: "admin",
+            entityTypes: [],
           },
           {
             id: "admin:administration",
@@ -1748,6 +2714,7 @@ const server = Bun.serve({
             label: "Administration",
             rendererName: "DeclarativeOperatorWorkspace",
             priority: 10,
+            permission: "admin",
             urlQuery: true,
             entityTypes: [],
             badge: 2,
@@ -1758,6 +2725,7 @@ const server = Bun.serve({
             label: "Account",
             rendererName: "StudioAccountWorkspace",
             priority: 0,
+            permission: "public",
             entityTypes: [],
           },
         ],
@@ -1775,6 +2743,50 @@ const server = Bun.serve({
       });
     if (
       url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "unified-inbox:inbox"
+    )
+      return json({
+        workspace: {
+          id: "unified-inbox:inbox",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: inboxWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "directory-sync:sync"
+    )
+      return json({
+        workspace: {
+          id: "directory-sync:sync",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: contentSyncWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "site-builder:site"
+    )
+      return json({
+        workspace: {
+          id: "site-builder:site",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: siteWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
+      url.searchParams.get("id") === "content-pipeline:publishing"
+    )
+      return json({
+        workspace: {
+          id: "content-pipeline:publishing",
+          rendererName: "DeclarativeOperatorWorkspace",
+          data: publishingWorkspaceData,
+        },
+      });
+    if (
+      url.pathname === "/studio/api/workspace" &&
       url.searchParams.get("id") === "admin:administration"
     )
       return json({
@@ -1784,7 +2796,9 @@ const server = Bun.serve({
           data:
             url.searchParams.get("tab") === "invitations"
               ? administrationInvitationsWorkspaceData
-              : administrationWorkspaceData,
+              : url.searchParams.get("tab") === "audit"
+                ? administrationAuditWorkspaceData
+                : administrationWorkspaceData,
         },
       });
     if (url.pathname === "/auth/account")
@@ -1935,7 +2949,10 @@ if (!executablePath) {
   await server.stop(true);
   throw new Error("Set CONSOLE_CHROMIUM_PATH to a Chromium executable.");
 }
-const browserArgs = process.getuid?.() === 0 ? ["--no-sandbox"] : [];
+const browserArgs =
+  process.getuid?.() === 0 || process.env["CI"] === "true"
+    ? ["--no-sandbox", "--disable-dev-shm-usage"]
+    : [];
 const browserBackend: Bun.WebView.Backend = {
   type: "chrome",
   url: false,
@@ -1945,7 +2962,13 @@ const browserBackend: Bun.WebView.Backend = {
 const failures: string[] = [];
 try {
   for (const climate of CLIMATES) {
+    if (CLIMATE_FILTER && climate !== CLIMATE_FILTER) continue;
     for (const viewport of VIEWPORTS) {
+      if (
+        VIEWPORT_FILTER &&
+        `${viewport.width}x${viewport.height}` !== VIEWPORT_FILTER
+      )
+        continue;
       for (const surface of [
         "dashboard",
         "dashboard-knowledge",
@@ -1956,9 +2979,17 @@ try {
         "chat-drawer",
         "studio-library",
         "studio-overview",
+        "studio-chat",
+        "studio-chat-sessions",
+        "studio-chat-context",
+        "studio-inbox",
+        "studio-content-sync",
+        "studio-site",
+        "studio-publishing",
         "studio-administration",
         "studio-administration-invitations",
         "studio-administration-invitations-form",
+        "studio-administration-audit",
         "studio-account",
         "studio-editor",
         "studio-delete",
@@ -1966,8 +2997,16 @@ try {
         "studio-invalid",
         "studio-upload",
       ] as const) {
-        // The sessions drawer only exists at phone widths.
+        if (SURFACE_FILTER && surface !== SURFACE_FILTER) continue;
+        // Session and context destinations only exist at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
+        if (
+          (surface === "studio-chat-sessions" ||
+            surface === "studio-chat-context") &&
+          viewport.width > 640
+        ) {
+          continue;
+        }
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
         const isStudioSecondary =
@@ -1994,8 +3033,13 @@ try {
         });
         await page.navigate("about:blank");
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
+        await page.cdp("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
         await addVisualInitScript(page, conversationId);
         const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
+        const studioSaveSelector =
+          viewport.width <= 900
+            ? ".studio-editor-phone-save"
+            : ".studio-editor-head-save";
         const route = isDashboard
           ? "/dashboard"
           : isChat
@@ -2004,21 +3048,56 @@ try {
               ? "/studio/workspaces/studio%3Aaccount"
               : surface === "studio-overview"
                 ? "/studio/workspaces/studio%3Aoverview"
-                : surface.startsWith("studio-administration")
-                  ? "/studio/workspaces/admin%3Aadministration"
-                  : isStudioEditor
-                    ? "/studio/entities/posts/field-notes"
-                    : "/studio/entities/posts";
+                : surface.startsWith("studio-chat")
+                  ? "/studio/workspaces/web-chat%3Achat"
+                  : surface === "studio-inbox"
+                    ? "/studio/workspaces/unified-inbox%3Ainbox"
+                    : surface === "studio-content-sync"
+                      ? "/studio/workspaces/directory-sync%3Async"
+                      : surface === "studio-site"
+                        ? "/studio/workspaces/site-builder%3Asite"
+                        : surface === "studio-publishing"
+                          ? "/studio/workspaces/content-pipeline%3Apublishing"
+                          : surface.startsWith("studio-administration")
+                            ? "/studio/workspaces/admin%3Aadministration"
+                            : isStudioEditor
+                              ? "/studio/entities/posts/field-notes"
+                              : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
         )
           ? `&tab=invitations`
-          : "";
+          : surface === "studio-administration-audit"
+            ? `&tab=audit`
+            : surface.startsWith("studio-chat")
+              ? `&session=responsive`
+              : "";
         await navigateToNetworkIdle(
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (
+          surface === "studio-overview" &&
+          viewport.width <= 640 &&
+          climate === "instrument"
+        ) {
+          await verifyStudioMobileSwitcher(page);
+        }
+        if (surface.startsWith("studio-chat")) {
+          await waitForText(page, "And the Studio?");
+          await waitForSelector(page, ".studio-chat-upload");
+          if (surface === "studio-chat-sessions") {
+            await clickText(
+              page,
+              ".studio-chat-mobile-destination",
+              "sessions",
+            );
+          }
+          if (surface === "studio-chat-context") {
+            await clickText(page, ".studio-chat-mobile-destination", "context");
+          }
+        }
         if (
           surface === "dashboard-knowledge" ||
           surface === "dashboard-network"
@@ -2030,6 +3109,7 @@ try {
         }
         if (surface === "chat" || surface === "chat-drawer") {
           await waitForText(page, "And the Studio?");
+          await waitForSelector(page, ".web-chat-attached-file");
         }
         if (surface === "chat-empty") {
           await waitForText(page, "Begin a field note.");
@@ -2126,27 +3206,39 @@ try {
         if (surface === "studio-overview") {
           await waitForText(page, "While you were away");
         }
+        if (surface === "studio-content-sync") {
+          await waitForText(page, "Convergence path");
+        }
+        if (surface === "studio-site") {
+          await waitForText(page, "Build production");
+        }
+        if (surface === "studio-publishing") {
+          await waitForText(page, "Notes from the rhizome");
+        }
         if (surface === "studio-account") {
           await waitForText(page, "Signed-in sessions");
         }
         if (surface === "studio-administration-invitations-form") {
-          await clickSelector(page, ".declarative-action-disclosure > summary");
+          await clickSelector(page, ".declarative-action-disclosure");
         }
         if (surface === "studio-delete") {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await clickSelector(page, ".studio-mobile-more summary");
-            await clickText(page, "button", "Delete entry");
+            await pointerDownSelector(page, ".studio-mobile-more button");
+            await clickSelector(page, '[role="menuitem"]');
           } else {
-            await clickSelector(page, ".pipeline .btn.danger");
+            await clickSelector(
+              page,
+              '.pipeline [data-slot="button"][data-variant="danger"]',
+            );
           }
           await waitForSelector(page, ".delete-modal");
         }
         if (surface === "studio-conflict") {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
-          await clickSelector(page, ".save-btn");
+          await clickSelector(page, studioSaveSelector);
           await waitForSelector(page, ".conflict");
         }
         if (surface === "studio-invalid") {
@@ -2154,7 +3246,7 @@ try {
           // (the fixture 400s on "!!") pins the pipeline error line, then
           // an emptied required title pins the :user-invalid outline.
           await fillLabel(page, "Title", "Notes from the rhizome!!");
-          await clickSelector(page, ".save-btn");
+          await clickSelector(page, studioSaveSelector);
           await waitForSelector(page, ".status-error");
           await fillLabel(page, "Title", "");
           await blurLabel(page, "Title");

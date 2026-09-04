@@ -194,6 +194,15 @@
     --color-status-danger-text: #8f2f2f;
     --color-status-warning-bg: #f7edcf;
     --color-status-warning-text: #7a4a05;
+
+    /* App-surface defaults. Themes may override these later in the same
+       layer; keeping the fallbacks semantic lets console chrome consume one
+       contract without reaching into a theme's private palette. */
+    --color-bg-card: var(--color-bg-subtle);
+    --color-success: var(--color-status-success-text);
+    --color-warning: var(--color-status-warning-text);
+    --color-error: var(--color-status-danger-text);
+    --color-on-accent: var(--color-text-inverse);
   }
 
   [data-theme="dark"] {
@@ -207,46 +216,110 @@
     --color-status-danger-text: #fca5a5;
     --color-status-warning-bg: #713f12;
     --color-status-warning-text: #fde68a;
+
+    --color-bg-card: var(--color-bg-subtle);
+    --color-success: var(--color-status-success-text);
+    --color-warning: var(--color-status-warning-text);
+    --color-error: var(--color-status-danger-text);
+    --color-on-accent: var(--color-text-inverse);
   }
 }
 
 @layer theme-base {
   /* Theme utilities - bg uses --color-bg, text uses --color-text */
-  .bg-theme { background-color: var(--color-bg); }
-  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
-  .bg-theme-muted { background-color: var(--color-bg-muted); }
-  .bg-theme-dark { background-color: var(--color-bg-dark); }
-  .bg-surface { background-color: var(--color-bg-subtle); }
-  .text-theme { color: var(--color-text); }
-  .text-theme-muted { color: var(--color-text-muted); }
-  .text-theme-light { color: var(--color-text-light); }
-  .text-theme-inverse { color: var(--color-text-inverse); }
-  .text-theme-on-dark { color: var(--color-text-on-dark, var(--color-text-inverse)); }
-  .text-heading { color: var(--color-heading); }
-  .text-selection { color: var(--color-selection); }
-  .border-theme { border-color: var(--color-border); }
-  .border-theme-light { border-color: var(--color-border-light); }
-  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
+  .bg-theme {
+    background-color: var(--color-bg);
+  }
+  .bg-theme-subtle {
+    background-color: var(--color-bg-subtle);
+  }
+  .bg-theme-muted {
+    background-color: var(--color-bg-muted);
+  }
+  .bg-theme-dark {
+    background-color: var(--color-bg-dark);
+  }
+  .bg-surface {
+    background-color: var(--color-bg-subtle);
+  }
+  .text-theme {
+    color: var(--color-text);
+  }
+  .text-theme-muted {
+    color: var(--color-text-muted);
+  }
+  .text-theme-light {
+    color: var(--color-text-light);
+  }
+  .text-theme-inverse {
+    color: var(--color-text-inverse);
+  }
+  .text-theme-on-dark {
+    color: var(--color-text-on-dark, var(--color-text-inverse));
+  }
+  .text-heading {
+    color: var(--color-heading);
+  }
+  .text-selection {
+    color: var(--color-selection);
+  }
+  .border-theme {
+    border-color: var(--color-border);
+  }
+  .border-theme-light {
+    border-color: var(--color-border-light);
+  }
+  .placeholder-theme-muted::placeholder {
+    color: var(--color-text-muted);
+  }
 
   /* Status badge utilities */
-  .bg-status-neutral { background-color: var(--color-status-neutral-bg); }
-  .text-status-neutral { color: var(--color-status-neutral-text); }
-  .bg-status-info { background-color: var(--color-status-info-bg); }
-  .text-status-info { color: var(--color-status-info-text); }
-  .bg-status-success { background-color: var(--color-status-success-bg); }
-  .text-status-success { color: var(--color-status-success-text); }
-  .bg-status-danger { background-color: var(--color-status-danger-bg); }
-  .text-status-danger { color: var(--color-status-danger-text); }
-  .bg-status-warning { background-color: var(--color-status-warning-bg); }
-  .text-status-warning { color: var(--color-status-warning-text); }
+  .bg-status-neutral {
+    background-color: var(--color-status-neutral-bg);
+  }
+  .text-status-neutral {
+    color: var(--color-status-neutral-text);
+  }
+  .bg-status-info {
+    background-color: var(--color-status-info-bg);
+  }
+  .text-status-info {
+    color: var(--color-status-info-text);
+  }
+  .bg-status-success {
+    background-color: var(--color-status-success-bg);
+  }
+  .text-status-success {
+    color: var(--color-status-success-text);
+  }
+  .bg-status-danger {
+    background-color: var(--color-status-danger-bg);
+  }
+  .text-status-danger {
+    color: var(--color-status-danger-text);
+  }
+  .bg-status-warning {
+    background-color: var(--color-status-warning-bg);
+  }
+  .text-status-warning {
+    color: var(--color-status-warning-text);
+  }
 
   /* Hover states for theme utilities */
-  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
-  .hover\:bg-brand:hover { background-color: var(--color-brand); }
-  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+  .hover\:bg-theme-subtle:hover {
+    background-color: var(--color-bg-subtle);
+  }
+  .hover\:bg-brand:hover {
+    background-color: var(--color-brand);
+  }
+  .hover\:bg-brand-dark:hover {
+    background-color: var(--color-brand-dark);
+  }
 
   /* Complete gradient background - uses full gradient value, not single color */
-  .bg-theme-gradient { background: var(--color-bg-gradient); }
+  .bg-theme-gradient {
+    background: var(--color-bg-gradient);
+  }
 
   /* Footer text color override */
   .bg-footer .text-theme-inverse {
@@ -295,8 +368,16 @@
     inset: -30% -20% auto;
     height: 120%;
     background:
-      radial-gradient(circle at 50% 20%, rgb(from var(--color-accent) r g b / 0.5), transparent 28%),
-      radial-gradient(circle at 68% 38%, rgb(from var(--color-brand-dark) r g b / 0.35), transparent 36%);
+      radial-gradient(
+        circle at 50% 20%,
+        rgb(from var(--color-accent) r g b / 0.5),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 68% 38%,
+        rgb(from var(--color-brand-dark) r g b / 0.35),
+        transparent 36%
+      );
     filter: blur(8px);
   }
 
@@ -314,7 +395,11 @@
     right: -18rem;
     bottom: -28rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgb(from var(--color-brand) r g b / 0.42), transparent 66%);
+    background: radial-gradient(
+      circle,
+      rgb(from var(--color-brand) r g b / 0.42),
+      transparent 66%
+    );
     filter: blur(6px);
   }
 
@@ -323,7 +408,8 @@
   }
 
   @keyframes hero-pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.55;
       transform: scale(1);
       box-shadow: 0 0 0 0 rgb(from var(--color-accent) r g b / 0.28);
@@ -382,33 +468,41 @@
    variants, but the sensible defaults are right here.
    ============================================ */
 :root {
-  --palette-warning:               #CA8A04;  /* base yellow (dark mode bg/border) */
-  --palette-warning-text:          #FDE047;  /* dark-mode text */
-  --palette-warning-text-emphasis: #FEF08A;  /* dark-mode heavy text */
-  --palette-warning-bg-light:      #FEFCE8;  /* light-mode bg */
-  --palette-warning-border-light:  #FDE047;  /* light-mode border */
-  --palette-warning-text-light:    #854D0E;  /* light-mode text */
-  --palette-warning-text-emphasis-light: #92400E;
+  --palette-warning: #ca8a04; /* base yellow (dark mode bg/border) */
+  --palette-warning-text: #fde047; /* dark-mode text */
+  --palette-warning-text-emphasis: #fef08a; /* dark-mode heavy text */
+  --palette-warning-bg-light: #fefce8; /* light-mode bg */
+  --palette-warning-border-light: #fde047; /* light-mode border */
+  --palette-warning-text-light: #854d0e; /* light-mode text */
+  --palette-warning-text-emphasis-light: #92400e;
 
   /* Dark-mode defaults */
-  --color-warning-bg:             rgb(from var(--palette-warning) r g b / 0.2);
-  --color-warning-border:         rgb(from var(--palette-warning) r g b / 0.5);
-  --color-warning-text:           var(--palette-warning-text);
-  --color-warning-text-emphasis:  var(--palette-warning-text-emphasis);
+  --color-warning-bg: rgb(from var(--palette-warning) r g b / 0.2);
+  --color-warning-border: rgb(from var(--palette-warning) r g b / 0.5);
+  --color-warning-text: var(--palette-warning-text);
+  --color-warning-text-emphasis: var(--palette-warning-text-emphasis);
 }
 
 [data-theme="light"] {
-  --color-warning-bg:             var(--palette-warning-bg-light);
-  --color-warning-border:         var(--palette-warning-border-light);
-  --color-warning-text:           var(--palette-warning-text-light);
-  --color-warning-text-emphasis:  var(--palette-warning-text-emphasis-light);
+  --color-warning-bg: var(--palette-warning-bg-light);
+  --color-warning-border: var(--palette-warning-border-light);
+  --color-warning-text: var(--palette-warning-text-light);
+  --color-warning-text-emphasis: var(--palette-warning-text-emphasis-light);
 }
 
 @layer theme-base {
-  .bg-warning             { background-color: var(--color-warning-bg); }
-  .border-warning         { border-color: var(--color-warning-border); }
-  .text-warning           { color: var(--color-warning-text); }
-  .text-warning-emphasis  { color: var(--color-warning-text-emphasis); }
+  .bg-warning {
+    background-color: var(--color-warning-bg);
+  }
+  .border-warning {
+    border-color: var(--color-warning-border);
+  }
+  .text-warning {
+    color: var(--color-warning-text);
+  }
+  .text-warning-emphasis {
+    color: var(--color-warning-text-emphasis);
+  }
 }
 
 /* ============================================

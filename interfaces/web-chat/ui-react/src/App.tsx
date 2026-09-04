@@ -15,6 +15,7 @@ import {
   ConversationEmptyState,
 } from "./ai-elements/conversation";
 import { Message, MessageContent } from "./ai-elements/message";
+import { createWebChatClient, getWebChatApiPaths } from "./web-chat-client";
 import {
   PromptInput,
   PromptInputFooter,
@@ -50,14 +51,6 @@ import {
 } from "../../src/upload-policy";
 import { getErrorMessage } from "@brains/utils/error";
 import { isPlainRecord } from "@brains/utils/predicates";
-import { z } from "@brains/utils/zod";
-
-/** The slice of the runtime-action response this component renders. */
-const runtimeActionResponseSchema = z.looseObject({
-  text: z.string().optional(),
-  cards: z.array(z.looseObject({ kind: z.string() })).optional(),
-  toolResults: z.array(z.unknown()).optional(),
-});
 
 /** `History.state` is typed `any`; narrow it before handing it to callers. */
 function historyStateRecord(): Record<string, unknown> {
@@ -131,7 +124,7 @@ export function App(): React.ReactElement {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: "/api/chat",
+        api: getWebChatApiPaths().stream,
         credentials: "include",
       }),
     [],
@@ -336,23 +329,14 @@ export function App(): React.ReactElement {
     setHistoryError(null);
 
     try {
-      const response = await fetch("/api/chat/actions", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          action: {
-            type: "event",
-            event: action.event,
-            ...(action.fromState ? { fromState: action.fromState } : {}),
-          },
-        }),
+      const data = await createWebChatClient().runAction({
+        conversationId,
+        action: {
+          type: "event",
+          event: action.event,
+          ...(action.fromState ? { fromState: action.fromState } : {}),
+        },
       });
-      if (!response.ok) {
-        throw new Error(`Runtime action failed: ${response.status}`);
-      }
-      const data = runtimeActionResponseSchema.parse(await response.json());
       const parts: UIMessage["parts"] = [];
       if (data.text && data.text.trim().length > 0) {
         parts.push({ type: "text", text: data.text });

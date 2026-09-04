@@ -163,22 +163,25 @@ describe("Administration Invitations tab", () => {
     expect(initial).toMatchObject({
       view: {
         title: "Administration",
-        status: { label: "Admin only" },
+        primaryAction: {
+          actionId: "create-invitation",
+          label: "Add a person",
+          form: { presentation: "disclosure" },
+        },
         blocks: [
           { type: "stats", id: "invitation-totals" },
           { type: "tabs", defaultTab: "invitations" },
         ],
       },
     });
+    expect(initial).not.toHaveProperty("view.status");
     const layout = findAnyById(initial, "invitation-layout");
-    expect(regionIds(layout, "primary")).toEqual([
-      "invitation-query",
-      "invitations",
-    ]);
-    expect(regionIds(layout, "aside")).toEqual([
-      "create-invitation",
-      "invite-peer",
-    ]);
+    expect(regionIds(layout, "primary")).toEqual(["invitations"]);
+    expect(findById(initial, "invitations")).toMatchObject({
+      type: "table",
+      query: { pagination: { total: 0 } },
+    });
+    expect(regionIds(layout, "aside")).toEqual(["invite-peer"]);
     const create = findAction(initial, "Add a person");
     expect(create).toMatchObject({
       actionId: "create-invitation",
@@ -250,6 +253,13 @@ describe("Administration Invitations tab", () => {
     const pending = await workspace.dataProvider(actor);
     expect(JSON.stringify(pending)).not.toContain(setupUrl);
     expect(findById(pending, "invitations")).toMatchObject({ type: "table" });
+    expect(findRowForPerson(pending, "Grace Hopper")).toMatchObject({
+      compact: {
+        title: "Grace Hopper",
+        metadata: ["Trusted", "Grace", expect.any(String)],
+        badges: [{ label: expect.any(String) }],
+      },
+    });
     const confirm = findAction(pending, "Confirm delivered");
     expect(confirm).toBeDefined();
     await workspace.actionHandler?.(actionRequest(confirm), actor);
