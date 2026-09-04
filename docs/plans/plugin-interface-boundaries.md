@@ -602,6 +602,34 @@ found gaps rather than moved imports, exactly as this plan predicted; what
 has changed is that the remaining gaps are now measured up front instead of
 one package at a time.
 
+"No new capability" was two-thirds true. Measuring `web-chat` against the
+pipeline before rewriting it — rather than after — found two gaps in what
+the pipeline hands an interface, and both were closed first:
+
+- **A tool result is part of the answer.** The render plan read tool results
+  for their job ids and dropped them, so an interface that draws results had
+  to take the whole `AgentResponse` and pick them out. web-chat did, and
+  redacted their upload references itself. The plan now carries a
+  `tool-result` directive, redacted once, where a second interface cannot
+  forget to.
+- **A denied artifact was only denied per interface.** The pipeline built
+  every plan with `deniedCardIds: undefined`, so a restricted artifact
+  reached a declared interface as a deliverable card — its title, filename
+  and existence, not merely its bytes. web-chat did that check by hand in the
+  class it is being converted away from; converting it as-was would have
+  dropped the protection silently. The pipeline now denies against the
+  caller's level, which it already resolves one frame above.
+
+The second is the more useful finding: it was not a conversion blocker but a
+live defect in every already-declared message interface, and only measuring
+the conversion surfaced it.
+
+With those closed, `web-chat`'s remaining conversion is structural rather than
+capability work: the streaming route awaits a whole agent turn and then writes
+frames, so it maps onto `routes.messages` for the turn, `present` for the
+answer, and `progress` for job events — the three slots whose contracts
+already name `@brains/web-chat` as their consumer.
+
 **`web-chat` was measured at 47 and is 70.** The table above counted its
 `@brains/plugins` imports and missed a second boundary: 24 more symbols
 arrive through `@brains/plugins/message-interface/upload-policy`, a deep
