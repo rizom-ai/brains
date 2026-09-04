@@ -12,6 +12,13 @@ export {
 
 export { closeSqliteClient } from "./turso-client";
 
+export { createRpcResultParser } from "./rpc";
+export type {
+  LocalDatabaseTransport,
+  RpcResultParser,
+  RpcResultSchemas,
+} from "./rpc";
+
 export {
   refuseDirectMigrationRun,
   resolveMigrationsFolder,

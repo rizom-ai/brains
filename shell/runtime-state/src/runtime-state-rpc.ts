@@ -1,16 +1,16 @@
 import { z } from "@brains/utils/zod";
+import {
+  createRpcResultParser,
+  type LocalDatabaseTransport,
+  type RpcResultParser,
+  type RpcResultSchemas,
+} from "@brains/db";
 import type { IRuntimeStateService, RuntimeStateRecordValue } from "./types";
 
 export const RUNTIME_STATE_RPC_SERVICE = "runtime-state";
 
-export interface RuntimeStateRpcTransport {
-  initialize(): Promise<void>;
-  request(
-    payload: RuntimeStateRpcRequest,
-    options?: { signal?: AbortSignal | undefined },
-  ): Promise<unknown>;
-  close(): void;
-}
+export type RuntimeStateRpcTransport =
+  LocalDatabaseTransport<RuntimeStateRpcRequest>;
 
 export type RuntimeStateRpcRequest =
   | { operation: "get"; namespace: string; key: string }
@@ -124,12 +124,7 @@ export interface RuntimeStateRpcResults {
 
 export type RuntimeStateRpcOperation = keyof RuntimeStateRpcResults;
 
-const resultSchemas: {
-  [Op in RuntimeStateRpcOperation]: z.ZodType<
-    RuntimeStateRpcResults[Op],
-    unknown
-  >;
-} = {
+const resultSchemas: RpcResultSchemas<RuntimeStateRpcResults> = {
   get: z.unknown(),
   has: z.boolean(),
   set: z.undefined(),
@@ -139,12 +134,8 @@ const resultSchemas: {
   clear: z.number().int().nonnegative(),
 };
 
-export function parseRuntimeStateRpcResult<Op extends RuntimeStateRpcOperation>(
-  request: { operation: Op },
-  input: unknown,
-): RuntimeStateRpcResults[Op] {
-  return resultSchemas[request.operation].parse(input);
-}
+export const parseRuntimeStateRpcResult: RpcResultParser<RuntimeStateRpcResults> =
+  createRpcResultParser(resultSchemas);
 
 /** Dispatch one validated request against the web-owned runtime-state service. */
 export async function handleRuntimeStateRpcRequest(

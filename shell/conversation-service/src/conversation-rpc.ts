@@ -1,5 +1,11 @@
 import { messageRoleSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import {
+  createRpcResultParser,
+  type LocalDatabaseTransport,
+  type RpcResultParser,
+  type RpcResultSchemas,
+} from "@brains/db";
 import type { Conversation, Message } from "./schema";
 import type {
   AddConversationMessageRequest,
@@ -13,14 +19,8 @@ import { messageSchema } from "./types";
 
 export const CONVERSATION_RPC_SERVICE = "conversation";
 
-export interface ConversationRpcTransport {
-  initialize(): Promise<void>;
-  request(
-    payload: ConversationRpcRequest,
-    options?: { signal?: AbortSignal | undefined },
-  ): Promise<unknown>;
-  close(): void;
-}
+export type ConversationRpcTransport =
+  LocalDatabaseTransport<ConversationRpcRequest>;
 
 export type ConversationRpcRequest =
   | { operation: "startConversation"; request: StartConversationRequest }
@@ -184,12 +184,7 @@ export interface ConversationRpcResults {
 
 export type ConversationRpcOperation = keyof ConversationRpcResults;
 
-const resultSchemas: {
-  [Op in ConversationRpcOperation]: z.ZodType<
-    ConversationRpcResults[Op],
-    unknown
-  >;
-} = {
+const resultSchemas: RpcResultSchemas<ConversationRpcResults> = {
   startConversation: z.string().min(1),
   addMessage: z.undefined(),
   getMessages: messagesSchema,
@@ -201,12 +196,8 @@ const resultSchemas: {
   deleteConversation: z.boolean(),
 };
 
-export function parseConversationRpcResult<Op extends ConversationRpcOperation>(
-  request: { operation: Op },
-  input: unknown,
-): ConversationRpcResults[Op] {
-  return resultSchemas[request.operation].parse(input);
-}
+export const parseConversationRpcResult: RpcResultParser<ConversationRpcResults> =
+  createRpcResultParser(resultSchemas);
 
 /** Dispatch one validated request against the web-owned conversation service. */
 export function handleConversationRpcRequest(

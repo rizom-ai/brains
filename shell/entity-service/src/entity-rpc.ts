@@ -1,6 +1,12 @@
 import { preparedAssetSchema } from "@brains/assets";
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import {
+  createRpcResultParser,
+  type LocalDatabaseTransport,
+  type RpcResultParser,
+  type RpcResultSchemas,
+} from "@brains/db";
 import { ProjectionBatchScopeSchema } from "./projection-rpc";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
@@ -36,14 +42,7 @@ import { contentVisibilitySchema } from "./visibility";
 
 export const ENTITY_RPC_SERVICE = "entity";
 
-export interface EntityRpcTransport {
-  initialize(): Promise<void>;
-  request(
-    payload: EntityRpcCall,
-    options?: { signal?: AbortSignal | undefined },
-  ): Promise<unknown>;
-  close(): void;
-}
+export type EntityRpcTransport = LocalDatabaseTransport<EntityRpcCall>;
 
 export interface EntityIndexReadinessRpcOptions {
   timeoutMs?: number | undefined;
@@ -612,9 +611,7 @@ export interface EntityRpcResults {
 
 export type EntityRpcOperation = keyof EntityRpcResults;
 
-const resultSchemas: {
-  [Op in EntityRpcOperation]: z.ZodType<EntityRpcResults[Op], unknown>;
-} = {
+const resultSchemas: RpcResultSchemas<EntityRpcResults> = {
   createEntity: mutationResultSchema,
   createEntityFromMarkdown: mutationResultSchema,
   updateEntity: mutationResultSchema,
@@ -644,12 +641,8 @@ const resultSchemas: {
   failDurableBulkMutationEnqueue: undefinedResultSchema,
 };
 
-export function parseEntityRpcResult<Op extends EntityRpcOperation>(
-  request: { operation: Op },
-  input: unknown,
-): EntityRpcResults[Op] {
-  return resultSchemas[request.operation].parse(input);
-}
+export const parseEntityRpcResult: RpcResultParser<EntityRpcResults> =
+  createRpcResultParser(resultSchemas);
 
 /** Dispatch one validated request against the web-owned entity service. */
 export function handleEntityRpcRequest(

@@ -1,6 +1,12 @@
 import type { ProgressNotification } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import {
+  createRpcResultParser,
+  type LocalDatabaseTransport,
+  type RpcResultParser,
+  type RpcResultSchemas,
+} from "@brains/db";
+import {
   DeduplicationStrategyEnum,
   JobContextInputSchema,
 } from "./schema/types";
@@ -17,14 +23,7 @@ import type {
 
 export const JOB_QUEUE_RPC_SERVICE = "job-queue";
 
-export interface JobQueueRpcTransport {
-  initialize(): Promise<void>;
-  request(
-    payload: JobQueueRpcRequest,
-    options?: { signal?: AbortSignal | undefined },
-  ): Promise<unknown>;
-  close(): void;
-}
+export type JobQueueRpcTransport = LocalDatabaseTransport<JobQueueRpcRequest>;
 
 export type JobQueueRpcRequest =
   | { operation: "enqueue"; request: JobQueueEnqueueRequest }
@@ -339,9 +338,7 @@ export interface JobQueueRpcResults {
 
 export type JobQueueRpcOperation = keyof JobQueueRpcResults;
 
-const resultSchemas: {
-  [Op in JobQueueRpcOperation]: z.ZodType<JobQueueRpcResults[Op], unknown>;
-} = {
+const resultSchemas: RpcResultSchemas<JobQueueRpcResults> = {
   enqueue: z.string().min(1),
   dequeue: nullableJobInfoSchema,
   getStatus: nullableJobInfoSchema,
@@ -362,9 +359,5 @@ const resultSchemas: {
   getFailedJobs: jobInfoListSchema,
 };
 
-export function parseJobQueueRpcResult<Op extends JobQueueRpcOperation>(
-  request: { operation: Op },
-  input: unknown,
-): JobQueueRpcResults[Op] {
-  return resultSchemas[request.operation].parse(input);
-}
+export const parseJobQueueRpcResult: RpcResultParser<JobQueueRpcResults> =
+  createRpcResultParser(resultSchemas);

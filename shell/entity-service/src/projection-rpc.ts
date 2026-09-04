@@ -1,4 +1,10 @@
 import { z } from "@brains/utils/zod";
+import {
+  createRpcResultParser,
+  type LocalDatabaseTransport,
+  type RpcResultParser,
+  type RpcResultSchemas,
+} from "@brains/db";
 import { ProjectionWriteIntentSchema } from "./projection-contracts";
 import type {
   ApplyProjectionRuleResultInput,
@@ -25,14 +31,8 @@ import type {
 
 export const PROJECTION_STORE_RPC_SERVICE = "entity-projection";
 
-export interface ProjectionStoreRpcTransport {
-  initialize(): Promise<void>;
-  request(
-    payload: ProjectionStoreRpcRequest,
-    options?: { signal?: AbortSignal | undefined },
-  ): Promise<unknown>;
-  close(): void;
-}
+export type ProjectionStoreRpcTransport =
+  LocalDatabaseTransport<ProjectionStoreRpcRequest>;
 
 export type ProjectionStoreRpcRequest =
   | { operation: "markDirty"; input: MarkProjectionDirtyInput }
@@ -317,12 +317,7 @@ export interface ProjectionStoreRpcResults {
 
 export type ProjectionStoreRpcOperation = keyof ProjectionStoreRpcResults;
 
-const resultSchemas: {
-  [Op in ProjectionStoreRpcOperation]: z.ZodType<
-    ProjectionStoreRpcResults[Op],
-    unknown
-  >;
-} = {
+const resultSchemas: RpcResultSchemas<ProjectionStoreRpcResults> = {
   markDirty: z.number().int().nonnegative(),
   listPendingInputs: z.array(dirtyRecordSchema),
   claimPendingWave: nullableWaveSchema,
@@ -346,11 +341,8 @@ const resultSchemas: {
   closeCallbackBatch: undefinedResultSchema,
 };
 
-export function parseProjectionStoreRpcResult<
-  Op extends ProjectionStoreRpcOperation,
->(request: { operation: Op }, input: unknown): ProjectionStoreRpcResults[Op] {
-  return resultSchemas[request.operation].parse(input);
-}
+export const parseProjectionStoreRpcResult: RpcResultParser<ProjectionStoreRpcResults> =
+  createRpcResultParser(resultSchemas);
 
 export function handleProjectionStoreRpcRequest(
   store: IProjectionStore,
