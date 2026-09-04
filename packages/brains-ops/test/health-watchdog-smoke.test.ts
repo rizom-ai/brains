@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -45,14 +45,11 @@ discord:
 }
 
 describe("health watchdog fleet smoke", () => {
-  it("renders valid remote Bash with the canonical packaged watchdog", () => {
+  it("renders valid remote Bash with the canonical packaged watchdog", async () => {
     const script = renderHealthWatchdogSmokeRemoteScript();
-    const syntax = spawnSync("bash", ["-n"], {
-      input: script,
-      encoding: "utf8",
-    });
+    const syntax = await runProcess(["bash", "-n"], { stdin: script });
 
-    expect(syntax.status).toBe(0);
+    expect(syntax.exitCode).toBe(0);
     expect(syntax.stderr).toBe("");
     expect(script).not.toContain("__WATCHDOG_PAYLOAD_BASE64__");
     expect(script).not.toContain("__WATCHDOG_LABEL_FILTER__");
@@ -72,7 +69,7 @@ describe("health watchdog fleet smoke", () => {
     );
   });
 
-  it("accepts only an explicitly confirmed smoke fleet target", () => {
+  it("accepts only an explicitly confirmed smoke fleet target", async () => {
     expect(() =>
       assertHealthWatchdogSmokeTarget({
         handle: "smoke",

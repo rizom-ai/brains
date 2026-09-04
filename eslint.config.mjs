@@ -221,28 +221,26 @@ export default [
       // It surfaced as the whole suite hanging, since a child inheriting stdio
       // holds the pipe the runner waits on for EOF.
       //
-      // Spawn and await instead — `Bun.spawn` with `await child.exited`, or a
-      // package helper like directory-sync's `runGit`.
+      // Spawn and await instead — `runProcess`/`runProcessOrThrow` from
+      // `@brains/utils/run-process`, which await `child.exited`.
       //
-      // Only `execSync` is banned, because only `execSync` was observed doing
-      // it. `execFileSync` and `spawnSync` are the same shape and 56 call
-      // sites across eleven files still use them; converting those on the
-      // strength of an argument rather than a failure is churn nobody can
-      // check. If one of them ever spins, the evidence will say so and it
-      // joins this list.
+      // All three are banned, not just `execSync`: a worker was later found
+      // spinning the same way with a `[.bun-wrapped]` child rather than a
+      // `git` one, so the fault is the synchronous spawn and not the command
+      // it happened to run.
       "no-restricted-imports": [
         "error",
         {
           paths: [
             {
               name: "child_process",
-              importNames: ["execSync"],
+              importNames: ["execSync", "execFileSync", "spawnSync"],
               message:
                 "Spawn and await the child instead (Bun.spawn + await child.exited): a synchronous spawn can leave a <defunct> child and spin the test worker.",
             },
             {
               name: "node:child_process",
-              importNames: ["execSync"],
+              importNames: ["execSync", "execFileSync", "spawnSync"],
               message:
                 "Spawn and await the child instead (Bun.spawn + await child.exited): a synchronous spawn can leave a <defunct> child and spin the test worker.",
             },

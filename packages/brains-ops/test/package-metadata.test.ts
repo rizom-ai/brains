@@ -1,6 +1,6 @@
 import { createTempDirSync } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,7 +43,7 @@ const npmPackJsonSchema = z.array(
 );
 
 describe("@rizom/ops package metadata", () => {
-  it("keeps the shared deploy template source up to date", () => {
+  it("keeps the shared deploy template source up to date", async () => {
     const deployTemplate = readDeployTemplateFile("kamal-deploy.yml");
     const dockerfile = readDeployTemplateFile("Dockerfile");
 
@@ -55,7 +55,7 @@ describe("@rizom/ops package metadata", () => {
     expect(dockerfile).toContain('LABEL ai.rizom.brain.watchdog="true"');
   });
 
-  it("keeps committed deploy script templates identical to @brains/deploy-support", () => {
+  it("keeps committed deploy script templates identical to @brains/deploy-support", async () => {
     // templates/rover-pilot/deploy/scripts is regenerated from
     // @brains/deploy-support by scripts/build.ts (copyDeployScripts); this
     // guards against hand-edits.
@@ -95,7 +95,7 @@ describe("@rizom/ops package metadata", () => {
     }
   });
 
-  it("publishes built dist entrypoints and templates", () => {
+  it("publishes built dist entrypoints and templates", async () => {
     expect(packageJson.main).toBe("./dist/index.js");
     expect(packageJson.types).toBe("./dist/index.d.ts");
     expect(packageJson.bin["brains-ops"]).toBe("./dist/brains-ops.js");
@@ -104,12 +104,11 @@ describe("@rizom/ops package metadata", () => {
     expect(packageJson.scripts.prepublishOnly).toBeDefined();
   });
 
-  it("publishes the deploy subpath in the packed artifact", () => {
-    const build = spawnSync("bun", ["run", "build"], {
+  it("publishes the deploy subpath in the packed artifact", async () => {
+    const build = await runProcess(["bun", "run", "build"], {
       cwd: packageDir,
-      encoding: "utf8",
     });
-    expect(build.status).toBe(0);
+    expect(build.exitCode).toBe(0);
     const bundledCli = readFileSync(
       join(packageDir, "dist", "brains-ops.js"),
       "utf8",
@@ -117,11 +116,10 @@ describe("@rizom/ops package metadata", () => {
     expect(bundledCli).toContain("watchdog-smoke-brain");
     expect(bundledCli).toContain("recover:retire-legacy-projection-job");
 
-    const pack = spawnSync("npm", ["pack", "--json", "--dry-run"], {
+    const pack = await runProcess(["npm", "pack", "--json", "--dry-run"], {
       cwd: packageDir,
-      encoding: "utf8",
     });
-    expect(pack.status).toBe(0);
+    expect(pack.exitCode).toBe(0);
 
     const tarballs = npmPackJsonSchema.parse(JSON.parse(pack.stdout));
     const filePaths = new Set(
@@ -156,19 +154,18 @@ describe("@rizom/ops package metadata", () => {
 
   it.skipIf(!RUN_SMOKE)(
     "works from a packed tarball outside the monorepo",
-    () => {
-      const build = spawnSync("bun", ["run", "build"], {
+    async () => {
+      const build = await runProcess(["bun", "run", "build"], {
         cwd: packageDir,
-        encoding: "utf8",
       });
-      expect(build.status).toBe(0);
+      expect(build.exitCode).toBe(0);
 
       const packDir = createTempDirSync("rizom-ops-pack-");
-      const pack = spawnSync("npm", ["pack", "--pack-destination", packDir], {
-        cwd: packageDir,
-        encoding: "utf8",
-      });
-      expect(pack.status).toBe(0);
+      const pack = await runProcess(
+        ["npm", "pack", "--pack-destination", packDir],
+        { cwd: packageDir },
+      );
+      expect(pack.exitCode).toBe(0);
 
       const tarball = pack.stdout.trim().split(/\r?\n/).pop();
       expect(tarball).toBeDefined();
@@ -190,28 +187,27 @@ describe("@rizom/ops package metadata", () => {
         ),
       );
 
-      const install = spawnSync("bun", ["add", join(packDir, tarball)], {
+      const install = await runProcess(["bun", "add", join(packDir, tarball)], {
         cwd: projectDir,
-        encoding: "utf8",
       });
-      expect(install.status).toBe(0);
+      expect(install.exitCode).toBe(0);
 
-      const version = spawnSync("./node_modules/.bin/brains-ops", ["version"], {
-        cwd: projectDir,
-        encoding: "utf8",
-      });
-      expect(version.status).toBe(0);
+      const version = await runProcess(
+        ["./node_modules/.bin/brains-ops", "version"],
+        { cwd: projectDir },
+      );
+      expect(version.exitCode).toBe(0);
 
-      const help = spawnSync("./node_modules/.bin/brains-ops", ["help"], {
-        cwd: projectDir,
-        encoding: "utf8",
-      });
-      expect(help.status).toBe(0);
+      const help = await runProcess(
+        ["./node_modules/.bin/brains-ops", "help"],
+        { cwd: projectDir },
+      );
+      expect(help.exitCode).toBe(0);
       expect(help.stdout).toContain("recover:retire-legacy-projection-job");
 
-      const recovery = spawnSync(
-        "./node_modules/.bin/brains-ops",
+      const recovery = await runProcess(
         [
+          "./node_modules/.bin/brains-ops",
           "recover:retire-legacy-projection-job",
           "/missing/brain-jobs.db",
           "legacy-job",
@@ -219,20 +215,16 @@ describe("@rizom/ops package metadata", () => {
           "skill:project",
           "--dry-run",
         ],
-        { cwd: projectDir, encoding: "utf8" },
+        { cwd: projectDir },
       );
-      expect(recovery.status).toBe(1);
+      expect(recovery.exitCode).toBe(1);
       expect(recovery.stderr).toContain("Job database does not exist");
 
-      const init = spawnSync(
-        "./node_modules/.bin/brains-ops",
-        ["init", "demo"],
-        {
-          cwd: projectDir,
-          encoding: "utf8",
-        },
+      const init = await runProcess(
+        ["./node_modules/.bin/brains-ops", "init", "demo"],
+        { cwd: projectDir },
       );
-      expect(init.status).toBe(0);
+      expect(init.exitCode).toBe(0);
       expect(existsSync(join(projectDir, "demo", "pilot.yaml"))).toBeTrue();
       expect(
         existsSync(
@@ -280,15 +272,14 @@ describe("@rizom/ops package metadata", () => {
         "utf8",
       );
 
-      const smoke = spawnSync("bun", ["run", "smoke.ts"], {
+      const smoke = await runProcess(["bun", "run", "smoke.ts"], {
         cwd: projectDir,
-        encoding: "utf8",
       });
-      expect(smoke.status).toBe(0);
+      expect(smoke.exitCode).toBe(0);
     },
   );
 
-  it("does not publish with workspace runtime dependencies", () => {
+  it("does not publish with workspace runtime dependencies", async () => {
     const dependencies = packageJson.dependencies;
     const dependencyValues = Object.values(dependencies);
     expect(

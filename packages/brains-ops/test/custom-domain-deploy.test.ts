@@ -1,6 +1,6 @@
 import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { execFileSync, spawnSync } from "node:child_process";
+import { runProcess, runProcessOrThrow } from "@brains/utils/run-process";
 import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -167,9 +167,8 @@ describe("rover-pilot custom-domain deploy scripts", () => {
       );
       await writeFile(outputPath, "");
 
-      execFileSync(
-        process.execPath,
-        ["deploy/scripts/resolve-user-config.ts"],
+      await runProcessOrThrow(
+        [process.execPath, "deploy/scripts/resolve-user-config.ts"],
         {
           cwd: repo,
           env: {
@@ -179,7 +178,6 @@ describe("rover-pilot custom-domain deploy scripts", () => {
             GITHUB_OUTPUT: outputPath,
             CF_ZONE_ID: "shared-zone",
           },
-          encoding: "utf8",
         },
       );
 
@@ -276,9 +274,8 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     const runDecrypt = async (): Promise<string> => {
       await Promise.all([writeFile(envPath, ""), writeFile(outputPath, "")]);
 
-      const result = spawnSync(
-        process.execPath,
-        ["deploy/scripts/decrypt-user-secrets.ts", "alice"],
+      const result = await runProcess(
+        [process.execPath, "deploy/scripts/decrypt-user-secrets.ts", "alice"],
         {
           cwd: repo,
           env: {
@@ -289,10 +286,9 @@ describe("rover-pilot custom-domain deploy scripts", () => {
             CERTIFICATE_PEM: "shared-certificate",
             PRIVATE_KEY_PEM: "shared-private-key",
           },
-          encoding: "utf8",
         },
       );
-      if (result.status !== 0) {
+      if (result.exitCode !== 0) {
         throw new Error(result.stderr);
       }
 
