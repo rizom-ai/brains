@@ -4,7 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type { IGitSync } from "../../src/types";
-import { createSilentLogger } from "@brains/test-utils";
+import { caughtError, createSilentLogger } from "@brains/test-utils";
 import type { GitLogEntry } from "../../src/types";
 import {
   getFileHistory,
@@ -63,7 +63,7 @@ describe("GitSync history", () => {
 
       const outcome = await getFileHistory(brokenGit, "post.md").then(
         (entries) => `resolved with ${entries.length} entries`,
-        (error: unknown) => (error as Error).message,
+        (error: unknown) => caughtError(error).message,
       );
 
       expect(outcome).toBe("fatal: not a git repository");

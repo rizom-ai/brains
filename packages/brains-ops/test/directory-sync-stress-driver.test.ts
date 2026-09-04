@@ -545,7 +545,7 @@ describe("deployed directory-sync stress driver", () => {
     const outcome = await runScriptedProfile("regression", system).then(
       ({ result }) =>
         `reported success=${result.report.success} failure=${result.report.failure}`,
-      (error: unknown) => (error as Error).message,
+      (error: unknown) => caughtError(error).message,
     );
 
     expect(outcome).toContain("Unexpected /health/operate payload");
@@ -561,7 +561,7 @@ describe("deployed directory-sync stress driver", () => {
 
     const outcome = await runScriptedProfile("regression", system).then(
       ({ result }) => `reported success=${result.report.success}`,
-      (error: unknown) => (error as Error).message,
+      (error: unknown) => caughtError(error).message,
     );
 
     expect(outcome).toContain("Could not read docker inspect output");

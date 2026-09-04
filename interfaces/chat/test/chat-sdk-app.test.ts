@@ -297,9 +297,9 @@ describe("ChatSdkAppHost", () => {
     // 404 would blame the caller for a fault on this side.
     const { discordApp } = makeApp({
       uploadStore: createUploadStore(
-        mock(async () => {
+        mock(async (): Promise<never> => {
           throw new Error("disk went away");
-        }) as never,
+        }),
       ),
     });
     const response = await uploadRoute(discordApp).handler(

@@ -1,4 +1,4 @@
-import { createTempDir } from "@brains/test-utils";
+import { caughtError, createTempDir } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { describe, expect, it } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -500,7 +500,7 @@ describe("imageTagExists", () => {
       "tag",
     ).then(
       (value) => `reported ${value}`,
-      (error: unknown) => (error as Error).message,
+      (error: unknown) => caughtError(error).message,
     );
 
     expect(outcome).toBe("spawn docker ENOENT");

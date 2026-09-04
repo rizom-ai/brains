@@ -64,9 +64,13 @@ async function expectVerificationError(
   if (!settled.rejected) {
     throw new Error("Expected verification to fail, but it resolved");
   }
-  expect(settled.error).toBeInstanceOf(HttpSignatureVerificationError);
+  if (!(settled.error instanceof HttpSignatureVerificationError)) {
+    throw new Error(
+      `Expected an HttpSignatureVerificationError, got ${String(settled.error)}`,
+    );
+  }
   if (message !== undefined) {
-    expect((settled.error as Error).message).toContain(message);
+    expect(settled.error.message).toContain(message);
   }
 }
 

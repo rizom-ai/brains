@@ -9,6 +9,7 @@ import {
   normalizeRuntimeUploadDataDir,
 } from "../../src/service/upload-registry";
 import { createMockShell } from "@brains/test-utils";
+import { getErrorMessage } from "@brains/utils/error";
 
 let dataDir: string;
 
@@ -59,7 +60,7 @@ describe("RuntimeUploadRegistry", () => {
       .prune()
       .then(
         () => "quiet",
-        (error: unknown) => (error as Error).message,
+        (error: unknown) => getErrorMessage(error),
       );
 
     expect(outcome).toBe("quiet");
@@ -76,7 +77,7 @@ describe("RuntimeUploadRegistry", () => {
       .prune()
       .then(
         () => "swallowed",
-        (error: unknown) => (error as Error).message,
+        (error: unknown) => getErrorMessage(error),
       );
 
     expect(outcome).not.toBe("swallowed");

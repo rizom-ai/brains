@@ -11,6 +11,7 @@
 export function definedFields<T extends object>(
   fields: T,
 ): { [K in keyof T]?: Exclude<T[K], undefined> } {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Object.fromEntries cannot express the mapped type; the filter keeps exactly the defined keys of T
   return Object.fromEntries(
     Object.entries(fields).filter(([, value]) => value !== undefined),
   ) as { [K in keyof T]?: Exclude<T[K], undefined> };

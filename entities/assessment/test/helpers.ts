@@ -1,4 +1,3 @@
-import type { BaseEntity } from "@brains/plugins";
 import {
   BaseEntityAdapter,
   anchorProfileKindSchema,
