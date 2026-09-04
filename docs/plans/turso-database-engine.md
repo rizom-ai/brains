@@ -2,13 +2,12 @@
 
 ## Status
 
-Phase 6 is complete; Phase 5H has one open slice. The 2026-09-02 pre-merge
-review confirmed ten defects, most on the supervised web-owner plus worker
-path that no boundary test exercised; Phase 5H fixed them, and its item 10 —
-the owner + endpoint-worker suite that would have caught them — still gates
-the merge. Phase 6 restored libSQL as the alpha default behind a dual-engine
-gate. Phase 7 is the opt-in fleet rollout, and MVCC remains deliberately
-gated. The engine spike
+Complete through Phase 6. The 2026-09-02 pre-merge review confirmed ten
+defects, most on the supervised web-owner plus worker path that no boundary
+test exercised; Phase 5H fixed them and now covers that production-shaped
+boundary end to end. Phase 6 restored libSQL as the alpha default behind a
+dual-engine gate. Phase 7 is the opt-in fleet rollout, and MVCC remains
+deliberately gated. The engine spike
 is done on `work/turso-spike` (commits
 `23d7d468d`, `d02c4c0cd`): `@brains/db` has a `createTursoClient` adapter that
 presents the libSQL `Client` surface over `@tursodatabase/database@0.7.2`, and
@@ -837,37 +836,27 @@ tree-clone per frame, the four-statement `storeEmbedding` transaction on the
 serial tail, `vector32(?)` bound five times per search, and the duplicated
 file-url, constant-time-compare, `toError`, and socket-address helpers.
 
-**Phase 5H status (verified 2026-09-03):** slices 2–9, the cleanup list, and
-the schema-level half of slice 1 are done and green on both engines. Slice 1's
-end-to-end test is still missing, so the phase is not closed.
+**Phase 5H status (verified 2026-09-04): complete.** Slices 1–10 and the
+cleanup list are green on both engines.
 
-10. **Owner + endpoint-worker boundary suite (open — closes Phase 5H).** No
-    test boots an endpoint-backed worker and executes a plugin job: the
-    schema-level parse checks in `entity-rpc.test.ts` cover the payloads, the
-    packed-consumer test only does a module-import smoke and a startup check,
-    and `job-execution-boundary.test.ts` initializes its worker without a
-    `localDatabaseEndpoint`, which is exactly why findings 1–3 shipped. Build
-    on that file's harness: `createFullPresetApp` twice, `migrate()` on the
-    owner only, `initialize(undefined, { migrationsCompleted: true,
-processRole, localDatabaseEndpoint })` with the same socket path and
-    secret for both so the web app hosts `LocalDatabaseRpcServer` and the
-    worker gets `LocalDatabaseRpcClient` (the wiring `start.ts` performs via
-    `parseLocalDatabaseEndpointConfig`), pointing the worker's database
-    config at the owner's files. Then, with a real markdown fixture under
-    the owner's `dataDir`, drive the worker's queue through each
-    directory-sync path over the wire and assert the job reaches a terminal
-    `completed` state with the expected owner-side effect:
-    - `sync-request` → `beginDurableBulkMutation` (`expectedChildren` over
-      RPC) → `directory-import` child upserts with
-      `persistenceOrigin: "directory-sync"` — entity present on the owner;
-    - `directory-delete` — entity absent on the owner;
-    - `directory-cleanup` — the admission callback's
-      `hasPendingEntityExports` succeeds remotely and orphans are removed;
-    - site-builder registers on the worker (`getFailedPlugins()` empty,
-      `getHandler("site-build")` defined) while `getRecentJobs` throws
-      "Job queue database is not local" only when called there directly.
-      Run it under both engines like the other migration-sensitive suites.
-      Acceptance: reverting any one of the slice-1/2 fixes turns the suite red.
+10. **Owner + endpoint-worker boundary suite — DONE.**
+    `job-execution-boundary.test.ts` now creates the full preset twice,
+    migrates only the web owner, and initializes both apps against one
+    authenticated local database endpoint and the owner's database files. A
+    real Git-backed markdown fixture drives `sync-request` and its
+    `directory-import` child through the worker, including durable-bulk
+    `expectedChildren` and `persistenceOrigin` over entity RPC. The same suite
+    executes `directory-delete` and `directory-cleanup`, proves their
+    owner-side effects, exercises remote `hasPendingEntityExports`, and pins
+    site-builder's execution-only registration while its owner-only queue read
+    still fails directly on the worker. Test-only terminal callbacks provide
+    deterministic completion signals without sleep or deadline polling. The
+    suite passes with both `BRAINS_DB_ENGINE=libsql` and
+    `BRAINS_DB_ENGINE=turso`.
+
+**Phase 5H exit: met.** The production-shaped owner/worker boundary now fails
+if the directory-sync RPC fields, cleanup read, or execution-only site-builder
+registration regress.
 
 ### Phase 6 — Engine default and dual-engine gate — MERGE GATE
 
