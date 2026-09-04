@@ -29,9 +29,13 @@ export type FetchHandler = (
  * ```
  */
 export function mockFetch(handler: FetchHandler): void {
-  // A partial-Response fetch double has no assignable form to check against,
-  // and what is replaced here is a global rather than an injected
-  // collaborator, so there is no interface for it to drift from.
+  // Three separate gaps, each confirmed by removing the assertion and reading
+  // the error: `typeof fetch` also carries `preconnect`, which a `mock()` does
+  // not have; `FetchHandler` narrows the first parameter to `string` where
+  // fetch accepts `RequestInfo | URL`; and `Partial<Response>` is not a
+  // `Response`. Closing all three means real `Response` instances and a
+  // widened parameter at all 20 call sites, to double a global that no
+  // interface is checked against.
   // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-assertions -- see the note above
   globalThis.fetch = mock(handler) as unknown as typeof fetch;
 }

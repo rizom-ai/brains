@@ -29,15 +29,19 @@ export type SpiedMembers<T> = {
  * wraps functions in a spy of the same call signature. It must not be used to
  * add, drop, or reshape members.
  */
+/** Narrows the `any` that `Object.entries` yields, without asserting it. */
+function isFunctionMember(
+  value: unknown,
+): value is (...args: unknown[]) => unknown {
+  return typeof value === "function";
+}
+
 export function spyOnMembers<T extends object>(namespace: T): SpiedMembers<T> {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Object.fromEntries cannot express the mapped type; see the comment above
   return Object.fromEntries(
     Object.entries(namespace).map(([key, value]) => [
       key,
-      typeof value === "function"
-        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Object.entries erases the value type; see the comment above
-          mock(value as (...args: unknown[]) => unknown)
-        : value,
+      isFunctionMember(value) ? mock(value) : value,
     ]),
   ) as SpiedMembers<T>;
 }
