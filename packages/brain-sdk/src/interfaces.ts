@@ -37,6 +37,10 @@ export type {
   InterfaceJobStatus,
   InterfaceSetupContext,
 } from "@brains/plugins";
+// The console strip a page renders, and the doors on it.
+// Named consumer: @brains/web-chat.
+export type { ConsoleSurface, SurfacePermissionLevel } from "@brains/plugins";
+
 // The conversation surface an interface hosts one through — listing threads,
 // reading a history back, renaming, deleting.
 // Named consumers: @brains/web-chat, @brains/chat.

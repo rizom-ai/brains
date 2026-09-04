@@ -675,9 +675,39 @@ defines — no service reaches through them — and published for the reason the
 approval helpers already were: two interfaces must not disagree about what a
 stored message contained, and deriving it twice is how they would.
 
-What is left is the conversion itself: `web-chat-interface.ts` and
-`chat-stream.ts`, holding the base class, the runtime contexts, and the agent
-call. Those go when the declaration replaces them.
+**The console strip no longer reads the route table.** web-chat rendered its
+links to the other consoles by passing `webRoutes.getRoutes()` — every mounted
+route in the brain — to `deriveConsoleSurfaces`, which matched plugin ids
+against a hardcoded list of the three console plugins. A console now asks
+`surfaces({ permissionLevel, hasActiveSession, selfHref })`: who is asking,
+and where its own door is. The runtime already knows which surfaces are
+mounted and what each requires.
+
+The table itself stays where it is. Its own comment names the end state —
+each plugin declaring its own surface descriptor at route registration — and
+says that is HTTP-route-registry work governed by another plan. Closing the
+boundary here does not require co-opting it.
+
+`inbox` and `inboxFollowUps` join the interface setup for the same reason
+services already have them: web-chat offers to carry an inbox item into a
+conversation, which means registering that it can and reading the source to
+check the item is still reachable.
+
+**One question is deliberately left open: the Studio redirect.** web-chat's
+`/chat` redirects into Studio's chat workspace when Studio is mounted, and it
+finds it by locating Studio's `/api/types` route, slicing that suffix off to
+recover a base path, and assembling a URL. That reads like unified-inbox's
+problem, and `workspaceUrl(id)` looks like the answer — but it is not.
+`web-chat:chat` reads like web-chat's workspace and is Studio's own, declared
+`pluginId: "studio"` and described in Studio as a closed host-owned workspace.
+So the question is not "where did my workspace go" but "which console owns the
+chat door when both are mounted", which is a composition decision rather than
+a lookup. It wants its own slice, and guessing an API for it at the end of
+another one would be the wrong way to answer it.
+
+What is left of the conversion is then: `web-chat-interface.ts` and
+`chat-stream.ts`, holding the base class, the runtime contexts, the agent
+call, and that redirect.
 
 ## Validation
 

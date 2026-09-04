@@ -23,6 +23,7 @@ import {
 } from "../service/reaction-context";
 import { createRuntimeTool } from "../service/tool-runtime";
 import { createInterfaceEntityAccess } from "./interface-entity-access";
+import { deriveConsoleSurfaces } from "../console-surfaces";
 import { uploadNamespaceFor } from "../internal/state-namespace";
 import { createDeclarativeDaemon } from "./declarative-daemon";
 import { createRuntimeRoute } from "./route-runtime";
@@ -99,6 +100,21 @@ class DeclarativeInterfacePlugin<
           permissions: context.permissions,
           agent: context.agent,
           conversations: context.conversations,
+          inbox: context.inbox,
+          inboxFollowUps: context.inboxFollowUps,
+          surfaces: (options) =>
+            deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
+              activeId: this.definition.id,
+              ...(options.permissionLevel !== undefined
+                ? { permissionLevel: options.permissionLevel }
+                : {}),
+              ...(options.hasActiveSession !== undefined
+                ? { hasActiveSession: options.hasActiveSession }
+                : {}),
+              ...(options.selfHref !== undefined
+                ? { self: { id: this.definition.id, href: options.selfHref } }
+                : {}),
+            }),
           entities: createInterfaceEntityAccess(
             context.entityService,
             this.definition.id,

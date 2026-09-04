@@ -14,6 +14,14 @@ import type { AgentNamespace } from "../contracts/agent";
 import type { ResponseRenderDirective } from "../message-interface/response-render-plan";
 import type { IPermissionsNamespace } from "../public/types";
 import type { IInterfaceConversationsNamespace } from "./context";
+import type {
+  IInboxFollowUpsNamespace,
+  IInboxNamespace,
+} from "../base/context-types";
+import type {
+  ConsoleSurface,
+  SurfacePermissionLevel,
+} from "../console-surfaces";
 import type { JobEntityAccess } from "../job/job-context-contract";
 import type {
   RuntimeUploadScopeOptions,
@@ -244,6 +252,36 @@ export interface InterfaceSetupContext<
    * Named consumer: @brains/web-chat.
    */
   readonly entities: InterfaceEntityReader;
+  /**
+   * The other doors this caller should be shown.
+   *
+   * A console renders a strip of links to the rest of the brain. It used to
+   * build that by reading the whole mounted route table and matching plugin
+   * ids against a list — which is a package knowing another package's routes,
+   * the thing this plan removes. The runtime knows which surfaces are mounted
+   * and what each requires; a console says who is asking.
+   * Named consumer: @brains/web-chat.
+   */
+  readonly surfaces: (options: {
+    readonly permissionLevel?: SurfacePermissionLevel | undefined;
+    readonly hasActiveSession?: boolean | undefined;
+    /**
+     * Where this console's own door is. A surface always lists itself,
+     * whatever the caller's level — they reached it through its own gate —
+     * but only the declaration knows the path it configured.
+     */
+    readonly selfHref?: string | undefined;
+  }) => readonly ConsoleSurface[];
+  /**
+   * What arrived that someone still has to deal with, and where a follow-up
+   * can be continued.
+   *
+   * A console offers to carry an inbox item into a conversation, which means
+   * registering that it can and reading the source to check the item is
+   * still reachable. Named consumer: @brains/web-chat.
+   */
+  readonly inbox: IInboxNamespace;
+  readonly inboxFollowUps: IInboxFollowUpsNamespace;
   /** The brain's own domain, when it has one. */
   readonly domain: string | undefined;
   readonly logger: Logger;

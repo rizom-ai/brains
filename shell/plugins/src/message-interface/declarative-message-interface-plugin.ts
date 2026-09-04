@@ -12,6 +12,7 @@ import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
 import { createInterfaceEntityAccess } from "../interface/interface-entity-access";
+import { deriveConsoleSurfaces } from "../console-surfaces";
 import { createRuntimeRoute } from "../interface/route-runtime";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
@@ -152,6 +153,21 @@ class DeclarativeMessageInterfacePlugin<
           permissions: context.permissions,
           agent: context.agent,
           conversations: context.conversations,
+          inbox: context.inbox,
+          inboxFollowUps: context.inboxFollowUps,
+          surfaces: (options) =>
+            deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
+              activeId: this.definition.id,
+              ...(options.permissionLevel !== undefined
+                ? { permissionLevel: options.permissionLevel }
+                : {}),
+              ...(options.hasActiveSession !== undefined
+                ? { hasActiveSession: options.hasActiveSession }
+                : {}),
+              ...(options.selfHref !== undefined
+                ? { self: { id: this.definition.id, href: options.selfHref } }
+                : {}),
+            }),
           entities: createInterfaceEntityAccess(
             context.entityService,
             this.definition.id,
