@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.350
+
+### Minor Changes
+
+- [`401ad40`](https://github.com/rizom-ai/brains/commit/401ad4006eb0fb1054a86e618d0473842648fd4e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Unify authenticated app controls around statically compiled StyleX and Radix primitives, make Studio, Web Chat, and Dashboard consume the active Brain theme through shared semantic tokens, and package the generated application styles with the browser bundles. Preserve Dashboard's server-rendered CSS boundary and integrate the native Studio Chat workspace with the shared control and asset contracts.
+
+### Patch Changes
+
+- [#213](https://github.com/rizom-ai/brains/pull/213) [`03ee6c8`](https://github.com/rizom-ai/brains/commit/03ee6c80afaac5ea72e415beb0eb7a4a48dccfc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Avoid falsely failing a projection-rule job when a concurrent coordination sweep has already completed its wave.
+
 ## 0.2.0-alpha.349
 
 ### Minor Changes
