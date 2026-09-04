@@ -14,6 +14,27 @@ export {
   verbatim,
 } from "@brains/plugins";
 export type { RouteResponse, VerbatimResponse } from "@brains/plugins";
+// What a `routes` slot returns, for a declaration that builds its route list
+// somewhere other than the slot's own expression.
+// Named consumer: @brains/web-chat.
+export type { AnyInterfaceRouteDefinition } from "@brains/plugins";
+
+// Handing a turn to the runtime from a request rather than a socket, and
+// answering an approval the client named rather than one spelled out in a
+// reply. An interface whose inbound path is HTTP still wants everything the
+// pipeline does with a turn. Named consumer: @brains/web-chat.
+export type {
+  ApprovalOutcome,
+  AuthenticatedCaller,
+  InboundMessageAttachment,
+  MessageReceiver,
+  ResolveApprovalInput,
+} from "@brains/plugins";
+
+// What arrived that someone still has to deal with. A console offers to carry
+// an inbox item into a conversation, which means reading the source to check
+// the item is still reachable. Named consumer: @brains/web-chat.
+export type { IInboxNamespace } from "@brains/plugins";
 
 // Tools an interface offers of its own — not the tools it serves, which come
 // from every other package, but the ones with no meaning without a client on

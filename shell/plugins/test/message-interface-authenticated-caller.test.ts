@@ -30,6 +30,7 @@ interface Receiver {
     sender: { id: string; displayName?: string };
     channel: { id: string };
     text: string;
+    messageId?: string;
     caller?: {
       permissionLevel: "admin" | "trusted" | "public";
       isAnchor?: boolean;
@@ -106,6 +107,7 @@ async function turnContext(
     sender: { id: "usr_mira", displayName: "Mira" },
     channel: { id: "room-1" },
     text: "publish the post",
+    messageId: "msg_41",
     ...(caller ? { caller } : {}),
   });
 
@@ -139,6 +141,12 @@ describe("a turn from an interface that holds the session", () => {
       canonicalId: "user:mira",
     });
     expect(context.actor?.displayName).toBe("Mira");
+    // The client already named this message; re-minting an id would lose the
+    // one thing tying the stored turn to what the person is looking at.
+    expect(context.source?.messageId).toBe("msg_41");
+    // The declaration already says what this channel is called; a stored turn
+    // showing only an opaque room id is the same information withheld.
+    expect(context.channelName).toBe("Session Holder");
   });
 
   it("falls back to the configured rules when the interface says nothing", async () => {

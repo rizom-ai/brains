@@ -16,7 +16,7 @@ const chatPageCss = readFileSync(
   "utf-8",
 );
 const interfaceTs = readFileSync(
-  join(packageRoot, "src", "web-chat-interface.ts"),
+  join(packageRoot, "src", "web-chat-definition.ts"),
   "utf-8",
 );
 

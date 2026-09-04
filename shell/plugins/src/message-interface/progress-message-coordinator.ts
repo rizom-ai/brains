@@ -46,7 +46,14 @@ export interface EditMessageRequest {
  * delivery and rendering without touching progress bookkeeping.
  */
 export interface ProgressMessageTransport {
-  interfaceId(): string;
+  /**
+   * The channel type this interface answers for.
+   *
+   * Not the plugin's runtime id: a declared package's id is scoped by package
+   * name, while every event carries the channel type the agent was given. A
+   * coordinator matching on the id drops every event for a declared interface.
+   */
+  interfaceType(): string;
   logger(): Logger;
   sendMessageToChannel(request: SendMessageToChannelRequest): void;
   sendMessageWithId(
@@ -233,7 +240,7 @@ export class ProgressMessageCoordinator {
 
   /** Derive semantic status updates from raw tool activity events. */
   async handleToolActivityEvent(event: ToolActivityEvent): Promise<void> {
-    if (event.interfaceType !== this.transport.interfaceId()) {
+    if (event.interfaceType !== this.transport.interfaceType()) {
       return;
     }
 
@@ -274,10 +281,10 @@ export class ProgressMessageCoordinator {
       return;
     }
 
-    const interfaceId = this.transport.interfaceId();
+    const interfaceType = this.transport.interfaceType();
     const completions = Array.from(this.pendingToolCompletions.values()).filter(
       (event) =>
-        event.interfaceType === interfaceId &&
+        event.interfaceType === interfaceType &&
         event.conversationId === conversationId,
     );
 
@@ -300,7 +307,8 @@ export class ProgressMessageCoordinator {
     // interfaceType is broadcast and handled by everyone.
     const eventInterfaceType = event.metadata.interfaceType;
     return (
-      !eventInterfaceType || eventInterfaceType === this.transport.interfaceId()
+      !eventInterfaceType ||
+      eventInterfaceType === this.transport.interfaceType()
     );
   }
 

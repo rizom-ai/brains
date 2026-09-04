@@ -73,9 +73,12 @@ async function invokeTool(
   const harness = createPluginHarness();
   await harness.installPlugin(plugin);
   await harness.finalizeRegistration();
+  // The channel type, which is what the agent puts on a turn — not the
+  // plugin's runtime id, which is scoped by package and matches nothing a
+  // publisher knows about.
   await harness.sendMessage("tool:invoking", {
     toolName: "system_publish",
-    interfaceType: plugin.id,
+    interfaceType: "status-reader",
     conversationId: "room-1",
     channelId: "room-1",
   });

@@ -27,7 +27,12 @@ import type {
   MessageInterfaceDefinitionInput,
   InterfaceJobStatus,
   MessageOutput,
+  ApprovalOutcome,
+  AuthenticatedCaller,
+  InboundMessageSender,
+  MessageChannel,
   ReceiveAuthenticatedInput,
+  ResolveApprovalInput,
 } from "../interface/interface-definition-contract";
 import type {
   EditMessageRequest,
@@ -39,7 +44,7 @@ import { MessageInterfacePlugin } from "./message-interface-plugin";
 import { PendingApprovalTracker } from "./pending-approval-tracker";
 import { routeConfirmationResponse } from "./confirmation-routing";
 import { buildResponsePlan } from "./response-render-plan";
-import type { AgentResponse } from "../contracts/agent";
+import type { AgentResponse, ChatContext } from "../contracts/agent";
 import type { JobContext, JobProgressEvent } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
 import { collectDeniedArtifactCardIds } from "./artifact-access";
@@ -57,7 +62,10 @@ import { effectiveDisplayBaseUrl } from "../interface/display-base-url";
  * attributable to something stable.
  */
 function callerIdentity(
-  input: ReceiveAuthenticatedInput,
+  input: {
+    sender: InboundMessageSender;
+    caller?: AuthenticatedCaller | undefined;
+  },
   interfaceType: string,
 ): ActorRef {
   const caller = input.caller;
@@ -72,6 +80,27 @@ function callerIdentity(
     kind: "external",
     externalActorId: createExternalActorId(interfaceType, input.sender.id),
   };
+}
+
+/**
+ * Whether the answer carries the approval that was resolved.
+ *
+ * Its absence is how the brain says it was not holding that approval any
+ * more — the client drew it as a tool call and needs that call closed.
+ */
+function hasApprovalCard(
+  response: Pick<AgentResponse, "cards">,
+  input: { approvalId: string; toolCallId?: string | undefined },
+): boolean {
+  return Boolean(
+    response.cards?.some(
+      (card) =>
+        card.kind === "tool-approval" &&
+        (card.id === input.approvalId ||
+          (input.toolCallId !== undefined &&
+            card.toolCallId === input.toolCallId)),
+    ),
+  );
 }
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
@@ -92,6 +121,7 @@ async function attachmentFrom(
   attachment: InboundMessageAttachment,
   signal: AbortSignal,
 ): Promise<ChatAttachment> {
+  const source = attachment.source ? { source: attachment.source } : {};
   if (attachment.text !== undefined) {
     return {
       kind: "text",
@@ -99,6 +129,7 @@ async function attachmentFrom(
       mediaType: attachment.mediaType,
       content: attachment.text,
       sizeBytes: new TextEncoder().encode(attachment.text).byteLength,
+      ...source,
     };
   }
   const inline = attachment.data;
@@ -110,6 +141,7 @@ async function attachmentFrom(
       mediaType: attachment.mediaType,
       content: new TextDecoder().decode(data),
       sizeBytes: data.byteLength,
+      ...source,
     };
   }
   return {
@@ -118,6 +150,7 @@ async function attachmentFrom(
     mediaType: attachment.mediaType,
     data,
     sizeBytes: data.byteLength,
+    ...source,
   };
 }
 
@@ -288,6 +321,8 @@ class DeclarativeMessageInterfacePlugin<
             // No abort signal here: a route holds the request's own, and the
             // turn outlives the response when the interface streams it.
             this.receiveAuthenticated(received, new AbortController().signal),
+          resolveApproval: (received) =>
+            this.resolveApproval(received, new AbortController().signal),
         },
         jobs: {
           enqueue: async <TDefinition extends AnyServiceJobDefinition>(
@@ -416,6 +451,7 @@ class DeclarativeMessageInterfacePlugin<
               messages: {
                 receiveAuthenticated: (input) =>
                   this.receiveAuthenticated(input, signal),
+                resolveApproval: (input) => this.resolveApproval(input, signal),
               },
             }) ?? Promise.resolve(),
         }),
@@ -493,6 +529,10 @@ class DeclarativeMessageInterfacePlugin<
       channel: { id: channelId },
       update,
     });
+  }
+
+  protected override interfaceType(): string {
+    return this.definition.channel.type;
   }
 
   protected override sendMessageToChannel(
@@ -743,6 +783,138 @@ class DeclarativeMessageInterfacePlugin<
     return firstMessageId;
   }
 
+  /**
+   * The conversation a turn on this channel belongs to.
+   *
+   * Derived from the channel by default, because a room id from somebody
+   * else's service is only unique within that service. An interface that
+   * mints its own session keys says so, and keeps the id it handed out.
+   */
+  private conversationIdFor(channel: {
+    id: string;
+    threadId?: string | undefined;
+  }): string {
+    if (this.definition.channel.conversationKey === "channel") {
+      return channel.id;
+    }
+    return [this.definition.channel.type, channel.id, channel.threadId]
+      .filter((part): part is string => part !== undefined)
+      .join(":");
+  }
+
+  /**
+   * Who is asking, and at what level.
+   *
+   * An interface holding a verified session has already answered this better
+   * than the configured rules can; one that has not falls back to them, which
+   * is right for a sender who is just an id elsewhere.
+   */
+  private callerLevel(
+    caller: AuthenticatedCaller | undefined,
+    senderId: string,
+  ): {
+    permission: UserPermissionLevel;
+    isAnchor: boolean;
+  } {
+    const context = this.getContext();
+    const interfaceType = this.definition.channel.type;
+    return {
+      permission:
+        caller?.permissionLevel ??
+        context.permissions.getUserLevel(interfaceType, senderId),
+      isAnchor:
+        caller?.isAnchor ??
+        context.permissions.isAnchor(interfaceType, senderId),
+    };
+  }
+
+  /**
+   * What every turn on this channel carries.
+   *
+   * Answering a question the brain asked is as much the person's act as
+   * asking one, so a confirmation is attributed the same way — an approval
+   * recorded without an actor loses who authorised the thing it did.
+   */
+  private turnContext(
+    input: {
+      sender: InboundMessageSender;
+      channel: MessageChannel;
+      caller?: AuthenticatedCaller | undefined;
+    },
+    permission: UserPermissionLevel,
+    isAnchor: boolean,
+  ): ChatContext {
+    const interfaceType = this.definition.channel.type;
+    const channelName = this.definition.channel.displayName;
+    return {
+      userPermissionLevel: permission,
+      isAnchor,
+      interfaceType,
+      channelId: input.channel.id,
+      channelName,
+      actor: {
+        identity: callerIdentity(input, interfaceType),
+        interfaceType,
+        role: "user",
+        ...(input.sender.displayName
+          ? { displayName: input.sender.displayName }
+          : {}),
+      },
+      source: {
+        channelId: input.channel.id,
+        channelName,
+        ...(input.channel.threadId ? { threadId: input.channel.threadId } : {}),
+      },
+    };
+  }
+
+  /**
+   * An approval the client named, rather than one spelled out in a reply.
+   *
+   * Everything a turn gets is the same — the input is marked as processing so
+   * progress routes to this channel, the answer goes through `present`, tool
+   * activity is reported. What differs is that nothing has to be parsed back
+   * out of a sentence, and that an approval the brain is no longer holding is
+   * reported rather than answered as a fresh question.
+   */
+  private async resolveApproval(
+    input: ResolveApprovalInput,
+    signal: AbortSignal,
+  ): Promise<ApprovalOutcome> {
+    if (!input.sender.id.trim() || !input.channel.id.trim()) {
+      throw new Error("Authenticated messages require sender and channel ids");
+    }
+    const context = this.getContext();
+    const { permission, isAnchor } = this.callerLevel(
+      input.caller,
+      input.sender.id,
+    );
+    const conversationId = this.conversationIdFor(input.channel);
+
+    this.startProcessingInput(input.channel.id);
+    try {
+      const resolved = await context.agent.confirmPendingAction(
+        conversationId,
+        input.approved,
+        input.approvalId,
+        this.turnContext(input, permission, isAnchor),
+        signal,
+      );
+      this.approvals().syncFromResponse(
+        conversationId,
+        resolved,
+        input.approvalId,
+      );
+      await this.deliverResponse(input.channel, resolved, permission);
+      await this.handleAgentResponseToolStatuses(resolved, conversationId);
+      return hasApprovalCard(resolved, input)
+        ? { kind: "resolved" }
+        : { kind: "not-pending", text: resolved.text };
+    } finally {
+      this.endProcessingInput();
+    }
+  }
+
   private async receiveAuthenticated(
     input: ReceiveAuthenticatedInput,
     signal: AbortSignal,
@@ -751,23 +923,11 @@ class DeclarativeMessageInterfacePlugin<
       throw new Error("Authenticated messages require sender and channel ids");
     }
     const context = this.getContext();
-    const interfaceType = this.definition.channel.type;
-    // An interface holding a verified session has already answered this
-    // better than the configured rules can; one that has not falls back to
-    // them, which is right for a sender who is just an id elsewhere.
-    const permission =
-      input.caller?.permissionLevel ??
-      context.permissions.getUserLevel(interfaceType, input.sender.id);
-    const isAnchor =
-      input.caller?.isAnchor ??
-      context.permissions.isAnchor(interfaceType, input.sender.id);
-    const conversationId = [
-      interfaceType,
-      input.channel.id,
-      input.channel.threadId,
-    ]
-      .filter((part): part is string => part !== undefined)
-      .join(":");
+    const { permission, isAnchor } = this.callerLevel(
+      input.caller,
+      input.sender.id,
+    );
+    const conversationId = this.conversationIdFor(input.channel);
     const attachments: ChatAttachment[] = [];
     if (input.attachments) {
       const pending = await input.attachments();
@@ -805,7 +965,7 @@ class DeclarativeMessageInterfacePlugin<
           conversationId,
           routed.confirmed,
           routed.approvalId,
-          { userPermissionLevel: permission, isAnchor, interfaceType },
+          this.turnContext(input, permission, isAnchor),
           signal,
         );
         this.approvals().syncFromResponse(
@@ -826,24 +986,19 @@ class DeclarativeMessageInterfacePlugin<
         input.text,
         conversationId,
         {
-          userPermissionLevel: permission,
-          isAnchor,
-          interfaceType,
-          channelId: input.channel.id,
-          actor: {
-            identity: callerIdentity(input, interfaceType),
-            interfaceType,
-            role: "user",
-            ...(input.sender.displayName
-              ? { displayName: input.sender.displayName }
-              : {}),
-          },
-          source: {
-            channelId: input.channel.id,
-            ...(input.channel.threadId
-              ? { threadId: input.channel.threadId }
-              : {}),
-          },
+          ...this.turnContext(input, permission, isAnchor),
+          ...(input.messageId
+            ? {
+                source: {
+                  channelId: input.channel.id,
+                  messageId: input.messageId,
+                  channelName: this.definition.channel.displayName,
+                  ...(input.channel.threadId
+                    ? { threadId: input.channel.threadId }
+                    : {}),
+                },
+              }
+            : {}),
           ...(attachments.length > 0 ? { attachments } : {}),
         },
         signal,

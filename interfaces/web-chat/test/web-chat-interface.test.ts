@@ -6,6 +6,7 @@ import type {
   IAgentService,
   IConversationService,
   InboxSource,
+  Plugin,
   WebRouteDefinition,
   WebRouteMethod,
 } from "@brains/plugins";
@@ -16,9 +17,25 @@ import {
 } from "@brains/plugins/test";
 import { join } from "path";
 import { mkdir, rm, utimes, writeFile } from "fs/promises";
-import { WebChatInterface } from "../src";
+import webChatPackage from "../src";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
+import packageJson from "../package.json";
 import { z } from "@brains/utils/zod";
 import { createStubAuth, createTestPrincipal } from "@brains/test-utils";
+
+/**
+ * The turn as a client sees it: the stream read to the end.
+ *
+ * A streaming route answers as soon as the connection is open — the brain is
+ * still working behind it. Asserting what the agent was asked without reading
+ * the stream asserts against a turn that has not finished happening.
+ */
+async function drain(response: Response | undefined): Promise<string> {
+  return (await response?.text()) ?? "";
+}
 
 /**
  * What the runtime upload endpoint puts on the wire.
@@ -239,11 +256,34 @@ function makeFixedConversationService(input: {
  * path rather than exercising it, so a package that stopped consulting auth
  * would still have passed. Registering the principal drives the real path.
  */
+const PACKAGE_METADATA = {
+  name: packageJson.name,
+  version: packageJson.version,
+};
+
+/**
+ * The interface as the composer builds it.
+ *
+ * A declaration has no constructor, so config arrives at instantiation and
+ * the runtime gives the plugin its scoped id — the same path production
+ * takes, rather than a shape only tests can produce.
+ */
+function webChatPlugin(config: Record<string, unknown> = {}): Plugin {
+  bindPluginPackageMetadata(webChatPackage, PACKAGE_METADATA);
+  const plugin = instantiatePluginPackageDefinition(
+    webChatPackage,
+    config,
+    PACKAGE_METADATA,
+  )[0];
+  if (!plugin) throw new Error("Web chat interface plugin was not created");
+  return plugin;
+}
+
 function signedInPlugin(
-  target: PluginTestHarness<WebChatInterface>,
+  target: PluginTestHarness<Plugin>,
   permissionLevel: UserPermissionLevel,
   overrides: Partial<AuthPrincipal> = {},
-): WebChatInterface {
+): Plugin {
   target
     .getMockShell()
     .getAuthRegistry()
@@ -252,32 +292,24 @@ function signedInPlugin(
         principal: createTestPrincipal({ permissionLevel, ...overrides }),
       }),
     );
-  return new WebChatInterface();
+  return webChatPlugin();
 }
 
 /** A browser with no session at all. */
-function anonymousPlugin(
-  target: PluginTestHarness<WebChatInterface>,
-): WebChatInterface {
+function anonymousPlugin(target: PluginTestHarness<Plugin>): Plugin {
   target.getMockShell().getAuthRegistry().register(createStubAuth());
-  return new WebChatInterface();
+  return webChatPlugin();
 }
 
-function adminPlugin(
-  target: PluginTestHarness<WebChatInterface>,
-): WebChatInterface {
+function adminPlugin(target: PluginTestHarness<Plugin>): Plugin {
   return signedInPlugin(target, "admin");
 }
 
-function trustedPlugin(
-  target: PluginTestHarness<WebChatInterface>,
-): WebChatInterface {
+function trustedPlugin(target: PluginTestHarness<Plugin>): Plugin {
   return signedInPlugin(target, "trusted");
 }
 
-function trustedAuthPlugin(
-  target: PluginTestHarness<WebChatInterface>,
-): WebChatInterface {
+function trustedAuthPlugin(target: PluginTestHarness<Plugin>): Plugin {
   return signedInPlugin(target, "trusted", {
     userId: "usr_collaborator",
     personId: "prsn_collaborator",
@@ -301,15 +333,13 @@ function pngDataUrl(bytes = pngBytes()): string {
 }
 
 function getRoute(
-  plugin: WebChatInterface,
+  plugin: Plugin,
   path: string,
   method: WebRouteMethod,
 ): WebRouteDefinition | undefined {
-  const route = plugin
-    .getWebRoutes()
-    .find(
-      (candidate) => candidate.path === path && candidate.method === method,
-    );
+  const route = (plugin.getWebRoutes?.() ?? []).find(
+    (candidate) => candidate.path === path && candidate.method === method,
+  );
   if (!route) {
     throw new Error(`Missing ${method} ${path} route`);
   }
@@ -317,7 +347,7 @@ function getRoute(
 }
 
 function requireRoute(
-  plugin: WebChatInterface,
+  plugin: Plugin,
   path: string,
   method: WebRouteMethod,
 ): WebRouteDefinition {
@@ -326,11 +356,11 @@ function requireRoute(
   return route;
 }
 
-describe("WebChatInterface", () => {
-  let harness: PluginTestHarness<WebChatInterface>;
+describe("the web chat interface", () => {
+  let harness: PluginTestHarness<Plugin>;
 
   beforeEach(() => {
-    harness = createPluginHarness<WebChatInterface>();
+    harness = createPluginHarness<Plugin>();
     const conversations: Conversation[] = [];
     harness.getMockShell().setConversationService(
       makeFixedConversationService({
@@ -357,16 +387,16 @@ describe("WebChatInterface", () => {
   });
 
   it("registers as the web-chat interface", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
 
     await harness.installPlugin(plugin);
 
-    expect(plugin.id).toBe("web-chat");
+    expect(plugin.id).toBe("@brains/web-chat:web-chat");
     expect(plugin.type).toBe("interface");
     expect(plugin.packageName).toBe("@brains/web-chat");
     expect(harness.getMockShell().listEndpoints()).toContainEqual(
       expect.objectContaining({
-        pluginId: "web-chat",
+        pluginId: "@brains/web-chat:web-chat",
         label: "Chat",
         visibility: "trusted",
       }),
@@ -374,7 +404,7 @@ describe("WebChatInterface", () => {
   });
 
   it("registers source-backed Discuss in chat at the configured mount", async () => {
-    const plugin = new WebChatInterface({ routePath: "/talk" });
+    const plugin = webChatPlugin({ routePath: "/talk" });
     await harness.installPlugin(plugin);
     harness
       .getMockShell()
@@ -488,6 +518,8 @@ describe("WebChatInterface", () => {
       }),
     );
 
+    await drain(response);
+
     expect(response.status).toBe(200);
     expect(sourceReads).toEqual([
       { itemId: "mail-1", permissionLevel: "admin" },
@@ -564,6 +596,8 @@ describe("WebChatInterface", () => {
         }),
       }),
     );
+
+    await drain(response);
 
     expect(response.status).toBe(200);
     expect(sourceReads).toEqual(["mail-1"]);
@@ -768,10 +802,10 @@ describe("WebChatInterface", () => {
   });
 
   it("exposes chat page, AI SDK endpoint, and UI asset routes", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
 
-    const routes = plugin.getWebRoutes();
+    const routes = plugin.getWebRoutes?.() ?? [];
 
     expect(routes).toHaveLength(18);
     expect(routes[0]).toMatchObject({
@@ -1224,6 +1258,8 @@ describe("WebChatInterface", () => {
       }),
     );
 
+    await drain(response);
+
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(1);
     expect(agent.chatCalls[0]?.context).toEqual(
@@ -1429,7 +1465,7 @@ describe("WebChatInterface", () => {
           return undefined;
         },
       });
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -1524,7 +1560,7 @@ describe("WebChatInterface", () => {
   });
 
   it("requires authentication for the guest chat page until guest access is enabled", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/ask", "GET");
 
@@ -1614,14 +1650,14 @@ describe("WebChatInterface", () => {
     const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
 
-    const bootstrap = plugin
-      .getWebRoutes()
-      .find((route) => route.path === "/api/chat/bootstrap");
+    const bootstrap = (plugin.getWebRoutes?.() ?? []).find(
+      (route) => route.path === "/api/chat/bootstrap",
+    );
     expect(bootstrap).toBeUndefined();
   });
 
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/ask/assets/app.js", "GET");
     const stylesheetRoute = getRoute(plugin, "/ask/assets/app.css", "GET");
@@ -1652,7 +1688,7 @@ describe("WebChatInterface", () => {
   it("rejects chat POSTs without an auth session", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat", "POST");
 
@@ -2508,7 +2544,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects image attachment requests from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 
@@ -2520,7 +2556,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects document attachment requests from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
 
@@ -2551,7 +2587,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects artifact job status requests from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/jobs/status", "GET");
 
@@ -2594,7 +2630,7 @@ describe("WebChatInterface", () => {
 
     const uploadDir = join(
       "/tmp/mock-shell-test-data",
-      "upload",
+      "web-chat.upload",
       "uploads",
       body.id,
     );
@@ -2614,7 +2650,7 @@ describe("WebChatInterface", () => {
   it("stores multipart uploads in runtime data, not content brain-data", async () => {
     const root = "/tmp/web-chat-file-upload-path-test";
     await rm(root, { recursive: true, force: true });
-    const scopedHarness = createPluginHarness<WebChatInterface>({
+    const scopedHarness = createPluginHarness<Plugin>({
       dataDir: join(root, "brain-data"),
     });
     const plugin = adminPlugin(scopedHarness);
@@ -2637,12 +2673,19 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(201);
     expect(
       await Bun.file(
-        join(root, "data", "upload", "uploads", body.id, "content"),
+        join(root, "data", "web-chat.upload", "uploads", body.id, "content"),
       ).text(),
     ).toBe("# Runtime");
     expect(
       await Bun.file(
-        join(root, "brain-data", "upload", "uploads", body.id, "content"),
+        join(
+          root,
+          "brain-data",
+          "web-chat.upload",
+          "uploads",
+          body.id,
+          "content",
+        ),
       ).exists(),
     ).toBe(false);
 
@@ -2720,7 +2763,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects stored upload downloads from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "GET");
 
@@ -2734,7 +2777,7 @@ describe("WebChatInterface", () => {
   });
 
   it("rejects multipart uploads from unauthenticated callers", async () => {
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const form = new FormData();
@@ -2842,7 +2885,11 @@ describe("WebChatInterface", () => {
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
 
-    const uploadsRoot = join("/tmp/mock-shell-test-data", "upload", "uploads");
+    const uploadsRoot = join(
+      "/tmp/mock-shell-test-data",
+      "web-chat.upload",
+      "uploads",
+    );
     // Seed a stale upload dir (>24h old) that should be swept.
     const staleDir = join(
       uploadsRoot,
@@ -2913,6 +2960,8 @@ describe("WebChatInterface", () => {
       }),
     );
 
+    await drain(response);
+
     expect(response?.status).toBe(200);
     expect(agent.chatCalls[0]?.message).toBe("Summarize this");
     expect(agent.chatCalls[0]?.context?.attachments).toEqual([
@@ -2961,6 +3010,8 @@ describe("WebChatInterface", () => {
         }),
       }),
     );
+
+    await drain(response);
 
     expect(response?.status).toBe(200);
     expect(agent.chatCalls[0]?.message).toBe("Describe this image");
@@ -3164,7 +3215,6 @@ describe("WebChatInterface", () => {
           source: expect.objectContaining({
             channelId: "test-conversation",
             channelName: "Web Chat",
-            metadata: expect.objectContaining({ trigger: "approval-response" }),
           }),
         }),
       }),
@@ -3357,6 +3407,8 @@ describe("WebChatInterface", () => {
       }),
     );
 
+    await drain(response);
+
     expect(response?.status).toBe(200);
     expect(agent.confirmCalls).toHaveLength(0);
     expect(agent.chatCalls).toEqual([
@@ -3376,7 +3428,6 @@ describe("WebChatInterface", () => {
             messageId: "user-message-2",
             channelId: "test-conversation",
             channelName: "Web Chat",
-            metadata: expect.objectContaining({ trigger: "message" }),
           }),
         }),
       },
@@ -3411,6 +3462,8 @@ describe("WebChatInterface", () => {
         }),
       }),
     );
+
+    await drain(response);
 
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(1);
@@ -3457,6 +3510,8 @@ describe("WebChatInterface", () => {
       }),
     );
 
+    await drain(response);
+
     expect(response?.status).toBe(200);
     expect(agent.chatCalls).toHaveLength(1);
     expect(agent.chatCalls[0]?.message).toBe("Summarize this");
@@ -3502,6 +3557,8 @@ describe("WebChatInterface", () => {
         }),
       }),
     );
+
+    await drain(response);
 
     expect(response?.status).toBe(200);
     expect(agent.chatCalls[0]?.context?.attachments).toEqual([
@@ -3638,7 +3695,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "GET");
 
@@ -3993,7 +4050,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "DELETE");
 
@@ -4082,7 +4139,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions", "PUT");
 
@@ -4193,7 +4250,7 @@ describe("WebChatInterface", () => {
         messagesByConversation: {},
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/sessions/archive", "PUT");
 
@@ -4279,7 +4336,7 @@ describe("WebChatInterface", () => {
         },
       }),
     );
-    const plugin = new WebChatInterface();
+    const plugin = webChatPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/messages", "GET");
 

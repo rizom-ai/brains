@@ -25,7 +25,12 @@ interface Receiver {
     channel: { id: string };
     text: string;
     attachments?: () => Promise<
-      readonly { name: string; mediaType: string; text?: string }[]
+      readonly {
+        name: string;
+        mediaType: string;
+        text?: string;
+        source?: { kind: string; id: string };
+      }[]
     >;
   }): Promise<void>;
 }
@@ -98,7 +103,13 @@ describe("an inbound attachment the interface already has", () => {
       text: "what does this say?",
       // No URL: nothing here is reachable over HTTP, and nothing should try.
       attachments: async () => [
-        { name: "note.txt", mediaType: "text/plain", text: "the bytes" },
+        {
+          name: "note.txt",
+          mediaType: "text/plain",
+          text: "the bytes",
+          // Where the interface put them, so the agent can reach them again.
+          source: { kind: "upload", id: "upl_7" },
+        },
       ],
     });
 
@@ -109,6 +120,7 @@ describe("an inbound attachment the interface already has", () => {
         mediaType: "text/plain",
         content: "the bytes",
         sizeBytes: 9,
+        source: { kind: "upload", id: "upl_7" },
       },
     ]);
   });

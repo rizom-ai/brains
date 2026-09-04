@@ -1,9 +1,19 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { StructuredChatCard } from "@brains/plugins";
-import {
-  handleStreamedChat,
-  handleStreamedConfirmations,
-} from "../src/chat-stream";
+import type {
+  AttachmentCard,
+  ResponseRenderDirective,
+  ToolApprovalCard,
+} from "@brains/plugins";
+import { writeAnswer } from "../src/chat-stream";
+
+/**
+ * How an answer reads on an open connection.
+ *
+ * What a turn is made of, in what order, and what the caller may see is the
+ * runtime's — it hands these directives over already decided. What is left
+ * here is web-chat's own half: one frame per piece so the client can render
+ * text as it lands and replace a tool row when the tool finishes.
+ */
 
 const leakedFooter =
   '\n\n[Entities affected this turn: anchor-profile "anchor-profile" (updated). Reference these IDs directly in follow-ups instead of searching for them.]';
@@ -21,328 +31,133 @@ function createWriter(): {
   return { writer, writes };
 }
 
-function textDeltas(writes: unknown[]): string[] {
-  return writes.flatMap((write) => {
-    if (
+function partsOfType(writes: unknown[], type: string): unknown[] {
+  return writes.filter(
+    (write) =>
       typeof write === "object" &&
       write !== null &&
       "type" in write &&
-      write.type === "text-delta" &&
-      "delta" in write &&
-      typeof write.delta === "string"
-    ) {
-      return [write.delta];
-    }
-    return [];
-  });
+      write.type === type,
+  );
 }
 
-function createDeps(
-  agent: {
-    chat?: ReturnType<typeof mock>;
-    confirmPendingAction?: ReturnType<typeof mock>;
-  },
-  options?: {
-    getEntity?: (ref: {
-      entityType: string;
-      id: string;
-      visibilityScope?: unknown;
-    }) => Promise<{
-      content: unknown;
-      metadata: Record<string, unknown>;
-    } | null>;
-    persistUnmatchedApprovalTerminal?: () => Promise<void>;
-  },
-): Parameters<typeof handleStreamedChat>[1] {
-  return {
-    activeStreams: new Map(),
-    // Both members filled in: the deps require them, and a test that supplies
-    // only one used to assert the gap away.
-    agent: {
-      chat: agent.chat ?? mock(),
-      confirmPendingAction: agent.confirmPendingAction ?? mock(),
-    },
-    startProcessingInput: mock(() => {}),
-    endProcessingInput: mock(() => {}),
-    handleAgentResponseToolStatuses: mock(async () => {}),
-    createId: (prefix: string) => `${prefix}-id`,
-    persistUnmatchedApprovalTerminal:
-      options?.persistUnmatchedApprovalTerminal ?? mock(async () => {}),
-    displayBaseUrl: undefined,
-    // Default: every artifact is visible (existing tests have no attachments).
-    entityService: {
-      getEntity:
-        options?.getEntity ??
-        (async (): Promise<{
-          content: unknown;
-          metadata: Record<string, unknown>;
-        }> => ({
-          content: "data:application/pdf;base64,AA==",
-          metadata: {},
-        })),
-    },
-  };
-}
-
-function attachmentEvents(writes: unknown[]): string[] {
-  return writes.flatMap((write) =>
+function textDeltas(writes: unknown[]): string[] {
+  return partsOfType(writes, "text-delta").flatMap((write) =>
     typeof write === "object" &&
     write !== null &&
-    "type" in write &&
-    write.type === "data-attachment" &&
-    "id" in write &&
-    typeof write.id === "string"
-      ? [write.id]
+    "delta" in write &&
+    typeof write.delta === "string"
+      ? [write.delta]
       : [],
   );
 }
 
-function toolResultEvents(writes: unknown[]): unknown[] {
-  return writes.flatMap((write) =>
-    typeof write === "object" &&
-    write !== null &&
-    "type" in write &&
-    write.type === "data-tool-result" &&
-    "data" in write
-      ? [write.data]
-      : [],
-  );
+function write(directives: ResponseRenderDirective[]): unknown[] {
+  const { writer, writes } = createWriter();
+  writeAnswer(writer, directives, (prefix: string) => `${prefix}-id`);
+  return writes;
 }
 
-describe("chat stream", () => {
-  it("does not stream internal entity memory footer text from chat responses", async () => {
-    const { writer, writes } = createWriter();
-    const deps = createDeps({
-      chat: mock(async () => ({
-        text: `Completed: Updated anchor profile.${leakedFooter}`,
-        toolResults: [],
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      })),
-    });
+const attachmentCard: AttachmentCard = {
+  kind: "attachment",
+  id: "card-1",
+  title: "Quarterly report",
+  attachment: {
+    mediaType: "application/pdf",
+    url: "/api/chat/attachments/document?id=doc-1",
+    filename: "report.pdf",
+  },
+};
 
-    await handleStreamedChat(
-      {
-        writer,
-        conversationId: "conversation-1",
-        message: "Yeehaa",
-        permissionLevel: "admin",
-        attachments: [],
-        interfaceType: "web-chat",
-      },
-      deps,
-    );
+const approvalCard: ToolApprovalCard = {
+  kind: "tool-approval",
+  id: "approval-1",
+  toolCallId: "call-1",
+  toolName: "publish",
+  summary: "Publish the post",
+  state: "approval-requested",
+};
 
-    const streamedText = textDeltas(writes).join("\n");
-    expect(streamedText).toBe("Completed: Updated anchor profile.");
-    expect(streamedText).not.toContain("Entities affected this turn");
-    expect(streamedText).not.toContain("Reference these IDs directly");
+describe("an answer on the open stream", () => {
+  it("does not carry the internal entity memory footer", () => {
+    const writes = write([
+      { kind: "text", text: `Saved your profile.${leakedFooter}` },
+    ]);
+
+    expect(textDeltas(writes)).toEqual(["Saved your profile."]);
   });
 
-  it("streams each tool result from the response plan, with uploads redacted", async () => {
-    // The frames come from the plan's directives rather than the raw response:
-    // the runtime decides what a turn is made of, and it redacts upload
-    // references there so no interface can forget to.
-    const { writer, writes } = createWriter();
-    const deps = createDeps({
-      chat: mock(async () => ({
-        text: "Saved",
-        toolResults: [
-          {
-            toolName: "system_create",
-            args: { file: { kind: "upload", id: "upload-1" } },
-            data: { entityId: "note-1" },
-          },
-        ],
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      })),
-    });
-
-    await handleStreamedChat(
+  it("writes each tool result as its own frame", () => {
+    const writes = write([
+      { kind: "text", text: "Here you go." },
       {
-        writer,
-        conversationId: "conversation-1",
-        message: "Save this",
-        permissionLevel: "admin",
-        attachments: [],
-        interfaceType: "web-chat",
+        kind: "tool-result",
+        result: { toolName: "search", data: { hits: 2 } },
       },
-      deps,
-    );
-
-    expect(toolResultEvents(writes)).toEqual([
       {
-        toolName: "system_create",
-        args: { file: "uploaded file" },
-        data: { entityId: "note-1" },
+        kind: "tool-result",
+        result: { toolName: "publish", jobId: "job-1" },
+      },
+    ]);
+
+    expect(partsOfType(writes, "data-tool-result")).toEqual([
+      {
+        type: "data-tool-result",
+        id: "tool-id",
+        data: { toolName: "search", data: { hits: 2 } },
+      },
+      {
+        type: "data-tool-result",
+        id: "tool-id",
+        data: { toolName: "publish", jobId: "job-1" },
       },
     ]);
   });
 
-  it("attributes authenticated runtime principals to web-chat actors", async () => {
-    const { writer } = createWriter();
-    const chat = mock(async () => ({
-      text: "Hello Mira",
-      toolResults: [],
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-    }));
-    const deps = createDeps({ chat });
+  it("writes an artifact the caller may have as an attachment frame", () => {
+    const writes = write([
+      { kind: "text", text: "Report ready." },
+      { kind: "artifact", card: attachmentCard },
+    ]);
 
-    await handleStreamedChat(
+    expect(partsOfType(writes, "data-attachment")).toHaveLength(1);
+  });
+
+  it("writes nothing at all for an artifact the caller may not have", () => {
+    // Not even the card's metadata: the runtime marked this one denied, and a
+    // filename is still something the caller was not meant to learn.
+    const writes = write([
+      { kind: "text", text: "Report ready." },
+      { kind: "denied-artifact", card: attachmentCard },
+    ]);
+
+    expect(partsOfType(writes, "data-attachment")).toEqual([]);
+    expect(partsOfType(writes, "tool-input-available")).toEqual([]);
+  });
+
+  it("writes a pending approval as a native tool approval request", () => {
+    const writes = write([
+      { kind: "text", text: "This needs your say-so." },
       {
-        writer,
-        conversationId: "conversation-1",
-        message: "Hello",
-        permissionLevel: "admin",
-        principal: {
-          userId: "usr_mira",
-          canonicalId: "user:mira",
-          displayName: "Mira",
-          isAnchor: true,
-        },
-        attachments: [],
-        interfaceType: "web-chat",
-      },
-      deps,
-    );
-
-    expect(chat).toHaveBeenCalledWith(
-      "Hello",
-      "conversation-1",
-      expect.objectContaining({
-        isAnchor: true,
-        actor: {
-          identity: {
-            kind: "user",
-            userId: "usr_mira",
-            canonicalId: "user:mira",
+        kind: "approvals",
+        cards: [approvalCard],
+        confirmations: [
+          {
+            id: "approval-1",
+            toolName: "publish",
+            summary: "Publish the post",
+            args: {},
           },
-          displayName: "Mira",
-          interfaceType: "web-chat",
-          role: "user",
-        },
-      }),
-      undefined,
-    );
-  });
+        ],
+      },
+    ]);
 
-  it("does not stream attachment cards for permission-denied artifacts", async () => {
-    const { writer, writes } = createWriter();
-    const restrictedCard: StructuredChatCard = {
-      kind: "attachment",
-      id: "card-restricted",
-      title: "Restricted report",
-      attachment: {
-        filename: "q3-financials.pdf",
-        mediaType: "application/pdf",
-        url: "/api/files/q3-financials.pdf",
-        source: { entityType: "document", entityId: "q3-financials" },
-      },
-    };
-    const visibleCard: StructuredChatCard = {
-      kind: "attachment",
-      id: "card-visible",
-      title: "Public report",
-      attachment: {
-        filename: "public.pdf",
-        mediaType: "application/pdf",
-        url: "/api/files/public.pdf",
-        source: { entityType: "document", entityId: "public-doc" },
-      },
-    };
-    const deps = createDeps(
+    expect(partsOfType(writes, "tool-approval-request")).toEqual([
       {
-        chat: mock(async () => ({
-          text: "Here are the files.",
-          toolResults: [],
-          cards: [restrictedCard, visibleCard],
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        })),
+        type: "tool-approval-request",
+        approvalId: "approval-1",
+        toolCallId: "call-1",
       },
-      {
-        getEntity: async (ref) => {
-          const restricted = ref.id === "q3-financials";
-          // Visibility-scoped query: the restricted artifact is invisible to
-          // a public caller, but it still exists (unscoped lookup finds it).
-          if (ref.visibilityScope !== undefined) {
-            return restricted
-              ? null
-              : { content: "data:application/pdf;base64,AA==", metadata: {} };
-          }
-          return { content: "data:application/pdf;base64,AA==", metadata: {} };
-        },
-      },
-    );
-
-    await handleStreamedChat(
-      {
-        writer,
-        conversationId: "conversation-1",
-        message: "show me the files",
-        permissionLevel: "public",
-        attachments: [],
-        interfaceType: "web-chat",
-      },
-      deps,
-    );
-
-    const streamed = attachmentEvents(writes);
-    expect(streamed).toContain("card-visible");
-    expect(streamed).not.toContain("card-restricted");
-  });
-
-  it("terminally resolves an expired approval response", async () => {
-    const { writer, writes } = createWriter();
-    const deps = createDeps({
-      confirmPendingAction: mock(async () => ({
-        text: "No pending action to confirm.",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      })),
-    });
-
-    await handleStreamedConfirmations(
-      {
-        writer,
-        conversationId: "conversation-1",
-        approvalResponses: [{ id: "approval:expired-call", approved: true }],
-        permissionLevel: "admin",
-        interfaceType: "web-chat",
-      },
-      deps,
-    );
-
-    expect(writes).toContainEqual(
-      expect.objectContaining({
-        type: "tool-output-error",
-        toolCallId: "approval:expired-call",
-      }),
-    );
-  });
-
-  it("does not stream internal entity memory footer text from confirmation responses", async () => {
-    const { writer, writes } = createWriter();
-    const deps = createDeps({
-      confirmPendingAction: mock(async () => ({
-        text: `Completed: Updated anchor profile.${leakedFooter}`,
-        toolResults: [],
-        cards: [],
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      })),
-    });
-
-    await handleStreamedConfirmations(
-      {
-        writer,
-        conversationId: "conversation-1",
-        approvalResponses: [{ id: "approval-1", approved: true }],
-        permissionLevel: "admin",
-        interfaceType: "web-chat",
-      },
-      deps,
-    );
-
-    const streamedText = textDeltas(writes).join("\n");
-    expect(streamedText).toBe("Completed: Updated anchor profile.");
-    expect(streamedText).not.toContain("Entities affected this turn");
-    expect(streamedText).not.toContain("Reference these IDs directly");
+    ]);
   });
 });

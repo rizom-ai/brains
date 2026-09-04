@@ -391,6 +391,20 @@ export interface MessageChannelDefinition<
    */
   readonly subjectPattern?: ChannelSubjectPattern | undefined;
   readonly recipient: TRecipientSchema;
+  /**
+   * How a conversation on this channel is keyed.
+   *
+   * Default `"derived"`: the runtime keys it `<type>:<channel>:<thread>`,
+   * because a room id from somebody else's service means nothing on its own
+   * and two services can name a room the same thing.
+   *
+   * `"channel"` says the interface mints its own session keys and hands them
+   * out — web-chat gives the browser an id and gets it back on the next turn,
+   * having already gated the caller against the conversation stored under it.
+   * Prefixing that would key a second conversation beside the one it checked.
+   * Named consumer: @brains/web-chat.
+   */
+  readonly conversationKey?: "derived" | "channel" | undefined;
 }
 
 // A subscription is not an interface concept — a service answers requests on
@@ -469,6 +483,15 @@ export interface InboundMessageAttachment {
   readonly data?: Uint8Array | undefined;
   /** The text, for the same reason, when the attachment is text. */
   readonly text?: string | undefined;
+  /**
+   * Where the interface put these bytes, when it kept them.
+   *
+   * An upload the person attached is stored, and the reference is how the
+   * agent reaches it again in a later turn — and how a card showing it again
+   * knows what to redact. Dropping it on the way in would leave the agent
+   * holding bytes with no name for them.
+   */
+  readonly source?: { readonly kind: string; readonly id: string } | undefined;
 }
 
 /**
@@ -491,13 +514,54 @@ export interface ReceiveAuthenticatedInput {
   readonly sender: InboundMessageSender;
   readonly channel: MessageChannel;
   readonly text: string;
+  /**
+   * The id the sender's own client already gave this message.
+   *
+   * A browser mints one before it posts, and it is what ties the stored turn
+   * to what the person is looking at. An interface whose messages arrive
+   * without ids omits it and the runtime records none.
+   */
+  readonly messageId?: string | undefined;
   readonly caller?: AuthenticatedCaller | undefined;
   readonly attachments?:
     (() => Promise<readonly InboundMessageAttachment[]>) | undefined;
 }
 
+/**
+ * An answer to a question the brain asked, from a client that knows which
+ * question it is answering.
+ *
+ * `receiveAuthenticated` reads a reply as text and matches it against the
+ * approvals it is holding, because a sentence is all a chat channel gives it.
+ * A client with buttons already has the approval's id; writing that back into
+ * a sentence for the runtime to parse out again can only lose.
+ * Named consumer: @brains/web-chat.
+ */
+export interface ResolveApprovalInput {
+  readonly sender: InboundMessageSender;
+  readonly channel: MessageChannel;
+  readonly approvalId: string;
+  readonly approved: boolean;
+  /** The client's id for the tool call, when it draws approvals as tools. */
+  readonly toolCallId?: string | undefined;
+  readonly caller?: AuthenticatedCaller | undefined;
+}
+
+/**
+ * What became of it.
+ *
+ * `not-pending` is the one case a client cannot infer: it keeps resubmitting
+ * an approval until the tool call it drew reaches a terminal state, so an
+ * approval the brain has already resolved would leave that call open forever.
+ * The text is the brain's own account of why.
+ */
+export type ApprovalOutcome =
+  | { readonly kind: "resolved" }
+  | { readonly kind: "not-pending"; readonly text: string };
+
 export interface MessageReceiver {
   receiveAuthenticated(input: ReceiveAuthenticatedInput): Promise<void>;
+  resolveApproval(input: ResolveApprovalInput): Promise<ApprovalOutcome>;
 }
 
 export interface MessageInterfaceDefinitionInput<

@@ -1,270 +1,45 @@
-import { createExternalActorId } from "@brains/contracts";
-import {
-  buildMessageActorMetadata,
-  buildMessageSourceMetadata,
-  buildResponsePlan,
-  collectDeniedArtifactCardIds,
-  type AgentNamespace,
-  type AgentResponse,
-  type ChatAttachment,
-  type ChatContext,
-  type MessageArtifactEntity,
-  type UserPermissionLevel,
-} from "@brains/plugins";
-import type { ApprovalResponse } from "./chat-input";
+import type { ResponseRenderDirective } from "@brains/sdk/interfaces";
 import { stripInternalEntityMemoryNote } from "./display-content";
 import {
-  writePlanCards,
+  writeDirectiveCards,
+  writeDirectiveToolResults,
   writeTextPart,
   type StreamWriter,
-  writePlanToolResults,
 } from "./stream-writer";
 
+/**
+ * The stream a turn is being written to, while it is open.
+ *
+ * A browser turn is one HTTP request that stays open, so everything the
+ * runtime has to say about it — the answer, job progress, tool activity —
+ * arrives while the route is still holding the writer. The route registers
+ * it under the conversation id before handing the turn on, and the slots the
+ * runtime calls find it here.
+ */
 export interface ActiveStream {
   writer: StreamWriter;
 }
 
-export interface StreamDeps {
-  activeStreams: Map<string, ActiveStream>;
-  /** The two calls this stream makes, not the whole agent namespace. */
-  agent: Pick<AgentNamespace, "chat" | "confirmPendingAction">;
-  startProcessingInput(conversationId: string): void;
-  endProcessingInput(): void;
-  handleAgentResponseToolStatuses(
-    response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
-    conversationId: string,
-  ): Promise<void>;
-  createId(prefix: string): string;
-  persistUnmatchedApprovalTerminal(
-    conversationId: string,
-    approvalResponse: ApprovalResponse,
-    errorText: string,
-  ): Promise<void>;
-  /** Resolve site URL for artifact entity-ref parsing (denial check). */
-  displayBaseUrl: string | undefined;
-  /** Backs the permission-denied artifact check so restricted cards are not streamed. */
-  entityService: {
-    getEntity: (ref: {
-      entityType: string;
-      id: string;
-      // The scope the entity service actually accepts. Declared here rather
-      // than as `unknown`, which forced the caller to assert the ref back into
-      // the real request type.
-      visibilityScope?: "public" | "shared" | "restricted" | undefined;
-    }) => Promise<MessageArtifactEntity | null | undefined>;
-  };
-}
-
-async function deniedArtifactCardIds(
-  deps: StreamDeps,
-  response: Pick<AgentResponse, "cards">,
-  userLevel: UserPermissionLevel,
-): Promise<Set<string>> {
-  return collectDeniedArtifactCardIds({
-    cards: response.cards,
-    userLevel,
-    displayBaseUrl: deps.displayBaseUrl,
-    getEntity: (ref) => deps.entityService.getEntity(ref),
-    getVisibleEntity: (ref, visibilityScope) =>
-      deps.entityService.getEntity({ ...ref, visibilityScope }),
-  });
-}
-
-interface WebChatPrincipalAttribution {
-  userId: string;
-  canonicalId?: string;
-  displayName: string;
-  isAnchor: boolean;
-}
-
-function hasMatchingApprovalCard(
-  response: Pick<AgentResponse, "cards">,
-  approvalResponse: ApprovalResponse,
-): boolean {
-  return Boolean(
-    response.cards?.some(
-      (card) =>
-        card.kind === "tool-approval" &&
-        (card.id === approvalResponse.id ||
-          (approvalResponse.toolCallId !== undefined &&
-            card.toolCallId === approvalResponse.toolCallId)),
-    ),
-  );
-}
-
-async function writeUnmatchedApprovalTerminal(
+/**
+ * An answer, as frames.
+ *
+ * The runtime decided what this turn is made of and in what order; what a
+ * stream adds is that each piece is its own frame with its own id, so the
+ * client can render text as it lands and replace a tool row when the tool
+ * finishes. Text is written here rather than by the card writer because it is
+ * the one piece that needs display stripping.
+ */
+export function writeAnswer(
   writer: StreamWriter,
-  conversationId: string,
-  approvalResponse: ApprovalResponse,
-  response: Pick<AgentResponse, "cards" | "text">,
-  deps: StreamDeps,
-): Promise<void> {
-  if (hasMatchingApprovalCard(response, approvalResponse)) return;
-
-  // AI SDK automatically resubmits a trailing approval response until its
-  // tool part reaches a terminal state. A stale server-side approval has no
-  // result card, so close the client-side tool instead of replaying forever.
-  const responseText = stripInternalEntityMemoryNote(response.text).trim();
-  const errorText = responseText || "This approval is no longer pending.";
-  writer.write({
-    type: "tool-output-error",
-    toolCallId: approvalResponse.toolCallId ?? approvalResponse.id,
-    errorText,
-    dynamic: true,
-  });
-  await deps.persistUnmatchedApprovalTerminal(
-    conversationId,
-    approvalResponse,
-    errorText,
-  );
-}
-
-interface StreamedChatInput {
-  writer: StreamWriter;
-  conversationId: string;
-  message: string;
-  permissionLevel: UserPermissionLevel;
-  principal?: WebChatPrincipalAttribution;
-  attachments: ChatAttachment[];
-  messageId?: string;
-  interfaceType: string;
-  signal?: AbortSignal;
-}
-
-export async function handleStreamedChat(
-  input: StreamedChatInput,
-  deps: StreamDeps,
-): Promise<void> {
-  deps.activeStreams.set(input.conversationId, { writer: input.writer });
-  deps.startProcessingInput(input.conversationId);
-
-  try {
-    const response = await deps.agent.chat(
-      input.message,
-      input.conversationId,
-      {
-        ...buildWebChatContext(input),
-        attachments: input.attachments,
-      },
-      input.signal,
-    );
-
-    await deps.handleAgentResponseToolStatuses(response, input.conversationId);
-    const deniedCardIds = await deniedArtifactCardIds(
-      deps,
-      response,
-      input.permissionLevel,
-    );
-    const plan = buildResponsePlan(response, { deniedCardIds });
-    writeText(input.writer, response.text, "text", deps.createId);
-    writePlanToolResults(input.writer, plan, deps.createId);
-    writePlanCards(input.writer, plan);
-  } finally {
-    deps.endProcessingInput();
-    deps.activeStreams.delete(input.conversationId);
+  directives: readonly ResponseRenderDirective[],
+  createId: (prefix: string) => string,
+): void {
+  for (const directive of directives) {
+    if (directive.kind !== "text") continue;
+    writeText(writer, directive.text, "text", createId);
   }
-}
-
-interface StreamedConfirmationsInput {
-  writer: StreamWriter;
-  conversationId: string;
-  approvalResponses: ApprovalResponse[];
-  permissionLevel: UserPermissionLevel;
-  principal?: WebChatPrincipalAttribution;
-  interfaceType: string;
-  signal?: AbortSignal;
-}
-
-export async function handleStreamedConfirmations(
-  input: StreamedConfirmationsInput,
-  deps: StreamDeps,
-): Promise<void> {
-  deps.activeStreams.set(input.conversationId, { writer: input.writer });
-  deps.startProcessingInput(input.conversationId);
-
-  try {
-    for (const approvalResponse of input.approvalResponses) {
-      const response = await deps.agent.confirmPendingAction(
-        input.conversationId,
-        approvalResponse.approved,
-        approvalResponse.id,
-        {
-          ...buildWebChatContext(input, {
-            trigger: "approval-response",
-            approvalId: approvalResponse.id,
-          }),
-        },
-        input.signal,
-      );
-      await deps.handleAgentResponseToolStatuses(
-        response,
-        input.conversationId,
-      );
-      const deniedCardIds = await deniedArtifactCardIds(
-        deps,
-        response,
-        input.permissionLevel,
-      );
-      const plan = buildResponsePlan(response, { deniedCardIds });
-      writeText(input.writer, response.text, "text", deps.createId);
-      writePlanCards(input.writer, plan);
-      await writeUnmatchedApprovalTerminal(
-        input.writer,
-        input.conversationId,
-        approvalResponse,
-        response,
-        deps,
-      );
-    }
-  } finally {
-    deps.endProcessingInput();
-    deps.activeStreams.delete(input.conversationId);
-  }
-}
-
-function buildWebChatContext(
-  input: {
-    conversationId: string;
-    interfaceType: string;
-    permissionLevel: UserPermissionLevel;
-    principal?: WebChatPrincipalAttribution;
-    messageId?: string;
-  },
-  metadata: Record<string, unknown> = { trigger: "message" },
-): ChatContext {
-  return {
-    userPermissionLevel: input.permissionLevel,
-    isAnchor: input.principal?.isAnchor ?? false,
-    interfaceType: input.interfaceType,
-    channelId: input.conversationId,
-    channelName: "Web Chat",
-    actor: buildMessageActorMetadata({
-      identity: input.principal
-        ? {
-            kind: "user",
-            userId: input.principal.userId,
-            ...(input.principal.canonicalId
-              ? { canonicalId: input.principal.canonicalId }
-              : {}),
-          }
-        : {
-            kind: "external",
-            externalActorId: createExternalActorId(
-              input.interfaceType,
-              `${input.interfaceType}:${input.conversationId}:browser-user`,
-            ),
-          },
-      interfaceType: input.interfaceType,
-      role: "user",
-      displayName: input.principal?.displayName ?? "Web Chat user",
-    }),
-    source: buildMessageSourceMetadata({
-      ...(input.messageId ? { messageId: input.messageId } : {}),
-      channelId: input.conversationId,
-      channelName: "Web Chat",
-      metadata,
-    }),
-  };
+  writeDirectiveToolResults(writer, directives, createId);
+  writeDirectiveCards(writer, directives);
 }
 
 export function writeText(

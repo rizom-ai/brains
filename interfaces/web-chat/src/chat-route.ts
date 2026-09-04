@@ -1,6 +1,11 @@
 import { chatContextHandoffRequestSchema } from "@brains/contracts/chat";
 import type {
+  AuthPrincipal,
+  AuthenticatedCaller,
   ChatAttachment,
+  InboundMessageAttachment,
+  MessageReceiver,
+  ScopedRuntimeUploadStore,
   UserPermissionLevel,
 } from "@brains/sdk/interfaces";
 import { coerceConversationMetadata } from "@brains/sdk/interfaces";
@@ -15,36 +20,35 @@ import {
   extractLatestApprovalResponses,
   type ApprovalResponse,
 } from "./chat-input";
-import {
-  handleStreamedChat,
-  handleStreamedConfirmations,
-  writeText,
-  type StreamDeps,
-} from "./chat-stream";
+import { writeText } from "./chat-stream";
+import { stripInternalEntityMemoryNote } from "./display-content";
+import type { ActiveStream } from "./chat-stream";
 import type { StreamWriter } from "./stream-writer";
 import type { BrowserAccessReader } from "./browser-access";
 
 /**
  * The browser's own turn.
  *
- * Everything else web-chat serves is a request-and-answer; this is the one
- * route that opens a stream, hands a turn to the agent, and writes what comes
- * back as frames while job progress arrives on the same connection. Extracted
- * from the interface class as a function over named dependencies, so what a
- * turn actually needs is written down rather than reachable through `this`.
+ * Everything else web-chat serves is a request and an answer; this is the one
+ * route that opens a stream and keeps it open while the brain works. What it
+ * does with the turn is hand it to the runtime — the same receiver a socket
+ * listener gets — having first registered the writer under the conversation
+ * id, so the answer, job progress and tool activity all land as frames on the
+ * connection the person is already holding.
+ *
+ * What it does not do is call the agent. Tracking what is pending, deciding
+ * what an answer is made of, denying artifacts above the caller's level and
+ * reporting tool activity are the runtime's, and were duplicated here for as
+ * long as there was no way to hand a turn over from a request.
  */
 
 const MAX_INBOX_SOURCE_CHARACTERS = 50_000;
 
-/**
- * The route builds `persistUnmatchedApprovalTerminal` itself, from the
- * conversation store and the caller's level, so it is not asked for.
- */
-export interface ChatRouteDeps extends Omit<
-  StreamDeps,
-  "persistUnmatchedApprovalTerminal"
-> {
+export interface ChatRouteDeps {
   access: BrowserAccessReader;
+  /** The turn goes here; the runtime does the rest. */
+  messages: MessageReceiver;
+  activeStreams: Map<string, ActiveStream>;
   conversations: {
     get(conversationId: string): Promise<{ metadata?: unknown } | null>;
     addMessage(request: {
@@ -67,7 +71,8 @@ export interface ChatRouteDeps extends Omit<
       | undefined;
   };
   interfaceType: string;
-  uploads: Parameters<typeof extractLastUserInput>[1]["uploadStore"];
+  uploads: ScopedRuntimeUploadStore;
+  createId(prefix: string): string;
 }
 
 function inboxContextUnavailable(): Response {
@@ -141,46 +146,90 @@ async function inboxAttachment(
 }
 
 /**
- * What a stale approval leaves behind.
+ * An attachment this interface is already holding, as the runtime takes it.
+ *
+ * Nothing is fetched: the bytes came in on this request or out of web-chat's
+ * own upload store, and the reference to that store rides along so the agent
+ * can reach the file again in a later turn.
+ */
+function inboundAttachment(
+  attachment: ChatAttachment,
+): InboundMessageAttachment {
+  return {
+    name: attachment.filename,
+    mediaType: attachment.mediaType,
+    ...(attachment.kind === "text"
+      ? { text: attachment.content }
+      : { data: attachment.data }),
+    ...(attachment.source ? { source: attachment.source } : {}),
+  };
+}
+
+/**
+ * Who the brain is answering.
+ *
+ * web-chat verified this session itself, so it says who the caller is rather
+ * than leaving the runtime to guess from permission rules written for senders
+ * on other people's services.
+ */
+function authenticatedCaller(
+  principal: AuthPrincipal,
+  permissionLevel: UserPermissionLevel,
+): AuthenticatedCaller {
+  return {
+    permissionLevel,
+    isAnchor: principal.isAnchor,
+    userId: principal.userId,
+    ...(principal.canonicalId ? { canonicalId: principal.canonicalId } : {}),
+  };
+}
+
+/**
+ * What an approval the brain is no longer holding leaves behind.
  *
  * The client resubmits a trailing approval until its tool part is terminal, so
- * an approval the server no longer holds has to be closed in the transcript as
- * well as on the wire, or the next load replays it.
+ * a stale one has to be closed on the wire and in the transcript, or the next
+ * page load replays it forever.
  */
-function persistUnmatchedApprovalTerminal(
+async function closeStaleApproval(
+  writer: StreamWriter,
   deps: ChatRouteDeps,
-  permissionLevel: UserPermissionLevel,
-): (
   conversationId: string,
   approvalResponse: ApprovalResponse,
-  errorText: string,
-) => Promise<void> {
-  return async (conversationId, approvalResponse, errorText) => {
-    await deps.conversations.addMessage({
-      conversationId,
-      role: "assistant",
-      content: errorText,
-      metadata: {
-        userPermissionLevel: permissionLevel,
-        cards: [
-          {
-            kind: "tool-approval",
-            id: approvalResponse.id,
-            ...(approvalResponse.toolCallId
-              ? { toolCallId: approvalResponse.toolCallId }
-              : {}),
-            toolName: approvalResponse.toolName ?? "unknown-tool",
-            ...(approvalResponse.input
-              ? { input: approvalResponse.input }
-              : {}),
-            summary: approvalResponse.title ?? "Approval is no longer pending.",
-            state: "output-error",
-            error: errorText,
-          },
-        ],
-      },
-    });
-  };
+  responseText: string,
+  permissionLevel: UserPermissionLevel,
+): Promise<void> {
+  const errorText =
+    stripInternalEntityMemoryNote(responseText).trim() ||
+    "This approval is no longer pending.";
+  writer.write({
+    type: "tool-output-error",
+    toolCallId: approvalResponse.toolCallId ?? approvalResponse.id,
+    errorText,
+    dynamic: true,
+  });
+  await deps.conversations.addMessage({
+    conversationId,
+    role: "assistant",
+    content: errorText,
+    metadata: {
+      userPermissionLevel: permissionLevel,
+      cards: [
+        {
+          kind: "tool-approval",
+          id: approvalResponse.id,
+          ...(approvalResponse.toolCallId
+            ? { toolCallId: approvalResponse.toolCallId }
+            : {}),
+          toolName: approvalResponse.toolName ?? "unknown-tool",
+          ...(approvalResponse.input ? { input: approvalResponse.input } : {}),
+          summary: approvalResponse.title ?? "Approval is no longer pending.",
+          state: "output-error",
+          error: errorText,
+        },
+      ],
+    },
+  });
 }
 
 export async function handleChatRequest(
@@ -189,7 +238,12 @@ export async function handleChatRequest(
 ): Promise<Response> {
   const { principal, permissionLevel, hasChatAccess } =
     await deps.access.resolve(request);
-  if (!hasChatAccess) return new Response("Forbidden", { status: 403 });
+  // Chat access is only ever granted to a session, so a caller without a
+  // principal cannot have it — checked rather than assumed, because who the
+  // turn is attributed to depends on it.
+  if (!hasChatAccess || !principal) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   let body: unknown;
   try {
@@ -238,60 +292,69 @@ export async function handleChatRequest(
       : undefined;
   if (attached instanceof Response) return attached;
 
-  const streamDeps = {
-    activeStreams: deps.activeStreams,
-    agent: deps.agent,
-    startProcessingInput: deps.startProcessingInput,
-    endProcessingInput: deps.endProcessingInput,
-    handleAgentResponseToolStatuses: deps.handleAgentResponseToolStatuses,
-    createId: deps.createId,
-    persistUnmatchedApprovalTerminal: persistUnmatchedApprovalTerminal(
-      deps,
-      permissionLevel,
-    ),
-    displayBaseUrl: deps.displayBaseUrl,
-    entityService: deps.entityService,
-  };
+  const sender = { id: principal.userId, displayName: principal.displayName };
+  const caller = authenticatedCaller(principal, permissionLevel);
+  const channel = { id: conversationId };
+  const inbound = (attached ? [attached, ...attachments] : attachments).map(
+    inboundAttachment,
+  );
 
   const stream = createUIMessageStream<UIMessage>({
     execute: async ({ writer }: { writer: StreamWriter }) => {
-      if (approvalResponses.length > 0) {
-        await handleStreamedConfirmations(
-          {
-            writer,
-            conversationId,
-            approvalResponses,
-            permissionLevel,
-            ...(principal ? { principal } : {}),
-            interfaceType: deps.interfaceType,
-            signal: request.signal,
-          },
-          streamDeps,
-        );
-        return;
-      }
+      // Registered before the turn is handed on: the runtime writes the
+      // answer, job progress and tool activity through the slots, and each
+      // finds the connection here by conversation id.
+      deps.activeStreams.set(conversationId, { writer });
+      try {
+        if (approvalResponses.length > 0) {
+          for (const approvalResponse of approvalResponses) {
+            const outcome = await deps.messages.resolveApproval({
+              sender,
+              channel,
+              approvalId: approvalResponse.id,
+              approved: approvalResponse.approved,
+              ...(approvalResponse.toolCallId
+                ? { toolCallId: approvalResponse.toolCallId }
+                : {}),
+              caller,
+            });
+            if (outcome.kind === "not-pending") {
+              await closeStaleApproval(
+                writer,
+                deps,
+                conversationId,
+                approvalResponse,
+                outcome.text,
+                permissionLevel,
+              );
+            }
+          }
+          return;
+        }
 
-      // A resubmitted assistant turn: the client already has the text, so the
-      // agent is not asked again — it is written straight back.
-      if (responseText !== undefined) {
-        writeText(writer, responseText, "text", deps.createId);
-        return;
-      }
+        // A resubmitted assistant turn: the client already has the text, so
+        // the brain is not asked again — it is written straight back.
+        if (responseText !== undefined) {
+          writeText(writer, responseText, "text", deps.createId);
+          return;
+        }
 
-      await handleStreamedChat(
-        {
-          writer,
-          conversationId,
-          message,
-          permissionLevel,
-          ...(principal ? { principal } : {}),
-          attachments: attached ? [attached, ...attachments] : attachments,
+        await deps.messages.receiveAuthenticated({
+          sender,
+          channel,
+          text: message,
           ...(messageId ? { messageId } : {}),
-          interfaceType: deps.interfaceType,
-          signal: request.signal,
-        },
-        streamDeps,
-      );
+          caller,
+          ...(inbound.length > 0
+            ? {
+                attachments: async (): Promise<InboundMessageAttachment[]> =>
+                  inbound,
+              }
+            : {}),
+        });
+      } finally {
+        deps.activeStreams.delete(conversationId);
+      }
     },
   });
 

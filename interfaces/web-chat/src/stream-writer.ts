@@ -1,6 +1,6 @@
 import {
   redactUploadRefsInStructuredCard,
-  type ResponsePlan,
+  type ResponseRenderDirective,
   type StructuredChatCard,
 } from "@brains/sdk/interfaces";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
@@ -25,18 +25,18 @@ export function writeTextPart(
 }
 
 /**
- * Stream the tool-result directives of a response plan.
+ * Stream the tool-result directives of an answer.
  *
- * The results come from the plan rather than the response: the runtime decides
- * what a turn is made of and redacts upload references while building it, so
- * this writes what it was given rather than re-deciding either.
+ * The results come as directives rather than off the response: the runtime
+ * decides what a turn is made of and redacts upload references while deciding,
+ * so this writes what it was given rather than re-deciding either.
  */
-export function writePlanToolResults(
+export function writeDirectiveToolResults(
   writer: StreamWriter,
-  plan: ResponsePlan,
+  directives: readonly ResponseRenderDirective[],
   createId: (prefix: string) => string,
 ): void {
-  for (const directive of plan.directives) {
+  for (const directive of directives) {
     if (directive.kind !== "tool-result") continue;
     writer.write({
       type: "data-tool-result",
@@ -47,14 +47,17 @@ export function writePlanToolResults(
 }
 
 /**
- * Stream the card directives of a response plan. Text is written by the
- * caller (it needs display stripping); denied artifacts are not exposed
- * at all — not even their card metadata — matching the discrete-message
- * interfaces. Approval-requested cards stream from the approvals
- * directive, which is web-chat's approval UX.
+ * Stream the card directives of an answer. Text is written by the caller (it
+ * needs display stripping); denied artifacts are not exposed at all — not
+ * even their card metadata — matching the discrete-message interfaces.
+ * Approval-requested cards stream from the approvals directive, which is
+ * web-chat's approval UX.
  */
-export function writePlanCards(writer: StreamWriter, plan: ResponsePlan): void {
-  const cards = plan.directives.flatMap((directive): StructuredChatCard[] => {
+export function writeDirectiveCards(
+  writer: StreamWriter,
+  directives: readonly ResponseRenderDirective[],
+): void {
+  const cards = directives.flatMap((directive): StructuredChatCard[] => {
     switch (directive.kind) {
       case "artifact":
       case "supplemental":

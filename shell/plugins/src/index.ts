@@ -431,11 +431,17 @@ export {
   verbatim,
 } from "./public/interface-definition";
 export type {
+  AnyInterfaceRouteDefinition,
+  ApprovalOutcome,
+  AuthenticatedCaller,
+  InboundMessageAttachment,
   InterfaceEntityReader,
   InterfaceJobs,
   InterfaceJobStatus,
   InterfaceSetupContext,
   InterfaceUploads,
+  MessageReceiver,
+  ResolveApprovalInput,
   RouteResponse,
   VerbatimResponse,
 } from "./public/interface-definition";
