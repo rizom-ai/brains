@@ -36,8 +36,9 @@ describe("deriveConsoleSurfaces", () => {
 
   const allSurfaceRoutes = [
     route("dashboard", "/dashboard"),
-    route("web-chat", "/chat"),
-    route("web-chat", "/chat/api/messages"),
+    route("web-chat", "/ask"),
+    route("web-chat", "/api/chat/messages"),
+    route("studio", "/chat"),
     route("studio", "/studio"),
     route("studio", "/studio/api/types"),
   ];
@@ -127,7 +128,7 @@ describe("deriveConsoleSurfaces", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "web-chat",
       permissionLevel: "public",
-      self: { id: "web-chat", href: "/chat" },
+      self: { id: "web-chat", href: "/ask" },
     });
 
     // A caller on their own surface always keeps its door; nothing else leaks.
@@ -136,7 +137,7 @@ describe("deriveConsoleSurfaces", () => {
 
   it("marks the rendering surface active from any surface", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
+      [route("dashboard", "/dashboard"), route("web-chat", "/ask")],
       {
         activeId: "web-chat",
         permissionLevel: "admin",
@@ -150,7 +151,7 @@ describe("deriveConsoleSurfaces", () => {
 
   it("omits surfaces whose plugin registered no routes", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("web-chat", "/chat")],
+      [route("dashboard", "/dashboard"), route("web-chat", "/ask")],
       {
         activeId: "dashboard",
         permissionLevel: "admin",
@@ -165,6 +166,7 @@ describe("deriveConsoleSurfaces", () => {
     const surfaces = deriveConsoleSurfaces(
       [
         route("studio", "/studio/api/entities/post"),
+        route("studio", "/chat"),
         route("studio", "/studio"),
         route("studio", "/studio/assets/app.js"),
       ],

@@ -9,7 +9,7 @@ describe("Web Chat public API routes", () => {
     const apiPath = "/custom/chat-api";
     const paths = createChatApiPaths(apiPath);
     const routes = createWebChatRoutes({
-      routePath: "/chat",
+      routePath: "/ask",
       apiPath,
       handlers: {
         handleChatPage: ok,

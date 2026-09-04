@@ -1500,7 +1500,7 @@ function dashboardInput(): DashboardRenderInput {
           id: "chat",
           label: "Chat",
           description: "Ask about anything held in public scope.",
-          href: "/chat",
+          href: "/ask",
           kind: "human",
           pluginId: "web-chat",
           priority: 10,
@@ -2566,7 +2566,7 @@ const server = Bun.serve({
         climateHtml(renderDashboardPageHtml(dashboardInput()), request),
         { headers: { "content-type": "text/html" } },
       );
-    if (url.pathname === "/chat")
+    if (url.pathname === "/ask")
       return new Response(
         climateHtml(
           renderChatPage({
@@ -2578,11 +2578,11 @@ const server = Bun.serve({
         ),
         { headers: { "content-type": "text/html" } },
       );
-    if (url.pathname === "/chat/assets/app.js")
+    if (url.pathname === "/ask/assets/app.js")
       return new Response(await readFile(chatAsset), {
         headers: { "content-type": "text/javascript" },
       });
-    if (url.pathname === "/chat/assets/app.css")
+    if (url.pathname === "/ask/assets/app.css")
       return new Response(await readFile(chatStyles), {
         headers: { "content-type": "text/css" },
       });
@@ -2599,6 +2599,7 @@ const server = Bun.serve({
       });
     }
     if (
+      url.pathname === "/chat" ||
       url.pathname === "/studio" ||
       url.pathname.startsWith("/studio/entities/") ||
       url.pathname.startsWith("/studio/workspaces/")
@@ -3043,13 +3044,13 @@ try {
         const route = isDashboard
           ? "/dashboard"
           : isChat
-            ? "/chat"
+            ? "/ask"
             : surface === "studio-account"
               ? "/studio/workspaces/studio%3Aaccount"
               : surface === "studio-overview"
                 ? "/studio/workspaces/studio%3Aoverview"
                 : surface.startsWith("studio-chat")
-                  ? "/studio/workspaces/web-chat%3Achat"
+                  ? "/chat"
                   : surface === "studio-inbox"
                     ? "/studio/workspaces/unified-inbox%3Ainbox"
                     : surface === "studio-content-sync"

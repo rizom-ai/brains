@@ -31,6 +31,8 @@ import {
   STUDIO_ACCOUNT_WORKSPACE_RENDERER,
 } from "../../src/account-workspace";
 import {
+  STUDIO_CHAT_ROUTE_PATH,
+  STUDIO_CHAT_WORKSPACE_ID,
   STUDIO_CHAT_WORKSPACE_RENDERER,
   studioChatWorkspacePath,
 } from "../../src/chat-workspace";
@@ -182,10 +184,15 @@ export function App(): ReactElement {
     select: (state) => state.location.state,
   });
   const studioBasePath = getStudioRouterBasePath();
-  // TanStack Router exposes a pathname relative to its configured basepath.
   const routeTarget = useMemo(
-    () => parseStudioPath(routePathname, "/"),
-    [routePathname],
+    () =>
+      routePathname === STUDIO_CHAT_ROUTE_PATH
+        ? ({
+            kind: "workspace",
+            workspaceId: STUDIO_CHAT_WORKSPACE_ID,
+          } as const)
+        : parseStudioPath(routePathname, studioBasePath),
+    [routePathname, studioBasePath],
   );
   const createMode = useMemo(
     () =>
@@ -193,13 +200,7 @@ export function App(): ReactElement {
       new URLSearchParams(routeSearch).get("mode") === "create",
     [routeSearch, routeTarget],
   );
-  const currentStudioPathname = useMemo(
-    () =>
-      routePathname === "/"
-        ? studioBasePath
-        : `${studioBasePath === "/" ? "" : studioBasePath}${routePathname}`,
-    [studioBasePath, routePathname],
-  );
+  const currentStudioPathname = routePathname;
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(
     null,
   );
@@ -764,7 +765,11 @@ export function App(): ReactElement {
 
   const selectWorkspace = useCallback(
     (workspaceId: string): void => {
-      router.history.push(studioWorkspacePath(studioBasePath, workspaceId));
+      router.history.push(
+        workspaceId === STUDIO_CHAT_WORKSPACE_ID
+          ? studioChatWorkspacePath(studioBasePath)
+          : studioWorkspacePath(studioBasePath, workspaceId),
+      );
     },
     [studioBasePath, router.history],
   );

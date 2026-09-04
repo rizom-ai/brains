@@ -6,6 +6,10 @@ import {
   parseStudioPath,
 } from "../../src/studio-paths";
 import {
+  STUDIO_CHAT_ROUTE_PATH,
+  studioChatWorkspacePath,
+} from "../../src/chat-workspace";
+import {
   createStudioRouter,
   resolveStudioHomePath,
   resolveStudioWorkspaceAlias,
@@ -41,6 +45,20 @@ describe("Studio browser router", () => {
       ),
     ).toBe(
       `${studioWorkspacePath("/studio", "admin:administration")}?selected=person-1&tab=people`,
+    );
+  });
+
+  it("matches canonical Chat without rewriting it to a workspace path", async () => {
+    const history = createMemoryHistory({
+      initialEntries: ["/chat?session=thread-1"],
+    });
+    const router = createStudioRouter("/studio", undefined, history);
+    await router.load();
+
+    expect(router.state.matches.length).toBeGreaterThan(0);
+    expect(history.location.pathname).toBe(STUDIO_CHAT_ROUTE_PATH);
+    expect(studioChatWorkspacePath("/studio", "thread-1")).toBe(
+      "/chat?session=thread-1",
     );
   });
 

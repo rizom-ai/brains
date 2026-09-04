@@ -8,6 +8,7 @@ import {
   requiredImages,
   resolveImageBuilds,
   runResolveMissingImages,
+  runtimeImageTag,
   sitePackagesFor,
   siteImageTag,
 } from "../src/images";
@@ -54,6 +55,24 @@ describe("siteImageTag", () => {
       "@rizom/site-rizom-ai@0.2.0-alpha.148",
     ]);
     expect(a).not.toBe(b);
+  });
+});
+
+describe("runtimeImageTag", () => {
+  it("uses one plain tag for every instance in the shared fleet contract", () => {
+    expect(
+      runtimeImageTag("shared-fleet-v1", "0.2.0-alpha.350", [
+        "@rizom/site-docs@0.2.0-alpha.237",
+      ]),
+    ).toBe("brain-0.2.0-alpha.350");
+  });
+
+  it("preserves isolated site tags for fleets that explicitly select them", () => {
+    expect(
+      runtimeImageTag("isolated-sites-v1", "0.2.0-alpha.350", [
+        "@rizom/site-docs@0.2.0-alpha.237",
+      ]),
+    ).toMatch(/^brain-0\.2\.0-alpha\.350-sites-[0-9a-f]{12}$/);
   });
 });
 
@@ -139,6 +158,73 @@ describe("requiredImages", () => {
     expect(site?.tag).toBe(
       siteImageTag("0.2.0-alpha.167", site?.sitePackages ?? []),
     );
+  });
+
+  it("builds one shared image per version with the union of site packages", () => {
+    const images = requiredImages(
+      [
+        { brainVersion: "0.2.0-alpha.350" },
+        {
+          brainVersion: "0.2.0-alpha.350",
+          siteOverride: {
+            package: "@rizom/site-docs",
+            version: "0.2.0-alpha.237",
+            theme: "@rizom/theme-rizom-ai",
+            themeVersion: "0.2.0-alpha.234",
+          },
+        },
+        {
+          brainVersion: "0.2.0-alpha.350",
+          siteOverride: {
+            package: "@rizom/site-rizom-ai",
+            version: "0.2.0-alpha.238",
+            theme: "@rizom/theme-rizom-ai",
+            themeVersion: "0.2.0-alpha.234",
+          },
+        },
+      ],
+      "shared-fleet-v1",
+    );
+
+    expect(images).toEqual([
+      {
+        tag: "brain-0.2.0-alpha.350",
+        brainVersion: "0.2.0-alpha.350",
+        sitePackages: [
+          "@rizom/site-docs@0.2.0-alpha.237",
+          "@rizom/site-rizom-ai@0.2.0-alpha.238",
+          "@rizom/theme-rizom-ai@0.2.0-alpha.234",
+        ],
+      },
+    ]);
+  });
+
+  it("rejects conflicting package pins in one shared version image", () => {
+    expect(() =>
+      requiredImages(
+        [
+          {
+            brainVersion: "0.2.0-alpha.350",
+            siteOverride: {
+              package: "@rizom/site-docs",
+              version: "0.2.0-alpha.237",
+              theme: "@rizom/theme-rizom-ai",
+              themeVersion: "0.2.0-alpha.234",
+            },
+          },
+          {
+            brainVersion: "0.2.0-alpha.350",
+            siteOverride: {
+              package: "@rizom/site-rizom-ai",
+              version: "0.2.0-alpha.238",
+              theme: "@rizom/theme-rizom-ai",
+              themeVersion: "0.2.0-alpha.235",
+            },
+          },
+        ],
+        "shared-fleet-v1",
+      ),
+    ).toThrow(/conflicting pins.*@rizom\/theme-rizom-ai/i);
   });
 
   it("dedupes identical site-override instances into one image", () => {
@@ -266,6 +352,7 @@ describe("runResolveMissingImages", () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.160
 bundleContract: capability-bundles-v1
+imageContract: shared-fleet-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -332,7 +419,7 @@ members:
       .parse(JSON.parse(outputs["images_json"] ?? "[]"));
     expect(matrix).toEqual([
       {
-        tag: builds[0]?.tag ?? "",
+        tag: "brain-0.2.0-alpha.167",
         brain_version: "0.2.0-alpha.167",
         site_packages:
           "@rizom/site-rizom-ai@0.2.0-alpha.167 @rizom/theme-rizom-ai@0.2.0-alpha.165",
@@ -349,6 +436,7 @@ members:
       env: {
         BRAIN_VERSION_INPUT: "0.2.0-alpha.169",
         SITE_PACKAGES_INPUT: "@rizom/site-rizom-ai@0.2.0-alpha.169",
+        IMAGE_CONTRACT_INPUT: "shared-fleet-v1",
       },
       runCommand: async () => {
         throw new Error("must not probe the registry for an explicit build");
@@ -360,6 +448,7 @@ members:
     });
 
     expect(builds).toHaveLength(1);
+    expect(builds[0]?.tag).toBe("brain-0.2.0-alpha.169");
     expect(JSON.parse(outputs["images_json"] ?? "[]")).toHaveLength(1);
   });
 });

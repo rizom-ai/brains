@@ -49,6 +49,7 @@
 + studio|handler|DELETE|/studio/api/entities|exact|true
 + studio|handler|GET|/account|prefix|true
 + studio|handler|GET|/admin|prefix|true
++ studio|handler|GET|/chat|exact|true
 + studio|handler|GET|/cms|prefix|true
 + studio|handler|GET|/studio/api/agents|exact|true
 + studio|handler|GET|/studio/api/entities|exact|true
@@ -73,9 +74,9 @@
 + web-chat|handler|GET|/api/chat/messages|exact|true
 + web-chat|handler|GET|/api/chat/sessions|exact|true
 + web-chat|handler|GET|/api/chat/uploads|exact|true
-+ web-chat|handler|GET|/chat/assets/app.css|exact|true
-+ web-chat|handler|GET|/chat/assets/app.js|exact|true
-+ web-chat|handler|GET|/chat|exact|true
++ web-chat|handler|GET|/ask/assets/app.css|exact|true
++ web-chat|handler|GET|/ask/assets/app.js|exact|true
++ web-chat|handler|GET|/ask|exact|true
 + web-chat|handler|POST|/api/agent/chat/confirm|exact|true
 + web-chat|handler|POST|/api/agent/chat|exact|true
 + web-chat|handler|POST|/api/chat/actions|exact|true

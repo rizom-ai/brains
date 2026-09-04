@@ -90,7 +90,7 @@ async function renderApp(): Promise<
 }
 
 beforeEach(() => {
-  windowInstance = new Window({ url: "http://brain.test/chat" });
+  windowInstance = new Window({ url: "http://brain.test/ask" });
   mutationCalls = [];
   Object.assign(globalThis, {
     window: windowInstance,

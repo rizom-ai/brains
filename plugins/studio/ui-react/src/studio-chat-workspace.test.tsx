@@ -41,9 +41,7 @@ async function waitForSessions(): Promise<void> {
 }
 
 beforeEach(() => {
-  windowInstance = new Window({
-    url: "http://brain.test/studio/workspaces/web-chat%3Achat",
-  });
+  windowInstance = new Window({ url: "http://brain.test/chat" });
   navigations = [];
   Object.assign(globalThis, {
     window: windowInstance,
@@ -170,9 +168,7 @@ describe("native Studio Chat workspace", () => {
       itemId: "mail-1",
       titleSeed: "Mercury launch",
     });
-    expect(navigations).toContain(
-      "/studio/workspaces/web-chat%3Achat?session=context-conversation",
-    );
+    expect(navigations).toContain("/chat?session=context-conversation");
     expect(
       document.querySelector<HTMLTextAreaElement>(
         ".studio-chat-composer textarea",
@@ -216,9 +212,7 @@ describe("native Studio Chat workspace", () => {
       (element) => element.textContent.includes("Launch narrative"),
     );
     click(launch, "Launch narrative session");
-    expect(navigations).toContain(
-      "/studio/workspaces/web-chat%3Achat?session=conversation-1",
-    );
+    expect(navigations).toContain("/chat?session=conversation-1");
 
     const contextDestination = [
       ...document.querySelectorAll(".studio-chat-mobile-destination"),

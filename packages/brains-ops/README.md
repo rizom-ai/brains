@@ -2,6 +2,10 @@
 
 Operator CLI package for managing pilot brain fleet registry repos.
 
+## Runtime image contracts
+
+`pilot.yaml.imageContract` selects image topology. `shared-fleet-v1` builds one immutable `brain-${brainVersion}` image per effective Brain version, containing the union of exact site and theme package pins used on that version. Conflicting package pins fail before build. `isolated-sites-v1` retains package-hashed images for fleets that explicitly require isolation.
+
 ## Commands
 
 - `brains-ops init <repo>`

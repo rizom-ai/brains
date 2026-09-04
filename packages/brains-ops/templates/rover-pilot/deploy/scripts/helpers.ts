@@ -7,6 +7,7 @@ export {
   writeGitHubOutput,
   writeGitHubEnv,
   siteImageTag,
+  runtimeImageTag,
   sitePackagesFor,
   runResolveMissingImages,
 } from "@rizom/ops/deploy";

@@ -109,7 +109,7 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 | `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                                           |
 | `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                                   |
 | `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                                               |
-| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                             |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                       |
 | `interfaces/webserver` | In-process Hono server: site pages, dashboard/Studio routes, API routes, and split health endpoints |
 | `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                                            |
 

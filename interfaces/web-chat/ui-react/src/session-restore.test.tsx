@@ -28,7 +28,7 @@ async function waitForRestoredMessage(): Promise<void> {
 }
 
 beforeEach(() => {
-  windowInstance = new Window({ url: "http://brain.test/chat" });
+  windowInstance = new Window({ url: "http://brain.test/ask" });
   fetchCalls = [];
   historyMessages = [
     { id: "old-message", role: "user", content: "Before reload" },
@@ -133,7 +133,7 @@ describe("startup session restoration", () => {
         },
       },
       "",
-      "/chat",
+      "/ask",
     );
     const queryClient = createWebChatQueryClient();
 
