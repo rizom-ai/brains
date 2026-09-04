@@ -1,50 +1,22 @@
 import { z } from "@brains/utils/zod";
-import { deckStatusSchema, type DeckStatus } from "../schemas/deck";
+import { deckStatusSchema } from "../schemas/deck";
 
-interface DeckViewFrontmatter {
-  title: string;
-  slug: string | null;
-  description: string | null;
-  author: string | null;
-  status: DeckStatus;
-  publishedAt: string | null;
-  event: string | null;
-  coverImageId: string | null;
-  ogImageId: string | null;
-}
-
-interface DeckViewMetadata {
-  title: string;
-  description: string | null;
-  status: DeckStatus;
-  publishedAt: string | null;
-  coverImageId: string | null;
-  slug: string;
-  error: string | null;
-}
-
-export interface DeckSchemaData {
-  id: string;
-  entityType: "deck";
-  content: string;
-  created: string;
-  updated: string;
-  visibility: "public" | "shared" | "restricted";
-  metadata: DeckViewMetadata;
-  contentHash: string;
-  frontmatter: DeckViewFrontmatter;
-  body: string;
-  url: string | null;
-  typeLabel: string | null;
-  listUrl: string | null;
-  listLabel: string | null;
-  coverImageUrl: string | null;
-  ogImageUrl: string | null;
-  coverImageWidth: number | null;
-  coverImageHeight: number | null;
-}
-
-const visibilitySchema = z
+type Visibility = "public" | "shared" | "restricted";
+const visibilitySchema: z.ZodPipe<
+  z.ZodOptional<
+    z.ZodUnion<
+      readonly [
+        z.ZodEnum<{
+          public: "public";
+          shared: "shared";
+          restricted: "restricted";
+        }>,
+        z.ZodLiteral<"private">,
+      ]
+    >
+  >,
+  z.ZodTransform<Visibility, Visibility | "private" | undefined>
+> = z
   .union([z.enum(["public", "shared", "restricted"]), z.literal("private")])
   .optional()
   .transform((value) => {
@@ -53,7 +25,17 @@ const visibilitySchema = z
     return value;
   });
 
-const frontmatterSchema = z.object({
+const frontmatterSchema: z.ZodObject<{
+  title: z.ZodString;
+  slug: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  author: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  status: typeof deckStatusSchema;
+  publishedAt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  event: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  coverImageId: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  ogImageId: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}> = z.object({
   title: z.string(),
   slug: z.string().nullable().default(null),
   description: z.string().nullable().default(null),
@@ -65,7 +47,15 @@ const frontmatterSchema = z.object({
   ogImageId: z.string().nullable().default(null),
 });
 
-const metadataSchema = z.object({
+const metadataSchema: z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  status: typeof deckStatusSchema;
+  publishedAt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  coverImageId: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  slug: z.ZodString;
+  error: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}> = z.object({
   title: z.string(),
   description: z.string().nullable().default(null),
   status: deckStatusSchema,
@@ -75,7 +65,26 @@ const metadataSchema = z.object({
   error: z.string().nullable().default(null),
 });
 
-export const deckViewSchema: z.ZodType<DeckSchemaData> = z.object({
+export const deckViewSchema: z.ZodObject<{
+  id: z.ZodString;
+  entityType: z.ZodLiteral<"deck">;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  visibility: typeof visibilitySchema;
+  metadata: typeof metadataSchema;
+  contentHash: z.ZodString;
+  frontmatter: typeof frontmatterSchema;
+  body: z.ZodString;
+  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  listUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  listLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+  coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
+}> = z.object({
   id: z.string(),
   entityType: z.literal("deck"),
   content: z.string(),
@@ -95,6 +104,8 @@ export const deckViewSchema: z.ZodType<DeckSchemaData> = z.object({
   coverImageWidth: z.number().nullable().default(null),
   coverImageHeight: z.number().nullable().default(null),
 });
+
+export type DeckSchemaData = z.output<typeof deckViewSchema>;
 
 export type DeckView = Omit<
   DeckSchemaData,

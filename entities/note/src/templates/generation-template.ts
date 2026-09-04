@@ -4,12 +4,10 @@ import { createTemplate, type Template } from "@brains/plugins";
 /**
  * Schema for AI-generated note
  */
-export interface NoteGeneration {
-  title: string;
-  body: string;
-}
-
-export const noteGenerationSchema: z.ZodType<NoteGeneration> = z.object({
+export const noteGenerationSchema: z.ZodObject<{
+  title: z.ZodString;
+  body: z.ZodString;
+}> = z.object({
   title: z
     .string()
     .max(80)
@@ -20,6 +18,8 @@ export const noteGenerationSchema: z.ZodType<NoteGeneration> = z.object({
       "Note content in markdown format with clear organization and structure",
     ),
 });
+
+export type NoteGeneration = z.output<typeof noteGenerationSchema>;
 
 /**
  * Template for AI-powered note generation

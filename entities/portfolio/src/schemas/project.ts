@@ -4,28 +4,19 @@ import { baseEntityParserSchema } from "@brains/plugins";
 /**
  * Project status
  */
-export type ProjectStatus = "generating" | "draft" | "published" | "failed";
+export const projectStatusSchema: z.ZodEnum<{
+  generating: "generating";
+  draft: "draft";
+  published: "published";
+  failed: "failed";
+}> = z.enum(["generating", "draft", "published", "failed"]);
 
-export const projectStatusSchema: z.ZodType<ProjectStatus, ProjectStatus> =
-  z.enum(["generating", "draft", "published", "failed"]);
-
-export interface ProjectFrontmatter {
-  [key: string]: unknown;
-  title: string;
-  slug?: string | undefined;
-  status: ProjectStatus;
-  publishedAt?: string | undefined;
-  description: string;
-  year: number;
-  coverImageId?: string | undefined;
-  ogImageId?: string | undefined;
-  url?: string | undefined;
-}
+export type ProjectStatus = z.output<typeof projectStatusSchema>;
 
 type ProjectFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodOptional<z.ZodString>;
-  status: z.ZodType<ProjectStatus, ProjectStatus>;
+  status: typeof projectStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
   description: z.ZodString;
   year: z.ZodNumber;
@@ -50,19 +41,11 @@ export const projectFrontmatterSchema: ProjectFrontmatterSchema = z.object({
   url: z.string().url().optional(), // Link to live project
 });
 
-export interface ProjectMetadata {
-  [key: string]: unknown;
-  title: string;
-  status: ProjectStatus;
-  publishedAt?: string | undefined;
-  year: number;
-  slug: string;
-  error?: string | undefined;
-}
+export type ProjectFrontmatter = z.output<typeof projectFrontmatterSchema>;
 
 type ProjectMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodType<ProjectStatus, ProjectStatus>;
+  status: typeof projectStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
   year: z.ZodNumber;
   slug: z.ZodString;
@@ -88,10 +71,7 @@ export const projectMetadataSchema: ProjectMetadataSchema =
       error: z.string().optional(),
     });
 
-export interface Project extends z.output<typeof baseEntityParserSchema> {
-  entityType: "project";
-  metadata: ProjectMetadata;
-}
+export type ProjectMetadata = z.output<typeof projectMetadataSchema>;
 
 /**
  * Project entity schema (extends BaseEntity)
@@ -107,6 +87,8 @@ export const projectSchema: ReturnType<
   entityType: z.literal("project"),
   metadata: projectMetadataSchema,
 });
+
+export type Project = z.output<typeof projectSchema>;
 
 export interface ProjectContent {
   context: string;

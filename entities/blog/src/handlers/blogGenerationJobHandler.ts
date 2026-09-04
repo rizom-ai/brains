@@ -15,16 +15,25 @@ import { blogPostSchema, type BlogPostFrontmatter } from "../schemas/blog-post";
 /**
  * Input schema for blog generation job
  */
-export interface BlogGenerationJobData {
-  prompt?: string | undefined;
-  title?: string | undefined;
-  content?: string | undefined;
-  excerpt?: string | undefined;
-  coverImageId?: string | undefined;
-  seriesName?: string | undefined;
-  seriesIndex?: number | undefined;
-  skipAi?: boolean | undefined;
-}
+export const blogGenerationJobSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  content: z.ZodOptional<z.ZodString>;
+  excerpt: z.ZodOptional<z.ZodString>;
+  coverImageId: z.ZodOptional<z.ZodString>;
+  seriesName: z.ZodOptional<z.ZodString>;
+  seriesIndex: z.ZodOptional<z.ZodNumber>;
+  skipAi: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
+  prompt: z.string().optional(),
+  title: z.string().optional(),
+  content: z.string().optional(),
+  excerpt: z.string().optional(),
+  coverImageId: z.string().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
+  skipAi: z.boolean().optional(),
+});
 
 /** Shape the blog generation template returns. */
 export const generatedBlogPostSchema: z.ZodObject<{
@@ -42,17 +51,7 @@ export const generatedExcerptSchema: z.ZodObject<{
   excerpt: z.ZodString;
 }> = z.object({ excerpt: z.string() });
 
-export const blogGenerationJobSchema: z.ZodType<BlogGenerationJobData> =
-  z.object({
-    prompt: z.string().optional(),
-    title: z.string().optional(),
-    content: z.string().optional(),
-    excerpt: z.string().optional(),
-    coverImageId: z.string().optional(),
-    seriesName: z.string().optional(),
-    seriesIndex: z.number().optional(),
-    skipAi: z.boolean().optional(),
-  });
+export type BlogGenerationJobData = z.output<typeof blogGenerationJobSchema>;
 
 export interface BlogGenerationResult extends GenerationResult {
   title?: string | undefined;

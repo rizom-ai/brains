@@ -1,17 +1,17 @@
 import { z } from "@brains/utils/zod";
 import { createTemplate, type Template } from "@brains/templates";
 
-export interface SeriesDescription {
-  description: string;
-}
-
-export const seriesDescriptionSchema: z.ZodType<SeriesDescription> = z.object({
+export const seriesDescriptionSchema: z.ZodObject<{
+  description: z.ZodString;
+}> = z.object({
   description: z
     .string()
     .describe(
       "A compelling 2-3 sentence description of the series that captures its theme and value",
     ),
 });
+
+export type SeriesDescription = z.output<typeof seriesDescriptionSchema>;
 
 export const seriesDescriptionTemplate: Template =
   createTemplate<SeriesDescription>({
