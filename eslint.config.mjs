@@ -134,6 +134,8 @@ export default [
       "plugins/directory-sync/test/**/*.ts",
       "shell/job-queue/test/**/*.ts",
       "shell/ai-service/test/**/*.ts",
+      "shell/messaging-service/test/**/*.ts",
+      "shared/media-renderer/test/**/*.ts",
       "interfaces/a2a/test/**/*.ts",
       "interfaces/chat/test/**/*.ts",
     ],
