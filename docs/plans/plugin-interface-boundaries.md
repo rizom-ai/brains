@@ -624,11 +624,39 @@ The second is the more useful finding: it was not a conversion blocker but a
 live defect in every already-declared message interface, and only measuring
 the conversion surfaced it.
 
-With those closed, `web-chat`'s remaining conversion is structural rather than
-capability work: the streaming route awaits a whole agent turn and then writes
-frames, so it maps onto `routes.messages` for the turn, `present` for the
-answer, and `progress` for job events — the three slots whose contracts
-already name `@brains/web-chat` as their consumer.
+Two more followed, found the same way. `toolStatus` had no slot at all — job
+progress reaches a declared interface either as a sentence or, with
+`progress`, as the event, but tool activity had neither, so a declared
+interface could not show that a tool was running. And the URL a brain's links
+are addressed by, `preferLocalUrls ? localSiteUrl : (siteUrl ?? localSiteUrl)`,
+was being re-derived in site-builder, chat and web-chat; it is now
+`displayBaseUrl` on the setup context, decided once. That one also caught a
+bug in the artifact-denial fix above, which had passed a bare domain where a
+URL base was wanted, so a card whose entity ref came from its link never
+resolved and never got denied.
+
+**What is left is one design question, not wiring.** Writing the declaration
+out reaches a single blocker: `chat-route` calls `agent.chat` itself, and so
+needs `startProcessingInput`, `endProcessingInput` and
+`handleAgentResponseToolStatuses` — three base-class members a declared
+interface has no access to, because the pipeline is supposed to do that
+bookkeeping around the turn. Routing through `messages.receiveAuthenticated`
+is what removes the need for them, and then `present` writes the answer's
+frames.
+
+The catch is confirmations. `receiveAuthenticated` takes text, and the
+pipeline recognises a reply to a pending approval by parsing it; web-chat's
+client sends an explicit approval id and a boolean, because it has buttons
+rather than a prompt. The existing seam for this is `interpret`, which lets an
+interface say what a reply means on its channel — so web-chat would send
+`yes <id>` and interpret it back. That is a decision about whether the
+pipeline's inbound shape should stay text-only, and it should be made
+deliberately rather than discovered halfway through a rewrite.
+
+Everything else about the conversion is mechanical: every web-chat route is
+public and answers with a whole `Response`, so each becomes a `verbatim`
+declared route over the same path table, and `send`, `edit`, `progress` and
+`toolStatus` are the four methods the class overrides today.
 
 **`web-chat` was measured at 47 and is 70.** The table above counted its
 `@brains/plugins` imports and missed a second boundary: 24 more symbols
