@@ -44,6 +44,7 @@ import type {
   MessageBusSendRequest,
   MessageResponse,
 } from "@brains/messaging-service";
+import { validateMessage } from "@brains/messaging-service";
 import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
@@ -67,6 +68,7 @@ import {
   type ListEntitiesRequest,
   type EntityMutationResult,
   type EntityExportIntent,
+  type CreateInterceptor,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type {
@@ -398,11 +400,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         ),
       );
     },
-    // Validation belongs to the real bus's schema registry; the fake accepts
-    // whatever a test sends rather than pretending to validate it.
-    validateMessage: <T>(_messageType: string, payload: unknown): T =>
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validateMessage is generic with no schema; the fake does not pretend to validate
-      payload as T,
+    // The caller supplies the schema, so the fake can validate for real
+    // rather than approximate it.
+    validateMessage,
   };
 
   // --- Entity Service (stateful) ---
@@ -785,10 +785,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityService = options.entityService ?? defaultEntityService;
 
   // --- Entity Registry ---
-  const createInterceptors = new Map<
-    string,
-    (input: unknown, executionContext: unknown) => Promise<unknown>
-  >();
+  const createInterceptors = new Map<string, CreateInterceptor>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
 
   const entityRegistry: IEntityRegistry = {
@@ -832,20 +829,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEntityTypeConfig,
     getWeightMap: () => ({}),
     registerCreateInterceptor: (type, interceptor) => {
-      createInterceptors.set(
-        type,
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- one map holds interceptors for every entity type; the same erasure as getAdapter
-        interceptor as (
-          input: unknown,
-          executionContext: unknown,
-        ) => Promise<unknown>,
-      );
+      createInterceptors.set(type, interceptor);
     },
-    getCreateInterceptor: (type) =>
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see registerCreateInterceptor above
-      createInterceptors.get(type) as ReturnType<
-        IEntityRegistry["getCreateInterceptor"]
-      >,
+    getCreateInterceptor: (type) => createInterceptors.get(type),
     registerUploadSaveHandler: (registration): void => {
       uploadSaveHandlers.push(registration);
     },
