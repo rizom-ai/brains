@@ -1,8 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import { SerialQueue } from "../../src/service/serial-queue";
 
-function defer(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * A queued operation that takes time.
+ *
+ * A real duration rather than a gate: these tests queue several operations at
+ * once and assert the queue runs them one after another, so what is needed is
+ * work that genuinely overlaps in wall-clock terms — a gate would have to be
+ * released in the order under test, which would assume the answer.
+ */
+function slowWork(ms: number): Promise<void> {
+  return Bun.sleep(ms);
 }
 
 describe("SerialQueue", () => {
@@ -20,12 +28,12 @@ describe("SerialQueue", () => {
     await Promise.all([
       queue.run(async () => {
         order.push("a:start");
-        await defer(15);
+        await slowWork(15);
         order.push("a:end");
       }),
       queue.run(async () => {
         order.push("b:start");
-        await defer(1);
+        await slowWork(1);
         order.push("b:end");
       }),
       queue.run(() => {
@@ -79,7 +87,7 @@ describe("SerialQueue", () => {
     let done = false;
 
     void queue.run(async () => {
-      await defer(10);
+      await slowWork(10);
       done = true;
     });
     await queue.settle();

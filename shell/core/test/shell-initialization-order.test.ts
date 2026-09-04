@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import type { Daemon, Plugin } from "@brains/plugins";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -58,6 +59,7 @@ describe("Shell initialization order", () => {
 
   it("should start webserver before plugins-registered initial sync handlers complete", async () => {
     const order: string[] = [];
+    const finishInitialSync = deferred();
 
     const webserverPlugin: Plugin = {
       id: "webserver-plugin",
@@ -93,7 +95,7 @@ describe("Shell initialization order", () => {
           .getMessageBus()
           .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             order.push("initial-sync-started");
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await finishInitialSync.promise;
             order.push("initial-sync-completed");
             return { success: true };
           });
@@ -104,17 +106,30 @@ describe("Shell initialization order", () => {
     const config = createTestShellConfig(testDir.dir);
     config.plugins = [webserverPlugin, directorySyncLikePlugin];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize();
-
-    expect(order.indexOf("webserver-started")).toBeGreaterThanOrEqual(0);
-    expect(order.indexOf("webserver-started")).toBeLessThan(
-      order.indexOf("initial-sync-started"),
+    // Held open rather than made slow with a 50ms sleep. The claim in the name
+    // is that the webserver is up *before the sync handler completes*, and
+    // holding the handler is what lets that be asserted while it is still
+    // running — the sleep only allowed a comparison of the two start indices,
+    // which is a weaker statement than the test's own title.
+    const initializing = shell.initialize();
+    await waitUntil(
+      () => order.includes("initial-sync-started"),
+      "the initial sync handler to start",
     );
+
+    expect(order).toContain("webserver-started");
+    expect(order).not.toContain("initial-sync-completed");
+
+    finishInitialSync.resolve();
+    await initializing;
+
+    expect(order).toContain("initial-sync-completed");
     expect(order).not.toContain("webserver-stopped");
   });
 
   it("should complete plugins-registered handlers before job processing can start", async () => {
     let pluginsRegisteredHandlerCompleted = false;
+    const finishReadyHandler = deferred();
 
     const testPlugin: Plugin = {
       id: "test-plugin",
@@ -127,7 +142,7 @@ describe("Shell initialization order", () => {
           .getMessageBus()
           .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             initOrder.push("ready-handler-started");
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await finishReadyHandler.promise;
             pluginsRegisteredHandlerCompleted = true;
             initOrder.push("ready-handler-completed");
             return { success: true };
@@ -139,7 +154,19 @@ describe("Shell initialization order", () => {
     const config = createTestShellConfig(testDir.dir);
     config.plugins = [testPlugin];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize();
+    const initializing = shell.initialize();
+
+    // The handler is held rather than slow, so "initialize did not return
+    // early" is checked against the handler still running rather than against
+    // a 50ms head start.
+    await waitUntil(
+      () => initOrder.includes("ready-handler-started"),
+      "the plugins-registered handler to start",
+    );
+    expect(pluginsRegisteredHandlerCompleted).toBe(false);
+
+    finishReadyHandler.resolve();
+    await initializing;
 
     expect(pluginsRegisteredHandlerCompleted).toBe(true);
     expect(initOrder).toContain("ready-handler-started");
@@ -224,6 +251,7 @@ describe("Shell initialization order", () => {
   });
 
   it("should complete initial-sync-completed handlers before ready hooks", async () => {
+    const finishSyncHandler = deferred();
     const lifecyclePlugin: Plugin = {
       id: "sync-barrier-plugin",
       version: "1.0.0",
@@ -235,7 +263,7 @@ describe("Shell initialization order", () => {
           .getMessageBus()
           .subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
             initOrder.push("sync-completed-handler-started");
-            await new Promise((resolve) => setTimeout(resolve, 20));
+            await finishSyncHandler.promise;
             initOrder.push("sync-completed-handler-completed");
             return { success: true };
           });
@@ -261,7 +289,18 @@ describe("Shell initialization order", () => {
     const config = createTestShellConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize();
+    const initializing = shell.initialize();
+
+    // The barrier is the point: while this handler is held, `ready` must not
+    // have run. A 20ms sleep left that to timing; holding it states it.
+    await waitUntil(
+      () => initOrder.includes("sync-completed-handler-started"),
+      "the initial-sync-completed handler to start",
+    );
+    expect(initOrder).not.toContain("ready");
+
+    finishSyncHandler.resolve();
+    await initializing;
 
     expect(initOrder.indexOf("plugins-ready")).toBeLessThan(
       initOrder.indexOf("sync-completed-handler-started"),
