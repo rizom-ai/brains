@@ -24,8 +24,18 @@ import {
   type ProcessResourceSnapshot,
 } from "./helpers/process-resource-monitor";
 
+/**
+ * Imports per phase.
+ *
+ * The default is a smoke size, not the load size: `directory-sync-import-soak`
+ * runs this same test at 350 on its own schedule, so the in-suite run only has
+ * to show the machinery still bounds and reports its work. Sixteen is four
+ * times the concurrency ceiling being asserted, which is enough to observe the
+ * ceiling — measured at 4 on every run — and it costs six seconds a run rather
+ * than twelve.
+ */
 const IMPORT_COUNT = Number.parseInt(
-  process.env["MOCKED_AI_IMPORT_COUNT"] ?? "40",
+  process.env["MOCKED_AI_IMPORT_COUNT"] ?? "16",
   10,
 );
 const SERVICE_DELAY_MS = Number.parseInt(
@@ -581,6 +591,14 @@ describe("directory import burst with locally mocked AI features", () => {
       } finally {
         resources = await resourceMonitor.stop({
           finalSampleDelayMs: RESOURCE_SETTLE_MS,
+          // The wait exists to let memory come back down, and that is what is
+          // asserted below — so it ends when RSS is under the mark rather
+          // than when the clock runs out.
+          settleBelowRssBytes: Math.min(
+            MAX_FINAL_RSS_BYTES,
+            resourceMonitor.snapshot().baselineRssBytes +
+              MAX_FINAL_RSS_GROWTH_BYTES,
+          ),
         });
         console.info(
           `MOCKED_AI_RESOURCE_REPORT ${JSON.stringify({ cpuCapacity, ...resources })}`,
