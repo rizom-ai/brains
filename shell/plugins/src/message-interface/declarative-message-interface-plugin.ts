@@ -42,6 +42,10 @@ import { buildResponsePlan } from "./response-render-plan";
 import type { AgentResponse } from "../contracts/agent";
 import type { JobContext, JobProgressEvent } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
+import { collectDeniedArtifactCardIds } from "./artifact-access";
+import type { ArtifactEntityRef } from "./artifact-entity";
+import type { ContentVisibility } from "@brains/entity-service";
+import type { UserPermissionLevel } from "@brains/templates";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   if (typeof message === "string") return { text: message };
@@ -585,9 +589,45 @@ class DeclarativeMessageInterfacePlugin<
    * text goes out, which is what happened before there was a way to say
    * otherwise.
    */
+  /**
+   * Artifact cards the caller's permission level may not receive.
+   *
+   * Checked here rather than in each interface: the level is resolved one
+   * frame above, and an interface that forgot the check would expose a
+   * restricted artifact's existence and metadata — not merely fail to serve
+   * its bytes. An interface with no `present` slot never renders cards at
+   * all, so this only runs when one is declared.
+   */
+  private async deniedArtifactCardIds(
+    response: AgentResponse,
+    userLevel: UserPermissionLevel,
+  ): Promise<Set<string>> {
+    const context = this.getContext();
+    return collectDeniedArtifactCardIds({
+      cards: response.cards,
+      userLevel,
+      displayBaseUrl: context.domain,
+      getEntity: (ref: ArtifactEntityRef) =>
+        context.entityService.getEntity({
+          entityType: ref.entityType,
+          id: ref.id,
+        }),
+      getVisibleEntity: (
+        ref: ArtifactEntityRef,
+        visibilityScope: ContentVisibility,
+      ) =>
+        context.entityService.getEntity({
+          entityType: ref.entityType,
+          id: ref.id,
+          visibilityScope,
+        }),
+    });
+  }
+
   private async deliverResponse(
     channel: { id: string; threadId?: string | undefined },
     response: AgentResponse,
+    userLevel: UserPermissionLevel,
   ): Promise<string | undefined> {
     const present = this.definition.present;
     if (!present) {
@@ -596,7 +636,8 @@ class DeclarativeMessageInterfacePlugin<
         message: response.text,
       });
     }
-    const plan = buildResponsePlan(response, { deniedCardIds: undefined });
+    const deniedCardIds = await this.deniedArtifactCardIds(response, userLevel);
+    const plan = buildResponsePlan(response, { deniedCardIds });
     const presented = await present({
       config: this.config,
       state: this.requireState(),
@@ -689,7 +730,7 @@ class DeclarativeMessageInterfacePlugin<
           resolved,
           routed.approvalId,
         );
-        await this.deliverResponse(input.channel, resolved);
+        await this.deliverResponse(input.channel, resolved, permission);
       } finally {
         this.endProcessingInput();
       }
@@ -731,7 +772,11 @@ class DeclarativeMessageInterfacePlugin<
         signal,
       );
       this.approvals().rememberFromResponse(conversationId, response);
-      const messageId = await this.deliverResponse(input.channel, response);
+      const messageId = await this.deliverResponse(
+        input.channel,
+        response,
+        permission,
+      );
       if (messageId) {
         for (const result of response.toolResults ?? []) {
           if (result.jobId) {
