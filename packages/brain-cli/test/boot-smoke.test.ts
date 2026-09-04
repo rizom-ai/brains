@@ -67,9 +67,13 @@ async function waitForListening(
     log,
     listening: false,
   }));
-  const timedOut = new Promise<BootOutcome>((resolve) =>
-    setTimeout(() => resolve({ log, listening: false }), timeoutMs),
-  );
+  // A deadline for the race below, not a wait: whichever of the streams, the
+  // exit, or this resolves first decides the outcome, and this one only wins
+  // when the process never reported either way.
+  const timedOut = Bun.sleep(timeoutMs).then((): BootOutcome => ({
+    log,
+    listening: false,
+  }));
   const outcome = await Promise.race([
     listen(readableStream(proc.stdout)),
     listen(readableStream(proc.stderr)),

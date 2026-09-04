@@ -145,6 +145,8 @@ export default [
       "shell/ai-evaluation/test/**/*.ts",
       "shared/site-engine/test/**/*.ts",
       "shared/console-theme/test/**/*.ts",
+      "packages/brain-cli/test/**/*.ts",
+      "interfaces/email/test/**/*.ts",
       "interfaces/a2a/test/**/*.ts",
       "interfaces/chat/test/**/*.ts",
     ],
