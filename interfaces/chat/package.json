@@ -5,6 +5,7 @@
   "description": "Multi-platform Chat SDK interface for Brains",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "@chat-adapter/discord": "^4.34.0",

@@ -41,6 +41,7 @@
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "eslint": "^10.5.0",
     "typescript": "^7.0.2"
   },

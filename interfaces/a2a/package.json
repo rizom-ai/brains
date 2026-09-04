@@ -8,6 +8,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/http-signatures": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "hono": "^4.12.25"
   },

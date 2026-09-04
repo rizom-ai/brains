@@ -16,6 +16,8 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/node": "^24.13.3",

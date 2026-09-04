@@ -8,6 +8,7 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
