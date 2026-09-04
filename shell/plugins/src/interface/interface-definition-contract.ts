@@ -11,6 +11,7 @@ import type {
 import type { IAuthRegistry } from "../contracts/auth-registry";
 import type { IMCPTransport } from "../interfaces";
 import type { AgentNamespace } from "../contracts/agent";
+import type { JobProgressEvent } from "@brains/job-queue";
 import type { ResponseRenderDirective } from "../message-interface/response-render-plan";
 import type { IPermissionsNamespace } from "../public/types";
 import type { IInterfaceConversationsNamespace } from "./context";
@@ -565,6 +566,27 @@ export interface MessageInterfaceDefinitionInput<
          */
         readonly origin: "reply" | "progress";
       }) => string | void | Promise<string | void>)
+    | undefined;
+  /**
+   * How work in flight reads on this channel, when prose will not do.
+   *
+   * The pipeline renders a progress event as text and sends it, which is
+   * right for a terminal — a status line is a line. A client on the other end
+   * of an event stream needs the event: web-chat writes a frame carrying the
+   * job's id, status and percentage and draws a bar from it, and given only
+   * a sentence it would have to parse one back apart.
+   *
+   * Declaring this takes the rendered text out of `send`, so an interface
+   * that draws progress itself does not also print it. Omitting it keeps the
+   * old path. Named consumer: @brains/web-chat.
+   */
+  readonly progress?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+        readonly channel: MessageChannel;
+        readonly event: JobProgressEvent;
+      }) => void | Promise<void>)
     | undefined;
   readonly edit?:
     | ((context: {

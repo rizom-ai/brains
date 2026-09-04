@@ -39,6 +39,7 @@ import { PendingApprovalTracker } from "./pending-approval-tracker";
 import { routeConfirmationResponse } from "./confirmation-routing";
 import { buildResponsePlan } from "./response-render-plan";
 import type { AgentResponse } from "../contracts/agent";
+import type { JobContext, JobProgressEvent } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
@@ -372,10 +373,40 @@ class DeclarativeMessageInterfacePlugin<
     return [...this.routes];
   }
 
+  /**
+   * Progress, handed over whole when the declaration asked for it.
+   *
+   * The coordinator's job is turning an event into a message and tracking the
+   * one it already sent, which is bookkeeping for a channel that posts and
+   * edits. A channel that streams has neither problem: it writes a frame per
+   * event and the client reconciles by id.
+   */
+  protected override async handleProgressEvent(
+    event: JobProgressEvent,
+    context: JobContext,
+  ): Promise<void> {
+    const progress = this.definition.progress;
+    if (!progress) {
+      await super.handleProgressEvent(event, context);
+      return;
+    }
+    const channelId = event.metadata.channelId ?? event.metadata.conversationId;
+    if (typeof channelId !== "string") return;
+    await progress({
+      config: this.config,
+      state: this.requireState(),
+      channel: { id: channelId },
+      event,
+    });
+  }
+
   protected override sendMessageToChannel(
     request: SendMessageToChannelRequest,
   ): void {
     const channelId = request.channelId;
+    // An interface that renders progress itself already drew this; sending
+    // the rendered sentence too would show it twice.
+    if (this.definition.progress) return;
     const send = this.definition.send;
     if (!channelId || !send) return;
     Promise.resolve()
