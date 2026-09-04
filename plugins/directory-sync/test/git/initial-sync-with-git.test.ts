@@ -2,30 +2,34 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { execSync } from "child_process";
 import { createBrokerGitSync } from "./broker-git-sync";
+import { runGit } from "./real-git";
 import { createSilentLogger } from "@brains/test-utils";
 
 /**
  * Tests for the git-aware initial sync flow:
  * When git is configured, pull should happen before import,
  * and changed files from pull should be returned for import.
+ *
+ * Git runs through `runGit`, never `execSync`. A synchronous spawn has to
+ * collect the child's exit itself, and under `--parallel` this file was seen
+ * spinning a worker at 100% CPU with its `git` child left `<defunct>` — an
+ * exit nobody reaped, which no per-test timeout can interrupt because the
+ * loop never yields. `runGit` awaits `child.exited`, so the exit is always
+ * collected.
  */
 describe("Git-aware initial sync", () => {
   let testDir: string;
   let remoteDir: string;
   let dataDir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     testDir = mkdtempSync(join(tmpdir(), "test-git-init-sync-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
     mkdirSync(remoteDir, { recursive: true });
     mkdirSync(dataDir, { recursive: true });
-    execSync("git init --bare --initial-branch=main", {
-      cwd: remoteDir,
-      stdio: "ignore",
-    });
+    await runGit(["init", "--bare", "--initial-branch=main"], remoteDir);
   });
 
   afterEach(() => {
@@ -34,23 +38,29 @@ describe("Git-aware initial sync", () => {
     }
   });
 
+  /** A clone of the remote, identified, ready to commit. */
+  async function seedClone(path: string, name: string): Promise<void> {
+    await runGit(["clone", remoteDir, path], testDir);
+    await runGit(["config", "user.name", name], path);
+    await runGit(["config", "user.email", `${name}@example.com`], path);
+  }
+
+  async function commitAndPush(path: string, message: string): Promise<void> {
+    await runGit(["add", "-A"], path);
+    await runGit(["commit", "-m", message], path);
+    await runGit(["push"], path);
+  }
+
   it("should clone remote content on first initialize", async () => {
     // Seed the remote with content via a temporary clone
     const seedDir = join(testDir, "seed");
-    execSync(`git clone ${remoteDir} ${seedDir}`, { stdio: "ignore" });
-    execSync("git config user.name Seed && git config user.email s@s.com", {
-      cwd: seedDir,
-      stdio: "ignore",
-    });
+    await seedClone(seedDir, "seed");
     mkdirSync(join(seedDir, "post"), { recursive: true });
     writeFileSync(
       join(seedDir, "post", "hello.md"),
       "---\ntitle: Hello\n---\nContent",
     );
-    execSync("git add -A && git commit -m 'seed content' && git push", {
-      cwd: seedDir,
-      stdio: "ignore",
-    });
+    await commitAndPush(seedDir, "seed content");
 
     // Initialize clones the repo — files are on disk immediately
     const gs = await createBrokerGitSync({
@@ -89,16 +99,9 @@ describe("Git-aware initial sync", () => {
 
     // Remote adds a new file
     const cloneDir = join(testDir, "clone");
-    execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
-    execSync("git config user.name R && git config user.email r@r.com", {
-      cwd: cloneDir,
-      stdio: "ignore",
-    });
+    await seedClone(cloneDir, "remote");
     writeFileSync(join(cloneDir, "new-file.md"), "# New");
-    execSync("git add -A && git commit -m 'add new file' && git push", {
-      cwd: cloneDir,
-      stdio: "ignore",
-    });
+    await commitAndPush(cloneDir, "add new file");
 
     // Pull should return only the new file
     const result = await gs.pull();

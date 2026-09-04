@@ -9,7 +9,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { execSync } from "child_process";
+import { runGit } from "./real-git";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type { IGitSync } from "../../src/types";
 import { createSilentLogger } from "@brains/test-utils";
@@ -20,7 +20,7 @@ describe("GitSync new-repo bootstrap regression", () => {
   let dataDir: string;
   let gitSync: IGitSync | undefined;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     testDir = mkdtempSync(join(tmpdir(), "test-git-bootstrap-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
@@ -29,10 +29,7 @@ describe("GitSync new-repo bootstrap regression", () => {
     mkdirSync(dataDir, { recursive: true });
     mkdirSync(remoteDir, { recursive: true });
 
-    execSync("git init --bare --initial-branch=main", {
-      cwd: remoteDir,
-      stdio: "ignore",
-    });
+    await runGit(["init", "--bare", "--initial-branch=main"], remoteDir);
   });
 
   afterEach(async () => {
@@ -58,24 +55,17 @@ describe("GitSync new-repo bootstrap regression", () => {
     return readFileSync(join(dataDir, ".git", "HEAD"), "utf-8").trim();
   }
 
-  function symbolicHead(): string {
-    return execSync("git symbolic-ref HEAD", {
-      cwd: dataDir,
-      encoding: "utf-8",
-    }).trim();
+  async function symbolicHead(): Promise<string> {
+    return (await runGit(["symbolic-ref", "HEAD"], dataDir)).trim();
   }
 
   function writeDefault(): void {
     writeFileSync(join(dataDir, "default.md"), "# Default");
   }
 
-  function listTracked(dir: string, ref?: string): string[] {
-    const cmd = ref ? `git ls-tree -r --name-only ${ref}` : "git ls-files";
-    return execSync(cmd, { cwd: dir, encoding: "utf-8" })
-      .trim()
-      .split("\n")
-      .filter(Boolean)
-      .sort();
+  async function listTracked(dir: string, ref?: string): Promise<string[]> {
+    const args = ref ? ["ls-tree", "-r", "--name-only", ref] : ["ls-files"];
+    return (await runGit(args, dir)).trim().split("\n").filter(Boolean).sort();
   }
 
   it("initializes cleanly when default files already exist and the remote is empty", async () => {
@@ -87,34 +77,28 @@ describe("GitSync new-repo bootstrap regression", () => {
     await gs.initialize();
 
     expect(headFile()).toBe("ref: refs/heads/main");
-    expect(symbolicHead()).toBe("refs/heads/main");
+    expect(await symbolicHead()).toBe("refs/heads/main");
 
-    const tracked = listTracked(dataDir);
+    const tracked = await listTracked(dataDir);
     expect(tracked).toContain("default.md");
     expect(tracked).toContain("note/welcome.md");
   });
 
   it("repairs an invalid HEAD left by a broken bootstrap", async () => {
     writeDefault();
-    execSync("git init --initial-branch=main", {
-      cwd: dataDir,
-      stdio: "ignore",
-    });
+    await runGit(["init", "--initial-branch=main"], dataDir);
     writeFileSync(join(dataDir, ".git", "HEAD"), "ref: refs/heads/.invalid\n");
 
     const gs = await createGitSync();
     await gs.initialize();
 
     expect(headFile()).toBe("ref: refs/heads/main");
-    expect(symbolicHead()).toBe("refs/heads/main");
+    expect(await symbolicHead()).toBe("refs/heads/main");
 
     writeFileSync(join(dataDir, "after-repair.md"), "# Repaired");
     await gs.commit("post-repair commit");
 
-    const log = execSync("git log --oneline", {
-      cwd: dataDir,
-      encoding: "utf-8",
-    }).trim();
+    const log = (await runGit(["log", "--oneline"], dataDir)).trim();
     expect(log).toContain("post-repair commit");
   });
 
@@ -125,32 +109,26 @@ describe("GitSync new-repo bootstrap regression", () => {
     await gs.initialize();
 
     expect(headFile()).toBe("ref: refs/heads/trunk");
-    expect(symbolicHead()).toBe("refs/heads/trunk");
+    expect(await symbolicHead()).toBe("refs/heads/trunk");
 
     await gs.pull();
 
-    const remoteBranches = execSync("git branch --list", {
-      cwd: remoteDir,
-      encoding: "utf-8",
-    });
+    const remoteBranches = await runGit(["branch", "--list"], remoteDir);
     expect(remoteBranches).toContain("trunk");
 
-    expect(listTracked(remoteDir, "trunk")).toContain("default.md");
+    expect(await listTracked(remoteDir, "trunk")).toContain("default.md");
   });
 
   it("prefers remote content over preexisting local defaults when the remote already has history", async () => {
     const seedDir = join(testDir, "seed");
-    execSync(`git clone ${remoteDir} ${seedDir}`, { stdio: "ignore" });
-    execSync("git config user.name Seed && git config user.email s@s.com", {
-      cwd: seedDir,
-      stdio: "ignore",
-    });
+    await runGit(["clone", remoteDir, seedDir], testDir);
+    await runGit(["config", "user.name", "Seed"], seedDir);
+    await runGit(["config", "user.email", "seed@example.com"], seedDir);
     mkdirSync(join(seedDir, "post"), { recursive: true });
     writeFileSync(join(seedDir, "post", "remote.md"), "# Remote");
-    execSync("git add -A && git commit -m 'seed remote' && git push", {
-      cwd: seedDir,
-      stdio: "ignore",
-    });
+    await runGit(["add", "-A"], seedDir);
+    await runGit(["commit", "-m", "seed remote"], seedDir);
+    await runGit(["push"], seedDir);
 
     writeDefault();
 
@@ -158,7 +136,7 @@ describe("GitSync new-repo bootstrap regression", () => {
     await gs.initialize();
     await gs.pull();
 
-    expect(listTracked(dataDir)).toEqual(["post/remote.md"]);
+    expect(await listTracked(dataDir)).toEqual(["post/remote.md"]);
     expect(existsSync(join(dataDir, "default.md"))).toBe(false);
     expect(existsSync(join(dataDir, "post", "remote.md"))).toBe(true);
   });
