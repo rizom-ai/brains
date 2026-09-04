@@ -395,6 +395,7 @@
     "core--shared-fleet-image-contract",
     "core--shared-sqlite-column-annotations",
     "core--shell-wiring-dedup",
+    "core--single-fleet-image-topology",
     "core--site-build-status-hardening",
     "core--site-engine-ui-library-internal-dedup",
     "core--site-manifest-path-single-constant",

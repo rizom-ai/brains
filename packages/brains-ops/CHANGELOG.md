@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.352
+
+### Patch Changes
+
+- [#218](https://github.com/rizom-ai/brains/pull/218) [`f217448`](https://github.com/rizom-ai/brains/commit/f2174483578b3f9cc685f4aefe641ad2e4f3be0d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the shared fleet image topology unconditional: every effective Brain version resolves to one immutable `brain-${brainVersion}` image containing the union of exact site and theme package pins. Remove the image-contract selector and legacy site-hashed image mode.
+
 ## 0.2.0-alpha.351
 
 ### Patch Changes
