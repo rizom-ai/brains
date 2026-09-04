@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.354
+
+### Patch Changes
+
+- [#220](https://github.com/rizom-ai/brains/pull/220) [`b905612`](https://github.com/rizom-ai/brains/commit/b905612601329c62adabfb17bc44fec1e873c2a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Accept Cloudflare's object-shaped successful DNS mutation response while retaining strict array validation for record lookups.
+
 ## 0.2.0-alpha.353
 
 ## 0.2.0-alpha.352
