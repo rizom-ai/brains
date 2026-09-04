@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [`06ff050`](https://github.com/rizom-ai/brains/commit/06ff050e26b0db643d59323096ac81b82a02367e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Studio's system navigation coherent by grouping the Style Guide with other brain machinery, preserving the desktop rail while editing, and resetting the document offset when selecting rail destinations.
+
 ## 0.2.0-alpha.354
 
 ## 0.2.0-alpha.353

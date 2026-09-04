@@ -1,7 +1,7 @@
 {
   "name": "@brains/app-ui-react",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.355",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

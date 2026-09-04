@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [#221](https://github.com/rizom-ai/brains/pull/221) [`5cd4e82`](https://github.com/rizom-ai/brains/commit/5cd4e8252056516b29f9ed1ab3c61af7c89ad28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the generated verified predeploy-backup script self-contained so it runs in pilot repositories without private monorepo packages.
+
 ## 0.2.0-alpha.354
 
 ### Patch Changes
