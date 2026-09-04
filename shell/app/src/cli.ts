@@ -105,16 +105,20 @@ async function invokeCliTool(
   input: unknown,
   failureLabel: string,
 ): Promise<void> {
+  // Only the handler call is guarded. Reporting is deliberately outside: a
+  // failure while printing — serializing circular `data`, say — is not the
+  // tool failing, and labelling it as one hides where it went wrong.
+  let result: ToolResponse;
   try {
-    const result = await handler(input, {
+    result = await handler(input, {
       interfaceType: "cli",
       actor: { kind: "service", serviceId: "shell-cli" },
     });
-    printToolResult(result);
   } catch (error) {
     console.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
     process.exit(1);
   }
+  printToolResult(result);
 }
 
 /**

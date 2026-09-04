@@ -124,6 +124,7 @@ export { waitUntil, type WaitUntilOptions } from "./wait-until";
 
 export { spyOnEntityGet, spyOnEntityCreate } from "./spy-on-entity-service";
 export { genericSpy } from "./generic-spy";
+export { ProcessExited, expectProcessExit } from "./process-exit";
 
 // Check a caught value is an Error rather than asserting it into one
 export { caughtError } from "./caught-error";

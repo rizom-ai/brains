@@ -3,6 +3,7 @@ import { App, STARTUP_CHECK_API_KEY } from "../src/app";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
 import { Shell, type Shell as ShellInstance } from "@brains/core";
+import { ProcessExited } from "@brains/test-utils";
 
 const originalNodeEnv = process.env["NODE_ENV"];
 
@@ -148,10 +149,9 @@ describe("App", () => {
       const existingSigint = new Set(process.listeners("SIGINT"));
       const existingSigterm = new Set(process.listeners("SIGTERM"));
       const originalExit = process.exit;
-      // process.exit is declared to return never, and a stub that lets the
-      // handler continue cannot. There is nothing to narrow — it is a global.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above
-      const exit = mock((_code?: number): never => undefined as never);
+      const exit = mock((code?: number): never => {
+        throw new ProcessExited(code);
+      });
 
       try {
         process.exit = exit;
