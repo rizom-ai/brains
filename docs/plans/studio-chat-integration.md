@@ -2,18 +2,16 @@
 
 ## Status
 
-**Accepted architecture; Phase 1 and the initial native integration are
-implemented locally, release pending.** The headless Chat contract, native
-Studio workspace, durable context handoff, capability-gated admission, and
-composition-aware `/chat` redirect are in source and validated without
-embedding the standalone Web Chat application. These changes are not released;
-the latest published alpha remains unchanged until an explicitly approved
-publication.
+**Implemented and released.** The headless Chat contract, native Studio
+workspace, durable context handoff, capability-gated admission, and canonical
+`/chat` route are published without embedding the standalone Web Chat
+application. The standalone guest-facing surface now lives at `/ask`; its guest
+admission policy remains fail-closed.
 
 ## Shipped baseline
 
-`interfaces/web-chat` currently owns the standalone `/chat` page, its browser
-bundle, `/api/chat/*` routes, streaming, sessions, uploads, approvals, source
+`interfaces/web-chat` owns the standalone `/ask` page, its browser bundle,
+`/api/chat/*` routes, streaming, sessions, uploads, approvals, source
 context, and conversation access. Studio already hosts fixed native workspaces
 such as Account while keeping the owning service authoritative for its APIs.
 
@@ -28,15 +26,13 @@ Provide one Chat domain through two native presentations:
 
 - when Chat and Studio are active, Studio renders a native, deeply integrated
   Chat workspace;
-- when Chat is active without Studio, Web Chat continues to render the
-  standalone `/chat` experience;
+- Web Chat renders the separately named guest-facing `/ask` experience;
 - both presentations consume the same public Chat domain and transport
   contract;
 - neither presentation imports the other's implementation or reaches into shell
   internals;
-- when an authenticated actor is admitted to Studio Chat, the legacy `/chat`
-  door redirects to its canonical Studio location instead of exposing two
-  browser Chat applications;
+- an authenticated actor admitted to Studio Chat stays at the canonical
+  `/chat` door without exposing the encoded workspace implementation path;
 - standalone Web Chat remains the architectural home for a future guest
   posture, but guest access stays disabled until its policies are complete.
 
@@ -47,12 +43,12 @@ React subtree.
 
 ## Composition matrix
 
-| Active capabilities | Browser behavior                                      |
-| ------------------- | ----------------------------------------------------- |
-| Chat + Studio       | Native Studio Chat workspace; `/chat` redirects to it |
-| Chat without Studio | Standalone `/chat` page                               |
-| Studio without Chat | No Chat workspace or dead navigation door             |
-| Neither             | No browser Chat surface                               |
+| Active capabilities | Browser behavior                                 |
+| ------------------- | ------------------------------------------------ |
+| Chat + Studio       | Native Studio Chat workspace directly at `/chat` |
+| Chat without Studio | Standalone guest-facing `/ask` page              |
+| Studio without Chat | No usable Chat workspace; `/chat` fails closed   |
+| Neither             | No browser Chat surface                          |
 
 Platform Chat capabilities that do not require the browser remain independent
 of this matrix.
@@ -187,7 +183,7 @@ public card until an approved guest posture deliberately adds another door.
 The canonical Studio browser location is:
 
 ```text
-/studio/workspaces/web-chat%3Achat?session=<conversation-id>
+/chat?session=<conversation-id>
 ```
 
 The session id is routing state, not authorization. Unknown or inaccessible ids
@@ -213,10 +209,8 @@ the public API.
 
 The configured Chat page path has composition- and actor-sensitive behavior:
 
-- an authenticated actor admitted to Studio Chat permanently redirects to the
-  canonical workspace;
-- an authenticated actor in Chat-without-Studio composition uses standalone Web
-  Chat;
+- an authenticated actor admitted to Studio Chat remains at canonical `/chat`;
+- the standalone Web Chat presentation is addressed independently at `/ask`;
 - active Public and unauthenticated callers continue to fail closed today;
 - a future guest uses standalone Web Chat only when a separate guest posture is
   explicitly enabled.
@@ -240,8 +234,8 @@ The current implementation includes:
   composer, uploads, streaming, approvals, suggested actions, artifacts, and
   durable progress;
 - canonical bounded `?session=` routing and native Inbox-to-Chat launch;
-- conditional `/chat` redirect with standalone Web Chat retained for Chat-only
-  composition and no Public or guest admission;
+- canonical native `/chat` routing with standalone Web Chat moved to `/ask`
+  and no Public or guest admission;
 - desktop, tablet, and sequential phone visual baselines plus admission,
   routing, redirect, transport, interaction, and accessibility-oriented layout
   checks.
@@ -264,7 +258,7 @@ deployment validation remain explicitly approval-gated.
   rendering, and browser storage out of this package.
 - Make Web Chat handlers and the existing standalone transport consume the
   public schemas and client.
-- Keep standalone `/chat` behavior unchanged.
+- Keep the then-standalone `/chat` behavior unchanged during this phase.
 
 Exit condition: a packed external consumer can use the complete supported Chat
 client contract, handlers validate the same schemas, and standalone Web Chat
@@ -283,7 +277,7 @@ passes unchanged behavior tests.
   and actions as native Studio presentation using the public contract and any
   proven private shared orchestration.
 - Use Studio routing, page grammar, context, responsive rules, and lifecycle.
-- Keep standalone `/chat` available during this phase as a rollback door.
+- Keep the then-standalone `/chat` available during this phase as a rollback door.
 
 Exit condition: native Studio Chat supports the shipped Chat behavior without
 mounting or importing the standalone application.

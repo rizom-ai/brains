@@ -6,14 +6,14 @@ Interfaces are selected by the active capability bundles, then refined with `add
 
 ## Quick reference
 
-| Interface | Plugin id   | Local surface                        | Common use                                         |
-| --------- | ----------- | ------------------------------------ | -------------------------------------------------- |
-| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling         |
-| Webserver | `webserver` | `http://localhost:8080`              | Site, Studio, dashboard, Admin, shared HTTP routes |
-| Web chat  | `web-chat`  | `http://localhost:8080/chat`         | Authenticated browser chat                         |
-| Chat      | `chat`      | Discord and/or Slack                 | Community, team, and authenticated chat            |
-| A2A       | `a2a`       | `http://localhost:8080/a2a`          | Agent-to-agent communication                       |
-| Chat REPL | command     | `brain chat`                         | Local terminal chat                                |
+| Interface | Plugin id   | Local surface                        | Common use                                          |
+| --------- | ----------- | ------------------------------------ | --------------------------------------------------- |
+| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
+| Webserver | `webserver` | `http://localhost:8080`              | Site, Studio, dashboard, Admin, shared HTTP routes  |
+| Web chat  | `web-chat`  | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
+| Chat      | `chat`      | Discord and/or Slack                 | Community, team, and authenticated chat             |
+| A2A       | `a2a`       | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
+| Chat REPL | command     | `brain chat`                         | Local terminal chat                                 |
 
 ## Shared setup
 
@@ -176,7 +176,8 @@ http://localhost:8080/studio     # Studio when enabled
 http://localhost:8080/studio/workspaces/studio%3Aaccount # self-service Account workspace
 http://localhost:8080/studio/workspaces/admin%3Apeople # Admin-only People workspace
 http://localhost:8080/dashboard  # dashboard when enabled
-http://localhost:8080/chat       # authenticated web chat when enabled
+http://localhost:8080/chat       # authenticated native Studio Chat when enabled
+http://localhost:8080/ask        # guest-facing Web Chat route; currently fail-closed
 http://localhost:8080/mcp        # MCP HTTP when enabled
 http://localhost:8080/a2a        # A2A when enabled
 ```

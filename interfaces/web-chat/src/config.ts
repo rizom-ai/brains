@@ -6,7 +6,7 @@ type WebChatConfigSchema = z.ZodObject<{
 }>;
 
 export const webChatConfigSchema: WebChatConfigSchema = z.object({
-  routePath: z.string().default("/chat"),
+  routePath: z.string().default("/ask"),
   apiPath: z.string().default("/api/chat"),
 });
 

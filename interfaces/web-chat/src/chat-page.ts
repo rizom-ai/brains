@@ -13,7 +13,7 @@ import chatPageStyles from "./chat-page.css" with { type: "text" };
 import responsiveShellStyles from "./responsive-shell.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 
-export const uiAssetPath: string = "/chat/assets/app.js";
+export const uiAssetPath: string = "/ask/assets/app.js";
 export const uiAssetFile: string = join(
   import.meta.dir,
   "..",
@@ -21,7 +21,7 @@ export const uiAssetFile: string = join(
   "ui",
   "app.js",
 );
-export const uiStylesheetPath: string = "/chat/assets/app.css";
+export const uiStylesheetPath: string = "/ask/assets/app.css";
 export const uiStylesheetFile: string = join(
   import.meta.dir,
   "..",

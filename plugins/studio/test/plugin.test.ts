@@ -29,6 +29,7 @@ describe("studio plugin", () => {
     await plugin.register(shell);
 
     const paths = plugin.getWebRoutes().map((route) => route.path);
+    expect(paths).toContain("/chat");
     expect(paths).toContain("/studio");
     expect(paths).toContain("/studio/api/entities");
     expect(paths).toContain("/cms");
@@ -99,6 +100,7 @@ describe("studio plugin", () => {
       "GET /cms prefix",
       "GET /account prefix",
       "GET /admin prefix",
+      "GET /chat exact",
       "GET /studio exact",
       "GET /studio/entities prefix",
       "GET /studio/workspaces prefix",
@@ -119,18 +121,29 @@ describe("studio plugin", () => {
     ]);
   });
 
-  it("always gates the editor shell on an auth session", async () => {
+  it("always gates the Studio and canonical Chat shells on an auth session", async () => {
     const shell = createStudioTestShell();
     const plugin = studioPlugin();
 
     await plugin.register(shell);
 
-    const response = await findRoute(plugin.getWebRoutes(), "/studio").handler(
-      new Request("https://yeehaa.io/studio"),
-    );
+    const studioResponse = await findRoute(
+      plugin.getWebRoutes(),
+      "/studio",
+    ).handler(new Request("https://yeehaa.io/studio"));
+    const chatResponse = await findRoute(
+      plugin.getWebRoutes(),
+      "/chat",
+    ).handler(new Request("https://yeehaa.io/chat?session=thread-1"));
 
-    expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe("/login?return_to=%2Fstudio");
+    expect(studioResponse.status).toBe(302);
+    expect(studioResponse.headers.get("location")).toBe(
+      "/login?return_to=%2Fstudio",
+    );
+    expect(chatResponse.status).toBe(302);
+    expect(chatResponse.headers.get("location")).toBe(
+      "/login?return_to=%2Fchat%3Fsession%3Dthread-1",
+    );
   });
 
   it("grants Studio access to an active Trusted session", async () => {

@@ -1,6 +1,5 @@
 import type { UserPermissionLevel } from "@brains/plugins";
-import { studioWorkspacePath } from "./studio-paths";
-
+export const STUDIO_CHAT_ROUTE_PATH = "/chat";
 export const STUDIO_CHAT_WORKSPACE_ID = "web-chat:chat";
 export const STUDIO_CHAT_WORKSPACE_RENDERER = "StudioChatWorkspace";
 
@@ -23,13 +22,12 @@ const permissionRank: Record<UserPermissionLevel, number> = {
 };
 
 export function studioChatWorkspacePath(
-  routePath: string,
+  _routePath: string,
   conversationId?: string,
 ): string {
-  const pathname = studioWorkspacePath(routePath, STUDIO_CHAT_WORKSPACE_ID);
-  if (!conversationId) return pathname;
+  if (!conversationId) return STUDIO_CHAT_ROUTE_PATH;
   const search = new URLSearchParams({ session: conversationId });
-  return `${pathname}?${search.toString()}`;
+  return `${STUDIO_CHAT_ROUTE_PATH}?${search.toString()}`;
 }
 
 /** Closed host-owned workspace; presence follows the resolved Chat capability. */

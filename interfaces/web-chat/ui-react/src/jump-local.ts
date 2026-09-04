@@ -35,7 +35,7 @@ declare global {
 export function buildConversationJumpGroup(
   sessions: JumpLocalSession[],
   query: string,
-  chatPath = "/chat",
+  chatPath = "/ask",
 ): JumpLocalGroup | null {
   const q = query.trim().toLowerCase();
   const items = sessions

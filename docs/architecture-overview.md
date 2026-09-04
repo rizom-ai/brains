@@ -193,7 +193,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                              |
 | `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads           |
 | `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                           |
-| `interfaces/web-chat`  | Bundled in-browser chat surface (default route `/chat`)                                                     |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                               |
 | `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/Studio routes, API routes, and split health endpoints |
 
 ### Sites, themes, and the canonical definition

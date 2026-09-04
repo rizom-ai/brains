@@ -9,7 +9,6 @@ import type {
   IAgentService,
   IConversationService,
   InboxSource,
-  RegisteredWebRoute,
   WebRouteDefinition,
   WebRouteMethod,
 } from "@brains/plugins";
@@ -738,7 +737,7 @@ describe("WebChatInterface", () => {
 
     expect(routes).toHaveLength(18);
     expect(routes[0]).toMatchObject({
-      path: "/chat",
+      path: "/ask",
       method: "GET",
       public: true,
     });
@@ -798,12 +797,12 @@ describe("WebChatInterface", () => {
       public: true,
     });
     expect(routes[12]).toMatchObject({
-      path: "/chat/assets/app.js",
+      path: "/ask/assets/app.js",
       method: "GET",
       public: true,
     });
     expect(routes[13]).toMatchObject({
-      path: "/chat/assets/app.css",
+      path: "/ask/assets/app.css",
       method: "GET",
       public: true,
     });
@@ -1500,61 +1499,30 @@ describe("WebChatInterface", () => {
     ]);
   });
 
-  it("requires authentication for the chat page", async () => {
+  it("requires authentication for the guest chat page until guest access is enabled", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/chat", "GET");
+    const route = getRoute(plugin, "/ask", "GET");
 
-    const response = await route?.handler(new Request("http://brain/chat"));
+    const response = await route?.handler(new Request("http://brain/ask"));
     const text = await response?.text();
 
     expect(response?.status).toBe(401);
     expect(text).toContain("Authentication required");
   });
 
-  it("redirects authenticated Chat to the configured native Studio workspace", async () => {
-    const shell = harness.getMockShell();
-    const getPluginWebRoutes = shell.getPluginWebRoutes.bind(shell);
-    shell.getPluginWebRoutes = (): RegisteredWebRoute[] => [
-      ...getPluginWebRoutes(),
-      {
-        pluginId: "studio",
-        fullPath: "/operator/api/types",
-        definition: {
-          path: "/operator/api/types",
-          method: "GET",
-          public: true,
-          handler: (_request: Request): Response => new Response(),
-        },
-      },
-    ];
+  it("serves the guest chat page directly for Trusted users", async () => {
     const plugin = trustedAuthPlugin();
     await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/chat", "GET");
+    const route = getRoute(plugin, "/ask", "GET");
 
-    const response = await route?.handler(
-      new Request("http://brain/chat?session=conversation%2Fone&ignored=yes"),
-    );
-
-    expect(response?.status).toBe(308);
-    expect(response?.headers.get("location")).toBe(
-      "/operator/workspaces/web-chat%3Achat?session=conversation%2Fone",
-    );
-    expect(response?.headers.get("cache-control")).toBe("no-store");
-  });
-
-  it("serves the chat page for Trusted users", async () => {
-    const plugin = trustedAuthPlugin();
-    await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/chat", "GET");
-
-    const response = await route?.handler(new Request("http://brain/chat"));
+    const response = await route?.handler(new Request("http://brain/ask"));
     const html = await response?.text();
 
     expect(response?.status).toBe(200);
     expect(response?.headers.get("content-type")).toContain("text/html");
     expect(html).toContain("Brain Chat");
-    expect(html).toContain("/chat/assets/app.js");
+    expect(html).toContain("/ask/assets/app.js");
     expect(html).toContain("data-web-chat-styles");
     // The shared console sheet is the palette source; chat defines no
     // console-equivalent tokens and no fallback chains of its own.
@@ -1575,7 +1543,7 @@ describe("WebChatInterface", () => {
     // Authenticated surface: the shared session chip shows signed-in state.
     expect(html).toContain('class="session-chip"');
     expect(html).toContain("Sign out");
-    expect(html).toContain('href="/logout?return_to=%2Fchat"');
+    expect(html).toContain('href="/logout?return_to=%2Fask"');
     // Climate preference is console-wide, toggled from the strip.
     expect(html).toContain('localStorage.getItem("console.climate")');
     expect(html).toContain('id="climateToggle"');
@@ -1600,9 +1568,9 @@ describe("WebChatInterface", () => {
   it("does not reach out to fonts.googleapis.com from the chat page", async () => {
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/chat", "GET");
+    const route = getRoute(plugin, "/ask", "GET");
 
-    const response = await route?.handler(new Request("http://brain/chat"));
+    const response = await route?.handler(new Request("http://brain/ask"));
     const html = await response?.text();
 
     // The shared sheet may *name* the console font families (they resolve
@@ -1612,7 +1580,7 @@ describe("WebChatInterface", () => {
     expect(html).not.toContain("fonts.gstatic.com");
     expect(html).not.toContain('rel="preconnect"');
     expect(html).toContain(
-      '<link data-web-chat-app-styles rel="stylesheet" href="/chat/assets/app.css">',
+      '<link data-web-chat-app-styles rel="stylesheet" href="/ask/assets/app.css">',
     );
   });
 
@@ -1631,11 +1599,11 @@ describe("WebChatInterface", () => {
   it("serves the React UI asset when built or a clear 404 otherwise", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
-    const route = getRoute(plugin, "/chat/assets/app.js", "GET");
-    const stylesheetRoute = getRoute(plugin, "/chat/assets/app.css", "GET");
+    const route = getRoute(plugin, "/ask/assets/app.js", "GET");
+    const stylesheetRoute = getRoute(plugin, "/ask/assets/app.css", "GET");
 
     const response = await route?.handler(
-      new Request("http://brain/chat/assets/app.js"),
+      new Request("http://brain/ask/assets/app.js"),
     );
     const text = await response?.text();
 
@@ -1643,7 +1611,7 @@ describe("WebChatInterface", () => {
       expect(response.headers.get("content-type")).toContain("text/javascript");
       expect(text).toContain("data-web-chat-app");
       const stylesheetResponse = await stylesheetRoute?.handler(
-        new Request("http://brain/chat/assets/app.css"),
+        new Request("http://brain/ask/assets/app.css"),
       );
       expect(stylesheetResponse?.headers.get("content-type")).toContain(
         "text/css",

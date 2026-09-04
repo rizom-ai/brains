@@ -2,7 +2,11 @@ import { join } from "node:path";
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
-import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
+import type {
+  BaseEntity,
+  RegisteredWebRoute,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -370,6 +374,57 @@ describe("studio editor shell", () => {
     expect(html).toContain("/studio/assets/app.js");
     expect(html).toContain('data-studio-base-path="/studio"');
     expect(html).not.toContain("sveltia");
+  });
+
+  it("serves native Studio Chat at the canonical /chat URL without redirecting", async () => {
+    const shell = createEditorTestShell();
+    const getPluginWebRoutes = shell.getPluginWebRoutes.bind(shell);
+    shell.getPluginWebRoutes = (): RegisteredWebRoute[] => [
+      ...getPluginWebRoutes(),
+      {
+        pluginId: "web-chat",
+        fullPath: "/api/chat",
+        definition: {
+          path: "/api/chat",
+          method: "POST",
+          public: true,
+          handler: (_request: Request): Response => new Response(),
+        },
+      },
+      {
+        pluginId: "web-chat",
+        fullPath: "/api/chat/actions",
+        definition: {
+          path: "/api/chat/actions",
+          method: "POST",
+          public: true,
+          handler: (_request: Request): Response => new Response(),
+        },
+      },
+    ];
+    shell.addPlugin({
+      id: "web-chat",
+      version: "0.0.0-test",
+      type: "interface",
+      packageName: "@brains/web-chat",
+      register: async () => ({ tools: [], resources: [] }),
+    });
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/chat").handler(
+      apiRequest("/chat?session=thread-1", { cookie }),
+    );
+    const html = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(html).toContain("/studio/assets/app.js");
+    expect(html).toContain('data-studio-base-path="/studio"');
+    expect(html).toContain('data-console-surface="web-chat"');
+    expect(html).toContain(
+      'href="/logout?return_to=%2Fchat%3Fsession%3Dthread-1"',
+    );
   });
 
   it("serves the Account view inside the shell to an active Public session", async () => {

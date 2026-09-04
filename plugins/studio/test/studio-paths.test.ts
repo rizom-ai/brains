@@ -30,7 +30,7 @@ describe("Studio canonical paths", () => {
       "/studio/workspaces/publish%20desk",
     );
     expect(studioChatWorkspacePath("/studio", "conversation/one")).toBe(
-      "/studio/workspaces/web-chat%3Achat?session=conversation%2Fone",
+      "/chat?session=conversation%2Fone",
     );
   });
 
