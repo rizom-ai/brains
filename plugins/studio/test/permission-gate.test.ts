@@ -216,7 +216,10 @@ async function setup(): Promise<{
 }
 
 describe("Studio active-session gate inversion", () => {
-  it("discloses Chat to Trusted operators but not active Public sessions", async () => {
+  // Chat is open to every level that reaches Studio at all. Studio's door
+  // already requires an active session, so "public" here is every signed-in
+  // visitor — and Chat is the surface one has least reason to be shut out of.
+  it("discloses Chat to every active session, Public included", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const sessions = await createSessionMatrix(shell);
     enableChatCapability(shell);
@@ -242,7 +245,7 @@ describe("Studio active-session gate inversion", () => {
       "web-chat:chat",
     );
     expect(publicResponse.status).toBe(200);
-    expect(publicPayload.workspaces.map(({ id }) => id)).not.toContain(
+    expect(publicPayload.workspaces.map(({ id }) => id)).toContain(
       "web-chat:chat",
     );
   });

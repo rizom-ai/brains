@@ -172,7 +172,7 @@ describe("optional Studio workspaces", () => {
       label: "Chat",
       rendererName: "StudioChatWorkspace",
       priority: -80,
-      permission: "trusted",
+      permission: "public",
       chatApiPath: "/api/chat",
     });
   });
