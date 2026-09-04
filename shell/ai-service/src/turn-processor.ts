@@ -487,6 +487,8 @@ export class TurnProcessor {
         userPermissionLevel: params.userPermissionLevel ?? "public",
       });
     } catch (error) {
+      // Agent context is optional enrichment. A provider that fails leaves the
+      // turn without extra context rather than dropping the user's message.
       this.deps.logger.warn("Agent context provider failed", {
         conversationId: params.conversationId,
         error: getErrorMessage(error),

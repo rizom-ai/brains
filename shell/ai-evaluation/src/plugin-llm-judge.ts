@@ -132,6 +132,9 @@ ${customEvalPrompt ? `\n## Additional Evaluation Criteria\n${customEvalPrompt}` 
         reasoning: verdict.reasoning,
       };
     } catch (error) {
+      // A judge that cannot score is not a failing evaluation, it is a missing
+      // score. Callers report it as absent rather than counting it against
+      // the run.
       ConsoleLogger.getInstance().error("Plugin LLM Judge failed:", error);
       return null;
     }

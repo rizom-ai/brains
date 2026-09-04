@@ -75,6 +75,8 @@ export class TopicAdapter extends BaseEntityAdapter<
           title: frontmatter.title,
         };
       } catch {
+        // Stored content is hand-editable, so unparseable frontmatter is a user
+        // state rather than a fault. The raw body still renders.
         return {
           content: body,
           formatted: body,

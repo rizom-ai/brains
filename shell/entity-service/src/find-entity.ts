@@ -91,7 +91,11 @@ export async function findEntityByIdentifier(
         error,
       });
     }
-    return null;
+    // A store that could not answer has not told us the entity is absent.
+    // Returning null here reaches the caller as "not found" — resolveEntityOrError
+    // renders it as exactly that message — which sends someone looking for a
+    // missing entity instead of a broken store.
+    throw error;
   }
 }
 

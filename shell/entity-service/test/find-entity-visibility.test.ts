@@ -3,6 +3,7 @@ import {
   findEntityByIdentifier,
   resolveEntityOrError,
 } from "../src/find-entity";
+import { getErrorMessage } from "@brains/utils/error";
 import type {
   BaseEntity,
   EntitySearchRequest,
@@ -184,6 +185,30 @@ describe("findEntityByIdentifier scope propagation", () => {
     );
 
     expect(result).toBeNull();
+  });
+
+  it("propagates a lookup failure instead of reporting the entity missing", async () => {
+    // A store that cannot answer has not told us the entity is absent.
+    // Reporting "not found" sends the caller looking for a missing entity
+    // rather than a broken store, and every system entity tool renders that
+    // null as exactly that message.
+    const unreachable: ICoreEntityService = {
+      ...createCapturedService().service,
+      async getEntity<T extends BaseEntity>(): Promise<T | null> {
+        throw new Error("database unreachable");
+      },
+    };
+
+    const outcome = await findEntityByIdentifier(
+      unreachable,
+      "doc",
+      "abc",
+    ).then(
+      (entity) => `resolved with ${String(entity)}`,
+      (error: unknown) => getErrorMessage(error),
+    );
+
+    expect(outcome).toBe("database unreachable");
   });
 
   it("resolveEntityOrError surfaces a not-found error for out-of-scope entities", async () => {

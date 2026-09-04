@@ -106,6 +106,8 @@ async function resolveRuntimeUploadAttachment(
     });
     return toChatAttachment(await store.read(source.id), source);
   } catch (error) {
+    // A prior upload may legitimately be gone by now. Skipping it keeps the
+    // rest of the conversation's attachments intact.
     logger.debug("Skipped unavailable prior runtime upload", {
       uploadKind: source.kind,
       uploadId: source.id,

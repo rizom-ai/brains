@@ -321,6 +321,9 @@ export class LinkedInClient implements PublishProvider {
       this.logger.info("LinkedIn image uploaded", { assetUrn });
       return assetUrn;
     } catch (error) {
+      // Deliberately unlike a document upload, which throws: a post that lost
+      // its image is still the text the author wrote, and publishing it beats
+      // failing the whole post. The text-only fallback has its own test.
       this.logger.warn("LinkedIn image upload error", { error });
       return null;
     }
@@ -462,6 +465,8 @@ export class LinkedInClient implements PublishProvider {
       await this.getUserId();
       return true;
     } catch {
+      // Credentials we cannot check are credentials we cannot use, so
+      // unreachable and invalid are the same answer to this question.
       return false;
     }
   }
