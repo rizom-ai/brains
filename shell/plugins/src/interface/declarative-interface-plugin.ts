@@ -136,6 +136,7 @@ class DeclarativeInterfacePlugin<
             }),
           domain: context.domain,
           displayBaseUrl: effectiveDisplayBaseUrl(context),
+          themeCSS: context.themeCSS,
           logger: this.logger,
         })
       : emptyPluginState<TState>();

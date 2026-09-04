@@ -295,6 +295,14 @@ export interface InterfaceSetupContext<
    * than each package re-deriving it from three fields.
    */
   readonly displayBaseUrl: string | undefined;
+  /**
+   * The brain's theme, for an interface that serves a page of its own.
+   *
+   * web-chat and the console it hosts are the brain's own surfaces and should
+   * look like it; getting the stylesheet another way would mean picking a
+   * theme the rest of the brain is not using.
+   */
+  readonly themeCSS: string;
   readonly logger: Logger;
 }
 
@@ -389,6 +397,7 @@ export interface MessageChannelDefinition<
 // the bus too — so it lives in contracts/ and both families name it there.
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
 import type { ToolStatusUpdate } from "../message-interface/tool-status";
+import type { UserPermissionLevel } from "@brains/templates";
 
 export type {
   AnySubscriptionDefinition,
@@ -451,13 +460,38 @@ export interface InboundMessageSender {
 export interface InboundMessageAttachment {
   readonly name: string;
   readonly mediaType: string;
-  readonly url: string;
+  /**
+   * Where to fetch it, for a channel that receives a link rather than the
+   * thing. Omitted when the interface already holds the bytes.
+   */
+  readonly url?: string | undefined;
+  /** The bytes, for an interface that already has them. */
+  readonly data?: Uint8Array | undefined;
+  /** The text, for the same reason, when the attachment is text. */
+  readonly text?: string | undefined;
+}
+
+/**
+ * Who the interface established the caller to be, when it holds a verified
+ * session rather than a sender id on someone else's service.
+ *
+ * Given this, the pipeline uses it instead of resolving a level from the
+ * configured rules — which would answer "public" for a signed-in browser, as
+ * no deployment writes a rule per browser user — and attributes the turn to
+ * the person rather than an external stand-in.
+ */
+export interface AuthenticatedCaller {
+  readonly permissionLevel: UserPermissionLevel;
+  readonly isAnchor?: boolean | undefined;
+  readonly userId?: string | undefined;
+  readonly canonicalId?: string | undefined;
 }
 
 export interface ReceiveAuthenticatedInput {
   readonly sender: InboundMessageSender;
   readonly channel: MessageChannel;
   readonly text: string;
+  readonly caller?: AuthenticatedCaller | undefined;
   readonly attachments?:
     (() => Promise<readonly InboundMessageAttachment[]>) | undefined;
 }

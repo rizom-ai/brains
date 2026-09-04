@@ -1,4 +1,4 @@
-import { createExternalActorId } from "@brains/contracts";
+import { createExternalActorId, type ActorRef } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { uploadNamespaceFor } from "../internal/state-namespace";
 import { emptyPluginState } from "../base/empty-state";
@@ -49,6 +49,31 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolStatusUpdate } from "./tool-status";
 import { effectiveDisplayBaseUrl } from "../interface/display-base-url";
 
+/**
+ * Who the turn is attributed to.
+ *
+ * An interface that verified a session names the person; one that only has a
+ * sender id gets an external actor derived from it, so the turn is still
+ * attributable to something stable.
+ */
+function callerIdentity(
+  input: ReceiveAuthenticatedInput,
+  interfaceType: string,
+): ActorRef {
+  const caller = input.caller;
+  if (caller?.userId) {
+    return {
+      kind: "user",
+      userId: caller.userId,
+      ...(caller.canonicalId ? { canonicalId: caller.canonicalId } : {}),
+    };
+  }
+  return {
+    kind: "external",
+    externalActorId: createExternalActorId(interfaceType, input.sender.id),
+  };
+}
+
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   if (typeof message === "string") return { text: message };
   return {
@@ -56,17 +81,28 @@ function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   };
 }
 
+/**
+ * The attachment as the agent takes it.
+ *
+ * An interface that already holds the bytes says so and nothing is fetched;
+ * one that received only a link gets it downloaded here, which is the case
+ * every channel-shaped interface is in.
+ */
 async function attachmentFrom(
   attachment: InboundMessageAttachment,
   signal: AbortSignal,
 ): Promise<ChatAttachment> {
-  const response = await fetch(attachment.url, { signal });
-  if (!response.ok) {
-    throw new Error(
-      `Attachment "${attachment.name}" could not be downloaded (${response.status})`,
-    );
+  if (attachment.text !== undefined) {
+    return {
+      kind: "text",
+      filename: attachment.name,
+      mediaType: attachment.mediaType,
+      content: attachment.text,
+      sizeBytes: new TextEncoder().encode(attachment.text).byteLength,
+    };
   }
-  const data = new Uint8Array(await response.arrayBuffer());
+  const inline = attachment.data;
+  const data = inline ?? (await downloadAttachment(attachment, signal));
   if (attachment.mediaType.startsWith("text/")) {
     return {
       kind: "text",
@@ -83,6 +119,24 @@ async function attachmentFrom(
     data,
     sizeBytes: data.byteLength,
   };
+}
+
+async function downloadAttachment(
+  attachment: InboundMessageAttachment,
+  signal: AbortSignal,
+): Promise<Uint8Array> {
+  if (!attachment.url) {
+    throw new Error(
+      `Attachment "${attachment.name}" carries neither bytes nor a URL`,
+    );
+  }
+  const response = await fetch(attachment.url, { signal });
+  if (!response.ok) {
+    throw new Error(
+      `Attachment "${attachment.name}" could not be downloaded (${response.status})`,
+    );
+  }
+  return new Uint8Array(await response.arrayBuffer());
 }
 
 class DeclarativeMessageInterfacePlugin<
@@ -182,6 +236,7 @@ class DeclarativeMessageInterfacePlugin<
           ),
           domain: context.domain,
           displayBaseUrl: effectiveDisplayBaseUrl(context),
+          themeCSS: context.themeCSS,
           messaging: {
             send: (message) =>
               context.messaging.send({
@@ -697,14 +752,15 @@ class DeclarativeMessageInterfacePlugin<
     }
     const context = this.getContext();
     const interfaceType = this.definition.channel.type;
-    const permission = context.permissions.getUserLevel(
-      interfaceType,
-      input.sender.id,
-    );
-    const isAnchor = context.permissions.isAnchor(
-      interfaceType,
-      input.sender.id,
-    );
+    // An interface holding a verified session has already answered this
+    // better than the configured rules can; one that has not falls back to
+    // them, which is right for a sender who is just an id elsewhere.
+    const permission =
+      input.caller?.permissionLevel ??
+      context.permissions.getUserLevel(interfaceType, input.sender.id);
+    const isAnchor =
+      input.caller?.isAnchor ??
+      context.permissions.isAnchor(interfaceType, input.sender.id);
     const conversationId = [
       interfaceType,
       input.channel.id,
@@ -775,13 +831,7 @@ class DeclarativeMessageInterfacePlugin<
           interfaceType,
           channelId: input.channel.id,
           actor: {
-            identity: {
-              kind: "external",
-              externalActorId: createExternalActorId(
-                interfaceType,
-                input.sender.id,
-              ),
-            },
+            identity: callerIdentity(input, interfaceType),
             interfaceType,
             role: "user",
             ...(input.sender.displayName
