@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, setSystemTime } from "bun:test";
 import { QueueManager } from "../src/queue-manager";
 
 describe("QueueManager", () => {
@@ -134,11 +134,19 @@ describe("QueueManager", () => {
 
   describe("getNextAcrossTypes", () => {
     it("should return oldest queued entry across all types", async () => {
-      // Add to blog queue first
-      await queueManager.add("blog-post", "post-1");
-      // Wait a bit and add to deck queue
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      await queueManager.add("deck", "deck-1");
+      // "Oldest" is read from the queued-at timestamp, so the two entries need
+      // distinguishable ones. The clock is moved rather than slept through:
+      // a 10ms sleep left the gap to whatever resolution the timestamp
+      // happens to have, where this states it.
+      const queuedAt = Date.now();
+      setSystemTime(new Date(queuedAt));
+      try {
+        await queueManager.add("blog-post", "post-1");
+        setSystemTime(new Date(queuedAt + 1000));
+        await queueManager.add("deck", "deck-1");
+      } finally {
+        setSystemTime();
+      }
 
       const next = await queueManager.getNextAcrossTypes();
 
