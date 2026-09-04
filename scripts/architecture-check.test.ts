@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { join } from "node:path";
 import {
   architectureStructuralEdges,
@@ -91,8 +92,8 @@ describe("architecture reporter parsing", () => {
   });
 });
 
-test("dependency-cruiser loads the isolated TypeScript 6 compiler", () => {
-  const result = Bun.spawnSync(
+test("dependency-cruiser loads the isolated TypeScript 6 compiler", async () => {
+  const result = await runProcess(
     [
       "node",
       "--require",
@@ -106,5 +107,5 @@ test("dependency-cruiser loads the isolated TypeScript 6 compiler", () => {
     { cwd: repositoryRoot },
   );
 
-  expect(result.exitCode, result.stderr.toString()).toBe(0);
+  expect(result.exitCode, result.stderr).toBe(0);
 });

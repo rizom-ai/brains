@@ -168,6 +168,21 @@ module.exports = {
     "no-restricted-syntax": [
       "error",
       {
+        // A synchronous spawn has to collect its child's exit itself, and when
+        // it does not the process spins at 100% CPU with the child left
+        // `<defunct>` — uninterruptible, because the loop never yields. Under
+        // `bun test --parallel` that took whole runs down: a child holding
+        // inherited stdio keeps the pipe the runner waits on for EOF.
+        //
+        // Restricted everywhere rather than in tests alone. The same spin in a
+        // running Brain is worse than in a test, and the one production caller
+        // was a bootstrap path that awaits just as well.
+        selector:
+          "CallExpression[callee.object.name='Bun'][callee.property.name='spawnSync']",
+        message:
+          "Use runProcess/runProcessOrThrow from @brains/utils/run-process: a synchronous spawn can leave a <defunct> child and spin the process.",
+      },
+      {
         selector:
           'ConditionalExpression[test.operator="instanceof"][test.right.name="Error"][consequent.property.name="message"]',
         message:

@@ -228,6 +228,11 @@ export default [
       // spinning the same way with a `[.bun-wrapped]` child rather than a
       // `git` one, so the fault is the synchronous spawn and not the command
       // it happened to run.
+      // `Bun.spawnSync` is the same hazard reached through a different API,
+      // and it is a member call rather than an import so the ban below cannot
+      // see it. It is restricted repo-wide from the shared config instead of
+      // here: composing it into this block would have replaced the sleep ban
+      // for every file this block covers but that one does not.
       "no-restricted-imports": [
         "error",
         {

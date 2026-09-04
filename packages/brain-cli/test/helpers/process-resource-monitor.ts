@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { runProcess } from "@brains/utils/run-process";
 
 export interface ProcessResourceSample {
   atMs: number;
@@ -277,19 +278,16 @@ export async function constrainCurrentProcessCpu(
   const allowed = await readAllowedCpuList(process.pid);
   const allowedCount = parseCpuList(allowed).length;
   if (allowedCount > limit) {
-    const result = Bun.spawnSync(
-      [
-        "taskset",
-        "--all-tasks",
-        "--pid",
-        "--cpu-list",
-        limitedCpuList(allowed, limit),
-        String(process.pid),
-      ],
-      { stdout: "pipe", stderr: "pipe" },
-    );
+    const result = await runProcess([
+      "taskset",
+      "--all-tasks",
+      "--pid",
+      "--cpu-list",
+      limitedCpuList(allowed, limit),
+      String(process.pid),
+    ]);
     if (result.exitCode !== 0) {
-      const error = new TextDecoder().decode(result.stderr).trim();
+      const error = result.stderr.trim();
       throw new Error(
         `Unable to constrain feature-load CPU affinity: ${error}`,
       );

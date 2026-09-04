@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -15,11 +15,11 @@ export interface ContentRemoteBootstrapOptions {
   logger: Logger;
 }
 
-function git(cwd: string, args: string[]): void {
-  const result = spawnSync("git", args, { cwd, stdio: "pipe" });
-  if (result.status !== 0) {
-    const stderr = result.stderr.toString().trim();
-    const stdout = result.stdout.toString().trim();
+async function git(cwd: string, args: string[]): Promise<void> {
+  const result = await runProcess(["git", ...args], { cwd });
+  if (result.exitCode !== 0) {
+    const stderr = result.stderr.trim();
+    const stdout = result.stdout.trim();
     throw new Error(stderr || stdout || `git ${args.join(" ")} failed`);
   }
 }
@@ -32,8 +32,12 @@ function localPathFromFileGitUrl(gitUrl: string): string {
   return fileURLToPath(gitUrl);
 }
 
-function remoteHasBranch(remotePath: string, branch: string): boolean {
-  const result = spawnSync("git", [
+async function remoteHasBranch(
+  remotePath: string,
+  branch: string,
+): Promise<boolean> {
+  const result = await runProcess([
+    "git",
     "--git-dir",
     remotePath,
     "show-ref",
@@ -41,7 +45,7 @@ function remoteHasBranch(remotePath: string, branch: string): boolean {
     "--quiet",
     `refs/heads/${branch}`,
   ]);
-  return result.status === 0;
+  return result.exitCode === 0;
 }
 
 export async function bootstrapContentRemoteFromSeed(
@@ -71,7 +75,7 @@ export async function bootstrapContentRemoteFromSeed(
       branch,
     });
     mkdirSync(remotePath, { recursive: true });
-    git(process.cwd(), [
+    await git(process.cwd(), [
       "init",
       "--bare",
       `--initial-branch=${branch}`,
@@ -79,7 +83,7 @@ export async function bootstrapContentRemoteFromSeed(
     ]);
   }
 
-  if (remoteHasBranch(remotePath, branch)) {
+  if (await remoteHasBranch(remotePath, branch)) {
     options.logger.debug("Content remote already initialized", {
       remotePath,
       branch,
@@ -96,9 +100,9 @@ export async function bootstrapContentRemoteFromSeed(
   const worktree = mkdtempSync(join(tmpdir(), "directory-sync-seed-"));
 
   try {
-    git(worktree, ["init", `--initial-branch=${branch}`]);
-    git(worktree, ["config", "user.name", options.authorName ?? "Brain"]);
-    git(worktree, [
+    await git(worktree, ["init", `--initial-branch=${branch}`]);
+    await git(worktree, ["config", "user.name", options.authorName ?? "Brain"]);
+    await git(worktree, [
       "config",
       "user.email",
       options.authorEmail ?? "brain@localhost",
@@ -109,10 +113,10 @@ export async function bootstrapContentRemoteFromSeed(
       recursive: true,
       filter: (source) => !source.split("/").includes(".git"),
     });
-    git(worktree, ["add", "."]);
-    git(worktree, ["commit", "-m", "seed content remote"]);
-    git(worktree, ["remote", "add", "origin", options.gitUrl]);
-    git(worktree, ["push", "-u", "origin", branch]);
+    await git(worktree, ["add", "."]);
+    await git(worktree, ["commit", "-m", "seed content remote"]);
+    await git(worktree, ["remote", "add", "origin", options.gitUrl]);
+    await git(worktree, ["push", "-u", "origin", branch]);
   } finally {
     rmSync(worktree, { recursive: true, force: true });
   }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -139,7 +140,7 @@ describe("built binary boot smoke", () => {
     }
   }, 240_000);
 
-  it("passes startup checks without a webserver", () => {
+  it("passes startup checks without a webserver", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-headless-smoke-"));
     try {
       writeFileSync(
@@ -158,7 +159,7 @@ describe("built binary boot smoke", () => {
         ].join("\n"),
       );
 
-      const startup = Bun.spawnSync(
+      const startup = await runProcess(
         [
           "bun",
           join(packageDir, "dist", "brain.js"),
@@ -172,11 +173,9 @@ describe("built binary boot smoke", () => {
             AI_API_KEY: "placeholder-boot-smoke",
             XDG_DATA_HOME: join(instanceDir, "xdg-data"),
           },
-          stdout: "pipe",
-          stderr: "pipe",
         },
       );
-      const output = `${startup.stdout.toString()}${startup.stderr.toString()}`;
+      const output = `${startup.stdout}${startup.stderr}`;
 
       expect(startup.exitCode, output).toBe(0);
       expect(output).toContain("A2A interface registered in tool-only mode");
