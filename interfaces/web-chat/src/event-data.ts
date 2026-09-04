@@ -8,7 +8,7 @@ import {
   type JobContext,
   type JobProgressEvent,
   type ToolStatusUpdate,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 
 interface WebChatProgressData {
   type: JobProgressEvent["type"];

@@ -6,10 +6,8 @@ import {
   renameChatSessionRequestSchema,
   renameChatSessionResponseSchema,
 } from "@brains/contracts/chat";
-import {
-  coerceConversationMetadata,
-  type InterfacePluginContext,
-} from "@brains/plugins";
+import { coerceConversationMetadata } from "@brains/sdk/interfaces";
+import type { IInterfaceConversationsNamespace } from "@brains/sdk/interfaces";
 import {
   canAccessBrowserConversation,
   type WebChatConversation,
@@ -21,7 +19,7 @@ const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 
 type AccessResolver = (request: Request) => Promise<WebChatConversationAccess>;
-type ConversationService = InterfacePluginContext["conversations"];
+type ConversationService = IInterfaceConversationsNamespace;
 
 interface SessionHandlerDeps {
   conversations: ConversationService;

@@ -31,7 +31,16 @@ export type { IMCPTransport } from "@brains/plugins";
 
 // What every interface can ask for at registration — both families get the
 // same context, because they are the same kind of thing.
-export type { InterfaceSetupContext } from "@brains/plugins";
+export type {
+  InterfaceEntityReader,
+  InterfaceJobs,
+  InterfaceJobStatus,
+  InterfaceSetupContext,
+} from "@brains/plugins";
+// The conversation surface an interface hosts one through — listing threads,
+// reading a history back, renaming, deleting.
+// Named consumers: @brains/web-chat, @brains/chat.
+export type { IInterfaceConversationsNamespace } from "@brains/plugins";
 
 // Somewhere to put bytes that arrived from outside — the same reason
 // `runtimeState` exists, for content rather than bookkeeping. The runtime owns
@@ -112,4 +121,34 @@ export type {
   ResponseRenderDirective,
   StructuredChatCard,
   ToolApprovalCard,
+} from "@brains/plugins";
+
+// The rest of that vocabulary, for an interface that renders a whole
+// conversation rather than one reply: what a stored message carried, what an
+// artifact is called and who may fetch it, how progress and tool activity
+// read, and what must not leak when a card is shown again.
+//
+// All of it is derivation over shapes the runtime already defines — no service
+// reaches through here. It is published because two interfaces must not
+// disagree about what a stored message contained or who may open its
+// attachment, and because deriving it twice is how they would.
+// Named consumers: @brains/web-chat, @brains/chat.
+export {
+  coerceConversationMetadata,
+  formatMessageProgressDisplay,
+  getArtifactEntityFilename,
+  getStoredMessageAttachments,
+  getStoredMessageCards,
+  getToolStatusDisplay,
+  parseArtifactDataUrl,
+  redactUploadRefs,
+  redactUploadRefsInStructuredCard,
+  resolveMessageArtifactAccess,
+} from "@brains/plugins";
+export type {
+  JobContext,
+  JobProgressEvent,
+  MessageArtifactEntity,
+  ResponsePlan,
+  ToolStatusUpdate,
 } from "@brains/plugins";

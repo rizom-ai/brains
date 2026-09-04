@@ -13,6 +13,8 @@ import type { IMCPTransport } from "../interfaces";
 import type { AgentNamespace } from "../contracts/agent";
 import type { ResponseRenderDirective } from "../message-interface/response-render-plan";
 import type { IPermissionsNamespace } from "../public/types";
+import type { IInterfaceConversationsNamespace } from "./context";
+import type { JobEntityAccess } from "../job/job-context-contract";
 import type {
   RuntimeUploadScopeOptions,
   ScopedRuntimeUploadStore,
@@ -79,6 +81,16 @@ export type InterfaceUploads = (
   options: RuntimeUploadScopeOptions,
 ) => ScopedRuntimeUploadStore;
 
+/**
+ * Reading a record, and only reading it.
+ *
+ * Exactly one method, because exactly one thing needs it: a page that renders
+ * an attachment has to fetch the entity the conversation named. An interface
+ * declares no entity types, so there is no set a write could be checked
+ * against — one that wanted to write would be a service.
+ */
+export type InterfaceEntityReader = Pick<JobEntityAccess, "getEntity">;
+
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
 
@@ -86,11 +98,26 @@ export interface InterfaceJobReference {
   readonly id: string;
 }
 
+/**
+ * How work someone started is going.
+ *
+ * Narrower than what a service reads about its own jobs: an interface did not
+ * declare the job and cannot say what its result means, so it gets what a page
+ * can honestly show — whether it is still running, and what went wrong if it
+ * did not. Named consumer: @brains/web-chat.
+ */
+export interface InterfaceJobStatus {
+  readonly id: string;
+  readonly status: string;
+  readonly lastError: string | null;
+}
+
 export interface InterfaceJobs {
   enqueue<TDefinition extends AnyServiceJobDefinition>(
     definition: TDefinition,
     input: z.input<TDefinition["input"]>,
   ): Promise<InterfaceJobReference>;
+  getStatus(jobId: string): Promise<InterfaceJobStatus | null>;
 }
 
 export interface InterfaceDaemonHealth {
@@ -198,6 +225,25 @@ export interface InterfaceSetupContext<
     options: RuntimeStateScopeOptions<TValue>,
   ) => IRuntimeStateStore<TValue>;
   readonly uploads: InterfaceUploads;
+  /**
+   * The conversations this interface hosts.
+   *
+   * An interface that carries a conversation is not only a pipe for one turn:
+   * it lists the threads someone has, reads a history back, renames and
+   * deletes. That is the surface, and a declaration reached it by indexing
+   * the runtime context type — which is what having no name for it looks
+   * like. Named consumers: @brains/web-chat, @brains/chat.
+   */
+  readonly conversations: IInterfaceConversationsNamespace;
+  /**
+   * Reading a record the conversation points at.
+   *
+   * A rendered attachment names an entity, and the page has to fetch it. A
+   * read, not the entity service: an interface owns no types, and one that
+   * wanted to write would be a service.
+   * Named consumer: @brains/web-chat.
+   */
+  readonly entities: InterfaceEntityReader;
   /** The brain's own domain, when it has one. */
   readonly domain: string | undefined;
   readonly logger: Logger;
@@ -451,6 +497,7 @@ export interface MessageInterfaceDefinitionInput<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly state: TState;
+        readonly jobs: InterfaceJobs;
       }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   readonly listen?:

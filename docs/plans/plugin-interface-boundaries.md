@@ -656,6 +656,29 @@ A message interface can declare `routes` now, too. The generic family always
 could; nothing made a channel that also answers HTTP impossible except that
 no consumer had needed it.
 
+**web-chat's helpers are off `@brains/plugins`: 70 symbols to 31, and ten of
+its fifteen files import none.** Reading what each helper actually wanted made
+the shape obvious. Six of them did not use the runtime context at all — they
+_indexed_ its type (`InterfacePluginContext["conversations"]`,
+`["jobs"]`, `["entityService"]`) to name one namespace, which is what having
+no name for something looks like. Three things came out of that, each sized
+to what is genuinely used: the conversation surface an interface hosts a
+conversation through; `getStatus` on the declared jobs handle, narrowed to
+what a page can honestly show about work it did not declare; and a reader with
+exactly one method, because rendering an attachment means fetching the entity
+the conversation named and nothing more.
+
+The rest were presentation: what a stored message carried, what an artifact is
+called and who may open it, how progress and tool activity read, what must not
+leak when a card is shown again. All derivation over shapes the runtime already
+defines — no service reaches through them — and published for the reason the
+approval helpers already were: two interfaces must not disagree about what a
+stored message contained, and deriving it twice is how they would.
+
+What is left is the conversion itself: `web-chat-interface.ts` and
+`chat-stream.ts`, holding the base class, the runtime contexts, and the agent
+call. Those go when the declaration replaces them.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so

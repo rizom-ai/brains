@@ -11,7 +11,10 @@ import type { AnyAccountSettingsDefinition } from "../operator/account-settings-
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
+import { createInterfaceEntityAccess } from "../interface/interface-entity-access";
 import { createRuntimeRoute } from "../interface/route-runtime";
+import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import type { WebRouteDefinition } from "../types/web-routes";
 import {
   identityConfigSchema,
@@ -20,6 +23,7 @@ import {
 import type {
   InboundMessageAttachment,
   MessageInterfaceDefinitionInput,
+  InterfaceJobStatus,
   MessageOutput,
   ReceiveAuthenticatedInput,
 } from "../interface/interface-definition-contract";
@@ -147,6 +151,11 @@ class DeclarativeMessageInterfacePlugin<
           auth: context.auth,
           permissions: context.permissions,
           agent: context.agent,
+          conversations: context.conversations,
+          entities: createInterfaceEntityAccess(
+            context.entityService,
+            this.definition.id,
+          ),
           domain: context.domain,
           messaging: {
             send: (message) =>
@@ -192,6 +201,28 @@ class DeclarativeMessageInterfacePlugin<
       this.definition.routes?.({
         config: this.config,
         state: this.requireState(),
+        jobs: {
+          enqueue: async <TDefinition extends AnyServiceJobDefinition>(
+            definition: TDefinition,
+            input: z.input<TDefinition["input"]>,
+          ): Promise<{ readonly id: string }> =>
+            Object.freeze({
+              id: await context.jobs.enqueue({
+                type: getServiceJobRuntimeType(definition),
+                data: definition.input.parse(input),
+              }),
+            }),
+          getStatus: async (jobId): Promise<InterfaceJobStatus | null> => {
+            const job = await context.jobs.getStatus(jobId);
+            return job
+              ? Object.freeze({
+                  id: job.id,
+                  status: job.status,
+                  lastError: job.lastError ?? null,
+                })
+              : null;
+          },
+        },
       }) ?? []
     ).map((route) =>
       createRuntimeRoute(route, {

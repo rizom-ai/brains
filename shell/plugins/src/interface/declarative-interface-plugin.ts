@@ -10,6 +10,7 @@ import type {
   AnyInterfaceRouteDefinition,
   InterfaceDefinitionInput,
   InterfaceJobs,
+  InterfaceJobStatus,
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
@@ -97,6 +98,11 @@ class DeclarativeInterfacePlugin<
           mcpTransport: context.mcpTransport,
           permissions: context.permissions,
           agent: context.agent,
+          conversations: context.conversations,
+          entities: createInterfaceEntityAccess(
+            context.entityService,
+            this.definition.id,
+          ),
           runtimeState: (options) =>
             context.runtimeState.scoped({
               ...options,
@@ -251,6 +257,16 @@ class DeclarativeInterfacePlugin<
           data,
         });
         return Object.freeze({ id });
+      },
+      getStatus: async (jobId): Promise<InterfaceJobStatus | null> => {
+        const job = await context.jobs.getStatus(jobId);
+        return job
+          ? Object.freeze({
+              id: job.id,
+              status: job.status,
+              lastError: job.lastError ?? null,
+            })
+          : null;
       },
     };
   }

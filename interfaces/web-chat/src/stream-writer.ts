@@ -2,7 +2,7 @@ import {
   redactUploadRefsInStructuredCard,
   type ResponsePlan,
   type StructuredChatCard,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 
 export function writeTextPart(

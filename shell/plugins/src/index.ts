@@ -428,6 +428,9 @@ export {
   verbatim,
 } from "./public/interface-definition";
 export type {
+  InterfaceEntityReader,
+  InterfaceJobs,
+  InterfaceJobStatus,
   InterfaceSetupContext,
   InterfaceUploads,
   RouteResponse,
