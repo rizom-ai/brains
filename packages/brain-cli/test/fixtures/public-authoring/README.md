@@ -44,7 +44,7 @@ configuration that have actually passed the package boundary.
 | Step | Package                                                                   | What it demonstrates                                                                                          |
 | ---- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | 1    | [`entity`](./entity/src/index.ts)                                         | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                         |
-| 2    | [`service`](./service/src/index.ts)                                       | Parsed config/setup state, resources/prompts/templates/views, reusable job contract, handler, tools           |
+| 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates/views, reusable job contract, handler, tools           |
 | 3    | [`interface`](./interface/src/index.ts)                                   | Public and protocol routes, runtime-derived caller, cross-package job enqueue, supervised daemon              |
 | 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, authenticated inbound messages, lazy attachments, normalized send/edit/deliver |
 | 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset      |
