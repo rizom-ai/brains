@@ -92,6 +92,7 @@ describe("offline legacy pilot migration", () => {
     expect(pilotYaml).not.toContain("preset:");
     expect(pilotYaml).not.toContain("schemaVersion:");
     expect(pilotYaml).toContain("bundleContract: capability-bundles-v1");
+    expect(pilotYaml).not.toContain("imageContract:");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(cohortYaml).toContain("bundlesOverride:");
     expect(parseYamlDocument(pilotYaml, pilotSchema).ok).toBe(true);

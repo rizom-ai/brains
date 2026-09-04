@@ -9,7 +9,7 @@ export {
 } from "@brains/deploy-support";
 export type { EnvSchemaEntry } from "@brains/deploy-support";
 export {
-  siteImageTag,
+  runtimeImageTag,
   sitePackagesFor,
   requiredImages,
   resolveImageBuilds,

@@ -8,7 +8,7 @@ on:
         required: false
         type: string
       site_packages:
-        description: 'Space-separated site packages for a per-instance site image (e.g. "@rizom/site-rizom-ai@0.2.0-alpha.148"). Empty builds the default fleet image.'
+        description: "Space-separated exact site/theme packages for one explicit image build. Shared-fleet automatic builds derive the version-wide package union from desired state."
         required: false
         type: string
       overwrite:

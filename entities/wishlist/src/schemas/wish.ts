@@ -9,31 +9,24 @@ import { baseEntityParserSchema } from "@brains/plugins";
  * - done: capability shipped
  * - declined: explicitly declined with reason
  */
-export type WishStatus =
-  "new" | "planned" | "in-progress" | "done" | "declined";
+export const wishStatusSchema: z.ZodEnum<{
+  new: "new";
+  planned: "planned";
+  "in-progress": "in-progress";
+  done: "done";
+  declined: "declined";
+}> = z.enum(["new", "planned", "in-progress", "done", "declined"]);
 
-export const wishStatusSchema: z.ZodType<WishStatus, WishStatus> = z.enum([
-  "new",
-  "planned",
-  "in-progress",
-  "done",
-  "declined",
-]);
+export type WishStatus = z.output<typeof wishStatusSchema>;
 
-export type WishPriority = "low" | "medium" | "high" | "critical";
+export const wishPrioritySchema: z.ZodEnum<{
+  low: "low";
+  medium: "medium";
+  high: "high";
+  critical: "critical";
+}> = z.enum(["low", "medium", "high", "critical"]);
 
-export const wishPrioritySchema: z.ZodType<WishPriority, WishPriority> = z.enum(
-  ["low", "medium", "high", "critical"],
-);
-
-export interface WishFrontmatter {
-  [key: string]: unknown;
-  title: string;
-  status: WishStatus;
-  priority: WishPriority;
-  requested: number;
-  declinedReason?: string | undefined;
-}
+export type WishPriority = z.output<typeof wishPrioritySchema>;
 
 /**
  * Wish frontmatter schema (stored in content as YAML frontmatter)
@@ -41,8 +34,8 @@ export interface WishFrontmatter {
  */
 type WishFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodType<WishStatus, WishStatus>;
-  priority: z.ZodDefault<z.ZodType<WishPriority, WishPriority>>;
+  status: typeof wishStatusSchema;
+  priority: z.ZodDefault<typeof wishPrioritySchema>;
   requested: z.ZodDefault<z.ZodNumber>;
   declinedReason: z.ZodOptional<z.ZodString>;
 }>;
@@ -55,19 +48,12 @@ export const wishFrontmatterSchema: WishFrontmatterSchema = z.object({
   declinedReason: z.string().optional(),
 });
 
-export interface WishMetadata {
-  [key: string]: unknown;
-  title: string;
-  status: WishStatus;
-  priority: WishPriority;
-  requested: number;
-  slug: string;
-}
+export type WishFrontmatter = z.output<typeof wishFrontmatterSchema>;
 
 type WishMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodType<WishStatus, WishStatus>;
-  priority: z.ZodType<WishPriority, WishPriority>;
+  status: typeof wishStatusSchema;
+  priority: typeof wishPrioritySchema;
   requested: z.ZodNumber;
   slug: z.ZodString;
 }>;
@@ -83,6 +69,8 @@ export const wishMetadataSchema: WishMetadataSchema = z.object({
   requested: z.number().int(),
   slug: z.string(),
 });
+
+export type WishMetadata = z.output<typeof wishMetadataSchema>;
 
 /**
  * Wish entity schema

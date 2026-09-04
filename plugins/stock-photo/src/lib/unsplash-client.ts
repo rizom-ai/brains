@@ -65,38 +65,37 @@ export class UnsplashClient implements StockPhotoProvider {
 
 // -- Unsplash API response schemas (internal) --
 
-interface UnsplashPhoto {
-  id: string;
-  description: string | null;
-  alt_description: string | null;
-  urls: {
-    raw: string;
-    full: string;
-    regular: string;
-    small: string;
-    thumb: string;
-  };
-  links: {
-    html: string;
-    download_location: string;
-  };
-  user: {
-    name: string;
-    links: {
-      html: string;
-    };
-  };
-  width: number;
-  height: number;
-}
-
-interface UnsplashSearchResponse {
-  total: number;
-  total_pages: number;
-  results: UnsplashPhoto[];
-}
-
-const unsplashPhotoSchema: z.ZodType<UnsplashPhoto> = z.looseObject({
+const unsplashPhotoSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    description: z.ZodNullable<z.ZodString>;
+    alt_description: z.ZodNullable<z.ZodString>;
+    urls: z.ZodObject<
+      {
+        raw: z.ZodURL;
+        full: z.ZodURL;
+        regular: z.ZodURL;
+        small: z.ZodURL;
+        thumb: z.ZodURL;
+      },
+      z.core.$loose
+    >;
+    links: z.ZodObject<
+      { html: z.ZodURL; download_location: z.ZodURL },
+      z.core.$loose
+    >;
+    user: z.ZodObject<
+      {
+        name: z.ZodString;
+        links: z.ZodObject<{ html: z.ZodURL }, z.core.$loose>;
+      },
+      z.core.$loose
+    >;
+    width: z.ZodNumber;
+    height: z.ZodNumber;
+  },
+  z.core.$loose
+> = z.looseObject({
   id: z.string(),
   description: z.string().nullable(),
   alt_description: z.string().nullable(),
@@ -121,12 +120,20 @@ const unsplashPhotoSchema: z.ZodType<UnsplashPhoto> = z.looseObject({
   height: z.number().int().nonnegative(),
 });
 
-const unsplashSearchResponseSchema: z.ZodType<UnsplashSearchResponse> =
-  z.looseObject({
-    total: z.number().int().nonnegative(),
-    total_pages: z.number().int().nonnegative(),
-    results: z.array(unsplashPhotoSchema),
-  });
+type UnsplashPhoto = z.output<typeof unsplashPhotoSchema>;
+
+const unsplashSearchResponseSchema: z.ZodObject<
+  {
+    total: z.ZodNumber;
+    total_pages: z.ZodNumber;
+    results: z.ZodArray<typeof unsplashPhotoSchema>;
+  },
+  z.core.$loose
+> = z.looseObject({
+  total: z.number().int().nonnegative(),
+  total_pages: z.number().int().nonnegative(),
+  results: z.array(unsplashPhotoSchema),
+});
 
 function toPhotoCandidate(photo: UnsplashPhoto): PhotoCandidate {
   return {

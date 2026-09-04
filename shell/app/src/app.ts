@@ -16,8 +16,8 @@ import type {
 } from "@brains/core";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
 
-type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
-type InitializeOptions = Parameters<Shell["initialize"]>[0];
+export type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
+export type InitializeOptions = Parameters<Shell["initialize"]>[0];
 
 export interface AppRuntimeOptions {
   migrationsCompleted?: boolean;
@@ -33,6 +33,179 @@ export interface AppRuntimeOptions {
  */
 export const STARTUP_CHECK_API_KEY = "startup-check";
 
+/**
+ * The plain AppConfig an App runs with, from what a caller passed in.
+ *
+ * Validates the schema, then attaches the parts the schema does not carry —
+ * the Plugin objects and the caller-supplied blocks. Exported so tests of
+ * config policy can build a real AppConfig without constructing an App.
+ */
+export function toAppConfig(config?: AppConfigInput): AppConfig {
+  const validatedConfig = appConfigSchema.parse(config ?? {});
+
+  // Follow Shell's pattern: validate schema then add full Plugin objects
+  const appConfig: AppConfig = {
+    ...validatedConfig,
+    plugins: config?.plugins ?? [],
+  };
+
+  // Only add optional properties if they're defined
+  if (config?.permissions) appConfig.permissions = config.permissions;
+  if (config?.spaces) appConfig.spaces = config.spaces;
+  if (config?.cliConfig) appConfig.cliConfig = config.cliConfig;
+  if (config?.shellConfig) appConfig.shellConfig = config.shellConfig;
+  return appConfig;
+}
+
+/**
+ * The ShellConfig an App hands to Shell.createFresh.
+ *
+ * A pure function of the AppConfig and the initialize options — no App
+ * instance, no Shell. Tests of config policy assert on the returned object
+ * instead of spying Shell.createFresh to capture what App passed it.
+ */
+export function buildShellConfig(
+  config: AppConfig,
+  options?: InitializeOptions,
+): ShellConfig {
+  const shellConfig: ShellConfig = {
+    plugins: config.plugins ?? [],
+    ...config.shellConfig, // Allow overriding for tests/advanced use
+  };
+
+  applyStandardStorageConfig(shellConfig);
+  applySimpleConfigOverrides(config, shellConfig);
+  applyAIConfig(config, shellConfig, options);
+  applyLoggingConfig(config, shellConfig);
+  applyPermissionConfig(config, shellConfig);
+  applySpacesConfig(config, shellConfig);
+  applyIdentityConfig(config, shellConfig);
+  applyAgentInstructions(config, shellConfig);
+  applyAppMetadata(config, shellConfig);
+
+  return shellConfig;
+}
+
+/**
+ * Environment policy lives here, not in core: resolve XDG-based storage
+ * paths and pass them as explicit config. Anything the caller already
+ * set (tests, advanced use) wins.
+ */
+function applyStandardStorageConfig(shellConfig: ShellConfig): void {
+  const standard = resolveStandardConfig();
+  shellConfig.database ??= standard.database;
+  shellConfig.jobQueueDatabase ??= standard.jobQueueDatabase;
+  shellConfig.conversationDatabase ??= standard.conversationDatabase;
+  shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
+  shellConfig.embedding ??= standard.embedding;
+  shellConfig.gitBrokerSocket ??= resolveGitBrokerSocket();
+  shellConfig.gitBrokerCheckout ??= resolveGitBrokerCheckout();
+}
+
+function applySimpleConfigOverrides(
+  config: AppConfig,
+  shellConfig: ShellConfig,
+): void {
+  // Apply simple app config (these override shellConfig if both are provided)
+  if (config.database) {
+    shellConfig.database = { url: config.database };
+  }
+  if (config.profileKind) {
+    shellConfig.profileKind = config.profileKind;
+  }
+
+  // Set feature flags (none currently)
+  shellConfig.features = {};
+}
+
+function applyAIConfig(
+  config: AppConfig,
+  shellConfig: ShellConfig,
+  options?: InitializeOptions,
+): void {
+  const isStartupCheck = options?.mode === "startup-check";
+  if (
+    !config.aiApiKey &&
+    !config.aiImageKey &&
+    !config.aiModel &&
+    !config.aiReasoningEffort &&
+    !isStartupCheck
+  ) {
+    return;
+  }
+
+  shellConfig.ai = {
+    ...shellConfig.ai,
+    ...(isStartupCheck &&
+      !shellConfig.ai?.apiKey && { apiKey: STARTUP_CHECK_API_KEY }),
+    ...(config.aiApiKey && { apiKey: config.aiApiKey }),
+    ...(config.aiImageKey && {
+      imageApiKey: config.aiImageKey,
+    }),
+    ...(config.aiModel && { model: config.aiModel }),
+    ...(config.aiReasoningEffort && {
+      reasoningEffort: config.aiReasoningEffort,
+    }),
+  };
+}
+
+function applyLoggingConfig(config: AppConfig, shellConfig: ShellConfig): void {
+  if (!config.logLevel && !config.logFile) return;
+
+  shellConfig.logging = {
+    level: config.logLevel ?? "info",
+    format: "text",
+    context: config.name,
+    ...(config.logFile && { file: config.logFile }),
+  };
+}
+
+function applyPermissionConfig(
+  config: AppConfig,
+  shellConfig: ShellConfig,
+): void {
+  if (config.permissions) {
+    shellConfig.permissions = config.permissions;
+  }
+}
+
+function applySpacesConfig(config: AppConfig, shellConfig: ShellConfig): void {
+  if (config.spaces) {
+    shellConfig.spaces = config.spaces;
+  }
+}
+
+function applyIdentityConfig(
+  config: AppConfig,
+  shellConfig: ShellConfig,
+): void {
+  if (config.identity) {
+    shellConfig.identity = config.identity;
+  }
+}
+
+function applyAgentInstructions(
+  config: AppConfig,
+  shellConfig: ShellConfig,
+): void {
+  if (config.agentInstructions) {
+    shellConfig.agentInstructions = config.agentInstructions;
+  }
+}
+
+function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
+  shellConfig.name = config.name;
+  shellConfig.version = config.version;
+
+  // Set site base URL from deployment domain for entity link generation
+  if (config.deployment.domain) {
+    shellConfig.siteBaseUrl = config.deployment.domain;
+  }
+
+  shellConfig.localSiteUrl = `http://localhost:${config.deployment.ports.production}`;
+  shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
+}
+
 export class App {
   private shell: Shell | null = null;
   private config: AppConfig;
@@ -42,20 +215,7 @@ export class App {
   private hasCLI = false;
 
   public static create(config?: AppConfigInput, shell?: Shell): App {
-    const validatedConfig = appConfigSchema.parse(config ?? {});
-
-    // Follow Shell's pattern: validate schema then add full Plugin objects
-    const appConfig: AppConfig = {
-      ...validatedConfig,
-      plugins: config?.plugins ?? [],
-    };
-
-    // Only add optional properties if they're defined
-    if (config?.permissions) appConfig.permissions = config.permissions;
-    if (config?.spaces) appConfig.spaces = config.spaces;
-    if (config?.cliConfig) appConfig.cliConfig = config.cliConfig;
-    if (config?.shellConfig) appConfig.shellConfig = config.shellConfig;
-    return new App(appConfig, shell);
+    return new App(toAppConfig(config), shell);
   }
 
   private constructor(config: AppConfig, shell?: Shell) {
@@ -88,140 +248,18 @@ export class App {
     // Let shellInitializer build the logger from shellConfig.logging so
     // logFile, format, and level take effect. ConsoleLogger.getInstance() ignores
     // options on a pre-existing singleton.
-    this.shell = Shell.createFresh(this.buildShellConfig(options), undefined, {
-      ...(runtimeOptions?.processRole && {
-        processRole: runtimeOptions.processRole,
-      }),
-      ...(runtimeOptions?.localDatabaseEndpoint && {
-        localDatabaseEndpoint: runtimeOptions.localDatabaseEndpoint,
-      }),
-    });
-  }
-
-  private buildShellConfig(options?: InitializeOptions): ShellConfig {
-    const shellConfig: ShellConfig = {
-      plugins: this.config.plugins ?? [],
-      ...this.config.shellConfig, // Allow overriding for tests/advanced use
-    };
-
-    this.applyStandardStorageConfig(shellConfig);
-    this.applySimpleConfigOverrides(shellConfig);
-    this.applyAIConfig(shellConfig, options);
-    this.applyLoggingConfig(shellConfig);
-    this.applyPermissionConfig(shellConfig);
-    this.applySpacesConfig(shellConfig);
-    this.applyIdentityConfig(shellConfig);
-    this.applyAgentInstructions(shellConfig);
-    this.applyAppMetadata(shellConfig);
-
-    return shellConfig;
-  }
-
-  /**
-   * Environment policy lives here, not in core: resolve XDG-based storage
-   * paths and pass them as explicit config. Anything the caller already
-   * set (tests, advanced use) wins.
-   */
-  private applyStandardStorageConfig(shellConfig: ShellConfig): void {
-    const standard = resolveStandardConfig();
-    shellConfig.database ??= standard.database;
-    shellConfig.jobQueueDatabase ??= standard.jobQueueDatabase;
-    shellConfig.conversationDatabase ??= standard.conversationDatabase;
-    shellConfig.runtimeStateDatabase ??= standard.runtimeStateDatabase;
-    shellConfig.embedding ??= standard.embedding;
-    shellConfig.gitBrokerSocket ??= resolveGitBrokerSocket();
-    shellConfig.gitBrokerCheckout ??= resolveGitBrokerCheckout();
-  }
-
-  private applySimpleConfigOverrides(shellConfig: ShellConfig): void {
-    // Apply simple app config (these override shellConfig if both are provided)
-    if (this.config.database) {
-      shellConfig.database = { url: this.config.database };
-    }
-    if (this.config.profileKind) {
-      shellConfig.profileKind = this.config.profileKind;
-    }
-
-    // Set feature flags (none currently)
-    shellConfig.features = {};
-  }
-
-  private applyAIConfig(
-    shellConfig: ShellConfig,
-    options?: InitializeOptions,
-  ): void {
-    const isStartupCheck = options?.mode === "startup-check";
-    if (
-      !this.config.aiApiKey &&
-      !this.config.aiImageKey &&
-      !this.config.aiModel &&
-      !this.config.aiReasoningEffort &&
-      !isStartupCheck
-    ) {
-      return;
-    }
-
-    shellConfig.ai = {
-      ...shellConfig.ai,
-      ...(isStartupCheck &&
-        !shellConfig.ai?.apiKey && { apiKey: STARTUP_CHECK_API_KEY }),
-      ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
-      ...(this.config.aiImageKey && {
-        imageApiKey: this.config.aiImageKey,
-      }),
-      ...(this.config.aiModel && { model: this.config.aiModel }),
-      ...(this.config.aiReasoningEffort && {
-        reasoningEffort: this.config.aiReasoningEffort,
-      }),
-    };
-  }
-
-  private applyLoggingConfig(shellConfig: ShellConfig): void {
-    if (!this.config.logLevel && !this.config.logFile) return;
-
-    shellConfig.logging = {
-      level: this.config.logLevel ?? "info",
-      format: "text",
-      context: this.config.name,
-      ...(this.config.logFile && { file: this.config.logFile }),
-    };
-  }
-
-  private applyPermissionConfig(shellConfig: ShellConfig): void {
-    if (this.config.permissions) {
-      shellConfig.permissions = this.config.permissions;
-    }
-  }
-
-  private applySpacesConfig(shellConfig: ShellConfig): void {
-    if (this.config.spaces) {
-      shellConfig.spaces = this.config.spaces;
-    }
-  }
-
-  private applyIdentityConfig(shellConfig: ShellConfig): void {
-    if (this.config.identity) {
-      shellConfig.identity = this.config.identity;
-    }
-  }
-
-  private applyAgentInstructions(shellConfig: ShellConfig): void {
-    if (this.config.agentInstructions) {
-      shellConfig.agentInstructions = this.config.agentInstructions;
-    }
-  }
-
-  private applyAppMetadata(shellConfig: ShellConfig): void {
-    shellConfig.name = this.config.name;
-    shellConfig.version = this.config.version;
-
-    // Set site base URL from deployment domain for entity link generation
-    if (this.config.deployment.domain) {
-      shellConfig.siteBaseUrl = this.config.deployment.domain;
-    }
-
-    shellConfig.localSiteUrl = `http://localhost:${this.config.deployment.ports.production}`;
-    shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
+    this.shell = Shell.createFresh(
+      buildShellConfig(this.config, options),
+      undefined,
+      {
+        ...(runtimeOptions?.processRole && {
+          processRole: runtimeOptions.processRole,
+        }),
+        ...(runtimeOptions?.localDatabaseEndpoint && {
+          localDatabaseEndpoint: runtimeOptions.localDatabaseEndpoint,
+        }),
+      },
+    );
   }
 
   private async registerCLIInterface(): Promise<void> {

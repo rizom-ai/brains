@@ -2,13 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { resolve, type AppConfig } from "@brains/app";
 import { expandBrainRecipe } from "../src/lib/brain-recipes";
 import { canonicalBrain } from "../src/model/canonical-brain";
+import { isRecord } from "@brains/utils/is-record";
 
 function pluginIds(resolved: AppConfig): string[] {
   return resolved.plugins?.map((plugin) => plugin.id) ?? [];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function pluginConfig(

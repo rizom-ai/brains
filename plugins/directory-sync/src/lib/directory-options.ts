@@ -4,23 +4,15 @@ import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
 import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "./oversized-file-error";
 
-export interface DirectorySyncOptionsInput {
-  syncPath: string;
-  autoSync?: boolean | undefined;
-  watchInterval?: number | undefined;
-  includeMetadata?: boolean | undefined;
-  entityTypes?: string[] | undefined;
-  deleteOnFileRemoval?: boolean | undefined;
-  maxImportFileBytes?: number | undefined;
-}
-
-export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
-  entityService: EntityServiceClient;
-  logger: Logger;
-}
-
-export const directorySyncOptionsSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<DirectorySyncOptionsInput, DirectorySyncOptionsInput> = z.object({
+export const directorySyncOptionsSchema: z.ZodObject<{
+  syncPath: z.ZodString;
+  autoSync: z.ZodOptional<z.ZodBoolean>;
+  watchInterval: z.ZodOptional<z.ZodNumber>;
+  includeMetadata: z.ZodOptional<z.ZodBoolean>;
+  entityTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  deleteOnFileRemoval: z.ZodOptional<z.ZodBoolean>;
+  maxImportFileBytes: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
   syncPath: z.string(),
   autoSync: z.boolean().optional(),
   watchInterval: z.number().optional(),
@@ -29,6 +21,15 @@ export const directorySyncOptionsSchema: z.ZodObject<z.ZodRawShape> &
   deleteOnFileRemoval: z.boolean().optional(),
   maxImportFileBytes: z.number().int().positive().optional(),
 });
+
+export type DirectorySyncOptionsInput = z.output<
+  typeof directorySyncOptionsSchema
+>;
+
+export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
+  entityService: EntityServiceClient;
+  logger: Logger;
+}
 
 export interface NormalizedDirectorySyncOptions {
   originalSyncPath: string;

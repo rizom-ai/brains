@@ -1,36 +1,43 @@
 import { createHash } from "node:crypto";
 import { z } from "@brains/utils/zod";
 
-export type ActorRef =
-  | {
-      kind: "user";
-      userId: string;
-      canonicalId?: string | undefined;
-    }
-  | { kind: "external"; externalActorId: string }
-  | { kind: "agent"; agentId: string }
-  | { kind: "service"; serviceId: string };
+type ActorRefSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{
+      kind: z.ZodLiteral<"user">;
+      userId: z.ZodString;
+      canonicalId: z.ZodOptional<z.ZodString>;
+    }>,
+    z.ZodObject<{
+      kind: z.ZodLiteral<"external">;
+      externalActorId: z.ZodString;
+    }>,
+    z.ZodObject<{ kind: z.ZodLiteral<"agent">; agentId: z.ZodString }>,
+    z.ZodObject<{ kind: z.ZodLiteral<"service">; serviceId: z.ZodString }>,
+  ]
+>;
 
-export const actorRefSchema: z.ZodType<ActorRef, ActorRef> =
-  z.discriminatedUnion("kind", [
-    z.object({
-      kind: z.literal("user"),
-      userId: z.string().min(1),
-      canonicalId: z.string().min(1).optional(),
-    }),
-    z.object({
-      kind: z.literal("external"),
-      externalActorId: z.string().min(1),
-    }),
-    z.object({
-      kind: z.literal("agent"),
-      agentId: z.string().min(1),
-    }),
-    z.object({
-      kind: z.literal("service"),
-      serviceId: z.string().min(1),
-    }),
-  ]);
+export const actorRefSchema: ActorRefSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("user"),
+    userId: z.string().min(1),
+    canonicalId: z.string().min(1).optional(),
+  }),
+  z.object({
+    kind: z.literal("external"),
+    externalActorId: z.string().min(1),
+  }),
+  z.object({
+    kind: z.literal("agent"),
+    agentId: z.string().min(1),
+  }),
+  z.object({
+    kind: z.literal("service"),
+    serviceId: z.string().min(1),
+  }),
+]);
+
+export type ActorRef = z.output<typeof actorRefSchema>;
 
 export interface LegacyActorIdentity {
   actorId: string;

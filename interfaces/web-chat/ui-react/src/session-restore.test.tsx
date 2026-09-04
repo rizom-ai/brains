@@ -4,12 +4,13 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
 import { createWebChatQueryClient } from "./query-client";
-
-const originalFetch = globalThis.fetch;
+import { WebChatFetchProvider } from "./web-chat-fetch";
 
 let windowInstance: Window;
+let stubbedFetch: FetchLike;
 let root: Root;
 let fetchCalls: string[];
 let historyMessages: unknown[];
@@ -27,7 +28,7 @@ async function waitForRestoredMessage(): Promise<void> {
 }
 
 beforeEach(() => {
-  windowInstance = new Window({ url: "http://brain.test/chat" });
+  windowInstance = new Window({ url: "http://brain.test/ask" });
   fetchCalls = [];
   historyMessages = [
     { id: "old-message", role: "user", content: "Before reload" },
@@ -55,30 +56,25 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-persisted",
   );
-  // Object.assign rather than an assertion: Bun types `fetch` with a
-  // `preconnect` member, so the stub carries one instead of claiming to.
-  globalThis.fetch = Object.assign(
-    async (input: RequestInfo | URL) => {
-      const url = String(input);
-      fetchCalls.push(url);
-      if (url === "/api/chat/sessions") {
-        return Response.json({
-          sessions: [
-            {
-              id: "web-persisted",
-              title: "Persisted thread",
-              lastActiveAt: "2026-07-16T10:00:00.000Z",
-            },
-          ],
-        });
-      }
-      if (url === "/api/chat/messages?id=web-persisted") {
-        return Response.json({ messages: historyMessages });
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
-    },
-    { preconnect: (): void => {} },
-  );
+  stubbedFetch = async (input): Promise<Response> => {
+    const url = String(input);
+    fetchCalls.push(url);
+    if (url === "/api/chat/sessions") {
+      return Response.json({
+        sessions: [
+          {
+            id: "web-persisted",
+            title: "Persisted thread",
+            lastActiveAt: "2026-07-16T10:00:00.000Z",
+          },
+        ],
+      });
+    }
+    if (url === "/api/chat/messages?id=web-persisted") {
+      return Response.json({ messages: historyMessages });
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  };
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,
@@ -91,7 +87,6 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
-  globalThis.fetch = originalFetch;
 });
 
 describe("startup session restoration", () => {
@@ -102,7 +97,11 @@ describe("startup session restoration", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(App),
+          createElement(
+            WebChatFetchProvider,
+            { fetch: stubbedFetch },
+            createElement(App),
+          ),
         ),
       );
     });
@@ -132,7 +131,7 @@ describe("startup session restoration", () => {
         },
       },
       "",
-      "/chat",
+      "/ask",
     );
     const queryClient = createWebChatQueryClient();
 
@@ -141,7 +140,11 @@ describe("startup session restoration", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(App),
+          createElement(
+            WebChatFetchProvider,
+            { fetch: stubbedFetch },
+            createElement(App),
+          ),
         ),
       );
     });
@@ -220,7 +223,11 @@ describe("startup session restoration", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(App),
+          createElement(
+            WebChatFetchProvider,
+            { fetch: stubbedFetch },
+            createElement(App),
+          ),
         ),
       );
     });

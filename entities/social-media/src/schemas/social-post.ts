@@ -4,11 +4,11 @@ import { baseEntityParserSchema } from "@brains/plugins";
 /**
  * Supported social media platforms
  */
-export type Platform = "linkedin";
-
-export const platformSchema: z.ZodType<Platform, Platform> = z.enum([
+export const platformSchema: z.ZodEnum<{ linkedin: "linkedin" }> = z.enum([
   "linkedin",
 ]);
+
+export type Platform = z.output<typeof platformSchema>;
 
 /**
  * Social post status
@@ -17,23 +17,23 @@ export const platformSchema: z.ZodType<Platform, Platform> = z.enum([
  * - published: Successfully posted to platform
  * - failed: Publish error after max retries
  */
-export type SocialPostStatus =
-  "generating" | "draft" | "queued" | "published" | "failed";
+export const socialPostStatusSchema: z.ZodEnum<{
+  generating: "generating";
+  draft: "draft";
+  queued: "queued";
+  published: "published";
+  failed: "failed";
+}> = z.enum(["generating", "draft", "queued", "published", "failed"]);
 
-export const socialPostStatusSchema: z.ZodType<
-  SocialPostStatus,
-  SocialPostStatus
-> = z.enum(["generating", "draft", "queued", "published", "failed"]);
+export type SocialPostStatus = z.output<typeof socialPostStatusSchema>;
 
 /**
  * Source entity types that can generate social posts
  */
-export type SourceEntityType = "post" | "deck";
+export const sourceEntityTypeSchema: z.ZodEnum<{ post: "post"; deck: "deck" }> =
+  z.enum(["post", "deck"]);
 
-export const sourceEntityTypeSchema: z.ZodType<
-  SourceEntityType,
-  SourceEntityType
-> = z.enum(["post", "deck"]);
+export type SourceEntityType = z.output<typeof sourceEntityTypeSchema>;
 
 /**
  * Publishable document attachments for social posts.
@@ -59,16 +59,14 @@ export type SocialPostDocumentAttachment = z.output<
  */
 type SocialPostFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
-  platform: z.ZodType<Platform, Platform>;
-  status: z.ZodType<SocialPostStatus, SocialPostStatus>;
+  platform: typeof platformSchema;
+  status: typeof socialPostStatusSchema;
   coverImageId: z.ZodOptional<z.ZodString>;
   documents: z.ZodOptional<z.ZodArray<SocialPostDocumentAttachmentSchema>>;
   publishedAt: z.ZodOptional<z.ZodString>;
   platformPostId: z.ZodOptional<z.ZodString>;
   sourceEntityId: z.ZodOptional<z.ZodString>;
-  sourceEntityType: z.ZodOptional<
-    z.ZodType<SourceEntityType, SourceEntityType>
-  >;
+  sourceEntityType: z.ZodOptional<typeof sourceEntityTypeSchema>;
 }>;
 
 export const socialPostFrontmatterSchema: SocialPostFrontmatterSchema =
@@ -113,8 +111,8 @@ export type SocialPostFrontmatter = z.output<
  */
 export const socialPostCreateFrontmatterSchema: ReturnType<
   typeof socialPostFrontmatterSchema.extend<{
-    platform: z.ZodOptional<z.ZodType<Platform, Platform>>;
-    status: z.ZodOptional<z.ZodType<SocialPostStatus, SocialPostStatus>>;
+    platform: z.ZodOptional<typeof platformSchema>;
+    status: z.ZodOptional<typeof socialPostStatusSchema>;
   }>
 > = socialPostFrontmatterSchema.extend({
   platform: platformSchema.optional(),
@@ -128,8 +126,8 @@ export const socialPostCreateFrontmatterSchema: ReturnType<
  */
 type SocialPostMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  platform: z.ZodType<Platform, Platform>;
-  status: z.ZodType<SocialPostStatus, SocialPostStatus>;
+  platform: typeof platformSchema;
+  status: typeof socialPostStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
   platformPostId: z.ZodOptional<z.ZodString>;
   slug: z.ZodString;

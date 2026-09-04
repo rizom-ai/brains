@@ -159,7 +159,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
 
 // -- Network functions --
 
-type FetchFn = (
+export type FetchFn = (
   url: string | URL | Request,
   init?: RequestInit,
 ) => Promise<Response>;

@@ -33,19 +33,22 @@ export type ConventionalSiteOverrides<TPluginConfig = Record<string, unknown>> =
     pluginConfig?: TPluginConfig;
   };
 
-export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
-  (value) => baseSitePackageSchema.safeParse(value).success,
-);
+export const sitePackageSchema: z.ZodCustom<SitePackage, SitePackage> =
+  z.custom<SitePackage>(
+    (value) => baseSitePackageSchema.safeParse(value).success,
+  );
 
 /**
  * A conventional `src/site.tsx` default export, minus its `pluginConfig`.
  * Authored TypeScript compiled by the app, so the object arriving here is
  * only as trustworthy as the file on disk — validated rather than assumed.
  */
-export const conventionalSiteOverridesSchema: z.ZodType<ConventionalSiteOverrides> =
-  z.custom<ConventionalSiteOverrides>((value) => {
-    if (!isPlainRecord(value)) return false;
-    const { plugin, ...site } = value;
-    if (plugin !== undefined && typeof plugin !== "function") return false;
-    return siteDefinitionOverridesSchema.safeParse(site).success;
-  });
+export const conventionalSiteOverridesSchema: z.ZodCustom<
+  ConventionalSiteOverrides,
+  ConventionalSiteOverrides
+> = z.custom<ConventionalSiteOverrides>((value) => {
+  if (!isPlainRecord(value)) return false;
+  const { plugin, ...site } = value;
+  if (plugin !== undefined && typeof plugin !== "function") return false;
+  return siteDefinitionOverridesSchema.safeParse(site).success;
+});

@@ -70,7 +70,6 @@ import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-han
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
 import { createWebChatRoutes } from "./web-routes";
-import { resolveStudioChatRedirectPath } from "./studio-chat-redirect";
 import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import {
   handleArchiveSessionRequest as handleArchiveSessionRouteRequest,
@@ -339,19 +338,6 @@ export class WebChatInterface extends MessageInterfacePlugin<
     }
 
     const requestUrl = new URL(request.url);
-    const studioChatPath = resolveStudioChatRedirectPath(
-      this.getContext().webRoutes.getRoutes(),
-      requestUrl,
-    );
-    if (studioChatPath) {
-      return new Response(null, {
-        status: 308,
-        headers: {
-          Location: studioChatPath,
-          "Cache-Control": "no-store",
-        },
-      });
-    }
     const returnTo = encodeURIComponent(
       `${requestUrl.pathname}${requestUrl.search}`,
     );
@@ -796,6 +782,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
         sizeBytes: new TextEncoder().encode(content).byteLength,
       };
     } catch {
+      // A source read that fails answers one fixed outcome carrying no
+      // detail, so a caller cannot learn from it whether an item exists.
       return inboxContextUnavailable();
     }
   }

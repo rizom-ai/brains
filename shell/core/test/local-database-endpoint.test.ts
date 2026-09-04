@@ -213,7 +213,11 @@ describe("private local database endpoint", () => {
       }),
     );
 
-    await once(socket, "close");
+    // The owner closes the connection instead of dispatching a frame it
+    // cannot speak; nothing is written back before the close.
+    const [closedWithError] = await once(socket, "close");
+    expect(closedWithError).toBeFalsy();
+    expect(socket.bytesRead).toBe(0);
   });
 
   it("propagates cancellation to an admitted owner request", async () => {

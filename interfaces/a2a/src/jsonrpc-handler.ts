@@ -10,20 +10,18 @@ const SSE_HEARTBEAT_INTERVAL_MS = 15_000;
 
 // -- Zod schemas for request validation --
 
-interface MessagePartParams {
-  kind: string;
-  text?: string | undefined;
-  data?: Record<string, unknown> | undefined;
-}
+const messagePartSchema: z.ZodObject<{
+  kind: z.ZodString;
+  text: z.ZodOptional<z.ZodString>;
+  data: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
+  kind: z.string(),
+  text: z.string().optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+});
 
-const messagePartsSchema: z.ZodType<MessagePartParams[], MessagePartParams[]> =
-  z.array(
-    z.object({
-      kind: z.string(),
-      text: z.string().optional(),
-      data: z.record(z.string(), z.unknown()).optional(),
-    }),
-  );
+const messagePartsSchema: z.ZodArray<typeof messagePartSchema> =
+  z.array(messagePartSchema);
 
 const sendMessageParamsSchema = z.object({
   message: z.object({
@@ -78,24 +76,20 @@ function errorResponse(
 
 // -- JSON-RPC request envelope --
 
-export interface JsonRpcRequest {
-  jsonrpc: string;
-  id: string | number;
-  method: string;
-  params?: Record<string, unknown> | undefined;
-}
-
-export type JsonRpcRequestInput = JsonRpcRequest;
-
-export const jsonrpcRequestSchema: z.ZodType<
-  JsonRpcRequest,
-  JsonRpcRequestInput
-> = z.object({
+export const jsonrpcRequestSchema: z.ZodObject<{
+  jsonrpc: z.ZodString;
+  id: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+  method: z.ZodString;
+  params: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   jsonrpc: z.string(),
   id: z.union([z.string(), z.number()]),
   method: z.string(),
   params: z.record(z.string(), z.unknown()).optional(),
 });
+
+export type JsonRpcRequest = z.output<typeof jsonrpcRequestSchema>;
+export type JsonRpcRequestInput = z.input<typeof jsonrpcRequestSchema>;
 
 // -- Handler context --
 
@@ -255,26 +249,24 @@ function transitionTaskToCanceled(
 
 // -- Streaming (SSE) handler --
 
-export interface StreamParams {
-  message: {
-    kind: string;
-    messageId?: string | undefined;
-    parts: MessagePartParams[];
-    contextId?: string | undefined;
-  };
-}
+export const streamParamsSchema: z.ZodObject<{
+  message: z.ZodObject<{
+    kind: z.ZodString;
+    messageId: z.ZodOptional<z.ZodString>;
+    parts: typeof messagePartsSchema;
+    contextId: z.ZodOptional<z.ZodString>;
+  }>;
+}> = z.object({
+  message: z.object({
+    kind: z.string(),
+    messageId: z.string().optional(),
+    parts: messagePartsSchema,
+    contextId: z.string().optional(),
+  }),
+});
 
-export type StreamParamsInput = StreamParams;
-
-export const streamParamsSchema: z.ZodType<StreamParams, StreamParamsInput> =
-  z.object({
-    message: z.object({
-      kind: z.string(),
-      messageId: z.string().optional(),
-      parts: messagePartsSchema,
-      contextId: z.string().optional(),
-    }),
-  });
+export type StreamParams = z.output<typeof streamParamsSchema>;
+export type StreamParamsInput = z.input<typeof streamParamsSchema>;
 
 interface StreamResult {
   taskId: string;

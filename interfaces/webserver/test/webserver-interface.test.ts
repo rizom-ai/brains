@@ -17,23 +17,31 @@ describe("WebserverInterface", () => {
 
     harness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-test"),
+      // A domain is what gives the context a previewUrl; without one the
+      // preview surface never registers and the assertions below say nothing.
+      domain: "test.example",
     });
 
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should register successfully", () => {
     expect(plugin.id).toBe("webserver");
     expect(plugin.type).toBe("interface");
+    expect(plugin.version).toBeDefined();
   });
 
-  it("should initialize with custom config", () => {
-    // Test passes if constructor doesn't throw and plugin registers successfully
-    expect(plugin).toBeDefined();
+  it("registers a preview interaction when preview is enabled", () => {
+    expect(
+      harness
+        .getMockShell()
+        .listInteractions()
+        .map((interaction) => interaction.id),
+    ).toContain("preview");
   });
 
   it("should allow preview to be disabled for core-style usage", async () => {
@@ -44,30 +52,40 @@ describe("WebserverInterface", () => {
     });
     const coreHarness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-core-test"),
+      domain: "test.example",
     });
 
     await coreHarness.installPlugin(corePlugin);
-    expect(corePlugin).toBeDefined();
 
-    coreHarness.reset();
+    // The point of enablePreview: false is that no preview surface appears.
+    expect(
+      coreHarness
+        .getMockShell()
+        .listInteractions()
+        .map((interaction) => interaction.id),
+    ).not.toContain("preview");
+
+    await coreHarness.reset();
   });
 
-  it("should initialize with default config", async () => {
+  it("enables preview by default", async () => {
+    // enablePreview defaults to true in the config schema; without an
+    // assertion on what that produces, the default is unguarded.
     const defaultPlugin = new WebserverInterface();
     const defaultHarness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-default-test"),
+      domain: "test.example",
     });
 
     await defaultHarness.installPlugin(defaultPlugin);
-    expect(defaultPlugin).toBeDefined();
 
-    defaultHarness.reset();
-  });
+    expect(
+      defaultHarness
+        .getMockShell()
+        .listInteractions()
+        .map((interaction) => interaction.id),
+    ).toContain("preview");
 
-  it("should be properly configured", () => {
-    // Plugin should be registered and configured
-    expect(plugin.id).toBe("webserver");
-    expect(plugin.type).toBe("interface");
-    expect(plugin.version).toBeDefined();
+    await defaultHarness.reset();
   });
 });

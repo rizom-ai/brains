@@ -114,6 +114,7 @@ async function socketIsLive(socketPath: string): Promise<boolean> {
     probe.end();
     return true;
   } catch {
+    // A liveness probe: failing to connect is the answer, not an error.
     return false;
   }
 }

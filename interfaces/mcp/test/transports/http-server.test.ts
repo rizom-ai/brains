@@ -335,7 +335,8 @@ describe("StreamableHTTPServer", () => {
     );
 
     test("provides a fetch handler for shared-host mounting", () => {
-      expect(server?.getApp().fetch).toBeDefined();
+      // Mounting calls this; a defined non-function would fail there, not here.
+      expect(typeof server?.getApp().fetch).toBe("function");
     });
   });
 

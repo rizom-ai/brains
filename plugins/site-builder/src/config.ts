@@ -3,12 +3,9 @@ import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import {
   NavigationSlots,
+  RouteDefinitionSchema,
   siteMetadataSchema,
   type EntityDisplayEntry,
-  type RouteDefinition,
-  type RouteDefinitionInput,
-  type SiteMetadata,
-  type SiteMetadataInput,
 } from "@brains/site-composition";
 
 /**
@@ -23,90 +20,48 @@ import {
 export type { EntityDisplayEntry };
 export type EntityDisplayMap = Record<string, EntityDisplayEntry>;
 
-interface SiteBuilderSchemaConfig {
-  previewOutputDir: string;
-  productionOutputDir: string;
-  sharedImagesDir: string;
-  workingDir: string;
-  siteInfo: SiteMetadata;
-  themeCSS?: string | undefined;
-  analyticsScript?: string | undefined;
-  headScripts: string[];
-  templates?: Record<string, Template> | undefined;
-  routes?: RouteDefinition[] | undefined;
-  layouts?: Record<string, LayoutComponent> | undefined;
-  autoRebuild: boolean;
-  rebuildDebounce: number;
-  entityDisplay?: EntityDisplayMap | undefined;
-  staticAssets?: Record<string, string> | undefined;
-}
+type EntityDisplayEntrySchema = z.ZodObject<{
+  label: z.ZodString;
+  pluralName: z.ZodOptional<z.ZodString>;
+  layout: z.ZodOptional<z.ZodString>;
+  paginate: z.ZodOptional<z.ZodBoolean>;
+  pageSize: z.ZodOptional<z.ZodNumber>;
+  navigation: z.ZodOptional<
+    z.ZodObject<{
+      show: z.ZodOptional<z.ZodBoolean>;
+      slot: z.ZodOptional<
+        z.ZodEnum<{ primary: "primary"; secondary: "secondary" }>
+      >;
+      priority: z.ZodOptional<z.ZodNumber>;
+    }>
+  >;
+}>;
 
-interface SiteBuilderSchemaConfigInput {
-  previewOutputDir?: string | undefined;
-  productionOutputDir?: string | undefined;
-  sharedImagesDir?: string | undefined;
-  workingDir?: string | undefined;
-  siteInfo?: SiteMetadataInput | undefined;
-  themeCSS?: string | undefined;
-  analyticsScript?: string | undefined;
-  headScripts?: string[] | undefined;
-  templates?: Record<string, Template> | undefined;
-  routes?: RouteDefinitionInput[] | undefined;
-  layouts?: Record<string, LayoutComponent> | undefined;
-  autoRebuild?: boolean | undefined;
-  rebuildDebounce?: number | undefined;
-  entityDisplay?: EntityDisplayMap | undefined;
-  staticAssets?: Record<string, string> | undefined;
-}
+type SiteBuilderConfigSchema = z.ZodObject<{
+  previewOutputDir: z.ZodDefault<z.ZodString>;
+  productionOutputDir: z.ZodDefault<z.ZodString>;
+  sharedImagesDir: z.ZodDefault<z.ZodString>;
+  workingDir: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+  siteInfo: z.ZodDefault<typeof siteMetadataSchema>;
+  themeCSS: z.ZodOptional<z.ZodString>;
+  analyticsScript: z.ZodOptional<z.ZodString>;
+  headScripts: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  templates: z.ZodOptional<
+    z.ZodCustom<Record<string, Template>, Record<string, Template>>
+  >;
+  routes: z.ZodOptional<z.ZodArray<typeof RouteDefinitionSchema>>;
+  layouts: z.ZodOptional<
+    z.ZodRecord<z.ZodString, z.ZodCustom<LayoutComponent, LayoutComponent>>
+  >;
+  autoRebuild: z.ZodDefault<z.ZodBoolean>;
+  rebuildDebounce: z.ZodDefault<z.ZodNumber>;
+  entityDisplay: z.ZodOptional<
+    z.ZodRecord<z.ZodString, EntityDisplayEntrySchema>
+  >;
+  staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+}>;
 
-const sectionDefinitionSchema = z.object({
-  id: z.string(),
-  template: z.string(),
-  content: z.unknown().optional(),
-  dataQuery: z
-    .looseObject({
-      entityType: z.string().optional(),
-      template: z.string().optional(),
-      query: z
-        .looseObject({
-          id: z.string().optional(),
-          limit: z.number().optional(),
-          offset: z.number().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
-  order: z.number().optional(),
-});
-
-const navigationMetadataSchema = z
-  .object({
-    show: z.boolean().default(false),
-    label: z.string().optional(),
-    slot: z.enum(NavigationSlots).default("primary"),
-    priority: z.number().min(0).max(100).default(50),
-  })
-  .optional();
-
-const routeDefinitionSchema = z.object({
-  id: z.string(),
-  path: z.string(),
-  title: z.string().default(""),
-  pageLabel: z.string().optional(),
-  description: z.string().default(""),
-  sections: z.array(sectionDefinitionSchema).default([]),
-  layout: z.string().default("default"),
-  fullscreen: z.boolean().optional(),
-  pluginId: z.string().optional(),
-  sourceEntityType: z.string().optional(),
-  external: z.boolean().optional(),
-  navigation: navigationMetadataSchema,
-});
-
-export const siteBuilderConfigSchema: z.ZodType<
-  SiteBuilderSchemaConfig,
-  SiteBuilderSchemaConfigInput
-> = z.object({
+export const siteBuilderConfigSchema: SiteBuilderConfigSchema = z.object({
   previewOutputDir: z
     .string()
     .describe("Output directory for preview builds")
@@ -145,13 +100,19 @@ export const siteBuilderConfigSchema: z.ZodType<
     .array(z.string())
     .default([])
     .describe("Global scripts to inject into every rendered page head"),
-  templates: z.any().optional().describe("Template definitions to register"),
+  // Templates and layouts carry runtime objects (components, render
+  // functions) that cannot be validated; z.custom keeps their type in the
+  // parsed config without pretending to check them.
+  templates: z
+    .custom<Record<string, Template>>()
+    .optional()
+    .describe("Template definitions to register"),
   routes: z
-    .array(routeDefinitionSchema)
+    .array(RouteDefinitionSchema)
     .optional()
     .describe("Routes to register"),
   layouts: z
-    .record(z.string(), z.any())
+    .record(z.string(), z.custom<LayoutComponent>())
     .optional()
     .describe("Layout components (at least 'default' required)"),
   autoRebuild: z
@@ -220,14 +181,6 @@ export const siteBuilderConfigSchema: z.ZodType<
     ),
 });
 
-/**
- * Full site-builder config after defaults are applied.
- *
- * Several fields use z.any() in the Zod schema because they carry
- * runtime objects (components, templates) that can't be validated.
- */
-export type SiteBuilderConfig = SiteBuilderSchemaConfig;
-
-export type SiteBuilderConfigInput = SiteBuilderSchemaConfigInput & {
-  entityDisplay?: EntityDisplayMap | undefined;
-};
+/** Full site-builder config after defaults are applied. */
+export type SiteBuilderConfig = z.output<typeof siteBuilderConfigSchema>;
+export type SiteBuilderConfigInput = z.input<typeof siteBuilderConfigSchema>;

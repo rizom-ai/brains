@@ -2,6 +2,25 @@ import { z } from "@brains/utils/zod";
 import type { CloudflareConfig } from "../config";
 
 /**
+ * What the client needs from a response: the status check and the body,
+ * as JSON on success and text on failure. A real Response satisfies this,
+ * and so does a test's bare object.
+ */
+export type CloudflareFetch = (
+  url: string,
+  init: RequestInit,
+) => Promise<Pick<Response, "ok" | "status" | "json" | "text">>;
+
+/**
+ * Runtime collaborators that are not configuration. Production leaves fetch
+ * unset and the client uses the global; a test hands in a fake and reads the
+ * requests off it instead of reassigning globalThis.fetch.
+ */
+export interface CloudflareClientDeps {
+  fetch?: CloudflareFetch | undefined;
+}
+
+/**
  * Cloudflare Web Analytics GraphQL response envelope.
  *
  * `data` is nullable because Cloudflare omits it when the query itself fails,
@@ -112,9 +131,11 @@ export class CloudflareClient {
   private readonly graphqlUrl = "https://api.cloudflare.com/client/v4/graphql";
 
   private config: CloudflareConfig;
+  private fetchFn: CloudflareFetch | undefined;
 
-  constructor(config: CloudflareConfig) {
+  constructor(config: CloudflareConfig, deps: CloudflareClientDeps = {}) {
     this.config = config;
+    this.fetchFn = deps.fetch;
   }
 
   /**
@@ -126,7 +147,7 @@ export class CloudflareClient {
     query: string,
     variables: Record<string, unknown>,
   ): Promise<TGroup[]> {
-    const response = await fetch(this.graphqlUrl, {
+    const response = await (this.fetchFn ?? fetch)(this.graphqlUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.config.apiToken}`,

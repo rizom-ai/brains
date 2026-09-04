@@ -1,53 +1,49 @@
-import { type SummaryTimeRange, summaryTimeRangeSchema } from "./summary";
+import { summaryTimeRangeSchema } from "./summary";
 import {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
-  type ActorRef,
 } from "@brains/contracts";
 import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export interface MemoryActorReference {
-  identity: ActorRef;
-  identityAliases?: ActorRef[] | undefined;
-  displayName?: string | undefined;
-}
+export const memoryActorReferenceSchema: z.ZodObject<{
+  identity: typeof actorRefSchema;
+  identityAliases: z.ZodOptional<z.ZodArray<typeof actorRefSchema>>;
+  displayName: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  identity: actorRefSchema,
+  identityAliases: z.array(actorRefSchema).optional(),
+  displayName: z.string().optional(),
+});
 
-export const memoryActorReferenceSchema: z.ZodType<MemoryActorReference> =
-  z.object({
-    identity: actorRefSchema,
-    identityAliases: z.array(actorRefSchema).optional(),
-    displayName: z.string().optional(),
-  });
+export type MemoryActorReference = z.output<typeof memoryActorReferenceSchema>;
 
-const memoryActorReferenceParserSchema: z.ZodType<
-  MemoryActorReference,
-  unknown
+const memoryActorReferenceParserSchema: z.ZodPreprocess<
+  typeof memoryActorReferenceSchema
 > = z.preprocess(
   (value) => normalizeLegacyMemoryActorReference(value, true),
   memoryActorReferenceSchema,
 );
 
-export interface ActionItemAssignee {
-  identity?: ActorRef | undefined;
-  identityAliases?: ActorRef[] | undefined;
-  displayName: string;
-}
+export const actionItemAssigneeSchema: z.ZodObject<{
+  identity: z.ZodOptional<typeof actorRefSchema>;
+  identityAliases: z.ZodOptional<z.ZodArray<typeof actorRefSchema>>;
+  displayName: z.ZodString;
+}> = z.object({
+  identity: actorRefSchema.optional(),
+  identityAliases: z.array(actorRefSchema).optional(),
+  displayName: z.string().min(1),
+});
 
-export const actionItemAssigneeSchema: z.ZodType<ActionItemAssignee> = z.object(
-  {
-    identity: actorRefSchema.optional(),
-    identityAliases: z.array(actorRefSchema).optional(),
-    displayName: z.string().min(1),
-  },
+export type ActionItemAssignee = z.output<typeof actionItemAssigneeSchema>;
+
+const actionItemAssigneeParserSchema: z.ZodPreprocess<
+  typeof actionItemAssigneeSchema
+> = z.preprocess(
+  (value) => normalizeLegacyMemoryActorReference(value, false),
+  actionItemAssigneeSchema,
 );
-
-const actionItemAssigneeParserSchema: z.ZodType<ActionItemAssignee, unknown> =
-  z.preprocess(
-    (value) => normalizeLegacyMemoryActorReference(value, false),
-    actionItemAssigneeSchema,
-  );
 
 function normalizeLegacyMemoryActorReference(
   value: unknown,
@@ -100,37 +96,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export type DecisionStatus = "active" | "superseded";
-
-export interface DecisionMetadata {
-  [key: string]: unknown;
-  conversationId: string;
-  channelId: string;
-  channelName?: string | undefined;
-  interfaceType: string;
-  spaceId: string;
-  timeRange: SummaryTimeRange;
-  sourceSummaryId: string;
-  sourceMessageCount: number;
-  projectionVersion: number;
-  status: DecisionStatus;
-  decidedBy?: MemoryActorReference[] | undefined;
-  mentionedBy?: MemoryActorReference[] | undefined;
-}
-
 type DecisionMetadataSchema = z.ZodObject<{
   conversationId: z.ZodString;
   channelId: z.ZodString;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
   spaceId: z.ZodString;
-  timeRange: z.ZodType<SummaryTimeRange>;
+  timeRange: typeof summaryTimeRangeSchema;
   sourceSummaryId: z.ZodString;
   sourceMessageCount: z.ZodNumber;
   projectionVersion: z.ZodNumber;
   status: z.ZodEnum<{ active: "active"; superseded: "superseded" }>;
-  decidedBy: z.ZodOptional<z.ZodArray<z.ZodType<MemoryActorReference>>>;
-  mentionedBy: z.ZodOptional<z.ZodArray<z.ZodType<MemoryActorReference>>>;
+  decidedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
+  mentionedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
 }>;
 
 export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
@@ -148,26 +126,40 @@ export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
   mentionedBy: z.array(memoryActorReferenceSchema).optional(),
 });
 
-const decisionEntityMetadataParserSchema: z.ZodType<DecisionMetadata> =
-  z.object({
-    conversationId: z.string(),
-    channelId: z.string(),
-    channelName: z.string().optional(),
-    interfaceType: z.string(),
-    spaceId: z.string(),
-    timeRange: summaryTimeRangeSchema,
-    sourceSummaryId: z.string(),
-    sourceMessageCount: z.number().int().min(0),
-    projectionVersion: z.number().int().min(1),
-    status: z.enum(["active", "superseded"]),
-    decidedBy: z.array(memoryActorReferenceParserSchema).optional(),
-    mentionedBy: z.array(memoryActorReferenceParserSchema).optional(),
-  });
+const decisionEntityMetadataParserSchema: z.ZodObject<
+  Omit<DecisionMetadataSchema["shape"], "decidedBy" | "mentionedBy"> & {
+    decidedBy: z.ZodOptional<
+      z.ZodArray<typeof memoryActorReferenceParserSchema>
+    >;
+    mentionedBy: z.ZodOptional<
+      z.ZodArray<typeof memoryActorReferenceParserSchema>
+    >;
+  }
+> = z.object({
+  conversationId: z.string(),
+  channelId: z.string(),
+  channelName: z.string().optional(),
+  interfaceType: z.string(),
+  spaceId: z.string(),
+  timeRange: summaryTimeRangeSchema,
+  sourceSummaryId: z.string(),
+  sourceMessageCount: z.number().int().min(0),
+  projectionVersion: z.number().int().min(1),
+  status: z.enum(["active", "superseded"]),
+  decidedBy: z.array(memoryActorReferenceParserSchema).optional(),
+  mentionedBy: z.array(memoryActorReferenceParserSchema).optional(),
+});
+
+/** Decision entity metadata, as parsed from stored (possibly legacy) records. */
+export type DecisionMetadata = z.output<
+  typeof decisionEntityMetadataParserSchema
+>;
+export type DecisionStatus = DecisionMetadata["status"];
 
 export const decisionSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"decision">;
-    metadata: z.ZodType<DecisionMetadata>;
+    metadata: typeof decisionEntityMetadataParserSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("decision"),
@@ -176,37 +168,19 @@ export const decisionSchema: ReturnType<
 
 export type DecisionEntity = z.output<typeof decisionSchema>;
 
-export type ActionItemStatus = "open" | "done" | "dropped";
-
-export interface ActionItemMetadata {
-  [key: string]: unknown;
-  conversationId: string;
-  channelId: string;
-  channelName?: string | undefined;
-  interfaceType: string;
-  spaceId: string;
-  timeRange: SummaryTimeRange;
-  sourceSummaryId: string;
-  sourceMessageCount: number;
-  projectionVersion: number;
-  status: ActionItemStatus;
-  assignedTo?: ActionItemAssignee[] | undefined;
-  requestedBy?: MemoryActorReference[] | undefined;
-}
-
 type ActionItemMetadataSchema = z.ZodObject<{
   conversationId: z.ZodString;
   channelId: z.ZodString;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
   spaceId: z.ZodString;
-  timeRange: z.ZodType<SummaryTimeRange>;
+  timeRange: typeof summaryTimeRangeSchema;
   sourceSummaryId: z.ZodString;
   sourceMessageCount: z.ZodNumber;
   projectionVersion: z.ZodNumber;
   status: z.ZodEnum<{ open: "open"; done: "done"; dropped: "dropped" }>;
-  assignedTo: z.ZodOptional<z.ZodArray<z.ZodType<ActionItemAssignee>>>;
-  requestedBy: z.ZodOptional<z.ZodArray<z.ZodType<MemoryActorReference>>>;
+  assignedTo: z.ZodOptional<z.ZodArray<typeof actionItemAssigneeSchema>>;
+  requestedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
 }>;
 
 export const actionItemMetadataSchema: ActionItemMetadataSchema = z.object({
@@ -224,26 +198,40 @@ export const actionItemMetadataSchema: ActionItemMetadataSchema = z.object({
   requestedBy: z.array(memoryActorReferenceSchema).optional(),
 });
 
-const actionItemEntityMetadataParserSchema: z.ZodType<ActionItemMetadata> =
-  z.object({
-    conversationId: z.string(),
-    channelId: z.string(),
-    channelName: z.string().optional(),
-    interfaceType: z.string(),
-    spaceId: z.string(),
-    timeRange: summaryTimeRangeSchema,
-    sourceSummaryId: z.string(),
-    sourceMessageCount: z.number().int().min(0),
-    projectionVersion: z.number().int().min(1),
-    status: z.enum(["open", "done", "dropped"]),
-    assignedTo: z.array(actionItemAssigneeParserSchema).optional(),
-    requestedBy: z.array(memoryActorReferenceParserSchema).optional(),
-  });
+const actionItemEntityMetadataParserSchema: z.ZodObject<
+  Omit<ActionItemMetadataSchema["shape"], "assignedTo" | "requestedBy"> & {
+    assignedTo: z.ZodOptional<
+      z.ZodArray<typeof actionItemAssigneeParserSchema>
+    >;
+    requestedBy: z.ZodOptional<
+      z.ZodArray<typeof memoryActorReferenceParserSchema>
+    >;
+  }
+> = z.object({
+  conversationId: z.string(),
+  channelId: z.string(),
+  channelName: z.string().optional(),
+  interfaceType: z.string(),
+  spaceId: z.string(),
+  timeRange: summaryTimeRangeSchema,
+  sourceSummaryId: z.string(),
+  sourceMessageCount: z.number().int().min(0),
+  projectionVersion: z.number().int().min(1),
+  status: z.enum(["open", "done", "dropped"]),
+  assignedTo: z.array(actionItemAssigneeParserSchema).optional(),
+  requestedBy: z.array(memoryActorReferenceParserSchema).optional(),
+});
+
+/** Action item entity metadata, as parsed from stored (possibly legacy) records. */
+export type ActionItemMetadata = z.output<
+  typeof actionItemEntityMetadataParserSchema
+>;
+export type ActionItemStatus = ActionItemMetadata["status"];
 
 export const actionItemSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"action-item">;
-    metadata: z.ZodType<ActionItemMetadata>;
+    metadata: typeof actionItemEntityMetadataParserSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("action-item"),

@@ -16,7 +16,7 @@ describe("PromptPlugin", () => {
     expect(plugin.entityType).toBe("prompt");
     expect(plugin.type).toBe("entity");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("should have correct plugin metadata", () => {

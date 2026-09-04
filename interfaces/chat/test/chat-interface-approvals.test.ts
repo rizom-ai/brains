@@ -4,7 +4,7 @@ import {
   ChatInterface,
   MockChatSdk,
   baseSlackConfig,
-  createFetchStub,
+  stubFetch,
   createMessage,
   createPlugin,
   createSentMessage,
@@ -813,33 +813,26 @@ describe("ChatInterface approvals", () => {
         );
       }),
     });
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = createFetchStub(originalFetch, () =>
-      Promise.resolve(new Response("{}")),
+    stubFetch(() => Promise.resolve(new Response("{}")));
+
+    await chat?.handlers.mentions[0]?.(firstThread, createMessage());
+    await chat?.handlers.mentions[0]?.(
+      secondThread,
+      createMessage({
+        threadId: "discord:guild-123:channel-999:thread-999",
+        raw: { guild_id: "guild-123", channel_id: "channel-999" },
+      }),
+    );
+    await chat?.handlers.subscribedMessages[0]?.(
+      firstThread,
+      createMessage({ text: "yes", isMention: false }),
     );
 
-    try {
-      await chat?.handlers.mentions[0]?.(firstThread, createMessage());
-      await chat?.handlers.mentions[0]?.(
-        secondThread,
-        createMessage({
-          threadId: "discord:guild-123:channel-999:thread-999",
-          raw: { guild_id: "guild-123", channel_id: "channel-999" },
-        }),
-      );
-      await chat?.handlers.subscribedMessages[0]?.(
-        firstThread,
-        createMessage({ text: "yes", isMention: false }),
-      );
-
-      expect(firstApprovalMessage.edit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fallbackText: "Approval confirmed: Delete first thing",
-        }),
-      );
-      expect(secondApprovalMessage.edit).not.toHaveBeenCalled();
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
+    expect(firstApprovalMessage.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approval confirmed: Delete first thing",
+      }),
+    );
+    expect(secondApprovalMessage.edit).not.toHaveBeenCalled();
   });
 });

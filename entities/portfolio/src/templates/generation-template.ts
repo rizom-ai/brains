@@ -4,19 +4,14 @@ import { createTemplate, type Template } from "@brains/plugins";
 /**
  * Schema for AI-generated project content
  */
-export interface ProjectGeneration {
-  title: string;
-  description: string;
-  context: string;
-  problem: string;
-  solution: string;
-  outcome: string;
-}
-
-export const projectGenerationSchema: z.ZodType<
-  ProjectGeneration,
-  ProjectGeneration
-> = z.object({
+export const projectGenerationSchema: z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodString;
+  context: z.ZodString;
+  problem: z.ZodString;
+  solution: z.ZodString;
+  outcome: z.ZodString;
+}> = z.object({
   title: z
     .string()
     .max(80)
@@ -49,6 +44,8 @@ export const projectGenerationSchema: z.ZodType<
       "The results: What impact did this have? What metrics improved? What was learned? (2-3 paragraphs)",
     ),
 });
+
+export type ProjectGeneration = z.output<typeof projectGenerationSchema>;
 
 /**
  * Template for AI-powered project case study generation

@@ -244,7 +244,7 @@ describe("AgentDiscoveryPlugin", () => {
     });
     expect(agent).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not register system_create URL interception for agent contacts", async () => {
@@ -257,7 +257,7 @@ describe("AgentDiscoveryPlugin", () => {
       harness.getEntityRegistry().getCreateInterceptor("agent"),
     ).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers known-agent card refresh as a daily recurring check", async () => {
@@ -279,7 +279,7 @@ describe("AgentDiscoveryPlugin", () => {
       id: "agent-card-refresh",
       cadence: "daily",
     });
-    harness.reset();
+    await harness.reset();
   });
 
   it("refreshes known agent cards from the recurring check", async () => {
@@ -370,7 +370,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(fetchMock.calls).toContain(
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     );
-    harness.reset();
+    await harness.reset();
   });
 
   it("keeps unchanged cards from churning entity writes", async () => {
@@ -422,7 +422,7 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(agent?.updated).toBe("2026-03-31T00:00:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeUndefined();
-    harness.reset();
+    await harness.reset();
   });
 
   it("records refresh errors without dropping the last good snapshot", async () => {
@@ -496,7 +496,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(repeatedlyUnavailable?.metadata.status).toBe("approved");
     expect(repeatedlyUnavailable?.metadata.cardFailureCount).toBe(3);
     expect(repeatedlyUnavailable?.metadata.cardUnavailableAt).toBeDefined();
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects a private PDS endpoint during known-card refresh", async () => {
@@ -555,7 +555,7 @@ describe("AgentDiscoveryPlugin", () => {
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     ]);
     expect(agent?.metadata.cardLastError).toContain("non-public");
-    harness.reset();
+    await harness.reset();
   });
 
   it("clears unavailable state when the same card snapshot reappears", async () => {
@@ -617,7 +617,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(recovered?.metadata.cardFailureCount).toBeUndefined();
     expect(recovered?.metadata.cardUnavailableAt).toBeUndefined();
     expect(recovered?.metadata.cardLastError).toBeUndefined();
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers the directory scan as a daily recurring check", async () => {
@@ -639,7 +639,7 @@ describe("AgentDiscoveryPlugin", () => {
       id: "directory-scan",
       cadence: "daily",
     });
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers agent_connect as the canonical confirmation-gated A2A verification tool", async () => {
@@ -715,7 +715,7 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(saved?.content).toContain("Research");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers agent_set_trust_level as the explicit inbound trust tool", async () => {
@@ -732,7 +732,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(tool?.description).toContain("inbound A2A trust");
     expect(tool?.description).toContain("does not add or remove");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("agent_set_trust_level pins a peer key for inbound trusted access", async () => {
@@ -810,7 +810,7 @@ describe("AgentDiscoveryPlugin", () => {
     );
 
     if (authPlugin.shutdown) await authPlugin.shutdown();
-    harness.reset();
+    await harness.reset();
   });
 
   it("agent_set_trust_level revokes inbound trusted access", async () => {
@@ -861,7 +861,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
 
     if (authPlugin.shutdown) await authPlugin.shutdown();
-    harness.reset();
+    await harness.reset();
   });
 
   it("returns not_an_agent when agent_connect cannot verify an Agent Card", async () => {
@@ -893,7 +893,7 @@ describe("AgentDiscoveryPlugin", () => {
       }),
     ).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects confirmed agent_connect args that do not match pending approval", async () => {
@@ -918,7 +918,7 @@ describe("AgentDiscoveryPlugin", () => {
         "Confirmed agent connection arguments do not match the pending approval. Please request connection again and confirm the new approval.",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("agent_connect approves an existing discovered agent", async () => {
@@ -958,7 +958,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(entities[0]?.metadata["status"]).toBe("approved");
     expect(entities[0]?.content).toContain("status: approved");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("agent_connect refreshes an existing approved agent without downgrading approval", async () => {
@@ -997,7 +997,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(entities).toHaveLength(1);
     expect(entities[0]?.metadata["status"]).toBe("approved");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("creates a discovered agent from an ATProto brain card event", async () => {
@@ -1043,7 +1043,7 @@ describe("AgentDiscoveryPlugin", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refreshes remote card fields without overwriting local relationship notes", async () => {
@@ -1086,7 +1086,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(agent?.content).toContain("brainName: Peer Brain");
     expect(agent?.content).toContain("Local trust note. Do not overwrite.");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("enriches an approved agent from an ATProto brain card without downgrading it", async () => {
@@ -1148,7 +1148,7 @@ describe("AgentDiscoveryPlugin", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("fails closed when a different repo DID claims an existing agent domain", async () => {
@@ -1214,7 +1214,7 @@ describe("AgentDiscoveryPlugin", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("marks a deleted remote card unavailable without revoking approval", async () => {
@@ -1269,7 +1269,7 @@ describe("AgentDiscoveryPlugin", () => {
     expect(after?.metadata.cardLastError).toContain("deleted");
     expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("archives an expired never-approved unavailable candidate", async () => {
@@ -1315,7 +1315,7 @@ describe("AgentDiscoveryPlugin", () => {
     );
     expect(expired?.metadata.status).toBe("archived");
     expect(expired?.metadata.cardCid).toBe("bafy-peer-card");
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers agent directory and proximity-map datasources", async () => {
@@ -1329,7 +1329,7 @@ describe("AgentDiscoveryPlugin", () => {
       "agent-discovery:proximity-map",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers site templates under the scoped names routes reference", async () => {
@@ -1347,7 +1347,7 @@ describe("AgentDiscoveryPlugin", () => {
       "agent-discovery:proximity-map",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("should register dashboard widgets on plugins-registered", async () => {
@@ -1394,7 +1394,7 @@ describe("AgentDiscoveryPlugin", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("provides a valid Agent Network view for every normalized skill tag", async () => {
@@ -1451,6 +1451,6 @@ describe("AgentDiscoveryPlugin", () => {
       "ai-systems",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 });

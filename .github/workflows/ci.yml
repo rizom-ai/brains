@@ -101,6 +101,12 @@ jobs:
       - name: Check legacy code inventory
         run: bun run legacy:check
 
+      - name: Check tests can fail
+        run: bun run tests:assertions
+
+      - name: Check silent catches are explained
+        run: bun run catches:check
+
       # Runs here rather than as its own job so it reuses this job's checkout,
       # install and cache. lint-staged only formats staged files, so without
       # this nothing ever re-checks a file that stops matching prettier after a

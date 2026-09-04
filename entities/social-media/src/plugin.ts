@@ -15,7 +15,10 @@ import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { GenerationJobHandler } from "./handlers/generationHandler";
 import type { PublishProvider } from "@brains/contracts";
-import { createLinkedInProvider } from "./lib/linkedin-client";
+import {
+  createLinkedInProvider,
+  type LinkedInClientDeps,
+} from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import {
@@ -39,8 +42,14 @@ export class SocialMediaPlugin extends EntityPlugin<
   private providers = new Map<string, PublishProvider>();
   private unregisterAtprotoProjection: (() => void) | undefined;
 
-  constructor(config: SocialMediaConfigInput = {}) {
+  private deps: LinkedInClientDeps;
+
+  constructor(
+    config: SocialMediaConfigInput = {},
+    deps: LinkedInClientDeps = {},
+  ) {
     super("social-media", packageJson, config, socialMediaConfigSchema);
+    this.deps = deps;
   }
 
   protected override createGenerationHandler(
@@ -109,6 +118,7 @@ export class SocialMediaPlugin extends EntityPlugin<
       const linkedinProvider = createLinkedInProvider(
         this.config.linkedin,
         this.logger.child("LinkedInClient"),
+        this.deps,
       );
       this.providers.set("linkedin", linkedinProvider);
       this.logger.info("LinkedIn provider initialized");

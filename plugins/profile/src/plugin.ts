@@ -19,33 +19,24 @@ import {
 } from "./starter-identity";
 import { getErrorMessage } from "@brains/utils/error";
 
-interface StarterIdentityConfig {
-  enabled: boolean;
-}
-
-export interface StarterIdentityConfigInput {
-  enabled?: boolean | undefined;
-}
-
-interface ProfileConfig {
-  starterIdentity: StarterIdentityConfig;
-}
-
-export interface ProfileConfigInput {
-  starterIdentity?: StarterIdentityConfigInput | undefined;
-}
-
-const starterIdentityConfigSchema: z.ZodType<
-  StarterIdentityConfig,
-  StarterIdentityConfigInput
-> = z.object({
+const starterIdentityConfigSchema: z.ZodObject<{
+  enabled: z.ZodDefault<z.ZodBoolean>;
+}> = z.object({
   enabled: z.boolean().default(true),
 });
 
-const profileConfigSchema: z.ZodType<ProfileConfig, ProfileConfigInput> =
-  z.object({
-    starterIdentity: starterIdentityConfigSchema.default({ enabled: true }),
-  });
+export type StarterIdentityConfigInput = z.input<
+  typeof starterIdentityConfigSchema
+>;
+
+const profileConfigSchema: z.ZodObject<{
+  starterIdentity: z.ZodDefault<typeof starterIdentityConfigSchema>;
+}> = z.object({
+  starterIdentity: starterIdentityConfigSchema.default({ enabled: true }),
+});
+
+type ProfileConfig = z.output<typeof profileConfigSchema>;
+export type ProfileConfigInput = z.input<typeof profileConfigSchema>;
 
 export class ProfilePlugin extends ServicePlugin<
   ProfileConfig,

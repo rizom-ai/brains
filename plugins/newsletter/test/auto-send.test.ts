@@ -1,19 +1,27 @@
-import { describe, it, expect, spyOn, afterEach } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import {
   createSilentLogger,
   createMockEntityService,
-  mockFetch,
 } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
-import { ButtondownClient } from "../src/provider/lib/buttondown-client";
+import {
+  ButtondownClient,
+  type ButtondownFetch,
+} from "../src/provider/lib/buttondown-client";
 import { ButtondownPlugin } from "../src/provider/plugin";
 import { z } from "@brains/utils/zod";
 
-const originalFetch = globalThis.fetch;
+// The client is built with a delegate to this, so a test can stub before or
+// after construction. Unstubbed calls fail loudly rather than reaching the
+// network.
+let fetchFn: ButtondownFetch = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: ButtondownFetch = (url, init) => fetchFn(url, init);
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
+function stubFetch(handler: ButtondownFetch): void {
+  fetchFn = handler;
+}
 
 const mockLogger = createSilentLogger();
 
@@ -21,10 +29,11 @@ describe("Newsletter Auto-Send on Publish", () => {
   describe("handlePublishCompleted", () => {
     it("should create and send newsletter when post is published and autoSendOnPublish is true", async () => {
       let capturedEmailBody: string | undefined;
-      mockFetch((_url, options) => {
+      stubFetch((_url, options) => {
         capturedEmailBody = z.string().parse(options.body);
         return Promise.resolve({
           ok: true,
+          status: 200,
           json: () =>
             Promise.resolve({
               id: "email-123",
@@ -62,6 +71,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         new ButtondownClient(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
+          { fetch: delegatingFetch },
         ),
         mockEntityService,
         mockLogger,
@@ -90,6 +100,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         new ButtondownClient(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
+          { fetch: delegatingFetch },
         ),
         mockEntityService,
         mockLogger,
@@ -117,6 +128,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         new ButtondownClient(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
+          { fetch: delegatingFetch },
         ),
         mockEntityService,
         mockLogger,
@@ -129,7 +141,7 @@ describe("Newsletter Auto-Send on Publish", () => {
     });
 
     it("should handle Buttondown API errors gracefully", async () => {
-      mockFetch(() =>
+      stubFetch(() =>
         Promise.resolve({
           ok: false,
           status: 500,
@@ -161,6 +173,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         new ButtondownClient(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
+          { fetch: delegatingFetch },
         ),
         mockEntityService,
         mockLogger,
@@ -168,7 +181,7 @@ describe("Newsletter Auto-Send on Publish", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toBeDefined();
+        expect(result.error).toContain("Server error");
       }
     });
   });
@@ -193,11 +206,13 @@ describe("Newsletter Auto-Send on Publish", () => {
           sender: "test",
         });
 
-      expect("success" in response && response.success).toBe(false);
-      if ("error" in response) {
-        expect(response.error).toContain("not found");
-      }
-      harness.reset();
+      expect(response).toMatchObject({ success: false });
+      const failure = expectDefined(
+        "error" in response ? response : undefined,
+        "failure response carrying an error",
+      );
+      expect(failure.error).toContain("not found");
+      await harness.reset();
     });
   });
 });

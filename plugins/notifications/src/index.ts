@@ -2,7 +2,6 @@ import {
   NOTIFICATIONS_SEND,
   notificationRecipientSchema,
   sendNotificationSchema,
-  type NotificationRecipient,
   type SendNotificationInput,
   type SendNotificationResult,
 } from "@brains/contracts";
@@ -21,25 +20,31 @@ export {
   type SendNotificationResult,
 } from "@brains/contracts";
 
-export interface NotificationsConfig {
-  defaultRecipient?: NotificationRecipient | undefined;
-}
-
-export type NotificationsConfigInput = NotificationsConfig;
-
 // Unset SETUP_EMAIL_TO interpolates to an empty address in brain.yaml; a
 // recipient without an address means "no default recipient", not an invalid
 // plugin config — alerts then stay pending on the standard retry path.
-const emptyRecipient = z
+const emptyRecipient: z.ZodPipe<
+  z.ZodObject<{ type: z.ZodLiteral<"email">; address: z.ZodString }>,
+  z.ZodTransform<undefined, { type: "email"; address: string }>
+> = z
   .object({ type: z.literal("email"), address: z.string().max(0) })
   .transform((): undefined => undefined);
 
-const notificationsConfigSchema: z.ZodType<
-  NotificationsConfig,
-  NotificationsConfigInput
+const notificationsConfigSchema: z.ZodObject<
+  {
+    defaultRecipient: z.ZodOptional<
+      z.ZodUnion<[typeof emptyRecipient, typeof notificationRecipientSchema]>
+    >;
+  },
+  z.core.$loose
 > = z.looseObject({
   defaultRecipient: emptyRecipient.or(notificationRecipientSchema).optional(),
 });
+
+export type NotificationsConfig = z.output<typeof notificationsConfigSchema>;
+export type NotificationsConfigInput = z.input<
+  typeof notificationsConfigSchema
+>;
 
 export class NotificationsPlugin extends ServicePlugin<
   NotificationsConfig,

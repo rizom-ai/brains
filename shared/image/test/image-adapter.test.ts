@@ -32,10 +32,6 @@ describe("ImageAdapter", () => {
   });
 
   describe("schema", () => {
-    it("should have a valid schema", () => {
-      expect(imageAdapter.schema).toBeDefined();
-    });
-
     it("should validate a valid image entity", () => {
       const result = imageAdapter.schema.safeParse(mockImageEntity);
       expect(result.success).toBe(true);

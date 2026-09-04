@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -373,7 +374,7 @@ describe("AuthUserStore", () => {
       const [token] = await database.db
         .select({ consumedAt: setupTokens.consumedAt })
         .from(setupTokens);
-      expect(token?.consumedAt).toBeNull();
+      expect(expectDefined(token, "setup token row").consumedAt).toBeNull();
       expect(
         (await identities.listIdentities(owner.id))[0]?.verifiedAt,
       ).toBeNull();

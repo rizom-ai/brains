@@ -4,37 +4,40 @@ import { z } from "@brains/utils/zod";
 /**
  * Supported image formats
  */
-export type ImageFormat = "png" | "jpg" | "jpeg" | "webp" | "gif" | "svg";
+export const imageFormatSchema: z.ZodEnum<{
+  png: "png";
+  jpg: "jpg";
+  jpeg: "jpeg";
+  webp: "webp";
+  gif: "gif";
+  svg: "svg";
+}> = z.enum(["png", "jpg", "jpeg", "webp", "gif", "svg"]);
 
-export const imageFormatSchema: z.ZodType<ImageFormat> = z.enum([
-  "png",
-  "jpg",
-  "jpeg",
-  "webp",
-  "gif",
-  "svg",
-]);
+export type ImageFormat = z.output<typeof imageFormatSchema>;
 
 /**
  * Image entity metadata schema
  * All fields required (auto-detected on upload)
  * sourceUrl is optional - used for deduplication when importing from URLs
  */
-export type ImageIngestionStatus = "pending" | "draft" | "failed";
+export const imageIngestionStatusSchema: z.ZodEnum<{
+  pending: "pending";
+  draft: "draft";
+  failed: "failed";
+}> = z.enum(["pending", "draft", "failed"]);
 
-export const imageIngestionStatusSchema: z.ZodType<ImageIngestionStatus> =
-  z.enum(["pending", "draft", "failed"]);
+export type ImageIngestionStatus = z.output<typeof imageIngestionStatusSchema>;
 
 type ImageMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   alt: z.ZodOptional<z.ZodString>;
-  format: z.ZodType<ImageFormat>;
+  format: typeof imageFormatSchema;
   width: z.ZodNumber;
   height: z.ZodNumber;
-  status: z.ZodOptional<z.ZodType<ImageIngestionStatus>>;
+  status: z.ZodOptional<typeof imageIngestionStatusSchema>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
-  sourceUrl: z.ZodOptional<z.ZodType<string>>;
+  sourceUrl: z.ZodOptional<z.ZodURL>;
   sourceEntityType: z.ZodOptional<z.ZodString>;
   sourceEntityId: z.ZodOptional<z.ZodString>;
   sourceUploadId: z.ZodOptional<z.ZodString>;
@@ -84,18 +87,18 @@ export type Image = z.output<typeof imageSchema>;
 /**
  * Resolved image data for templates
  */
-export interface ResolvedImage {
-  url: string;
-  alt: string;
-  title: string;
-  width: number;
-  height: number;
-}
-
-export const resolvedImageSchema: z.ZodType<ResolvedImage> = z.object({
+export const resolvedImageSchema: z.ZodObject<{
+  url: z.ZodString;
+  alt: z.ZodString;
+  title: z.ZodString;
+  width: z.ZodNumber;
+  height: z.ZodNumber;
+}> = z.object({
   url: z.string(),
   alt: z.string(),
   title: z.string(),
   width: z.number(),
   height: z.number(),
 });
+
+export type ResolvedImage = z.output<typeof resolvedImageSchema>;

@@ -3,6 +3,7 @@ import {
   type AgentContextItem,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { definedFields } from "@brains/utils/strip-undefined";
 import {
   toolConfirmationSchema,
   toolErrorSchema,
@@ -71,9 +72,20 @@ const attachmentToolDataSchema = z
         .optional(),
     }),
   })
-  .refine(
-    (data) => data.documentId !== undefined || data.entityId !== undefined,
-  );
+  .transform((data, ctx) => {
+    // A card is addressed by whichever id the tool supplied. Resolving it here
+    // makes "no id" a parse failure and gives the parsed value a non-optional
+    // attachmentId, so callers need no second check.
+    const attachmentId = data.documentId ?? data.entityId;
+    if (attachmentId === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "attachment needs a documentId or entityId",
+      });
+      return z.NEVER;
+    }
+    return { attachmentId, attachment: data.attachment };
+  });
 
 /** Human-readable noun for an attachment's media type, for card copy. */
 function describeAttachmentMedia(mediaType: string): string {
@@ -113,11 +125,7 @@ export function buildAttachmentCardFromToolData(
   const attachmentParsed = attachmentToolDataSchema.safeParse(data);
   if (!attachmentParsed.success) return undefined;
 
-  const attachment = attachmentParsed.data.attachment;
-  const attachmentId =
-    attachmentParsed.data.documentId ?? attachmentParsed.data.entityId;
-  if (attachmentId === undefined) return undefined;
-
+  const { attachmentId, attachment } = attachmentParsed.data;
   const source = attachment.source;
   const mediaLabel = describeAttachmentMedia(attachment.mediaType);
   const queuedDescription = buildQueuedAttachmentDescription(
@@ -127,41 +135,23 @@ export function buildAttachmentCardFromToolData(
   return {
     kind: "attachment",
     id: `attachment:${attachmentId}`,
-    ...(jobIdParsed.success ? { jobId: jobIdParsed.data.jobId } : {}),
     title: attachment.filename ?? `Generated ${mediaLabel}`,
     // Only describe the work as queued when there is a job backing it;
     // an already-materialized attachment arrives without a jobId.
-    ...(jobIdParsed.success ? { description: queuedDescription } : {}),
+    ...definedFields({
+      jobId: jobIdParsed.success ? jobIdParsed.data.jobId : undefined,
+      description: jobIdParsed.success ? queuedDescription : undefined,
+    }),
     attachment: {
       mediaType: attachment.mediaType,
       url: attachment.url,
-      ...(attachment.downloadUrl !== undefined
-        ? { downloadUrl: attachment.downloadUrl }
-        : {}),
-      ...(attachment.previewUrl !== undefined
-        ? { previewUrl: attachment.previewUrl }
-        : {}),
-      ...(attachment.filename !== undefined
-        ? { filename: attachment.filename }
-        : {}),
-      ...(attachment.sizeBytes !== undefined
-        ? { sizeBytes: attachment.sizeBytes }
-        : {}),
-      ...(source !== undefined
-        ? {
-            source: {
-              ...(source.entityType !== undefined
-                ? { entityType: source.entityType }
-                : {}),
-              ...(source.entityId !== undefined
-                ? { entityId: source.entityId }
-                : {}),
-              ...(source.attachmentType !== undefined
-                ? { attachmentType: source.attachmentType }
-                : {}),
-            },
-          }
-        : {}),
+      ...definedFields({
+        downloadUrl: attachment.downloadUrl,
+        previewUrl: attachment.previewUrl,
+        filename: attachment.filename,
+        sizeBytes: attachment.sizeBytes,
+        source: source && definedFields(source),
+      }),
     },
   };
 }
@@ -194,21 +184,15 @@ export function buildSourcesCardFromContextItems(
     title: "Retrieved context",
     sources: contextItems.map((item) => ({
       id: item.id,
-      ...(item.title !== undefined ? { title: item.title } : {}),
       source: item.source,
-      ...(getStringProvenanceValue(item.provenance, "url") !== undefined
-        ? { url: getStringProvenanceValue(item.provenance, "url") }
-        : {}),
-      ...(getStringProvenanceValue(item.provenance, "entityType") !== undefined
-        ? {
-            entityType: getStringProvenanceValue(item.provenance, "entityType"),
-          }
-        : {}),
-      ...(getStringProvenanceValue(item.provenance, "entityId") !== undefined
-        ? { entityId: getStringProvenanceValue(item.provenance, "entityId") }
-        : {}),
       excerpt: truncateSourceExcerpt(item.content),
-      ...(item.provenance !== undefined ? { provenance: item.provenance } : {}),
+      ...definedFields({
+        title: item.title,
+        url: getStringProvenanceValue(item.provenance, "url"),
+        entityType: getStringProvenanceValue(item.provenance, "entityType"),
+        entityId: getStringProvenanceValue(item.provenance, "entityId"),
+        provenance: item.provenance,
+      }),
     })),
   };
 }
@@ -261,13 +245,12 @@ function buildSourceCitationFromEntity(params: {
     id: `${entity.entityType}:${entity.id}`,
     title: getEntityTitle(entity),
     source: entity.entityType,
-    ...(url !== undefined ? { url } : {}),
     entityType: entity.entityType,
     entityId: entity.id,
-    ...(excerpt !== undefined ? { excerpt } : {}),
+    ...definedFields({ url, excerpt }),
     provenance: {
       toolName,
-      ...(score !== undefined ? { score } : {}),
+      ...definedFields({ score }),
     },
   };
 }
@@ -377,16 +360,14 @@ export function extractToolResults(
           : undefined;
         const confirmation: PendingConfirmation = {
           id: approvalId,
-          ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
           summary: confirmationParsed.data.summary,
-          ...(confirmationParsed.data.completionSummary !== undefined
-            ? { completionSummary: confirmationParsed.data.completionSummary }
-            : {}),
-          ...(confirmationParsed.data.preview !== undefined
-            ? { preview: confirmationParsed.data.preview }
-            : {}),
           args: confirmationParsed.data.args,
+          ...definedFields({
+            toolCallId: tr.toolCallId,
+            completionSummary: confirmationParsed.data.completionSummary,
+            preview: confirmationParsed.data.preview,
+          }),
         };
         pendingConfirmations.push(confirmation);
         stepRequestedConfirmation = true;
@@ -394,17 +375,15 @@ export function extractToolResults(
         cards.push({
           kind: "tool-approval",
           id: approvalId,
-          ...(tr.toolCallId ? { toolCallId: tr.toolCallId } : {}),
           toolName: confirmationParsed.data.toolName,
-          ...(args !== undefined ? { input: args } : {}),
           summary: confirmationParsed.data.summary,
-          ...(confirmationParsed.data.completionSummary !== undefined
-            ? { completionSummary: confirmationParsed.data.completionSummary }
-            : {}),
-          ...(confirmationParsed.data.preview !== undefined
-            ? { preview: confirmationParsed.data.preview }
-            : {}),
           state: "approval-requested",
+          ...definedFields({
+            toolCallId: tr.toolCallId,
+            input: args,
+            completionSummary: confirmationParsed.data.completionSummary,
+            preview: confirmationParsed.data.preview,
+          }),
         });
         continue;
       }
@@ -433,9 +412,7 @@ export function extractToolResults(
       if (errorParsed.success) {
         toolResult.error = {
           message: errorParsed.data.error,
-          ...(errorParsed.data.code !== undefined
-            ? { code: errorParsed.data.code }
-            : {}),
+          ...definedFields({ code: errorParsed.data.code }),
         };
       }
 
@@ -484,6 +461,11 @@ const entityRefDataSchema = z.object({
   deleted: z.string().min(1).optional(),
   status: z.string().optional(),
 });
+/** Treat a blank string as absent, as an omitted field. */
+function nonEmpty(value: string | undefined): string | undefined {
+  return value === undefined || value === "" ? undefined : value;
+}
+
 const entityRefArgsSchema = z.object({
   entityType: z.string().optional(),
   id: z.string().optional(),
@@ -602,11 +584,13 @@ export function buildEntityMemoryRefs(
           ? "deleted"
           : "created";
       refs.push({
-        ...(entityType ? { entityType } : {}),
         entityId,
         operation,
-        ...(title ? { title } : {}),
-        ...(status ? { status } : {}),
+        ...definedFields({
+          entityType: nonEmpty(entityType),
+          title: nonEmpty(title),
+          status: nonEmpty(status),
+        }),
       });
       continue;
     }
@@ -624,8 +608,10 @@ export function buildEntityMemoryRefs(
         entityId: entity.id,
         operation: "listed",
         listIndex: refs.filter((ref) => ref.operation === "listed").length + 1,
-        ...(title !== entity.id ? { title } : {}),
-        ...(status !== undefined ? { status } : {}),
+        ...definedFields({
+          title: title !== entity.id ? title : undefined,
+          status,
+        }),
       });
     }
   }

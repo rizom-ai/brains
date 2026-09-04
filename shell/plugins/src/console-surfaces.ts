@@ -91,12 +91,24 @@ export function deriveConsoleSurfaces(
     ) {
       continue;
     }
+    const pluginDoors = routes
+      .filter(
+        (route) =>
+          route.pluginId === pluginId &&
+          !(id === "studio" && route.fullPath === "/chat"),
+      )
+      .map((route) => route.fullPath)
+      .sort((a, b) => a.length - b.length);
+    const nativeChatDoor =
+      id === "web-chat" && pluginDoors.length > 0
+        ? routes.find(
+            (route) =>
+              route.pluginId === "studio" && route.fullPath === "/chat",
+          )?.fullPath
+        : undefined;
     const door = isSelf
       ? options.self?.href
-      : routes
-          .filter((route) => route.pluginId === pluginId)
-          .map((route) => route.fullPath)
-          .sort((a, b) => a.length - b.length)[0];
+      : (nativeChatDoor ?? pluginDoors[0]);
     if (door !== undefined) {
       surfaces.push({
         id,

@@ -1,78 +1,66 @@
 import { z } from "@brains/utils/zod";
 
-export interface SwotDerivationJobData {
-  reason: string;
-}
-
-export interface SwotDerivationJobDataInput {
-  reason?: string | undefined;
-}
-
-export const swotDerivationJobSchema: z.ZodType<
-  SwotDerivationJobData,
-  SwotDerivationJobDataInput
-> = z.object({
+export const swotDerivationJobSchema: z.ZodObject<{
+  reason: z.ZodDefault<z.ZodString>;
+}> = z.object({
   reason: z.string().default("entity-change"),
 });
 
-export interface SwotDraftGenerationItem {
-  theme: string;
-  evidence: string;
-  action: string;
-}
+export type SwotDerivationJobData = z.output<typeof swotDerivationJobSchema>;
+export type SwotDerivationJobDataInput = z.input<
+  typeof swotDerivationJobSchema
+>;
 
-export const swotDraftGenerationItemSchema: z.ZodType<
-  SwotDraftGenerationItem,
-  SwotDraftGenerationItem
-> = z.object({
+export const swotDraftGenerationItemSchema: z.ZodObject<{
+  theme: z.ZodString;
+  evidence: z.ZodString;
+  action: z.ZodString;
+}> = z.object({
   theme: z.string(),
   evidence: z.string(),
   action: z.string(),
 });
 
-export interface SwotDraftGeneration {
-  strengths: SwotDraftGenerationItem[];
-  weaknesses: SwotDraftGenerationItem[];
-  opportunities: SwotDraftGenerationItem[];
-  threats: SwotDraftGenerationItem[];
-}
+export type SwotDraftGenerationItem = z.output<
+  typeof swotDraftGenerationItemSchema
+>;
 
-export const swotDraftGenerationSchema: z.ZodType<
-  SwotDraftGeneration,
-  SwotDraftGeneration
-> = z.object({
+export const swotDraftGenerationSchema: z.ZodObject<{
+  strengths: z.ZodArray<typeof swotDraftGenerationItemSchema>;
+  weaknesses: z.ZodArray<typeof swotDraftGenerationItemSchema>;
+  opportunities: z.ZodArray<typeof swotDraftGenerationItemSchema>;
+  threats: z.ZodArray<typeof swotDraftGenerationItemSchema>;
+}> = z.object({
   strengths: z.array(swotDraftGenerationItemSchema),
   weaknesses: z.array(swotDraftGenerationItemSchema),
   opportunities: z.array(swotDraftGenerationItemSchema),
   threats: z.array(swotDraftGenerationItemSchema),
 });
 
-export interface SwotGenerationItem {
-  sourceTheme: string;
-  title: string;
-  detail: string | null;
-}
+export type SwotDraftGeneration = z.output<typeof swotDraftGenerationSchema>;
 
-export const swotGenerationItemSchema: z.ZodType<
-  SwotGenerationItem,
-  SwotGenerationItem
-> = z.object({
+export const swotGenerationItemSchema: z.ZodObject<{
+  sourceTheme: z.ZodString;
+  title: z.ZodString;
+  detail: z.ZodNullable<z.ZodString>;
+}> = z.object({
   sourceTheme: z.string(),
   title: z.string(),
   detail: z.string().nullable(),
 });
 
-export interface SwotGeneration {
-  strengths: SwotGenerationItem[];
-  weaknesses: SwotGenerationItem[];
-  opportunities: SwotGenerationItem[];
-  threats: SwotGenerationItem[];
-}
+export type SwotGenerationItem = z.output<typeof swotGenerationItemSchema>;
 
-export const swotGenerationSchema: z.ZodType<SwotGeneration, SwotGeneration> =
-  z.object({
-    strengths: z.array(swotGenerationItemSchema),
-    weaknesses: z.array(swotGenerationItemSchema),
-    opportunities: z.array(swotGenerationItemSchema),
-    threats: z.array(swotGenerationItemSchema),
-  });
+export const swotGenerationSchema: z.ZodObject<{
+  strengths: z.ZodArray<typeof swotGenerationItemSchema>;
+  weaknesses: z.ZodArray<typeof swotGenerationItemSchema>;
+  opportunities: z.ZodArray<typeof swotGenerationItemSchema>;
+  threats: z.ZodArray<typeof swotGenerationItemSchema>;
+}> = z.object({
+  strengths: z.array(swotGenerationItemSchema),
+  weaknesses: z.array(swotGenerationItemSchema),
+  opportunities: z.array(swotGenerationItemSchema),
+  threats: z.array(swotGenerationItemSchema),
+});
+
+export type SwotGeneration = z.output<typeof swotGenerationSchema>;

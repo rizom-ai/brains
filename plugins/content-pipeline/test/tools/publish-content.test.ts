@@ -86,6 +86,24 @@ This is the body.`;
     expect(result.imageData).toBeUndefined();
   });
 
+  it("publishes verbatim when the frontmatter block will not parse", async () => {
+    // gray-matter raises on malformed YAML. There is no usable frontmatter to
+    // strip, so the post goes out as written rather than failing to publish.
+    const content = [
+      "---",
+      "title: [unclosed",
+      "---",
+      "This is the body.",
+    ].join("\n");
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(content),
+    );
+
+    expect(result.bodyContent).toBe(content);
+  });
+
   it("should fetch image data when coverImageId is present", async () => {
     await context.entityService.createEntity({
       entity: {

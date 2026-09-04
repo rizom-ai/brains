@@ -33,6 +33,7 @@ import {
   createAgentCallTool,
   type A2AClientDeps,
   type A2ARequestSigner,
+  type FetchFn,
 } from "./client";
 import { registerA2ACallMessageHandlers } from "./message-handlers";
 import packageJson from "../package.json";
@@ -52,17 +53,30 @@ const A2A_CORS_HEADERS = {
  * Serves an Agent Card for discovery and accepts tasks via JSON-RPC 2.0.
  * Routes tasks through AgentService (conversational, like Matrix/Discord).
  */
+/**
+ * Runtime collaborators the interface needs that are not configuration.
+ *
+ * Config is schema-validated operator input; a fetch implementation is not.
+ * Threading it here means a test can hand the outbound client a fake and read
+ * the requests off it, instead of reassigning globalThis.fetch and restoring
+ * it afterwards. Production leaves it unset and the client uses the global.
+ */
+export interface A2AInterfaceDeps {
+  fetch?: FetchFn | undefined;
+}
+
 export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
   declare protected config: A2AConfig;
+  private readonly deps: A2AInterfaceDeps;
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
   private readonly turnSupervisor = new A2ATurnSupervisor();
   private agentService: AgentNamespace | undefined;
-  private readonly jwksResolver = new JwksResolver();
+  private readonly jwksResolver: JwksResolver;
   private app: Hono | undefined;
   private hasWebserver = false;
 
-  constructor(config: A2AConfigInput = {}) {
+  constructor(config: A2AConfigInput = {}, deps: A2AInterfaceDeps = {}) {
     if (Object.prototype.hasOwnProperty.call(config, "trustedTokens")) {
       throw new Error("trustedTokens legacy config is no longer supported");
     }
@@ -70,6 +84,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
       throw new Error("outboundTokens legacy config is no longer supported");
     }
     super("a2a", packageJson, config, a2aConfigSchema);
+    this.deps = deps;
+    // Inbound signature verification fetches the peer's JWKS through the same
+    // fetch the outbound client uses, so one injected fake covers both.
+    this.jwksResolver = new JwksResolver(
+      deps.fetch ? { fetch: deps.fetch } : {},
+    );
   }
 
   protected override async onRegister(
@@ -426,6 +446,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig, A2AConfigInput> {
     const requestSigner = this.createRequestSigner();
     return {
       ...(requestSigner ? { requestSigner } : {}),
+      ...(this.deps.fetch ? { fetch: this.deps.fetch } : {}),
       requestTimeoutMs: this.config.requestTimeoutMs,
       streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
       maxNetworkAttempts: this.config.maxNetworkAttempts,

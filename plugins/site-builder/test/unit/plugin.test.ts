@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -80,8 +81,8 @@ describe("SiteBuilderPlugin", () => {
     harness = createPluginHarness<SiteBuilderPlugin>();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should initialize with valid config", async () => {
@@ -105,11 +106,17 @@ describe("SiteBuilderPlugin", () => {
       }),
     );
     const shell = harness.getMockShell();
+    let ownerQueueReads = 0;
     shell.getJobQueueService().getRecentJobs = async (): Promise<never> => {
+      ownerQueueReads++;
       throw new Error("getRecentJobs is owner-only");
     };
 
     await plugin.register(shell, { executionOnly: true });
+
+    // The worker registers its handlers without ever reaching for the
+    // owner-only queue reader, which would throw in this process.
+    expect(ownerQueueReads).toBe(0);
   });
 
   it("should register successfully and provide capabilities", async () => {
@@ -560,7 +567,7 @@ describe("SiteBuilderPlugin", () => {
       { route?: { path: string } }
     >("plugin:site-builder:route:get", { path: "/studio/" });
 
-    expect(result?.route).toBeUndefined();
+    expect(expectDefined(result, "route:get response").route).toBeUndefined();
   });
 
   it("should not generate Studio files on site:build:completed", async () => {

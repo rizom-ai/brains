@@ -7,6 +7,7 @@ import {
   type SiteSectionGroup,
 } from "@rizom/site";
 import type { SiteCompositionPlugin } from "./plugin";
+import { isRecord } from "@brains/utils/is-record";
 
 /**
  * A site package bundles everything the site-builder needs for
@@ -176,18 +177,13 @@ export function extendSite<
 
 export const themeCssSchema: z.ZodString = z.string();
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 // Internal packages may still carry an embedded runtime plugin while they are
 // migrated to explicit plugin composition. The public structural fields are
 // always validated by the canonical @rizom/site schema.
-export const sitePackageSchema: z.ZodType<SitePackage> = z.custom<SitePackage>(
-  (value) => {
+export const sitePackageSchema: z.ZodCustom<SitePackage, SitePackage> =
+  z.custom<SitePackage>((value) => {
     if (!isRecord(value)) return false;
     const { plugin, ...site } = value;
     if (plugin !== undefined && typeof plugin !== "function") return false;
     return siteDefinitionSchema.safeParse(site).success;
-  },
-);
+  });

@@ -10,24 +10,16 @@ import {
   Card,
   type BreadcrumbItem,
 } from "@brains/ui-library";
-type NewsletterTemplateStatus =
-  "generating" | "draft" | "queued" | "published" | "failed";
-
-const newsletterStatusSchema: z.ZodType<
-  NewsletterTemplateStatus,
-  NewsletterTemplateStatus
-> = z.enum(["generating", "draft", "queued", "published", "failed"]);
+import { newsletterStatusSchema } from "../schemas/newsletter";
 
 /**
  * Source entity reference schema
  */
-interface SourceEntityData {
-  id: string;
-  title: string;
-  url: string;
-}
-
-const sourceEntitySchema: z.ZodType<SourceEntityData> = z.object({
+const sourceEntitySchema: z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  url: z.ZodString;
+}> = z.object({
   id: z.string(),
   title: z.string(),
   url: z.string(),
@@ -36,13 +28,11 @@ const sourceEntitySchema: z.ZodType<SourceEntityData> = z.object({
 /**
  * Navigation link schema
  */
-interface NewsletterNavLink {
-  id: string;
-  subject: string;
-  url: string;
-}
-
-const navLinkSchema: z.ZodType<NewsletterNavLink> = z.object({
+const navLinkSchema: z.ZodObject<{
+  id: z.ZodString;
+  subject: z.ZodString;
+  url: z.ZodString;
+}> = z.object({
   id: z.string(),
   subject: z.string(),
   url: z.string(),
@@ -51,35 +41,35 @@ const navLinkSchema: z.ZodType<NewsletterNavLink> = z.object({
 /**
  * Newsletter detail schema
  */
-export interface NewsletterDetailData {
-  id: string;
-  subject: string;
-  status: NewsletterTemplateStatus;
-  content: string;
-  created: string;
-  updated: string;
-  sentAt: string | null;
-  scheduledFor: string | null;
-  sourceEntities: SourceEntityData[] | null;
-  prevNewsletter: NewsletterNavLink | null;
-  nextNewsletter: NewsletterNavLink | null;
-}
+export const newsletterDetailSchema: z.ZodObject<{
+  id: z.ZodString;
+  subject: z.ZodString;
+  status: typeof newsletterStatusSchema;
+  content: z.ZodString;
+  created: z.ZodString;
+  updated: z.ZodString;
+  sentAt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  scheduledFor: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  sourceEntities: z.ZodDefault<
+    z.ZodNullable<z.ZodArray<typeof sourceEntitySchema>>
+  >;
+  prevNewsletter: z.ZodDefault<z.ZodNullable<typeof navLinkSchema>>;
+  nextNewsletter: z.ZodDefault<z.ZodNullable<typeof navLinkSchema>>;
+}> = z.object({
+  id: z.string(),
+  subject: z.string(),
+  status: newsletterStatusSchema,
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  sentAt: z.string().nullable().default(null),
+  scheduledFor: z.string().nullable().default(null),
+  sourceEntities: z.array(sourceEntitySchema).nullable().default(null),
+  prevNewsletter: navLinkSchema.nullable().default(null),
+  nextNewsletter: navLinkSchema.nullable().default(null),
+});
 
-export const newsletterDetailSchema: z.ZodType<NewsletterDetailData> = z.object(
-  {
-    id: z.string(),
-    subject: z.string(),
-    status: newsletterStatusSchema,
-    content: z.string(),
-    created: z.string(),
-    updated: z.string(),
-    sentAt: z.string().nullable().default(null),
-    scheduledFor: z.string().nullable().default(null),
-    sourceEntities: z.array(sourceEntitySchema).nullable().default(null),
-    prevNewsletter: navLinkSchema.nullable().default(null),
-    nextNewsletter: navLinkSchema.nullable().default(null),
-  },
-);
+export type NewsletterDetailData = z.output<typeof newsletterDetailSchema>;
 
 export type NewsletterDetailProps = NewsletterDetailData;
 

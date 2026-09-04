@@ -144,6 +144,7 @@ export { defineChannel, type Channel } from "./utils/channels";
 export {
   createAdminListTool,
   createListToolOutputSchema,
+  type ListToolOutputSchema,
   type ListToolOutput,
 } from "./utils/admin-list-tool";
 

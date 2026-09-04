@@ -51,13 +51,15 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
   describe("generation schedule configuration", () => {
     it("should accept generationSchedules config", () => {
-      scheduler = ContentScheduler.createFresh(
-        baseConfig({
-          generationSchedules: { newsletter: "0 9 * * 1" },
-        }),
-      );
-
-      expect(scheduler).toBeDefined();
+      // The counterpart to the two rejection cases below: a valid five-field
+      // cron must survive the validation that construction runs.
+      expect(() => {
+        scheduler = ContentScheduler.createFresh(
+          baseConfig({
+            generationSchedules: { newsletter: "0 9 * * 1" },
+          }),
+        );
+      }).not.toThrow();
     });
 
     it("should validate generation cron expressions", () => {

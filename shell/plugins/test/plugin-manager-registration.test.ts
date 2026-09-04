@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
+import { PluginStatus } from "../src/manager/types";
 import { ServicePlugin } from "../src/service/service-plugin";
 import type { PluginCapabilities, Resource, Tool } from "../src/interfaces";
 import {
@@ -391,8 +392,14 @@ describe("PluginManager - Direct Registration", () => {
       const plugin = new TestPlugin();
       pluginManager.registerPlugin(plugin);
 
-      // Should not throw (error is logged silently)
+      // The plugin cannot register its tools, so it must end in ERROR rather
+      // than being reported as healthy. Neither that nor "does not throw" was
+      // asserted before.
       await pluginManager.initializePlugins();
+
+      expect(pluginManager.getPluginStatus("test-plugin")).toBe(
+        PluginStatus.ERROR,
+      );
     });
 
     it("should continue registering other capabilities if one fails", async () => {

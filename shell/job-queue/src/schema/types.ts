@@ -1,37 +1,9 @@
 import {
   actorRefSchema,
   OperationProvenanceSchema,
-  type ActorRef,
-  type OperationProvenance,
   type ProvenanceEntityReference,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-
-export type OperationType =
-  | "file_operations"
-  | "content_operations"
-  | "data_processing"
-  | "batch_processing";
-
-export interface JobContextInput {
-  [key: string]: unknown;
-  pluginId?: string | undefined;
-  progressToken?: string | number | undefined;
-  operationType: OperationType;
-  operationTarget?: string | undefined;
-  interfaceType?: string | undefined;
-  conversationId?: string | undefined;
-  channelId?: string | undefined;
-  requestedByActor?: ActorRef | undefined;
-  requestedByUserId?: string | undefined;
-  requestedByInterface?: string | undefined;
-  silent?: boolean | undefined;
-  provenance?: OperationProvenance | undefined;
-}
-
-export interface JobContext extends JobContextInput {
-  rootJobId: string;
-}
 
 /**
  * Operation type enum for structured progress tracking and aggregation
@@ -49,29 +21,55 @@ export const OperationTypeEnum: z.ZodEnum<{
   "batch_processing", // batch operations
 ]);
 
+export type OperationType = z.output<typeof OperationTypeEnum>;
+
+type JobContextInputSchema = z.ZodObject<
+  {
+    pluginId: z.ZodOptional<z.ZodString>;
+    progressToken: z.ZodOptional<
+      z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>
+    >;
+    operationType: typeof OperationTypeEnum;
+    operationTarget: z.ZodOptional<z.ZodString>;
+    interfaceType: z.ZodOptional<z.ZodString>;
+    conversationId: z.ZodOptional<z.ZodString>;
+    channelId: z.ZodOptional<z.ZodString>;
+    requestedByActor: z.ZodOptional<typeof actorRefSchema>;
+    requestedByUserId: z.ZodOptional<z.ZodString>;
+    requestedByInterface: z.ZodOptional<z.ZodString>;
+    silent: z.ZodOptional<z.ZodBoolean>;
+    provenance: z.ZodOptional<typeof OperationProvenanceSchema>;
+  },
+  z.core.$loose
+>;
+
 /**
  * Job context input schema - what callers provide when creating jobs
  * Note: rootJobId is not included here - it's managed internally by the job queue service
  * and defaults to the job's own ID for standalone jobs, or the batch ID for batch children.
+ *
+ * Callers attach further keys of their own; the object is loose so parsing
+ * keeps them and the type admits them.
  */
-export const JobContextInputSchema: z.ZodType<JobContextInput, unknown> =
-  z.object({
-    pluginId: z.string().optional(),
-    progressToken: z.union([z.string(), z.number()]).optional(),
-    operationType: OperationTypeEnum,
-    operationTarget: z.string().optional(),
-    // Routing context for progress message delivery
-    interfaceType: z.string().optional(), // Which interface triggered the job (e.g., "matrix", "cli")
-    conversationId: z.string().optional(), // Durable conversation/session to route progress messages to
-    channelId: z.string().optional(), // Transport channel/room to route progress messages to
-    requestedByActor: actorRefSchema.optional(),
-    requestedByUserId: z.string().optional(),
-    requestedByInterface: z.string().optional(),
-    // Suppress all progress/completion events for this job (e.g. background
-    // embedding jobs that would otherwise spam every subscriber)
-    silent: z.boolean().optional(),
-    provenance: OperationProvenanceSchema.optional(),
-  });
+export const JobContextInputSchema: JobContextInputSchema = z.looseObject({
+  pluginId: z.string().optional(),
+  progressToken: z.union([z.string(), z.number()]).optional(),
+  operationType: OperationTypeEnum,
+  operationTarget: z.string().optional(),
+  // Routing context for progress message delivery
+  interfaceType: z.string().optional(), // Which interface triggered the job (e.g., "matrix", "cli")
+  conversationId: z.string().optional(), // Durable conversation/session to route progress messages to
+  channelId: z.string().optional(), // Transport channel/room to route progress messages to
+  requestedByActor: actorRefSchema.optional(),
+  requestedByUserId: z.string().optional(),
+  requestedByInterface: z.string().optional(),
+  // Suppress all progress/completion events for this job (e.g. background
+  // embedding jobs that would otherwise spam every subscriber)
+  silent: z.boolean().optional(),
+  provenance: OperationProvenanceSchema.optional(),
+});
+
+export type JobContextInput = z.output<typeof JobContextInputSchema>;
 
 /**
  * Full job context schema - includes rootJobId for stored/transmitted metadata
@@ -79,7 +77,10 @@ export const JobContextInputSchema: z.ZodType<JobContextInput, unknown> =
  */
 // Loose: JobContextInput declares an index signature, so callers attach their
 // own metadata keys and those must survive a round trip through the queue.
-export const JobContextSchema: z.ZodType<JobContext, unknown> = z.looseObject({
+export const JobContextSchema: z.ZodObject<
+  JobContextInputSchema["shape"] & { rootJobId: z.ZodString },
+  z.core.$loose
+> = z.looseObject({
   pluginId: z.string().optional(),
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,
@@ -94,6 +95,8 @@ export const JobContextSchema: z.ZodType<JobContext, unknown> = z.looseObject({
   provenance: OperationProvenanceSchema.optional(),
   rootJobId: z.string(), // Added by job queue service when job is created
 });
+
+export type JobContext = z.output<typeof JobContextSchema>;
 
 /**
  * Deduplication strategy for job queue

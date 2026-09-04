@@ -73,6 +73,12 @@ describe("ops clean canonical crossover", () => {
   test("promotes the canonical desired-state schemas as the only active contract", () => {
     expect(pilotSchema.safeParse(canonicalPilot).success).toBe(true);
     expect(cohortSchema.safeParse(canonicalCohort).success).toBe(true);
+    expect(
+      pilotSchema.safeParse({
+        ...canonicalPilot,
+        imageContract: "shared-fleet-v1",
+      }).success,
+    ).toBe(false);
     const { bundleContract: _bundleContract, ...unversionedPilot } =
       canonicalPilot;
     expect(pilotSchema.safeParse(unversionedPilot).success).toBe(false);

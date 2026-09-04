@@ -2,7 +2,6 @@ import { z } from "@brains/utils/zod";
 import {
   conversationMessageActorSchema,
   conversationMessageSourceSchema,
-  type ConversationMessageActor,
 } from "@brains/conversation-service";
 import type { AgentResponse } from "@brains/contracts";
 export {
@@ -64,7 +63,7 @@ export const TextChatAttachmentSchema: z.ZodObject<{
   source: ChatAttachmentSourceSchema.optional(),
 });
 
-const fileAttachmentDataSchema: z.ZodType<Uint8Array, unknown> =
+const fileAttachmentDataSchema: z.ZodCustom<Uint8Array, Uint8Array> =
   z.custom<Uint8Array>((value) => value instanceof Uint8Array);
 
 export const FileChatAttachmentSchema: z.ZodObject<{
@@ -93,26 +92,20 @@ export const ChatAttachmentSchema: z.ZodDiscriminatedUnion<
 
 export type ChatAttachment = z.output<typeof ChatAttachmentSchema>;
 
-export interface ChatContext {
-  userPermissionLevel?: "admin" | "trusted" | "public" | undefined;
-  isAnchor?: boolean | undefined;
-  interfaceType?: string | undefined;
-  channelId?: string | undefined;
-  channelName?: string | undefined;
-  actor?: ConversationMessageActor | undefined;
-  source?:
-    | {
-        messageId?: string | undefined;
-        channelId?: string | undefined;
-        channelName?: string | undefined;
-        threadId?: string | undefined;
-        metadata?: Record<string, unknown> | undefined;
-      }
-    | undefined;
-  attachments?: ChatAttachment[] | undefined;
-}
+type ChatContextSchema = z.ZodObject<{
+  userPermissionLevel: z.ZodOptional<
+    z.ZodEnum<{ admin: "admin"; trusted: "trusted"; public: "public" }>
+  >;
+  isAnchor: z.ZodOptional<z.ZodBoolean>;
+  interfaceType: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  actor: z.ZodOptional<typeof conversationMessageActorSchema>;
+  source: z.ZodOptional<typeof conversationMessageSourceSchema>;
+  attachments: z.ZodOptional<z.ZodArray<typeof ChatAttachmentSchema>>;
+}>;
 
-export const ChatContextSchema: z.ZodType<ChatContext, unknown> = z.object({
+export const ChatContextSchema: ChatContextSchema = z.object({
   userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
   isAnchor: z.boolean().optional(),
   interfaceType: z.string().optional(),
@@ -122,6 +115,8 @@ export const ChatContextSchema: z.ZodType<ChatContext, unknown> = z.object({
   source: conversationMessageSourceSchema.optional(),
   attachments: z.array(ChatAttachmentSchema).optional(),
 });
+
+export type ChatContext = z.output<typeof ChatContextSchema>;
 
 export interface AgentNamespace {
   chat(

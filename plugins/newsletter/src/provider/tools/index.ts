@@ -3,32 +3,34 @@ import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { ButtondownClient } from "../lib/buttondown-client";
+import {
+  ButtondownClient,
+  type ButtondownClientDeps,
+  type ButtondownConfig,
+} from "../lib/buttondown-client";
 
 const toolEmailSchema = z.string().email({ pattern: z.regexes.html5Email });
 
-export type SubscriberAction = "subscribe" | "unsubscribe" | "list";
-
-export interface SubscribersInput {
-  action: SubscriberAction;
-  email?: string | undefined;
-  name?: string | undefined;
-  tags?: string[] | undefined;
-  type?: "unactivated" | "regular" | "unsubscribed" | undefined;
-  limit?: number | undefined;
-}
-
-export interface SubscribersSchemaInput {
-  action?: SubscriberAction | undefined;
-  email?: string | undefined;
-  name?: string | undefined;
-  tags?: string[] | undefined;
-  type?: "unactivated" | "regular" | "unsubscribed" | undefined;
-  limit?: number | undefined;
-}
-
-export const subscribersInputSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<SubscribersInput, SubscribersSchemaInput> = z.object({
+export const subscribersInputSchema: z.ZodObject<{
+  action: z.ZodDefault<
+    z.ZodEnum<{
+      subscribe: "subscribe";
+      unsubscribe: "unsubscribe";
+      list: "list";
+    }>
+  >;
+  email: z.ZodOptional<z.ZodString>;
+  name: z.ZodOptional<z.ZodString>;
+  tags: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  type: z.ZodOptional<
+    z.ZodEnum<{
+      unactivated: "unactivated";
+      regular: "regular";
+      unsubscribed: "unsubscribed";
+    }>
+  >;
+  limit: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
   action: z
     .enum(["subscribe", "unsubscribe", "list"])
     .default("subscribe")
@@ -45,18 +47,16 @@ export const subscribersInputSchema: z.ZodObject<z.ZodRawShape> &
   limit: z.number().optional().describe("Maximum list results"),
 });
 
-interface ButtondownConfig {
-  apiKey: string;
-  doubleOptIn: boolean;
-}
+export type SubscribersInput = z.output<typeof subscribersInputSchema>;
+export type SubscribersSchemaInput = z.input<typeof subscribersInputSchema>;
+export type SubscriberAction = SubscribersInput["action"];
 
 export function createButtondownTools(
-  pluginId: string,
   config: ButtondownConfig,
   logger: Logger,
+  deps: ButtondownClientDeps = {},
 ): Tool[] {
-  void pluginId;
-  const client = new ButtondownClient(config, logger);
+  const client = new ButtondownClient(config, logger, deps);
 
   return [
     createTool(

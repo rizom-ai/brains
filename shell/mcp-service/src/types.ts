@@ -90,76 +90,83 @@ export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape
     isAnchor: z.boolean().optional(),
   });
 
-export interface ToolSuccessResponse {
-  success: true;
-  data?: unknown;
-  message?: string | undefined;
-  cached?: true | undefined;
-}
-
 /**
  * Success response schema
  */
-export const toolSuccessSchema: z.ZodType<ToolSuccessResponse> = z.strictObject(
+export const toolSuccessSchema: z.ZodObject<
   {
-    success: z.literal(true),
-    data: z.unknown().optional(),
-    message: z.string().optional(),
-    cached: z.literal(true).optional(),
+    success: z.ZodLiteral<true>;
+    data: z.ZodOptional<z.ZodUnknown>;
+    message: z.ZodOptional<z.ZodString>;
+    cached: z.ZodOptional<z.ZodLiteral<true>>;
   },
-);
+  z.core.$strict
+> = z.strictObject({
+  success: z.literal(true),
+  data: z.unknown().optional(),
+  message: z.string().optional(),
+  cached: z.literal(true).optional(),
+});
 
-export interface ToolErrorResponse {
-  success: false;
-  error: string;
-  code?: string | undefined;
-}
+export type ToolSuccessResponse = z.output<typeof toolSuccessSchema>;
 
 /**
  * Error response schema
  */
-export const toolErrorSchema: z.ZodType<ToolErrorResponse> = z.strictObject({
+export const toolErrorSchema: z.ZodObject<
+  {
+    success: z.ZodLiteral<false>;
+    error: z.ZodString;
+    code: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z.strictObject({
   success: z.literal(false),
   error: z.string(),
   code: z.string().optional(),
 });
+
+export type ToolErrorResponse = z.output<typeof toolErrorSchema>;
 
 /**
  * Confirmation response schema
  * Tools return this when an operation needs user approval.
  * The agent service detects this shape and enters the confirmation flow.
  */
-export interface ToolConfirmation {
-  needsConfirmation: true;
-  toolName: string;
-  summary: string;
-  completionSummary?: string | undefined;
-  preview?: string | undefined;
-  args: unknown;
-}
+export const toolConfirmationSchema: z.ZodObject<
+  {
+    needsConfirmation: z.ZodLiteral<true>;
+    toolName: z.ZodString;
+    summary: z.ZodString;
+    completionSummary: z.ZodOptional<z.ZodString>;
+    preview: z.ZodOptional<z.ZodString>;
+    args: z.ZodUnknown;
+  },
+  z.core.$strict
+> = z.strictObject({
+  needsConfirmation: z.literal(true),
+  toolName: z.string(),
+  summary: z.string(),
+  completionSummary: z.string().optional(),
+  preview: z.string().optional(),
+  args: z.unknown(),
+});
 
-export const toolConfirmationSchema: z.ZodType<ToolConfirmation> =
-  z.strictObject({
-    needsConfirmation: z.literal(true),
-    toolName: z.string(),
-    summary: z.string(),
-    completionSummary: z.string().optional(),
-    preview: z.string().optional(),
-    args: z.unknown(),
-  });
+export type ToolConfirmation = z.output<typeof toolConfirmationSchema>;
 
 /**
  * Standardized tool response schema
  * All tools return one of: success, error, or confirmation request.
  */
-export type ToolResponse =
-  ToolSuccessResponse | ToolErrorResponse | ToolConfirmation;
+export const toolResponseSchema: z.ZodUnion<
+  readonly [
+    typeof toolSuccessSchema,
+    typeof toolErrorSchema,
+    typeof toolConfirmationSchema,
+  ]
+> = z.union([toolSuccessSchema, toolErrorSchema, toolConfirmationSchema]);
 
-export const toolResponseSchema: z.ZodType<ToolResponse> = z.union([
-  toolSuccessSchema,
-  toolErrorSchema,
-  toolConfirmationSchema,
-]);
+export type ToolResponse = z.output<typeof toolResponseSchema>;
 
 export type ToolSideEffects = "none" | "writes" | "external";
 export type DirectMcpExposure = "none" | "basic" | "debug";

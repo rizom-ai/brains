@@ -83,6 +83,44 @@ describe("generated artifact cards", () => {
       }),
     );
   });
+
+  it("builds a card from documentId when entityId is absent", () => {
+    const card = buildAttachmentCardFromToolData({
+      documentId: "doc-1",
+      attachment: { mediaType: "application/pdf", url: "/a/doc-1" },
+    });
+
+    expect(card).toEqual(
+      expect.objectContaining({ kind: "attachment", id: "attachment:doc-1" }),
+    );
+  });
+
+  it("prefers documentId over entityId when both are present", () => {
+    const card = buildAttachmentCardFromToolData({
+      documentId: "doc-1",
+      entityId: "entity-1",
+      attachment: { mediaType: "application/pdf", url: "/a/doc-1" },
+    });
+
+    expect(card).toEqual(expect.objectContaining({ id: "attachment:doc-1" }));
+  });
+
+  it("returns undefined when neither documentId nor entityId identifies the attachment", () => {
+    const card = buildAttachmentCardFromToolData({
+      attachment: { mediaType: "application/pdf", url: "/a/orphan" },
+    });
+
+    expect(card).toBeUndefined();
+  });
+
+  it("returns undefined when the identifier is present but empty", () => {
+    const card = buildAttachmentCardFromToolData({
+      documentId: "",
+      attachment: { mediaType: "application/pdf", url: "/a/orphan" },
+    });
+
+    expect(card).toBeUndefined();
+  });
 });
 
 describe("generated artifact tool loop", () => {

@@ -4,17 +4,16 @@ import { createTemplate } from "@brains/plugins";
 /**
  * Schema for AI-generated excerpt
  */
-export interface BlogExcerpt {
-  excerpt: string;
-}
+export const blogExcerptSchema: z.ZodObject<{ excerpt: z.ZodString }> =
+  z.object({
+    excerpt: z
+      .string()
+      .describe(
+        "A concise 1-2 sentence summary that captures the essence of the blog post",
+      ),
+  });
 
-export const blogExcerptSchema: z.ZodType<BlogExcerpt> = z.object({
-  excerpt: z
-    .string()
-    .describe(
-      "A concise 1-2 sentence summary that captures the essence of the blog post",
-    ),
-});
+export type BlogExcerpt = z.output<typeof blogExcerptSchema>;
 
 /**
  * Template for AI-powered excerpt generation

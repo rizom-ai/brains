@@ -1,161 +1,153 @@
 import { z } from "@brains/utils/zod";
-import type { AgentFrontmatter, AgentStatus } from "../schemas/agent";
 import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
 
-export interface ProximityMapCenter {
-  kind: "identity" | "centroid";
-}
+const agentKindSchema: typeof agentFrontmatterSchema.shape.kind =
+  agentFrontmatterSchema.shape.kind;
 
-export interface ProximityMapNode {
-  id: string;
-  name: string;
-  kind: AgentFrontmatter["kind"];
-  status: AgentStatus;
-  tags: string[];
+export const proximityMapCenterSchema: z.ZodObject<{
+  kind: z.ZodEnum<{ identity: "identity"; centroid: "centroid" }>;
+}> = z.object({
+  kind: z.enum(["identity", "centroid"]),
+});
+
+export type ProximityMapCenter = z.output<typeof proximityMapCenterSchema>;
+
+export const proximityMapNodeSchema: z.ZodObject<{
+  id: z.ZodString;
+  name: z.ZodString;
+  kind: typeof agentKindSchema;
+  status: typeof agentStatusSchema;
+  tags: z.ZodArray<z.ZodString>;
+  distance: z.ZodNumber;
+  bearing: z.ZodNumber;
+}> = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: agentKindSchema,
+  status: agentStatusSchema,
+  tags: z.array(z.string()),
   /** Normalized cosine distance in the zero-to-one radial range. */
-  distance: number;
+  distance: z.number().min(0).max(1),
   /** Semantic bearing in degrees, normalized to [0, 360). */
-  bearing: number;
-}
+  bearing: z.number().min(0).lt(360),
+});
 
-export interface ProximityMapClusterLink {
-  sourceId: string;
-  targetId: string;
-}
+export type ProximityMapNode = z.output<typeof proximityMapNodeSchema>;
 
-export interface ProximityMapCluster {
-  label: string;
-  memberIds: string[];
-  links: ProximityMapClusterLink[];
-}
+const proximityMapClusterLinkSchema: z.ZodObject<{
+  sourceId: z.ZodString;
+  targetId: z.ZodString;
+}> = z.object({
+  sourceId: z.string(),
+  targetId: z.string(),
+});
 
-export interface ProximityMapDistanceRange {
-  min: number;
-  max: number;
-}
+export type ProximityMapClusterLink = z.output<
+  typeof proximityMapClusterLinkSchema
+>;
+
+export const proximityMapClusterSchema: z.ZodObject<{
+  label: z.ZodString;
+  memberIds: z.ZodArray<z.ZodString>;
+  links: z.ZodArray<typeof proximityMapClusterLinkSchema>;
+}> = z.object({
+  label: z.string(),
+  memberIds: z.array(z.string()).min(2),
+  links: z.array(proximityMapClusterLinkSchema).min(1),
+});
+
+export type ProximityMapCluster = z.output<typeof proximityMapClusterSchema>;
+
+export const proximityMapDistanceRangeSchema: z.ZodObject<{
+  min: z.ZodNumber;
+  max: z.ZodNumber;
+}> = z.object({
+  min: z.number().min(0),
+  max: z.number().min(0),
+});
+
+export type ProximityMapDistanceRange = z.output<
+  typeof proximityMapDistanceRangeSchema
+>;
+
+type ProximityMapCopySchema = z.ZodObject<{
+  kicker: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  headingLead: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  headingAccent: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  lede: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  ctaLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  ctaHref: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}>;
 
 /**
  * Authored hero copy for the map's site section. Every field is optional: the
  * datasource never supplies these, and the site template falls back to its own
  * defaults when a field is absent. They live flat on the payload so the
  * content-overlay merge (site sections) can splice authored markdown over the
- * live map data — see proximityMapCopySchema / the section's overlayFormatter.
+ * live map data; this subset builds the section's overlayFormatter so the hero
+ * copy is edited as a normal markdown section while map data stays live.
  */
-export interface ProximityMapCopy {
+export const proximityMapCopySchema: ProximityMapCopySchema = z.object({
   /** Eyebrow above the heading. */
-  kicker: string | null;
+  kicker: z.string().nullable().default(null),
   /** Heading, plain lead-in before the accented tail. */
-  headingLead: string | null;
+  headingLead: z.string().nullable().default(null),
   /** Heading tail, rendered in the accent (italic). */
-  headingAccent: string | null;
+  headingAccent: z.string().nullable().default(null),
   /** Standfirst under the heading. */
-  lede: string | null;
+  lede: z.string().nullable().default(null),
   /** Call-to-action label. */
-  ctaLabel: string | null;
+  ctaLabel: z.string().nullable().default(null),
   /** Call-to-action href. */
-  ctaHref: string | null;
-}
+  ctaHref: z.string().nullable().default(null),
+});
+
+export type ProximityMapCopy = z.output<typeof proximityMapCopySchema>;
 
 /**
  * A second-order agent reported by a peer's directory. `viaIds` reference
  * active nodes on the same map — the introducers whose roots reach it.
  */
-export interface ProximityMapSighting {
-  id: string;
-  name: string;
-  viaIds: string[];
-  tags: string[];
-  /** Normalized cosine distance in the zero-to-one radial range. */
-  distance: number;
-  /** Semantic bearing in degrees, normalized to [0, 360). */
-  bearing: number;
-}
-
-export interface ProximityMapData extends ProximityMapCopy {
-  center: ProximityMapCenter;
-  nodes: ProximityMapNode[];
-  clusters: ProximityMapCluster[];
-  sightings: ProximityMapSighting[];
-  distanceRange: ProximityMapDistanceRange;
-  pendingCount: number;
-}
-
-const agentKindSchema: typeof agentFrontmatterSchema.shape.kind =
-  agentFrontmatterSchema.shape.kind;
-
-export const proximityMapCenterSchema: z.ZodType<ProximityMapCenter> = z.object(
-  {
-    kind: z.enum(["identity", "centroid"]),
-  },
-);
-
-export const proximityMapNodeSchema: z.ZodType<ProximityMapNode> = z.object({
+export const proximityMapSightingSchema: z.ZodObject<{
+  id: z.ZodString;
+  name: z.ZodString;
+  viaIds: z.ZodArray<z.ZodString>;
+  tags: z.ZodArray<z.ZodString>;
+  distance: z.ZodNumber;
+  bearing: z.ZodNumber;
+}> = z.object({
   id: z.string(),
   name: z.string(),
-  kind: agentKindSchema,
-  status: agentStatusSchema,
+  viaIds: z.array(z.string()).min(1),
   tags: z.array(z.string()),
+  /** Normalized cosine distance in the zero-to-one radial range. */
   distance: z.number().min(0).max(1),
+  /** Semantic bearing in degrees, normalized to [0, 360). */
   bearing: z.number().min(0).lt(360),
 });
 
-const proximityMapClusterLinkSchema: z.ZodType<ProximityMapClusterLink> =
-  z.object({
-    sourceId: z.string(),
-    targetId: z.string(),
-  });
+export type ProximityMapSighting = z.output<typeof proximityMapSightingSchema>;
 
-export const proximityMapClusterSchema: z.ZodType<ProximityMapCluster> =
-  z.object({
-    label: z.string(),
-    memberIds: z.array(z.string()).min(2),
-    links: z.array(proximityMapClusterLinkSchema).min(1),
-  });
-
-export const proximityMapDistanceRangeSchema: z.ZodType<ProximityMapDistanceRange> =
-  z.object({
-    min: z.number().min(0),
-    max: z.number().min(0),
-  });
-
-/**
- * The authored-copy subset, used to build the section's overlayFormatter so
- * the hero copy is edited as a normal markdown section while map data stays
- * live. Kept in sync with ProximityMapCopy.
- */
-export const proximityMapCopySchema: z.ZodType<ProximityMapCopy> = z.object({
-  kicker: z.string().nullable().default(null),
-  headingLead: z.string().nullable().default(null),
-  headingAccent: z.string().nullable().default(null),
-  lede: z.string().nullable().default(null),
-  ctaLabel: z.string().nullable().default(null),
-  ctaHref: z.string().nullable().default(null),
-});
-
-export const proximityMapSightingSchema: z.ZodType<ProximityMapSighting> =
-  z.object({
-    id: z.string(),
-    name: z.string(),
-    viaIds: z.array(z.string()).min(1),
-    tags: z.array(z.string()),
-    distance: z.number().min(0).max(1),
-    bearing: z.number().min(0).lt(360),
-  });
-
-export const proximityMapDataSchema: z.ZodType<ProximityMapData> = z.object({
+export const proximityMapDataSchema: z.ZodObject<
+  {
+    center: typeof proximityMapCenterSchema;
+    nodes: z.ZodArray<typeof proximityMapNodeSchema>;
+    clusters: z.ZodArray<typeof proximityMapClusterSchema>;
+    sightings: z.ZodArray<typeof proximityMapSightingSchema>;
+    distanceRange: typeof proximityMapDistanceRangeSchema;
+    pendingCount: z.ZodNumber;
+  } & ProximityMapCopySchema["shape"]
+> = z.object({
   center: proximityMapCenterSchema,
   nodes: z.array(proximityMapNodeSchema),
   clusters: z.array(proximityMapClusterSchema),
   sightings: z.array(proximityMapSightingSchema),
   distanceRange: proximityMapDistanceRangeSchema,
   pendingCount: z.number().int().min(0),
-  kicker: z.string().nullable().default(null),
-  headingLead: z.string().nullable().default(null),
-  headingAccent: z.string().nullable().default(null),
-  lede: z.string().nullable().default(null),
-  ctaLabel: z.string().nullable().default(null),
-  ctaHref: z.string().nullable().default(null),
+  ...proximityMapCopySchema.shape,
 });
+
+export type ProximityMapData = z.output<typeof proximityMapDataSchema>;
 
 /**
  * The map's center is the brain itself, never the person reading it: the

@@ -1,42 +1,17 @@
-import { createHash } from "node:crypto";
-
 import { loadPilotRegistry, type ResolvedSiteOverride } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
 /**
- * Resolve a fleet image tag as a pure function of a single instance's own
- * config. This is the shared contract between the build (which tags the image
- * it pushes) and the deploy (which waits for and runs that tag), so both must
- * import this — never recompute it independently.
- *
- * The default path is deliberately untouched: an instance with no site packages
- * resolves to the plain `brain-{version}` tag every other fleet instance uses.
- * A site override is a per-instance opt-in that hashes only *that instance's*
- * package set into a distinct `brain-{version}-sites-{hash}` image, so it can
- * never collide with — or leak into — the shared default image.
+ * Resolve the immutable runtime image shared by every fleet instance on one
+ * Brain version. Build and Deploy both import this function so their tags can
+ * never disagree.
  */
-export function siteImageTag(
-  brainVersion: string,
-  sitePackages: string[],
-): string {
-  const packages = [
-    ...new Set(sitePackages.map((entry) => entry.trim()).filter(Boolean)),
-  ].sort();
-
-  if (packages.length === 0) {
-    return `brain-${brainVersion}`;
-  }
-
-  const hash = createHash("sha256")
-    .update(packages.join("\n"))
-    .digest("hex")
-    .slice(0, 12);
-
-  return `brain-${brainVersion}-sites-${hash}`;
+export function runtimeImageTag(brainVersion: string): string {
+  return `brain-${brainVersion}`;
 }
 
 /**
- * The npm packages a site override installs into its per-instance image.
+ * The npm packages a site override contributes to its version's shared image.
  * A @rizom-scoped theme is independently published and installs at its own
  * explicit version; @brains/* themes are bundled inside @rizom/brain and must
  * not be npm-installed.
@@ -68,31 +43,56 @@ export interface ImageRequirementSource {
 export interface RequiredImage {
   tag: string;
   brainVersion: string;
-  /** Sorted, deduped — build args for the image, empty for the default. */
+  /** Sorted, deduped package specs installed into this runtime image. */
   sitePackages: string[];
 }
 
 /**
- * The image set the declared fleet state requires: one default
- * `brain-{version}` per distinct brain version in use, plus one
- * `brain-{version}-sites-{hash}` per distinct site-override package set.
- * Derived purely from resolved users (pass `registry.users`), so CI can build
- * exactly what a config push declares — nothing reactive, nothing manual.
+ * Derive one immutable image per effective Brain version. Each image contains
+ * the union of exact site/theme package pins required by every instance on
+ * that version.
  */
 export function requiredImages(
   users: ImageRequirementSource[],
 ): RequiredImage[] {
-  const byTag = new Map<string, RequiredImage>();
+  const byVersion = new Map<string, RequiredImage>();
   for (const user of users) {
-    const sitePackages = [
-      ...new Set(sitePackagesFor(user.siteOverride)),
-    ].sort();
-    const tag = siteImageTag(user.brainVersion, sitePackages);
-    byTag.set(tag, { tag, brainVersion: user.brainVersion, sitePackages });
+    const image = byVersion.get(user.brainVersion) ?? {
+      tag: runtimeImageTag(user.brainVersion),
+      brainVersion: user.brainVersion,
+      sitePackages: [],
+    };
+    image.sitePackages = mergeExactPackagePins(
+      user.brainVersion,
+      image.sitePackages,
+      sitePackagesFor(user.siteOverride),
+    );
+    byVersion.set(user.brainVersion, image);
   }
-  return [...byTag.values()].sort((left, right) =>
+  return [...byVersion.values()].sort((left, right) =>
     left.tag.localeCompare(right.tag),
   );
+}
+
+function mergeExactPackagePins(
+  brainVersion: string,
+  current: string[],
+  additions: string[],
+): string[] {
+  const byPackage = new Map<string, string>();
+  for (const spec of [...current, ...additions]) {
+    const separator = spec.lastIndexOf("@");
+    const packageName = separator > 0 ? spec.slice(0, separator) : spec;
+    const existing = byPackage.get(packageName);
+    if (existing && existing !== spec) {
+      throw new Error(
+        `Brain ${brainVersion} shared image has conflicting pins for ` +
+          `${packageName}: ${existing} and ${spec}`,
+      );
+    }
+    byPackage.set(packageName, spec);
+  }
+  return [...byPackage.values()].sort();
 }
 
 export interface ResolveImageBuildsOptions {
@@ -122,7 +122,7 @@ export async function resolveImageBuilds(
     const sitePackages = (options.sitePackagesInput ?? "")
       .split(/\s+/)
       .filter(Boolean);
-    const tag = siteImageTag(versionInput, sitePackages);
+    const tag = runtimeImageTag(versionInput);
     if (!options.allowTagOverwrite && (await options.imageExists(tag))) {
       throw new Error(
         `Image tag ${tag} already exists; published tags are immutable. ` +
@@ -159,6 +159,35 @@ export interface RunResolveMissingImagesOptions {
 }
 
 /**
+ * Whether the registry already holds this tag.
+ *
+ * `docker manifest inspect` exits non-zero when the manifest is unknown, so a
+ * command failure is the "absent" answer. A failure to run docker at all is
+ * not: answering false there would let resolveImageBuilds past its
+ * tag-immutability guard and overwrite a published tag, which is exactly what
+ * that guard exists to prevent. Those propagate.
+ *
+ * A non-zero exit caused by an auth or network problem is still read as
+ * absent — docker reports it the same way it reports an unknown manifest, and
+ * telling them apart means matching stderr text that shifts between versions.
+ */
+export async function imageTagExists(
+  run: RunCommand,
+  imageRepository: string,
+  tag: string,
+): Promise<boolean> {
+  try {
+    await run("docker", ["manifest", "inspect", `${imageRepository}:${tag}`]);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && /exited with code/.test(error.message)) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
  * The Build workflow's resolve step: derive the image set the declared fleet
  * state (pilot.yaml + cohorts + users) requires, probe the container registry
  * for each tag, and emit the missing ones as a GitHub Actions build matrix
@@ -178,27 +207,17 @@ export async function runResolveMissingImages(
   const sitePackagesInput = env["SITE_PACKAGES_INPUT"]?.trim() ?? "";
   const allowTagOverwrite = env["ALLOW_TAG_OVERWRITE"]?.trim() === "true";
 
-  const users = brainVersionInput
-    ? []
-    : (await loadPilotRegistry(options.rootDir)).users;
+  const registry = brainVersionInput
+    ? undefined
+    : await loadPilotRegistry(options.rootDir);
+  const users = registry?.users ?? [];
 
   const builds = await resolveImageBuilds({
     users,
     brainVersionInput,
     sitePackagesInput,
     allowTagOverwrite,
-    imageExists: async (tag) => {
-      try {
-        await run("docker", [
-          "manifest",
-          "inspect",
-          `${options.imageRepository}:${tag}`,
-        ]);
-        return true;
-      } catch {
-        return false;
-      }
-    },
+    imageExists: (tag) => imageTagExists(run, options.imageRepository, tag),
   });
 
   for (const image of builds) {

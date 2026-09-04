@@ -60,6 +60,8 @@ function extractFrontmatterStringField(
       return typeof value === "string" ? value : undefined;
     }
   } catch {
+    // fromYaml raises on a malformed frontmatter block. There is no field
+    // to read out of one, which is the same answer as a missing field.
     return undefined;
   }
   return undefined;

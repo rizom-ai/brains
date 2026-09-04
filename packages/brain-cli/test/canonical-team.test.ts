@@ -12,6 +12,7 @@ import {
 } from "@brains/app";
 import rizomTheme from "@brains/theme-rizom";
 import { canonicalBrain, teamBundle } from "../src/model/canonical-brain";
+import { isRecord } from "@brains/utils/is-record";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures", "canonical-team");
 const fixtureOverrides = parseInstanceOverrides(
@@ -42,10 +43,6 @@ function runtimeOverrides(
 
 function pluginIds(resolved: AppConfig): string[] {
   return resolved.plugins?.map((plugin) => plugin.id) ?? [];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function pluginConfig(

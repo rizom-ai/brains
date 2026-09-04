@@ -36,8 +36,8 @@ describe("ImagePlugin", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should register as entity plugin", () => {

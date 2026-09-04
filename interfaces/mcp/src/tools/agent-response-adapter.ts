@@ -1,15 +1,12 @@
 import type { AgentResponse, ToolResultData } from "@brains/contracts";
 import type { ToolResponse } from "@brains/mcp-service";
+import { isRecord } from "@brains/utils/is-record";
 
 interface ReadYourWritesHandle {
   toolName: string;
   entityType?: string;
   entityId?: string;
   jobId?: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function getStringProperty(

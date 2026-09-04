@@ -123,6 +123,9 @@ async function createPublishManifestText(
   return `${JSON.stringify(manifest, null, 2)}\n`;
 }
 
+// Kept local: @brains/build-tools declares no runtime dependencies, and
+// pulling in @brains/utils for a three-line guard would give this build-time
+// package a dependency tree it deliberately does not have.
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

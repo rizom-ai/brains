@@ -163,7 +163,7 @@ describe("InboxDataSource", () => {
       cadence: "daily",
       includeInInbox: false,
     });
-    harness.reset();
+    await harness.reset();
   });
 
   it("keeps Dashboard semantic while handing the Studio destination to interactions and digest", async () => {

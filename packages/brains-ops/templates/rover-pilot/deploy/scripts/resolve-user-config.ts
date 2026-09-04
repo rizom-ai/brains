@@ -5,8 +5,7 @@ import { derivePreviewDomain, loadPilotRegistry } from "@rizom/ops";
 import {
   parseEnvFile,
   requireEnv,
-  sitePackagesFor,
-  siteImageTag,
+  runtimeImageTag,
   writeGitHubOutput,
 } from "./helpers";
 
@@ -43,12 +42,9 @@ const wwwDomain = isFleetDomain(
 
 const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
 
-// The image tag is a pure function of this instance's own config: plain
-// `brain-{version}` for a default instance, or its own `brain-{version}-sites-
-// {hash}` when it declares a siteOverride. Resolved through the same helper the
-// build uses so the tag we wait for and run matches exactly what was pushed.
-const sitePackages = sitePackagesFor(user.siteOverride);
-const imageTag = siteImageTag(brainVersion, sitePackages);
+// Build and Deploy share one tag function: every instance on a Brain version
+// runs the same immutable fleet image.
+const imageTag = runtimeImageTag(brainVersion);
 
 const outputs: Record<string, string> = {
   brain_version: brainVersion,

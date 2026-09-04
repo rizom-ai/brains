@@ -164,7 +164,7 @@ describe("agent_scan_directories", () => {
         ],
       },
     ]);
-    harness.reset();
+    await harness.reset();
   });
 
   it("notifies on new agents when explicitly enabled", async () => {
@@ -192,7 +192,7 @@ describe("agent_scan_directories", () => {
         body: "Found vale.example, introduced through kai.brain. Review in Agent sightings.",
       }),
     ]);
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers as a trusted external tool", async () => {
@@ -206,7 +206,7 @@ describe("agent_scan_directories", () => {
     expect(tool?.sideEffects).toBe("external");
     expect(tool?.description).toContain("/.well-known/agent-directory.json");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("aborts in-flight directory requests through the tool signal", async () => {
@@ -248,7 +248,7 @@ describe("agent_scan_directories", () => {
 
     expect(run).rejects.toBe(abortReason);
     await run.catch(() => undefined);
-    harness.reset();
+    await harness.reset();
   });
 
   it("sights agents reported by approved peers' directories with provenance", async () => {
@@ -339,7 +339,7 @@ describe("agent_scan_directories", () => {
     expect(network.calls.some((url) => url.includes("noor.brain"))).toBe(false);
     expect(network.calls.some((url) => url.includes("self.brain"))).toBe(false);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("merges new introducers into an existing sighting without refetching its card", async () => {
@@ -392,7 +392,7 @@ describe("agent_scan_directories", () => {
       false,
     );
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not attach provenance to agents known first-hand", async () => {
@@ -433,7 +433,7 @@ describe("agent_scan_directories", () => {
     const parsed = new AgentAdapter().parseEntity(noor);
     expect(parsed.frontmatter.introducedBy).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("is a no-op when peers report nothing new", async () => {
@@ -483,6 +483,6 @@ describe("agent_scan_directories", () => {
     const parsed = new AgentAdapter().parseEntity(after);
     expect(parsed.frontmatter.introducedBy).toEqual(["kai.brain"]);
 
-    harness.reset();
+    await harness.reset();
   });
 });

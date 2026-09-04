@@ -9,8 +9,8 @@ describe("Analytics head script injection", () => {
     harness = createPluginHarness();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should send head-script registration message when siteTag is configured", async () => {

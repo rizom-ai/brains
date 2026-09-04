@@ -9,6 +9,7 @@ import {
   normalizeRuntimeUploadDataDir,
 } from "../../src/service/upload-registry";
 import { createMockShell } from "@brains/test-utils";
+import { getErrorMessage } from "@brains/utils/error";
 
 let dataDir: string;
 
@@ -44,6 +45,44 @@ async function expectStoreError(
 }
 
 describe("RuntimeUploadRegistry", () => {
+  function scopedStore(): ReturnType<RuntimeUploadRegistry["scoped"]> {
+    return RuntimeUploadRegistry.createFresh({ dataDir }).scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+      now: fixedNow,
+    });
+  }
+
+  it("prunes quietly before the uploads directory exists", async () => {
+    // Created lazily on first save, so "not there yet" is not a fault.
+    const outcome = await scopedStore()
+      .prune()
+      .then(
+        () => "quiet",
+        (error: unknown) => getErrorMessage(error),
+      );
+
+    expect(outcome).toBe("quiet");
+  });
+
+  it("raises when the uploads directory cannot be read", async () => {
+    // Anything other than absence means pruning did not happen. Reporting
+    // nothing would let uploads accumulate unbounded with no signal.
+    const uploadsRoot = join(dataDir, "upload", "uploads");
+    await mkdir(join(dataDir, "upload"), { recursive: true });
+    await writeFile(uploadsRoot, "not a directory");
+
+    const outcome = await scopedStore()
+      .prune()
+      .then(
+        () => "swallowed",
+        (error: unknown) => getErrorMessage(error),
+      );
+
+    expect(outcome).not.toBe("swallowed");
+  });
+
   it("stores scoped upload metadata and content under runtime data", async () => {
     const registry = RuntimeUploadRegistry.createFresh({ dataDir });
     const store = registry.scoped({

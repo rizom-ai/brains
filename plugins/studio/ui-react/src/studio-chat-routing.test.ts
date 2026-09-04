@@ -7,9 +7,7 @@ describe("Studio Chat browser routing", () => {
     const href = studioChatWorkspacePath("/studio", "conversation/one");
     const search = new URL(href, "https://brains.invalid").search;
 
-    expect(href).toBe(
-      "/studio/workspaces/web-chat%3Achat?session=conversation%2Fone",
-    );
+    expect(href).toBe("/chat?session=conversation%2Fone");
     expect(studioChatSessionId(search)).toBe("conversation/one");
   });
 

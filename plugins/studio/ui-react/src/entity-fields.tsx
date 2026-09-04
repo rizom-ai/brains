@@ -14,8 +14,9 @@ import type {
   EntityTypeInfo,
   FieldDescriptor,
 } from "./api";
-import { uploadImage } from "./mutations";
+import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
+import { useStudioApi } from "./studio-api-context";
 import { datetimeLocalValue, errorMessage } from "./ui-utils";
 
 const COLLECTION_ENTITY_TYPES = new Set([
@@ -369,7 +370,11 @@ function ImageField(props: {
 }): ReactElement {
   const { descriptor, value, onChange } = props;
   const queryClient = useQueryClient();
-  const uploadMutation = useMutation({ mutationFn: uploadImage });
+  const api = useStudioApi();
+  const uploadMutation = useMutation({
+    mutationFn: (file: File): Promise<UploadImageResult> =>
+      uploadImage(api, file),
+  });
   const current = typeof value === "string" && value.length > 0 ? value : null;
 
   return (

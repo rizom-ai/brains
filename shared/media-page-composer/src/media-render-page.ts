@@ -45,10 +45,19 @@ export async function startStaticRenderServer(
   const host = options.host ?? "127.0.0.1";
 
   const server = createServer(async (request, response) => {
+    let pathname: string;
     try {
       const requestUrl = new URL(request.url ?? "/", `http://${host}`);
-      const pathname = decodeURIComponent(requestUrl.pathname);
+      pathname = decodeURIComponent(requestUrl.pathname);
+    } catch {
+      // Malformed percent-encoding: there is no path to check against the
+      // root, and the request itself is what is wrong.
+      response.writeHead(400);
+      response.end("Bad request");
+      return;
+    }
 
+    try {
       if (containsTraversal(pathname)) {
         response.writeHead(403);
         response.end("Forbidden");
@@ -77,8 +86,11 @@ export async function startStaticRenderServer(
       response.writeHead(200, { "content-type": getContentType(filePath) });
       response.end(body);
     } catch {
-      response.writeHead(404);
-      response.end("Not found");
+      // Absence is already answered with 404 above, so reaching here means a
+      // file we resolved could not be served — still closed, but not the
+      // caller's fault, and calling it "not found" hides a real failure.
+      response.writeHead(500);
+      response.end("Internal error");
     }
   });
 
@@ -153,6 +165,8 @@ async function resolveServableFile(
     }
     return null;
   } catch {
+    // Anything that stops us resolving a servable file means there is nothing
+    // to serve, which the caller answers as 404.
     return null;
   }
 }

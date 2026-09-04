@@ -13,6 +13,7 @@ import {
 } from "../src/model/bundle-policy";
 import { canonicalBundles } from "../src/model/canonical-bundles";
 import { canonicalBrain } from "../src/model/canonical-brain";
+import { isRecord } from "@brains/utils/is-record";
 
 const catalogIds = [
   ...canonicalBrain.capabilities.map(([id]) => id),
@@ -244,10 +245,6 @@ function targetResolution(name: TargetRecipeName): BundleSelectionResolution {
     selected: recipe.bundles,
     ...(recipe.add ? { add: recipe.add } : {}),
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function pluginConfig(

@@ -6,8 +6,7 @@ export {
   requireEnv,
   writeGitHubOutput,
   writeGitHubEnv,
-  siteImageTag,
-  sitePackagesFor,
+  runtimeImageTag,
   runResolveMissingImages,
 } from "@rizom/ops/deploy";
 export type { EnvSchemaEntry } from "@rizom/ops/deploy";

@@ -204,6 +204,8 @@ export function parseClientAuth(
     }
     return { clientId, clientSecret };
   } catch {
+    // decodeURIComponent raises on a malformed credential. Treating any
+    // unparseable header as invalid is the safe direction for auth.
     return { error: "Invalid Basic client authentication" };
   }
 }

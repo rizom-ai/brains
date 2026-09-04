@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mockFetch } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { AnalyticsPlugin } from "../src/index";
+import type { CloudflareFetch } from "../src/lib/cloudflare-client";
 import packageJson from "../package.json";
 
 const analyticsDataSchema = z.object({
@@ -21,15 +21,20 @@ const analyticsDataSchema = z.object({
   topCountries: z.array(z.object({ country: z.string(), visits: z.number() })),
 });
 
-const originalFetch = globalThis.fetch;
+// The plugin is built with a delegate to this, so a test can queue responses
+// before or after installing it. Unqueued calls get a 500 rather than the
+// network.
+let fetchFn: CloudflareFetch = () =>
+  Promise.resolve(new Response("", { status: 500 }));
+const delegatingFetch: CloudflareFetch = (url, init) => fetchFn(url, init);
 
-/** Install a mock fetch that returns responses from the queue in order. */
+/** Serve the given responses in order to the plugin's fetch. */
 function installMockFetch(responses: Response[]): void {
   let callIndex = 0;
-  mockFetch(() => {
+  fetchFn = (): Promise<Response> => {
     const response = responses[callIndex++];
     return Promise.resolve(response ?? new Response("", { status: 500 }));
-  });
+  };
 }
 
 /** Create a JSON response with status 200. */
@@ -73,24 +78,24 @@ describe("AnalyticsPlugin Integration", () => {
     installMockFetch([]);
   });
 
-  afterEach(() => {
-    // Restore original fetch
-    globalThis.fetch = originalFetch;
-    // Reset harness if it was initialized
-    harness?.reset();
+  afterEach(async () => {
+    await harness?.reset();
   });
 
   describe("Plugin Registration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
-        cloudflare: {
-          accountId: "test_account",
-          apiToken: "test_token",
-          siteTag: "test_site",
+      plugin = new AnalyticsPlugin(
+        {
+          cloudflare: {
+            accountId: "test_account",
+            apiToken: "test_token",
+            siteTag: "test_site",
+          },
         },
-      });
+        { fetch: delegatingFetch },
+      );
 
       capabilities = await harness.installPlugin(plugin);
     });
@@ -139,13 +144,16 @@ describe("AnalyticsPlugin Integration", () => {
     beforeEach(async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
-        cloudflare: {
-          accountId: "test_account",
-          apiToken: "test_token",
-          siteTag: "test_site",
+      plugin = new AnalyticsPlugin(
+        {
+          cloudflare: {
+            accountId: "test_account",
+            apiToken: "test_token",
+            siteTag: "test_site",
+          },
         },
-      });
+        { fetch: delegatingFetch },
+      );
 
       capabilities = await harness.installPlugin(plugin);
     });
@@ -459,19 +467,22 @@ describe("AnalyticsPlugin Integration", () => {
     it("should handle plugin registration and reset", async () => {
       harness = createPluginHarness();
 
-      plugin = new AnalyticsPlugin({
-        cloudflare: {
-          accountId: "test_account",
-          apiToken: "test_token",
-          siteTag: "test_site",
+      plugin = new AnalyticsPlugin(
+        {
+          cloudflare: {
+            accountId: "test_account",
+            apiToken: "test_token",
+            siteTag: "test_site",
+          },
         },
-      });
+        { fetch: delegatingFetch },
+      );
 
       const caps = await harness.installPlugin(plugin);
       expect(caps.tools.length).toBe(1);
 
       // Reset harness should not throw
-      harness.reset();
+      await harness.reset();
 
       // After reset, can install a new plugin
       const newPlugin = new AnalyticsPlugin({});

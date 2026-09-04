@@ -18,6 +18,7 @@ import {
   type MailTriageListResult,
   type MailTriageStatusActionResult,
 } from "./schemas/operator";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 const INBOX_ITEM_LIMIT = 100;
 
@@ -151,9 +152,11 @@ function metadataFilter(
   filters: Omit<MailTriageFilter, "limit"> | MailTriageFilter,
 ): Record<string, unknown> {
   return {
-    ...(filters.category !== undefined ? { category: filters.category } : {}),
-    ...(filters.priority !== undefined ? { priority: filters.priority } : {}),
-    ...(filters.status !== undefined ? { status: filters.status } : {}),
+    ...definedFields({
+      category: filters.category,
+      priority: filters.priority,
+      status: filters.status,
+    }),
     ...(filters.needsReply !== undefined
       ? { needsReply: filters.needsReply }
       : {}),

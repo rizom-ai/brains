@@ -14,16 +14,13 @@ import {
   StdioClientTransport,
 } from "@modelcontextprotocol/client/stdio";
 import { waitUntil } from "@brains/test-utils";
+import { isRecord } from "@brains/utils/is-record";
 
 const appEntrypoint = join(
   import.meta.dir,
   "fixtures",
   "canonical-headless-app.ts",
 );
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function textContent(result: unknown): string {
   if (!isRecord(result) || !Array.isArray(result["content"])) return "";

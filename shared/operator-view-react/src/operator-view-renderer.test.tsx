@@ -9,7 +9,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
 import operatorViewRendererStyles from "./operator-view-renderer.css" with { type: "text" };
-import { OperatorViewRenderer } from "./operator-view-renderer";
+import {
+  OperatorViewRenderer,
+  actionFailureMessage,
+} from "./operator-view-renderer";
 
 const data: RuntimeStudioWorkspaceData = {
   view: {
@@ -110,6 +113,20 @@ const data: RuntimeStudioWorkspaceData = {
     ],
   },
 };
+
+describe("actionFailureMessage", () => {
+  it("carries the reason the action gave", () => {
+    expect(actionFailureMessage(new Error("upstream refused"))).toBe(
+      "Action failed: upstream refused",
+    );
+  });
+
+  it("falls back when there is no reason to show", () => {
+    expect(actionFailureMessage(new Error("   "))).toBe("Action failed.");
+    expect(actionFailureMessage("a bare string")).toBe("Action failed.");
+    expect(actionFailureMessage(undefined)).toBe("Action failed.");
+  });
+});
 
 describe("OperatorViewRenderer", () => {
   it("renders normalized base blocks and typed action controls", () => {

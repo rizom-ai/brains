@@ -66,8 +66,8 @@ describe("auto-export without autoSync", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
     if (existsSync(syncPath)) {
       rmSync(syncPath, { recursive: true, force: true });
     }

@@ -109,7 +109,7 @@ Outcome for ${title}`;
         ).toBeNull();
         expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
       } finally {
-        harness.reset();
+        await harness.reset();
       }
     });
 

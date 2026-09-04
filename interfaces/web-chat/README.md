@@ -1,9 +1,9 @@
 # Web chat interface
 
-`@brains/web-chat` provides the authenticated standalone Web Chat surface and
-owns the shared Chat HTTP APIs. In Chat + Studio composition, an actor admitted
-to Studio Chat is redirected there; Chat-only composition retains this
-package's standalone presentation.
+`@brains/web-chat` provides the guest-facing Web Chat surface at `/ask` and
+owns the shared Chat HTTP APIs. Native authenticated Chat is hosted by Studio
+at `/chat`; the two presentations share the transport contract without sharing
+browser components.
 
 ## Public boundary
 
@@ -19,7 +19,7 @@ re-exported from `@rizom/brain`.
 The current release remains fail-closed:
 
 - Studio Chat is limited to Trusted and Admin actors;
-- standalone Web Chat is an authenticated fallback for Chat-only composition;
+- standalone Web Chat at `/ask` remains authenticated until guest policy is explicitly enabled;
 - active Public and unauthenticated callers have no Chat access.
 
 The intended future split is Studio for authenticated actors, with a separately
@@ -62,7 +62,7 @@ Do not persist the query cache or use it as a second active-message owner. Tests
 
 ## Addressable state
 
-A conversation door uses `#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
+A guest-surface conversation door uses `/ask#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
 
 The interface owns the universal Inbox **Discuss in chat** follow-up at its
 configured mount for sources that support permission-checked detail. Its

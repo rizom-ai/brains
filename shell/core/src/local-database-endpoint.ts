@@ -650,6 +650,11 @@ export class LocalDatabaseRpcServer {
           this.maxFrameBytes,
         );
       } catch {
+        // The original failure could not be encoded — it carries a value the
+        // wire format cannot express, or exceeds the frame limit. Discarding
+        // it is the point: the caller still needs a well-formed reply on this
+        // request, and a second encode failure would sever a session that is
+        // otherwise healthy. The fixed payload below always encodes.
         frame = encodeFrame(
           {
             kind: "response",

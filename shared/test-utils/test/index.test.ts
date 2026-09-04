@@ -9,10 +9,20 @@ import {
 
 describe("@brains/test-utils", () => {
   describe("createSilentLogger", () => {
-    it("should create a logger", () => {
-      const logger = createSilentLogger("test");
-      expect(logger).toBeDefined();
-      expect(typeof logger.info).toBe("function");
+    it("should write nothing", () => {
+      const written: unknown[] = [];
+      const original = console.info;
+      console.info = (...args: unknown[]): void => {
+        written.push(args);
+      };
+
+      try {
+        createSilentLogger("test").info("should not appear");
+      } finally {
+        console.info = original;
+      }
+
+      expect(written).toEqual([]);
     });
   });
 
@@ -26,13 +36,6 @@ describe("@brains/test-utils", () => {
   });
 
   describe("createMockEntityService", () => {
-    it("should create a mock entity service", () => {
-      const service = createMockEntityService();
-      expect(service).toBeDefined();
-      expect(typeof service.getEntity).toBe("function");
-      expect(typeof service.createEntity).toBe("function");
-    });
-
     it("should return configured entity types", () => {
       const service = createMockEntityService({
         entityTypes: ["note", "post"],

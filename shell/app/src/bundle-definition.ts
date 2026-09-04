@@ -3,48 +3,68 @@ import { z } from "@brains/utils/zod";
 import { clonePlainData } from "@brains/utils/clone";
 import { isPlainRecord } from "@brains/utils/predicates";
 
-export interface BundleConfigContribution {
-  member: string;
-  value: Record<string, unknown>;
-  overrides?: string | undefined;
-}
+const bundleIdSchema: z.ZodString = z.string().min(1);
 
-export interface BundlePermissionContribution {
-  member: string;
-  config: PermissionConfig;
-  overrides?: string | undefined;
-}
+type BundleConfigContributionSchema = z.ZodObject<
+  {
+    member: z.ZodString;
+    value: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    overrides: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+>;
 
-export interface CapabilityBundleDefinition {
-  id: string;
-  members: string[];
-  config?: BundleConfigContribution[] | undefined;
-  permissions?: BundlePermissionContribution[] | undefined;
-  agentInstructions?: string[] | undefined;
-  evalDisable?: string[] | undefined;
-}
-
-const bundleIdSchema = z.string().min(1);
-
-export const bundleConfigContributionSchema: z.ZodType<BundleConfigContribution> =
+export const bundleConfigContributionSchema: BundleConfigContributionSchema =
   z.strictObject({
     member: bundleIdSchema,
     value: z.record(z.string(), z.unknown()),
     overrides: bundleIdSchema.optional(),
   });
 
-const opaquePermissionConfigSchema = z.custom<PermissionConfig>(isPlainRecord, {
+export type BundleConfigContribution = z.output<
+  typeof bundleConfigContributionSchema
+>;
+
+const opaquePermissionConfigSchema: z.ZodCustom<
+  PermissionConfig,
+  PermissionConfig
+> = z.custom<PermissionConfig>(isPlainRecord, {
   message: "Expected an opaque permission config object",
 });
 
-export const bundlePermissionContributionSchema: z.ZodType<BundlePermissionContribution> =
+type BundlePermissionContributionSchema = z.ZodObject<
+  {
+    member: z.ZodString;
+    config: typeof opaquePermissionConfigSchema;
+    overrides: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+>;
+
+export const bundlePermissionContributionSchema: BundlePermissionContributionSchema =
   z.strictObject({
     member: bundleIdSchema,
     config: opaquePermissionConfigSchema,
     overrides: bundleIdSchema.optional(),
   });
 
-const rawCapabilityBundleDefinitionSchema: z.ZodType<CapabilityBundleDefinition> =
+export type BundlePermissionContribution = z.output<
+  typeof bundlePermissionContributionSchema
+>;
+
+type CapabilityBundleDefinitionSchema = z.ZodObject<
+  {
+    id: z.ZodString;
+    members: z.ZodArray<z.ZodString>;
+    config: z.ZodOptional<z.ZodArray<BundleConfigContributionSchema>>;
+    permissions: z.ZodOptional<z.ZodArray<BundlePermissionContributionSchema>>;
+    agentInstructions: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    evalDisable: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  },
+  z.core.$strict
+>;
+
+const rawCapabilityBundleDefinitionSchema: CapabilityBundleDefinitionSchema =
   z.strictObject({
     id: bundleIdSchema,
     members: z.array(bundleIdSchema),
@@ -73,7 +93,7 @@ function addDuplicateIssues(
   }
 }
 
-export const capabilityBundleDefinitionSchema: z.ZodType<CapabilityBundleDefinition> =
+export const capabilityBundleDefinitionSchema: CapabilityBundleDefinitionSchema =
   rawCapabilityBundleDefinitionSchema.superRefine((definition, ctx) => {
     addDuplicateIssues(definition.members, "member", "members", ctx);
     addDuplicateIssues(
@@ -83,6 +103,10 @@ export const capabilityBundleDefinitionSchema: z.ZodType<CapabilityBundleDefinit
       ctx,
     );
   });
+
+export type CapabilityBundleDefinition = z.output<
+  typeof capabilityBundleDefinitionSchema
+>;
 
 /** Validate bundle data without constructing any plugins or runtime resources. */
 export function defineBundle(

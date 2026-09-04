@@ -10,6 +10,7 @@ import {
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
+import { isRecord } from "@brains/utils/is-record";
 
 const RUN_SOAK =
   process.platform === "linux" && process.env["RUN_IMPORT_BURST_SOAK"] === "1";
@@ -480,10 +481,6 @@ async function readCpuCapacity(pid: number): Promise<number> {
       return hostParallelism;
     }
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function describeHealthFailure(body: string): string {

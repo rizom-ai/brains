@@ -109,25 +109,26 @@ const valueSchema = z
     "Values must contain at most five words",
   );
 
-export interface GeneratedStarterCharacter {
-  role: string;
-  purpose: string;
-  values: string[];
-}
+export const generatedStarterCharacterSchema: z.ZodObject<{
+  role: z.ZodString;
+  purpose: z.ZodString;
+  values: z.ZodArray<z.ZodString>;
+}> = z
+  .object({
+    role: roleSchema,
+    purpose: purposeSchema,
+    values: z.array(valueSchema).length(3),
+  })
+  .refine(
+    ({ values }) =>
+      new Set(values.map((value) => value.toLowerCase())).size ===
+      values.length,
+    { message: "Values must be distinct", path: ["values"] },
+  );
 
-export const generatedStarterCharacterSchema: z.ZodType<GeneratedStarterCharacter> =
-  z
-    .object({
-      role: roleSchema,
-      purpose: purposeSchema,
-      values: z.array(valueSchema).length(3),
-    })
-    .refine(
-      ({ values }) =>
-        new Set(values.map((value) => value.toLowerCase())).size ===
-        values.length,
-      { message: "Values must be distinct", path: ["values"] },
-    );
+export type GeneratedStarterCharacter = z.output<
+  typeof generatedStarterCharacterSchema
+>;
 
 function normalizeSignal(value: string): string {
   return value.replace(/\s+/gu, " ").trim().slice(0, MAX_SIGNAL_LENGTH);

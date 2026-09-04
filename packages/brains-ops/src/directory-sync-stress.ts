@@ -2,143 +2,114 @@ import type { FetchLike } from "@brains/deploy-support/origin-ca";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 
-export type DirectorySyncStressProfile = "regression" | "load" | "stress";
-export type DirectorySyncStressOperation =
-  "add" | "update" | "rename" | "delete";
+export const directorySyncStressProfileSchema: z.ZodEnum<{
+  regression: "regression";
+  load: "load";
+  stress: "stress";
+}> = z.enum(["regression", "load", "stress"]);
 
-export interface DirectorySyncStressPhase {
-  id: string;
-  operation: DirectorySyncStressOperation;
-  count: number;
-  targetProbeCount: number;
-  settleMs: number;
-}
+export type DirectorySyncStressProfile = z.output<
+  typeof directorySyncStressProfileSchema
+>;
 
-export interface DirectorySyncStressPlan {
-  profile: DirectorySyncStressProfile;
-  maximumProbeCount: number;
-  maximumExternalAiCalls?: number | undefined;
-  phases: DirectorySyncStressPhase[];
-}
+export const directorySyncStressOperationSchema: z.ZodEnum<{
+  add: "add";
+  update: "update";
+  rename: "rename";
+  delete: "delete";
+}> = z.enum(["add", "update", "rename", "delete"]);
 
-export interface StressBaseline {
-  entities: number;
-  notes: number;
-  version: string;
-}
+export type DirectorySyncStressOperation = z.output<
+  typeof directorySyncStressOperationSchema
+>;
 
-export interface StressHealthSample {
-  timestamp: string;
-  endpoint: string;
-  status: number;
-  durationMs: number;
-  ok: boolean;
-  error?: string | undefined;
-}
+export const directorySyncStressPhaseSchema: z.ZodObject<{
+  id: z.ZodString;
+  operation: typeof directorySyncStressOperationSchema;
+  count: z.ZodNumber;
+  targetProbeCount: z.ZodNumber;
+  settleMs: z.ZodNumber;
+}> = z.object({
+  id: z.string().min(1),
+  operation: directorySyncStressOperationSchema,
+  count: z.number().int().positive().max(700),
+  targetProbeCount: z.number().int().min(0).max(700),
+  settleMs: z.number().int().nonnegative().max(300_000),
+});
 
-export interface StressRuntimeSample {
-  timestamp: string;
-  cpuPercent: number;
-  memoryPercent: number;
-  pids: number;
-}
+export type DirectorySyncStressPhase = z.output<
+  typeof directorySyncStressPhaseSchema
+>;
 
-export interface StressPhaseResult {
-  id: string;
-  operation: DirectorySyncStressOperation;
-  count: number;
-  success: boolean;
-  commitLatencyMs?: number | undefined;
-  persistenceLatencyMs?: number | undefined;
-  error?: string | undefined;
-}
+export const directorySyncStressPlanSchema: z.ZodObject<{
+  profile: typeof directorySyncStressProfileSchema;
+  maximumProbeCount: z.ZodNumber;
+  maximumExternalAiCalls: z.ZodOptional<z.ZodNumber>;
+  phases: z.ZodArray<typeof directorySyncStressPhaseSchema>;
+}> = z.object({
+  profile: directorySyncStressProfileSchema,
+  maximumProbeCount: z.number().int().positive().max(700),
+  maximumExternalAiCalls: z.number().int().nonnegative().max(10_000).optional(),
+  phases: z.array(directorySyncStressPhaseSchema).min(1),
+});
 
-export interface StressCleanupResult {
-  success: boolean;
-  probesRemaining: number;
-  finalEntities?: number | undefined;
-  finalNotes?: number | undefined;
-  contentTreeRestored?: boolean | undefined;
-  error?: string | undefined;
-}
+export type DirectorySyncStressPlan = z.output<
+  typeof directorySyncStressPlanSchema
+>;
 
-export interface StressContainerState {
-  status: string;
-  restartCount: number;
-  oomKilled: boolean;
-}
-
-export interface StressMetrics {
-  health: StressHealthSample[];
-  runtime: StressRuntimeSample[];
-  externalAiCalls?: number | undefined;
-  container?: StressContainerState | undefined;
-}
-
-export interface DirectorySyncStressReport {
-  profile: DirectorySyncStressProfile;
-  success: boolean;
-  baseline: StressBaseline;
-  phases: StressPhaseResult[];
-  cleanup: StressCleanupResult;
-  metrics: StressMetrics;
-  failure?: string | undefined;
-}
-
-export const directorySyncStressProfileSchema: z.ZodType<DirectorySyncStressProfile> =
-  z.enum(["regression", "load", "stress"]);
-
-export const directorySyncStressOperationSchema: z.ZodType<DirectorySyncStressOperation> =
-  z.enum(["add", "update", "rename", "delete"]);
-
-export const directorySyncStressPhaseSchema: z.ZodType<DirectorySyncStressPhase> =
-  z.object({
-    id: z.string().min(1),
-    operation: directorySyncStressOperationSchema,
-    count: z.number().int().positive().max(700),
-    targetProbeCount: z.number().int().min(0).max(700),
-    settleMs: z.number().int().nonnegative().max(300_000),
-  });
-
-export const directorySyncStressPlanSchema: z.ZodType<DirectorySyncStressPlan> =
-  z.object({
-    profile: directorySyncStressProfileSchema,
-    maximumProbeCount: z.number().int().positive().max(700),
-    maximumExternalAiCalls: z
-      .number()
-      .int()
-      .nonnegative()
-      .max(10_000)
-      .optional(),
-    phases: z.array(directorySyncStressPhaseSchema).min(1),
-  });
-
-export const stressBaselineSchema: z.ZodType<StressBaseline> = z.object({
+export const stressBaselineSchema: z.ZodObject<{
+  entities: z.ZodNumber;
+  notes: z.ZodNumber;
+  version: z.ZodString;
+}> = z.object({
   entities: z.number().int().nonnegative(),
   notes: z.number().int().nonnegative(),
   version: z.string().min(1),
 });
 
-export const stressHealthSampleSchema: z.ZodType<StressHealthSample> = z.object(
-  {
-    timestamp: z.iso.datetime(),
-    endpoint: z.string().startsWith("/"),
-    status: z.number().int().nonnegative(),
-    durationMs: z.number().nonnegative(),
-    ok: z.boolean(),
-    error: z.string().optional(),
-  },
-);
+export type StressBaseline = z.output<typeof stressBaselineSchema>;
 
-export const stressRuntimeSampleSchema: z.ZodType<StressRuntimeSample> =
-  z.object({
-    timestamp: z.iso.datetime(),
-    cpuPercent: z.number().nonnegative(),
-    memoryPercent: z.number().nonnegative(),
-    pids: z.number().int().nonnegative(),
-  });
+export const stressHealthSampleSchema: z.ZodObject<{
+  timestamp: z.ZodISODateTime;
+  endpoint: z.ZodString;
+  status: z.ZodNumber;
+  durationMs: z.ZodNumber;
+  ok: z.ZodBoolean;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  timestamp: z.iso.datetime(),
+  endpoint: z.string().startsWith("/"),
+  status: z.number().int().nonnegative(),
+  durationMs: z.number().nonnegative(),
+  ok: z.boolean(),
+  error: z.string().optional(),
+});
 
-export const stressPhaseResultSchema: z.ZodType<StressPhaseResult> = z.object({
+export type StressHealthSample = z.output<typeof stressHealthSampleSchema>;
+
+export const stressRuntimeSampleSchema: z.ZodObject<{
+  timestamp: z.ZodISODateTime;
+  cpuPercent: z.ZodNumber;
+  memoryPercent: z.ZodNumber;
+  pids: z.ZodNumber;
+}> = z.object({
+  timestamp: z.iso.datetime(),
+  cpuPercent: z.number().nonnegative(),
+  memoryPercent: z.number().nonnegative(),
+  pids: z.number().int().nonnegative(),
+});
+
+export type StressRuntimeSample = z.output<typeof stressRuntimeSampleSchema>;
+
+export const stressPhaseResultSchema: z.ZodObject<{
+  id: z.ZodString;
+  operation: typeof directorySyncStressOperationSchema;
+  count: z.ZodNumber;
+  success: z.ZodBoolean;
+  commitLatencyMs: z.ZodOptional<z.ZodNumber>;
+  persistenceLatencyMs: z.ZodOptional<z.ZodNumber>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
   id: z.string().min(1),
   operation: directorySyncStressOperationSchema,
   count: z.number().int().positive(),
@@ -148,39 +119,73 @@ export const stressPhaseResultSchema: z.ZodType<StressPhaseResult> = z.object({
   error: z.string().optional(),
 });
 
-export const stressCleanupResultSchema: z.ZodType<StressCleanupResult> =
-  z.object({
-    success: z.boolean(),
-    probesRemaining: z.number().int().nonnegative(),
-    finalEntities: z.number().int().nonnegative().optional(),
-    finalNotes: z.number().int().nonnegative().optional(),
-    contentTreeRestored: z.boolean().optional(),
-    error: z.string().optional(),
-  });
+export type StressPhaseResult = z.output<typeof stressPhaseResultSchema>;
 
-export const stressMetricsSchema: z.ZodType<StressMetrics> = z.object({
+export const stressCleanupResultSchema: z.ZodObject<{
+  success: z.ZodBoolean;
+  probesRemaining: z.ZodNumber;
+  finalEntities: z.ZodOptional<z.ZodNumber>;
+  finalNotes: z.ZodOptional<z.ZodNumber>;
+  contentTreeRestored: z.ZodOptional<z.ZodBoolean>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  success: z.boolean(),
+  probesRemaining: z.number().int().nonnegative(),
+  finalEntities: z.number().int().nonnegative().optional(),
+  finalNotes: z.number().int().nonnegative().optional(),
+  contentTreeRestored: z.boolean().optional(),
+  error: z.string().optional(),
+});
+
+export type StressCleanupResult = z.output<typeof stressCleanupResultSchema>;
+
+export const stressContainerStateSchema: z.ZodObject<{
+  status: z.ZodString;
+  restartCount: z.ZodNumber;
+  oomKilled: z.ZodBoolean;
+}> = z.object({
+  status: z.string(),
+  restartCount: z.number().int().nonnegative(),
+  oomKilled: z.boolean(),
+});
+
+export type StressContainerState = z.output<typeof stressContainerStateSchema>;
+
+export const stressMetricsSchema: z.ZodObject<{
+  health: z.ZodArray<typeof stressHealthSampleSchema>;
+  runtime: z.ZodArray<typeof stressRuntimeSampleSchema>;
+  externalAiCalls: z.ZodOptional<z.ZodNumber>;
+  container: z.ZodOptional<typeof stressContainerStateSchema>;
+}> = z.object({
   health: z.array(stressHealthSampleSchema),
   runtime: z.array(stressRuntimeSampleSchema),
   externalAiCalls: z.number().int().nonnegative().optional(),
-  container: z
-    .object({
-      status: z.string(),
-      restartCount: z.number().int().nonnegative(),
-      oomKilled: z.boolean(),
-    })
-    .optional(),
+  container: stressContainerStateSchema.optional(),
 });
 
-export const directorySyncStressReportSchema: z.ZodType<DirectorySyncStressReport> =
-  z.object({
-    profile: directorySyncStressProfileSchema,
-    success: z.boolean(),
-    baseline: stressBaselineSchema,
-    phases: z.array(stressPhaseResultSchema),
-    cleanup: stressCleanupResultSchema,
-    metrics: stressMetricsSchema,
-    failure: z.string().optional(),
-  });
+export type StressMetrics = z.output<typeof stressMetricsSchema>;
+
+export const directorySyncStressReportSchema: z.ZodObject<{
+  profile: typeof directorySyncStressProfileSchema;
+  success: z.ZodBoolean;
+  baseline: typeof stressBaselineSchema;
+  phases: z.ZodArray<typeof stressPhaseResultSchema>;
+  cleanup: typeof stressCleanupResultSchema;
+  metrics: typeof stressMetricsSchema;
+  failure: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  profile: directorySyncStressProfileSchema,
+  success: z.boolean(),
+  baseline: stressBaselineSchema,
+  phases: z.array(stressPhaseResultSchema),
+  cleanup: stressCleanupResultSchema,
+  metrics: stressMetricsSchema,
+  failure: z.string().optional(),
+});
+
+export type DirectorySyncStressReport = z.output<
+  typeof directorySyncStressReportSchema
+>;
 
 export interface DirectorySyncStressTarget {
   handle: string;

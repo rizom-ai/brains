@@ -64,7 +64,7 @@ describe("Seed Content Git Detection", () => {
 
     await harness.installPlugin(plugin);
     await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "test");
-    harness.reset();
+    await harness.reset();
   }
 
   describe("isBrainDataEmpty with git repository", () => {

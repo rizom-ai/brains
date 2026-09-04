@@ -6,69 +6,24 @@ import { createPrefixedId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 
-export type PlaybookRunStatus =
-  "offered" | "active" | "completed" | "dismissed";
+export const playbookRunStatusSchema: z.ZodEnum<{
+  offered: "offered";
+  active: "active";
+  completed: "completed";
+  dismissed: "dismissed";
+}> = z.enum(["offered", "active", "completed", "dismissed"]);
 
-export interface PlaybookRunEvidence {
-  id: string;
-  kind: "entity_event";
-  stateId?: string | undefined;
-  observedAt: string;
-  data: Record<string, unknown>;
-}
+export type PlaybookRunStatus = z.output<typeof playbookRunStatusSchema>;
 
-export interface PlaybookGateVerdict {
-  stateId: string;
-  goal: string[];
-  met: boolean;
-  reason: string;
-  evaluatedAt: string;
-}
-
-export interface PlaybookRun {
-  id: string;
-  playbookId: string;
-  playbookVersion: string;
-  lifecycle?: string | undefined;
-  status: PlaybookRunStatus;
-  conversationId?: string | undefined;
-  currentState: string;
-  completedStates: string[];
-  snapshot?: unknown;
-  context: Record<string, unknown>;
-  evidence: PlaybookRunEvidence[];
-  gateVerdicts: PlaybookGateVerdict[];
-  startedAt?: string | undefined;
-  completedAt?: string | undefined;
-  updatedAt: string;
-}
-
-export interface PlaybookRunInput {
-  id: string;
-  playbookId: string;
-  playbookVersion: string;
-  lifecycle?: string | undefined;
-  status: PlaybookRunStatus;
-  conversationId?: string | undefined;
-  currentState: string;
-  completedStates?: string[] | undefined;
-  snapshot?: unknown;
-  context?: Record<string, unknown> | undefined;
-  evidence?: PlaybookRunEvidence[] | undefined;
-  gateVerdicts?: PlaybookGateVerdict[] | undefined;
-  startedAt?: string | undefined;
-  completedAt?: string | undefined;
-  updatedAt: string;
-}
-
-export const playbookRunStatusSchema: z.ZodType<
-  PlaybookRunStatus,
-  PlaybookRunStatus
-> = z.enum(["offered", "active", "completed", "dismissed"]);
-
-export const playbookRunEvidenceSchema: z.ZodType<
-  PlaybookRunEvidence,
-  PlaybookRunEvidence
+export const playbookRunEvidenceSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    kind: z.ZodEnum<{ entity_event: "entity_event" }>;
+    stateId: z.ZodOptional<z.ZodString>;
+    observedAt: z.ZodString;
+    data: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+  },
+  z.core.$strict
 > = z
   .object({
     id: z.string().min(1),
@@ -79,9 +34,17 @@ export const playbookRunEvidenceSchema: z.ZodType<
   })
   .strict();
 
-export const playbookGateVerdictSchema: z.ZodType<
-  PlaybookGateVerdict,
-  PlaybookGateVerdict
+export type PlaybookRunEvidence = z.output<typeof playbookRunEvidenceSchema>;
+
+export const playbookGateVerdictSchema: z.ZodObject<
+  {
+    stateId: z.ZodString;
+    goal: z.ZodArray<z.ZodString>;
+    met: z.ZodBoolean;
+    reason: z.ZodString;
+    evaluatedAt: z.ZodString;
+  },
+  z.core.$strict
 > = z
   .object({
     stateId: z.string().min(1),
@@ -92,7 +55,28 @@ export const playbookGateVerdictSchema: z.ZodType<
   })
   .strict();
 
-export const playbookRunSchema: z.ZodType<PlaybookRun, PlaybookRunInput> = z
+export type PlaybookGateVerdict = z.output<typeof playbookGateVerdictSchema>;
+
+export const playbookRunSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    playbookId: z.ZodString;
+    playbookVersion: z.ZodString;
+    lifecycle: z.ZodOptional<z.ZodString>;
+    status: typeof playbookRunStatusSchema;
+    conversationId: z.ZodOptional<z.ZodString>;
+    currentState: z.ZodString;
+    completedStates: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    snapshot: z.ZodOptional<z.ZodUnknown>;
+    context: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    evidence: z.ZodDefault<z.ZodArray<typeof playbookRunEvidenceSchema>>;
+    gateVerdicts: z.ZodDefault<z.ZodArray<typeof playbookGateVerdictSchema>>;
+    startedAt: z.ZodOptional<z.ZodString>;
+    completedAt: z.ZodOptional<z.ZodString>;
+    updatedAt: z.ZodString;
+  },
+  z.core.$strict
+> = z
   .object({
     id: z.string().min(1),
     playbookId: z.string().min(1),
@@ -112,6 +96,9 @@ export const playbookRunSchema: z.ZodType<PlaybookRun, PlaybookRunInput> = z
     updatedAt: z.string().datetime(),
   })
   .strict();
+
+export type PlaybookRun = z.output<typeof playbookRunSchema>;
+export type PlaybookRunInput = z.input<typeof playbookRunSchema>;
 
 const playbookRunsNamespace = "playbooks.runs";
 

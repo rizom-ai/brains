@@ -18,7 +18,7 @@ describe("buildConversationJumpGroup", () => {
     expect(group?.items[0]).toEqual({
       id: "session/abc",
       title: "Verdigris pigments",
-      href: "/chat#s/abc",
+      href: "/ask#s/abc",
       tag: "chat",
     });
     expect(group?.items).toHaveLength(3);
@@ -41,7 +41,7 @@ describe("buildConversationJumpGroup", () => {
       "",
     );
 
-    expect(group?.items[0]?.href).toBe("/chat#s/a%2Fb%20c");
+    expect(group?.items[0]?.href).toBe("/ask#s/a%2Fb%20c");
   });
 });
 

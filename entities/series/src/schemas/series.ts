@@ -79,16 +79,16 @@ export const seriesListItemSchema: ReturnType<
 
 export type SeriesListItem = z.output<typeof seriesListItemSchema>;
 
-export interface SeriesBody {
-  description?: string | undefined;
-}
-
 /**
  * Series body schema (structured content in markdown body)
  */
-export const seriesBodySchema: z.ZodType<SeriesBody> = z.object({
+export const seriesBodySchema: z.ZodObject<{
+  description: z.ZodOptional<z.ZodString>;
+}> = z.object({
   description: z.string().optional(),
 });
+
+export type SeriesBody = z.output<typeof seriesBodySchema>;
 
 /**
  * Create formatter for series content body

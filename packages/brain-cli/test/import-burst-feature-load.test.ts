@@ -662,6 +662,12 @@ describe("directory import burst with locally mocked AI features", () => {
       assertPhase(update, IMPORT_COUNT);
       expect(resources.samples).toBeGreaterThan(1);
       expect(resources.maxCpuCores).toBeGreaterThan(0);
+      if (!resourceAcceptanceEnabled) {
+        console.warn(
+          "[import-burst] BRAIN_TEST_CPU_LIMIT unset — skipping the CPU and " +
+            "event-loop acceptance thresholds. This run does not cover them.",
+        );
+      }
       if (resourceAcceptanceEnabled) {
         expect(resources.maxSustainedCpuSaturationMs).toBeLessThan(
           MAX_SUSTAINED_CPU_SATURATION_MS,

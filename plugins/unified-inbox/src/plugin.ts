@@ -14,13 +14,14 @@ import { createInboxListTool } from "./inbox-tool";
 import { registerUnifiedInboxStudioWorkspace } from "./operator-studio";
 import { InboxOperatorService } from "./operator-service";
 
-type UnifiedInboxConfig = Record<string, never>;
-type UnifiedInboxConfigInput = Record<string, unknown>;
-
-const unifiedInboxConfigSchema: z.ZodType<
-  UnifiedInboxConfig,
-  UnifiedInboxConfigInput
+const unifiedInboxConfigSchema: z.ZodObject<
+  Record<never, never>,
+  z.core.$strict
 > = z.strictObject({});
+
+type UnifiedInboxConfig = z.output<typeof unifiedInboxConfigSchema>;
+/** Brains pass raw config records; the strict schema rejects any key at parse time. */
+type UnifiedInboxConfigInput = Record<string, unknown>;
 
 export class UnifiedInboxPlugin extends ServicePlugin<
   UnifiedInboxConfig,

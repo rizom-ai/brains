@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import {
   InMemoryTemplateRegistry,
   type TemplateRegistry,
@@ -241,11 +242,16 @@ describe("TemplateRegistry", () => {
 
       registry.register("formatted-template", templateWithFormatter);
 
-      const retrieved = registry.get("formatted-template");
-      expect(retrieved).toBeDefined();
-      expect(retrieved?.formatter).toBeDefined();
-      expect(retrieved?.formatter?.format).toBeDefined();
-      expect(retrieved?.formatter?.parse).toBeDefined();
+      // Round-trip through the retrieved formatter. Asserting the two methods
+      // are merely present would also pass for a formatter the registry had
+      // replaced with a different one.
+      const retrieved = expectDefined(
+        registry.get("formatted-template"),
+        "registered formatted-template",
+      );
+      const formatter = expectDefined(retrieved.formatter, "formatter");
+      expect(formatter.format({ data: "value" })).toBe('{"data":"value"}');
+      expect(formatter.parse('{"data":"value"}')).toEqual({ data: "value" });
     });
 
     it("should handle templates with provider IDs", () => {

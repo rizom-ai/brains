@@ -2,6 +2,7 @@ import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   summarySchema,
+  summaryTimeRangeSchema,
   type SummaryEntity,
   type SummaryTimeRange,
 } from "../../schemas/summary";
@@ -13,46 +14,37 @@ const WIDGET_ID = "recent";
 
 const summaryAdapter = new SummaryAdapter();
 
-interface SummaryTimeRangeRow {
-  start: string;
-  end: string;
-}
-
-const summaryTimeRangeRowSchema: z.ZodType<SummaryTimeRangeRow> = z.object({
-  start: z.string().datetime(),
-  end: z.string().datetime(),
-});
-
-export interface SummaryEntryRow {
-  id: string;
-  title: string;
-  keyPoint?: string | undefined;
-  channelName: string;
-  channelId: string;
-  timeRange: SummaryTimeRangeRow;
-  messageCount: number;
-}
-
-export const summaryEntryRowSchema: z.ZodType<SummaryEntryRow> = z.object({
+export const summaryEntryRowSchema: z.ZodObject<{
+  id: z.ZodString;
+  title: z.ZodString;
+  keyPoint: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodString;
+  channelId: z.ZodString;
+  timeRange: typeof summaryTimeRangeSchema;
+  messageCount: z.ZodNumber;
+}> = z.object({
   id: z.string(),
   title: z.string(),
   keyPoint: z.string().optional(),
   channelName: z.string(),
   channelId: z.string(),
-  timeRange: summaryTimeRangeRowSchema,
+  timeRange: summaryTimeRangeSchema,
   messageCount: z.number().int().min(0),
 });
 
-export interface RecentConversationMemoryData {
-  all: SummaryEntryRow[];
-  byChannel: SummaryEntryRow[];
-}
+export type SummaryEntryRow = z.output<typeof summaryEntryRowSchema>;
 
-export const recentConversationMemoryDataSchema: z.ZodType<RecentConversationMemoryData> =
-  z.object({
-    all: z.array(summaryEntryRowSchema),
-    byChannel: z.array(summaryEntryRowSchema),
-  });
+export const recentConversationMemoryDataSchema: z.ZodObject<{
+  all: z.ZodArray<typeof summaryEntryRowSchema>;
+  byChannel: z.ZodArray<typeof summaryEntryRowSchema>;
+}> = z.object({
+  all: z.array(summaryEntryRowSchema),
+  byChannel: z.array(summaryEntryRowSchema),
+});
+
+export type RecentConversationMemoryData = z.output<
+  typeof recentConversationMemoryDataSchema
+>;
 
 interface ExpandedEntry {
   id: string;

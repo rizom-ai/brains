@@ -1,45 +1,55 @@
 import { z } from "@brains/utils/zod";
-import { actorRefSchema, type ActorRef } from "./actor-ref";
+import { actorRefSchema } from "./actor-ref";
 
 export const AUTH_PRINCIPAL_RESOLVE_CHANNEL = "auth:principal:resolve";
 
-export interface AuthPrincipalResolveRequest {
-  actor: ActorRef;
-}
+type AuthPrincipalResolveRequestSchema = z.ZodObject<{
+  actor: typeof actorRefSchema;
+}>;
 
-export interface AuthPrincipalAttribution {
-  userId: string;
-  personId: string;
-  canonicalId?: string | undefined;
-  displayName: string;
-  permissionLevel: "admin" | "trusted" | "public";
-}
+export const authPrincipalResolveRequestSchema: AuthPrincipalResolveRequestSchema =
+  z.object({
+    actor: actorRefSchema,
+  });
 
-export interface AuthPrincipalResolveResponse {
-  principal: AuthPrincipalAttribution | null;
-}
+export type AuthPrincipalResolveRequest = z.output<
+  typeof authPrincipalResolveRequestSchema
+>;
 
-export const authPrincipalResolveRequestSchema: z.ZodType<
-  AuthPrincipalResolveRequest,
-  AuthPrincipalResolveRequest
-> = z.object({
-  actor: actorRefSchema,
-});
+type AuthPrincipalAttributionSchema = z.ZodObject<{
+  userId: z.ZodString;
+  personId: z.ZodString;
+  canonicalId: z.ZodOptional<z.ZodString>;
+  displayName: z.ZodString;
+  permissionLevel: z.ZodEnum<{
+    admin: "admin";
+    trusted: "trusted";
+    public: "public";
+  }>;
+}>;
 
-export const authPrincipalAttributionSchema: z.ZodType<
-  AuthPrincipalAttribution,
-  AuthPrincipalAttribution
-> = z.object({
-  userId: z.string().min(1),
-  personId: z.string().min(1),
-  canonicalId: z.string().min(1).optional(),
-  displayName: z.string().min(1),
-  permissionLevel: z.enum(["admin", "trusted", "public"]),
-});
+export const authPrincipalAttributionSchema: AuthPrincipalAttributionSchema =
+  z.object({
+    userId: z.string().min(1),
+    personId: z.string().min(1),
+    canonicalId: z.string().min(1).optional(),
+    displayName: z.string().min(1),
+    permissionLevel: z.enum(["admin", "trusted", "public"]),
+  });
 
-export const authPrincipalResolveResponseSchema: z.ZodType<
-  AuthPrincipalResolveResponse,
-  AuthPrincipalResolveResponse
-> = z.object({
-  principal: authPrincipalAttributionSchema.nullable(),
-});
+export type AuthPrincipalAttribution = z.output<
+  typeof authPrincipalAttributionSchema
+>;
+
+type AuthPrincipalResolveResponseSchema = z.ZodObject<{
+  principal: z.ZodNullable<AuthPrincipalAttributionSchema>;
+}>;
+
+export const authPrincipalResolveResponseSchema: AuthPrincipalResolveResponseSchema =
+  z.object({
+    principal: authPrincipalAttributionSchema.nullable(),
+  });
+
+export type AuthPrincipalResolveResponse = z.output<
+  typeof authPrincipalResolveResponseSchema
+>;

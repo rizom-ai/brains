@@ -6,22 +6,17 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const PROJECT_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const PROJECT_PRINTABLE_TEMPLATE_NAME = "portfolio:project-printable";
 
-export interface ProjectPrintableTemplateData {
-  title: string;
-  description?: string | undefined;
-  year?: number | undefined;
-  publishedAt?: string | undefined;
-  url?: string | undefined;
-  canonicalUrl?: string | undefined;
-  coverImageUrl?: string | undefined;
-  body: string;
-  brandLabel?: string | undefined;
-}
-
-export const projectPrintableTemplateSchema: z.ZodType<
-  ProjectPrintableTemplateData,
-  ProjectPrintableTemplateData
-> = z.object({
+export const projectPrintableTemplateSchema: z.ZodObject<{
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  year: z.ZodOptional<z.ZodNumber>;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  url: z.ZodOptional<z.ZodString>;
+  canonicalUrl: z.ZodOptional<z.ZodString>;
+  coverImageUrl: z.ZodOptional<z.ZodString>;
+  body: z.ZodString;
+  brandLabel: z.ZodOptional<z.ZodString>;
+}> = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   year: z.number().optional(),
@@ -32,6 +27,10 @@ export const projectPrintableTemplateSchema: z.ZodType<
   body: z.string(),
   brandLabel: z.string().optional(),
 });
+
+export type ProjectPrintableTemplateData = z.output<
+  typeof projectPrintableTemplateSchema
+>;
 
 export const projectPrintableTemplate: MediaPageTemplate = {
   name: PROJECT_PRINTABLE_TEMPLATE_NAME,

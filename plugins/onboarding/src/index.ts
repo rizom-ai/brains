@@ -9,22 +9,17 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
-export interface OnboardingConfig {
-  enabled: boolean;
-}
-
-export interface OnboardingConfigInput {
-  enabled?: boolean | undefined;
-}
-
-const onboardingConfigSchema: z.ZodType<
-  OnboardingConfig,
-  OnboardingConfigInput
+const onboardingConfigSchema: z.ZodObject<
+  { enabled: z.ZodDefault<z.ZodBoolean> },
+  z.core.$strict
 > = z
   .object({
     enabled: z.boolean().default(false),
   })
   .strict();
+
+export type OnboardingConfig = z.output<typeof onboardingConfigSchema>;
+export type OnboardingConfigInput = z.input<typeof onboardingConfigSchema>;
 
 interface BundledPlaybook {
   id: string;

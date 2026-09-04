@@ -1,20 +1,19 @@
 import { createTemplate, type Template } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export interface TopicMergeSynthesisResult {
-  verdict: "merge" | "distinct";
-  title: string;
-  content: string;
-}
-
-export const topicMergeSynthesisSchema: z.ZodType<
-  TopicMergeSynthesisResult,
-  TopicMergeSynthesisResult
-> = z.object({
+export const topicMergeSynthesisSchema: z.ZodObject<{
+  verdict: z.ZodEnum<{ merge: "merge"; distinct: "distinct" }>;
+  title: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
   verdict: z.enum(["merge", "distinct"]),
   title: z.string().max(100),
   content: z.string(),
 });
+
+export type TopicMergeSynthesisResult = z.output<
+  typeof topicMergeSynthesisSchema
+>;
 
 export const topicMergeSynthesisTemplate: Template =
   createTemplate<TopicMergeSynthesisResult>({

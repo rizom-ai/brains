@@ -13,31 +13,42 @@ import { z } from "@brains/utils/zod";
 import {
   newsletterFrontmatterSchema,
   newsletterSchema,
+  newsletterStatusSchema,
   type Newsletter,
 } from "../schemas/newsletter";
+import type {
+  NewsletterListData,
+  NewsletterListItem,
+} from "../templates/newsletter-list";
 
-interface NewsletterQuery extends BaseQuery {
-  status?:
-    "generating" | "draft" | "queued" | "published" | "failed" | undefined;
-}
-
-interface NewsletterInput {
-  entityType?: string | undefined;
-  query?: NewsletterQuery | undefined;
-}
-
-const newsletterQuerySchema: z.ZodType<NewsletterQuery> = z.looseObject({
+const newsletterQuerySchema: z.ZodObject<
+  {
+    id: z.ZodOptional<z.ZodString>;
+    limit: z.ZodOptional<z.ZodNumber>;
+    page: z.ZodOptional<z.ZodNumber>;
+    pageSize: z.ZodOptional<z.ZodNumber>;
+    baseUrl: z.ZodOptional<z.ZodString>;
+    status: z.ZodOptional<typeof newsletterStatusSchema>;
+  },
+  z.core.$loose
+> = z.looseObject({
   id: z.string().optional(),
   limit: z.number().optional(),
   page: z.number().optional(),
   pageSize: z.number().optional(),
   baseUrl: z.string().optional(),
-  status: z
-    .enum(["generating", "draft", "queued", "published", "failed"])
-    .optional(),
+  status: newsletterStatusSchema.optional(),
 });
 
-const newsletterInputSchema: z.ZodType<NewsletterInput> = z.looseObject({
+type NewsletterQuery = z.output<typeof newsletterQuerySchema>;
+
+const newsletterInputSchema: z.ZodObject<
+  {
+    entityType: z.ZodOptional<z.ZodString>;
+    query: z.ZodOptional<typeof newsletterQuerySchema>;
+  },
+  z.core.$loose
+> = z.looseObject({
   entityType: z.string().optional(),
   query: newsletterQuerySchema.optional(),
 });
@@ -55,23 +66,6 @@ function getNewsletterBody(newsletter: Newsletter): string {
   } catch {
     return newsletter.content;
   }
-}
-
-interface NewsletterListData {
-  newsletters: NewsletterListItem[];
-  totalCount: number;
-  pagination: PaginationInfo | null;
-}
-
-/** Enriched newsletter summary for list views. */
-interface NewsletterListItem {
-  id: string;
-  subject: string;
-  status: string;
-  excerpt: string;
-  created: string;
-  sentAt: string | null;
-  url: string;
 }
 
 /**

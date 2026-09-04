@@ -3,6 +3,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  type AnyRoute,
   type AnyRouter,
   type RouteComponent,
   type RouterHistory,
@@ -12,6 +13,7 @@ import {
   studioWorkspacePath,
 } from "../../src/studio-paths";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
+import { STUDIO_CHAT_ROUTE_PATH } from "../../src/chat-workspace";
 import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../../src/overview-constants";
 
 let studioRouterBasePath = "/studio";
@@ -69,7 +71,11 @@ export function resolveStudioHomePath(
   return normalizedBase;
 }
 
-/** Create the package-local browser router beneath the configured Studio mount. */
+/**
+ * Create the package-local browser router for Studio and its canonical Chat
+ * door. The router owns full browser paths so `/chat` can render the native
+ * workspace without redirecting to an encoded implementation path.
+ */
 export function createStudioRouter(
   basePath: string,
   component?: RouteComponent,
@@ -80,32 +86,72 @@ export function createStudioRouter(
   const rootRoute = createRootRoute({
     ...(component ? { component, notFoundComponent: component } : {}),
   });
-  const indexRoute = createRoute({
+  const chatRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: "/",
+    path: STUDIO_CHAT_ROUTE_PATH.slice(1),
   });
-  const collectionRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "entities/$entityType",
-  });
-  const entityRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "entities/$entityType/$",
-  });
-  const workspaceRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: "workspaces/$workspaceId",
-  });
-  const routeTree = rootRoute.addChildren([
-    indexRoute,
-    collectionRoute,
-    entityRoute,
-    workspaceRoute,
-  ]);
+
+  const routeTree =
+    studioRouterBasePath === "/"
+      ? ((): AnyRoute => {
+          const indexRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: "/",
+          });
+          const collectionRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: "entities/$entityType",
+          });
+          const entityRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: "entities/$entityType/$",
+          });
+          const workspaceRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: "workspaces/$workspaceId",
+          });
+          return rootRoute.addChildren([
+            indexRoute,
+            collectionRoute,
+            entityRoute,
+            workspaceRoute,
+            chatRoute,
+          ]);
+        })()
+      : ((): AnyRoute => {
+          const studioRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: studioRouterBasePath.slice(1),
+          });
+          const indexRoute = createRoute({
+            getParentRoute: () => studioRoute,
+            path: "/",
+          });
+          const collectionRoute = createRoute({
+            getParentRoute: () => studioRoute,
+            path: "entities/$entityType",
+          });
+          const entityRoute = createRoute({
+            getParentRoute: () => studioRoute,
+            path: "entities/$entityType/$",
+          });
+          const workspaceRoute = createRoute({
+            getParentRoute: () => studioRoute,
+            path: "workspaces/$workspaceId",
+          });
+          return rootRoute.addChildren([
+            studioRoute.addChildren([
+              indexRoute,
+              collectionRoute,
+              entityRoute,
+              workspaceRoute,
+            ]),
+            chatRoute,
+          ]);
+        })();
 
   return createRouter({
     routeTree,
-    basepath: studioRouterBasePath,
     ...(history ? { history } : {}),
   });
 }

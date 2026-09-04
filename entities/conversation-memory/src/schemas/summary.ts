@@ -2,30 +2,27 @@ import {
   actorRefFromLegacy,
   actorRefKey,
   actorRefSchema,
-  type ActorRef,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema } from "@brains/plugins";
 
-export interface SummaryTimeRange {
-  start: string;
-  end: string;
-}
-
-export const summaryTimeRangeSchema: z.ZodType<SummaryTimeRange> = z.object({
+export const summaryTimeRangeSchema: z.ZodObject<{
+  start: z.ZodString;
+  end: z.ZodString;
+}> = z.object({
   start: z.string().datetime(),
   end: z.string().datetime(),
 });
 
-export interface SummaryEntry {
-  title: string;
-  summary: string;
-  timeRange: SummaryTimeRange;
-  sourceMessageCount: number;
-  keyPoints: string[];
-}
+export type SummaryTimeRange = z.output<typeof summaryTimeRangeSchema>;
 
-export const summaryEntrySchema: z.ZodType<SummaryEntry> = z.object({
+export const summaryEntrySchema: z.ZodObject<{
+  title: z.ZodString;
+  summary: z.ZodString;
+  timeRange: typeof summaryTimeRangeSchema;
+  sourceMessageCount: z.ZodNumber;
+  keyPoints: z.ZodArray<z.ZodString>;
+}> = z.object({
   title: z.string().min(1).describe("Brief topic or phase title"),
   summary: z.string().min(1).describe("Grounded prose summary"),
   timeRange: summaryTimeRangeSchema,
@@ -33,53 +30,41 @@ export const summaryEntrySchema: z.ZodType<SummaryEntry> = z.object({
   keyPoints: z.array(z.string()),
 });
 
-export interface SummaryBody {
-  entries: SummaryEntry[];
-}
+export type SummaryEntry = z.output<typeof summaryEntrySchema>;
 
-export const summaryBodySchema: z.ZodType<SummaryBody> = z.object({
+export const summaryBodySchema: z.ZodObject<{
+  entries: z.ZodArray<typeof summaryEntrySchema>;
+}> = z.object({
   entries: z.array(summaryEntrySchema),
 });
 
-export interface SummaryParticipant {
-  identity: ActorRef;
-  identityAliases?: ActorRef[] | undefined;
-  displayName?: string | undefined;
-  roles: Array<"user" | "assistant" | "system">;
-}
+export type SummaryBody = z.output<typeof summaryBodySchema>;
 
-export const summaryParticipantSchema: z.ZodType<SummaryParticipant> = z.object(
-  {
-    identity: actorRefSchema,
-    identityAliases: z.array(actorRefSchema).optional(),
-    displayName: z.string().optional(),
-    roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
-  },
-);
+export const summaryParticipantSchema: z.ZodObject<{
+  identity: typeof actorRefSchema;
+  identityAliases: z.ZodOptional<z.ZodArray<typeof actorRefSchema>>;
+  displayName: z.ZodOptional<z.ZodString>;
+  roles: z.ZodArray<
+    z.ZodEnum<{ user: "user"; assistant: "assistant"; system: "system" }>
+  >;
+}> = z.object({
+  identity: actorRefSchema,
+  identityAliases: z.array(actorRefSchema).optional(),
+  displayName: z.string().optional(),
+  roles: z.array(z.enum(["user", "assistant", "system"])).min(1),
+});
 
-export interface SummaryMetadata {
-  [key: string]: unknown;
-  conversationId: string;
-  channelId: string;
-  channelName?: string | undefined;
-  interfaceType: string;
-  timeRange?: SummaryTimeRange | undefined;
-  messageCount: number;
-  entryCount: number;
-  participants?: SummaryParticipant[] | undefined;
-  sourceHash: string;
-  projectionVersion: number;
-}
+export type SummaryParticipant = z.output<typeof summaryParticipantSchema>;
 
 type SummaryMetadataSchema = z.ZodObject<{
   conversationId: z.ZodString;
   channelId: z.ZodString;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
-  timeRange: z.ZodOptional<z.ZodType<SummaryTimeRange>>;
+  timeRange: z.ZodOptional<typeof summaryTimeRangeSchema>;
   messageCount: z.ZodNumber;
   entryCount: z.ZodNumber;
-  participants: z.ZodOptional<z.ZodArray<z.ZodType<SummaryParticipant>>>;
+  participants: z.ZodOptional<z.ZodArray<typeof summaryParticipantSchema>>;
   sourceHash: z.ZodString;
   projectionVersion: z.ZodNumber;
 }>;
@@ -97,11 +82,12 @@ export const summaryMetadataSchema: SummaryMetadataSchema = z.object({
   projectionVersion: z.number().int().min(1),
 });
 
-const summaryParticipantParserSchema: z.ZodType<SummaryParticipant, unknown> =
-  z.preprocess(
-    (value) => normalizeLegacySummaryParticipant(value),
-    summaryParticipantSchema,
-  );
+const summaryParticipantParserSchema: z.ZodPreprocess<
+  typeof summaryParticipantSchema
+> = z.preprocess(
+  (value) => normalizeLegacySummaryParticipant(value),
+  summaryParticipantSchema,
+);
 
 function normalizeLegacySummaryParticipant(value: unknown): unknown {
   if (!isRecord(value) || "identity" in value) return value;
@@ -151,7 +137,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const summaryEntityMetadataParserSchema: z.ZodType<SummaryMetadata> = z.object({
+const summaryEntityMetadataParserSchema: z.ZodObject<
+  Omit<SummaryMetadataSchema["shape"], "participants"> & {
+    participants: z.ZodOptional<
+      z.ZodArray<typeof summaryParticipantParserSchema>
+    >;
+  }
+> = z.object({
   conversationId: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
@@ -164,10 +156,15 @@ const summaryEntityMetadataParserSchema: z.ZodType<SummaryMetadata> = z.object({
   projectionVersion: z.number().int().min(1),
 });
 
+/** Summary entity metadata, as parsed from stored (possibly legacy) records. */
+export type SummaryMetadata = z.output<
+  typeof summaryEntityMetadataParserSchema
+>;
+
 export const summarySchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"summary">;
-    metadata: z.ZodType<SummaryMetadata>;
+    metadata: typeof summaryEntityMetadataParserSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("summary"),

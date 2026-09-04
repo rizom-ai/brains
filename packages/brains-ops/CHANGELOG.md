@@ -1,5 +1,19 @@
 # @brains/ops
 
+## 0.2.0-alpha.352
+
+### Patch Changes
+
+- [#218](https://github.com/rizom-ai/brains/pull/218) [`f217448`](https://github.com/rizom-ai/brains/commit/f2174483578b3f9cc685f4aefe641ad2e4f3be0d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the shared fleet image topology unconditional: every effective Brain version resolves to one immutable `brain-${brainVersion}` image containing the union of exact site and theme package pins. Remove the image-contract selector and legacy site-hashed image mode.
+
+## 0.2.0-alpha.351
+
+### Patch Changes
+
+- [#216](https://github.com/rizom-ai/brains/pull/216) [`58abb61`](https://github.com/rizom-ai/brains/commit/58abb61a25e9aa2d5b8cc45defebfb61cd4da086) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit shared fleet image contract so Build emits one immutable image per effective Brain version, installs the version-wide union of exact site and theme package pins, rejects conflicting pins, and keeps Build and Deploy on the same tag contract.
+
+  Ship React declarations with the public Brain package so packed consumers can typecheck the React-backed service view contract.
+
 ## 0.2.0-alpha.350
 
 ## 0.2.0-alpha.349

@@ -1,192 +1,186 @@
-import {
-  describe,
-  expect,
-  it,
-  mock,
-  beforeEach,
-  afterEach,
-  spyOn,
-} from "bun:test";
-import { handleCLI } from "../src/cli";
-import {
-  ProcessExited,
-  expectProcessExit,
-  genericSpy,
-} from "@brains/test-utils";
+import { describe, expect, it, mock, spyOn } from "bun:test";
+import { handleCLI, type CliIo } from "../src/cli";
 import { App } from "../src/app";
 import { defineConfig } from "../src/config";
 
-describe("handleCLI", () => {
-  const testConfig = defineConfig({
-    name: "test-app",
-    version: "2.1.0",
-    aiApiKey: "test-key",
-    plugins: [],
-  });
+/**
+ * handleCLI takes everything it touches outside its arguments — argv, output,
+ * exit, the App factory — through one injected object. So the test hands it a
+ * fake and reads outcomes off that fake: no patching of process or console,
+ * nothing to restore, and nothing left behind for the next file.
+ */
 
-  // Store original values
-  const originalArgv = process.argv;
-  const originalExit = process.exit;
-  const originalConsoleLog = console.log;
-  const originalConsoleError = console.error;
-  const originalCreate = App.create;
+/** Thrown by the fake exit so control flow stops exactly as process.exit would. */
+class CliExit extends Error {
+  readonly code: number;
+  constructor(code: number) {
+    super(`cli exit ${code}`);
+    this.name = "CliExit";
+    this.code = code;
+  }
+}
 
-  // Mock console and process.exit. The double throws rather than returning:
-  // that is what `never` means, and it keeps the code under test from running
-  // on past a point where the real process would be gone.
-  const mockExit = mock((code?: number): never => {
-    throw new ProcessExited(code);
-  });
-  const mockConsoleLog = mock(() => {});
-  const mockConsoleError = mock(() => {});
+interface FakeIo extends CliIo {
+  logged: string[];
+  errored: string[];
+}
 
-  let runSpy: ReturnType<typeof mock>;
+function fakeIo(argv: string[], app: Partial<CliIo["app"]> = {}): FakeIo {
+  const logged: string[] = [];
+  const errored: string[] = [];
+  return {
+    argv,
+    logged,
+    errored,
+    log: (line): void => {
+      logged.push(line);
+    },
+    error: (line, ...detail): void => {
+      errored.push([line, ...detail.map(String)].join(" "));
+    },
+    exit: (code): never => {
+      throw new CliExit(code);
+    },
+    app: {
+      create: app.create ?? App.create,
+      run: app.run ?? (async (): Promise<void> => undefined),
+    },
+  };
+}
 
-  beforeEach(() => {
-    // Spy on App.run
-    runSpy = mock(() => Promise.resolve());
-    // mock() erases the type parameters App.run declares; genericSpy names that
-    // as the only reason.
-    App.run = genericSpy<typeof App.run>(runSpy);
+/** The exit code handleCLI ended with, or null when it returned normally. */
+async function exitCodeOf(run: Promise<void>): Promise<number | null> {
+  return run.then(
+    () => null,
+    (error: unknown) => {
+      if (error instanceof CliExit) return error.code;
+      throw error;
+    },
+  );
+}
 
-    // Reset mocks
-    mockExit.mockClear();
-    mockConsoleLog.mockClear();
-    mockConsoleError.mockClear();
-
-    // Mock process.exit and console
-    process.exit = mockExit;
-    console.log = mockConsoleLog;
-    console.error = mockConsoleError;
-  });
-
-  afterEach(() => {
-    // Restore original values
-    process.argv = originalArgv;
-    process.exit = originalExit;
-    console.log = originalConsoleLog;
-    console.error = originalConsoleError;
-    App.create = originalCreate;
-  });
-
-  it("should run the app by default", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts"];
-
-    await handleCLI(testConfig);
-
-    expect(runSpy).toHaveBeenCalledWith(testConfig);
-  });
-
-  it("should show help with --help flag", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "--help"];
-
-    await expectProcessExit(handleCLI(testConfig), 0);
-
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("test-app v2.1.0"),
-    );
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("Usage:"),
-    );
-  });
-
-  it("should show help with -h flag", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "-h"];
-
-    await expectProcessExit(handleCLI(testConfig), 0);
-
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("test-app v2.1.0"),
-    );
-  });
-
-  it("should show version with --version flag", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "--version"];
-
-    await expectProcessExit(handleCLI(testConfig), 0);
-
-    expect(mockConsoleLog).toHaveBeenCalledWith("test-app v2.1.0");
-  });
-
-  it("should show version with -v flag", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "-v"];
-
-    await expectProcessExit(handleCLI(testConfig), 0);
-
-    expect(mockConsoleLog).toHaveBeenCalledWith("test-app v2.1.0");
-  });
-
-  it("should pass --cli flag through to app", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "--cli"];
-
-    await handleCLI(testConfig);
-
-    expect(runSpy).toHaveBeenCalledWith(testConfig);
-  });
-
-  it("should handle multiple flags", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "--help", "--cli"];
-
-    await expectProcessExit(handleCLI(testConfig), 0);
-
-    // Help should take precedence
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("Usage:"),
-    );
-  });
-
-  it("should handle --startup-check by initializing without running", async () => {
-    // A real App with its two methods spied, rather than a two-method literal:
-    // App is a class, so no literal could ever satisfy typeof App.create, and
-    // the CLI only needs initialize and stop to be observable.
-    const app = originalCreate(testConfig);
-    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
-    const stop = spyOn(app, "stop").mockResolvedValue(undefined);
-    const createSpy = mock(() => app);
-    App.create = createSpy;
-    process.argv = ["bun", ".brain-entrypoint.ts", "--startup-check"];
-
-    await handleCLI(testConfig);
-
-    expect(createSpy).toHaveBeenCalledWith(testConfig);
-    expect(initialize).toHaveBeenCalledWith({ mode: "startup-check" });
-    expect(stop).toHaveBeenCalled();
-    expect(runSpy).not.toHaveBeenCalled();
-  });
-
-  it("should handle unknown flags by running app", async () => {
-    process.argv = ["bun", ".brain-entrypoint.ts", "--unknown-flag"];
-
-    await handleCLI(testConfig);
-
-    expect(runSpy).toHaveBeenCalledWith(testConfig);
-  });
+const testConfig = defineConfig({
+  name: "test-app",
+  version: "2.1.0",
+  aiApiKey: "test-key",
+  plugins: [],
 });
 
-describe("CLI Integration", () => {
-  it("should have proper help message format", async () => {
-    const testConfig = defineConfig({
-      name: "my-brain",
-      version: "1.2.3",
+describe("handleCLI", () => {
+  it("runs the app by default", async () => {
+    const run = mock(async (): Promise<void> => undefined);
+    const io = fakeIo([], { run });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBeNull();
+    expect(run).toHaveBeenCalledWith(testConfig);
+  });
+
+  it("forwards runtime options to the app when given", async () => {
+    const run = mock(async (): Promise<void> => undefined);
+    const io = fakeIo([], { run });
+    const runtimeOptions = { migrationsCompleted: true };
+
+    await handleCLI(testConfig, runtimeOptions, io);
+
+    expect(run).toHaveBeenCalledWith(testConfig, undefined, runtimeOptions);
+  });
+
+  it.each(["--help", "-h"])("prints help and exits 0 on %s", async (flag) => {
+    const run = mock(async (): Promise<void> => undefined);
+    const io = fakeIo([flag], { run });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBe(0);
+    expect(io.logged.join("\n")).toContain("test-app v2.1.0");
+    expect(io.logged.join("\n")).toContain("Usage:");
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it.each(["--version", "-v"])(
+    "prints the version and exits 0 on %s",
+    async (flag) => {
+      const io = fakeIo([flag]);
+
+      const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+      expect(code).toBe(0);
+      expect(io.logged).toEqual(["test-app v2.1.0"]);
+    },
+  );
+
+  it("lets --help win over other flags", async () => {
+    const run = mock(async (): Promise<void> => undefined);
+    const io = fakeIo(["--help", "--cli"], { run });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBe(0);
+    expect(io.logged.join("\n")).toContain("Usage:");
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("treats an unknown flag as a normal run", async () => {
+    const run = mock(async (): Promise<void> => undefined);
+    const io = fakeIo(["--unknown-flag"], { run });
+
+    await handleCLI(testConfig, undefined, io);
+
+    expect(run).toHaveBeenCalledWith(testConfig);
+  });
+
+  it("initializes in startup-check mode and stops without running", async () => {
+    // A real App with its two methods spied: App is a class, so no literal
+    // satisfies typeof App.create, and only initialize and stop need observing.
+    const app = App.create(testConfig);
+    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
+    const stop = spyOn(app, "stop").mockResolvedValue(undefined);
+    const create = mock(() => app);
+    const run = mock(async (): Promise<void> => undefined);
+    const io = fakeIo(["--startup-check"], { create, run });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBeNull();
+    expect(create).toHaveBeenCalledWith(testConfig);
+    expect(initialize).toHaveBeenCalledWith({ mode: "startup-check" });
+    expect(stop).toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("exports deploy config as JSON and exits 0 without booting", async () => {
+    const config = defineConfig({
+      name: "deployable",
+      version: "3.0.0",
       plugins: [],
     });
-
-    const mockConsoleLog = mock(() => {});
-    const mockExit = mock((code?: number): never => {
-      throw new ProcessExited(code);
+    const create = mock(() => {
+      throw new Error("must not boot for --export-deploy-config");
     });
-    console.log = mockConsoleLog;
-    process.exit = mockExit;
-    process.argv = ["bun", ".brain-entrypoint.ts", "--help"];
+    const io = fakeIo(["--export-deploy-config"], { create });
 
-    await expectProcessExit(handleCLI(testConfig), 0);
+    const code = await exitCodeOf(handleCLI(config, undefined, io));
 
-    expect(mockConsoleLog).toHaveBeenCalled();
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("my-brain v1.2.3"),
-    );
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("Usage:"),
-    );
+    expect(code).toBe(0);
+    expect(create).not.toHaveBeenCalled();
+    const exported: unknown = JSON.parse(io.logged.join("\n"));
+    expect(exported).toMatchObject({ name: "deployable", version: "3.0.0" });
+  });
+
+  it("rejects --tool-input that is not JSON with exit 1", async () => {
+    const create = mock(() => {
+      throw new Error("must not boot when the input is unusable");
+    });
+    const io = fakeIo(["--tool", "system_status", "--tool-input", "{nope"], {
+      create,
+    });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBe(1);
+    expect(io.errored.join("\n")).toContain("--tool-input must be valid JSON");
+    expect(create).not.toHaveBeenCalled();
   });
 });

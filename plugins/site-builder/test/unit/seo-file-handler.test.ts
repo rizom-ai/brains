@@ -12,6 +12,7 @@ function createPreparedBuild(): PreparedSiteBuild {
     preparedAt: "2026-07-22T00:00:00.000Z",
     environment: "production",
     site: {
+      represents: "anchor",
       title: "SEO Site",
       description: "SEO fixture",
       copyright: "SEO copyright",

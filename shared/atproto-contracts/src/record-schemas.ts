@@ -7,6 +7,7 @@ import type {
   CanonicalAtprotoLexiconId,
 } from "./lexicon";
 import { canonicalAtprotoLexicons } from "./lexicon";
+import { isRecord } from "@brains/utils/is-record";
 
 interface AtprotoSchemaProperty extends AtprotoLexiconProperty {
   required?: string[] | undefined;
@@ -18,10 +19,6 @@ interface AtprotoSchemaProperty extends AtprotoLexiconProperty {
 }
 
 export type AtprotoRecordSchema = z.ZodType<Record<string, unknown>>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 // RFC 3339 date-time with required offset (Z or ±hh:mm), matching the AT
 // Protocol `datetime` string format. Lenient Date.parse would accept "2026-01-01".

@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import { caughtError, createMockLogger } from "@brains/test-utils";
+import { expectDefined } from "@brains/utils/expect-defined";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 
 const TINY_PNG_BASE64 =
@@ -29,42 +31,40 @@ const linkedInRegisterUploadBodySchema = z.looseObject({
   }),
 });
 
-type FetchHandler = (...args: unknown[]) => Promise<Partial<Response>>;
-
-function createFetchStub(handler: FetchHandler): ReturnType<typeof mock> {
-  return mock(handler);
+interface RecordedRequest {
+  url: string;
+  init: RequestInit;
 }
 
-function getMockCall(
-  mocked: ReturnType<typeof mock>,
-  index: number,
-): unknown[] {
-  const call = mocked.mock.calls[index];
-  if (!call) {
-    throw new Error(`Expected mock call at index ${index}`);
-  }
-  return call;
+interface RecordingFetch {
+  fetch: FetchLike;
+  calls: RecordedRequest[];
 }
 
-function getRequestOptions(call: unknown[]): RequestInit {
-  const options = call[1];
-  if (!isRequestInit(options)) {
-    throw new Error("Expected request options");
-  }
-  return options;
+/**
+ * A FetchLike that records every request and answers with whatever the
+ * responder returns for it. Responders return real Response objects, so
+ * nothing here has to pretend to be one and the client is typed exactly as
+ * it is in production.
+ */
+function recordFetch(
+  respond: (call: RecordedRequest, index: number) => Response,
+): RecordingFetch {
+  const calls: RecordedRequest[] = [];
+  const fetchFn: FetchLike = (input, init) => {
+    const call = { url: String(input), init: init ?? {} };
+    calls.push(call);
+    return Promise.resolve(respond(call, calls.length - 1));
+  };
+  return { fetch: fetchFn, calls };
 }
 
-function getRequestUrl(call: unknown[]): string {
-  const url = call[0];
-  if (typeof url !== "string") {
-    throw new Error("Expected a request URL");
-  }
-  return url;
-}
-
-function isRequestInit(value: unknown): value is RequestInit {
-  return typeof value === "object" && value !== null;
-}
+const userinfo = (): Response => Response.json({ sub: "user123" });
+const empty = (): Response => new Response("");
+const created = (shareId: string): Response =>
+  new Response("", { headers: { "X-RestLi-Id": shareId } });
+const failed = (status: number, body: string): Response =>
+  new Response(body, { status });
 
 function parseRequestJson(options: RequestInit): unknown {
   if (typeof options.body !== "string") {
@@ -84,6 +84,7 @@ async function expectRejectsWith(
     error = err;
   }
 
+  expect(error).toBeInstanceOf(Error);
   expect(caughtError(error).message).toMatch(pattern);
 }
 
@@ -98,23 +99,20 @@ describe("LinkedInClient", () => {
 
   describe("publish without image", () => {
     it("should publish text-only post with shareMediaCategory NONE", async () => {
-      const fetchStub = createFetchStub(() =>
-        Promise.resolve({
-          ok: true,
-          headers: new Headers({ "X-RestLi-Id": "urn:li:share:123" }),
-          json: () => Promise.resolve({ sub: "user123" }),
-          text: () => Promise.resolve(""),
-        }),
+      // One answer serves both the userinfo lookup and the post creation.
+      const { fetch, calls } = recordFetch(() =>
+        Response.json(
+          { sub: "user123" },
+          { headers: { "X-RestLi-Id": "urn:li:share:123" } },
+        ),
       );
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const result = await client.publish("Hello LinkedIn!", {});
 
-      expect(fetchStub).toHaveBeenCalled();
-      const options = getRequestOptions(getMockCall(fetchStub, 1));
-      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
+      expect(calls).toHaveLength(2);
+      const { init } = expectDefined(calls[1]);
+      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(init));
 
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
@@ -126,19 +124,11 @@ describe("LinkedInClient", () => {
 
   describe("publish with image", () => {
     it("should register upload, upload binary, then publish with IMAGE category", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ sub: "user123" }),
-          });
-        } else if (callCount === 2) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0
+          ? userinfo()
+          : index === 1
+            ? Response.json({
                 value: {
                   uploadMechanism: {
                     "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
@@ -148,20 +138,12 @@ describe("LinkedInClient", () => {
                   },
                   asset: "urn:li:digitalmediaAsset:abc123",
                 },
-              }),
-          });
-        } else if (callCount === 3) {
-          return Promise.resolve({ ok: true });
-        } else {
-          return Promise.resolve({
-            ok: true,
-            headers: new Headers({ "X-RestLi-Id": "urn:li:share:456" }),
-          });
-        }
-      });
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+              })
+            : index === 2
+              ? empty()
+              : created("urn:li:share:456"),
+      );
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -170,11 +152,11 @@ describe("LinkedInClient", () => {
 
       const result = await client.publish("Post with image!", {}, imageData);
 
-      expect(fetchStub).toHaveBeenCalledTimes(4);
+      expect(calls).toHaveLength(4);
       expect(result.id).toBe("urn:li:share:456");
 
-      const options = getRequestOptions(getMockCall(fetchStub, 3));
-      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
+      const { init } = expectDefined(calls[3]);
+      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(init));
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
           .shareMediaCategory,
@@ -185,30 +167,14 @@ describe("LinkedInClient", () => {
     });
 
     it("should fall back to text-only if image upload fails", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ sub: "user123" }),
-          });
-        } else if (callCount === 2) {
-          return Promise.resolve({
-            ok: false,
-            status: 500,
-            text: () => Promise.resolve("Upload service unavailable"),
-          });
-        } else {
-          return Promise.resolve({
-            ok: true,
-            headers: new Headers({ "X-RestLi-Id": "urn:li:share:789" }),
-          });
-        }
-      });
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0
+          ? userinfo()
+          : index === 1
+            ? failed(500, "Upload service unavailable")
+            : created("urn:li:share:789"),
+      );
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -224,8 +190,8 @@ describe("LinkedInClient", () => {
       expect(logger.warn).toHaveBeenCalled();
       expect(result.id).toBe("urn:li:share:789");
 
-      const options = getRequestOptions(getMockCall(fetchStub, 2));
-      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(options));
+      const { init } = expectDefined(calls[2]);
+      const body = linkedInUgcPostBodySchema.parse(parseRequestJson(init));
       expect(
         body.specificContent["com.linkedin.ugc.ShareContent"]
           .shareMediaCategory,
@@ -235,37 +201,21 @@ describe("LinkedInClient", () => {
 
   describe("publish with document", () => {
     it("should initialize document upload, upload PDF, then publish a native document post", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ sub: "user123" }),
-          });
-        } else if (callCount === 2) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0
+          ? userinfo()
+          : index === 1
+            ? Response.json({
                 value: {
                   uploadUrl: "https://api.linkedin.com/upload/doc123",
                   document: "urn:li:document:doc123",
                 },
-              }),
-          });
-        } else if (callCount === 3) {
-          return Promise.resolve({ ok: true });
-        } else {
-          return Promise.resolve({
-            ok: true,
-            headers: new Headers({ "X-RestLi-Id": "urn:li:share:doc456" }),
-          });
-        }
-      });
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+              })
+            : index === 2
+              ? empty()
+              : created("urn:li:share:doc456"),
+      );
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const documentData: PublishMediaData[] = [
         {
@@ -283,44 +233,40 @@ describe("LinkedInClient", () => {
         documentData,
       );
 
-      expect(fetchStub).toHaveBeenCalledTimes(4);
+      expect(calls).toHaveLength(4);
       expect(result.id).toBe("urn:li:share:doc456");
 
-      const initializeUrl = getRequestUrl(getMockCall(fetchStub, 1));
-      expect(initializeUrl).toBe(
+      const register = expectDefined(calls[1]);
+      expect(register.url).toBe(
         "https://api.linkedin.com/rest/documents?action=initializeUpload",
       );
-      const registerOptions = getRequestOptions(getMockCall(fetchStub, 1));
-      expect(registerOptions.headers).toMatchObject({
+      expect(register.init.headers).toMatchObject({
         Authorization: "Bearer test-token",
         "Content-Type": "application/json",
         "Linkedin-Version": "202604",
         "X-Restli-Protocol-Version": "2.0.0",
       });
-      const registerBody = parseRequestJson(registerOptions);
-      expect(registerBody).toEqual({
+      expect(parseRequestJson(register.init)).toEqual({
         initializeUploadRequest: {
           owner: "urn:li:person:user123",
         },
       });
 
-      const uploadOptions = getRequestOptions(getMockCall(fetchStub, 2));
-      expect(uploadOptions.headers).toEqual({
+      const upload = expectDefined(calls[2]);
+      expect(upload.init.headers).toEqual({
         Authorization: "Bearer test-token",
         "Content-Type": "application/pdf",
       });
 
-      const publishUrl = getRequestUrl(getMockCall(fetchStub, 3));
-      expect(publishUrl).toBe("https://api.linkedin.com/rest/posts");
-      const publishOptions = getRequestOptions(getMockCall(fetchStub, 3));
-      expect(publishOptions.headers).toMatchObject({
+      const publish = expectDefined(calls[3]);
+      expect(publish.url).toBe("https://api.linkedin.com/rest/posts");
+      expect(publish.init.headers).toMatchObject({
         Authorization: "Bearer test-token",
         "Content-Type": "application/json",
         "Linkedin-Version": "202604",
         "X-Restli-Protocol-Version": "2.0.0",
       });
-      const publishBody = parseRequestJson(publishOptions);
-      expect(publishBody).toEqual({
+      expect(parseRequestJson(publish.init)).toEqual({
         author: "urn:li:person:user123",
         commentary: "Post with PDF carousel!",
         visibility: "PUBLIC",
@@ -341,24 +287,10 @@ describe("LinkedInClient", () => {
     });
 
     it("should throw if document upload fails and skip the publish call", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ sub: "user123" }),
-          });
-        }
-        return Promise.resolve({
-          ok: false,
-          status: 500,
-          text: () => Promise.resolve("Upload service unavailable"),
-        });
-      });
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0 ? userinfo() : failed(500, "Upload service unavailable"),
+      );
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const documentData: PublishMediaData[] = [
         {
@@ -380,35 +312,23 @@ describe("LinkedInClient", () => {
       );
 
       // userinfo + initialize upload only; no publish call attempted.
-      expect(fetchStub).toHaveBeenCalledTimes(2);
+      expect(calls).toHaveLength(2);
     });
 
     it("should throw if document binary upload fails", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ sub: "user123" }),
-          });
-        } else if (callCount === 2) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0
+          ? userinfo()
+          : index === 1
+            ? Response.json({
                 value: {
                   uploadUrl: "https://api.linkedin.com/upload/doc-err",
                   document: "urn:li:document:doc-err",
                 },
-              }),
-          });
-        }
-        return Promise.resolve({ ok: false, status: 502 });
-      });
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+              })
+            : failed(502, ""),
+      );
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const documentData: PublishMediaData[] = [
         {
@@ -430,41 +350,25 @@ describe("LinkedInClient", () => {
       );
 
       // userinfo + initialize + binary PUT; no publish call attempted.
-      expect(fetchStub).toHaveBeenCalledTimes(3);
+      expect(calls).toHaveLength(3);
     });
 
     it("should throw if native document post creation fails", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ sub: "user123" }),
-          });
-        } else if (callCount === 2) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0
+          ? userinfo()
+          : index === 1
+            ? Response.json({
                 value: {
                   uploadUrl: "https://api.linkedin.com/upload/doc-post-err",
                   document: "urn:li:document:doc-post-err",
                 },
-              }),
-          });
-        } else if (callCount === 3) {
-          return Promise.resolve({ ok: true });
-        }
-        return Promise.resolve({
-          ok: false,
-          status: 422,
-          text: () => Promise.resolve("Invalid document post"),
-        });
-      });
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+              })
+            : index === 2
+              ? empty()
+              : failed(422, "Invalid document post"),
+      );
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const documentData: PublishMediaData[] = [
         {
@@ -485,26 +389,21 @@ describe("LinkedInClient", () => {
         /document post API error: 422/,
       );
 
-      expect(fetchStub).toHaveBeenCalledTimes(4);
-      const publishUrl = getRequestUrl(getMockCall(fetchStub, 3));
-      expect(publishUrl).toBe("https://api.linkedin.com/rest/posts");
+      expect(calls).toHaveLength(4);
+      expect(expectDefined(calls[3]).url).toBe(
+        "https://api.linkedin.com/rest/posts",
+      );
     });
   });
 
   describe("error body scrubbing", () => {
     it("should truncate oversized LinkedIn error bodies in the thrown message", async () => {
       const longBody = "x".repeat(500);
-      const fetchStub = createFetchStub(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          text: () => Promise.resolve(longBody),
-        }),
-      );
+      const { fetch } = recordFetch(() => failed(500, longBody));
       const orgClient = new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: fetchStub },
+        { fetch },
       );
 
       let error: unknown;
@@ -514,6 +413,7 @@ describe("LinkedInClient", () => {
         error = err;
       }
 
+      expect(error).toBeInstanceOf(Error);
       const message = caughtError(error).message;
       expect(message).toContain("truncated");
       expect(message.length).toBeLessThan(longBody.length);
@@ -521,68 +421,47 @@ describe("LinkedInClient", () => {
   });
 
   describe("organization mode", () => {
-    function makeOrgClient(fetchStub: ReturnType<typeof mock>): LinkedInClient {
+    function makeOrgClient(fetchFn: FetchLike): LinkedInClient {
       return new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: fetchStub },
+        { fetch: fetchFn },
       );
     }
 
     it("should use organization URN as author", async () => {
-      const fetchStub = createFetchStub(() =>
-        Promise.resolve({
-          ok: true,
-          headers: new Headers({ "X-RestLi-Id": "urn:li:share:123" }),
-          json: () => Promise.resolve({}),
-          text: () => Promise.resolve(""),
-        }),
-      );
-      const orgClient = makeOrgClient(fetchStub);
+      const { fetch, calls } = recordFetch(() => created("urn:li:share:123"));
+      const orgClient = makeOrgClient(fetch);
 
       const result = await orgClient.publish("Hello org!", {});
 
-      expect(fetchStub).toHaveBeenCalledTimes(1);
-      const url = getRequestUrl(getMockCall(fetchStub, 0));
-      const options = getRequestOptions(getMockCall(fetchStub, 0));
+      expect(calls).toHaveLength(1);
+      const { url, init } = expectDefined(calls[0]);
       expect(url).toContain("/ugcPosts");
-      const body = linkedInAuthoredPostBodySchema.parse(
-        parseRequestJson(options),
-      );
+      const body = linkedInAuthoredPostBodySchema.parse(parseRequestJson(init));
       expect(body.author).toBe("urn:li:organization:12345");
       expect(result.id).toBe("urn:li:share:123");
     });
 
     it("should use organization URN as owner in image upload", async () => {
-      let callCount = 0;
-      const fetchStub = createFetchStub(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: true,
-            json: () =>
-              Promise.resolve({
-                value: {
-                  uploadMechanism: {
-                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
-                      {
-                        uploadUrl: "https://api.linkedin.com/upload/123",
-                      },
-                  },
-                  asset: "urn:li:digitalmediaAsset:abc123",
+      const { fetch, calls } = recordFetch((_call, index) =>
+        index === 0
+          ? Response.json({
+              value: {
+                uploadMechanism: {
+                  "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
+                    {
+                      uploadUrl: "https://api.linkedin.com/upload/123",
+                    },
                 },
-              }),
-          });
-        } else if (callCount === 2) {
-          return Promise.resolve({ ok: true });
-        } else {
-          return Promise.resolve({
-            ok: true,
-            headers: new Headers({ "X-RestLi-Id": "urn:li:share:org456" }),
-          });
-        }
-      });
-      const orgClient = makeOrgClient(fetchStub);
+                asset: "urn:li:digitalmediaAsset:abc123",
+              },
+            })
+          : index === 1
+            ? empty()
+            : created("urn:li:share:org456"),
+      );
+      const orgClient = makeOrgClient(fetch);
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -591,11 +470,11 @@ describe("LinkedInClient", () => {
 
       await orgClient.publish("Org post with image!", {}, imageData);
 
-      expect(fetchStub).toHaveBeenCalledTimes(3);
+      expect(calls).toHaveLength(3);
 
-      const registerOptions = getRequestOptions(getMockCall(fetchStub, 0));
+      const { init } = expectDefined(calls[0]);
       const registerBody = linkedInRegisterUploadBodySchema.parse(
-        parseRequestJson(registerOptions),
+        parseRequestJson(init),
       );
       expect(registerBody.registerUploadRequest.owner).toBe(
         "urn:li:organization:12345",
@@ -605,15 +484,8 @@ describe("LinkedInClient", () => {
 
   describe("validateCredentials", () => {
     it("should return true when token is valid", async () => {
-      const fetchStub = createFetchStub(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ sub: "user123" }),
-        }),
-      );
-      const client = new LinkedInClient(config, logger, {
-        fetch: fetchStub,
-      });
+      const { fetch } = recordFetch(() => userinfo());
+      const client = new LinkedInClient(config, logger, { fetch });
 
       const result = await client.validateCredentials();
       expect(result).toBe(true);
@@ -626,37 +498,25 @@ describe("LinkedInClient", () => {
     });
 
     it("should validate org credentials by fetching organization endpoint", async () => {
-      const fetchStub = createFetchStub(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ id: 12345 }),
-        }),
-      );
+      const { fetch, calls } = recordFetch(() => Response.json({ id: 12345 }));
       const orgClient = new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: fetchStub },
+        { fetch },
       );
 
       const result = await orgClient.validateCredentials();
       expect(result).toBe(true);
 
-      const url = getRequestUrl(getMockCall(fetchStub, 0));
-      expect(url).toContain("/organizations/12345");
+      expect(expectDefined(calls[0]).url).toContain("/organizations/12345");
     });
 
     it("should return false when org validation fails", async () => {
-      const fetchStub = createFetchStub(() =>
-        Promise.resolve({
-          ok: false,
-          status: 403,
-          text: () => Promise.resolve("Forbidden"),
-        }),
-      );
+      const { fetch } = recordFetch(() => failed(403, "Forbidden"));
       const orgClient = new LinkedInClient(
         { accessToken: "test-token", organizationId: "12345" },
         logger,
-        { fetch: fetchStub },
+        { fetch },
       );
 
       const result = await orgClient.validateCredentials();

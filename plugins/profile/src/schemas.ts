@@ -1,7 +1,6 @@
 import {
   anchorProfileBodySchema,
   parseMarkdownWithFrontmatter,
-  type AnchorProfile,
   type ProfileCategory,
   type ProfileKindDefinition,
 } from "@brains/plugins";
@@ -154,30 +153,37 @@ export type OrganizationProfileExtensionSchema = ReturnType<
 export const organizationProfileExtension: OrganizationProfileExtensionSchema =
   commonProfileExtension.extend(organizationProfileFields.shape);
 
-export interface ProfessionalProfile
-  extends
-    AnchorProfile,
-    ProfessionalProfileExtension,
-    Record<string, unknown> {}
-
-export interface TeamProfile
-  extends AnchorProfile, TeamProfileExtension, Record<string, unknown> {}
-
-export interface OrganizationProfile
-  extends
-    AnchorProfile,
-    OrganizationProfileExtension,
-    Record<string, unknown> {}
-
-export const professionalProfileSchema: z.ZodType<ProfessionalProfile> =
+type ProfessionalProfileSchema = ReturnType<
+  ReturnType<
+    typeof anchorProfileBodySchema.extend<
+      ProfessionalProfileExtensionSchema["shape"]
+    >
+  >["strict"]
+>;
+export const professionalProfileSchema: ProfessionalProfileSchema =
   anchorProfileBodySchema.extend(professionalProfileExtension.shape).strict();
+export type ProfessionalProfile = z.output<typeof professionalProfileSchema>;
 
-export const teamProfileSchema: z.ZodType<TeamProfile> = anchorProfileBodySchema
+type TeamProfileSchema = ReturnType<
+  ReturnType<
+    typeof anchorProfileBodySchema.extend<TeamProfileExtensionSchema["shape"]>
+  >["strict"]
+>;
+export const teamProfileSchema: TeamProfileSchema = anchorProfileBodySchema
   .extend(teamProfileExtension.shape)
   .strict();
+export type TeamProfile = z.output<typeof teamProfileSchema>;
 
-export const organizationProfileSchema: z.ZodType<OrganizationProfile> =
+type OrganizationProfileSchema = ReturnType<
+  ReturnType<
+    typeof anchorProfileBodySchema.extend<
+      OrganizationProfileExtensionSchema["shape"]
+    >
+  >["strict"]
+>;
+export const organizationProfileSchema: OrganizationProfileSchema =
   anchorProfileBodySchema.extend(organizationProfileExtension.shape).strict();
+export type OrganizationProfile = z.output<typeof organizationProfileSchema>;
 
 type PublicProfileViewObjectSchema = ReturnType<
   typeof anchorProfileBodySchema.extend<CommonProfileExtensionSchema["shape"]>

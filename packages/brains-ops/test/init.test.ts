@@ -231,6 +231,7 @@ describe("initPilotRepo", () => {
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).not.toContain("schemaVersion:");
     expect(pilotYaml).toContain("bundles:\n  - core");
+    expect(pilotYaml).not.toContain("imageContract:");
     expect(pilotYaml).toContain("githubOrg: <github-org>");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(pilotYaml).toContain("aiApiKey: AI_API_KEY");
@@ -288,6 +289,8 @@ describe("initPilotRepo", () => {
     expect(buildWorkflow).toContain("cohorts/**");
     expect(buildWorkflow).toContain("pilot.yaml");
     expect(buildWorkflow).toContain("${{ inputs.brain_version || '' }}");
+    expect(buildWorkflow).not.toContain("image_contract");
+    expect(buildWorkflow).not.toContain("IMAGE_CONTRACT_INPUT");
     expect(buildWorkflow).toContain(
       "bun deploy/scripts/resolve-missing-images.ts",
     );
@@ -581,8 +584,9 @@ describe("initPilotRepo", () => {
     expect(resolveScript).toContain("image_tag");
     // Tag derivation goes through the shared @rizom/ops helpers so the build
     // and the deploy can never disagree about a tag.
-    expect(resolveScript).toContain("siteImageTag");
-    expect(resolveScript).toContain("sitePackagesFor");
+    expect(resolveScript).toContain("runtimeImageTag");
+    expect(resolveScript).not.toContain("imageContract");
+    expect(resolveScript).not.toContain("sitePackagesFor");
     expect(resolveScript).toContain("derivePreviewDomain");
     expect(resolveScript).toContain(
       "sharedDomain: registry.pilot.domainSuffix",
@@ -597,7 +601,7 @@ describe("initPilotRepo", () => {
     expect(helpersScript).toContain("readJsonResponse");
     expect(helpersScript).toContain("parseEnvFile");
     expect(helpersScript).toContain("requireEnv");
-    expect(helpersScript).toContain("siteImageTag");
+    expect(helpersScript).toContain("runtimeImageTag");
     expect(helpersScript).toContain("runResolveMissingImages");
 
     const resolveHandlesScript = await readFile(
@@ -724,7 +728,8 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("site-mockup-migration.md");
     expect(operatorPlaybook).toContain("version: <exact-site-version>");
     expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");
-    expect(operatorPlaybook).toContain("per-instance image");
+    expect(operatorPlaybook).not.toContain("imageContract");
+    expect(operatorPlaybook).toContain("same image");
     expect(operatorPlaybook).toContain(
       "### Custom-package canary and rollback",
     );
@@ -755,8 +760,8 @@ describe("initPilotRepo", () => {
     expect(readme).toContain(".env.schema");
     expect(readme).toContain("single source of truth");
     expect(readme).toContain("brain-${brainVersion}");
-    expect(readme).toContain("brain-${brainVersion}-sites-${packageHash}");
-    expect(readme).toContain("required exact version pin");
+    expect(readme).not.toContain("imageContract");
+    expect(readme).toContain("exact version pin");
     expect(readme).toContain("pilot.yaml.brainVersion");
     expect(readme).toContain("single operator-owned repo");
   });

@@ -2,63 +2,69 @@ import { z } from "@brains/utils/zod";
 
 export const EMAIL_INBOUND = "email:inbound" as const;
 
-interface InboundEmailAddressValue {
-  name?: string | undefined;
-  address: string;
-}
+type InboundEmailAddressSchema = z.ZodObject<
+  { name: z.ZodOptional<z.ZodString>; address: z.ZodEmail },
+  z.core.$strict
+>;
 
-export const inboundEmailAddressSchema: z.ZodType<
-  InboundEmailAddressValue,
-  InboundEmailAddressValue
-> = z.strictObject({
-  name: z.string().min(1).optional(),
-  address: z.email(),
-});
+export const inboundEmailAddressSchema: InboundEmailAddressSchema =
+  z.strictObject({
+    name: z.string().min(1).optional(),
+    address: z.email(),
+  });
 
 export type InboundEmailAddress = z.output<typeof inboundEmailAddressSchema>;
 
-interface InboundEmailSenderValue {
-  personId: string;
-  displayName: string;
-  permissionLevel: "admin" | "trusted" | "public";
-}
+type InboundEmailSenderSchema = z.ZodObject<
+  {
+    personId: z.ZodString;
+    displayName: z.ZodString;
+    permissionLevel: z.ZodEnum<{
+      admin: "admin";
+      trusted: "trusted";
+      public: "public";
+    }>;
+  },
+  z.core.$strict
+>;
 
-export const inboundEmailSenderSchema: z.ZodType<
-  InboundEmailSenderValue,
-  InboundEmailSenderValue
-> = z.strictObject({
-  personId: z.string().min(1).max(200),
-  displayName: z.string().trim().min(1).max(200),
-  permissionLevel: z.enum(["admin", "trusted", "public"]),
-});
+export const inboundEmailSenderSchema: InboundEmailSenderSchema =
+  z.strictObject({
+    personId: z.string().min(1).max(200),
+    displayName: z.string().trim().min(1).max(200),
+    permissionLevel: z.enum(["admin", "trusted", "public"]),
+  });
 
 export type InboundEmailSender = z.output<typeof inboundEmailSenderSchema>;
 
-interface InboundEmailValue {
-  messageId: string;
-  sourceRef: string;
-  threadId?: string | undefined;
-  from: InboundEmailAddressValue;
-  replyTo?: InboundEmailAddressValue | undefined;
-  to: InboundEmailAddressValue[];
-  subject: string;
-  receivedAt: string;
-  text: string;
-  html?: string | undefined;
-  headers: {
-    listUnsubscribe?: string | undefined;
-    autoSubmitted?: string | undefined;
-    precedence?: string | undefined;
-    inReplyTo?: string | undefined;
-    references?: string[] | undefined;
-  };
-  sender?: InboundEmailSenderValue | undefined;
-}
+type InboundEmailSchema = z.ZodObject<
+  {
+    messageId: z.ZodString;
+    sourceRef: z.ZodString;
+    threadId: z.ZodOptional<z.ZodString>;
+    from: InboundEmailAddressSchema;
+    replyTo: z.ZodOptional<InboundEmailAddressSchema>;
+    to: z.ZodArray<InboundEmailAddressSchema>;
+    subject: z.ZodString;
+    receivedAt: z.ZodISODateTime;
+    text: z.ZodString;
+    html: z.ZodOptional<z.ZodString>;
+    headers: z.ZodObject<
+      {
+        listUnsubscribe: z.ZodOptional<z.ZodString>;
+        autoSubmitted: z.ZodOptional<z.ZodString>;
+        precedence: z.ZodOptional<z.ZodString>;
+        inReplyTo: z.ZodOptional<z.ZodString>;
+        references: z.ZodOptional<z.ZodArray<z.ZodString>>;
+      },
+      z.core.$strict
+    >;
+    sender: z.ZodOptional<InboundEmailSenderSchema>;
+  },
+  z.core.$strict
+>;
 
-export const inboundEmailSchema: z.ZodType<
-  InboundEmailValue,
-  InboundEmailValue
-> = z.strictObject({
+export const inboundEmailSchema: InboundEmailSchema = z.strictObject({
   messageId: z.string().min(1),
   sourceRef: z.string().min(1),
   threadId: z.string().min(1).optional(),

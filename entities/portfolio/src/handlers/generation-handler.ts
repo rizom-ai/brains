@@ -12,20 +12,19 @@ import { projectAdapter } from "../adapters/project-adapter";
 /**
  * Input schema for project generation job
  */
-export interface ProjectGenerationJobData {
-  prompt: string;
-  year: number;
-  title?: string | undefined;
-}
-
-export const projectGenerationJobSchema: z.ZodType<
-  ProjectGenerationJobData,
-  ProjectGenerationJobData
-> = z.object({
+export const projectGenerationJobSchema: z.ZodObject<{
+  prompt: z.ZodString;
+  year: z.ZodNumber;
+  title: z.ZodOptional<z.ZodString>;
+}> = z.object({
   prompt: z.string(),
   year: z.number(),
   title: z.string().optional(),
 });
+
+export type ProjectGenerationJobData = z.output<
+  typeof projectGenerationJobSchema
+>;
 
 export interface ProjectGenerationResult extends z.output<
   typeof generationResultSchema

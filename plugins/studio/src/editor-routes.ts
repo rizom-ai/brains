@@ -21,7 +21,10 @@ import {
 import { renderEditorShellHtml } from "./editor-shell";
 import { normalizeStudioBasePath } from "./studio-paths";
 import { listBuiltInStudioWorkspaces } from "./account-workspace";
-import { listBuiltInStudioChatWorkspaces } from "./chat-workspace";
+import {
+  listBuiltInStudioChatWorkspaces,
+  STUDIO_CHAT_ROUTE_PATH,
+} from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
@@ -250,6 +253,7 @@ export function createEditorRoutes(
 
   const serveShell = async (request: Request): Promise<Response> => {
     const requestUrl = new URL(request.url);
+    const nativeChat = requestUrl.pathname === STUDIO_CHAT_ROUTE_PATH;
     const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
     const resolution = await resolveRequestAccess(request);
     if (resolution.state === "unauthenticated") {
@@ -260,6 +264,9 @@ export function createEditorRoutes(
           "Cache-Control": "no-store",
         },
       });
+    }
+    if (nativeChat && !resolveStudioChatApiPath(getContext())) {
+      return new Response("Chat is not configured", { status: 404 });
     }
     return new Response(
       renderEditorShellHtml({
@@ -289,6 +296,12 @@ export function createEditorRoutes(
   };
 
   return [
+    {
+      path: STUDIO_CHAT_ROUTE_PATH,
+      method: "GET",
+      public: true,
+      handler: serveShell,
+    },
     {
       path: shellPath,
       method: "GET",

@@ -67,12 +67,17 @@ export async function resolvePrompt(
   }
 
   // Entity doesn't exist — materialize the default prompt
+  const title = targetToTitle(target);
+  const content = generateMarkdownWithFrontmatter(fallback, {
+    title,
+    target,
+  });
+
+  // Only the write is tolerated, for the case the comment names: the prompt
+  // entity type may not be registered yet. Building the content above is ours,
+  // and swallowing a fault there would seed the fallback forever without ever
+  // saying why.
   try {
-    const title = targetToTitle(target);
-    const content = generateMarkdownWithFrontmatter(fallback, {
-      title,
-      target,
-    });
     await entityService.createEntity({
       entity: {
         id: entityId,
@@ -82,7 +87,7 @@ export async function resolvePrompt(
       },
     });
   } catch {
-    // Creation failed (e.g. entity type not registered yet) — silent fallback
+    // Entity type not registered yet — the fallback below still answers.
   }
 
   promptCache.set(target, fallback);

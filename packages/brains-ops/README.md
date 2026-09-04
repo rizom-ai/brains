@@ -2,6 +2,10 @@
 
 Operator CLI package for managing pilot brain fleet registry repos.
 
+## Runtime images
+
+The fleet builds one immutable `brain-${brainVersion}` image per effective Brain version. Each image contains the union of exact site and theme package pins used on that version, and conflicting package pins fail before build. Package-set changes require a fresh Brain version.
+
 ## Commands
 
 - `brains-ops init <repo>`

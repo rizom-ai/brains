@@ -3,11 +3,7 @@ import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { BlogPostTemplate } from "./blog-post";
 import { Head, useMarkdownToHtml } from "@brains/ui-library";
-import {
-  blogViewSchema,
-  type BlogPostView,
-  type BlogSchemaData,
-} from "./blog-view-schema";
+import { blogViewSchema, type BlogPostView } from "./blog-view-schema";
 
 export interface HomepagePostContent {
   type: "post";
@@ -17,27 +13,21 @@ export interface HomepagePostContent {
   seriesPosts: BlogPostView[] | null;
 }
 
-interface HomepagePostSchemaContent {
-  type: "post";
-  post: BlogSchemaData;
-  prevPost: BlogSchemaData | null;
-  nextPost: BlogSchemaData | null;
-  seriesPosts: BlogSchemaData[] | null;
-}
-
-export interface HomepageMarkdownContent {
-  type: "markdown";
-  content: string;
-}
-
-export type HomepageContent = HomepagePostContent | HomepageMarkdownContent;
-type HomepageSchemaContent =
-  HomepagePostSchemaContent | HomepageMarkdownContent;
-
 /**
  * Homepage can show either the latest blog post or markdown content
  */
-export const homepageSchema: z.ZodType<HomepageSchemaContent> = z.union([
+export const homepageSchema: z.ZodUnion<
+  readonly [
+    z.ZodObject<{
+      type: z.ZodLiteral<"post">;
+      post: typeof blogViewSchema;
+      prevPost: z.ZodNullable<typeof blogViewSchema>;
+      nextPost: z.ZodNullable<typeof blogViewSchema>;
+      seriesPosts: z.ZodNullable<z.ZodArray<typeof blogViewSchema>>;
+    }>,
+    z.ZodObject<{ type: z.ZodLiteral<"markdown">; content: z.ZodString }>,
+  ]
+> = z.union([
   // Blog post variant
   z.object({
     type: z.literal("post"),
@@ -52,6 +42,15 @@ export const homepageSchema: z.ZodType<HomepageSchemaContent> = z.union([
     content: z.string(),
   }),
 ]);
+
+type HomepageSchemaContent = z.output<typeof homepageSchema>;
+
+export type HomepageMarkdownContent = Extract<
+  z.output<typeof homepageSchema>,
+  { type: "markdown" }
+>;
+
+export type HomepageContent = HomepagePostContent | HomepageMarkdownContent;
 
 /**
  * Homepage template - renders either blog post or markdown content

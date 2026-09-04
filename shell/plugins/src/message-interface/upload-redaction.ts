@@ -1,8 +1,5 @@
 import type { StructuredChatCard } from "../contracts/agent";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+import { isRecord } from "@brains/utils/is-record";
 
 function isUploadRef(value: unknown): boolean {
   return (

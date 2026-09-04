@@ -1,71 +1,58 @@
 import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
-import type {
-  DashboardWidgetSection,
-  WidgetVisibility,
+import {
+  dashboardDigestLineSchema,
+  dashboardWidgetSectionSchema,
+  widgetVisibilitySchema,
+  type DashboardDigestLine,
 } from "./widget-registry";
 import { z } from "@brains/utils/zod";
 
-const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
-  z.enum(["public", "trusted", "admin"]);
+export type WidgetDigestLine = DashboardDigestLine;
+export const widgetDigestLineSchema: typeof dashboardDigestLineSchema =
+  dashboardDigestLineSchema;
 
-export interface WidgetDigestLine {
-  label: string;
-  value: string;
-  tone?: "plain" | "good" | "warn" | undefined;
-}
-
-export const widgetDigestLineSchema: z.ZodType<
-  WidgetDigestLine,
-  WidgetDigestLine
-> = z.object({
-  label: z.string(),
-  value: z.string(),
-  tone: z.enum(["plain", "good", "warn"]).optional(),
-});
-
-export interface WidgetMeta {
-  id: string;
-  pluginId: string;
-  title: string;
-  description?: string | undefined;
-  group: string;
-  priority: number;
-  section: DashboardWidgetSection;
-  rendererName: typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER;
-  visibility: WidgetVisibility;
-  needsAttention?: number | undefined;
-  digest?: WidgetDigestLine[] | undefined;
-}
-
-export const widgetMetaSchema: z.ZodType<WidgetMeta, WidgetMeta> = z.object({
+export const widgetMetaSchema: z.ZodObject<{
+  id: z.ZodString;
+  pluginId: z.ZodString;
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  group: z.ZodString;
+  priority: z.ZodNumber;
+  section: typeof dashboardWidgetSectionSchema;
+  rendererName: z.ZodLiteral<typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER>;
+  visibility: typeof widgetVisibilitySchema;
+  needsAttention: z.ZodOptional<z.ZodNumber>;
+  digest: z.ZodOptional<z.ZodArray<typeof widgetDigestLineSchema>>;
+}> = z.object({
   id: z.string(),
   pluginId: z.string(),
   title: z.string(),
   description: z.string().optional(),
   group: z.string().min(1),
   priority: z.number(),
-  section: z.enum(["primary", "secondary", "sidebar"]),
+  section: dashboardWidgetSectionSchema,
   rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
   visibility: widgetVisibilitySchema,
   needsAttention: z.number().int().nonnegative().optional(),
   digest: z.array(widgetDigestLineSchema).max(4).optional(),
 });
 
-export interface WidgetData {
-  widget: WidgetMeta;
-  data: unknown;
-}
+export type WidgetMeta = z.output<typeof widgetMetaSchema>;
 
-export const widgetDataSchema: z.ZodType<WidgetData, WidgetData> = z.object({
+export const widgetDataSchema: z.ZodObject<{
+  widget: typeof widgetMetaSchema;
+  data: z.ZodUnknown;
+}> = z.object({
   widget: widgetMetaSchema,
   data: z.unknown(),
 });
 
-export interface DashboardData {
-  widgets: Record<string, WidgetData>;
-}
+export type WidgetData = z.output<typeof widgetDataSchema>;
 
-export const dashboardDataSchema: z.ZodType<DashboardData, DashboardData> =
-  z.object({
-    widgets: z.record(z.string(), widgetDataSchema),
-  });
+export const dashboardDataSchema: z.ZodObject<{
+  widgets: z.ZodRecord<z.ZodString, typeof widgetDataSchema>;
+}> = z.object({
+  widgets: z.record(z.string(), widgetDataSchema),
+});
+
+export type DashboardData = z.output<typeof dashboardDataSchema>;

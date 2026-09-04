@@ -4,7 +4,7 @@ export {
   type LoadPilotRegistryOptions,
 } from "./load-registry";
 export {
-  siteImageTag,
+  runtimeImageTag,
   sitePackagesFor,
   requiredImages,
   resolveImageBuilds,

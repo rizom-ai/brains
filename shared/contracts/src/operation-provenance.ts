@@ -1,28 +1,32 @@
 import { z } from "@brains/utils/zod";
 
-export interface ProvenanceEntityReference {
-  entityType: string;
-  entityId: string;
-  contentHash?: string | undefined;
-}
+type ProvenanceEntityReferenceSchema = z.ZodObject<{
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+  contentHash: z.ZodOptional<z.ZodString>;
+}>;
 
-export interface OperationProvenance {
-  rootJobId: string;
-  causationId: string;
-  projectionId?: string | undefined;
-  projectionLineage: string[];
-  sourceEntity?: ProvenanceEntityReference | undefined;
-  derivationDepth: number;
-}
-
-export const ProvenanceEntityReferenceSchema: z.ZodType<ProvenanceEntityReference> =
+export const ProvenanceEntityReferenceSchema: ProvenanceEntityReferenceSchema =
   z.object({
     entityType: z.string().min(1),
     entityId: z.string().min(1),
     contentHash: z.string().min(1).optional(),
   });
 
-export const OperationProvenanceSchema: z.ZodType<OperationProvenance> = z
+export type ProvenanceEntityReference = z.output<
+  typeof ProvenanceEntityReferenceSchema
+>;
+
+type OperationProvenanceSchema = z.ZodObject<{
+  rootJobId: z.ZodString;
+  causationId: z.ZodString;
+  projectionId: z.ZodOptional<z.ZodString>;
+  projectionLineage: z.ZodArray<z.ZodString>;
+  sourceEntity: z.ZodOptional<ProvenanceEntityReferenceSchema>;
+  derivationDepth: z.ZodNumber;
+}>;
+
+export const OperationProvenanceSchema: OperationProvenanceSchema = z
   .object({
     rootJobId: z.string().min(1),
     causationId: z.string().min(1),
@@ -50,3 +54,5 @@ export const OperationProvenanceSchema: z.ZodType<OperationProvenance> = z
       });
     }
   });
+
+export type OperationProvenance = z.output<typeof OperationProvenanceSchema>;

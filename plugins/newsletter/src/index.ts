@@ -33,18 +33,11 @@ export type {
  * Distributes shared credentials and behavior to the newsletter entity plugin
  * and the buttondown service plugin. One brain.yaml block configures both.
  */
-export interface NewsletterCompositeConfig {
-  apiKey?: string | undefined;
-  doubleOptIn?: boolean | undefined;
-  autoSendOnPublish?: boolean | undefined;
-}
-
-export type NewsletterCompositeConfigInput = NewsletterCompositeConfig;
-
-export const newsletterCompositeConfigSchema: z.ZodType<
-  NewsletterCompositeConfig,
-  NewsletterCompositeConfigInput
-> = z.object({
+export const newsletterCompositeConfigSchema: z.ZodObject<{
+  apiKey: z.ZodOptional<z.ZodString>;
+  doubleOptIn: z.ZodOptional<z.ZodBoolean>;
+  autoSendOnPublish: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
   doubleOptIn: z
     .boolean()
@@ -55,6 +48,13 @@ export const newsletterCompositeConfigSchema: z.ZodType<
     .optional()
     .describe("Automatically send newsletter when a blog post is published"),
 });
+
+export type NewsletterCompositeConfig = z.output<
+  typeof newsletterCompositeConfigSchema
+>;
+export type NewsletterCompositeConfigInput = z.input<
+  typeof newsletterCompositeConfigSchema
+>;
 
 /**
  * Composite factory: returns the newsletter entity plugin + buttondown service

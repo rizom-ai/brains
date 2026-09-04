@@ -1,6 +1,4 @@
-import type { ReasoningEffort } from "@brains/ai-service";
-import type { DbConfig } from "@brains/contracts";
-import { dbConfigSchema } from "./db-config-schema";
+import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
   Plugin,
@@ -21,7 +19,25 @@ export type { StandardConfig } from "./standardConfig";
 
 export const STANDARD_PATHS: StandardPaths = createStandardPaths();
 
-const entityDisplayEntrySchema = z.looseObject({
+const entityDisplayEntrySchema: z.ZodObject<
+  {
+    label: z.ZodString;
+    pluralName: z.ZodOptional<z.ZodString>;
+    layout: z.ZodOptional<z.ZodString>;
+    paginate: z.ZodOptional<z.ZodBoolean>;
+    pageSize: z.ZodOptional<z.ZodNumber>;
+    navigation: z.ZodOptional<
+      z.ZodObject<{
+        show: z.ZodOptional<z.ZodBoolean>;
+        slot: z.ZodOptional<
+          z.ZodEnum<{ primary: "primary"; secondary: "secondary" }>
+        >;
+        priority: z.ZodOptional<z.ZodNumber>;
+      }>
+    >;
+  },
+  z.core.$loose
+> = z.looseObject({
   label: z.string().min(1),
   pluralName: z.string().optional(),
   layout: z.string().optional(),
@@ -40,114 +56,124 @@ export function getStandardConfig(): StandardConfig {
   return createStandardConfig(STANDARD_PATHS);
 }
 
-export interface ShellConfigSchemaOutput {
-  name: string;
-  version: string;
-  database: DbConfig;
-  jobQueueDatabase: DbConfig;
-  jobQueue: {
-    workerConcurrency: number;
-  };
-  conversationDatabase: DbConfig;
-  runtimeStateDatabase: DbConfig;
-  ai: {
-    apiKey: string;
-    imageApiKey?: string | undefined;
-    model: string;
-    temperature: number;
-    maxTokens: number;
-    webSearch: boolean;
-    reasoningEffort?: ReasoningEffort | undefined;
-  };
-  embedding: {
-    enabled: boolean;
-  };
-  logging: {
-    level: "debug" | "info" | "warn" | "error";
-    format: "text" | "json";
-    file?: string | undefined;
-    context: string;
-  };
-  features: Record<string, never>;
-  plugins: Array<{
-    id: string;
-    version: string;
-    type: "core" | "entity" | "service" | "interface";
-    description?: string | undefined;
-    dependencies?: string[] | undefined;
-    packageName: string;
+export const shellConfigSchema: z.ZodObject<{
+  name: z.ZodDefault<z.ZodString>;
+  version: z.ZodDefault<z.ZodString>;
+  database: typeof dbConfigSchema;
+  jobQueueDatabase: typeof dbConfigSchema;
+  jobQueue: z.ZodPrefault<
+    z.ZodObject<{ workerConcurrency: z.ZodDefault<z.ZodNumber> }>
+  >;
+  conversationDatabase: typeof dbConfigSchema;
+  runtimeStateDatabase: typeof dbConfigSchema;
+  ai: z.ZodObject<{
+    apiKey: z.ZodString;
+    imageApiKey: z.ZodOptional<z.ZodString>;
+    model: z.ZodString;
+    temperature: z.ZodDefault<z.ZodNumber>;
+    maxTokens: z.ZodDefault<z.ZodNumber>;
+    webSearch: z.ZodDefault<z.ZodBoolean>;
+    reasoningEffort: z.ZodOptional<
+      z.ZodEnum<{
+        none: "none";
+        low: "low";
+        medium: "medium";
+        high: "high";
+        xhigh: "xhigh";
+        max: "max";
+      }>
+    >;
   }>;
-  dataDir: string;
+  embedding: z.ZodObject<{ enabled: z.ZodDefault<z.ZodBoolean> }>;
+  logging: z.ZodPrefault<
+    z.ZodObject<{
+      level: z.ZodDefault<
+        z.ZodEnum<{
+          debug: "debug";
+          info: "info";
+          warn: "warn";
+          error: "error";
+        }>
+      >;
+      format: z.ZodDefault<z.ZodEnum<{ text: "text"; json: "json" }>>;
+      file: z.ZodOptional<z.ZodString>;
+      context: z.ZodDefault<z.ZodString>;
+    }>
+  >;
+  features: z.ZodDefault<z.ZodObject<Record<never, never>>>;
+  plugins: z.ZodDefault<z.ZodArray<typeof pluginMetadataSchema>>;
+  dataDir: z.ZodDefault<z.ZodString>;
+  gitBrokerSocket: z.ZodOptional<z.ZodString>;
+  gitBrokerCheckout: z.ZodOptional<z.ZodString>;
+  spaces: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  siteBaseUrl: z.ZodOptional<z.ZodString>;
+  localSiteUrl: z.ZodOptional<z.ZodString>;
+  preferLocalUrls: z.ZodDefault<z.ZodBoolean>;
+  themeCSS: z.ZodDefault<z.ZodString>;
+  entityDisplay: z.ZodOptional<
+    z.ZodRecord<z.ZodString, typeof entityDisplayEntrySchema>
+  >;
+  profileKind: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  name: z.string().default("brain-app"),
+  version: z.string().default("1.0.0"),
+
+  database: dbConfigSchema,
+  jobQueueDatabase: dbConfigSchema,
+  jobQueue: z
+    .object({
+      workerConcurrency: z.number().int().min(1).max(32).default(4),
+    })
+    .prefault({}),
+  conversationDatabase: dbConfigSchema,
+  runtimeStateDatabase: dbConfigSchema,
+
+  ai: z.object({
+    apiKey: z.string(),
+    imageApiKey: z.string().optional(),
+    model: z.string(),
+    temperature: z.number().min(0).max(2).default(0.7),
+    maxTokens: z.number().positive().default(1000),
+    webSearch: z.boolean().default(true),
+    reasoningEffort: z
+      .enum(["none", "low", "medium", "high", "xhigh", "max"])
+      .optional(),
+  }),
+
+  embedding: z.object({
+    enabled: z.boolean().default(true),
+  }),
+
+  logging: z
+    .object({
+      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      format: z.enum(["text", "json"]).default("text"),
+      file: z.string().optional(),
+      context: z.string().default("shell"),
+    })
+    .prefault({ level: "info", context: "shell" }),
+
+  features: z.object({}).default({}),
+  plugins: z.array(pluginMetadataSchema).default([]),
+  dataDir: z.string().default("./brain-data"),
   /**
    * Where the Git checkout owner listens, when this Brain has one.
    * Assigned by the supervisor and resolved by the app layer; absent from
    * `brain.yaml`, because it is a runtime endpoint rather than a choice.
    */
-  gitBrokerSocket?: string | undefined;
+  gitBrokerSocket: z.string().min(1).optional(),
   /** Absolute checkout path assigned with the broker socket. */
-  gitBrokerCheckout?: string | undefined;
-  spaces: string[];
-  siteBaseUrl?: string | undefined;
-  localSiteUrl?: string | undefined;
-  preferLocalUrls: boolean;
-  themeCSS: string;
-  entityDisplay?: Record<string, EntityDisplayEntry> | undefined;
-  profileKind?: string | undefined;
-}
+  gitBrokerCheckout: z.string().min(1).optional(),
+  spaces: z.array(z.string()).default([]),
+  siteBaseUrl: z.string().optional(),
+  localSiteUrl: z.string().optional(),
+  preferLocalUrls: z.boolean().default(false),
+  themeCSS: z.string().default(""),
+  entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
+  profileKind: z.string().trim().min(1).optional(),
+});
 
-export const shellConfigSchema: z.ZodType<ShellConfigSchemaOutput, unknown> =
-  z.object({
-    name: z.string().default("brain-app"),
-    version: z.string().default("1.0.0"),
-
-    database: dbConfigSchema,
-    jobQueueDatabase: dbConfigSchema,
-    jobQueue: z
-      .object({
-        workerConcurrency: z.number().int().min(1).max(32).default(4),
-      })
-      .prefault({}),
-    conversationDatabase: dbConfigSchema,
-    runtimeStateDatabase: dbConfigSchema,
-
-    ai: z.object({
-      apiKey: z.string(),
-      imageApiKey: z.string().optional(),
-      model: z.string(),
-      temperature: z.number().min(0).max(2).default(0.7),
-      maxTokens: z.number().positive().default(1000),
-      webSearch: z.boolean().default(true),
-      reasoningEffort: z
-        .enum(["none", "low", "medium", "high", "xhigh", "max"])
-        .optional(),
-    }),
-
-    embedding: z.object({
-      enabled: z.boolean().default(true),
-    }),
-
-    logging: z
-      .object({
-        level: z.enum(["debug", "info", "warn", "error"]).default("info"),
-        format: z.enum(["text", "json"]).default("text"),
-        file: z.string().optional(),
-        context: z.string().default("shell"),
-      })
-      .prefault({ level: "info", context: "shell" }),
-
-    features: z.object({}).default({}),
-    plugins: z.array(pluginMetadataSchema).default([]),
-    dataDir: z.string().default("./brain-data"),
-    gitBrokerSocket: z.string().min(1).optional(),
-    gitBrokerCheckout: z.string().min(1).optional(),
-    spaces: z.array(z.string()).default([]),
-    siteBaseUrl: z.string().optional(),
-    localSiteUrl: z.string().optional(),
-    preferLocalUrls: z.boolean().default(false),
-    themeCSS: z.string().default(""),
-    entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
-    profileKind: z.string().trim().min(1).optional(),
-  });
+export type ShellConfigSchemaOutput = z.output<typeof shellConfigSchema>;
 
 export type ShellConfig = Omit<
   ShellConfigSchemaOutput,

@@ -38,35 +38,26 @@ import {
   registerStudioOverviewActivity,
 } from "./overview-workspace";
 
-interface StudioEntityDisplayEntry {
-  label?: string | undefined;
-  pluralName?: string | undefined;
-}
-
-interface StudioPluginConfig {
-  entityDisplay?: Record<string, StudioEntityDisplayEntry> | undefined;
-  routePath: string;
-}
-
-interface StudioPluginConfigInput {
-  entityDisplay?: Record<string, StudioEntityDisplayEntry> | undefined;
-  routePath?: string | undefined;
-}
-
-const entityDisplayEntrySchema: z.ZodType<
-  StudioEntityDisplayEntry,
-  StudioEntityDisplayEntry
+const entityDisplayEntrySchema: z.ZodObject<
+  {
+    label: z.ZodOptional<z.ZodString>;
+    pluralName: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$loose
 > = z.looseObject({
   label: z.string().optional(),
   pluralName: z.string().optional(),
 });
 
-const entityDisplaySchema = z.record(z.string(), entityDisplayEntrySchema);
+const entityDisplaySchema: z.ZodRecord<
+  z.ZodString,
+  typeof entityDisplayEntrySchema
+> = z.record(z.string(), entityDisplayEntrySchema);
 
-const studioPluginConfigSchema: z.ZodType<
-  StudioPluginConfig,
-  StudioPluginConfigInput
-> = z.object({
+const studioPluginConfigSchema: z.ZodObject<{
+  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+  routePath: z.ZodDefault<z.ZodString>;
+}> = z.object({
   entityDisplay: entityDisplaySchema.optional(),
   routePath: z
     .string()
@@ -82,6 +73,9 @@ const studioPluginConfigSchema: z.ZodType<
       },
     ),
 });
+
+type StudioPluginConfig = z.output<typeof studioPluginConfigSchema>;
+type StudioPluginConfigInput = z.input<typeof studioPluginConfigSchema>;
 
 function parseEntityDisplay(
   value: unknown,

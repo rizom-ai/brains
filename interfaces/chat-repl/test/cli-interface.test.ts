@@ -31,8 +31,8 @@ describe("CLIInterface", () => {
     harness = createPluginHarness<CLIInterface>();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   describe("constructor and configuration", () => {
@@ -52,7 +52,12 @@ describe("CLIInterface", () => {
       };
       cliInterface = new CLIInterface(config);
       await harness.installPlugin(cliInterface);
-      expect(cliInterface).toBeDefined();
+
+      // The install above throws on failure, so the claim is that a custom
+      // theme still yields a working cli plugin — same identity as the
+      // default-config case above.
+      expect(cliInterface.id).toBe("cli");
+      expect(cliInterface.packageName).toBe("@brains/chat-repl");
     });
   });
 
@@ -124,7 +129,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -184,7 +189,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -258,7 +263,7 @@ describe("CLIInterface", () => {
         text: "Should not confirm.",
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       }));
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -318,7 +323,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
 
       const mockAgentService: MockAgentService = {
@@ -390,7 +395,10 @@ describe("CLIInterface", () => {
       await harness.installPlugin(cliInterface);
     });
 
-    it("should support callback registration and unregistration", () => {
+    // Only that the registration calls are safe in sequence. Proving the
+    // callbacks actually fire needs sendMessageToChannel, which is protected,
+    // and reaching it would mean the cast this repo forbids in tests.
+    it("registers and unregisters callbacks without error", () => {
       const responseHandler = mock(() => {});
       const progressHandler = mock(() => {});
 
@@ -447,7 +455,7 @@ describe("CLIInterface", () => {
   describe("response plan rendering", () => {
     it("renders supplemental cards (sources) to the terminal", async () => {
       const responseHandler = mock(() => {});
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
       harness.setAgentService({
         chat: async (): Promise<MockAgentResponse> => ({
@@ -545,7 +553,7 @@ describe("CLIInterface", () => {
           usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         }),
       );
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
       harness.setAgentService(twoApprovalsAgent(confirmMock));
       cliInterface = new CLIInterface();
@@ -568,7 +576,7 @@ describe("CLIInterface", () => {
         text: "Should not confirm.",
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
       }));
-      harness.reset();
+      await harness.reset();
       harness = createPluginHarness<CLIInterface>();
       harness.setAgentService(twoApprovalsAgent(confirmMock));
       cliInterface = new CLIInterface();
@@ -638,10 +646,11 @@ describe("CLIInterface", () => {
       // Register the CLI interface
       const capabilities = await harness.installPlugin(cliInterface);
 
-      // CLI uses agent-based architecture, no commands
-      // Should have tools and resources
-      expect(capabilities.tools).toBeDefined();
-      expect(capabilities.resources).toBeDefined();
+      // "registers as an interface plugin" is the plugin type; the arrays
+      // being present is true of every plugin kind.
+      expect(cliInterface.type).toBe("interface");
+      expect(Array.isArray(capabilities.tools)).toBe(true);
+      expect(Array.isArray(capabilities.resources)).toBe(true);
     });
   });
 });

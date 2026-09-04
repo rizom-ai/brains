@@ -1,31 +1,12 @@
 import { z } from "@brains/utils/zod";
 
-export interface PublishAssetFieldReference {
-  location: "metadata" | "frontmatter";
-  field: string;
-}
+type PublishAssetFieldReferenceSchema = z.ZodObject<{
+  location: z.ZodEnum<{ metadata: "metadata"; frontmatter: "frontmatter" }>;
+  field: z.ZodString;
+}>;
 
-export type PublishAssetTargetField = string | PublishAssetFieldReference;
-
-export interface PublishAssetRequirement {
-  status?: string | undefined;
-  visibility?: string | undefined;
-}
-
-export interface PublishAssetDefinition {
-  entityType: string;
-  attachmentType: string;
-  mediaEntityType: "image" | "document";
-  targetEntityField?: PublishAssetTargetField | undefined;
-  requiredWhen?: PublishAssetRequirement | undefined;
-  autoGenerate?: boolean | undefined;
-  requiredForPublish?: boolean | undefined;
-  jobType?: string | undefined;
-}
-
-export const publishAssetTargetFieldSchema: z.ZodType<
-  PublishAssetTargetField,
-  PublishAssetTargetField
+export const publishAssetTargetFieldSchema: z.ZodUnion<
+  [z.ZodString, PublishAssetFieldReferenceSchema]
 > = z.union([
   z.string().min(1),
   z.object({
@@ -34,24 +15,53 @@ export const publishAssetTargetFieldSchema: z.ZodType<
   }),
 ]);
 
-export const publishAssetDefinitionSchema: z.ZodType<
-  PublishAssetDefinition,
-  PublishAssetDefinition
-> = z.object({
-  entityType: z.string().min(1),
-  attachmentType: z.string().min(1),
-  mediaEntityType: z.enum(["image", "document"]),
-  targetEntityField: publishAssetTargetFieldSchema.optional(),
-  requiredWhen: z
-    .object({
-      status: z.string().min(1).optional(),
-      visibility: z.string().min(1).optional(),
-    })
-    .optional(),
-  autoGenerate: z.boolean().optional(),
-  requiredForPublish: z.boolean().optional(),
-  jobType: z.string().min(1).optional(),
-});
+export type PublishAssetTargetField = z.output<
+  typeof publishAssetTargetFieldSchema
+>;
+export type PublishAssetFieldReference = Exclude<
+  PublishAssetTargetField,
+  string
+>;
+
+type PublishAssetDefinitionSchema = z.ZodObject<{
+  entityType: z.ZodString;
+  attachmentType: z.ZodString;
+  mediaEntityType: z.ZodEnum<{ image: "image"; document: "document" }>;
+  targetEntityField: z.ZodOptional<typeof publishAssetTargetFieldSchema>;
+  requiredWhen: z.ZodOptional<
+    z.ZodObject<{
+      status: z.ZodOptional<z.ZodString>;
+      visibility: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+  autoGenerate: z.ZodOptional<z.ZodBoolean>;
+  requiredForPublish: z.ZodOptional<z.ZodBoolean>;
+  jobType: z.ZodOptional<z.ZodString>;
+}>;
+
+export const publishAssetDefinitionSchema: PublishAssetDefinitionSchema =
+  z.object({
+    entityType: z.string().min(1),
+    attachmentType: z.string().min(1),
+    mediaEntityType: z.enum(["image", "document"]),
+    targetEntityField: publishAssetTargetFieldSchema.optional(),
+    requiredWhen: z
+      .object({
+        status: z.string().min(1).optional(),
+        visibility: z.string().min(1).optional(),
+      })
+      .optional(),
+    autoGenerate: z.boolean().optional(),
+    requiredForPublish: z.boolean().optional(),
+    jobType: z.string().min(1).optional(),
+  });
+
+export type PublishAssetDefinition = z.output<
+  typeof publishAssetDefinitionSchema
+>;
+export type PublishAssetRequirement = NonNullable<
+  PublishAssetDefinition["requiredWhen"]
+>;
 
 function getPublishAssetKey(input: {
   entityType: string;

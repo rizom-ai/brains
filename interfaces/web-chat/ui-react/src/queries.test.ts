@@ -1,15 +1,28 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
-import { mockFetch } from "@brains/test-utils";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import type { WebChatSession } from "./api";
 import { createWebChatQueryClient } from "./query-client";
+import { createWebChatClient } from "./web-chat-client";
 import {
   sessionHistoryQueryOptions,
   sessionListQueryOptions,
   webChatKeys,
 } from "./queries";
 
-const originalFetch = globalThis.fetch;
+// The functions under test are handed a chat client built on delegatingFetch,
+// which reads the per-test handler at call time, so the global fetch is never
+// touched and there is nothing to restore.
+type StubHandler = (url: string, options: RequestInit) => Promise<Response>;
+let fetchFn: FetchLike = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: FetchLike = (input, init) => fetchFn(input, init);
+const chatClient = createWebChatClient({ fetch: delegatingFetch });
+
+function stubFetch(handler: StubHandler): void {
+  fetchFn = (input, init): Promise<Response> =>
+    handler(String(input), init ?? {});
+}
 
 function session(title: string): WebChatSession {
   return {
@@ -38,15 +51,11 @@ function waitForResult(
   });
 }
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
-
 describe("web-chat session-history query", () => {
   it("loads and transforms one encoded history request", async () => {
     let requests = 0;
     let requestedUrl = "";
-    mockFetch(async (url, options) => {
+    stubFetch(async (url, options) => {
       requests += 1;
       requestedUrl = url;
       expect(options.credentials).toBe("include");
@@ -55,7 +64,7 @@ describe("web-chat session-history query", () => {
       });
     });
     const client = createWebChatQueryClient();
-    const options = sessionHistoryQueryOptions("thread/one");
+    const options = sessionHistoryQueryOptions("thread/one", chatClient);
 
     const [first, second] = await Promise.all([
       client.fetchQuery(options),
@@ -81,7 +90,7 @@ describe("web-chat session-history query", () => {
   });
 
   it("reopens history containing a stored tool approval card", async () => {
-    mockFetch(async () =>
+    stubFetch(async () =>
       Response.json({
         messages: [
           {
@@ -107,7 +116,7 @@ describe("web-chat session-history query", () => {
     const client = createWebChatQueryClient();
 
     const messages = await client.fetchQuery(
-      sessionHistoryQueryOptions("session-with-card"),
+      sessionHistoryQueryOptions("session-with-card", chatClient),
     );
 
     expect(messages).toEqual([
@@ -132,7 +141,7 @@ describe("web-chat session-history query", () => {
   });
 
   it("reopens an approval that has no stored resolution", async () => {
-    mockFetch(async () =>
+    stubFetch(async () =>
       Response.json({
         messages: [
           {
@@ -157,7 +166,7 @@ describe("web-chat session-history query", () => {
     const client = createWebChatQueryClient();
 
     const messages = await client.fetchQuery(
-      sessionHistoryQueryOptions("pending-approval"),
+      sessionHistoryQueryOptions("pending-approval", chatClient),
     );
 
     expect(messages[0]?.parts).toContainEqual(
@@ -171,7 +180,7 @@ describe("web-chat session-history query", () => {
   });
 
   it("does not reopen buttons for an approval resolved by a later card", async () => {
-    mockFetch(async () =>
+    stubFetch(async () =>
       Response.json({
         messages: [
           {
@@ -213,7 +222,7 @@ describe("web-chat session-history query", () => {
     const client = createWebChatQueryClient();
 
     const messages = await client.fetchQuery(
-      sessionHistoryQueryOptions("resolved-approval"),
+      sessionHistoryQueryOptions("resolved-approval", chatClient),
     );
 
     expect(messages[0]?.parts).toEqual([
@@ -231,7 +240,7 @@ describe("web-chat session-history query", () => {
 
   it("surfaces malformed history without retrying", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({ messages: [{ role: "user" }] });
     });
@@ -239,7 +248,7 @@ describe("web-chat session-history query", () => {
     let caught: unknown;
 
     try {
-      await client.fetchQuery(sessionHistoryQueryOptions("broken"));
+      await client.fetchQuery(sessionHistoryQueryOptions("broken", chatClient));
     } catch (error: unknown) {
       caught = error;
     }
@@ -254,13 +263,13 @@ describe("web-chat session-history query", () => {
 describe("web-chat session-list query", () => {
   it("loads once for the mounted observer and initialization read", async () => {
     let requests = 0;
-    mockFetch(async (_url, options) => {
+    stubFetch(async (_url, options) => {
       requests += 1;
       expect(options.credentials).toBe("include");
       return Response.json({ sessions: [session("Field notes")] });
     });
     const client = createWebChatQueryClient();
-    const options = sessionListQueryOptions();
+    const options = sessionListQueryOptions(chatClient);
     const observer = new QueryObserver(client, options);
     const statuses: string[] = [];
     const unsubscribe = observer.subscribe((result) => {
@@ -280,12 +289,15 @@ describe("web-chat session-list query", () => {
 
   it("surfaces authorization errors without retrying", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     });
     const client = createWebChatQueryClient();
-    const observer = new QueryObserver(client, sessionListQueryOptions());
+    const observer = new QueryObserver(
+      client,
+      sessionListQueryOptions(chatClient),
+    );
     const result = await waitForResult(
       observer,
       (candidate) => candidate.status === "error",
@@ -300,14 +312,17 @@ describe("web-chat session-list query", () => {
 
   it("refetches one active session list after invalidation", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({
         sessions: [session(requests === 1 ? "Before" : "After")],
       });
     });
     const client = createWebChatQueryClient();
-    const observer = new QueryObserver(client, sessionListQueryOptions());
+    const observer = new QueryObserver(
+      client,
+      sessionListQueryOptions(chatClient),
+    );
     let resolveFirst: (() => void) | undefined;
     let resolveRefreshed:
       | ((result: QueryObserverResult<WebChatSession[], Error>) => void)

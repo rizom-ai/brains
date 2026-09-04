@@ -16,13 +16,6 @@ describe("InternalPublishProvider", () => {
 
     expect(result).toEqual({ id: "internal" });
   });
-
-  it("should implement PublishProvider interface", () => {
-    const provider: PublishProvider = new InternalPublishProvider();
-
-    expect(provider.name).toBeDefined();
-    expect(typeof provider.publish).toBe("function");
-  });
 });
 
 describe("PublishProvider interface", () => {

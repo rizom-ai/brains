@@ -35,31 +35,6 @@ export interface PreparedJobEnqueue {
   request: JobQueueEnqueueRequest;
 }
 
-export interface JobInfo {
-  id: string;
-  type: string;
-  data: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  source: string | null;
-  priority: number;
-  retryCount: number;
-  maxRetries: number;
-  lastError: string | null;
-  createdAt: number;
-  scheduledFor: number;
-  startedAt: number | null;
-  completedAt: number | null;
-  attemptId: string | null;
-  workerSlotId: string | null;
-  workerSessionId: string | null;
-  leaseExpiresAt: number | null;
-  attemptHeartbeatAt: number | null;
-  runtimeUpdatedAt: number | null;
-  metadata: JobContext;
-  progress: ProgressNotification | null;
-  result?: unknown;
-}
-
 /** Ownership attached atomically when a worker dequeues a job. */
 export interface JobClaimOptions {
   workerSlotId: string;
@@ -67,11 +42,43 @@ export interface JobClaimOptions {
   leaseDurationMs: number;
 }
 
+type JobInfoSchema = z.ZodObject<{
+  id: z.ZodString;
+  type: z.ZodString;
+  data: z.ZodString;
+  status: z.ZodEnum<{
+    pending: "pending";
+    processing: "processing";
+    completed: "completed";
+    failed: "failed";
+  }>;
+  source: z.ZodNullable<z.ZodString>;
+  priority: z.ZodNumber;
+  retryCount: z.ZodNumber;
+  maxRetries: z.ZodNumber;
+  lastError: z.ZodNullable<z.ZodString>;
+  createdAt: z.ZodNumber;
+  scheduledFor: z.ZodNumber;
+  startedAt: z.ZodNullable<z.ZodNumber>;
+  completedAt: z.ZodNullable<z.ZodNumber>;
+  attemptId: z.ZodNullable<z.ZodString>;
+  workerSlotId: z.ZodNullable<z.ZodString>;
+  workerSessionId: z.ZodNullable<z.ZodString>;
+  leaseExpiresAt: z.ZodNullable<z.ZodNumber>;
+  attemptHeartbeatAt: z.ZodNullable<z.ZodNumber>;
+  runtimeUpdatedAt: z.ZodNullable<z.ZodNumber>;
+  metadata: typeof JobContextSchema;
+  progress: z.ZodNullable<
+    z.ZodCustom<ProgressNotification, ProgressNotification>
+  >;
+  result: z.ZodOptional<z.ZodNullable<z.ZodUnknown>>;
+}>;
+
 /**
  * Simplified job info schema for external packages
  * Avoids exposing the complex Drizzle-inferred JobQueue type
  */
-export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
+export const JobInfoSchema: JobInfoSchema = z.object({
   id: z.string(),
   type: z.string(),
   data: z.string(),
@@ -103,6 +110,8 @@ export const JobInfoSchema: z.ZodType<JobInfo, unknown> = z.object({
     .nullable(),
   result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
+
+export type JobInfo = z.output<typeof JobInfoSchema>;
 
 export type JobHandlerRegistrationMode =
   "combined" | "validation-only" | "execution-only";

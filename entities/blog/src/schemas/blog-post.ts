@@ -4,35 +4,20 @@ import { baseEntityParserSchema } from "@brains/plugins";
 /**
  * Blog post status
  */
-export type BlogPostStatus =
-  "generating" | "draft" | "queued" | "published" | "failed";
+export const blogPostStatusSchema: z.ZodEnum<{
+  generating: "generating";
+  draft: "draft";
+  queued: "queued";
+  published: "published";
+  failed: "failed";
+}> = z.enum(["generating", "draft", "queued", "published", "failed"]);
 
-export const blogPostStatusSchema: z.ZodType<BlogPostStatus, BlogPostStatus> =
-  z.enum(["generating", "draft", "queued", "published", "failed"]);
+export type BlogPostStatus = z.output<typeof blogPostStatusSchema>;
 
 /**
  * Blog post frontmatter schema (stored in content as YAML frontmatter)
  * Contains all blog post data for human editing
  */
-export interface BlogPostFrontmatter {
-  [key: string]: unknown;
-  title: string;
-  slug?: string | undefined;
-  status: BlogPostStatus;
-  publishedAt?: string | undefined;
-  excerpt: string;
-  author: string;
-  coverImageId?: string | undefined;
-  ogImageId?: string | undefined;
-  seriesName?: string | undefined;
-  seriesIndex?: number | undefined;
-  ogImage?: string | undefined;
-  ogDescription?: string | undefined;
-  twitterCard?: "summary" | "summary_large_image" | undefined;
-  canonicalUrl?: string | undefined;
-  atprotoUri?: string | undefined;
-}
-
 type TwitterCardSchema = z.ZodOptional<
   z.ZodEnum<{ summary: "summary"; summary_large_image: "summary_large_image" }>
 >;
@@ -40,7 +25,7 @@ type TwitterCardSchema = z.ZodOptional<
 type BlogPostFrontmatterSchema = z.ZodObject<{
   title: z.ZodString;
   slug: z.ZodOptional<z.ZodString>;
-  status: z.ZodType<BlogPostStatus, BlogPostStatus>;
+  status: typeof blogPostStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
   excerpt: z.ZodString;
   author: z.ZodString;
@@ -74,25 +59,16 @@ export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
   atprotoUri: z.string().optional(),
 });
 
+export type BlogPostFrontmatter = z.output<typeof blogPostFrontmatterSchema>;
+
 /**
  * Blog post metadata schema - derived from frontmatter
  * Only includes fields needed for fast DB queries/filtering
  * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export interface BlogPostMetadata {
-  [key: string]: unknown;
-  title: string;
-  status: BlogPostStatus;
-  publishedAt?: string | undefined;
-  seriesName?: string | undefined;
-  seriesIndex?: number | undefined;
-  slug: string;
-  error?: string | undefined;
-}
-
 type BlogPostMetadataSchema = z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodType<BlogPostStatus, BlogPostStatus>;
+  status: typeof blogPostStatusSchema;
   publishedAt: z.ZodOptional<z.ZodString>;
   seriesName: z.ZodOptional<z.ZodString>;
   seriesIndex: z.ZodOptional<z.ZodNumber>;
@@ -114,6 +90,8 @@ export const blogPostMetadataSchema: BlogPostMetadataSchema =
       slug: z.string(),
       error: z.string().optional(),
     });
+
+export type BlogPostMetadata = z.output<typeof blogPostMetadataSchema>;
 
 /**
  * Blog post entity schema (extends BaseEntity)

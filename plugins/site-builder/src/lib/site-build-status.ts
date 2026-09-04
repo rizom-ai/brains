@@ -6,100 +6,118 @@ import type {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export type SiteBuildEnvironment = "preview" | "production";
-export type ActiveSiteBuildState = "debouncing" | "queued" | "building";
+export const siteBuildEnvironmentSchema: z.ZodEnum<{
+  preview: "preview";
+  production: "production";
+}> = z.enum(["preview", "production"]);
 
-export interface ActiveSiteBuild {
-  jobId?: string | undefined;
-  state: ActiveSiteBuildState;
-  requestedAt: string;
-  startedAt?: string | undefined;
-}
+export type SiteBuildEnvironment = z.output<typeof siteBuildEnvironmentSchema>;
 
-export interface SiteBuildSuccess {
-  jobId: string;
-  completedAt: string;
-  routesBuilt: number;
-  warnings: string[];
-}
-
-export interface SiteBuildFailure {
-  jobId: string;
-  completedAt: string;
-  message: string;
-}
-
-export interface SiteBuildCancellation {
-  jobId: string;
-  completedAt: string;
-  message: string;
-}
-
-export interface SiteBuildEnvironmentStatus {
-  environment: SiteBuildEnvironment;
-  active?: ActiveSiteBuild | undefined;
-  lastSuccess?: SiteBuildSuccess | undefined;
-  lastFailure?: SiteBuildFailure | undefined;
-  lastCancellation?: SiteBuildCancellation | undefined;
-}
-
-export interface RecentSiteBuild {
-  jobId: string;
-  environment: SiteBuildEnvironment;
-  outcome: "succeeded" | "failed" | "cancelled" | "skipped";
-  completedAt: string;
-  routesBuilt?: number | undefined;
-  warnings?: string[] | undefined;
-  message?: string | undefined;
-}
-
-interface StoredSiteBuildStatus {
-  preview: Omit<SiteBuildEnvironmentStatus, "environment">;
-  production: Omit<SiteBuildEnvironmentStatus, "environment">;
-  recentBuilds: RecentSiteBuild[];
-}
-
-export interface SiteBuildStatusSnapshot {
-  environments: SiteBuildEnvironmentStatus[];
-  recentBuilds: RecentSiteBuild[];
-}
-
-const activeSiteBuildSchema = z.object({
+export const activeSiteBuildSchema: z.ZodObject<{
+  jobId: z.ZodOptional<z.ZodString>;
+  state: z.ZodEnum<{
+    debouncing: "debouncing";
+    queued: "queued";
+    building: "building";
+  }>;
+  requestedAt: z.ZodString;
+  startedAt: z.ZodOptional<z.ZodString>;
+}> = z.object({
   jobId: z.string().optional(),
   state: z.enum(["debouncing", "queued", "building"]),
   requestedAt: z.string().datetime(),
   startedAt: z.string().datetime().optional(),
 });
 
-const siteBuildSuccessSchema = z.object({
+export type ActiveSiteBuild = z.output<typeof activeSiteBuildSchema>;
+export type ActiveSiteBuildState = ActiveSiteBuild["state"];
+
+const siteBuildSuccessSchema: z.ZodObject<{
+  jobId: z.ZodString;
+  completedAt: z.ZodString;
+  routesBuilt: z.ZodNumber;
+  warnings: z.ZodArray<z.ZodString>;
+}> = z.object({
   jobId: z.string(),
   completedAt: z.string().datetime(),
   routesBuilt: z.number().int().nonnegative(),
   warnings: z.array(z.string()),
 });
 
-const siteBuildFailureSchema = z.object({
+export type SiteBuildSuccess = z.output<typeof siteBuildSuccessSchema>;
+
+const siteBuildFailureSchema: z.ZodObject<{
+  jobId: z.ZodString;
+  completedAt: z.ZodString;
+  message: z.ZodString;
+}> = z.object({
   jobId: z.string(),
   completedAt: z.string().datetime(),
   message: z.string(),
 });
 
-const siteBuildCancellationSchema = z.object({
+export type SiteBuildFailure = z.output<typeof siteBuildFailureSchema>;
+
+const siteBuildCancellationSchema: z.ZodObject<{
+  jobId: z.ZodString;
+  completedAt: z.ZodString;
+  message: z.ZodString;
+}> = z.object({
   jobId: z.string(),
   completedAt: z.string().datetime(),
   message: z.string(),
 });
 
-const environmentStatusSchema = z.object({
+export type SiteBuildCancellation = z.output<
+  typeof siteBuildCancellationSchema
+>;
+
+type EnvironmentStatusSchema = z.ZodObject<{
+  active: z.ZodOptional<typeof activeSiteBuildSchema>;
+  lastSuccess: z.ZodOptional<typeof siteBuildSuccessSchema>;
+  lastFailure: z.ZodOptional<typeof siteBuildFailureSchema>;
+  lastCancellation: z.ZodOptional<typeof siteBuildCancellationSchema>;
+}>;
+
+const environmentStatusSchema: EnvironmentStatusSchema = z.object({
   active: activeSiteBuildSchema.optional(),
   lastSuccess: siteBuildSuccessSchema.optional(),
   lastFailure: siteBuildFailureSchema.optional(),
   lastCancellation: siteBuildCancellationSchema.optional(),
 });
 
-const recentSiteBuildSchema = z.object({
+/** One environment's build history, as stored: the environment is the key. */
+type StoredEnvironmentStatus = z.output<typeof environmentStatusSchema>;
+
+export const siteBuildEnvironmentStatusSchema: z.ZodObject<
+  EnvironmentStatusSchema["shape"] & {
+    environment: typeof siteBuildEnvironmentSchema;
+  }
+> = z.object({
+  ...environmentStatusSchema.shape,
+  environment: siteBuildEnvironmentSchema,
+});
+
+export type SiteBuildEnvironmentStatus = z.output<
+  typeof siteBuildEnvironmentStatusSchema
+>;
+
+export const recentSiteBuildSchema: z.ZodObject<{
+  jobId: z.ZodString;
+  environment: typeof siteBuildEnvironmentSchema;
+  outcome: z.ZodEnum<{
+    succeeded: "succeeded";
+    failed: "failed";
+    cancelled: "cancelled";
+    skipped: "skipped";
+  }>;
+  completedAt: z.ZodString;
+  routesBuilt: z.ZodOptional<z.ZodNumber>;
+  warnings: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  message: z.ZodOptional<z.ZodString>;
+}> = z.object({
   jobId: z.string(),
-  environment: z.enum(["preview", "production"]),
+  environment: siteBuildEnvironmentSchema,
   outcome: z.enum(["succeeded", "failed", "cancelled", "skipped"]),
   completedAt: z.string().datetime(),
   routesBuilt: z.number().int().nonnegative().optional(),
@@ -107,11 +125,24 @@ const recentSiteBuildSchema = z.object({
   message: z.string().optional(),
 });
 
-const storedSiteBuildStatusSchema: z.ZodType<StoredSiteBuildStatus> = z.object({
+export type RecentSiteBuild = z.output<typeof recentSiteBuildSchema>;
+
+const storedSiteBuildStatusSchema: z.ZodObject<{
+  preview: EnvironmentStatusSchema;
+  production: EnvironmentStatusSchema;
+  recentBuilds: z.ZodArray<typeof recentSiteBuildSchema>;
+}> = z.object({
   preview: environmentStatusSchema,
   production: environmentStatusSchema,
   recentBuilds: z.array(recentSiteBuildSchema).max(5),
 });
+
+type StoredSiteBuildStatus = z.output<typeof storedSiteBuildStatusSchema>;
+
+export interface SiteBuildStatusSnapshot {
+  environments: SiteBuildEnvironmentStatus[];
+  recentBuilds: RecentSiteBuild[];
+}
 
 const terminalJobResultSchema = z.object({
   success: z.boolean(),
@@ -272,7 +303,7 @@ export class SiteBuildStatusService {
   }
 
   private hasNewerRecordedOutcome(
-    status: Omit<SiteBuildEnvironmentStatus, "environment">,
+    status: StoredEnvironmentStatus,
     completedAt: number,
   ): boolean {
     return [

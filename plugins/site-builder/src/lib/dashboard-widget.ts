@@ -6,43 +6,42 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactNode } from "react";
-import {
-  sitePublicationStatusSchema,
-  type SitePublicationStatus,
-} from "./site-publication-status";
+import { sitePublicationStatusSchema } from "./site-publication-status";
 import type { SiteWorkspaceProvider } from "./site-workspace";
 
-interface EnvironmentHealth {
-  environment: "preview" | "production";
-  publication?: SitePublicationStatus | undefined;
-  active?:
-    | {
-        jobId?: string | undefined;
-        state: "debouncing" | "queued" | "building";
-        requestedAt?: string | undefined;
-        startedAt?: string | undefined;
-      }
-    | undefined;
-  lastSuccess?:
-    | { completedAt: string; routesBuilt: number; warnings: string[] }
-    | undefined;
-  lastFailure?:
-    | { jobId?: string | undefined; completedAt: string; message: string }
-    | undefined;
-  lastCancellation?: { completedAt: string; message: string } | undefined;
-}
-
-interface SiteHealthWidgetData {
-  site: {
-    title: string;
-    previewUrl?: string | undefined;
-    liveUrl?: string | undefined;
-  };
-  environments: EnvironmentHealth[];
-  managementUrl?: string | undefined;
-}
-
-const environmentSchema: z.ZodType<EnvironmentHealth> = z.object({
+const environmentSchema: z.ZodObject<{
+  environment: z.ZodEnum<{ preview: "preview"; production: "production" }>;
+  publication: z.ZodOptional<typeof sitePublicationStatusSchema>;
+  active: z.ZodOptional<
+    z.ZodObject<{
+      jobId: z.ZodOptional<z.ZodString>;
+      state: z.ZodEnum<{
+        debouncing: "debouncing";
+        queued: "queued";
+        building: "building";
+      }>;
+      requestedAt: z.ZodOptional<z.ZodString>;
+      startedAt: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+  lastSuccess: z.ZodOptional<
+    z.ZodObject<{
+      completedAt: z.ZodString;
+      routesBuilt: z.ZodNumber;
+      warnings: z.ZodArray<z.ZodString>;
+    }>
+  >;
+  lastFailure: z.ZodOptional<
+    z.ZodObject<{
+      jobId: z.ZodOptional<z.ZodString>;
+      completedAt: z.ZodString;
+      message: z.ZodString;
+    }>
+  >;
+  lastCancellation: z.ZodOptional<
+    z.ZodObject<{ completedAt: z.ZodString; message: z.ZodString }>
+  >;
+}> = z.object({
   environment: z.enum(["preview", "production"]),
   publication: sitePublicationStatusSchema.optional(),
   active: z
@@ -75,7 +74,17 @@ const environmentSchema: z.ZodType<EnvironmentHealth> = z.object({
     .optional(),
 });
 
-const siteHealthWidgetDataSchema: z.ZodType<SiteHealthWidgetData> = z.object({
+type EnvironmentHealth = z.output<typeof environmentSchema>;
+
+const siteHealthWidgetDataSchema: z.ZodObject<{
+  site: z.ZodObject<{
+    title: z.ZodString;
+    previewUrl: z.ZodOptional<z.ZodString>;
+    liveUrl: z.ZodOptional<z.ZodString>;
+  }>;
+  environments: z.ZodArray<typeof environmentSchema>;
+  managementUrl: z.ZodOptional<z.ZodString>;
+}> = z.object({
   site: z.object({
     title: z.string(),
     previewUrl: z.string().optional(),
@@ -84,6 +93,8 @@ const siteHealthWidgetDataSchema: z.ZodType<SiteHealthWidgetData> = z.object({
   environments: z.array(environmentSchema),
   managementUrl: z.string().optional(),
 });
+
+type SiteHealthWidgetData = z.output<typeof siteHealthWidgetDataSchema>;
 
 function boundedDetail(value: string): string {
   return value.length <= 500 ? value : `${value.slice(0, 497)}…`;

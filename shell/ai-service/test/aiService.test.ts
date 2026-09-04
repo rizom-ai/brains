@@ -56,10 +56,11 @@ void mock.module("@ai-sdk/anthropic", () => ({
 
 const mockOpenAIModel = mock(() => "mock-openai-model");
 const mockOpenAIImage = mock(() => "mock-openai-image-model");
+const mockCreateOpenAI = mock((_options?: { apiKey?: string }) =>
+  Object.assign(mockOpenAIModel, { image: mockOpenAIImage }),
+);
 void mock.module("@ai-sdk/openai", () => ({
-  createOpenAI: mock(() =>
-    Object.assign(mockOpenAIModel, { image: mockOpenAIImage }),
-  ),
+  createOpenAI: mockCreateOpenAI,
 }));
 
 const mockGoogleModel = mock(() => "mock-google-model");
@@ -114,6 +115,7 @@ describe("AIService", () => {
     generateImageSpy.mockClear();
     mockOpenAIModel.mockClear();
     mockOpenAIImage.mockClear();
+    mockCreateOpenAI.mockClear();
     mockGoogleModel.mockClear();
     mockGoogleImage.mockClear();
   });
@@ -790,12 +792,19 @@ describe("AIService", () => {
         expect(mockGoogleImage).toHaveBeenCalled();
       });
 
-      it("should prefer OpenAI when both keys are set and no default", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+      it("uses the image key over the text key when both are set", async () => {
+        // This previously constructed the service with apiKey alone, making it
+        // byte-identical to the auto-detect case above and leaving the
+        // imageApiKey ?? apiKey fallback untested.
+        const service = AIService.createFresh(
+          { apiKey: "sk-text", imageApiKey: "sk-image" },
+          logger,
+        );
 
         await service.generateImage("A sunset");
 
         expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
+        expect(mockCreateOpenAI).toHaveBeenCalledWith({ apiKey: "sk-image" });
       });
 
       it("should pass imageModel to Google provider", async () => {
