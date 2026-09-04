@@ -1,7 +1,7 @@
 {
   "name": "@brains/console-theme",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.352",
+  "version": "0.2.0-alpha.353",
   "description": "Shared operator token sheet, climate, and command palette",
   "dependencies": {
     "@brains/theme-base": "workspace:*"

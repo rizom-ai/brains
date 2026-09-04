@@ -1,5 +1,21 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.353
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.353
+  - @brains/atproto-contracts@0.2.0-alpha.353
+  - @brains/content-formatters@0.2.0-alpha.353
+  - @brains/contracts@0.2.0-alpha.353
+  - @brains/http-signatures@0.2.0-alpha.353
+  - @brains/ui-library@0.2.0-alpha.353
+  - @brains/utils@0.2.0-alpha.353
+  - @brains/auth-service@0.2.0-alpha.353
+  - @brains/plugins@0.2.0-alpha.353
+  - @brains/templates@0.2.0-alpha.353
+
 ## 0.2.0-alpha.352
 
 ### Patch Changes

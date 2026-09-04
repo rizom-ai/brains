@@ -405,6 +405,7 @@
     "core--status-palette-light-mode",
     "core--studio-account-workspace",
     "core--studio-audit-workspace",
+    "core--studio-auth-state-chrome",
     "core--studio-authoring-cutover",
     "core--studio-control-vocabulary",
     "core--studio-gate-inversion",
