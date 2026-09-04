@@ -167,6 +167,15 @@ describe("editor surface styles", () => {
     expect(chromeStyles).toContain(".studio-chrome-location");
   });
 
+  it("keeps the Studio rail present while editing on desktop", () => {
+    expect(visualRefreshStyles).not.toMatch(
+      /\.studio\[data-view="editor"\] \.rail \{[^}]*display: none/,
+    );
+    expect(visualRefreshStyles).not.toMatch(
+      /\.studio\[data-view="editor"\] \.studio-body \{[^}]*grid-template-columns: 1fr/,
+    );
+  });
+
   it("separates the save bar's status line from the pipeline readout", () => {
     // Without a margin the error line butts against the commit ref:
     // "last write 3bfa1e6× title: …".

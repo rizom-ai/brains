@@ -450,14 +450,10 @@
   color: var(--console-on-accent);
 }
 
-/* Desktop manuscript drops the collection rail; the Studio header links back. */
+/* Desktop keeps the Studio rail visible while the manuscript takes the
+   remaining workspace. System singletons open directly in this editor, so
+   dropping the rail here would also drop their only persistent navigation. */
 @media (min-width: 901px) {
-  .studio[data-view="editor"] .studio-body {
-    grid-template-columns: 1fr;
-  }
-  .studio[data-view="editor"] .rail {
-    display: none;
-  }
   .editor {
     grid-template-columns: 330px minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
