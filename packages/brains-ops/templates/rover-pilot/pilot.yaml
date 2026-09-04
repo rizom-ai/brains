@@ -1,6 +1,5 @@
 brainVersion: 0.1.1-alpha.14
 bundleContract: capability-bundles-v1
-imageContract: shared-fleet-v1
 githubOrg: <github-org>
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
