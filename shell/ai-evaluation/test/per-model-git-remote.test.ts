@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { mkdirSync, rmSync, existsSync } from "fs";
-import { execSync } from "child_process";
+
 import { z } from "@brains/utils/zod";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -91,22 +91,36 @@ describe("per-model git remote isolation", () => {
     delete process.env["EVAL_GIT_REMOTE"];
   });
 
-  function createGitRemote(evalDbBase: string): string {
+  /**
+   * Git is spawned and awaited, never run synchronously: a sync spawn has to
+   * collect the child's exit itself, and under `--parallel` that has been seen
+   * leaving a `<defunct>` git child while the worker spins at 100% CPU.
+   */
+  async function createGitRemote(evalDbBase: string): Promise<string> {
     const gitRemotePath = `${evalDbBase}-git-remote`;
     if (existsSync(gitRemotePath)) {
       rmSync(gitRemotePath, { recursive: true, force: true });
     }
     mkdirSync(gitRemotePath, { recursive: true });
-    execSync("git init --bare", { cwd: gitRemotePath, stdio: "ignore" });
+    const child = Bun.spawn(["git", "init", "--bare"], {
+      cwd: gitRemotePath,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stderr, code] = await Promise.all([
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    if (code !== 0) throw new Error(`git init --bare: ${stderr}`);
     remotes.push(gitRemotePath);
     return gitRemotePath;
   }
 
-  it("should create distinct git remotes for different models", () => {
-    const remoteA = createGitRemote(
+  it("should create distinct git remotes for different models", async () => {
+    const remoteA = await createGitRemote(
       join(tmpdir(), "brain-eval-123-gpt-4o-mini"),
     );
-    const remoteB = createGitRemote(
+    const remoteB = await createGitRemote(
       join(tmpdir(), "brain-eval-123-claude-haiku"),
     );
 
@@ -115,9 +129,13 @@ describe("per-model git remote isolation", () => {
     expect(existsSync(remoteB)).toBe(true);
   });
 
-  it("both remotes should be valid bare git repos", () => {
-    const remoteA = createGitRemote(join(tmpdir(), "brain-eval-456-model-a"));
-    const remoteB = createGitRemote(join(tmpdir(), "brain-eval-456-model-b"));
+  it("both remotes should be valid bare git repos", async () => {
+    const remoteA = await createGitRemote(
+      join(tmpdir(), "brain-eval-456-model-a"),
+    );
+    const remoteB = await createGitRemote(
+      join(tmpdir(), "brain-eval-456-model-b"),
+    );
 
     // A bare repo has a HEAD file
     expect(existsSync(join(remoteA, "HEAD"))).toBe(true);
@@ -142,12 +160,16 @@ describe("per-model git remote isolation", () => {
   // If you need an end-to-end 'multi-model eval pushes without collision'
   // test, write it as an integration test that goes through GitSync.
 
-  it("EVAL_GIT_REMOTE env var should be set per model", () => {
-    const remoteA = createGitRemote(join(tmpdir(), "brain-eval-env-model-a"));
+  it("EVAL_GIT_REMOTE env var should be set per model", async () => {
+    const remoteA = await createGitRemote(
+      join(tmpdir(), "brain-eval-env-model-a"),
+    );
     process.env["EVAL_GIT_REMOTE"] = remoteA;
     expect(process.env["EVAL_GIT_REMOTE"]).toBe(remoteA);
 
-    const remoteB = createGitRemote(join(tmpdir(), "brain-eval-env-model-b"));
+    const remoteB = await createGitRemote(
+      join(tmpdir(), "brain-eval-env-model-b"),
+    );
     process.env["EVAL_GIT_REMOTE"] = remoteB;
     expect(process.env["EVAL_GIT_REMOTE"]).toBe(remoteB);
     expect(process.env["EVAL_GIT_REMOTE"]).not.toContain("model-a");

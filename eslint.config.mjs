@@ -214,6 +214,41 @@ export default [
         "error",
         { ignore: ["eslint-enable"] },
       ],
+      // A synchronous spawn has to collect its child's exit itself. Under
+      // `bun test --parallel` that was seen failing: a worker spun at 100% CPU
+      // for twelve minutes with its `git` child left `<defunct>`, and no
+      // per-test timeout could interrupt it because the loop never yielded.
+      // It surfaced as the whole suite hanging, since a child inheriting stdio
+      // holds the pipe the runner waits on for EOF.
+      //
+      // Spawn and await instead — `Bun.spawn` with `await child.exited`, or a
+      // package helper like directory-sync's `runGit`.
+      //
+      // Only `execSync` is banned, because only `execSync` was observed doing
+      // it. `execFileSync` and `spawnSync` are the same shape and 56 call
+      // sites across eleven files still use them; converting those on the
+      // strength of an argument rather than a failure is churn nobody can
+      // check. If one of them ever spins, the evidence will say so and it
+      // joins this list.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "child_process",
+              importNames: ["execSync"],
+              message:
+                "Spawn and await the child instead (Bun.spawn + await child.exited): a synchronous spawn can leave a <defunct> child and spin the test worker.",
+            },
+            {
+              name: "node:child_process",
+              importNames: ["execSync"],
+              message:
+                "Spawn and await the child instead (Bun.spawn + await child.exited): a synchronous spawn can leave a <defunct> child and spin the test worker.",
+            },
+          ],
+        },
+      ],
     },
   },
   {
