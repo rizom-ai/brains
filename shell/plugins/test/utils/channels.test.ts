@@ -151,6 +151,26 @@ describe("Typed Message Channels", () => {
       ).toEqual({ foo: "bar" });
     });
 
+    it("rejects a channel paired with a plain message handler", () => {
+      const shell = createMockShell({ logger });
+      const context = createBasePluginContext(shell, "test-plugin");
+      const channel = defineChannel(
+        "typed-channel",
+        z.object({ id: z.string() }),
+      );
+
+      context.messaging.subscribe(
+        // @ts-expect-error the handler below takes a whole message, so the
+        // payload inferred from it does not match this channel's. Reported
+        // against the channel because inference reads the handler first. The
+        // implementation narrows the pair together rather than asserting each
+        // half, and this pins that callers are still held to the two declared
+        // overloads.
+        channel,
+        async (message: BaseMessage) => ({ success: true, data: message.id }),
+      );
+    });
+
     it("should return unsubscribe function for Channel-based subscribe", async () => {
       const shell = createMockShell({ logger });
       const context = createBasePluginContext(shell, "test-plugin");
