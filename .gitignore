@@ -188,6 +188,7 @@ old-code-reference/
 
 # Temporary files
 .tmp/
+packages/brain-cli/.tmp-public-export-resolution-*/
 brain.db
 *.db
 *.db-shm

@@ -17,6 +17,14 @@ export const agePublicKeySchema: z.ZodString = z
   .min(1);
 
 export const CAPABILITY_BUNDLE_CONTRACT = "capability-bundles-v1" as const;
+export const SHARED_FLEET_IMAGE_CONTRACT = "shared-fleet-v1" as const;
+export const ISOLATED_SITE_IMAGE_CONTRACT = "isolated-sites-v1" as const;
+
+export const imageContractSchema: z.ZodEnum<{
+  "shared-fleet-v1": "shared-fleet-v1";
+  "isolated-sites-v1": "isolated-sites-v1";
+}> = z.enum([SHARED_FLEET_IMAGE_CONTRACT, ISOLATED_SITE_IMAGE_CONTRACT]);
+export type ImageContract = z.output<typeof imageContractSchema>;
 
 export const canonicalBundleIdSchema: z.ZodEnum<{
   core: "core";
@@ -57,6 +65,7 @@ export const profileKindSchema: z.ZodEnum<{
 export interface PilotConfig {
   brainVersion: string;
   bundleContract: typeof CAPABILITY_BUNDLE_CONTRACT;
+  imageContract: ImageContract;
   bundles: CanonicalBundleId[];
   add?: string[] | undefined;
   remove?: string[] | undefined;
@@ -94,6 +103,7 @@ export const pilotSchema: z.ZodType<PilotConfig> = z
   .strictObject({
     brainVersion: exactVersionSchema,
     bundleContract: z.literal(CAPABILITY_BUNDLE_CONTRACT),
+    imageContract: imageContractSchema.default(ISOLATED_SITE_IMAGE_CONTRACT),
     bundles: canonicalBundlesSchema,
     add: memberIdsSchema.optional(),
     remove: memberIdsSchema.optional(),

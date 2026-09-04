@@ -16,10 +16,12 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 The deploy scripts and workflows should read from that contract instead of inventing a second list.
 
-The default pilot image tag is `brain-${brainVersion}`:
+The pilot declares its image topology with `pilot.yaml.imageContract`:
 
-- build publishes `brain-${brainVersion}` for users without a site override
-- a site override gets an isolated `brain-${brainVersion}-sites-${packageHash}` image
+- `shared-fleet-v1` publishes one `brain-${brainVersion}` image for each effective Brain version
+- each shared image contains the union of exact site/theme package pins required by instances on that version
+- conflicting versions of one package fail image resolution before build
+- `isolated-sites-v1` is an explicit alternative for fleets that require package-isolated tags
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`
 - build and deploy derive the same effective image tag from the resolved registry
 
@@ -27,7 +29,7 @@ The default pilot image tag is `brain-${brainVersion}`:
 
 When `pilot.yaml.brainVersion` changes and you push:
 
-1. build publishes the new default image and any required site images
+1. build publishes each missing version image with its declared package union
 2. reconcile refreshes generated `users/<handle>/.env`
 3. deploy runs for handles whose generated config changed
 4. generated file commits happen once in a final aggregation step after the deploy matrix finishes
@@ -260,16 +262,18 @@ siteOverride:
   themeVersion: <exact-theme-version>
 ```
 
-Missing external package versions fail desired-state validation. A site override
-produces an isolated per-instance image; it never changes the fleet's shared default
-image. Bundled `@brains/*` themes omit `themeVersion` because they are not installed as
-separate packages.
+Missing external package versions fail desired-state validation. Under
+`shared-fleet-v1`, every instance on one Brain version uses the same image and exact
+package union. Change a site/theme package pin only together with a fresh Brain version;
+published `brain-${brainVersion}` tags remain immutable. Conflicting pins for one package
+on the same Brain version fail before build. Bundled `@brains/*` themes omit
+`themeVersion` because they are not installed as separate packages.
 
 ### Custom-package canary and rollback
 
 1. Confirm the exact site/theme versions are public-installable without npm credentials.
-2. Apply the exact package names and versions to one healthy canonical site canary.
-3. Reconcile the canary, push the generated output, and let build/deploy create its site image.
+2. Apply the exact package names and versions to one healthy canonical site canary and select a fresh Brain version for that package set.
+3. Push desired state and let the normal Build → Reconcile → Deploy chain create the shared version image and update the canary.
 4. Run `bunx brains-ops verify-user . <handle>`.
 5. Manually verify the site, theme, Studio, content sync, and passkey sign-in before adding more users.
 

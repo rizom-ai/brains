@@ -231,6 +231,7 @@ describe("initPilotRepo", () => {
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).not.toContain("schemaVersion:");
     expect(pilotYaml).toContain("bundles:\n  - core");
+    expect(pilotYaml).toContain("imageContract: shared-fleet-v1");
     expect(pilotYaml).toContain("githubOrg: <github-org>");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(pilotYaml).toContain("aiApiKey: AI_API_KEY");
@@ -581,7 +582,8 @@ describe("initPilotRepo", () => {
     expect(resolveScript).toContain("image_tag");
     // Tag derivation goes through the shared @rizom/ops helpers so the build
     // and the deploy can never disagree about a tag.
-    expect(resolveScript).toContain("siteImageTag");
+    expect(resolveScript).toContain("runtimeImageTag");
+    expect(resolveScript).toContain("registry.pilot.imageContract");
     expect(resolveScript).toContain("sitePackagesFor");
     expect(resolveScript).toContain("derivePreviewDomain");
     expect(resolveScript).toContain(
@@ -597,7 +599,7 @@ describe("initPilotRepo", () => {
     expect(helpersScript).toContain("readJsonResponse");
     expect(helpersScript).toContain("parseEnvFile");
     expect(helpersScript).toContain("requireEnv");
-    expect(helpersScript).toContain("siteImageTag");
+    expect(helpersScript).toContain("runtimeImageTag");
     expect(helpersScript).toContain("runResolveMissingImages");
 
     const resolveHandlesScript = await readFile(
@@ -724,7 +726,8 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("site-mockup-migration.md");
     expect(operatorPlaybook).toContain("version: <exact-site-version>");
     expect(operatorPlaybook).toContain("themeVersion: <exact-theme-version>");
-    expect(operatorPlaybook).toContain("per-instance image");
+    expect(operatorPlaybook).toContain("shared-fleet-v1");
+    expect(operatorPlaybook).toContain("same image");
     expect(operatorPlaybook).toContain(
       "### Custom-package canary and rollback",
     );
@@ -755,8 +758,9 @@ describe("initPilotRepo", () => {
     expect(readme).toContain(".env.schema");
     expect(readme).toContain("single source of truth");
     expect(readme).toContain("brain-${brainVersion}");
-    expect(readme).toContain("brain-${brainVersion}-sites-${packageHash}");
-    expect(readme).toContain("required exact version pin");
+    expect(readme).toContain("imageContract");
+    expect(readme).toContain("shared-fleet-v1");
+    expect(readme).toContain("exact version pin");
     expect(readme).toContain("pilot.yaml.brainVersion");
     expect(readme).toContain("single operator-owned repo");
   });
