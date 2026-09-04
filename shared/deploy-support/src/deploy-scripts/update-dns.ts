@@ -13,24 +13,35 @@ const baseUrl = "https://api.cloudflare.com/client/v4";
 
 interface CloudflareResult {
   success: boolean;
+}
+
+interface CloudflareRecordList extends CloudflareResult {
   result?: Array<{ id: string }>;
 }
 
 /**
  * Copied verbatim into generated projects, so this stays dependency-free and
- * checks the payload by hand. readJsonResponse returns unknown; asserting
- * CloudflareResult onto it meant an error body read as `success: undefined`
- * rather than failing here.
+ * checks the payload by hand. readJsonResponse returns unknown; asserting a
+ * response type onto it would let malformed error bodies pass silently.
  */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function readCloudflareResult(payload: unknown): CloudflareResult | undefined {
+function readCloudflareSuccess(payload: unknown): boolean | undefined {
   if (!isRecord(payload)) return undefined;
-  if (typeof payload["success"] !== "boolean") return undefined;
+  const success = payload["success"];
+  return typeof success === "boolean" ? success : undefined;
+}
+
+function readCloudflareRecordList(
+  payload: unknown,
+): CloudflareRecordList | undefined {
+  const success = readCloudflareSuccess(payload);
+  if (success === undefined) return undefined;
+  if (!success) return { success };
+  if (!isRecord(payload)) return undefined;
   const result = payload["result"];
-  if (result === undefined) return { success: payload["success"] };
   if (
     !Array.isArray(result) ||
     !result.every(
@@ -40,7 +51,19 @@ function readCloudflareResult(payload: unknown): CloudflareResult | undefined {
   ) {
     return undefined;
   }
-  return { success: payload["success"], result };
+  return { success, result };
+}
+
+function readCloudflareMutation(
+  payload: unknown,
+): CloudflareResult | undefined {
+  const success = readCloudflareSuccess(payload);
+  if (success === undefined) return undefined;
+  if (!success) return { success };
+  if (!isRecord(payload)) return undefined;
+  const result = payload["result"];
+  if (!isRecord(result) || typeof result["id"] !== "string") return undefined;
+  return { success };
 }
 
 async function findRecordId(
@@ -50,7 +73,7 @@ async function findRecordId(
   const lookupUrl = `${baseUrl}/zones/${zoneId}/dns_records?type=${type}&name=${encodeURIComponent(name)}`;
   const lookup = await fetch(lookupUrl, { headers });
   const raw = await readJsonResponse(lookup, "Cloudflare DNS lookup");
-  const payload = readCloudflareResult(raw);
+  const payload = readCloudflareRecordList(raw);
   if (!lookup.ok || !payload?.success) {
     throw new Error(`Cloudflare DNS lookup failed: ${JSON.stringify(raw)}`);
   }
@@ -79,7 +102,7 @@ async function upsertRecord(name: string): Promise<void> {
     }),
   });
   const raw = await readJsonResponse(response, "Cloudflare DNS upsert");
-  const result = readCloudflareResult(raw);
+  const result = readCloudflareMutation(raw);
   if (!response.ok || !result?.success) {
     throw new Error(`Cloudflare DNS upsert failed: ${JSON.stringify(raw)}`);
   }
