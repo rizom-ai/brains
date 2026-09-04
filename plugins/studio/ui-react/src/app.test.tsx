@@ -683,6 +683,14 @@ describe("TypeSwitcher", () => {
         count: 1,
         capabilities: allCapabilities,
       },
+      {
+        entityType: "style-guide",
+        label: "Style Guide",
+        isSingleton: true,
+        hasBody: true,
+        count: 1,
+        capabilities: allCapabilities,
+      },
     ];
     const html = renderToStaticMarkup(
       createElement(TypeSwitcher, {
@@ -697,6 +705,7 @@ describe("TypeSwitcher", () => {
     expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
     expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
     expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
+    expect(html.indexOf("Style Guide")).toBeGreaterThan(html.indexOf("System"));
   });
 });
 

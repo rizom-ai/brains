@@ -757,6 +757,10 @@ export function App(): ReactElement {
   const selectEntityType = useCallback(
     (nextEntityType: string): void => {
       router.history.push(studioCollectionPath(studioBasePath, nextEntityType));
+      // A long rail can put its last groups below the document fold. Treat a
+      // rail selection like page navigation instead of retaining that offset
+      // and making the destination appear blank or partially missing.
+      window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
   );
@@ -768,6 +772,7 @@ export function App(): ReactElement {
           ? studioChatWorkspacePath(studioBasePath)
           : studioWorkspacePath(studioBasePath, workspaceId),
       );
+      window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
   );

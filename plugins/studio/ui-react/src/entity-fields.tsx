@@ -45,6 +45,7 @@ const SYSTEM_ENTITY_TYPES = new Set([
   "prompts",
   "skill",
   "skills",
+  "style-guide",
   "swot",
   "swots",
 ]);
