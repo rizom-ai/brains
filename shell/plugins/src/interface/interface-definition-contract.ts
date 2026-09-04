@@ -285,6 +285,16 @@ export interface InterfaceSetupContext<
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
   /** The brain's own domain, when it has one. */
   readonly domain: string | undefined;
+  /**
+   * The URL this brain's own links are addressed by, right now.
+   *
+   * `domain` says what the brain is called; this says where its pages
+   * currently are, which differs while a runtime is asked to prefer local
+   * URLs. An interface resolving an artifact link back to its entity has to
+   * agree with whatever wrote the link, so the runtime decides once rather
+   * than each package re-deriving it from three fields.
+   */
+  readonly displayBaseUrl: string | undefined;
   readonly logger: Logger;
 }
 

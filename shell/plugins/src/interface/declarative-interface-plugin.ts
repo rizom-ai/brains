@@ -30,6 +30,7 @@ import { createRuntimeRoute } from "./route-runtime";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
 import { emptyPluginState } from "../base/empty-state";
+import { effectiveDisplayBaseUrl } from "./display-base-url";
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
@@ -134,6 +135,7 @@ class DeclarativeInterfacePlugin<
               ),
             }),
           domain: context.domain,
+          displayBaseUrl: effectiveDisplayBaseUrl(context),
           logger: this.logger,
         })
       : emptyPluginState<TState>();

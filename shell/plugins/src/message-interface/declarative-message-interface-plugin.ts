@@ -47,6 +47,7 @@ import type { ArtifactEntityRef } from "./artifact-entity";
 import type { ContentVisibility } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolStatusUpdate } from "./tool-status";
+import { effectiveDisplayBaseUrl } from "../interface/display-base-url";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
   if (typeof message === "string") return { text: message };
@@ -180,6 +181,7 @@ class DeclarativeMessageInterfacePlugin<
             this.definition.id,
           ),
           domain: context.domain,
+          displayBaseUrl: effectiveDisplayBaseUrl(context),
           messaging: {
             send: (message) =>
               context.messaging.send({
@@ -631,7 +633,7 @@ class DeclarativeMessageInterfacePlugin<
     return collectDeniedArtifactCardIds({
       cards: response.cards,
       userLevel,
-      displayBaseUrl: context.domain,
+      displayBaseUrl: effectiveDisplayBaseUrl(context),
       getEntity: (ref: ArtifactEntityRef) =>
         context.entityService.getEntity({
           entityType: ref.entityType,
