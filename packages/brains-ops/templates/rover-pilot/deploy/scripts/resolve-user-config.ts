@@ -6,7 +6,6 @@ import {
   parseEnvFile,
   requireEnv,
   runtimeImageTag,
-  sitePackagesFor,
   writeGitHubOutput,
 } from "./helpers";
 
@@ -43,15 +42,9 @@ const wwwDomain = isFleetDomain(
 
 const brainVersion = envEntries["BRAIN_VERSION"] ?? "";
 
-// Build and deploy share one tag function. A shared fleet always resolves to
-// `brain-{version}`; an explicitly isolated fleet may include the instance's
-// exact site package set in its tag.
-const sitePackages = sitePackagesFor(user.siteOverride);
-const imageTag = runtimeImageTag(
-  registry.pilot.imageContract,
-  brainVersion,
-  sitePackages,
-);
+// Build and Deploy share one tag function: every instance on a Brain version
+// runs the same immutable fleet image.
+const imageTag = runtimeImageTag(brainVersion);
 
 const outputs: Record<string, string> = {
   brain_version: brainVersion,

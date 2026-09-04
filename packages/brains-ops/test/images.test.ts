@@ -11,69 +11,11 @@ import {
   runResolveMissingImages,
   runtimeImageTag,
   sitePackagesFor,
-  siteImageTag,
 } from "../src/images";
 
-describe("siteImageTag", () => {
-  // The default path is sacred: an instance with no site override must build
-  // and deploy the exact same `brain-{version}` image as the whole fleet.
-  it("resolves no site packages to the plain brain-{version} tag", () => {
-    expect(siteImageTag("0.2.0-alpha.148", [])).toBe("brain-0.2.0-alpha.148");
-  });
-
-  it("does not promote empty/whitespace entries to a site tag", () => {
-    expect(siteImageTag("0.2.0-alpha.148", ["", "  "])).toBe(
-      "brain-0.2.0-alpha.148",
-    );
-  });
-
-  it("resolves a site override to a per-instance sites tag", () => {
-    const tag = siteImageTag("0.2.0-alpha.148", [
-      "@rizom/site-rizom-ai@0.2.0-alpha.148",
-    ]);
-    expect(tag).toMatch(/^brain-0\.2\.0-alpha\.148-sites-[0-9a-f]{12}$/);
-  });
-
-  it("is deterministic and order-independent", () => {
-    const a = siteImageTag("0.2.0-alpha.148", ["@rizom/a@1", "@rizom/b@2"]);
-    const b = siteImageTag("0.2.0-alpha.148", ["@rizom/b@2", "@rizom/a@1"]);
-    expect(a).toBe(b);
-  });
-
-  it("never collides a site instance with the plain default image", () => {
-    const plain = siteImageTag("0.2.0-alpha.148", []);
-    const site = siteImageTag("0.2.0-alpha.148", [
-      "@rizom/site-rizom-ai@0.2.0-alpha.148",
-    ]);
-    expect(site).not.toBe(plain);
-  });
-
-  it("produces different images for different package versions", () => {
-    const a = siteImageTag("0.2.0-alpha.148", [
-      "@rizom/site-rizom-ai@0.2.0-alpha.146",
-    ]);
-    const b = siteImageTag("0.2.0-alpha.148", [
-      "@rizom/site-rizom-ai@0.2.0-alpha.148",
-    ]);
-    expect(a).not.toBe(b);
-  });
-});
-
 describe("runtimeImageTag", () => {
-  it("uses one plain tag for every instance in the shared fleet contract", () => {
-    expect(
-      runtimeImageTag("shared-fleet-v1", "0.2.0-alpha.350", [
-        "@rizom/site-docs@0.2.0-alpha.237",
-      ]),
-    ).toBe("brain-0.2.0-alpha.350");
-  });
-
-  it("preserves isolated site tags for fleets that explicitly select them", () => {
-    expect(
-      runtimeImageTag("isolated-sites-v1", "0.2.0-alpha.350", [
-        "@rizom/site-docs@0.2.0-alpha.237",
-      ]),
-    ).toMatch(/^brain-0\.2\.0-alpha\.350-sites-[0-9a-f]{12}$/);
+  it("uses one plain tag for every instance on a Brain version", () => {
+    expect(runtimeImageTag("0.2.0-alpha.350")).toBe("brain-0.2.0-alpha.350");
   });
 });
 
@@ -127,7 +69,7 @@ describe("requiredImages", () => {
       { brainVersion: "0.2.0-alpha.160" },
       // A cohort running ahead needs its own default image.
       { brainVersion: "0.2.0-alpha.167" },
-      // A site-override instance needs its own per-instance image.
+      // A site override contributes packages to its version's shared image.
       {
         brainVersion: "0.2.0-alpha.167",
         siteOverride: {
@@ -139,53 +81,50 @@ describe("requiredImages", () => {
       },
     ]);
 
-    expect(images).toHaveLength(3);
+    expect(images).toHaveLength(2);
     expect(images.map((image) => image.tag)).toEqual(
       [...images.map((image) => image.tag)].sort(),
     );
 
-    const plain = images.filter((image) => image.sitePackages.length === 0);
-    expect(plain.map((image) => image.tag).sort()).toEqual([
-      "brain-0.2.0-alpha.160",
-      "brain-0.2.0-alpha.167",
+    expect(images).toEqual([
+      {
+        tag: "brain-0.2.0-alpha.160",
+        brainVersion: "0.2.0-alpha.160",
+        sitePackages: [],
+      },
+      {
+        tag: "brain-0.2.0-alpha.167",
+        brainVersion: "0.2.0-alpha.167",
+        sitePackages: [
+          "@rizom/site-rizom-ai@0.2.0-alpha.167",
+          "@rizom/theme-rizom-ai@0.2.0-alpha.165",
+        ],
+      },
     ]);
-
-    const site = images.find((image) => image.sitePackages.length > 0);
-    expect(site?.brainVersion).toBe("0.2.0-alpha.167");
-    expect(site?.sitePackages).toEqual([
-      "@rizom/site-rizom-ai@0.2.0-alpha.167",
-      "@rizom/theme-rizom-ai@0.2.0-alpha.165",
-    ]);
-    expect(site?.tag).toBe(
-      siteImageTag("0.2.0-alpha.167", site?.sitePackages ?? []),
-    );
   });
 
   it("builds one shared image per version with the union of site packages", () => {
-    const images = requiredImages(
-      [
-        { brainVersion: "0.2.0-alpha.350" },
-        {
-          brainVersion: "0.2.0-alpha.350",
-          siteOverride: {
-            package: "@rizom/site-docs",
-            version: "0.2.0-alpha.237",
-            theme: "@rizom/theme-rizom-ai",
-            themeVersion: "0.2.0-alpha.234",
-          },
+    const images = requiredImages([
+      { brainVersion: "0.2.0-alpha.350" },
+      {
+        brainVersion: "0.2.0-alpha.350",
+        siteOverride: {
+          package: "@rizom/site-docs",
+          version: "0.2.0-alpha.237",
+          theme: "@rizom/theme-rizom-ai",
+          themeVersion: "0.2.0-alpha.234",
         },
-        {
-          brainVersion: "0.2.0-alpha.350",
-          siteOverride: {
-            package: "@rizom/site-rizom-ai",
-            version: "0.2.0-alpha.238",
-            theme: "@rizom/theme-rizom-ai",
-            themeVersion: "0.2.0-alpha.234",
-          },
+      },
+      {
+        brainVersion: "0.2.0-alpha.350",
+        siteOverride: {
+          package: "@rizom/site-rizom-ai",
+          version: "0.2.0-alpha.238",
+          theme: "@rizom/theme-rizom-ai",
+          themeVersion: "0.2.0-alpha.234",
         },
-      ],
-      "shared-fleet-v1",
-    );
+      },
+    ]);
 
     expect(images).toEqual([
       {
@@ -202,29 +141,26 @@ describe("requiredImages", () => {
 
   it("rejects conflicting package pins in one shared version image", () => {
     expect(() =>
-      requiredImages(
-        [
-          {
-            brainVersion: "0.2.0-alpha.350",
-            siteOverride: {
-              package: "@rizom/site-docs",
-              version: "0.2.0-alpha.237",
-              theme: "@rizom/theme-rizom-ai",
-              themeVersion: "0.2.0-alpha.234",
-            },
+      requiredImages([
+        {
+          brainVersion: "0.2.0-alpha.350",
+          siteOverride: {
+            package: "@rizom/site-docs",
+            version: "0.2.0-alpha.237",
+            theme: "@rizom/theme-rizom-ai",
+            themeVersion: "0.2.0-alpha.234",
           },
-          {
-            brainVersion: "0.2.0-alpha.350",
-            siteOverride: {
-              package: "@rizom/site-rizom-ai",
-              version: "0.2.0-alpha.238",
-              theme: "@rizom/theme-rizom-ai",
-              themeVersion: "0.2.0-alpha.235",
-            },
+        },
+        {
+          brainVersion: "0.2.0-alpha.350",
+          siteOverride: {
+            package: "@rizom/site-rizom-ai",
+            version: "0.2.0-alpha.238",
+            theme: "@rizom/theme-rizom-ai",
+            themeVersion: "0.2.0-alpha.235",
           },
-        ],
-        "shared-fleet-v1",
-      ),
+        },
+      ]),
     ).toThrow(/conflicting pins.*@rizom\/theme-rizom-ai/i);
   });
 
@@ -322,10 +258,7 @@ describe("resolveImageBuilds", () => {
 
     expect(builds).toEqual([
       {
-        tag: siteImageTag("0.2.0-alpha.169", [
-          "@rizom/site-rizom-ai@0.2.0-alpha.169",
-          "@rizom/theme-rizom-ai@0.2.0-alpha.169",
-        ]),
+        tag: "brain-0.2.0-alpha.169",
         brainVersion: "0.2.0-alpha.169",
         sitePackages: [
           "@rizom/site-rizom-ai@0.2.0-alpha.169",
@@ -353,7 +286,6 @@ describe("runResolveMissingImages", () => {
     const root = await createPilotRepo({
       "pilot.yaml": `brainVersion: 0.2.0-alpha.160
 bundleContract: capability-bundles-v1
-imageContract: shared-fleet-v1
 githubOrg: rizom-ai
 contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
@@ -445,7 +377,6 @@ members:
       env: {
         BRAIN_VERSION_INPUT: "0.2.0-alpha.169",
         SITE_PACKAGES_INPUT: "@rizom/site-rizom-ai@0.2.0-alpha.169",
-        IMAGE_CONTRACT_INPUT: "shared-fleet-v1",
       },
       runCommand: async (command, args) => {
         probed.push(`${command} ${args.join(" ")}`);

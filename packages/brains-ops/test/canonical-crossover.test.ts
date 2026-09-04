@@ -36,7 +36,6 @@ function staticImportGraph(entry: string): Set<string> {
 const canonicalPilot = {
   brainVersion: "0.2.0-alpha.231",
   bundleContract: "capability-bundles-v1",
-  imageContract: "shared-fleet-v1",
   bundles: [
     "core",
     "media",
@@ -77,14 +76,9 @@ describe("ops clean canonical crossover", () => {
     expect(
       pilotSchema.safeParse({
         ...canonicalPilot,
-        imageContract: "unknown-image-contract",
+        imageContract: "shared-fleet-v1",
       }).success,
     ).toBe(false);
-    const { imageContract: _imageContract, ...legacyImagePilot } =
-      canonicalPilot;
-    expect(pilotSchema.parse(legacyImagePilot).imageContract).toBe(
-      "isolated-sites-v1",
-    );
     const { bundleContract: _bundleContract, ...unversionedPilot } =
       canonicalPilot;
     expect(pilotSchema.safeParse(unversionedPilot).success).toBe(false);

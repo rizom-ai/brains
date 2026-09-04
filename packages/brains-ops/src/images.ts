@@ -1,58 +1,17 @@
-import { createHash } from "node:crypto";
-
 import { loadPilotRegistry, type ResolvedSiteOverride } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
-import {
-  imageContractSchema,
-  ISOLATED_SITE_IMAGE_CONTRACT,
-  type ImageContract,
-} from "./schema";
 
 /**
- * Resolve a fleet image tag as a pure function of a single instance's own
- * config. This is the shared contract between the build (which tags the image
- * it pushes) and the deploy (which waits for and runs that tag), so both must
- * import this — never recompute it independently.
- *
- * The default path is deliberately untouched: an instance with no site packages
- * resolves to the plain `brain-{version}` tag every other fleet instance uses.
- * A site override is a per-instance opt-in that hashes only *that instance's*
- * package set into a distinct `brain-{version}-sites-{hash}` image, so it can
- * never collide with — or leak into — the shared default image.
+ * Resolve the immutable runtime image shared by every fleet instance on one
+ * Brain version. Build and Deploy both import this function so their tags can
+ * never disagree.
  */
-export function siteImageTag(
-  brainVersion: string,
-  sitePackages: string[],
-): string {
-  const packages = [
-    ...new Set(sitePackages.map((entry) => entry.trim()).filter(Boolean)),
-  ].sort();
-
-  if (packages.length === 0) {
-    return `brain-${brainVersion}`;
-  }
-
-  const hash = createHash("sha256")
-    .update(packages.join("\n"))
-    .digest("hex")
-    .slice(0, 12);
-
-  return `brain-${brainVersion}-sites-${hash}`;
-}
-
-/** Resolve the runtime tag selected by the pilot's explicit image contract. */
-export function runtimeImageTag(
-  imageContract: ImageContract,
-  brainVersion: string,
-  sitePackages: string[],
-): string {
-  return imageContract === ISOLATED_SITE_IMAGE_CONTRACT
-    ? siteImageTag(brainVersion, sitePackages)
-    : `brain-${brainVersion}`;
+export function runtimeImageTag(brainVersion: string): string {
+  return `brain-${brainVersion}`;
 }
 
 /**
- * The npm packages a site override installs into its per-instance image.
+ * The npm packages a site override contributes to its version's shared image.
  * A @rizom-scoped theme is independently published and installs at its own
  * explicit version; @brains/* themes are bundled inside @rizom/brain and must
  * not be npm-installed.
@@ -89,33 +48,17 @@ export interface RequiredImage {
 }
 
 /**
- * Derive the immutable images required by the declared fleet. Shared fleets
- * get one image per Brain version containing the union of packages required by
- * every instance on that version. Fleets that explicitly retain isolated site
- * images get one tag per distinct version/package set.
+ * Derive one immutable image per effective Brain version. Each image contains
+ * the union of exact site/theme package pins required by every instance on
+ * that version.
  */
 export function requiredImages(
   users: ImageRequirementSource[],
-  imageContract: ImageContract = ISOLATED_SITE_IMAGE_CONTRACT,
 ): RequiredImage[] {
-  if (imageContract === ISOLATED_SITE_IMAGE_CONTRACT) {
-    const byTag = new Map<string, RequiredImage>();
-    for (const user of users) {
-      const sitePackages = [
-        ...new Set(sitePackagesFor(user.siteOverride)),
-      ].sort();
-      const tag = siteImageTag(user.brainVersion, sitePackages);
-      byTag.set(tag, { tag, brainVersion: user.brainVersion, sitePackages });
-    }
-    return [...byTag.values()].sort((left, right) =>
-      left.tag.localeCompare(right.tag),
-    );
-  }
-
   const byVersion = new Map<string, RequiredImage>();
   for (const user of users) {
     const image = byVersion.get(user.brainVersion) ?? {
-      tag: runtimeImageTag(imageContract, user.brainVersion, []),
+      tag: runtimeImageTag(user.brainVersion),
       brainVersion: user.brainVersion,
       sitePackages: [],
     };
@@ -154,7 +97,6 @@ function mergeExactPackagePins(
 
 export interface ResolveImageBuildsOptions {
   users: ImageRequirementSource[];
-  imageContract?: ImageContract | undefined;
   /**
    * Explicit dispatch override — the manual/backfill path. When set, exactly
    * this one image is built, skipping the registry-derived resolve. Published
@@ -176,12 +118,11 @@ export async function resolveImageBuilds(
   options: ResolveImageBuildsOptions,
 ): Promise<RequiredImage[]> {
   const versionInput = options.brainVersionInput?.trim() ?? "";
-  const imageContract = options.imageContract ?? ISOLATED_SITE_IMAGE_CONTRACT;
   if (versionInput) {
     const sitePackages = (options.sitePackagesInput ?? "")
       .split(/\s+/)
       .filter(Boolean);
-    const tag = runtimeImageTag(imageContract, versionInput, sitePackages);
+    const tag = runtimeImageTag(versionInput);
     if (!options.allowTagOverwrite && (await options.imageExists(tag))) {
       throw new Error(
         `Image tag ${tag} already exists; published tags are immutable. ` +
@@ -199,7 +140,7 @@ export async function resolveImageBuilds(
   }
 
   const missing: RequiredImage[] = [];
-  for (const image of requiredImages(options.users, imageContract)) {
+  for (const image of requiredImages(options.users)) {
     if (!(await options.imageExists(image.tag))) {
       missing.push(image);
     }
@@ -217,15 +158,6 @@ export interface RunResolveMissingImagesOptions {
   log?: (line: string) => void;
 }
 
-/**
- * The Build workflow's resolve step: derive the image set the declared fleet
- * state (pilot.yaml + cohorts + users) requires, probe the container registry
- * for each tag, and emit the missing ones as a GitHub Actions build matrix
- * (`images_json`, entries `{tag, brain_version, site_packages}`). Dispatch
- * inputs `BRAIN_VERSION_INPUT`/`SITE_PACKAGES_INPUT`/`IMAGE_CONTRACT_INPUT`
- * force a single explicit build instead. Deriving and probing here means a config push builds exactly
- * what it declares — nothing reactive, nothing manual.
- */
 /**
  * Whether the registry already holds this tag.
  *
@@ -255,6 +187,15 @@ export async function imageTagExists(
   }
 }
 
+/**
+ * The Build workflow's resolve step: derive the image set the declared fleet
+ * state (pilot.yaml + cohorts + users) requires, probe the container registry
+ * for each tag, and emit the missing ones as a GitHub Actions build matrix
+ * (`images_json`, entries `{tag, brain_version, site_packages}`). Dispatch
+ * inputs `BRAIN_VERSION_INPUT`/`SITE_PACKAGES_INPUT` force a single explicit
+ * build instead. Deriving and probing here means a config push builds exactly
+ * what it declares — nothing reactive, nothing manual.
+ */
 export async function runResolveMissingImages(
   options: RunResolveMissingImagesOptions,
 ): Promise<RequiredImage[]> {
@@ -265,10 +206,6 @@ export async function runResolveMissingImages(
   const brainVersionInput = env["BRAIN_VERSION_INPUT"]?.trim() ?? "";
   const sitePackagesInput = env["SITE_PACKAGES_INPUT"]?.trim() ?? "";
   const allowTagOverwrite = env["ALLOW_TAG_OVERWRITE"]?.trim() === "true";
-  const imageContractInput = env["IMAGE_CONTRACT_INPUT"]?.trim();
-  const explicitImageContract = imageContractSchema.parse(
-    imageContractInput ?? ISOLATED_SITE_IMAGE_CONTRACT,
-  );
 
   const registry = brainVersionInput
     ? undefined
@@ -277,7 +214,6 @@ export async function runResolveMissingImages(
 
   const builds = await resolveImageBuilds({
     users,
-    imageContract: registry?.pilot.imageContract ?? explicitImageContract,
     brainVersionInput,
     sitePackagesInput,
     allowTagOverwrite,

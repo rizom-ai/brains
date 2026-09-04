@@ -4,7 +4,6 @@ export {
   type LoadPilotRegistryOptions,
 } from "./load-registry";
 export {
-  siteImageTag,
   runtimeImageTag,
   sitePackagesFor,
   requiredImages,
@@ -84,10 +83,6 @@ export {
   cohortSchema,
   canonicalBundleIdSchema,
   CAPABILITY_BUNDLE_CONTRACT,
-  SHARED_FLEET_IMAGE_CONTRACT,
-  ISOLATED_SITE_IMAGE_CONTRACT,
-  imageContractSchema,
-  type ImageContract,
   type PilotConfig,
   type CohortConfig,
 } from "./schema";
