@@ -427,6 +427,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineSubscription,
   defineRoute,
   protocol,
@@ -447,6 +448,19 @@ export type {
   RouteResponse,
   VerbatimResponse,
 } from "./public/interface-definition";
+// What a turn arrives as, and what `present` answers with, for an interface
+// that hands turns in and posts answers itself. Named consumer: @brains/chat.
+export type {
+  InboundMessageSender,
+  MessageChannel,
+  MessageOutput,
+  PresentedConfirmation,
+  PresentedMessage,
+  ReceiveAuthenticatedInput,
+} from "./interface/interface-definition-contract";
+// URLs a channel captures from a message nobody addressed to the brain.
+// Named consumer: @brains/chat.
+export { extractCaptureableUrls } from "./message-interface/message-content-utils";
 
 // ============================================================================
 // Essential Plugin Interfaces & Types

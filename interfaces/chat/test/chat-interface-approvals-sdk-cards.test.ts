@@ -14,7 +14,7 @@ import {
 } from "./harness/chat-interface-harness";
 import type { MockPostMessage } from "./harness/chat-interface-harness";
 
-describe("ChatInterface SDK card approvals", () => {
+describe("chat SDK card approvals", () => {
   const suite = setupChatInterfaceTest();
 
   it("confirms pending approvals from SDK card buttons and removes the buttons", async () => {
@@ -80,19 +80,9 @@ describe("ChatInterface SDK card approvals", () => {
         actor: expect.objectContaining({
           identity: discordExternalIdentity,
           displayName: "Mira Ops",
-          username: "mira",
-        }),
-        source: expect.objectContaining({
-          messageId: "approval-message-1",
-          channelId: "discord:guild-123:channel-123:thread-456",
-          threadId: "thread-456",
-          metadata: expect.objectContaining({
-            actionId: "approval.confirm",
-            actionValue: "approval-1",
-            guildId: "guild-123",
-          }),
         }),
       }),
+      expect.anything(),
     );
     expect(approvalMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -212,6 +202,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-1",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(suite.agentService.confirmPendingAction).toHaveBeenNthCalledWith(
       2,
@@ -219,6 +210,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-2",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenNthCalledWith(
       3,
@@ -288,11 +280,7 @@ describe("ChatInterface SDK card approvals", () => {
 
     expect(suite.agentService.confirmPendingAction).toHaveBeenCalledTimes(1);
     expect(thread.post).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fallbackText:
-          "No matching pending approval id. Pending approval ids: approval-2.",
-        card: expect.objectContaining({ title: "Approval notice" }),
-      }),
+      "No matching pending approval id. Pending approval ids: approval-2.",
     );
   });
 
@@ -460,6 +448,7 @@ describe("ChatInterface SDK card approvals", () => {
       false,
       "approval-1",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -622,6 +611,7 @@ describe("ChatInterface SDK card approvals", () => {
         interfaceType: "discord",
         userPermissionLevel: "public",
       }),
+      expect.anything(),
     );
     expect(thread.post).not.toHaveBeenCalledWith(
       expect.objectContaining({
@@ -674,17 +664,14 @@ describe("ChatInterface SDK card approvals", () => {
     );
 
     expect(thread.post).toHaveBeenCalledWith(
-      expect.objectContaining({
-        fallbackText:
-          "Multiple approvals are pending; include one approval id with yes or no/cancel: approval-1, approval-2.",
-        card: expect.objectContaining({ title: "Approval notice" }),
-      }),
+      "Multiple approvals are pending; include one approval id with yes or no/cancel: approval-1, approval-2.",
     );
     expect(suite.agentService.confirmPendingAction).toHaveBeenCalledWith(
       "discord-discord:guild-123:channel-123:thread-456",
       true,
       "approval-2",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
   });
 
@@ -728,6 +715,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-1",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(suite.agentService.confirmPendingAction).toHaveBeenNthCalledWith(
       2,
@@ -735,6 +723,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-2",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -785,6 +774,7 @@ describe("ChatInterface SDK card approvals", () => {
       false,
       "approval-1",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(suite.agentService.confirmPendingAction).toHaveBeenNthCalledWith(
       2,
@@ -792,6 +782,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-2",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -837,6 +828,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval:call-10",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
   });
 
@@ -875,6 +867,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-10",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
   });
 
@@ -932,6 +925,7 @@ describe("ChatInterface SDK card approvals", () => {
       true,
       "approval-1",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
   });
 });

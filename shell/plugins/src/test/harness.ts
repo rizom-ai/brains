@@ -50,6 +50,8 @@ export interface HarnessOptions {
   gitBrokerSocket?: string;
   /** Absolute broker-owned checkout supplied with that endpoint. */
   gitBrokerCheckout?: string;
+  /** Shared conversation spaces the brain is in. */
+  spaces?: string[];
 }
 
 /**
@@ -79,7 +81,11 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       profileKind?: string;
       gitBrokerSocket?: string;
       gitBrokerCheckout?: string;
+      spaces?: string[];
     } = { logger };
+    if (options.spaces !== undefined) {
+      mockShellOptions.spaces = options.spaces;
+    }
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
     }

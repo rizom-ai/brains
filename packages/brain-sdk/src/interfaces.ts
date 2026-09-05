@@ -5,6 +5,7 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
   defineSubscription,
   defineRoute,
   protocol,
@@ -182,3 +183,42 @@ export type {
   ResponsePlan,
   ToolStatusUpdate,
 } from "@brains/plugins";
+
+// A channel that answers with native cards and files, on a platform whose
+// rooms the brain also listens in: what a turn arrives as and what `present`
+// hands back; how a confirmation outcome, an artifact and a tool's status read;
+// which URLs to capture from a message nobody addressed to the brain; how the
+// uploads a conversation already holds are carried into the next turn; and
+// what a message recorded into a space conversation carries about its author.
+// Named consumer: @brains/chat.
+export {
+  buildCoalescedInput,
+  buildConfirmationResponseParts,
+  buildMessageActorMetadata,
+  buildMessageSourceMetadata,
+  canReceiveNativeArtifactFile,
+  extractCaptureableUrls,
+  formatArtifactDisplay,
+  formatConfirmationResult,
+  formatPendingConfirmationHelp,
+  formatPendingConfirmationsFallback,
+  formatStructuredOutputSummary,
+  formatToolStatusLabel,
+  getConfirmationResultTitle,
+  getToolStatusKey,
+  MessageUploadContinuity,
+  resolveArtifactEntityRefFromCard,
+} from "@brains/plugins";
+export type {
+  AgentResponse,
+  ConversationMessageActor,
+  InboundMessageSender,
+  MessageChannel,
+  MessageOutput,
+  PendingConfirmation,
+  PresentedConfirmation,
+  PresentedMessage,
+  ReceiveAuthenticatedInput,
+} from "@brains/plugins";
+export { matchSpaceSelector } from "@brains/templates";
+export type { PermissionLookupContext } from "@brains/templates";

@@ -2,13 +2,14 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
-import { ChatInterface } from "@brains/chat";
+import chatPackage from "@brains/chat";
 import { newsletter } from "@brains/newsletter";
 import type {
   ApiRouteDefinition,
   Plugin,
   WebRouteDefinition,
 } from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -225,18 +226,26 @@ describe("canonical HTTP route manifests", () => {
     }
   });
 
-  test("records configured Chat SDK handler routes", () => {
-    const chat = new ChatInterface({
-      adapters: {
-        discord: {
-          applicationId: "fixture-application",
-          botToken: "fixture-token",
-          publicKey: "fixture-public-key",
+  test("records the configured chat platform's handler routes", async () => {
+    // Discord configured, Slack not: only the Discord interface exists, so
+    // only its webhook and upload routes are declared.
+    const chat = instantiatePluginPackageDefinition(
+      chatPackage,
+      {
+        adapters: {
+          discord: {
+            applicationId: "fixture-application",
+            botToken: "fixture-token",
+            publicKey: "fixture-public-key",
+          },
         },
       },
-    });
+      { name: "@brains/chat", version: "0.0.0" },
+    );
 
-    expect(routeManifest([chat])).toEqual(readExpected("chat-sdk"));
+    expect(routeManifest(await registered(chat))).toEqual(
+      readExpected("chat-sdk"),
+    );
   });
 
   test("records the configured newsletter tool route without making it a public fixture", () => {

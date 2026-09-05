@@ -2,7 +2,7 @@ import {
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
   type PendingConfirmation,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import type { SentMessage } from "chat";
 import type { ChatCardBuilder } from "./chat-cards";
 import type { ChatThread } from "./types";

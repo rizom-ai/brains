@@ -2,14 +2,15 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **16 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **17 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
-`@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`).
+`@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
+`@brains/chat`).
 
-The twelve that remain all still extend a base class: `a2a`, `chat`,
+The eleven that remain all still extend a base class: `a2a`,
 `webserver`, `atproto`, `content-pipeline`, `dashboard`,
 `directory-sync`, `email-workflows`, `newsletter`, `site-builder`,
 `site-content`, `studio`. Three that are converted —
@@ -520,16 +521,59 @@ verbatim` hands the handler's own `Response` through untouched.
    is the only gate that catches this**, and it only catches it after a
    forced rebuild — a stale `dist/` hides it completely.
 
-   **`site-content` is gated on batch work it does not own.** Its generate
-   tool decides which sections can generate by asking
+   **`chat` was measured at 55 and needed ten additions, not none.
+   Converted.** It is one plugin serving two interface types: every turn says
+   `discord` or `slack`, permission rules, channel descriptors and
+   conversation ids are keyed per platform, and the class re-routed progress
+   and tool events that came back under the platform's name. The declarative
+   model is one declaration, one channel, one interface type — so `chat` is
+   one package declaring two message interfaces from one config, which
+   deleted the re-routing. Six were measured up front; four more surfaced
+   rewriting the suites against the pipeline — `present` also needs the
+   caller's level and the approvals still pending after a confirmation, an
+   interface with buttons needs to ask what is pending before spending a turn
+   on a stale click (`messages.pendingApprovals`), and the runtime tracked a
+   tool's jobs but not an artifact card's. One rule changed for every
+   declared interface: a reply that is not a yes or a no while an approval is
+   pending goes through as a new question rather than being nagged about.
+   The additions, each with `@brains/chat` as the named consumer:
+
+   - a package may declare several message interfaces from one config,
+     emitting one interface plugin each, the way a service package emits an
+     entity plugin per declared type;
+   - `conversationKey` takes a function, because Discord threads already
+     hold conversations keyed `discord-<thread>` and a conversion must not
+     orphan them;
+   - `present` is told when the answer resolves an approval, and may post
+     the answer itself and hand back the message id the runtime tracks for
+     job completion — a channel that posts cards and files cannot return
+     them as text;
+   - `send` and `edit` receive the progress event behind a progress-origin
+     message, so a channel draws a card from it while the runtime keeps the
+     bookkeeping of which message to edit;
+   - `spaces` on the interface setup context, for passive capture into a
+     space conversation;
+   - `extractCaptureableUrls` on the SDK, a pure helper the class inherited.
+
+   Dropped rather than carried: `manualDelivery` on the channel descriptor,
+   which nothing reads, and the extra actor and source fields chat stored on
+   messages — `username`, `isBot`, `guildId`, `actionId` — which nothing
+   reads back; the pipeline's actor and source shapes are what every
+   declared interface stores.
+
+   **`site-content` is parked behind `site-builder`.** Its generate tool
+   decides which sections can generate by asking
    `templates.getCapabilities(name)` about templates other packages
-   registered, then enqueues a batch of the shell's own
-   `SHELL_CHANNELS.contentGeneration` job type. The declarative `jobs`
-   surface enqueues jobs the package itself declared, one at a time; neither
-   half of what site-content does is expressible. Closing it means a
-   template-capability read and a declared batch enqueue — related to
-   stock-photo's gap (both are a package asking the runtime to run work it
-   does not own) and worth deciding together.
+   registered, reads the site's routes from site-builder over the bus, then
+   enqueues a batch of the shell's own `SHELL_CHANNELS.contentGeneration`
+   job type. Measured against the declarative surface that is four missing
+   things: a capability read on templates it did not declare, generation by
+   template name with the registry supplying the schema, a request/response
+   read of site-builder's routes from a tool (tools only publish), and a
+   batch enqueue with grouped progress. Two of the four are reads of
+   `site-builder`, itself unconverted and the largest package left, so the
+   slice is designed together with site-builder's conversion rather than as
+   four runtime additions for one tool.
 
    **`unified-inbox` was measured at three additions and needed four.**
    Converted. The `inbox`/`inboxFollowUps` readers in `setup` and the

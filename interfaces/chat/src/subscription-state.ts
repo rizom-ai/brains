@@ -1,17 +1,26 @@
 import { createMemoryState } from "@chat-adapter/state-memory";
-import type { IRuntimeStateNamespace } from "@brains/plugins";
+import type {
+  InterfaceSetupContext,
+  IRuntimeStateStore,
+} from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
+import type { chatConfigSchema } from "./config";
 import type { ChatPlatform } from "./types";
 
+/** The durable, schema-validated store the runtime hands an interface at setup. */
+export type ChatRuntimeState = InterfaceSetupContext<
+  typeof chatConfigSchema
+>["runtimeState"];
+
 export const chatThreadSubscriptionStateSchema: z.ZodObject<{
-  subscribedAt: z.ZodString;
+  subscribedAt: z.ZodISODateTime;
   routingMode: z.ZodOptional<
     z.ZodEnum<{ auto: "auto"; "mention-required": "mention-required" }>
   >;
   mentionRequiredNoticeSent: z.ZodOptional<z.ZodBoolean>;
 }> = z.object({
-  subscribedAt: z.string().datetime(),
+  subscribedAt: z.iso.datetime(),
   routingMode: z.enum(["auto", "mention-required"]).optional(),
   mentionRequiredNoticeSent: z.boolean().optional(),
 });
@@ -20,49 +29,23 @@ export type ChatThreadSubscriptionState = z.output<
   typeof chatThreadSubscriptionStateSchema
 >;
 
-export type DiscordThreadSubscriptionState = ChatThreadSubscriptionState;
+export type ChatThreadSubscriptionStore =
+  IRuntimeStateStore<ChatThreadSubscriptionState>;
 
-export const discordThreadSubscriptionStateSchema: typeof chatThreadSubscriptionStateSchema =
-  chatThreadSubscriptionStateSchema;
-
-export const discordThreadSubscriptionNamespace = "chat.discord.subscriptions";
-export const slackThreadSubscriptionNamespace = "chat.slack.subscriptions";
-
-export interface ChatThreadSubscriptionStore {
-  set(key: string, value: ChatThreadSubscriptionState): Promise<void>;
-  get(key: string): Promise<ChatThreadSubscriptionState | null>;
-  has(key: string): Promise<boolean>;
-  delete(key: string): Promise<boolean>;
-}
-
-export type DiscordThreadSubscriptionStore = ChatThreadSubscriptionStore;
-
-function getSubscriptionNamespace(platform: ChatPlatform): string {
-  return platform === "discord"
-    ? discordThreadSubscriptionNamespace
-    : slackThreadSubscriptionNamespace;
-}
+/**
+ * The runtime files an interface's state under the interface's own id, so
+ * Discord's subscriptions and Slack's never share a store; the namespace
+ * names only what it holds.
+ */
+export const threadSubscriptionNamespace = "subscriptions";
 
 export function createThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
-  platform: ChatPlatform,
+  runtimeState: ChatRuntimeState,
 ): ChatThreadSubscriptionStore {
-  return runtimeState.scoped({
-    namespace: getSubscriptionNamespace(platform),
+  return runtimeState({
+    namespace: threadSubscriptionNamespace,
     schema: chatThreadSubscriptionStateSchema,
   });
-}
-
-export function createDiscordThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
-): DiscordThreadSubscriptionStore {
-  return createThreadSubscriptionStore(runtimeState, "discord");
-}
-
-export function createSlackThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
-): ChatThreadSubscriptionStore {
-  return createThreadSubscriptionStore(runtimeState, "slack");
 }
 
 /**
@@ -70,43 +53,29 @@ export function createSlackThreadSubscriptionStore(
  * cache, lists, and queues remain process-local in the memory adapter.
  */
 export function createChatSubscriptionStateAdapter(
-  runtimeState: IRuntimeStateNamespace,
-  platforms: readonly ChatPlatform[],
+  runtimeState: ChatRuntimeState,
+  platform: ChatPlatform,
   memoryState: StateAdapter = createMemoryState(),
 ): StateAdapter {
-  const subscriptions = new Map<ChatPlatform, ChatThreadSubscriptionStore>();
-  for (const platform of platforms) {
-    subscriptions.set(
-      platform,
-      createThreadSubscriptionStore(runtimeState, platform),
-    );
-  }
-  return new ChatSubscriptionStateAdapter(memoryState, subscriptions);
-}
-
-export function createDiscordSubscriptionStateAdapter(
-  runtimeState: IRuntimeStateNamespace,
-  memoryState: StateAdapter = createMemoryState(),
-): StateAdapter {
-  return createChatSubscriptionStateAdapter(
-    runtimeState,
-    ["discord"],
+  return new ChatSubscriptionStateAdapter(
     memoryState,
+    platform,
+    createThreadSubscriptionStore(runtimeState),
   );
 }
 
 class ChatSubscriptionStateAdapter implements StateAdapter {
   private readonly memoryState: StateAdapter;
-  private readonly subscriptions: ReadonlyMap<
-    ChatPlatform,
-    ChatThreadSubscriptionStore
-  >;
+  private readonly platform: ChatPlatform;
+  private readonly subscriptions: ChatThreadSubscriptionStore;
 
   constructor(
     memoryState: StateAdapter,
-    subscriptions: ReadonlyMap<ChatPlatform, ChatThreadSubscriptionStore>,
+    platform: ChatPlatform,
+    subscriptions: ChatThreadSubscriptionStore,
   ) {
     this.memoryState = memoryState;
+    this.platform = platform;
     this.subscriptions = subscriptions;
   }
 
@@ -119,21 +88,20 @@ class ChatSubscriptionStateAdapter implements StateAdapter {
   }
 
   async subscribe(threadId: string): Promise<void> {
-    const store = this.getSubscriptionStore(threadId);
-    if (!store) return this.memoryState.subscribe(threadId);
-    await store.set(threadId, { subscribedAt: new Date().toISOString() });
+    if (!this.owns(threadId)) return this.memoryState.subscribe(threadId);
+    await this.subscriptions.set(threadId, {
+      subscribedAt: new Date().toISOString(),
+    });
   }
 
   async unsubscribe(threadId: string): Promise<void> {
-    const store = this.getSubscriptionStore(threadId);
-    if (!store) return this.memoryState.unsubscribe(threadId);
-    await store.delete(threadId);
+    if (!this.owns(threadId)) return this.memoryState.unsubscribe(threadId);
+    await this.subscriptions.delete(threadId);
   }
 
   isSubscribed(threadId: string): Promise<boolean> {
-    const store = this.getSubscriptionStore(threadId);
-    return store
-      ? store.has(threadId)
+    return this.owns(threadId)
+      ? this.subscriptions.has(threadId)
       : this.memoryState.isSubscribed(threadId);
   }
 
@@ -201,11 +169,8 @@ class ChatSubscriptionStateAdapter implements StateAdapter {
     return this.memoryState.setIfNotExists(key, value, ttlMs);
   }
 
-  private getSubscriptionStore(
-    threadId: string,
-  ): ChatThreadSubscriptionStore | undefined {
-    const prefix = threadId.split(":")[0];
-    if (prefix !== "discord" && prefix !== "slack") return undefined;
-    return this.subscriptions.get(prefix);
+  /** Thread ids are prefixed with their platform; only this platform's are durable here. */
+  private owns(threadId: string): boolean {
+    return threadId.split(":")[0] === this.platform;
   }
 }

@@ -1,24 +1,43 @@
 import { afterEach, beforeEach, expect, mock } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
-import { createPluginHarness } from "@brains/plugins/test";
-import type { PluginTestHarness } from "@brains/plugins/test";
-import type { ChatContext, ToolActivityEvent } from "@brains/plugins";
+import type { Plugin } from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import {
+  createPluginHarness,
+  createStubAuth,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
+import type {
+  AuthIdentities,
+  ChatContext,
+  ScopedRuntimeUploadStore,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type {
+  ChatConfigInput,
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "../../src/config";
 import type {
   ChatAdapterMap,
+  ChatPlatform,
   DiscordChatAdapter,
   GatewayListenerOptions,
 } from "../../src/types";
+import {
+  createCanonicalChatUploadStoreScope,
+  createDiscordChatUploadStoreScope,
+  createSlackChatUploadStoreScope,
+} from "../../src/upload-store";
 import type { Mock } from "bun:test";
 import type { ActionEvent, CardElement, StateAdapter } from "chat";
 // Type-only, so it is erased and cannot evaluate the module before the
 // mock.module() registrations below.
-import type * as ChatInterfaceModule from "../../src/chat-interface";
-import type { ChatIdentityAccess } from "../../src/chat-identity";
+import type * as ChatPackage from "../../src";
+
+export const PACKAGE_NAME = "@brains/chat";
+export const DISCORD_PLUGIN_ID: string = `${PACKAGE_NAME}:discord`;
+export const SLACK_PLUGIN_ID: string = `${PACKAGE_NAME}:slack`;
 
 export const discordExternalIdentity: {
   kind: "external";
@@ -92,12 +111,12 @@ export interface MockSlackAdapter {
  * Everything the mocked modules write to during one test.
  *
  * bun evaluates every suite in a single process, so this module — and the
- * mock.module() registrations below — are one shared instance across all
- * twelve ChatInterface suites. Keeping the mutable parts in a holder that only
- * exists between beforeEach and afterEach is what stops one suite's state from
- * reaching another: outside a test there is nothing to read, so an ordering
- * mistake fails loudly here instead of silently handing over a stale adapter,
- * SDK instance, or auth resolver.
+ * mock.module() registrations below — are one shared instance across all the
+ * chat suites. Keeping the mutable parts in a holder that only exists between
+ * beforeEach and afterEach is what stops one suite's state from reaching
+ * another: outside a test there is nothing to read, so an ordering mistake
+ * fails loudly here instead of silently handing over a stale adapter, SDK
+ * instance, or fetch.
  */
 type HarnessFetch = (
   input: string | URL | Request,
@@ -107,7 +126,6 @@ type HarnessFetch = (
 interface HarnessState {
   discordAdapter: MockDiscordAdapter | undefined;
   slackAdapter: MockSlackAdapter | undefined;
-  resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
   sdkInstances: MockChatSdk[];
   /** What the interface's attachment downloader reaches. Swap it per test. */
   fetch: HarnessFetch;
@@ -116,8 +134,8 @@ interface HarnessState {
 /**
  * Point the interface's attachment downloader at a fake for the current test.
  *
- * The plugin is built with a delegate that reads this at download time, so
- * it can be set before or after createPlugin(). It lives in per-test state,
+ * The package is built with a delegate that reads this at download time, so
+ * it can be set before or after the plugins exist. It lives in per-test state,
  * so there is nothing to restore.
  */
 export function stubFetch(handler: HarnessFetch): void {
@@ -129,7 +147,7 @@ let activeState: HarnessState | undefined;
 function state(): HarnessState {
   if (!activeState) {
     throw new Error(
-      "ChatInterface harness state was touched outside a test. Suites must call setupChatInterfaceTest() at the top level, and nothing may read harness state from module scope.",
+      "Chat harness state was touched outside a test. Suites must call setupChatInterfaceTest() at the top level, and nothing may read harness state from module scope.",
     );
   }
   return activeState;
@@ -262,6 +280,12 @@ export class MockChatSdk {
   static set instances(instances: MockChatSdk[]) {
     state().sdkInstances = instances;
   }
+  /** The app built for one platform's interface, when it was. */
+  static forPlatform(platform: ChatPlatform): MockChatSdk | undefined {
+    return state().sdkInstances.find(
+      (instance) => instance.config.adapters[platform] !== undefined,
+    );
+  }
   readonly config: MockChatSdkConfig;
   readonly handlers: RegisteredHandlers = {
     directMessages: [],
@@ -392,70 +416,15 @@ void mock.module("@chat-adapter/state-memory", () => ({
   createMemoryState: createMemoryStateMock,
 }));
 
-export interface MockAuthPrincipal {
-  userId: string;
-  personId: string;
-  displayName: string;
-  role: "admin" | "trusted" | "public";
-  status: "active" | "invited" | "suspended";
-  permissionLevel: "admin" | "trusted" | "public";
-  isAnchor: boolean;
-  canonicalId?: string;
-}
-
-export type MockIdentityResolution =
-  | { state: "resolved"; principal: MockAuthPrincipal }
-  | { state: "denied" }
-  | { state: "unbound" };
-
 export type ResolveIdentityAccessMock = Mock<
-  (input: { type: string; subject: string }) => Promise<MockIdentityResolution>
+  AuthIdentities["resolveIdentityAccess"]
 >;
 
-export interface AuthStateAccess {
-  resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
-}
-
-/**
- * The auth-service lookup the mocked module hands out. Suites assign
- * `authState.resolveIdentityAccess` to bind a linked identity for one test;
- * it lives on the per-test state, so it cannot survive into the next one.
- */
-export const authState: AuthStateAccess = {
-  get resolveIdentityAccess(): ResolveIdentityAccessMock | undefined {
-    return state().resolveIdentityAccess;
-  },
-  set resolveIdentityAccess(resolver: ResolveIdentityAccessMock | undefined) {
-    state().resolveIdentityAccess = resolver;
-  },
-};
-
-/**
- * Handed to ChatInterface as its identity lookup. No mock.module for
- * @brains/auth-service: replacing an internal workspace module only works
- * while nothing has imported it yet, so it made these suites depend on file
- * order. mock.module here is reserved for the genuinely external chat SDK and
- * adapter packages below.
- */
-function harnessIdentityAccess(): ChatIdentityAccess | undefined {
-  const resolver = authState.resolveIdentityAccess;
-  return resolver ? { resolveIdentityAccess: resolver } : undefined;
-}
-
 // Imported dynamically so every mock.module() call above is registered before
-// the interface module — and its adapter/SDK imports — are first evaluated.
-// Suites must take ChatInterface from here rather than importing the module
+// the package module — and its adapter/SDK imports — is first evaluated.
+// Suites must take the package from here rather than importing the module
 // directly, or they get an unmocked copy.
-const { ChatInterface: LoadedChatInterface } =
-  await import("../../src/chat-interface");
-
-export const ChatInterface: typeof ChatInterfaceModule.ChatInterface =
-  LoadedChatInterface;
-
-export type ChatInterfaceInstance = InstanceType<typeof ChatInterface>;
-export type ChatInterfaceWithToolActivity = ChatInterfaceInstance & {
-  handleToolActivityEvent(event: ToolActivityEvent): Promise<void>;
-};
+const chatModule: typeof ChatPackage = await import("../../src");
 
 export interface MockSentMessage {
   id: string;
@@ -764,41 +733,82 @@ export function expectDiscordConfirmationContext(
   });
 }
 
-export function createPlugin(
-  discordConfig: Partial<DiscordChatAdapterConfig> = {},
-): ChatInterfaceInstance {
-  return new ChatInterface(
-    {
-      adapters: {
-        discord: {
-          ...baseDiscordConfig,
-          ...discordConfig,
-        },
-      },
-      gatewayRunMs: 50,
-    },
-    harnessIdentityAccess,
-    // A delegate rather than the handler itself, so stubFetch() can swap the
-    // handler after the plugin exists.
-    { fetch: (input, init): Promise<Response> => state().fetch(input, init) },
+/**
+ * The package's plugins for a config: one per platform it holds credentials
+ * for. Built with a fetch delegate that reads the per-test stub at download
+ * time, so `stubFetch()` works before or after the plugins exist.
+ */
+export function createPlugins(config: ChatConfigInput): Plugin[] {
+  return instantiatePluginPackageDefinition(
+    chatModule.chatInterfaces({
+      fetch: (input, init): Promise<Response> => state().fetch(input, init),
+    }),
+    config,
+    { name: PACKAGE_NAME, version: "0.1.0" },
   );
 }
 
+/** The Discord interface, configured as most suites want it. */
+export function createPlugin(
+  discordConfig: Partial<DiscordChatAdapterConfig> = {},
+): Plugin {
+  const [plugin] = createPlugins({
+    adapters: { discord: { ...baseDiscordConfig, ...discordConfig } },
+    gatewayRunMs: 50,
+  });
+  if (!plugin) throw new Error("Discord chat plugin was not created");
+  return plugin;
+}
+
+/** The Slack interface, alone. */
+export function createSlackPlugin(
+  slackConfig: SlackChatAdapterConfig = baseSlackConfig,
+  config: Omit<ChatConfigInput, "adapters"> = {},
+): Plugin {
+  const [plugin] = createPlugins({
+    ...config,
+    adapters: { slack: slackConfig },
+  });
+  if (!plugin) throw new Error("Slack chat plugin was not created");
+  return plugin;
+}
+
 export interface ChatInterfaceTestContext {
-  harness: PluginTestHarness<ChatInterfaceInstance>;
+  harness: PluginTestHarness;
   agentService: MockAgentService;
+  /**
+   * Bind platform identities to accounts for this test, the way a mounted
+   * auth service would. The mock is what the interface calls, so a suite
+   * asserts on it directly.
+   */
+  bindIdentity: (resolver: ResolveIdentityAccessMock) => void;
+  /** Install every plugin the config produces and return them. */
+  install: (config: ChatConfigInput) => Promise<Plugin[]>;
 }
 
 /**
- * Installs the beforeEach/afterEach every ChatInterface suite needs: fresh
- * adapter mocks, a per-test fetch the plugin is built to use, and a plugin
- * harness wired to a mock agent service. The returned context is mutated in place, so suites read
- * `context.harness` inside their tests rather than destructuring it.
+ * Installs the beforeEach/afterEach every chat suite needs: fresh adapter
+ * mocks, a per-test fetch the package is built to use, and a plugin harness
+ * wired to a mock agent service. The returned context is mutated in place, so
+ * suites read `context.harness` inside their tests rather than destructuring it.
  */
 export function setupChatInterfaceTest(): ChatInterfaceTestContext {
   const context: ChatInterfaceTestContext = {
-    harness: createPluginHarness<ChatInterfaceInstance>(),
+    harness: createPluginHarness(),
     agentService: createAgentService(),
+    bindIdentity: (resolver): void => {
+      context.harness
+        .getMockShell()
+        .getAuthRegistry()
+        .register(createStubAuth({ identityAccess: resolver }));
+    },
+    install: async (config): Promise<Plugin[]> => {
+      const plugins = createPlugins(config);
+      for (const plugin of plugins) {
+        await context.harness.installPlugin(plugin);
+      }
+      return plugins;
+    },
   };
   beforeEach(() => {
     // A fresh holder per test: nothing from the previous test — or from a
@@ -806,7 +816,6 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     activeState = {
       discordAdapter: undefined,
       slackAdapter: undefined,
-      resolveIdentityAccess: undefined,
       sdkInstances: [],
       fetch: (): Promise<Response> => Promise.resolve(new Response("{}")),
     };
@@ -814,7 +823,7 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     createSlackAdapterMock.mockClear();
     createMemoryStateMock.mockClear();
     context.agentService = createAgentService();
-    context.harness = createPluginHarness<ChatInterfaceInstance>();
+    context.harness = createPluginHarness();
     context.harness.setAgentService(context.agentService);
   });
 
@@ -827,17 +836,66 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
 }
 
 /**
- * Reach the protected tool-activity hook.
- *
- * The tests drive this directly because a tool event arrives mid-turn, from
- * inside the agent call they are already stubbing; going through messaging
- * would mean rebuilding that turn. `protected` is not reachable from outside
- * the class, so a widening is unavoidable — but it belongs here, named once,
- * rather than repeated at every call site where it reads like an ordinary cast.
+ * The upload store a platform's interface reads, as the runtime files it:
+ * under the declaration's own id, so two interfaces cannot read each other's.
  */
-export function withToolActivity(
-  plugin: ChatInterfaceInstance,
-): ChatInterfaceWithToolActivity {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
-  return plugin as ChatInterfaceWithToolActivity;
+export function platformUploadStore(
+  harness: PluginTestHarness,
+  platform: ChatPlatform,
+): ScopedRuntimeUploadStore {
+  const scope =
+    platform === "discord"
+      ? createDiscordChatUploadStoreScope()
+      : createSlackChatUploadStoreScope();
+  return harness
+    .getMockShell()
+    .getRuntimeUploadRegistry()
+    .scoped({ ...scope, namespace: `${platform}.${scope.namespace}` });
+}
+
+/** The canonical store, where every platform's uploads are kept. */
+export function canonicalUploadStore(
+  harness: PluginTestHarness,
+  platform: ChatPlatform,
+): ScopedRuntimeUploadStore {
+  const scope = createCanonicalChatUploadStoreScope();
+  return harness
+    .getMockShell()
+    .getRuntimeUploadRegistry()
+    .scoped({ ...scope, namespace: `${platform}.${scope.namespace}` });
+}
+
+/** A tool's activity, as the runtime publishes it for the interface to draw. */
+export async function sendToolActivity(
+  harness: PluginTestHarness,
+  event: {
+    type: "tool:invoking" | "tool:completed" | "tool:failed";
+    toolName: string;
+    conversationId: string;
+    interfaceType: string;
+    channelId?: string;
+    error?: string;
+  },
+): Promise<void> {
+  const { type, ...payload } = event;
+  await harness.sendMessage(type, payload);
+}
+
+/**
+ * The turn the agent was asked, ignoring the abort signal the runtime hands
+ * along as a fourth argument — a test about routing has nothing to say about
+ * cancellation.
+ */
+export function expectAgentChat(
+  agent: MockAgentService,
+  message: unknown,
+  conversationId: string,
+  context: unknown,
+): void {
+  expect(agent.chat).toHaveBeenCalledWith(
+    message,
+    conversationId,
+    context,
+    expect.anything(),
+  );
 }

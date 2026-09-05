@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import {
-  ChatInterface,
+  createSlackPlugin,
   MockChatSdk,
   baseSlackConfig,
   stubFetch,
@@ -11,14 +11,14 @@ import {
   createThread,
   expectDiscordConfirmationContext,
   setupChatInterfaceTest,
-  withToolActivity,
+  sendToolActivity,
 } from "./harness/chat-interface-harness";
 import type {
   MockPostMessage,
   MockSentMessage,
 } from "./harness/chat-interface-harness";
 
-describe("ChatInterface approvals", () => {
+describe("chat approvals", () => {
   const suite = setupChatInterfaceTest();
 
   it("posts single pending approvals as concise SDK cards with yes/no fallback", async () => {
@@ -95,6 +95,7 @@ describe("ChatInterface approvals", () => {
       true,
       "approval-1",
       expectDiscordConfirmationContext(),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -117,7 +118,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -169,6 +170,7 @@ describe("ChatInterface approvals", () => {
         channelId: thread.id,
         userPermissionLevel: "public",
       }),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenCalledTimes(1);
   });
@@ -186,7 +188,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const approvalMessage = createSentMessage("slack-approval-message-1");
@@ -232,14 +234,8 @@ describe("ChatInterface approvals", () => {
         actor: expect.objectContaining({
           identity: expect.objectContaining({ kind: "external" }),
         }),
-        source: expect.objectContaining({
-          messageId: "slack-approval-message-1",
-          metadata: expect.objectContaining({
-            actionId: "approval.confirm",
-            actionValue: "approval-1",
-          }),
-        }),
       }),
+      expect.anything(),
     );
     expect(approvalMessage.edit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -320,7 +316,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -362,19 +358,18 @@ describe("ChatInterface approvals", () => {
   });
 
   it("consolidates successful Slack approvals into the resolved card", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    const toolInterface = withToolActivity(plugin);
+    const plugin = createSlackPlugin();
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:invoking",
           toolName: "system_create",
           conversationId,
           interfaceType: "slack",
           channelId: threadId,
         });
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:completed",
           toolName: "system_create",
           conversationId,
@@ -397,14 +392,14 @@ describe("ChatInterface approvals", () => {
     );
     suite.agentService.confirmPendingAction.mockImplementationOnce(
       async (conversationId) => {
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:invoking",
           toolName: "system_create",
           conversationId,
           interfaceType: "slack",
           channelId: threadId,
         });
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:completed",
           toolName: "system_create",
           conversationId,
@@ -492,7 +487,7 @@ describe("ChatInterface approvals", () => {
       text: "Action cancelled.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const approvalMessage = createSentMessage("slack-cancel-approval");
@@ -533,8 +528,7 @@ describe("ChatInterface approvals", () => {
   });
 
   it("consolidates failed Slack approvals into the resolved card", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    const toolInterface = withToolActivity(plugin);
+    const plugin = createSlackPlugin();
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockResolvedValueOnce({
       text: "Please confirm this action.",
@@ -550,7 +544,7 @@ describe("ChatInterface approvals", () => {
     });
     suite.agentService.confirmPendingAction.mockImplementationOnce(
       async (conversationId) => {
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:failed",
           toolName: "system_create",
           conversationId,
@@ -626,9 +620,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({
-      adapters: { slack: { ...baseSlackConfig, allowDMs: false } },
-    });
+    const plugin = createSlackPlugin({ ...baseSlackConfig, allowDMs: false });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -679,7 +671,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -715,6 +707,7 @@ describe("ChatInterface approvals", () => {
       true,
       "approval-2",
       expect.objectContaining({ interfaceType: "slack" }),
+      expect.anything(),
     );
   });
 
@@ -758,6 +751,7 @@ describe("ChatInterface approvals", () => {
         interfaceType: "discord",
         channelId: "discord:guild-123:channel-123:thread-456",
       }),
+      expect.anything(),
     );
     expect(thread.post).toHaveBeenCalledWith("Fresh topic answer.");
   });

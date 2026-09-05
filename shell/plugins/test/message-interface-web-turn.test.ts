@@ -201,3 +201,47 @@ describe("an approval the client names", () => {
     });
   });
 });
+
+describe("an interface asking what is still pending", () => {
+  it("is told the approvals the runtime holds for that channel, and none once answered", async () => {
+    const harnessed = await webTurnHarness({
+      response: {
+        text: "This will publish the post.",
+        pendingConfirmations: [
+          {
+            id: "approval-1",
+            toolName: "publish",
+            summary: "Publish the post",
+            args: {},
+          },
+        ],
+        cards: [],
+        toolResults: [],
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      },
+    });
+    const channel = { id: "web-2f9c" };
+    const sender = { id: "usr_mira" };
+
+    expect(await harnessed.messages.pendingApprovals(channel)).toEqual([]);
+
+    await harnessed.messages.receiveAuthenticated({
+      sender,
+      channel,
+      text: "publish it",
+    });
+    // A button drawn for this approval is a live one.
+    expect(await harnessed.messages.pendingApprovals(channel)).toEqual([
+      "approval-1",
+    ]);
+
+    await harnessed.messages.resolveApproval({
+      sender,
+      channel,
+      approvalId: "approval-1",
+      approved: true,
+    });
+    // And a second click on it can be told so without spending a turn.
+    expect(await harnessed.messages.pendingApprovals(channel)).toEqual([]);
+  });
+});

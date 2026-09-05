@@ -2,13 +2,10 @@ import { describe, it, expect, mock } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import type { IConversationService } from "@brains/plugins";
 import {
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-} from "../src/upload-store";
-import {
-  ChatInterface,
+  canonicalUploadStore,
   MockChatSdk,
-  baseSlackConfig,
+  createSlackPlugin,
+  platformUploadStore,
   stubFetch,
   createMessage,
   createPlugin,
@@ -16,7 +13,7 @@ import {
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
 
-describe("ChatInterface uploads", () => {
+describe("chat uploads", () => {
   const suite = setupChatInterfaceTest();
 
   it("fetches trusted Slack files through the adapter and stores them durably", async () => {
@@ -26,7 +23,7 @@ describe("ChatInterface uploads", () => {
       }),
     );
     const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -82,7 +79,7 @@ describe("ChatInterface uploads", () => {
 
   it("does not fetch Slack files for public users", async () => {
     const fetchData = mock(() => Promise.resolve(Buffer.from("secret")));
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -155,10 +152,7 @@ describe("ChatInterface uploads", () => {
     ]);
     const source =
       suite.agentService.chat.mock.calls[0]?.[2]?.attachments?.[0]?.source;
-    const uploadStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped(createCanonicalChatUploadStoreScope());
+    const uploadStore = canonicalUploadStore(suite.harness, "discord");
     const record = await uploadStore.readRecord(source?.id ?? "");
     expect(record.metadata).toEqual({
       interfaceType: "discord",
@@ -239,7 +233,7 @@ describe("ChatInterface uploads", () => {
         rules: [{ pattern: "slack:*", level: "trusted" }],
       }),
     );
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -275,13 +269,13 @@ describe("ChatInterface uploads", () => {
       expect.objectContaining({
         kind: "file",
         filename: "diagram.png",
-        data: image,
+        data: new Uint8Array(image),
         source: expect.objectContaining({ kind: "upload" }),
       }),
       expect.objectContaining({
         kind: "file",
         filename: "brief.pdf",
-        data: pdf,
+        data: new Uint8Array(pdf),
         source: expect.objectContaining({ kind: "upload" }),
       }),
     ]);
@@ -330,7 +324,7 @@ describe("ChatInterface uploads", () => {
         kind: "file",
         filename: "diagram.png",
         mediaType: "image/png",
-        data: image,
+        data: new Uint8Array(image),
         sizeBytes: image.byteLength,
         source: {
           kind: "upload",
@@ -341,7 +335,7 @@ describe("ChatInterface uploads", () => {
         kind: "file",
         filename: "brief.pdf",
         mediaType: "application/pdf",
-        data: pdf,
+        data: new Uint8Array(pdf),
         sizeBytes: pdf.byteLength,
         source: {
           kind: "upload",
@@ -392,7 +386,7 @@ describe("ChatInterface uploads", () => {
         kind: "file",
         filename: "distributed-systems-primer.pdf",
         mediaType: "application/pdf",
-        data: pdf,
+        data: new Uint8Array(pdf),
         sizeBytes: pdf.byteLength,
         source: {
           kind: "upload",
@@ -545,7 +539,7 @@ describe("ChatInterface uploads", () => {
         kind: "file",
         filename: "failed-turn-robot.png",
         mediaType: "image/png",
-        data: image,
+        data: new Uint8Array(image),
       }),
     ]);
   });
@@ -609,13 +603,13 @@ describe("ChatInterface uploads", () => {
           kind: "file",
           filename: "first-robot.png",
           mediaType: "image/png",
-          data: firstImage,
+          data: new Uint8Array(firstImage),
         }),
         expect.objectContaining({
           kind: "file",
           filename: "second-robot.png",
           mediaType: "image/png",
-          data: secondImage,
+          data: new Uint8Array(secondImage),
         }),
       ]),
     );
@@ -677,13 +671,13 @@ describe("ChatInterface uploads", () => {
           kind: "file",
           filename: "first-robot.png",
           mediaType: "image/png",
-          data: firstImage,
+          data: new Uint8Array(firstImage),
         }),
         expect.objectContaining({
           kind: "file",
           filename: "second-robot.png",
           mediaType: "image/png",
-          data: secondImage,
+          data: new Uint8Array(secondImage),
         }),
       ]),
     );
@@ -739,13 +733,13 @@ describe("ChatInterface uploads", () => {
           kind: "file",
           filename: "first-robot.png",
           mediaType: "image/png",
-          data: firstImage,
+          data: new Uint8Array(firstImage),
         }),
         expect.objectContaining({
           kind: "file",
           filename: "second-robot.png",
           mediaType: "image/png",
-          data: secondImage,
+          data: new Uint8Array(secondImage),
         }),
       ]),
     );
@@ -758,10 +752,7 @@ describe("ChatInterface uploads", () => {
       }),
     );
     const image = Buffer.from([7, 8, 9]);
-    const uploadStore = suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped(createDiscordChatUploadStoreScope());
+    const uploadStore = platformUploadStore(suite.harness, "discord");
     const record = await uploadStore.save({
       filename: "stored-robot.png",
       mediaType: "image/png",
@@ -822,7 +813,7 @@ describe("ChatInterface uploads", () => {
         kind: "file",
         filename: "stored-robot.png",
         mediaType: "image/png",
-        data: image,
+        data: new Uint8Array(image),
         source: expect.objectContaining({ kind: "upload" }),
       }),
     ]);

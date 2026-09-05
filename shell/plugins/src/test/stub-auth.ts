@@ -1,5 +1,6 @@
 import type {
   AuthAuditEvent,
+  AuthIdentities,
   AuthImplementation,
   AuthPrincipal,
 } from "../index";
@@ -42,6 +43,12 @@ export interface StubAuthOptions {
   readonly principal?: AuthPrincipal | undefined;
   /** The 302 or 401 the interface under test is expected to pass through. */
   readonly loginResponse?: (() => Response) | undefined;
+  /**
+   * How a platform identity — a Discord user id, say — resolves to an
+   * account. Omitted, the signed-in principal resolves and anyone else is
+   * unbound; a test about a revoked binding answers `denied` here.
+   */
+  readonly identityAccess?: AuthIdentities["resolveIdentityAccess"] | undefined;
 }
 
 export function createStubAuth(
@@ -82,10 +89,12 @@ export function createStubAuth(
       grantedLevel: "trusted",
     }),
     revokeA2APeerTrust: async () => undefined,
-    resolveIdentityAccess: async () =>
-      options.principal
-        ? { state: "resolved", principal: options.principal }
-        : { state: "unbound" },
+    resolveIdentityAccess:
+      options.identityAccess ??
+      (async (): ReturnType<AuthIdentities["resolveIdentityAccess"]> =>
+        options.principal
+          ? { state: "resolved", principal: options.principal }
+          : { state: "unbound" }),
   };
 }
 

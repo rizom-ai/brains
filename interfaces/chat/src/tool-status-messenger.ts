@@ -2,7 +2,7 @@ import {
   getToolStatusDisplay,
   getToolStatusKey,
   type ToolStatusUpdate,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import type { CardChild, CardElement, SentMessage } from "chat";
 import type { ThreadRegistry } from "./thread-registry";
 

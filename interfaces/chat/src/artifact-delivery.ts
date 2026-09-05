@@ -4,10 +4,11 @@ import {
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
-  type InterfacePluginContext,
+  type InterfaceEntityReader,
   type StructuredChatCard,
   type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
+import type { Logger } from "@brains/utils/logger";
 import type { FileUpload } from "chat";
 
 const CHAT_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
@@ -19,19 +20,17 @@ const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
 ]);
 
 interface ArtifactDeliveryDeps {
-  getContext: () => InterfacePluginContext | undefined;
-  getDisplayBaseUrl: () => string | undefined;
-  logger: {
-    debug: (message: string, context?: Record<string, unknown>) => void;
-  };
+  entities: InterfaceEntityReader;
+  displayBaseUrl: string | undefined;
+  logger: Pick<Logger, "debug">;
 }
 
 /**
  * Resolves which generated artifacts to deliver to a chat caller: native files
  * for artifacts visible to their permission level, plus the ids of cards whose
  * artifact exists but is out of scope (so their links/metadata can be
- * suppressed). Pure delivery policy — extracted from ChatInterface and shared by
- * both the normal-response and confirmation-response render paths.
+ * suppressed). Pure delivery policy, shared by the normal-response and
+ * confirmation-response render paths.
  */
 export class ArtifactDeliveryResolver {
   private readonly deps: ArtifactDeliveryDeps;
@@ -41,7 +40,7 @@ export class ArtifactDeliveryResolver {
   }
 
   async resolve(
-    cards: StructuredChatCard[] | undefined,
+    cards: readonly StructuredChatCard[] | undefined,
     userLevel: UserPermissionLevel,
   ): Promise<{
     files: FileUpload[];
@@ -51,15 +50,13 @@ export class ArtifactDeliveryResolver {
     const files: FileUpload[] = [];
     const deniedCardIds = new Set<string>();
     const deliveredCardIds = new Set<string>();
-    if (!cards || !this.deps.getContext()) {
-      return { files, deniedCardIds, deliveredCardIds };
-    }
+    if (!cards) return { files, deniedCardIds, deliveredCardIds };
 
     for (const card of cards) {
       if (card.kind !== "attachment") continue;
       const entityRef = resolveArtifactEntityRefFromCard(
         card,
-        this.deps.getDisplayBaseUrl(),
+        this.deps.displayBaseUrl,
       );
       if (!entityRef) continue;
 
@@ -86,15 +83,12 @@ export class ArtifactDeliveryResolver {
     entityRef: NonNullable<ReturnType<typeof resolveArtifactEntityRefFromCard>>,
     userLevel: UserPermissionLevel,
   ): Promise<{ file?: FileUpload; denied?: boolean }> {
-    const context = this.deps.getContext();
-    if (!context) return {};
-
     const access = await resolveMessageArtifactAccess({
       entityRef,
       userLevel,
-      getEntity: (ref) => context.entityService.getEntity(ref),
+      getEntity: (ref) => this.deps.entities.getEntity(ref),
       getVisibleEntity: (ref, visibilityScope) =>
-        context.entityService.getEntity({ ...ref, visibilityScope }),
+        this.deps.entities.getEntity({ ...ref, visibilityScope }),
     });
     if (access.status === "denied") return { denied: true };
     if (access.status !== "visible") return {};

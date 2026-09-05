@@ -1,4 +1,4 @@
-import type { RuntimeUploadScopeOptions } from "@brains/plugins";
+import type { RuntimeUploadScopeOptions } from "@brains/sdk/interfaces";
 
 export const discordChatUploadRefKind = "discord-chat-upload";
 export const slackChatUploadRefKind = "slack-chat-upload";

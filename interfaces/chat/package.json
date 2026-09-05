@@ -4,9 +4,8 @@
   "version": "0.2.0-alpha.355",
   "description": "Multi-platform Chat SDK interface for Brains",
   "dependencies": {
-    "@brains/auth-service": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "@chat-adapter/discord": "^4.34.0",
     "@chat-adapter/slack": "^4.34.0",
@@ -15,6 +14,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0"

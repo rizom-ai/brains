@@ -1,4 +1,3 @@
-import type { MessageInterfaceOutput } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { CardElement } from "chat";
 import { parseChatPlatform } from "./chat-platform";
@@ -8,6 +7,9 @@ export interface ChatCardOutput {
   card: CardElement;
   fallbackText?: string;
 }
+
+/** What this interface posts: a Chat SDK card with its text fallback, or text. */
+export type ChatOutput = ChatCardOutput | string;
 
 const chatCardElementSchema = z.looseObject({
   type: z.literal("card"),
@@ -24,9 +26,7 @@ const chatCardOutputSchema = z.object({
   fallbackText: z.string().optional(),
 });
 
-export function toChatCardOutput(
-  output: MessageInterfaceOutput,
-): ChatCardOutput | undefined {
+export function toChatCardOutput(output: unknown): ChatCardOutput | undefined {
   const parsed = chatCardOutputSchema.safeParse(output);
   if (!parsed.success) return undefined;
 
@@ -34,9 +34,13 @@ export function toChatCardOutput(
   return fallbackText === undefined ? { card } : { card, fallbackText };
 }
 
+/**
+ * How a card reads on this channel: Discord takes the card, Slack takes its
+ * text fallback. Plain text is left to the caller to chunk and post.
+ */
 export function toPlatformPostOutput(
   channelId: string | null,
-  output: MessageInterfaceOutput,
+  output: ChatOutput,
 ): ChatCardOutput | string | undefined {
   if (typeof output === "string") return undefined;
   const cardOutput = toChatCardOutput(output);
@@ -61,7 +65,9 @@ export function formatChatNoticePayload(
   };
 }
 
-export function formatChatErrorPayload(error: unknown): MessageInterfaceOutput {
+export function formatChatErrorPayload(error: unknown): ChatCardOutput & {
+  fallbackText: string;
+} {
   const message = getErrorMessage(error, "Unknown error");
   return {
     card: {

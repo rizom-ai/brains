@@ -28,7 +28,10 @@ import type {
 import {
   assertIdentifier,
   createPluginPackageDefinition,
+  instantiateWithinPackage,
+  type PluginPackageDefinition,
 } from "../package-definition";
+import type { z } from "@brains/utils/zod";
 
 export { defineAccountSettings } from "../operator/account-settings-definition-contract";
 export type {
@@ -234,5 +237,48 @@ export function defineMessageInterface<
         metadata,
         scope(definition.id),
       ),
+  });
+}
+
+/**
+ * One package, several message interfaces, decided from one config.
+ *
+ * Each interface is a `defineMessageInterface` over the package's own config
+ * schema, and which of them run is a fact about that config — an adapter
+ * without credentials is not declared — so the list is a function of it.
+ * Every interface emits its own plugin under the package, the way a service
+ * package emits an entity plugin per declared type, and is its own interface
+ * type: chat serves Discord and Slack from one config block, and permission
+ * rules, channel descriptors and conversation ids are keyed per platform.
+ * Named consumer: @brains/chat.
+ */
+export function defineMessageInterfacePackage<
+  TConfigSchema extends InterfaceConfigSchema,
+>(definition: {
+  readonly id: string;
+  readonly config: TConfigSchema;
+  readonly interfaces: (context: {
+    readonly config: z.output<TConfigSchema>;
+  }) => readonly PluginPackageDefinition<TConfigSchema, "message-interface">[];
+}): PluginPackageDefinition<TConfigSchema, "message-interface"> {
+  return createPluginPackageDefinition({
+    family: "message-interface",
+    id: definition.id,
+    config: definition.config,
+    instantiate: (context) => {
+      const interfaces = definition.interfaces({ config: context.config });
+      const declared = new Set<string>();
+      for (const declaration of interfaces) {
+        if (declared.has(declaration.id)) {
+          throw new Error(
+            `Message interface package "${definition.id}" declares "${declaration.id}" twice`,
+          );
+        }
+        declared.add(declaration.id);
+      }
+      return interfaces.flatMap((declaration) =>
+        instantiateWithinPackage(declaration, context),
+      );
+    },
   });
 }

@@ -31,6 +31,8 @@ import type {
   AuthenticatedCaller,
   InboundMessageSender,
   MessageChannel,
+  PresentedConfirmation,
+  PresentedMessage,
   ReceiveAuthenticatedInput,
   ResolveApprovalInput,
 } from "../interface/interface-definition-contract";
@@ -43,7 +45,7 @@ import type {
 import { MessageInterfacePlugin } from "./message-interface-plugin";
 import { PendingApprovalTracker } from "./pending-approval-tracker";
 import { routeConfirmationResponse } from "./confirmation-routing";
-import { buildResponsePlan } from "./response-render-plan";
+import { buildResponsePlan, getResponseJobIds } from "./response-render-plan";
 import type { AgentResponse, ChatContext } from "../contracts/agent";
 import type { JobContext, JobProgressEvent } from "@brains/job-queue";
 import type { z } from "@brains/utils/zod";
@@ -53,6 +55,13 @@ import type { ContentVisibility } from "@brains/entity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { ToolStatusUpdate } from "./tool-status";
 import { effectiveDisplayBaseUrl } from "../interface/display-base-url";
+
+/** `present` posted the answer itself and named the message it became. */
+function isPresentedMessage(
+  presented: string | readonly string[] | PresentedMessage,
+): presented is PresentedMessage {
+  return typeof presented === "object" && "messageId" in presented;
+}
 
 /**
  * Who the turn is attributed to.
@@ -267,6 +276,7 @@ class DeclarativeMessageInterfacePlugin<
             context.entityService,
             this.definition.id,
           ),
+          spaces: context.spaces,
           domain: context.domain,
           displayBaseUrl: effectiveDisplayBaseUrl(context),
           themeCSS: context.themeCSS,
@@ -323,6 +333,7 @@ class DeclarativeMessageInterfacePlugin<
             this.receiveAuthenticated(received, new AbortController().signal),
           resolveApproval: (received) =>
             this.resolveApproval(received, new AbortController().signal),
+          pendingApprovals: (channel) => this.pendingApprovals(channel),
         },
         jobs: {
           enqueue: async <TDefinition extends AnyServiceJobDefinition>(
@@ -452,6 +463,7 @@ class DeclarativeMessageInterfacePlugin<
                 receiveAuthenticated: (input) =>
                   this.receiveAuthenticated(input, signal),
                 resolveApproval: (input) => this.resolveApproval(input, signal),
+                pendingApprovals: (channel) => this.pendingApprovals(channel),
               },
             }) ?? Promise.resolve(),
         }),
@@ -554,6 +566,7 @@ class DeclarativeMessageInterfacePlugin<
           // This path is the progress coordinator's; replies go through
           // sendMessageWithId, which is what an interface waits on for an id.
           origin: "progress",
+          ...(request.event ? { event: request.event } : {}),
         }),
       )
       .catch((error: unknown) => {
@@ -565,12 +578,15 @@ class DeclarativeMessageInterfacePlugin<
     request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
     if (!request.channelId || !this.definition.send) return undefined;
+    // The coordinator also sends its first progress message this way, for
+    // the id it edits afterwards; the event is what tells the two apart.
     const id = await this.definition.send({
       config: this.config,
       state: this.requireState(),
       channel: { id: request.channelId },
       message: normalizedOutput(request.message),
-      origin: "reply",
+      origin: request.event ? "progress" : "reply",
+      ...(request.event ? { event: request.event } : {}),
     });
     return typeof id === "string" ? id : undefined;
   }
@@ -585,6 +601,7 @@ class DeclarativeMessageInterfacePlugin<
       channel: { id: request.channelId },
       messageId: request.messageId,
       message: normalizedOutput(request.newMessage),
+      ...(request.event ? { event: request.event } : {}),
     });
     return true;
   }
@@ -750,6 +767,7 @@ class DeclarativeMessageInterfacePlugin<
     channel: { id: string; threadId?: string | undefined },
     response: AgentResponse,
     userLevel: UserPermissionLevel,
+    confirmation?: PresentedConfirmation,
   ): Promise<string | undefined> {
     const present = this.definition.present;
     if (!present) {
@@ -768,8 +786,13 @@ class DeclarativeMessageInterfacePlugin<
         ...(channel.threadId ? { threadId: channel.threadId } : {}),
       },
       directives: plan.directives,
+      permissionLevel: userLevel,
+      ...(confirmation ? { confirmation } : {}),
     });
     if (presented === undefined) return undefined;
+    // The interface posted the answer itself; what it hands back is the
+    // message to track, and there is nothing left to send.
+    if (isPresentedMessage(presented)) return presented.messageId;
     const messages = typeof presented === "string" ? [presented] : presented;
     let firstMessageId: string | undefined;
     for (const message of messages) {
@@ -794,9 +817,9 @@ class DeclarativeMessageInterfacePlugin<
     id: string;
     threadId?: string | undefined;
   }): string {
-    if (this.definition.channel.conversationKey === "channel") {
-      return channel.id;
-    }
+    const key = this.definition.channel.conversationKey;
+    if (typeof key === "function") return key(channel);
+    if (key === "channel") return channel.id;
     return [this.definition.channel.type, channel.id, channel.threadId]
       .filter((part): part is string => part !== undefined)
       .join(":");
@@ -845,7 +868,8 @@ class DeclarativeMessageInterfacePlugin<
     isAnchor: boolean,
   ): ChatContext {
     const interfaceType = this.definition.channel.type;
-    const channelName = this.definition.channel.displayName;
+    const channelName =
+      input.channel.name ?? this.definition.channel.displayName;
     return {
       userPermissionLevel: permission,
       isAnchor,
@@ -877,6 +901,17 @@ class DeclarativeMessageInterfacePlugin<
    * out of a sentence, and that an approval the brain is no longer holding is
    * reported rather than answered as a fresh question.
    */
+  /** What is still pending here, restored from the conversation if need be. */
+  private async pendingApprovals(
+    channel: MessageChannel,
+  ): Promise<readonly string[]> {
+    return [
+      ...(await this.approvals().getApprovalIds(
+        this.conversationIdFor(channel),
+      )),
+    ];
+  }
+
   private async resolveApproval(
     input: ResolveApprovalInput,
     signal: AbortSignal,
@@ -900,12 +935,19 @@ class DeclarativeMessageInterfacePlugin<
         this.turnContext(input, permission, isAnchor),
         signal,
       );
+      // Answered, whatever the agent says next; the sync re-adds it only if
+      // the answer says it is still pending.
+      this.approvals().removeApproval(conversationId, input.approvalId);
       this.approvals().syncFromResponse(
         conversationId,
         resolved,
         input.approvalId,
       );
-      await this.deliverResponse(input.channel, resolved, permission);
+      await this.deliverResponse(input.channel, resolved, permission, {
+        approvalId: input.approvalId,
+        approved: input.approved,
+        remaining: [...(await this.approvals().getApprovalIds(conversationId))],
+      });
       await this.handleAgentResponseToolStatuses(resolved, conversationId);
       return hasApprovalCard(resolved, input)
         ? { kind: "resolved" }
@@ -968,12 +1010,19 @@ class DeclarativeMessageInterfacePlugin<
           this.turnContext(input, permission, isAnchor),
           signal,
         );
+        this.approvals().removeApproval(conversationId, routed.approvalId);
         this.approvals().syncFromResponse(
           conversationId,
           resolved,
           routed.approvalId,
         );
-        await this.deliverResponse(input.channel, resolved, permission);
+        await this.deliverResponse(input.channel, resolved, permission, {
+          approvalId: routed.approvalId,
+          approved: routed.confirmed,
+          remaining: [
+            ...(await this.approvals().getApprovalIds(conversationId)),
+          ],
+        });
       } finally {
         this.endProcessingInput();
       }
@@ -992,7 +1041,8 @@ class DeclarativeMessageInterfacePlugin<
                 source: {
                   channelId: input.channel.id,
                   messageId: input.messageId,
-                  channelName: this.definition.channel.displayName,
+                  channelName:
+                    input.channel.name ?? this.definition.channel.displayName,
                   ...(input.channel.threadId
                     ? { threadId: input.channel.threadId }
                     : {}),
@@ -1009,15 +1059,11 @@ class DeclarativeMessageInterfacePlugin<
         response,
         permission,
       );
+      // Every job the answer started — a tool's, or the one an artifact card
+      // is waiting on — reports back to the message that announced it.
       if (messageId) {
-        for (const result of response.toolResults ?? []) {
-          if (result.jobId) {
-            this.trackAgentResponseForJob(
-              result.jobId,
-              messageId,
-              input.channel.id,
-            );
-          }
+        for (const jobId of getResponseJobIds(response)) {
+          this.trackAgentResponseForJob(jobId, messageId, input.channel.id);
         }
       }
       await this.handleAgentResponseToolStatuses(response, conversationId);

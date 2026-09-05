@@ -29,7 +29,11 @@ function redactToolResult(result: ToolResultData): ToolResultData {
 }
 
 export interface ConfirmationResponsePartsInput {
-  response: AgentResponse;
+  /** What the parts are read from; an interface holding directives, not a response, has these too. */
+  response: Pick<
+    AgentResponse,
+    "text" | "cards" | "pendingConfirmations" | "toolResults"
+  >;
   confirmed: boolean;
   remainingApprovalHelp: string | undefined;
   deniedCardIds: ReadonlySet<string> | undefined;

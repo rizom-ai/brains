@@ -1,37 +1,36 @@
 import { describe, it, expect } from "bun:test";
 import {
-  ChatInterface,
+  DISCORD_PLUGIN_ID,
   MockChatSdk,
-  baseSlackConfig,
+  SLACK_PLUGIN_ID,
   createPlugin,
+  createSlackPlugin,
   lastAdapter,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
 
-describe("ChatInterface gateway daemons", () => {
+describe("chat listeners", () => {
   const suite = setupChatInterfaceTest();
 
   it("runs Slack without starting the Discord gateway", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createSlackPlugin());
     const registry = suite.harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("chat");
-    await registry.stopPlugin("chat");
+    await registry.startPlugin(SLACK_PLUGIN_ID);
+    await registry.stopPlugin(SLACK_PLUGIN_ID);
 
     expect(MockChatSdk.instances[0]?.initialize).toHaveBeenCalledTimes(1);
     expect(lastAdapter.discord?.startGatewayListener).toBeUndefined();
     expect(MockChatSdk.instances[0]?.shutdown).toHaveBeenCalledTimes(1);
   });
 
-  it("registers an abortable Discord gateway daemon", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+  it("registers an abortable Discord gateway listener", async () => {
+    await suite.harness.installPlugin(createPlugin());
     const registry = suite.harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("chat");
+    await registry.startPlugin(DISCORD_PLUGIN_ID);
     await Bun.sleep(0);
-    await registry.stopPlugin("chat");
+    await registry.stopPlugin(DISCORD_PLUGIN_ID);
 
     expect(lastAdapter.discord?.startGatewayListener).toHaveBeenCalled();
     expect(MockChatSdk.instances[0]?.shutdown).toHaveBeenCalled();

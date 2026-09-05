@@ -1,20 +1,19 @@
 import { describe, it, expect, mock, afterEach, setSystemTime } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import {
-  ChatInterface,
+  createSlackPlugin,
   MockChatSdk,
-  baseSlackConfig,
   createMessage,
   createPlugin,
   createSentMessage,
   createThread,
   isJobProcessingPost,
   setupChatInterfaceTest,
-  withToolActivity,
+  sendToolActivity,
 } from "./harness/chat-interface-harness";
 import type { MockPostMessage } from "./harness/chat-interface-harness";
 
-describe("ChatInterface tool status and progress", () => {
+describe("chat tool status and progress", () => {
   const suite = setupChatInterfaceTest();
 
   /**
@@ -48,17 +47,16 @@ describe("ChatInterface tool status and progress", () => {
     const plugin = createPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
-    const toolInterface = withToolActivity(plugin);
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:invoking",
           toolName: "system_publish",
           conversationId,
           interfaceType: "discord",
           channelId: thread.id,
         });
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:completed",
           toolName: "system_publish",
           conversationId,
@@ -108,17 +106,16 @@ describe("ChatInterface tool status and progress", () => {
     const plugin = createPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
-    const toolInterface = withToolActivity(plugin);
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:invoking",
           toolName: "system_create",
           conversationId,
           interfaceType: "discord",
           channelId: thread.id,
         });
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:completed",
           toolName: "system_create",
           conversationId,
@@ -164,7 +161,7 @@ describe("ChatInterface tool status and progress", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     thread.post.mockClear();
 
-    await withToolActivity(plugin).handleToolActivityEvent({
+    await sendToolActivity(suite.harness, {
       type: "tool:invoking",
       toolName: "system_publish",
       conversationId: "web-chat-session",
@@ -184,7 +181,7 @@ describe("ChatInterface tool status and progress", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     thread.post.mockClear();
 
-    await withToolActivity(plugin).handleToolActivityEvent({
+    await sendToolActivity(suite.harness, {
       type: "tool:failed",
       toolName: "system_publish",
       conversationId: "discord-discord:guild-123:channel-123:thread-456",
@@ -202,19 +199,18 @@ describe("ChatInterface tool status and progress", () => {
   });
 
   it("removes completed Slack tool status when the final response arrives", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
-    const toolInterface = withToolActivity(plugin);
+    const plugin = createSlackPlugin();
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockImplementationOnce(
       async (_message, conversationId) => {
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:invoking",
           toolName: "system_create",
           conversationId,
           interfaceType: "slack",
           channelId: threadId,
         });
-        await toolInterface.handleToolActivityEvent({
+        await sendToolActivity(suite.harness, {
           type: "tool:completed",
           toolName: "system_create",
           conversationId,
@@ -306,7 +302,7 @@ describe("ChatInterface tool status and progress", () => {
       adapter: { name: "slack" },
       post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
 
@@ -375,7 +371,7 @@ describe("ChatInterface tool status and progress", () => {
       adapter: { name: "slack" },
       post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
 

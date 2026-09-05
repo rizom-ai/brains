@@ -1,14 +1,12 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-
 import { z } from "@brains/utils/zod";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 import {
   createChatSubscriptionStateAdapter,
-  createDiscordSubscriptionStateAdapter,
-  createDiscordThreadSubscriptionStore,
-  discordThreadSubscriptionNamespace,
-  slackThreadSubscriptionNamespace,
+  createThreadSubscriptionStore,
+  threadSubscriptionNamespace,
+  type ChatRuntimeState,
 } from "../src/subscription-state";
 
 class FakeMemoryStateAdapter implements StateAdapter {
@@ -91,11 +89,28 @@ class FakeMemoryStateAdapter implements StateAdapter {
   }
 }
 
-describe("createDiscordSubscriptionStateAdapter", () => {
-  it("persists only Discord thread subscriptions across adapter recreation", async () => {
-    const runtimeState = createMockShell().getRuntimeState();
-    const first = createDiscordSubscriptionStateAdapter(
+/**
+ * The store one interface is handed: the runtime files it under the
+ * declaration's id, which is what keeps two interfaces' state apart.
+ */
+function runtimeStateFor(
+  shell: ReturnType<typeof createMockShell>,
+  declarationId: string,
+): ChatRuntimeState {
+  const raw = shell.getRuntimeState();
+  return (options) =>
+    raw.scoped({
+      ...options,
+      namespace: `${declarationId}.${options.namespace}`,
+    });
+}
+
+describe("chat subscription state", () => {
+  it("persists only thread subscriptions across adapter recreation", async () => {
+    const runtimeState = runtimeStateFor(createMockShell(), "discord");
+    const first = createChatSubscriptionStateAdapter(
       runtimeState,
+      "discord",
       new FakeMemoryStateAdapter(),
     );
     await first.connect();
@@ -109,8 +124,9 @@ describe("createDiscordSubscriptionStateAdapter", () => {
     expect(await first.getList("list-key")).toEqual(["list-value"]);
     await first.disconnect();
 
-    const restarted = createDiscordSubscriptionStateAdapter(
+    const restarted = createChatSubscriptionStateAdapter(
       runtimeState,
+      "discord",
       new FakeMemoryStateAdapter(),
     );
     await restarted.connect();
@@ -123,50 +139,56 @@ describe("createDiscordSubscriptionStateAdapter", () => {
     await restarted.disconnect();
   });
 
-  it("isolates Discord and Slack subscriptions when both adapters run", async () => {
-    const runtimeState = createMockShell().getRuntimeState();
-    const first = createChatSubscriptionStateAdapter(
-      runtimeState,
-      ["discord", "slack"],
+  it("keeps each interface's subscriptions in its own store", async () => {
+    const shell = createMockShell();
+    const discord = createChatSubscriptionStateAdapter(
+      runtimeStateFor(shell, "discord"),
+      "discord",
+      new FakeMemoryStateAdapter(),
+    );
+    const slack = createChatSubscriptionStateAdapter(
+      runtimeStateFor(shell, "slack"),
+      "slack",
       new FakeMemoryStateAdapter(),
     );
 
-    await first.subscribe("discord:guild:channel:thread");
-    await first.subscribe("slack:C123:1712345678.000100");
+    await discord.subscribe("discord:guild:channel:thread");
+    await slack.subscribe("slack:C123:1712345678.000100");
+    await slack.unsubscribe("slack:C123:1712345678.000100");
 
-    const restarted = createChatSubscriptionStateAdapter(
-      runtimeState,
-      ["discord", "slack"],
-      new FakeMemoryStateAdapter(),
-    );
-    expect(await restarted.isSubscribed("discord:guild:channel:thread")).toBe(
+    expect(await discord.isSubscribed("discord:guild:channel:thread")).toBe(
       true,
     );
-    expect(await restarted.isSubscribed("slack:C123:1712345678.000100")).toBe(
-      true,
+    expect(await slack.isSubscribed("slack:C123:1712345678.000100")).toBe(
+      false,
     );
-
-    await restarted.unsubscribe("slack:C123:1712345678.000100");
-    expect(await restarted.isSubscribed("discord:guild:channel:thread")).toBe(
-      true,
+    const slackStore = createThreadSubscriptionStore(
+      runtimeStateFor(shell, "slack"),
     );
-
-    const slackStore = runtimeState.scoped({
-      namespace: slackThreadSubscriptionNamespace,
-      schema: z.object({ subscribedAt: z.string().datetime() }),
-    });
-    const discordStore = runtimeState.scoped({
-      namespace: discordThreadSubscriptionNamespace,
-      schema: z.object({ subscribedAt: z.string().datetime() }),
-    });
     expect(await slackStore.has("discord:guild:channel:thread")).toBe(false);
-    expect(await discordStore.has("slack:C123:1712345678.000100")).toBe(false);
+  });
+
+  it("leaves another platform's thread to the memory adapter", async () => {
+    // A Discord app is never asked about a Slack thread, but if it were, the
+    // answer is not "subscribed" on the strength of a durable store it does
+    // not own.
+    const state = createChatSubscriptionStateAdapter(
+      runtimeStateFor(createMockShell(), "discord"),
+      "discord",
+      new FakeMemoryStateAdapter(),
+    );
+
+    await state.subscribe("slack:C123:1712345678.000100");
+
+    expect(await state.isSubscribed("slack:C123:1712345678.000100")).toBe(
+      false,
+    );
   });
 
   it("removes persisted subscriptions on unsubscribe", async () => {
-    const runtimeState = createMockShell().getRuntimeState();
-    const state = createDiscordSubscriptionStateAdapter(
-      runtimeState,
+    const state = createChatSubscriptionStateAdapter(
+      runtimeStateFor(createMockShell(), "discord"),
+      "discord",
       new FakeMemoryStateAdapter(),
     );
     await state.connect();
@@ -181,15 +203,15 @@ describe("createDiscordSubscriptionStateAdapter", () => {
   });
 
   it("persists mention-required routing policy with the subscription", async () => {
-    const runtimeState = createMockShell().getRuntimeState();
-    const first = createDiscordThreadSubscriptionStore(runtimeState);
+    const runtimeState = runtimeStateFor(createMockShell(), "discord");
+    const first = createThreadSubscriptionStore(runtimeState);
     await first.set("discord:guild:channel:thread", {
       subscribedAt: new Date().toISOString(),
       routingMode: "mention-required",
       mentionRequiredNoticeSent: true,
     });
 
-    const restarted = createDiscordThreadSubscriptionStore(runtimeState);
+    const restarted = createThreadSubscriptionStore(runtimeState);
 
     expect(await restarted.get("discord:guild:channel:thread")).toEqual(
       expect.objectContaining({
@@ -200,18 +222,19 @@ describe("createDiscordSubscriptionStateAdapter", () => {
   });
 
   it("uses the documented runtime-state namespace", async () => {
-    const runtimeState = createMockShell().getRuntimeState();
-    const state = createDiscordSubscriptionStateAdapter(
-      runtimeState,
+    const shell = createMockShell();
+    const state = createChatSubscriptionStateAdapter(
+      runtimeStateFor(shell, "discord"),
+      "discord",
       new FakeMemoryStateAdapter(),
     );
     await state.connect();
 
     await state.subscribe("discord:guild:channel:thread");
 
-    const rawStore = runtimeState.scoped({
-      namespace: discordThreadSubscriptionNamespace,
-      schema: z.object({ subscribedAt: z.string().datetime() }),
+    const rawStore = shell.getRuntimeState().scoped({
+      namespace: `discord.${threadSubscriptionNamespace}`,
+      schema: z.object({ subscribedAt: z.iso.datetime() }),
     });
     expect(await rawStore.has("discord:guild:channel:thread")).toBe(true);
     await state.disconnect();

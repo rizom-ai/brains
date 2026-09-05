@@ -2,7 +2,7 @@ import type { AuthPrincipal } from "@brains/auth-service";
 import type {
   PermissionLookupContext,
   UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import type { ChatPlatform } from "./types";
 
 /**

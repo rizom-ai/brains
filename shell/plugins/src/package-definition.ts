@@ -261,3 +261,25 @@ export function instantiatePluginPackageDefinition(
   }
   return plugins;
 }
+
+/**
+ * Run one definition's adapter inside another's instantiation.
+ *
+ * A package that declares several interfaces from one config emits each of
+ * them under its own scope and metadata; the inner definitions carry their
+ * adapters the same way any define helper's result does.
+ */
+export function instantiateWithinPackage<TConfig extends object>(
+  definition: PluginPackageDefinition,
+  context: PluginPackageInstantiationContext<TConfig>,
+): Plugin[] {
+  const created = runtimeDefinition(definition)[runtimeFactory](context);
+  return isSeveral(created) ? [...created] : [created];
+}
+
+// `Array.isArray` alone leaves the readonly array in the else branch.
+function isSeveral(
+  created: Plugin | readonly Plugin[],
+): created is readonly Plugin[] {
+  return Array.isArray(created);
+}

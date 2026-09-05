@@ -51,7 +51,6 @@ describe("buildConfirmationResponseParts", () => {
       buildConfirmationResponseParts({
         response: {
           text: "Published",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
           cards: [deniedAttachmentCard, visibleAttachmentCard],
         },
         confirmed: true,
@@ -76,7 +75,6 @@ describe("buildConfirmationResponseParts", () => {
       buildConfirmationResponseParts({
         response: {
           text: "Need more approvals",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
           pendingConfirmations: [
             {
               id: "approval:call-1",

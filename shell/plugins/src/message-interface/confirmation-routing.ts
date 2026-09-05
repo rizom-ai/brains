@@ -23,12 +23,13 @@ export function routeConfirmationResponse({
     return { kind: "not-confirmation" };
   }
 
+  // A reply that is not a yes or a no is a new question, not a wrong answer
+  // to the old one: the approval stays pending and the turn goes through. A
+  // chat thread drifts while an approval waits, and nagging every message
+  // until someone answers it holds the whole conversation hostage.
   const parsed = parseConfirmationIntent(message, approvalIds);
   if (!parsed) {
-    return {
-      kind: "notice",
-      message: "Please reply with yes to confirm or no/cancel to abort.",
-    };
+    return { kind: "not-confirmation" };
   }
 
   if (!parsed.approvalId && hasExplicitApprovalReference(message)) {

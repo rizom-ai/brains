@@ -121,6 +121,7 @@ class DeclarativeInterfacePlugin<
             context.entityService,
             this.definition.id,
           ),
+          spaces: context.spaces,
           runtimeState: (options) =>
             context.runtimeState.scoped({
               ...options,

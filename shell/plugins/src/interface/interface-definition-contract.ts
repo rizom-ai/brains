@@ -254,6 +254,14 @@ export interface InterfaceSetupContext<
    */
   readonly entities: InterfaceEntityReader;
   /**
+   * The channels whose traffic the brain records without spending a turn.
+   *
+   * A space is somebody else's room the brain is in: chat captures what is
+   * said there into a space conversation, and has to know which rooms those
+   * are. Named consumer: @brains/chat.
+   */
+  readonly spaces: readonly string[];
+  /**
    * The other doors this caller should be shown.
    *
    * A console renders a strip of links to the rest of the brain. It used to
@@ -403,8 +411,15 @@ export interface MessageChannelDefinition<
    * having already gated the caller against the conversation stored under it.
    * Prefixing that would key a second conversation beside the one it checked.
    * Named consumer: @brains/web-chat.
+   *
+   * A function says how this interface already keys them. chat's Discord
+   * threads hold conversations keyed `discord-<thread>`, written by the class
+   * it converted away from; the derived key would start every live thread
+   * over, with its history and pending approvals orphaned under the old one.
+   * Named consumer: @brains/chat.
    */
-  readonly conversationKey?: "derived" | "channel" | undefined;
+  readonly conversationKey?:
+    "derived" | "channel" | ((channel: MessageChannel) => string) | undefined;
 }
 
 // A subscription is not an interface concept — a service answers requests on
@@ -428,6 +443,23 @@ export interface MessageInterfacePublisher {
 
 export interface MessageOutput {
   readonly text: string;
+}
+
+/** An answer the interface posted itself, named so the runtime can track it. */
+export interface PresentedMessage {
+  readonly messageId: string;
+}
+
+/** The approval an answer resolved, and which way. */
+export interface PresentedConfirmation {
+  readonly approvalId: string;
+  readonly approved: boolean;
+  /**
+   * The approvals still pending in the conversation once this one is
+   * answered. An answer that says nothing about them leaves a channel that
+   * listed several with no way to say which remain. Named consumer: @brains/chat.
+   */
+  readonly remaining: readonly string[];
 }
 
 /**
@@ -464,6 +496,14 @@ export type MessageDeliveryOutcome =
 export interface MessageChannel {
   readonly id: string;
   readonly threadId?: string | undefined;
+  /**
+   * What the room is called, when the interface knows.
+   *
+   * Recorded on the turn and the stored message in place of the interface's
+   * display name: a chat interface tells a DM from a channel, and names the
+   * channel. Named consumer: @brains/chat.
+   */
+  readonly name?: string | undefined;
 }
 
 export interface InboundMessageSender {
@@ -562,6 +602,16 @@ export type ApprovalOutcome =
 export interface MessageReceiver {
   receiveAuthenticated(input: ReceiveAuthenticatedInput): Promise<void>;
   resolveApproval(input: ResolveApprovalInput): Promise<ApprovalOutcome>;
+  /**
+   * The approvals the runtime is still holding for this channel's
+   * conversation.
+   *
+   * An interface that drew a button per approval is clicked on a stale one
+   * long after it was answered. Asking first means it can say so at once,
+   * rather than spending a turn on an approval nobody is waiting for.
+   * Named consumer: @brains/chat.
+   */
+  pendingApprovals(channel: MessageChannel): Promise<readonly string[]>;
 }
 
 export interface MessageInterfaceDefinitionInput<
@@ -684,6 +734,17 @@ export interface MessageInterfaceDefinitionInput<
          * text is guesswork. Named consumer: @brains/chat-repl.
          */
         readonly origin: "reply" | "progress";
+        /**
+         * The event a progress-origin message was rendered from.
+         *
+         * `progress` takes the runtime out of it entirely, which suits a
+         * stream. A channel that draws a progress card still wants the
+         * runtime to remember which message to edit, throttle the edits and
+         * hold completions until the answer has landed; given the event it
+         * draws the card and leaves the bookkeeping where it is. Absent
+         * behind a reply. Named consumer: @brains/chat.
+         */
+        readonly event?: JobProgressEvent | undefined;
       }) => string | void | Promise<string | void>)
     | undefined;
   /**
@@ -733,6 +794,8 @@ export interface MessageInterfaceDefinitionInput<
         readonly channel: MessageChannel;
         readonly messageId: string;
         readonly message: MessageOutput;
+        /** The progress event behind the edit; see `send`. */
+        readonly event?: JobProgressEvent | undefined;
       }) => void | Promise<void>)
     | undefined;
   /**
@@ -750,6 +813,13 @@ export interface MessageInterfaceDefinitionInput<
    * the response text and drops the rest, which is what every declared
    * interface did before there was a way to say otherwise.
    * Named consumers: @brains/chat-repl, @brains/chat, @brains/web-chat.
+   *
+   * Or post the answer itself and return the message it became. A channel
+   * that answers with a card and the artifact's bytes attached has nothing
+   * that survives being returned as text for `send`; what the runtime still
+   * needs from it is the id, so the jobs the answer started edit that
+   * message when they finish, the way they edit one the runtime sent.
+   * Named consumer: @brains/chat.
    */
   readonly present?:
     | ((context: {
@@ -757,11 +827,28 @@ export interface MessageInterfaceDefinitionInput<
         readonly state: TState;
         readonly channel: MessageChannel;
         readonly directives: readonly ResponseRenderDirective[];
+        /**
+         * Set when this answer resolves an approval, and which way it went.
+         *
+         * A confirmation outcome reads differently from an answer: chat
+         * titles the card "Approved" or "Declined" and clears the buttons it
+         * drew for the question. The directives alone do not say that the
+         * question was asked and answered here. Named consumer: @brains/chat.
+         */
+        readonly confirmation?: PresentedConfirmation | undefined;
+        /**
+         * The level the answer is shown at — the caller's, as the runtime
+         * resolved it when it denied the artifacts this caller may not see.
+         * A channel that attaches an artifact's bytes decides by the same
+         * level whether to. Named consumer: @brains/chat.
+         */
+        readonly permissionLevel: UserPermissionLevel;
       }) =>
         | string
         | readonly string[]
+        | PresentedMessage
         | undefined
-        | Promise<string | readonly string[] | undefined>)
+        | Promise<string | readonly string[] | PresentedMessage | undefined>)
     | undefined;
   /**
    * The inbound half of `present`: what a reply means on this channel.

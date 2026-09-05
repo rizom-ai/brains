@@ -265,6 +265,7 @@ Definitions and schema vocabulary:
 - `defineDaemon`
 - `defineInterface`
 - `defineMessageInterface`
+- `defineMessageInterfacePackage`
 - `defineRoute`
 - `defineSubscription`
 - `protocol`
@@ -278,6 +279,33 @@ Account settings types:
 
 Permission contract:
 
+- `AgentResponse`
+- `buildCoalescedInput`
+- `buildConfirmationResponseParts`
+- `buildMessageActorMetadata`
+- `buildMessageSourceMetadata`
+- `canReceiveNativeArtifactFile`
+- `ConversationMessageActor`
+- `extractCaptureableUrls`
+- `formatArtifactDisplay`
+- `formatConfirmationResult`
+- `formatPendingConfirmationHelp`
+- `formatPendingConfirmationsFallback`
+- `formatStructuredOutputSummary`
+- `formatToolStatusLabel`
+- `getConfirmationResultTitle`
+- `getToolStatusKey`
+- `InboundMessageSender`
+- `matchSpaceSelector`
+- `MessageChannel`
+- `MessageOutput`
+- `MessageUploadContinuity`
+- `PendingConfirmation`
+- `PermissionLookupContext`
+- `PresentedConfirmation`
+- `PresentedMessage`
+- `ReceiveAuthenticatedInput`
+- `resolveArtifactEntityRefFromCard`
 - `UserPermissionLevel`
 - `UserPermissionLevelSchema`
 
