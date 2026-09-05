@@ -10,11 +10,12 @@ export {
 } from "./widget-registry";
 export type {
   RegisteredWidget,
-  DashboardDigestLine,
   DashboardWidgetMeta,
   WidgetDataProvider,
   WidgetVisibility,
 } from "./widget-registry";
+// Part of this plugin's surface; the dashboard namespace owns the type.
+export type { DashboardDigestLine } from "@brains/plugins";
 
 // DataSource exports
 export { DashboardDataSource } from "./dashboard-datasource";

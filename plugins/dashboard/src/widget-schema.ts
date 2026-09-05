@@ -1,9 +1,9 @@
 import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
+import type { DashboardDigestLine } from "@brains/plugins";
 import {
   dashboardDigestLineSchema,
   dashboardWidgetSectionSchema,
   widgetVisibilitySchema,
-  type DashboardDigestLine,
 } from "./widget-registry";
 import { z } from "@brains/utils/zod";
 

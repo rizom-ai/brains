@@ -7,8 +7,8 @@ import type {
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
+import type { DashboardDigestLine } from "@brains/plugins";
 import type {
-  DashboardDigestLine,
   DashboardWidgetRegistry,
   StoredRegisteredWidget,
   WidgetVisibility,
