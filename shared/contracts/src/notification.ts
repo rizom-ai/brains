@@ -2,51 +2,39 @@ import { z } from "@brains/utils/zod";
 
 export const NOTIFICATIONS_SEND = "notifications:send" as const;
 
-export type NotificationSensitivity = "normal" | "secret";
+type NotificationRecipientSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<
+      { type: z.ZodLiteral<"email">; address: z.ZodEmail },
+      z.core.$strict
+    >,
+  ]
+>;
 
-interface EmailNotificationRecipientValue {
-  type: "email";
-  address: string;
-}
+export const notificationRecipientSchema: NotificationRecipientSchema =
+  z.discriminatedUnion("type", [
+    z.strictObject({
+      type: z.literal("email"),
+      address: z.email(),
+    }),
+  ]);
 
-type NotificationRecipientValue = EmailNotificationRecipientValue;
+type SendNotificationSchema = z.ZodObject<
+  {
+    recipient: z.ZodOptional<NotificationRecipientSchema>;
+    title: z.ZodString;
+    body: z.ZodString;
+    html: z.ZodOptional<z.ZodString>;
+    sensitivity: z.ZodDefault<
+      z.ZodEnum<{ normal: "normal"; secret: "secret" }>
+    >;
+    idempotencyKey: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+>;
 
-interface SendNotificationInputValue {
+export const sendNotificationSchema: SendNotificationSchema = z.strictObject({
   /** Uses the notifications plugin's default recipient when omitted. */
-  recipient?: NotificationRecipientValue | undefined;
-  title: string;
-  body: string;
-  html?: string | undefined;
-  sensitivity?: NotificationSensitivity | undefined;
-  idempotencyKey?: string | undefined;
-}
-
-interface ParsedSendNotificationValue {
-  recipient?: NotificationRecipientValue | undefined;
-  title: string;
-  body: string;
-  html?: string | undefined;
-  sensitivity: NotificationSensitivity;
-  idempotencyKey?: string | undefined;
-}
-
-type SendNotificationResultValue =
-  { status: "sent"; deliveryId?: string | undefined } | { status: "failed" };
-
-export const notificationRecipientSchema: z.ZodType<
-  NotificationRecipientValue,
-  NotificationRecipientValue
-> = z.discriminatedUnion("type", [
-  z.strictObject({
-    type: z.literal("email"),
-    address: z.email(),
-  }),
-]);
-
-export const sendNotificationSchema: z.ZodType<
-  ParsedSendNotificationValue,
-  SendNotificationInputValue
-> = z.strictObject({
   recipient: notificationRecipientSchema.optional(),
   title: z.string().min(1),
   body: z.string().min(1),
@@ -55,16 +43,24 @@ export const sendNotificationSchema: z.ZodType<
   idempotencyKey: z.string().trim().min(1).max(200).optional(),
 });
 
-export const sendNotificationResultSchema: z.ZodType<
-  SendNotificationResultValue,
-  SendNotificationResultValue
-> = z.discriminatedUnion("status", [
-  z.strictObject({
-    status: z.literal("sent"),
-    deliveryId: z.string().optional(),
-  }),
-  z.strictObject({ status: z.literal("failed") }),
-]);
+type SendNotificationResultSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<
+      { status: z.ZodLiteral<"sent">; deliveryId: z.ZodOptional<z.ZodString> },
+      z.core.$strict
+    >,
+    z.ZodObject<{ status: z.ZodLiteral<"failed"> }, z.core.$strict>,
+  ]
+>;
+
+export const sendNotificationResultSchema: SendNotificationResultSchema =
+  z.discriminatedUnion("status", [
+    z.strictObject({
+      status: z.literal("sent"),
+      deliveryId: z.string().optional(),
+    }),
+    z.strictObject({ status: z.literal("failed") }),
+  ]);
 
 export type NotificationRecipient = z.output<
   typeof notificationRecipientSchema
@@ -72,6 +68,7 @@ export type NotificationRecipient = z.output<
 export type EmailNotificationRecipient = NotificationRecipient;
 export type SendNotificationInput = z.input<typeof sendNotificationSchema>;
 export type ParsedSendNotification = z.output<typeof sendNotificationSchema>;
+export type NotificationSensitivity = ParsedSendNotification["sensitivity"];
 export type SendNotificationResult = z.output<
   typeof sendNotificationResultSchema
 >;

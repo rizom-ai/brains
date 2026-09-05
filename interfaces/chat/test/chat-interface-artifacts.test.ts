@@ -493,7 +493,7 @@ describe("ChatInterface artifacts", () => {
   });
 
   it("formats relative structured artifact links as absolute Discord-readable URLs", async () => {
-    suite.harness.reset();
+    await suite.harness.reset();
     suite.harness = createPluginHarness<ChatInterfaceInstance>({
       domain: "brain.test",
     });
@@ -559,7 +559,7 @@ describe("ChatInterface artifacts", () => {
   });
 
   it("does not expose localhost artifact links in Discord summaries", async () => {
-    suite.harness.reset();
+    await suite.harness.reset();
     suite.harness = createPluginHarness<ChatInterfaceInstance>({
       domain: "brain.test",
       localSiteUrl: "http://localhost:4321",

@@ -3,14 +3,13 @@ import { z } from "@brains/utils/zod";
 import { topicExtractionResponseSchema } from "../schemas/extraction";
 
 // Schema for the AI response
-export interface ExtractionResult {
-  topics: z.output<typeof topicExtractionResponseSchema>;
-}
+const extractionResultSchema: z.ZodObject<{
+  topics: typeof topicExtractionResponseSchema;
+}> = z.object({
+  topics: topicExtractionResponseSchema,
+});
 
-const extractionResultSchema: z.ZodType<ExtractionResult, ExtractionResult> =
-  z.object({
-    topics: topicExtractionResponseSchema,
-  });
+export type ExtractionResult = z.output<typeof extractionResultSchema>;
 
 export const topicExtractionTemplate: Template =
   createTemplate<ExtractionResult>({

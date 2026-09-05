@@ -2,36 +2,37 @@ import { z } from "@brains/utils/zod";
 import { readString } from "@brains/utils/record-fields";
 // Remove ContentGenerationRequest import - we'll define our own schema
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
-import type { ContentService, GenerationContext } from "../types";
+import {
+  generationContextSchema,
+  type ContentService,
+  type GenerationContext,
+} from "../types";
 import type { JobHandler } from "@brains/job-queue";
 import type { IEntityService } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
 
-export interface ContentGenerationJobData {
-  templateName: string;
-  context: GenerationContext;
-  userId?: string | undefined;
-  entityId: string;
-  entityType: string;
-}
-
 /**
  * Zod schema for content generation job data validation
  */
-export const contentGenerationJobDataSchema: z.ZodType<ContentGenerationJobData> =
-  z.object({
-    templateName: z.string().min(1, "Template name is required"),
-    context: z.object({
-      prompt: z.string().optional(),
-      data: z.record(z.string(), z.unknown()).optional(),
-      conversationHistory: z.string().optional(),
-    }),
-    userId: z.string().optional(),
-    // Entity information for saving generated content
-    entityId: z.string(),
-    entityType: z.string(),
-  });
+export const contentGenerationJobDataSchema: z.ZodObject<{
+  templateName: z.ZodString;
+  context: typeof generationContextSchema;
+  userId: z.ZodOptional<z.ZodString>;
+  entityId: z.ZodString;
+  entityType: z.ZodString;
+}> = z.object({
+  templateName: z.string().min(1, "Template name is required"),
+  context: generationContextSchema,
+  userId: z.string().optional(),
+  // Entity information for saving generated content
+  entityId: z.string(),
+  entityType: z.string(),
+});
+
+export type ContentGenerationJobData = z.output<
+  typeof contentGenerationJobDataSchema
+>;
 
 /**
  * Job handler for content generation

@@ -141,6 +141,8 @@ export class ImageOptimizer {
         height: fallbackHeight,
       };
     } catch (error) {
+      // Optimisation is best-effort. The original image still renders, so a
+      // site build should not fail because one source could not be resized.
       this.logger.warn("Image optimization failed, using original", {
         originalUrl,
         error: getErrorMessage(error),

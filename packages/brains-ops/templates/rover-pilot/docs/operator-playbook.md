@@ -16,12 +16,11 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 The deploy scripts and workflows should read from that contract instead of inventing a second list.
 
-The pilot declares its image topology with `pilot.yaml.imageContract`:
+The fleet has one image topology:
 
-- `shared-fleet-v1` publishes one `brain-${brainVersion}` image for each effective Brain version
-- each shared image contains the union of exact site/theme package pins required by instances on that version
+- one immutable `brain-${brainVersion}` image is published for each effective Brain version
+- each image contains the union of exact site/theme package pins required by instances on that version
 - conflicting versions of one package fail image resolution before build
-- `isolated-sites-v1` is an explicit alternative for fleets that require package-isolated tags
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`
 - build and deploy derive the same effective image tag from the resolved registry
 
@@ -262,12 +261,12 @@ siteOverride:
   themeVersion: <exact-theme-version>
 ```
 
-Missing external package versions fail desired-state validation. Under
-`shared-fleet-v1`, every instance on one Brain version uses the same image and exact
-package union. Change a site/theme package pin only together with a fresh Brain version;
-published `brain-${brainVersion}` tags remain immutable. Conflicting pins for one package
-on the same Brain version fail before build. Bundled `@brains/*` themes omit
-`themeVersion` because they are not installed as separate packages.
+Missing external package versions fail desired-state validation. Every instance on one
+Brain version uses the same image and exact package union. Change a site/theme package
+pin only together with a fresh Brain version; published `brain-${brainVersion}` tags
+remain immutable. Conflicting pins for one package on the same Brain version fail before
+build. Bundled `@brains/*` themes omit `themeVersion` because they are not installed as
+separate packages.
 
 ### Custom-package canary and rollback
 
@@ -277,8 +276,9 @@ on the same Brain version fail before build. Bundled `@brains/*` themes omit
 4. Run `bunx brains-ops verify-user . <handle>`.
 5. Manually verify the site, theme, Studio, content sync, and passkey sign-in before adding more users.
 
-To roll back, remove or change `siteOverride`, reconcile, and redeploy that user.
-The default image and other users remain untouched.
+To roll back, remove or change `siteOverride` while selecting a fresh Brain version,
+then reconcile and redeploy that user. Never mutate an existing image tag; coordinate any
+other users intentionally sharing the selected version.
 
 ## Setup email checklist
 

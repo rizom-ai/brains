@@ -3,6 +3,7 @@ import {
   type RuntimeDashboardOperatorPanelBlock,
 } from "@brains/plugins";
 import type { RenderableWidgetData } from "./types";
+import { isRecord } from "@brains/utils/is-record";
 
 export type CartesianMapBlock = Extract<
   RuntimeDashboardOperatorPanelBlock,
@@ -13,10 +14,6 @@ export type RadialMapBlock = Extract<
   { type: "spatial"; layout: "radial" }
 >;
 type ListBlock = Extract<RuntimeDashboardOperatorPanelBlock, { type: "list" }>;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function declarativeWidgetData(data: unknown): unknown {
   if (!isRecord(data) || !("source" in data)) return data;

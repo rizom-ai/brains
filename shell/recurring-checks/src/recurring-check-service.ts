@@ -14,13 +14,14 @@ import { computeContentHash } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
-import type {
-  IRecurringChecksNamespace,
-  RecurringAlert,
-  RecurringCheckCadence,
-  RecurringCheckDefinition,
-  RecurringCheckOpenAlert,
-  RecurringCheckResult,
+import {
+  recurringAlertSchema,
+  recurringCheckResultSchema,
+  type IRecurringChecksNamespace,
+  type RecurringAlert,
+  type RecurringCheckCadence,
+  type RecurringCheckDefinition,
+  type RecurringCheckOpenAlert,
 } from "./types";
 
 export const RECURRING_CHECK_JOB_TYPE = "shell:recurring-check" as const;
@@ -29,42 +30,40 @@ const DAY_MS = 24 * 60 * 60 * 1_000;
 const WEEK_MS = 7 * DAY_MS;
 const FIRST_SUNDAY_UTC_MS = 3 * DAY_MS;
 
-const recurringAlertSchema: z.ZodType<RecurringAlert, RecurringAlert> =
-  z.strictObject({
-    dedupeKey: z.string().min(1).max(512),
-    title: z.string().min(1),
-    body: z.string().min(1),
-    html: z.string().min(1).optional(),
-    includeInInbox: z.boolean().optional(),
-  });
-
-const recurringCheckResultSchema: z.ZodType<
-  RecurringCheckResult,
-  RecurringCheckResult
-> = z.strictObject({
-  alerts: z.array(recurringAlertSchema).optional(),
-});
-
 const recurringCheckJobSchema = z.strictObject({ checkId: z.string().min(1) });
 type RecurringCheckJob = z.infer<typeof recurringCheckJobSchema>;
 
-type RecurringCheckState =
-  | { kind: "last-success"; checkId: string; at: string }
-  | {
-      kind: "alert";
-      checkId: string;
-      dedupeKey: string;
-      status: "pending" | "suppressed" | "delivered" | "resolved";
-      alert: RecurringAlert;
-      observedAt: string;
-      includeInInbox?: boolean | undefined;
-      deliveredAt?: string | undefined;
-      resolvedAt?: string | undefined;
-    };
-
-const recurringCheckStateSchema: z.ZodType<
-  RecurringCheckState,
-  RecurringCheckState
+const recurringCheckStateSchema: z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<
+      {
+        kind: z.ZodLiteral<"last-success">;
+        checkId: z.ZodString;
+        at: z.ZodString;
+      },
+      z.core.$strict
+    >,
+    z.ZodObject<
+      {
+        kind: z.ZodLiteral<"alert">;
+        checkId: z.ZodString;
+        dedupeKey: z.ZodString;
+        status: z.ZodEnum<{
+          pending: "pending";
+          suppressed: "suppressed";
+          delivered: "delivered";
+          resolved: "resolved";
+        }>;
+        alert: typeof recurringAlertSchema;
+        observedAt: z.ZodString;
+        includeInInbox: z.ZodOptional<z.ZodBoolean>;
+        deliveredAt: z.ZodOptional<z.ZodString>;
+        resolvedAt: z.ZodOptional<z.ZodString>;
+      },
+      z.core.$strict
+    >,
+  ],
+  "kind"
 > = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("last-success"),
@@ -83,6 +82,8 @@ const recurringCheckStateSchema: z.ZodType<
     resolvedAt: z.string().datetime().optional(),
   }),
 ]);
+
+type RecurringCheckState = z.output<typeof recurringCheckStateSchema>;
 
 interface ActiveCheck {
   controller: AbortController;

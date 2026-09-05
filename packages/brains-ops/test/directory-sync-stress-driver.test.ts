@@ -30,6 +30,10 @@ interface ScriptedSystemOptions {
   runtimeLog?: string;
   containerStartedAt?: string[];
   queueNeverAdvances?: boolean;
+  /** Make `docker inspect` answer with something we cannot read. */
+  unreadableContainerInspect?: boolean;
+  /** Make /health/operate answer 200 with a body of the wrong shape. */
+  malformedQueuePayload?: boolean;
 }
 
 const environment = {
@@ -185,6 +189,14 @@ class ScriptedStressSystem {
       return new Response("not found", { status: 404 });
     }
 
+    if (
+      this.options.malformedQueuePayload &&
+      url.pathname === "/health/operate" &&
+      init?.method === "GET"
+    ) {
+      return Response.json({ status: "ready", resources: { queue: {} } });
+    }
+
     const isPayloadPoll = init?.method !== "GET";
     if (isPayloadPoll) {
       this.healthPayloadCalls += 1;
@@ -306,6 +318,9 @@ class ScriptedStressSystem {
         return ok("rover-web-smoke\n");
       }
       if (remote[0] === "docker" && remote[1] === "inspect") {
+        if (this.options.unreadableContainerInspect) {
+          return ok("not json at all");
+        }
         const startedAt =
           this.options.containerStartedAt?.[
             Math.min(
@@ -519,6 +534,37 @@ describe("deployed directory-sync stress driver", () => {
     expect(result.report.success).toBe(false);
     expect(result.report.failure).toBe("container: restarted 1 time(s)");
     expect(result.report.metrics.container?.restartCount).toBe(1);
+  });
+
+  it("fails the run when the queue payload is not the shape we expect", async () => {
+    // A body we cannot parse means the endpoint answered with something else,
+    // not that the queue is busy. Treating it as "not drained yet" would burn
+    // the whole poll window and then blame the queue.
+    const system = new ScriptedStressSystem({ malformedQueuePayload: true });
+
+    const outcome = await runScriptedProfile("regression", system).then(
+      ({ result }) =>
+        `reported success=${result.report.success} failure=${result.report.failure}`,
+      (error: unknown) => caughtError(error).message,
+    );
+
+    expect(outcome).toContain("Unexpected /health/operate payload");
+  });
+
+  it("fails the run when the container state cannot be read", async () => {
+    // Every container acceptance check — OOM, restarts, stopped status — reads
+    // metrics.container. If an unreadable inspect silently yields no
+    // observation, all three are skipped and a run that was OOM-killed passes.
+    const system = new ScriptedStressSystem({
+      unreadableContainerInspect: true,
+    });
+
+    const outcome = await runScriptedProfile("regression", system).then(
+      ({ result }) => `reported success=${result.report.success}`,
+      (error: unknown) => caughtError(error).message,
+    );
+
+    expect(outcome).toContain("Could not read docker inspect output");
   });
 
   it("fails the hermetic gate when runtime logs contain external AI usage", async () => {

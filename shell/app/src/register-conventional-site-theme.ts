@@ -15,16 +15,13 @@ import {
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { pathToFileURL } from "url";
+import { isRecord } from "@brains/utils/is-record";
 
 export {
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
 } from "./instance-overrides";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function applyPluginConfig(
   site: SitePackage,

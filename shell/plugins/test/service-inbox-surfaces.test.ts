@@ -92,7 +92,7 @@ describe("a check that tells someone where to go", () => {
     expect(seen.siteUrl).toBeUndefined();
     expect(seen.inbox).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 });
 

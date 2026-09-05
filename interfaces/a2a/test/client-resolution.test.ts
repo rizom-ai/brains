@@ -17,6 +17,21 @@ function isError(
 }
 
 /**
+ * Narrow to the error branch, failing with the actual response when it is not
+ * one. Asserting the predicate and then re-testing it in an `if` lets the
+ * assertions inside be skipped instead of failing.
+ */
+function assertIsError(
+  result: ToolResponse,
+): asserts result is { success: false; error: string; code?: string } {
+  if (!isError(result)) {
+    throw new Error(
+      `Expected an error response, got ${JSON.stringify(result)}`,
+    );
+  }
+}
+
+/**
  * Create a mock fetch that serves an Agent Card and a successful A2A response.
  */
 function createMockFetch(): ReturnType<typeof mock> {
@@ -190,11 +205,9 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toContain("Approve it first");
-      expect(result.code).toBe("agent_not_approved");
-    }
+    assertIsError(result);
+    expect(result.error).toContain("Approve it first");
+    expect(result.code).toBe("agent_not_approved");
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
@@ -221,11 +234,9 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toContain("archived");
-      expect(result.code).toBe("agent_archived");
-    }
+    assertIsError(result);
+    expect(result.error).toContain("archived");
+    expect(result.code).toBe("agent_archived");
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
@@ -273,13 +284,11 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toBe(
-        "Agent Brain is not an exact domain-like id and is not saved. Connect or clarify the agent first.",
-      );
-      expect(result.code).toBe("agent_not_saved");
-    }
+    assertIsError(result);
+    expect(result.error).toBe(
+      "Agent Brain is not an exact domain-like id and is not saved. Connect or clarify the agent first.",
+    );
+    expect(result.code).toBe("agent_not_saved");
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
@@ -323,10 +332,8 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toContain("endpoint URL");
-    }
+    assertIsError(result);
+    expect(result.error).toContain("endpoint URL");
     // Only the card fetch — never the endpoint
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
@@ -343,10 +350,8 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toContain("endpoint URL");
-    }
+    assertIsError(result);
+    expect(result.error).toContain("endpoint URL");
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
@@ -377,10 +382,8 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toContain("endpoint URL");
-    }
+    assertIsError(result);
+    expect(result.error).toContain("endpoint URL");
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
@@ -411,10 +414,8 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toContain("endpoint URL");
-    }
+    assertIsError(result);
+    expect(result.error).toContain("endpoint URL");
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 
@@ -430,12 +431,10 @@ describe("agent_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(true);
-    if (isError(result)) {
-      expect(result.error).toBe(
-        "Invalid agent URL. Agent URLs must use https://.",
-      );
-    }
+    assertIsError(result);
+    expect(result.error).toBe(
+      "Invalid agent URL. Agent URLs must use https://.",
+    );
     expect(fetchFn).not.toHaveBeenCalled();
   });
 });

@@ -7,11 +7,11 @@ import {
 } from "@brains/console-theme";
 import type { JSX } from "react";
 import { Colophon } from "./colophon";
-import { ConsoleStrip } from "./console-strip";
 import { TabBar } from "./dashboard-tabs";
 import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
 import { OverviewPanel } from "./overview-panel";
+import { PublicHeader } from "./public-header";
 import { ProximityMapPanel } from "./proximity-map";
 import { SystemPanel } from "./system-panel";
 import {
@@ -36,9 +36,6 @@ export function DashboardDocument({
     "agent-proximity",
   );
   const dashboardPath = input.dashboardPath ?? "/dashboard";
-  const operatorHref = input.surfaces?.find(
-    (surface) => surface.id === "studio",
-  )?.href;
   const networkCount =
     proximityMap?.points.filter((point) => point.status !== "archived")
       .length ?? 0;
@@ -96,20 +93,12 @@ export function DashboardDocument({
           />
         )}
       </head>
-      <body data-auth-role={input.authAccess?.principal?.role}>
-        <ConsoleStrip
-          dashboardPath={dashboardPath}
-          surfaces={
-            input.surfaces ?? [
-              {
-                id: "dashboard",
-                label: "Dashboard",
-                href: dashboardPath,
-                isActive: true,
-              },
-            ]
-          }
-          authAccess={input.authAccess}
+      <body>
+        <PublicHeader
+          title={input.title}
+          homeHref={dashboardPath}
+          askHref={input.askHref}
+          loginHref={input.authAccess?.loginUrl ?? "/login"}
         />
         <main className="console" data-component="dashboard:dashboard">
           <div
@@ -149,7 +138,6 @@ export function DashboardDocument({
                 title={input.title}
                 appInfo={input.appInfo}
                 baseUrl={input.baseUrl}
-                operatorHref={operatorHref}
               />
             </div>
           </div>

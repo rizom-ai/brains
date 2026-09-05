@@ -1,11 +1,11 @@
 import { z } from "@brains/utils/zod";
-import type {
-  GitLogEntry,
-  GitReconciliationCheckpoint,
-  GitReconciliationDelta,
-  GitSyncStatus,
-  PullResult,
-} from "../../types";
+import {
+  gitLogEntrySchema,
+  gitReconciliationCheckpointSchema,
+  gitReconciliationDeltaSchema,
+  gitSyncStatusSchema,
+  pullResultSchema,
+} from "../../types/results";
 
 /**
  * The closed set of Git operations a client may ask the broker to perform.
@@ -68,22 +68,6 @@ export const GIT_OPERATIONS: readonly [
 
 export type GitOperationName = (typeof GIT_OPERATIONS)[number];
 
-export type GitOperation =
-  | { name: "initialize" }
-  | { name: "get-status" }
-  | { name: "has-local-changes" }
-  | { name: "commit"; message?: string | undefined }
-  | { name: "push" }
-  | { name: "commit-and-push" }
-  | { name: "pull" }
-  | {
-      name: "get-reconciliation-delta";
-      checkpoint?: GitReconciliationCheckpoint | undefined;
-    }
-  | { name: "get-checkpoint" }
-  | { name: "log-file"; filePath: string; limit?: number | undefined }
-  | { name: "show-file"; sha: string; filePath: string };
-
 /** Operations that may change the checkout, and so must never be replayed. */
 export const MUTATING_OPERATIONS: ReadonlySet<GitOperationName> =
   new Set<GitOperationName>([
@@ -94,48 +78,71 @@ export const MUTATING_OPERATIONS: ReadonlySet<GitOperationName> =
     "pull",
   ]);
 
-const checkpointSchema = z
-  .object({
-    remoteFingerprint: z.string().min(1),
-    branch: z.string().min(1),
-    lastReconciledGitHead: z.string().min(1),
-    lastObservedRemoteHead: z.string().optional(),
-  })
-  .strict();
+type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
-export const gitOperationSchema: z.ZodType<GitOperation, GitOperation> =
-  z.discriminatedUnion("name", [
-    z.object({ name: z.literal("initialize") }).strict(),
-    z.object({ name: z.literal("get-status") }).strict(),
-    z.object({ name: z.literal("has-local-changes") }).strict(),
-    z
-      .object({ name: z.literal("commit"), message: z.string().optional() })
-      .strict(),
-    z.object({ name: z.literal("push") }).strict(),
-    z.object({ name: z.literal("commit-and-push") }).strict(),
-    z.object({ name: z.literal("pull") }).strict(),
-    z
-      .object({
-        name: z.literal("get-reconciliation-delta"),
-        checkpoint: checkpointSchema.optional(),
-      })
-      .strict(),
-    z.object({ name: z.literal("get-checkpoint") }).strict(),
-    z
-      .object({
-        name: z.literal("log-file"),
-        filePath: z.string().min(1),
-        limit: z.number().int().positive().optional(),
-      })
-      .strict(),
-    z
-      .object({
-        name: z.literal("show-file"),
-        sha: z.string().min(1),
-        filePath: z.string().min(1),
-      })
-      .strict(),
-  ]);
+export const gitOperationSchema: z.ZodDiscriminatedUnion<
+  [
+    Strict<{ name: z.ZodLiteral<"initialize"> }>,
+    Strict<{ name: z.ZodLiteral<"get-status"> }>,
+    Strict<{ name: z.ZodLiteral<"has-local-changes"> }>,
+    Strict<{
+      name: z.ZodLiteral<"commit">;
+      message: z.ZodOptional<z.ZodString>;
+    }>,
+    Strict<{ name: z.ZodLiteral<"push"> }>,
+    Strict<{ name: z.ZodLiteral<"commit-and-push"> }>,
+    Strict<{ name: z.ZodLiteral<"pull"> }>,
+    Strict<{
+      name: z.ZodLiteral<"get-reconciliation-delta">;
+      checkpoint: z.ZodOptional<typeof gitReconciliationCheckpointSchema>;
+    }>,
+    Strict<{ name: z.ZodLiteral<"get-checkpoint"> }>,
+    Strict<{
+      name: z.ZodLiteral<"log-file">;
+      filePath: z.ZodString;
+      limit: z.ZodOptional<z.ZodNumber>;
+    }>,
+    Strict<{
+      name: z.ZodLiteral<"show-file">;
+      sha: z.ZodString;
+      filePath: z.ZodString;
+    }>,
+  ],
+  "name"
+> = z.discriminatedUnion("name", [
+  z.object({ name: z.literal("initialize") }).strict(),
+  z.object({ name: z.literal("get-status") }).strict(),
+  z.object({ name: z.literal("has-local-changes") }).strict(),
+  z
+    .object({ name: z.literal("commit"), message: z.string().optional() })
+    .strict(),
+  z.object({ name: z.literal("push") }).strict(),
+  z.object({ name: z.literal("commit-and-push") }).strict(),
+  z.object({ name: z.literal("pull") }).strict(),
+  z
+    .object({
+      name: z.literal("get-reconciliation-delta"),
+      checkpoint: gitReconciliationCheckpointSchema.optional(),
+    })
+    .strict(),
+  z.object({ name: z.literal("get-checkpoint") }).strict(),
+  z
+    .object({
+      name: z.literal("log-file"),
+      filePath: z.string().min(1),
+      limit: z.number().int().positive().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      name: z.literal("show-file"),
+      sha: z.string().min(1),
+      filePath: z.string().min(1),
+    })
+    .strict(),
+]);
+
+export type GitOperation = z.output<typeof gitOperationSchema>;
 
 /**
  * True when running this operation twice could duplicate a mutation.
@@ -149,102 +156,70 @@ export function isMutatingOperation(
   return MUTATING_OPERATIONS.has(operation.name);
 }
 
-/** What each operation answers with. */
-export interface GitOperationResultMap {
-  initialize: void;
-  "get-status": GitSyncStatus;
-  "has-local-changes": boolean;
-  commit: void;
-  push: void;
-  "commit-and-push": {
-    pushed: boolean;
-    checkpoint: GitReconciliationCheckpoint | null;
-  };
-  pull: PullResult;
-  "get-reconciliation-delta": GitReconciliationDelta;
-  "get-checkpoint": GitReconciliationCheckpoint;
-  "log-file": GitLogEntry[];
-  "show-file": string;
+/** An operation that answers with nothing still has to answer. */
+const nothing: z.ZodPipe<
+  z.ZodUnion<readonly [z.ZodNull, z.ZodUndefined]>,
+  z.ZodTransform<void, null | undefined>
+> = z.union([z.null(), z.undefined()]).transform((): void => undefined);
+
+const commitAndPushResultSchema: z.ZodObject<
+  {
+    pushed: z.ZodBoolean;
+    checkpoint: z.ZodNullable<typeof gitReconciliationCheckpointSchema>;
+  },
+  z.core.$strict
+> = z.strictObject({
+  pushed: z.boolean(),
+  checkpoint: gitReconciliationCheckpointSchema.nullable(),
+});
+
+/** The schema each operation's answer is checked by. */
+interface GitOperationResultSchemas {
+  initialize: typeof nothing;
+  "get-status": typeof gitSyncStatusSchema;
+  "has-local-changes": z.ZodBoolean;
+  commit: typeof nothing;
+  push: typeof nothing;
+  "commit-and-push": typeof commitAndPushResultSchema;
+  pull: typeof pullResultSchema;
+  "get-reconciliation-delta": typeof gitReconciliationDeltaSchema;
+  "get-checkpoint": typeof gitReconciliationCheckpointSchema;
+  "log-file": z.ZodArray<typeof gitLogEntrySchema>;
+  "show-file": z.ZodString;
 }
 
-export type GitOperationResult<
-  TName extends GitOperationName = GitOperationName,
-> = GitOperationResultMap[TName];
-
-/** An operation that answers with nothing still has to answer. */
-const nothing = z
-  .union([z.null(), z.undefined()])
-  .transform((): void => undefined);
-
-const resultSchemas: {
-  [K in GitOperationName]: z.ZodType<GitOperationResultMap[K], unknown>;
-} = {
+const resultSchemas: GitOperationResultSchemas = {
   initialize: nothing,
   commit: nothing,
   push: nothing,
   "has-local-changes": z.boolean(),
   "show-file": z.string(),
-  "get-checkpoint": checkpointSchema,
-  "get-status": z
-    .object({
-      isRepo: z.boolean(),
-      hasChanges: z.boolean(),
-      ahead: z.number().int(),
-      behind: z.number().int(),
-      branch: z.string(),
-      lastCommit: z.string().optional(),
-      remote: z.string().optional(),
-      files: z.array(
-        z.object({ path: z.string(), status: z.string() }).strict(),
-      ),
-    })
-    .strict(),
-  "commit-and-push": z
-    .object({
-      pushed: z.boolean(),
-      checkpoint: checkpointSchema.nullable(),
-    })
-    .strict(),
-  pull: z
-    .object({
-      files: z.array(z.string()),
-      deletedFiles: z.array(z.string()).optional(),
-    })
-    .strict(),
-  "get-reconciliation-delta": z.discriminatedUnion("mode", [
-    z
-      .object({
-        mode: z.literal("incremental"),
-        checkpoint: checkpointSchema,
-        files: z.array(z.string()),
-        deletedFiles: z.array(z.string()),
-      })
-      .strict(),
-    z
-      .object({
-        mode: z.literal("full"),
-        checkpoint: checkpointSchema,
-        reason: z.enum([
-          "missing-checkpoint",
-          "repository-identity-mismatch",
-          "branch-mismatch",
-          "missing-local-checkpoint",
-          "non-ancestor-local-checkpoint",
-          "remote-checkpoint-mismatch",
-        ]),
-      })
-      .strict(),
-  ]),
-  "log-file": z.array(
-    z
-      .object({
-        sha: z.string(),
-        date: z.string(),
-        message: z.string(),
-      })
-      .strict(),
-  ),
+  "get-checkpoint": gitReconciliationCheckpointSchema,
+  "get-status": gitSyncStatusSchema,
+  "commit-and-push": commitAndPushResultSchema,
+  pull: pullResultSchema,
+  "get-reconciliation-delta": gitReconciliationDeltaSchema,
+  "log-file": z.array(gitLogEntrySchema),
 };
+
+/**
+ * What each operation answers with.
+ *
+ * Total by construction: the map indexes the result schemas by every
+ * operation name, so a new operation cannot be added without one.
+ */
+export type GitOperationResultMap = {
+  [K in GitOperationName]: z.output<GitOperationResultSchemas[K]>;
+};
+
+export type GitOperationResult<
+  TName extends GitOperationName = GitOperationName,
+> = GitOperationResultMap[TName];
+
+/** The same schemas, viewed uniformly so a name picks its parser. */
+const resultParsers: {
+  [K in GitOperationName]: z.ZodType<GitOperationResultMap[K], unknown>;
+} = resultSchemas;
 
 /**
  * Check a result before anyone treats it as typed.
@@ -258,7 +233,5 @@ export function parseGitOperationResult<TName extends GitOperationName>(
   name: TName,
   value: unknown,
 ): GitOperationResultMap[TName] {
-  // Total by construction: `resultSchemas` is a mapped type over every
-  // operation name, so a new operation cannot be added without one.
-  return resultSchemas[name].parse(value);
+  return resultParsers[name].parse(value);
 }

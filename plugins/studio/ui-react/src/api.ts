@@ -2,10 +2,12 @@ import type {
   RuntimeStudioWorkspaceData,
   UserPermissionLevel,
 } from "@brains/plugins";
+import type { FetchLike } from "@brains/utils/fetch-like";
 
 /**
  * Typed client for the Studio editor API served by plugins/studio.
- * Routes live under the configured Studio path and require an authenticated browser session.
+ * Routes live under the Studio mount the client was built with and require
+ * an authenticated browser session.
  */
 
 export interface StudioTypeCapabilities {
@@ -162,16 +164,9 @@ export class ApiError extends Error {
   }
 }
 
-let studioApiBasePath = "/studio";
-
-/** Configure the API mount from the server-rendered Studio shell. */
-export function configureStudioApiBasePath(routePath: string): void {
-  studioApiBasePath = routePath === "/" ? "" : routePath.replace(/\/+$/, "");
-}
-
-export function studioApiPath(suffix: string, routePath?: string): string {
-  const pathname = routePath ?? studioApiBasePath;
-  const base = pathname === "/" ? "" : pathname.replace(/\/+$/, "");
+/** Resolve an API path under the Studio mount the server rendered. */
+export function studioApiPath(suffix: string, routePath: string): string {
+  const base = routePath === "/" ? "" : routePath.replace(/\/+$/, "");
   return `${base}/api/${suffix.replace(/^\/+/, "")}`;
 }
 
@@ -199,147 +194,6 @@ function apiErrorPayload(payload: unknown): {
   return { error, issues };
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
-  const payload = await response.json().catch(() => undefined);
-  if (!response.ok) {
-    const details = apiErrorPayload(payload);
-    throw new ApiError(
-      response.status,
-      details.error ?? response.statusText,
-      details.issues,
-    );
-  }
-  return payload;
-}
-
-export async function fetchNavigation(): Promise<StudioNavigation> {
-  const response = await requestJson<{
-    types: EntityTypeInfo[];
-    workspaces?: StudioWorkspaceInfo[];
-  }>(studioApiPath("types"));
-  return { types: response.types, workspaces: response.workspaces ?? [] };
-}
-
-export async function fetchTypes(): Promise<EntityTypeInfo[]> {
-  return (await fetchNavigation()).types;
-}
-
-export async function fetchWorkspace(
-  id: string,
-  query: Readonly<Record<string, string | number | undefined>> = {},
-): Promise<StudioWorkspaceData> {
-  const search = new URLSearchParams({ id });
-  for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined) search.set(key, String(value));
-  }
-  const { workspace } = await requestJson<{ workspace: StudioWorkspaceData }>(
-    studioApiPath(`workspace?${search.toString()}`),
-  );
-  return workspace;
-}
-
-export async function runWorkspaceAction<TResult>(
-  id: string,
-  action: unknown,
-): Promise<TResult> {
-  const { result } = await requestJson<{ result: TResult }>(
-    studioApiPath("workspace"),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action }),
-    },
-  );
-  return result;
-}
-
-export async function fetchSchema(entityType: string): Promise<TypeSchema> {
-  return requestJson<TypeSchema>(
-    studioApiPath(`schema?type=${encodeURIComponent(entityType)}`),
-  );
-}
-
-export async function fetchEntities(
-  entityType: string,
-): Promise<EntitySummary[]> {
-  const { entities } = await requestJson<{ entities: EntitySummary[] }>(
-    studioApiPath(`entities?type=${encodeURIComponent(entityType)}`),
-  );
-  return entities;
-}
-
-export async function fetchEntity(
-  entityType: string,
-  id: string,
-): Promise<EntityDetail> {
-  const { entity } = await requestJson<{ entity: EntityDetail }>(
-    studioApiPath(
-      `entities?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
-    ),
-  );
-  return entity;
-}
-
-export async function updateEntity(input: {
-  entityType: string;
-  id: string;
-  frontmatter: Record<string, unknown>;
-  body?: string;
-  baseContentHash?: string;
-}): Promise<{ entityId: string; jobId: string; skipped: boolean }> {
-  return requestJson<{ entityId: string; jobId: string; skipped: boolean }>(
-    studioApiPath("entities"),
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    },
-  );
-}
-
-export async function createEntity(input: {
-  entityType: string;
-  frontmatter: Record<string, unknown>;
-  body?: string;
-}): Promise<{ entityId: string; jobId: string }> {
-  return requestJson<{ entityId: string; jobId: string }>(
-    studioApiPath("entities"),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    },
-  );
-}
-
-export async function uploadFile(
-  file: File,
-): Promise<{ entityId: string; jobId?: string }> {
-  const form = new FormData();
-  form.set("file", file);
-  return requestJson<{ entityId: string; jobId?: string }>(
-    studioApiPath("upload"),
-    {
-      method: "POST",
-      body: form,
-    },
-  );
-}
-
-export async function requestAssist(input: {
-  entityType: string;
-  id: string;
-  instruction: string;
-  selection: string;
-}): Promise<{ suggestion: string }> {
-  return requestJson<{ suggestion: string }>(studioApiPath("assist"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-}
-
 export type FieldAssistResponse =
   | {
       variant: "summarise";
@@ -352,64 +206,231 @@ export type FieldAssistResponse =
       suggestions: string[];
     };
 
-export async function requestFieldAssist(input: {
-  variant: "summarise" | "tag-suggest";
-  entityType: string;
-  id: string;
-  targetField: string;
-}): Promise<FieldAssistResponse> {
-  return requestJson<FieldAssistResponse>(studioApiPath("assist"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+/**
+ * What the client needs at runtime that is not a route: the Studio mount it
+ * was served under, and the transport its requests go through. Production
+ * leaves fetch unset and the client uses the global; a test hands in a fake
+ * and reads the requests off it instead of reassigning globalThis.fetch.
+ */
+export interface StudioApiDeps {
+  basePath: string;
+  fetch?: FetchLike | undefined;
 }
 
-export async function fetchAgentTargets(
-  entityType: string,
-  id: string,
-): Promise<AgentTarget[]> {
-  const { agents } = await requestJson<{ agents: AgentTarget[] }>(
-    studioApiPath(
-      `agents?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
-    ),
-  );
-  return agents;
-}
+const globalFetch: FetchLike = (input, init) => fetch(input, init);
 
-export async function requestAgentAnswer(input: {
-  entityType: string;
-  id: string;
-  agent: string;
-  instruction: string;
-  selection: string;
-}): Promise<{ agentId: string; response: string }> {
-  return requestJson<{ agentId: string; response: string }>(
-    studioApiPath("ask-agent"),
-    {
+export class StudioApi {
+  private readonly basePath: string;
+  /**
+   * The transport this client was built on. The lazily loaded account
+   * surface builds its own client on it, so its code stays out of the
+   * entry chunk.
+   */
+  readonly fetch: FetchLike;
+
+  constructor(deps: StudioApiDeps) {
+    this.basePath = deps.basePath;
+    this.fetch = deps.fetch ?? globalFetch;
+  }
+
+  private path(suffix: string): string {
+    return studioApiPath(suffix, this.basePath);
+  }
+
+  private async requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+    const response = await this.fetch(path, init);
+    const payload = await response.json().catch(() => undefined);
+    if (!response.ok) {
+      const details = apiErrorPayload(payload);
+      throw new ApiError(
+        response.status,
+        details.error ?? response.statusText,
+        details.issues,
+      );
+    }
+    return payload;
+  }
+
+  async fetchNavigation(): Promise<StudioNavigation> {
+    const response = await this.requestJson<{
+      types: EntityTypeInfo[];
+      workspaces?: StudioWorkspaceInfo[];
+    }>(this.path("types"));
+    return { types: response.types, workspaces: response.workspaces ?? [] };
+  }
+
+  async fetchTypes(): Promise<EntityTypeInfo[]> {
+    return (await this.fetchNavigation()).types;
+  }
+
+  async fetchWorkspace(
+    id: string,
+    query: Readonly<Record<string, string | number | undefined>> = {},
+  ): Promise<StudioWorkspaceData> {
+    const search = new URLSearchParams({ id });
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) search.set(key, String(value));
+    }
+    const { workspace } = await this.requestJson<{
+      workspace: StudioWorkspaceData;
+    }>(this.path(`workspace?${search.toString()}`));
+    return workspace;
+  }
+
+  async runWorkspaceAction<TResult>(
+    id: string,
+    action: unknown,
+  ): Promise<TResult> {
+    const { result } = await this.requestJson<{ result: TResult }>(
+      this.path("workspace"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      },
+    );
+    return result;
+  }
+
+  async fetchSchema(entityType: string): Promise<TypeSchema> {
+    return this.requestJson<TypeSchema>(
+      this.path(`schema?type=${encodeURIComponent(entityType)}`),
+    );
+  }
+
+  async fetchEntities(entityType: string): Promise<EntitySummary[]> {
+    const { entities } = await this.requestJson<{ entities: EntitySummary[] }>(
+      this.path(`entities?type=${encodeURIComponent(entityType)}`),
+    );
+    return entities;
+  }
+
+  async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {
+    const { entity } = await this.requestJson<{ entity: EntityDetail }>(
+      this.path(
+        `entities?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
+      ),
+    );
+    return entity;
+  }
+
+  async updateEntity(input: {
+    entityType: string;
+    id: string;
+    frontmatter: Record<string, unknown>;
+    body?: string;
+    baseContentHash?: string;
+  }): Promise<{ entityId: string; jobId: string; skipped: boolean }> {
+    return this.requestJson<{
+      entityId: string;
+      jobId: string;
+      skipped: boolean;
+    }>(this.path("entities"), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  }
+
+  async createEntity(input: {
+    entityType: string;
+    frontmatter: Record<string, unknown>;
+    body?: string;
+  }): Promise<{ entityId: string; jobId: string }> {
+    return this.requestJson<{ entityId: string; jobId: string }>(
+      this.path("entities"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
+  }
+
+  async uploadFile(file: File): Promise<{ entityId: string; jobId?: string }> {
+    const form = new FormData();
+    form.set("file", file);
+    return this.requestJson<{ entityId: string; jobId?: string }>(
+      this.path("upload"),
+      {
+        method: "POST",
+        body: form,
+      },
+    );
+  }
+
+  async requestAssist(input: {
+    entityType: string;
+    id: string;
+    instruction: string;
+    selection: string;
+  }): Promise<{ suggestion: string }> {
+    return this.requestJson<{ suggestion: string }>(this.path("assist"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
-    },
-  );
-}
+    });
+  }
 
-export async function fetchSyncStatus(): Promise<SyncStatus> {
-  return requestJson<SyncStatus>(studioApiPath("sync-status"));
-}
-
-export async function deleteEntity(
-  entityType: string,
-  id: string,
-): Promise<{ deleted: boolean }> {
-  return requestJson<{ deleted: boolean }>(
-    studioApiPath(
-      `entities?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
-    ),
-    {
-      method: "DELETE",
+  async requestFieldAssist(input: {
+    variant: "summarise" | "tag-suggest";
+    entityType: string;
+    id: string;
+    targetField: string;
+  }): Promise<FieldAssistResponse> {
+    return this.requestJson<FieldAssistResponse>(this.path("assist"), {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirmed: true }),
-    },
-  );
+      body: JSON.stringify(input),
+    });
+  }
+
+  async fetchAgentTargets(
+    entityType: string,
+    id: string,
+  ): Promise<AgentTarget[]> {
+    const { agents } = await this.requestJson<{ agents: AgentTarget[] }>(
+      this.path(
+        `agents?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
+      ),
+    );
+    return agents;
+  }
+
+  async requestAgentAnswer(input: {
+    entityType: string;
+    id: string;
+    agent: string;
+    instruction: string;
+    selection: string;
+  }): Promise<{ agentId: string; response: string }> {
+    return this.requestJson<{ agentId: string; response: string }>(
+      this.path("ask-agent"),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
+  }
+
+  async fetchSyncStatus(): Promise<SyncStatus> {
+    return this.requestJson<SyncStatus>(this.path("sync-status"));
+  }
+
+  async deleteEntity(
+    entityType: string,
+    id: string,
+  ): Promise<{ deleted: boolean }> {
+    return this.requestJson<{ deleted: boolean }>(
+      this.path(
+        `entities?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
+      ),
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmed: true }),
+      },
+    );
+  }
 }

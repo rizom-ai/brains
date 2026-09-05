@@ -1,7 +1,4 @@
-import {
-  siteMetadataSchema,
-  type SiteMetadata,
-} from "@brains/site-composition";
+import { siteMetadataSchema } from "@brains/site-composition";
 import { type ProgressCallback } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
@@ -9,34 +6,20 @@ import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
 /**
  * Site builder options schema
  */
-export interface SiteBuilderOptionsSchemaOutput {
-  environment: "preview" | "production";
-  outputDir: string;
-  workingDir?: string | undefined;
-  sharedImagesDir: string;
-  enableContentGeneration: boolean;
-  cleanBeforeBuild: boolean;
-  siteConfig: SiteMetadata;
-  layouts: Record<string, LayoutComponent>;
-  themeCSS?: string | undefined;
-}
-
-export interface SiteBuilderOptionsSchemaInput {
-  environment: "preview" | "production";
-  outputDir: string;
-  workingDir?: string | undefined;
-  sharedImagesDir?: string | undefined;
-  enableContentGeneration?: boolean | undefined;
-  cleanBeforeBuild?: boolean | undefined;
-  siteConfig: SiteMetadata;
-  layouts: Record<string, LayoutComponent>;
-  themeCSS?: string | undefined;
-}
-
-export const SiteBuilderOptionsSchema: z.ZodType<
-  SiteBuilderOptionsSchemaOutput,
-  SiteBuilderOptionsSchemaInput
-> = z.object({
+export const SiteBuilderOptionsSchema: z.ZodObject<{
+  environment: z.ZodEnum<{ preview: "preview"; production: "production" }>;
+  outputDir: z.ZodString;
+  workingDir: z.ZodOptional<z.ZodString>;
+  sharedImagesDir: z.ZodDefault<z.ZodString>;
+  enableContentGeneration: z.ZodDefault<z.ZodBoolean>;
+  cleanBeforeBuild: z.ZodDefault<z.ZodBoolean>;
+  siteConfig: typeof siteMetadataSchema;
+  layouts: z.ZodRecord<
+    z.ZodString,
+    z.ZodCustom<LayoutComponent, LayoutComponent>
+  >;
+  themeCSS: z.ZodOptional<z.ZodString>;
+}> = z.object({
   environment: z.enum(["preview", "production"]),
   outputDir: z.string(),
   workingDir: z.string().optional(),
@@ -44,13 +27,18 @@ export const SiteBuilderOptionsSchema: z.ZodType<
   enableContentGeneration: z.boolean().default(false),
   cleanBeforeBuild: z.boolean().default(true),
   siteConfig: siteMetadataSchema,
-  layouts: z.record(z.string(), z.any()),
+  layouts: z.record(z.string(), z.custom<LayoutComponent>()),
   themeCSS: z.string().optional(),
 });
 
-export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
-  // Override layouts type
-  layouts: Record<string, LayoutComponent>;
+export type SiteBuilderOptionsSchemaOutput = z.output<
+  typeof SiteBuilderOptionsSchema
+>;
+export type SiteBuilderOptionsSchemaInput = z.input<
+  typeof SiteBuilderOptionsSchema
+>;
+
+export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaInput {
   // Optional slot registry for plugin-registered UI components
   slots?: LayoutSlots | undefined;
   // Head scripts registered by other plugins (e.g., analytics beacon)
@@ -72,53 +60,53 @@ export interface SiteBuilderOptions extends SiteBuilderOptionsSchemaOutput {
  * Structured diagnostic emitted while validating or building a site.
  * String errors/warnings remain on BuildResult for compatibility.
  */
-export type SiteBuildDiagnosticCode =
-  | "build-failed"
-  | "build-cancelled"
-  | "output-commit-failed"
-  | "unsafe-route-path"
-  | "missing-layout"
-  | "missing-template"
-  | "missing-web-renderer"
-  | "unsafe-static-asset-path"
-  | "static-asset-collision"
-  | "public-asset-snapshot-failed"
-  | "section-content-resolution-failed"
-  | "invalid-section-content"
-  | "missing-site-url"
-  | "staged-artifact-failed";
+export const siteBuildDiagnosticCodeSchema: z.ZodEnum<{
+  "build-failed": "build-failed";
+  "build-cancelled": "build-cancelled";
+  "output-commit-failed": "output-commit-failed";
+  "unsafe-route-path": "unsafe-route-path";
+  "missing-layout": "missing-layout";
+  "missing-template": "missing-template";
+  "missing-web-renderer": "missing-web-renderer";
+  "unsafe-static-asset-path": "unsafe-static-asset-path";
+  "static-asset-collision": "static-asset-collision";
+  "public-asset-snapshot-failed": "public-asset-snapshot-failed";
+  "section-content-resolution-failed": "section-content-resolution-failed";
+  "invalid-section-content": "invalid-section-content";
+  "missing-site-url": "missing-site-url";
+  "staged-artifact-failed": "staged-artifact-failed";
+}> = z.enum([
+  "build-failed",
+  "build-cancelled",
+  "output-commit-failed",
+  "unsafe-route-path",
+  "missing-layout",
+  "missing-template",
+  "missing-web-renderer",
+  "unsafe-static-asset-path",
+  "static-asset-collision",
+  "public-asset-snapshot-failed",
+  "section-content-resolution-failed",
+  "invalid-section-content",
+  "missing-site-url",
+  "staged-artifact-failed",
+]);
 
-export interface SiteBuildDiagnostic {
-  severity: "warning" | "error";
-  code: SiteBuildDiagnosticCode;
-  message: string;
-  routeId?: string | undefined;
-  sectionId?: string | undefined;
-  template?: string | undefined;
-  path?: string | undefined;
-}
+export type SiteBuildDiagnosticCode = z.output<
+  typeof siteBuildDiagnosticCodeSchema
+>;
 
-export const SiteBuildDiagnosticSchema: z.ZodType<
-  SiteBuildDiagnostic,
-  SiteBuildDiagnostic
-> = z.object({
+export const SiteBuildDiagnosticSchema: z.ZodObject<{
+  severity: z.ZodEnum<{ warning: "warning"; error: "error" }>;
+  code: typeof siteBuildDiagnosticCodeSchema;
+  message: z.ZodString;
+  routeId: z.ZodOptional<z.ZodString>;
+  sectionId: z.ZodOptional<z.ZodString>;
+  template: z.ZodOptional<z.ZodString>;
+  path: z.ZodOptional<z.ZodString>;
+}> = z.object({
   severity: z.enum(["warning", "error"]),
-  code: z.enum([
-    "build-failed",
-    "build-cancelled",
-    "output-commit-failed",
-    "unsafe-route-path",
-    "missing-layout",
-    "missing-template",
-    "missing-web-renderer",
-    "unsafe-static-asset-path",
-    "static-asset-collision",
-    "public-asset-snapshot-failed",
-    "section-content-resolution-failed",
-    "invalid-section-content",
-    "missing-site-url",
-    "staged-artifact-failed",
-  ]),
+  code: siteBuildDiagnosticCodeSchema,
   message: z.string(),
   routeId: z.string().optional(),
   sectionId: z.string().optional(),
@@ -126,22 +114,22 @@ export const SiteBuildDiagnosticSchema: z.ZodType<
   path: z.string().optional(),
 });
 
+export type SiteBuildDiagnostic = z.output<typeof SiteBuildDiagnosticSchema>;
+
 /**
  * Build result schema
  */
-export interface BuildResult {
-  success: boolean;
-  cancelled?: boolean | undefined;
-  skipped?: boolean | undefined;
-  outputDir: string;
-  filesGenerated: number;
-  routesBuilt: number;
-  errors?: string[] | undefined;
-  warnings?: string[] | undefined;
-  diagnostics?: SiteBuildDiagnostic[] | undefined;
-}
-
-export const BuildResultSchema: z.ZodType<BuildResult, BuildResult> = z.object({
+export const BuildResultSchema: z.ZodObject<{
+  success: z.ZodBoolean;
+  cancelled: z.ZodOptional<z.ZodBoolean>;
+  skipped: z.ZodOptional<z.ZodBoolean>;
+  outputDir: z.ZodString;
+  filesGenerated: z.ZodNumber;
+  routesBuilt: z.ZodNumber;
+  errors: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  warnings: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  diagnostics: z.ZodOptional<z.ZodArray<typeof SiteBuildDiagnosticSchema>>;
+}> = z.object({
   success: z.boolean(),
   cancelled: z.boolean().optional(),
   skipped: z.boolean().optional(),
@@ -152,6 +140,8 @@ export const BuildResultSchema: z.ZodType<BuildResult, BuildResult> = z.object({
   warnings: z.array(z.string()).optional(),
   diagnostics: z.array(SiteBuildDiagnosticSchema).optional(),
 });
+
+export type BuildResult = z.output<typeof BuildResultSchema>;
 
 /**
  * Site builder interface

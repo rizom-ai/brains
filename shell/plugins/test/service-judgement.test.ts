@@ -118,7 +118,7 @@ describe("a service that decides whether something holds", () => {
     expect(judged?.instruction).toBe("Does the goal hold?");
     expect(verdict).toEqual({ met: true });
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -161,6 +161,6 @@ describe("a service whose engine reads its own types", () => {
     await service.ready?.();
 
     expect(listed).toEqual([]);
-    harness.reset();
+    await harness.reset();
   });
 });

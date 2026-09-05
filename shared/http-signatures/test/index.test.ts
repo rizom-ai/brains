@@ -54,14 +54,23 @@ async function expectVerificationError(
   promise: Promise<unknown>,
   message?: string,
 ): Promise<void> {
-  try {
-    await promise;
-    throw new Error("Expected verification to fail");
-  } catch (error) {
-    expect(error).toBeInstanceOf(HttpSignatureVerificationError);
-    if (message && error instanceof Error) {
-      expect(error.message).toContain(message);
-    }
+  // Settle explicitly rather than try/catch: a `throw` inside the try to mark
+  // "should have failed" lands in its own catch, where it is checked against
+  // the same assertions as a real failure.
+  const settled = await promise.then(
+    () => ({ rejected: false as const }),
+    (error: unknown) => ({ rejected: true as const, error }),
+  );
+  if (!settled.rejected) {
+    throw new Error("Expected verification to fail, but it resolved");
+  }
+  if (!(settled.error instanceof HttpSignatureVerificationError)) {
+    throw new Error(
+      `Expected an HttpSignatureVerificationError, got ${String(settled.error)}`,
+    );
+  }
+  if (message !== undefined) {
+    expect(settled.error.message).toContain(message);
   }
 }
 

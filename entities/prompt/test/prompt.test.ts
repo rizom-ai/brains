@@ -116,7 +116,7 @@ describe("prompt package registration", () => {
       projectionSourceRole: "excluded",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("produces exactly one entity plugin", () => {

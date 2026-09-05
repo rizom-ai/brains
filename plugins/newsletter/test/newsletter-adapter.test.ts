@@ -25,10 +25,6 @@ describe("NewsletterAdapter", () => {
     it("should have correct entity type", () => {
       expect(adapter.entityType).toBe("newsletter");
     });
-
-    it("should have a valid zod schema", () => {
-      expect(adapter.schema).toBeDefined();
-    });
   });
 
   describe("toMarkdown", () => {

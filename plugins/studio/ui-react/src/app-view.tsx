@@ -57,6 +57,8 @@ import {
 } from "./editor-status";
 import { PublicationActions } from "./publication-actions";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import { StudioChrome } from "./studio-chrome";
+import chromeStyles from "./studio-chrome.css" with { type: "text" };
 import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
 import {
   declarativeStudioPageHead,
@@ -153,7 +155,8 @@ export function StudioAppStatus(props: {
 }): ReactElement {
   return (
     <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <StudioChrome contextLabel="Studio" />
       <p
         className={
           props.error ? "status status-error boot-status" : "status boot-status"
@@ -175,14 +178,23 @@ export function StudioAccountWorkspaceView(props: {
 }): ReactElement {
   return (
     <div className="studio" data-view="account">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
-      <header className="crumbbar">
-        <span className="crumb">Account</span>
-        <span className="spacer" />
-      </header>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <StudioChrome
+        contextLabel="Account"
+        navigation={{
+          types: props.types,
+          workspaces: props.workspaces,
+          activeEntityType: null,
+          activeWorkspaceId: props.workspaceId,
+          workspaceBadges: workspaceRailBadges(props.workspaces),
+          selectEntityType: props.selectEntityType,
+          selectWorkspace: props.selectWorkspace,
+        }}
+      />
       <div className="studio-body">
         <aside className="rail">
           <TypeSwitcher
+            renderMode="desktop"
             types={props.types}
             active={null}
             onSelect={props.selectEntityType}
@@ -274,6 +286,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       workspace.entityTypes.includes(selectedEntityType),
   );
   const entityCount = entities?.length ?? 0;
+  const workspaceBadges = workspaceRailBadges(workspaces);
   const listingHead: StudioPageHeadModel = {
     kicker: "Content library",
     access: studioAccessRequirement("trusted"),
@@ -313,28 +326,29 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
-      <header className="crumbbar">
-        <span className="crumb">
-          {editing && !entitySchema.isSingleton ? (
-            <Button type="button" variant="link" onClick={backToList}>
-              {collectionLabel}
-            </Button>
-          ) : (
-            collectionLabel
-          )}
-          {editing && (
-            <>
-              {" / "}
-              <strong>{heading}</strong>
-            </>
-          )}
-        </span>
-        <span className="spacer" />
-      </header>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <StudioChrome
+        contextLabel={collectionLabel}
+        onContextClick={
+          editing && !entitySchema.isSingleton ? backToList : undefined
+        }
+        contextBadge={
+          activeWorkspaceId ? workspaceBadges[activeWorkspaceId] : undefined
+        }
+        navigation={{
+          types,
+          workspaces,
+          activeEntityType: activeWorkspaceId ? null : entityType,
+          activeWorkspaceId,
+          workspaceBadges,
+          selectEntityType,
+          selectWorkspace,
+        }}
+      />
       <div className="studio-body">
         <aside className="rail">
           <TypeSwitcher
+            renderMode="desktop"
             types={types}
             active={activeWorkspaceId ? null : entityType}
             onSelect={selectEntityType}

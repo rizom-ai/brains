@@ -26,7 +26,7 @@ describe("what the package registers", () => {
     });
     expect(agent).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not register system_create URL interception for agent contacts", async () => {
@@ -38,7 +38,7 @@ describe("what the package registers", () => {
       harness.getEntityRegistry().getCreateInterceptor("agent"),
     ).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers the directory scan as a daily recurring check", async () => {
@@ -51,7 +51,7 @@ describe("what the package registers", () => {
     expect(
       checks.find(({ id }) => id.endsWith("directory-scan")),
     ).toMatchObject({ cadence: "daily" });
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers agent directory and proximity-map datasources", async () => {
@@ -64,7 +64,7 @@ describe("what the package registers", () => {
       "@brains/agent-discovery:proximity-map",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers site templates under the scoped names routes reference", async () => {
@@ -82,7 +82,7 @@ describe("what the package registers", () => {
       "@brains/agent-discovery:skill:skill-derivation",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("should register dashboard widgets on plugins-registered", async () => {
@@ -125,6 +125,6 @@ describe("what the package registers", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 });

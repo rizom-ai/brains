@@ -54,6 +54,6 @@ describe("notes one package's plugins keep", () => {
         .get("first"),
     ).toBe("noticed");
 
-    harness.reset();
+    await harness.reset();
   });
 });

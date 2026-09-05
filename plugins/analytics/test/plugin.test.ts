@@ -32,14 +32,14 @@ describe("analytics service", () => {
       );
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("analytics_query");
-      harness.reset();
+      await harness.reset();
     });
 
     it("should NOT register tools when cloudflare is not configured", async () => {
       const harness = createPluginHarness();
       const capabilities = await harness.installPlugin(analyticsPlugin());
       expect(capabilities.tools).toHaveLength(0);
-      harness.reset();
+      await harness.reset();
     });
 
     it("should have query tool with correct description", async () => {
@@ -56,7 +56,7 @@ describe("analytics service", () => {
       expect(queryTool?.visibility).toBe("admin");
       expect(queryTool?.sideEffects).toBe("none");
       expect(queryTool?.agentTool).toBe(false);
-      harness.reset();
+      await harness.reset();
     });
   });
 });

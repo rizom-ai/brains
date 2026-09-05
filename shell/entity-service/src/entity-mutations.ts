@@ -95,6 +95,8 @@ function parseEmbeddingFailureReference(
       contentHash: data.contentHash,
     };
   } catch {
+    // Job data we cannot read yields no reference; the caller treats that
+    // the same as a job that named no entity.
     return null;
   }
 }

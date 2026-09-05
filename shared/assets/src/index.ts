@@ -10,12 +10,6 @@ export const MAX_ASSET_BYTES: number = 100 * 1024 * 1024;
 
 export type AssetRef = `asset://sha256/${string}`;
 
-export interface AssetRecord {
-  ref: AssetRef;
-  digest: string;
-  sizeBytes: number;
-}
-
 export interface AssetStat {
   ref: AssetRef;
   sizeBytes: number;
@@ -49,12 +43,17 @@ export interface AssetReader {
   verify(ref: AssetRef): Promise<AssetVerification>;
 }
 
-export const assetRefSchema: z.ZodType<AssetRef> = z.custom<AssetRef>(
-  (value) => typeof value === "string" && ASSET_REF_PATTERN.test(value),
-  { message: "Invalid SHA-256 asset reference" },
-);
+export const assetRefSchema: z.ZodCustom<AssetRef, AssetRef> =
+  z.custom<AssetRef>(
+    (value) => typeof value === "string" && ASSET_REF_PATTERN.test(value),
+    { message: "Invalid SHA-256 asset reference" },
+  );
 
-export const assetRecordSchema: z.ZodType<AssetRecord> = z
+export const assetRecordSchema: z.ZodObject<{
+  ref: typeof assetRefSchema;
+  digest: z.ZodString;
+  sizeBytes: z.ZodNumber;
+}> = z
   .object({
     ref: assetRefSchema,
     digest: z.string().regex(SHA256_DIGEST_PATTERN),
@@ -64,6 +63,8 @@ export const assetRecordSchema: z.ZodType<AssetRecord> = z
     message: "Asset reference and digest must match",
     path: ["digest"],
   });
+
+export type AssetRecord = z.output<typeof assetRecordSchema>;
 
 export function parseAssetRef(value: unknown): AssetRef {
   return assetRefSchema.parse(value);

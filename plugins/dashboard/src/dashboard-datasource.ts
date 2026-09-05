@@ -120,6 +120,8 @@ export class DashboardDataSource implements DataSource {
         }),
       };
     } catch (error) {
+      // The digest is supplied by plugin code. One widget's provider throwing
+      // must not take down every other widget on the dashboard.
       this.logger.error("Widget digest provider failed", {
         widgetId: widget.id,
         pluginId: widget.pluginId,

@@ -4,11 +4,16 @@ import { Button, ConfirmDialog, Input, Switch } from "@brains/app-ui-react";
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
   type AuthAccountMutation,
-  type AuthAccountPluginSettingsMutation,
   type AuthAccountRole,
   type AuthAccountSnapshot,
 } from "@brains/auth-service/account-contracts";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   AccountAccessItem,
@@ -17,13 +22,8 @@ import {
 } from "./account-primitives";
 import { studioEntityHref, initials, roleLabel } from "./account-format";
 import detailStyles from "./account-detail.css" with { type: "text" };
-import {
-  fetchAccount,
-  mutateAccount,
-  mutatePluginSettings,
-  registerPasskey,
-  type AccountMutationResponse,
-} from "./account-api";
+import { AccountClient } from "./account-api";
+import { useStudioApi } from "../studio-api-context";
 import accountStyles from "./account-view.css" with { type: "text" };
 import pageHeadStyles from "../studio-page-head.css" with { type: "text" };
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
@@ -35,21 +35,11 @@ export interface AccountBootstrap {
   studioPath: string;
 }
 
-export interface AccountClient {
-  fetchAccount: () => Promise<AuthAccountSnapshot>;
-  mutateAccount: (
-    mutation: AuthAccountMutation,
-  ) => Promise<AccountMutationResponse>;
-  mutatePluginSettings: (
-    mutation: AuthAccountPluginSettingsMutation,
-  ) => Promise<AuthAccountSnapshot>;
-  registerPasskey: () => Promise<AuthAccountSnapshot>;
-}
-
 export interface AccountAppProps {
   bootstrap: AccountBootstrap;
   initialAccount?: AuthAccountSnapshot;
-  client?: AccountClient;
+  /** Defaults to a client on the provided Studio transport. */
+  client?: AccountClient | undefined;
 }
 
 interface AccountConfirmation {
@@ -58,13 +48,6 @@ interface AccountConfirmation {
   confirmLabel: string;
   action: () => void;
 }
-
-const defaultClient: AccountClient = {
-  fetchAccount,
-  mutateAccount,
-  mutatePluginSettings,
-  registerPasskey,
-};
 
 function formatDate(value: number, milliseconds = false): string {
   const date = new Date(milliseconds ? value : value * 1000);
@@ -81,8 +64,13 @@ function messageOf(error: unknown): string {
 export function AccountApp({
   bootstrap,
   initialAccount,
-  client = defaultClient,
+  client: providedClient,
 }: AccountAppProps): React.ReactElement {
+  const api = useStudioApi();
+  const client = useMemo(
+    () => providedClient ?? new AccountClient({ fetch: api.fetch }),
+    [providedClient, api],
+  );
   const [account, setAccount] = useState(initialAccount);
   const [displayName, setDisplayName] = useState(
     initialAccount?.displayName ?? bootstrap.displayName,

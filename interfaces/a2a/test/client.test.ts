@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { parseA2AResponse, createAgentCallTool } from "../src/client";
 import { ANCHOR_EXTENSION_URI, parseAgentCard } from "@brains/plugins";
 
@@ -90,7 +91,7 @@ describe("A2A Client", () => {
         },
       });
 
-      expect(card?.anchor).toBeNull();
+      expect(expectDefined(card, "agent card").anchor).toBeNull();
     });
 
     it("should return null for missing url", () => {

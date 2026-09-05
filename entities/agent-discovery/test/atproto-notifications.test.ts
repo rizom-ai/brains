@@ -107,7 +107,7 @@ describe("ATProto discovery notifications", () => {
     const second = await check.run();
     expect(second.alerts ?? []).toEqual([]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("delivers identity collisions as a separate bounded security digest", async () => {
@@ -125,7 +125,7 @@ describe("ATProto discovery notifications", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not queue an ATProto digest when notifications are disabled", async () => {
@@ -139,7 +139,7 @@ describe("ATProto discovery notifications", () => {
     const result = await check.run();
     expect(result.alerts ?? []).toEqual([]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("keeps the backlog while notifications are off, and reports it once on", async () => {
@@ -166,7 +166,7 @@ describe("ATProto discovery notifications", () => {
       }),
     ]);
 
-    off.harness.reset();
-    on.harness.reset();
+    await off.harness.reset();
+    await on.harness.reset();
   });
 });

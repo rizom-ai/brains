@@ -59,7 +59,7 @@ Outcome for ${title}`;
     });
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
     // Only provide entityService via context - not constructor
@@ -117,7 +117,7 @@ Outcome for ${title}`;
         expect(parsed.baseUrl).toBeNull();
         expect(JSON.parse(JSON.stringify(result))).toStrictEqual(result);
       } finally {
-        harness.reset();
+        await harness.reset();
       }
     });
 

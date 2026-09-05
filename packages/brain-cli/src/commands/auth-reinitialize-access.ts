@@ -4,6 +4,7 @@ import { parseBrainYaml } from "../lib/brain-yaml";
 import type { CommandResult } from "../lib/command-result";
 import { getErrorMessage } from "@brains/utils/error";
 import { loadDefinition } from "../lib/definition-registry";
+import { isRecord } from "@brains/utils/is-record";
 
 export interface AuthReinitializeAccessOptions {
   storageDir?: string | undefined;
@@ -91,10 +92,6 @@ function readOptionalStringArray(
     throw new Error(`${path} must be an array of interface principals`);
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isBrainDataPath(path: string): boolean {

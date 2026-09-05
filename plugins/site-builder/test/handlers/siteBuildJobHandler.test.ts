@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
@@ -29,6 +30,7 @@ describe("SiteBuildJobHandler", () => {
     const { sendMessage } = createMockMessageSender();
 
     const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
+      represents: "anchor",
       title: "Test Site",
       description: "Test Description",
     };
@@ -91,18 +93,22 @@ describe("SiteBuildJobHandler", () => {
 
     it("should allow undefined environment (defaults applied in process)", () => {
       const data = { outputDir: "/path/to/output" };
-      const result = handler.validateAndParse(data);
+      const result = expectDefined(
+        handler.validateAndParse(data),
+        "validateAndParse result",
+      );
 
-      expect(result).not.toBeNull();
-      expect(result?.environment).toBeUndefined();
+      expect(result.environment).toBeUndefined();
     });
 
     it("should allow undefined enableContentGeneration (defaults applied in process)", () => {
       const data = { outputDir: "/path/to/output" };
-      const result = handler.validateAndParse(data);
+      const result = expectDefined(
+        handler.validateAndParse(data),
+        "validateAndParse result",
+      );
 
-      expect(result).not.toBeNull();
-      expect(result?.enableContentGeneration).toBeUndefined();
+      expect(result.enableContentGeneration).toBeUndefined();
     });
   });
 
@@ -130,6 +136,7 @@ describe("SiteBuildJobHandler", () => {
 
       const { sendMessage: slotsSendMessage } = createMockMessageSender();
       const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
+        represents: "anchor",
         title: "Test Site",
         description: "Test Description",
       };
@@ -181,6 +188,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: lifecycleBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },
@@ -247,6 +255,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: cancelledBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },
@@ -301,6 +310,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: unchangedBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },
@@ -343,6 +353,7 @@ describe("SiteBuildJobHandler", () => {
         siteBuilder: mockSiteBuilder,
         layouts: {},
         defaultSiteConfig: {
+          represents: "anchor",
           title: "Test Site",
           description: "Test Description",
         },

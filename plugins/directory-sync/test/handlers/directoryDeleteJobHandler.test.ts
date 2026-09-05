@@ -1,6 +1,7 @@
 import { describe, it, expect, mock, spyOn } from "bun:test";
 import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
 import {
+  createMockLogger,
   createSilentLogger,
   createMockServicePluginContext,
   createMockProgressReporter,
@@ -208,10 +209,13 @@ describe("DirectoryDeleteJobHandler", () => {
 
   describe("onError", () => {
     it("should log error details", async () => {
+      // A silent logger cannot show that anything was logged; the whole claim
+      // needs a spyable one.
+      const spyLogger = createMockLogger();
       const mockContext = createMockServicePluginContext();
       const mockProgressReporter = createMockProgressReporter();
       const handler = new DirectoryDeleteJobHandler(
-        logger,
+        spyLogger,
         mockContext,
         mockDirectorySync,
       );
@@ -230,6 +234,14 @@ describe("DirectoryDeleteJobHandler", () => {
         jobId,
         mockProgressReporter,
         new AbortController().signal,
+      );
+
+      expect(spyLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining("error handler triggered"),
+        expect.objectContaining({
+          jobId: "job-456",
+          errorMessage: "Test error",
+        }),
       );
 
       // Logger is silent, no need to test its calls

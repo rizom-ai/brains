@@ -43,7 +43,7 @@ describe("skill derivation is scheduler-owned", () => {
         .projectionSource,
     ).toBe(false);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers no rule when derivation is disabled", async () => {
@@ -54,7 +54,7 @@ describe("skill derivation is scheduler-owned", () => {
 
     expect(rules(capabilities)).toHaveLength(0);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers one rule and no event-owned job", async () => {
@@ -98,7 +98,7 @@ describe("skill derivation is scheduler-owned", () => {
     expect(handlerTypes.filter((type) => type.includes("skill"))).toEqual([]);
     expect(enqueue).not.toHaveBeenCalled();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not derive on a raw entity event", async () => {
@@ -119,6 +119,6 @@ describe("skill derivation is scheduler-owned", () => {
 
     expect(enqueue).not.toHaveBeenCalled();
 
-    harness.reset();
+    await harness.reset();
   });
 });

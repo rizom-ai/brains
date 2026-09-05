@@ -9,6 +9,7 @@ import {
   readMetadata,
   unwrapField,
 } from "@brains/utils/zod-introspect";
+import { isRecord } from "@brains/utils/is-record";
 // Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
 // which plugins may not import directly and @brains/plugins does not re-export).
 const NOTE_ENTITY_TYPE = "note";
@@ -81,10 +82,6 @@ export function entityTypeLabels(
     entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
   const label = display?.label ?? defaultLabel;
   return { label, pluralLabel: display?.pluralName ?? pluralizeLabel(label) };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
 
 function readStudioCondition(

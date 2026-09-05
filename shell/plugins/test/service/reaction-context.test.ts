@@ -61,6 +61,6 @@ describe("the context a declared reaction runs in", () => {
       "function",
     );
 
-    harness.reset();
+    await harness.reset();
   });
 });

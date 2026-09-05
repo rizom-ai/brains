@@ -171,6 +171,8 @@ export class InboxOperatorService {
       const detail = await source.resolveDetail(request.itemId, actor, signal);
       return { kind: "detail", detail };
     } catch {
+      // detailUnavailable() is deliberately detail-free, so a failure to
+      // reach the source reveals nothing about what it holds.
       return detailUnavailable();
     }
   }

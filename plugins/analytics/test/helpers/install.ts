@@ -3,8 +3,8 @@ import {
   instantiatePluginPackageDefinition,
   type Plugin,
 } from "@brains/plugins";
-import analyticsPackage from "../../src";
-import type { AnalyticsConfigInput } from "../../src";
+import { analyticsService } from "../../src";
+import type { AnalyticsConfigInput, AnalyticsDependencies } from "../../src";
 import packageJson from "../../package.json";
 
 export const PACKAGE_METADATA: { name: string; version: string } = {
@@ -18,10 +18,14 @@ export const PACKAGE_METADATA: { name: string; version: string } = {
  * Tests used to construct AnalyticsPlugin directly; the package declares
  * itself now, so they go through instantiation instead.
  */
-export function analyticsPlugin(config: AnalyticsConfigInput = {}): Plugin {
-  bindPluginPackageMetadata(analyticsPackage, PACKAGE_METADATA);
+export function analyticsPlugin(
+  config: AnalyticsConfigInput = {},
+  dependencies: AnalyticsDependencies = {},
+): Plugin {
+  const definition = analyticsService(dependencies);
+  bindPluginPackageMetadata(definition, PACKAGE_METADATA);
   const plugin = instantiatePluginPackageDefinition(
-    analyticsPackage,
+    definition,
     config,
     PACKAGE_METADATA,
   )[0];

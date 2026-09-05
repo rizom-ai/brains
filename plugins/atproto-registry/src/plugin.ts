@@ -17,20 +17,18 @@ import type {
 } from "@brains/atproto-contracts";
 import { getErrorMessage } from "@brains/utils/error";
 
-export interface AtprotoRegistryConfig {
-  enabled: boolean;
-}
-
-export interface AtprotoRegistryConfigInput {
-  enabled?: boolean | undefined;
-}
-
-export const atprotoRegistryConfigSchema: z.ZodType<
-  AtprotoRegistryConfig,
-  AtprotoRegistryConfigInput
-> = z.object({
+export const atprotoRegistryConfigSchema: z.ZodObject<{
+  enabled: z.ZodDefault<z.ZodBoolean>;
+}> = z.object({
   enabled: z.boolean().default(true),
 });
+
+export type AtprotoRegistryConfig = z.output<
+  typeof atprotoRegistryConfigSchema
+>;
+export type AtprotoRegistryConfigInput = z.input<
+  typeof atprotoRegistryConfigSchema
+>;
 
 export interface AtprotoLexiconRegistryEntry extends AtprotoLexiconMetadata {
   path: string;

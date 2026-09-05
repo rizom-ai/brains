@@ -32,8 +32,8 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     );
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
     if (existsSync(testRoot)) {
       rmSync(testRoot, { recursive: true, force: true });
     }

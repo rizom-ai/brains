@@ -46,7 +46,7 @@ describe("agent discovery package", () => {
       projectionSourceRole: "excluded",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("offers the three directory tools", async () => {
@@ -72,7 +72,7 @@ describe("agent discovery package", () => {
       "agents_set-trust-level",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("keeps AI-backed skill derivation enabled by default", () => {

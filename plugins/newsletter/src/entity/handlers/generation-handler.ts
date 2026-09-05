@@ -28,22 +28,20 @@ type SourceEntity = z.output<typeof sourceEntitySchema>;
 /**
  * Input schema for newsletter generation job
  */
-export interface GenerationJobData {
-  prompt?: string | undefined;
-  sourceEntityIds?: string[] | undefined;
-  sourceEntityType?: "post" | undefined;
-  content?: string | undefined;
-  subject?: string | undefined;
-  addToQueue?: boolean | undefined;
-}
-
 /** Shape the newsletter generation template returns. */
 export const generatedNewsletterSchema: z.ZodObject<{
   subject: z.ZodString;
   content: z.ZodString;
 }> = z.object({ subject: z.string(), content: z.string() });
 
-export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
+export const generationJobSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  sourceEntityIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  sourceEntityType: z.ZodOptional<z.ZodEnum<{ post: "post" }>>;
+  content: z.ZodOptional<z.ZodString>;
+  subject: z.ZodOptional<z.ZodString>;
+  addToQueue: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   prompt: z.string().optional().describe("AI generation prompt"),
   sourceEntityIds: z
     .array(z.string())
@@ -63,6 +61,8 @@ export const generationJobSchema: z.ZodType<GenerationJobData> = z.object({
     .optional()
     .describe("Create as queued (true) or draft (false)"),
 });
+
+export type GenerationJobData = z.output<typeof generationJobSchema>;
 
 /**
  * Job handler for newsletter generation

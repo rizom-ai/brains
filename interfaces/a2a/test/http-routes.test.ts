@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import type { FetchFn } from "../src/client";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,7 +17,6 @@ import { A2AInterface } from "../src/a2a-interface";
 
 describe("A2A HTTP routes", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  const originalFetch = globalThis.fetch;
   const tempDirs: string[] = [];
 
   function installWebserverPlugin(): void {
@@ -36,9 +36,9 @@ describe("A2A HTTP routes", () => {
   });
 
   afterEach(async () => {
-    globalThis.fetch = originalFetch;
     await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
     await harness.getMockShell().getDaemonRegistry().stopPlugin("auth-service");
+    await harness.reset();
     await Promise.all(
       tempDirs
         .splice(0)
@@ -239,48 +239,42 @@ describe("A2A HTTP routes", () => {
       }),
     );
     const capturedHeaders: Record<string, string>[] = [];
-    globalThis.fetch = Object.assign(
-      async (
-        input: string | URL | Request,
-        init?: RequestInit,
-      ): Promise<Response> => {
-        const url = String(input);
-        if (url.includes(".well-known/agent-card.json")) {
-          return new Response(
-            JSON.stringify({
-              name: "Remote",
-              url: "https://remote.example.com/a2a",
-            }),
-          );
-        }
-
-        const headers: Record<string, string> = {};
-        if (init?.headers instanceof Headers) {
-          init.headers.forEach((value, key) => {
-            headers[key] = value;
-          });
-        } else if (init?.headers) {
-          Object.assign(headers, init.headers);
-        }
-        capturedHeaders.push(headers);
-
+    const fetchFn: FetchFn = async (input, init) => {
+      const url = String(input);
+      if (url.includes(".well-known/agent-card.json")) {
         return new Response(
-          `data: ${JSON.stringify({
-            result: {
-              status: {
-                state: "completed",
-                message: { parts: [{ kind: "text", text: "ok" }] },
-              },
-              final: true,
-            },
-          })}\n\n`,
-          { headers: { "Content-Type": "text/event-stream" } },
+          JSON.stringify({
+            name: "Remote",
+            url: "https://remote.example.com/a2a",
+          }),
         );
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+      }
 
-    const plugin = new A2AInterface({ port: 0 });
+      const headers: Record<string, string> = {};
+      if (init?.headers instanceof Headers) {
+        init.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+      } else if (init?.headers) {
+        Object.assign(headers, init.headers);
+      }
+      capturedHeaders.push(headers);
+
+      return new Response(
+        `data: ${JSON.stringify({
+          result: {
+            status: {
+              state: "completed",
+              message: { parts: [{ kind: "text", text: "ok" }] },
+            },
+            final: true,
+          },
+        })}\n\n`,
+        { headers: { "Content-Type": "text/event-stream" } },
+      );
+    };
+
+    const plugin = new A2AInterface({ port: 0 }, { fetch: fetchFn });
     const capabilities = await harness.installPlugin(plugin);
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "agent_call",
@@ -313,42 +307,36 @@ describe("A2A HTTP routes", () => {
       }),
     );
     const capturedHeaders: Record<string, string>[] = [];
-    globalThis.fetch = Object.assign(
-      async (
-        input: string | URL | Request,
-        init?: RequestInit,
-      ): Promise<Response> => {
-        const url = String(input);
-        if (url.includes(".well-known/agent-card.json")) {
-          return Response.json({
-            name: "Remote",
-            url: "https://remote.example.com/a2a",
-          });
-        }
+    const fetchFn: FetchFn = async (input, init) => {
+      const url = String(input);
+      if (url.includes(".well-known/agent-card.json")) {
+        return Response.json({
+          name: "Remote",
+          url: "https://remote.example.com/a2a",
+        });
+      }
 
-        const headers = Object.fromEntries(new Headers(init?.headers));
-        capturedHeaders.push(headers);
-        if (headers["signature"]) {
-          return new Response("Invalid HTTP signature", { status: 401 });
-        }
+      const headers = Object.fromEntries(new Headers(init?.headers));
+      capturedHeaders.push(headers);
+      if (headers["signature"]) {
+        return new Response("Invalid HTTP signature", { status: 401 });
+      }
 
-        return new Response(
-          `data: ${JSON.stringify({
-            result: {
-              status: {
-                state: "completed",
-                message: { parts: [{ kind: "text", text: "ok" }] },
-              },
-              final: true,
+      return new Response(
+        `data: ${JSON.stringify({
+          result: {
+            status: {
+              state: "completed",
+              message: { parts: [{ kind: "text", text: "ok" }] },
             },
-          })}\n\n`,
-          { headers: { "Content-Type": "text/event-stream" } },
-        );
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+            final: true,
+          },
+        })}\n\n`,
+        { headers: { "Content-Type": "text/event-stream" } },
+      );
+    };
 
-    const plugin = new A2AInterface({ port: 0 });
+    const plugin = new A2AInterface({ port: 0 }, { fetch: fetchFn });
     const capabilities = await harness.installPlugin(plugin);
     const tool = capabilities.tools.find(
       (candidate) => candidate.name === "agent_call",
@@ -418,12 +406,10 @@ describe("A2A HTTP routes", () => {
       grantedLevel: "trusted",
     });
 
-    globalThis.fetch = Object.assign(
-      async (): Promise<Response> => Response.json(remoteJwks),
-      { preconnect: originalFetch.preconnect },
+    const plugin = new A2AInterface(
+      { port: 0 },
+      { fetch: async (): Promise<Response> => Response.json(remoteJwks) },
     );
-
-    const plugin = new A2AInterface({ port: 0 });
     await harness.installPlugin(plugin);
     const response = await a2aPostRoute(plugin).handler(
       await signedA2ARequest(
@@ -464,12 +450,10 @@ describe("A2A HTTP routes", () => {
       issuer: "https://remote.example",
     });
     const remoteJwks = await remoteAuth.getJwks();
-    globalThis.fetch = Object.assign(
-      async (): Promise<Response> => Response.json(remoteJwks),
-      { preconnect: originalFetch.preconnect },
+    const plugin = new A2AInterface(
+      { port: 0 },
+      { fetch: async (): Promise<Response> => Response.json(remoteJwks) },
     );
-
-    const plugin = new A2AInterface({ port: 0 });
     await harness.installPlugin(plugin);
 
     const response = await a2aPostRoute(plugin).handler(

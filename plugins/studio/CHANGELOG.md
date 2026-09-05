@@ -1,5 +1,59 @@
 # @brains/studio
 
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [`06ff050`](https://github.com/rizom-ai/brains/commit/06ff050e26b0db643d59323096ac81b82a02367e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Studio's system navigation coherent by grouping the Style Guide with other brain machinery, preserving the desktop rail while editing, and resetting the document offset when selecting rail destinations.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.355
+  - @brains/console-theme@0.2.0-alpha.355
+  - @brains/contracts@0.2.0-alpha.355
+  - @brains/operator-view-react@0.2.0-alpha.355
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/auth-service@0.2.0-alpha.355
+  - @brains/plugins@0.2.0-alpha.355
+
+## 0.2.0-alpha.354
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.354
+  - @brains/console-theme@0.2.0-alpha.354
+  - @brains/contracts@0.2.0-alpha.354
+  - @brains/operator-view-react@0.2.0-alpha.354
+  - @brains/utils@0.2.0-alpha.354
+  - @brains/auth-service@0.2.0-alpha.354
+  - @brains/plugins@0.2.0-alpha.354
+
+## 0.2.0-alpha.353
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.353
+  - @brains/console-theme@0.2.0-alpha.353
+  - @brains/contracts@0.2.0-alpha.353
+  - @brains/operator-view-react@0.2.0-alpha.353
+  - @brains/utils@0.2.0-alpha.353
+  - @brains/auth-service@0.2.0-alpha.353
+  - @brains/plugins@0.2.0-alpha.353
+
+## 0.2.0-alpha.352
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.352
+  - @brains/console-theme@0.2.0-alpha.352
+  - @brains/contracts@0.2.0-alpha.352
+  - @brains/operator-view-react@0.2.0-alpha.352
+  - @brains/utils@0.2.0-alpha.352
+  - @brains/auth-service@0.2.0-alpha.352
+  - @brains/plugins@0.2.0-alpha.352
+
 ## 0.2.0-alpha.351
 
 ### Patch Changes

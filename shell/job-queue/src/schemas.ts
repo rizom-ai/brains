@@ -1,71 +1,6 @@
 import { z } from "@brains/utils/zod";
 // Import JobContextSchema from types file (no Drizzle dependencies)
-import { JobContextSchema, type JobContext } from "./schema/types";
-
-export type JobStatusType = "pending" | "processing" | "completed" | "failed";
-export type JobResultStatusType = "completed" | "failed";
-
-export interface JobStatus {
-  id: string;
-  type: string;
-  status: JobStatusType;
-  data: unknown;
-  result?: unknown;
-  lastError?: string | null | undefined;
-  attempts: number;
-  maxRetries: number;
-  priority: number;
-  createdAt: Date;
-  updatedAt: Date;
-  processedAt?: Date | null | undefined;
-  completedAt?: Date | null | undefined;
-  failedAt?: Date | null | undefined;
-}
-
-export interface JobResult {
-  jobId: string;
-  type: string;
-  status: JobResultStatusType;
-  result?: unknown;
-  error?: string | undefined;
-}
-
-export interface HandlerFailure {
-  success: false;
-  error?: string | undefined;
-}
-
-interface JobProgressEventValue {
-  id: string;
-  type: "job" | "batch";
-  status: JobStatusType;
-  message?: string | undefined;
-  progress?:
-    | {
-        current: number;
-        total: number;
-        percentage: number;
-      }
-    | undefined;
-  aggregationKey?: string | undefined;
-  batchDetails?:
-    | {
-        totalOperations: number;
-        completedOperations: number;
-        failedOperations: number;
-        currentOperation?: string | undefined;
-        errors?: string[] | undefined;
-      }
-    | undefined;
-  jobDetails?:
-    | {
-        jobType: string;
-        priority: number;
-        retryCount: number;
-      }
-    | undefined;
-  metadata: JobContext;
-}
+import { JobContextSchema } from "./schema/types";
 
 /**
  * Job status enum - reusable across all job-related types
@@ -85,6 +20,9 @@ export const JobResultStatusEnum: z.ZodEnum<{
   failed: "failed";
 }> = z.enum(["completed", "failed"]);
 
+export type JobStatusType = z.output<typeof JobStatusEnum>;
+export type JobResultStatusType = z.output<typeof JobResultStatusEnum>;
+
 /**
  * Job status constants for easier usage
  */
@@ -95,10 +33,27 @@ export const JOB_STATUS = {
   FAILED: "failed" as const,
 } as const;
 
+type JobStatusSchema = z.ZodObject<{
+  id: z.ZodString;
+  type: z.ZodString;
+  status: typeof JobStatusEnum;
+  data: z.ZodUnknown;
+  result: z.ZodOptional<z.ZodUnknown>;
+  lastError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+  attempts: z.ZodNumber;
+  maxRetries: z.ZodNumber;
+  priority: z.ZodNumber;
+  createdAt: z.ZodDate;
+  updatedAt: z.ZodDate;
+  processedAt: z.ZodNullable<z.ZodOptional<z.ZodDate>>;
+  completedAt: z.ZodNullable<z.ZodOptional<z.ZodDate>>;
+  failedAt: z.ZodNullable<z.ZodOptional<z.ZodDate>>;
+}>;
+
 /**
  * Base job status schema - common fields for all job types
  */
-export const JobStatusSchema: z.ZodType<JobStatus, unknown> = z.object({
+export const JobStatusSchema: JobStatusSchema = z.object({
   id: z.string(),
   type: z.string(),
   status: JobStatusEnum,
@@ -115,10 +70,20 @@ export const JobStatusSchema: z.ZodType<JobStatus, unknown> = z.object({
   failedAt: z.date().optional().nullable(),
 });
 
+export type JobStatus = z.output<typeof JobStatusSchema>;
+
+type JobResultSchema = z.ZodObject<{
+  jobId: z.ZodString;
+  type: z.ZodString;
+  status: typeof JobResultStatusEnum;
+  result: z.ZodOptional<z.ZodUnknown>;
+  error: z.ZodOptional<z.ZodString>;
+}>;
+
 /**
  * Job result schema after processing
  */
-export const JobResultSchema: z.ZodType<JobResult, unknown> = z.object({
+export const JobResultSchema: JobResultSchema = z.object({
   jobId: z.string(),
   type: z.string(),
   status: JobResultStatusEnum,
@@ -126,62 +91,101 @@ export const JobResultSchema: z.ZodType<JobResult, unknown> = z.object({
   error: z.string().optional(),
 });
 
+export type JobResult = z.output<typeof JobResultSchema>;
+
+type HandlerFailureSchema = z.ZodObject<{
+  success: z.ZodLiteral<false>;
+  error: z.ZodOptional<z.ZodString>;
+}>;
+
 /**
  * Controlled handler failure result.
  * Handlers may return this shape for known, non-exception failure conditions.
  */
-export const HandlerFailureSchema: z.ZodType<HandlerFailure, unknown> =
-  z.object({
-    success: z.literal(false),
-    error: z.string().optional(),
-  });
+export const HandlerFailureSchema: HandlerFailureSchema = z.object({
+  success: z.literal(false),
+  error: z.string().optional(),
+});
+
+export type HandlerFailure = z.output<typeof HandlerFailureSchema>;
+
+type JobProgressEventSchema = z.ZodObject<{
+  id: z.ZodString;
+  type: z.ZodEnum<{ job: "job"; batch: "batch" }>;
+  status: typeof JobStatusEnum;
+  message: z.ZodOptional<z.ZodString>;
+  progress: z.ZodOptional<
+    z.ZodObject<{
+      current: z.ZodNumber;
+      total: z.ZodNumber;
+      percentage: z.ZodNumber;
+    }>
+  >;
+  aggregationKey: z.ZodOptional<z.ZodString>;
+  batchDetails: z.ZodOptional<
+    z.ZodObject<{
+      totalOperations: z.ZodNumber;
+      completedOperations: z.ZodNumber;
+      failedOperations: z.ZodNumber;
+      currentOperation: z.ZodOptional<z.ZodString>;
+      errors: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    }>
+  >;
+  jobDetails: z.ZodOptional<
+    z.ZodObject<{
+      jobType: z.ZodString;
+      priority: z.ZodNumber;
+      retryCount: z.ZodNumber;
+    }>
+  >;
+  metadata: typeof JobContextSchema;
+}>;
 
 /**
  * Schema for job progress events
  */
-export const JobProgressEventSchema: z.ZodType<JobProgressEventValue, unknown> =
-  z.object({
-    // Common fields
-    id: z.string(),
-    type: z.enum(["job", "batch"]),
-    status: JobStatusEnum,
-    message: z.string().optional(),
+export const JobProgressEventSchema: JobProgressEventSchema = z.object({
+  // Common fields
+  id: z.string(),
+  type: z.enum(["job", "batch"]),
+  status: JobStatusEnum,
+  message: z.string().optional(),
 
-    // Progress tracking
-    progress: z
-      .object({
-        current: z.number(),
-        total: z.number(),
-        percentage: z.number(),
-      })
-      .optional(),
+  // Progress tracking
+  progress: z
+    .object({
+      current: z.number(),
+      total: z.number(),
+      percentage: z.number(),
+    })
+    .optional(),
 
-    // Optional aggregation metadata
-    aggregationKey: z.string().optional(), // explicit grouping override
+  // Optional aggregation metadata
+  aggregationKey: z.string().optional(), // explicit grouping override
 
-    // Batch-specific fields
-    batchDetails: z
-      .object({
-        totalOperations: z.number(),
-        completedOperations: z.number(),
-        failedOperations: z.number(),
-        currentOperation: z.string().optional(),
-        errors: z.array(z.string()).optional(),
-      })
-      .optional(),
+  // Batch-specific fields
+  batchDetails: z
+    .object({
+      totalOperations: z.number(),
+      completedOperations: z.number(),
+      failedOperations: z.number(),
+      currentOperation: z.string().optional(),
+      errors: z.array(z.string()).optional(),
+    })
+    .optional(),
 
-    // Job-specific fields
-    jobDetails: z
-      .object({
-        jobType: z.string(),
-        priority: z.number(),
-        retryCount: z.number(),
-      })
-      .optional(),
+  // Job-specific fields
+  jobDetails: z
+    .object({
+      jobType: z.string(),
+      priority: z.number(),
+      retryCount: z.number(),
+    })
+    .optional(),
 
-    // Routing metadata
-    metadata: JobContextSchema,
-  });
+  // Routing metadata
+  metadata: JobContextSchema,
+});
 
 /** Derived from the schema so the two can never drift. */
 export type JobProgressEvent = z.output<typeof JobProgressEventSchema>;

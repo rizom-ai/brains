@@ -1,10 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
+import { normalizeDirectorySyncOptions } from "../src/lib/directory-options";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createTestEntity, waitUntil } from "@brains/test-utils";
+import {
+  createMockEntityService,
+  createSilentLogger,
+  createTestEntity,
+  waitUntil,
+} from "@brains/test-utils";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type {
   BaseEntity,
@@ -34,7 +40,7 @@ describe("DirectorySync AutoSync", () => {
   });
 
   afterEach(async () => {
-    harness.reset();
+    await harness.reset();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -47,14 +53,36 @@ describe("DirectorySync AutoSync", () => {
   }
 
   describe("Configuration", () => {
-    it("should accept autoSync config option", () => {
-      const p = new DirectorySyncPlugin({ syncPath: testDir, autoSync: true });
-      expect(p).toBeDefined();
+    const optionDeps = (): {
+      entityService: ReturnType<typeof createMockEntityService>;
+      logger: ReturnType<typeof createSilentLogger>;
+    } => ({
+      entityService: createMockEntityService(),
+      logger: createSilentLogger(),
+    });
+
+    it("should carry an explicit autoSync option through to the resolved config", () => {
+      expect(
+        normalizeDirectorySyncOptions({
+          ...optionDeps(),
+          syncPath: testDir,
+          autoSync: false,
+        }).autoSync,
+      ).toBe(false);
+      expect(
+        normalizeDirectorySyncOptions({
+          ...optionDeps(),
+          syncPath: testDir,
+          autoSync: true,
+        }).autoSync,
+      ).toBe(true);
     });
 
     it("should default autoSync to true", () => {
-      const p = new DirectorySyncPlugin({ syncPath: testDir });
-      expect(p).toBeDefined();
+      expect(
+        normalizeDirectorySyncOptions({ ...optionDeps(), syncPath: testDir })
+          .autoSync,
+      ).toBe(true);
     });
   });
 
@@ -181,8 +209,8 @@ describe("Export echo suppression", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }

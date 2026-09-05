@@ -6,31 +6,34 @@ import { join, resolve } from "path";
 import { SITE_BUILD_MANIFEST_FILE } from "./site-build-artifact-manifest";
 import type { SiteBuildEnvironment } from "./site-build-status";
 
-export type SitePublicationStatus =
-  | { state: "not-published" }
-  | {
-      state: "published";
-      buildId: string;
-      publishedAt: string;
-      routesBuilt: number;
-      warnings: string[];
-    }
-  | { state: "unreadable"; message: string };
+export const sitePublicationStatusSchema: z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ state: z.ZodLiteral<"not-published"> }>,
+    z.ZodObject<{
+      state: z.ZodLiteral<"published">;
+      buildId: z.ZodString;
+      publishedAt: z.ZodString;
+      routesBuilt: z.ZodNumber;
+      warnings: z.ZodArray<z.ZodString>;
+    }>,
+    z.ZodObject<{ state: z.ZodLiteral<"unreadable">; message: z.ZodString }>,
+  ],
+  "state"
+> = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("not-published") }),
+  z.object({
+    state: z.literal("published"),
+    buildId: z.string(),
+    publishedAt: z.string().datetime(),
+    routesBuilt: z.number().int().nonnegative(),
+    warnings: z.array(z.string()),
+  }),
+  z.object({ state: z.literal("unreadable"), message: z.string() }),
+]);
 
-// isolatedDeclarations rules out deriving the type from the schema, so the
-// schema is annotated against the type instead; both live only in this module.
-export const sitePublicationStatusSchema: z.ZodType<SitePublicationStatus> =
-  z.discriminatedUnion("state", [
-    z.object({ state: z.literal("not-published") }),
-    z.object({
-      state: z.literal("published"),
-      buildId: z.string(),
-      publishedAt: z.string().datetime(),
-      routesBuilt: z.number().int().nonnegative(),
-      warnings: z.array(z.string()),
-    }),
-    z.object({ state: z.literal("unreadable"), message: z.string() }),
-  ]);
+export type SitePublicationStatus = z.output<
+  typeof sitePublicationStatusSchema
+>;
 
 /** Read the manifest selected by the active output path, not a status cache. */
 export async function readSitePublicationStatus(

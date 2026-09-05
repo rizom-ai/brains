@@ -22,8 +22,14 @@ describe("TaskManager", () => {
     });
 
     it("should generate contextId when not provided", () => {
-      const record = tm.createTask("Hello");
-      expect(record.task.contextId).toBeDefined();
+      // A generated id must be usable and per-task; "defined" would hold for
+      // an empty string or one shared by every task.
+      const first = tm.createTask("Hello");
+      const second = tm.createTask("Hello");
+
+      expect(first.task.contextId).toBeString();
+      expect(first.task.contextId.length).toBeGreaterThan(0);
+      expect(second.task.contextId).not.toBe(first.task.contextId);
     });
 
     it("should index client message ids by caller domain", () => {

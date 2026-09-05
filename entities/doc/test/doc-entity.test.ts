@@ -100,7 +100,7 @@ describe("doc entity", () => {
       "@brains/doc:entities",
     );
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A template carries its data source id as a string and the registry looks
@@ -111,6 +111,6 @@ describe("doc entity", () => {
 
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 });

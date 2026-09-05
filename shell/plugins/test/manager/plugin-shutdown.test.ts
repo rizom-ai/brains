@@ -175,8 +175,11 @@ describe("Plugin shutdown lifecycle", () => {
     pluginManager.registerPlugin(plugin);
     await pluginManager.initializePlugins();
 
-    // Should not throw
     await pluginManager.disablePlugin("no-shutdown-plugin");
+
+    expect(pluginManager.getPluginStatus("no-shutdown-plugin")).toBe(
+      PluginStatus.DISABLED,
+    );
   });
 
   test("disablePlugin should continue if plugin.shutdown() throws", async () => {
@@ -198,8 +201,14 @@ describe("Plugin shutdown lifecycle", () => {
     pluginManager.registerPlugin(plugin);
     await pluginManager.initializePlugins();
 
-    // Should not throw — shutdown errors are logged, not propagated
+    // "continue" is the claim: a throwing shutdown is logged rather than
+    // propagated, and the plugin still ends up disabled. Neither half was
+    // asserted, so the test passed even if disablePlugin did nothing.
     await pluginManager.disablePlugin("failing-shutdown-plugin");
+
+    expect(pluginManager.getPluginStatus("failing-shutdown-plugin")).toBe(
+      PluginStatus.DISABLED,
+    );
   });
 
   test("disablePlugin should close message subscriptions and unregister handlers", async () => {

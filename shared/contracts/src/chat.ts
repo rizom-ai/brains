@@ -4,46 +4,45 @@ import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 export const CHAT_API_VERSION = 1 as const;
 export const DEFAULT_CHAT_API_PATH = "/api/chat" as const;
 
-const chatIdSchema = z.string().trim().min(1).max(256);
-const chatUploadIdSchema = z
+type Loose<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$loose>;
+type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
+
+const chatIdSchema: z.ZodString = z.string().trim().min(1).max(256);
+const chatUploadIdSchema: z.ZodString = z
   .string()
   .regex(
     /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   );
-const chatTitleSchema = z.string().trim().min(1).max(48);
-const chatTimestampSchema = z.string().datetime();
-const chatRelativeUrlSchema = z
+const chatTitleSchema: z.ZodString = z.string().trim().min(1).max(48);
+const chatTimestampSchema: z.ZodString = z.string().datetime();
+const chatRelativeUrlSchema: z.ZodString = z
   .string()
   .regex(/^\/(?!\/)/)
   .max(2_048);
-const chatLinkUrlSchema = z
+const chatLinkUrlSchema: z.ZodString = z
   .string()
   .regex(/^(?:\/(?!\/)|https?:\/\/)/)
   .max(2_048);
 
-type ChatToolApprovalCardState =
-  | "approval-requested"
-  | "approval-responded"
-  | "output-available"
-  | "output-denied"
-  | "output-error";
-
-interface ChatToolApprovalCard {
-  [key: string]: unknown;
-  kind: "tool-approval";
-  id: string;
-  toolCallId?: string | undefined;
-  toolName: string;
-  input?: Record<string, unknown> | undefined;
-  summary: string;
-  completionSummary?: string | undefined;
-  preview?: string | undefined;
-  state: ChatToolApprovalCardState;
-  output?: unknown;
-  error?: string | undefined;
-}
-
-const chatToolApprovalCardSchema = z.looseObject({
+const chatToolApprovalCardSchema: Loose<{
+  kind: z.ZodLiteral<"tool-approval">;
+  id: z.ZodString;
+  toolCallId: z.ZodOptional<z.ZodString>;
+  toolName: z.ZodString;
+  input: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  summary: z.ZodString;
+  completionSummary: z.ZodOptional<z.ZodString>;
+  preview: z.ZodOptional<z.ZodString>;
+  state: z.ZodEnum<{
+    "approval-requested": "approval-requested";
+    "approval-responded": "approval-responded";
+    "output-available": "output-available";
+    "output-denied": "output-denied";
+    "output-error": "output-error";
+  }>;
+  output: z.ZodOptional<z.ZodUnknown>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.looseObject({
   kind: z.literal("tool-approval"),
   id: chatIdSchema,
   toolCallId: chatIdSchema.optional(),
@@ -63,53 +62,42 @@ const chatToolApprovalCardSchema = z.looseObject({
   error: z.string().max(4_096).optional(),
 });
 
-interface ChatAttachmentCardSource {
-  [key: string]: unknown;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  attachmentType?: string | undefined;
-}
+const chatAttachmentCardSourceSchema: Loose<{
+  entityType: z.ZodOptional<z.ZodString>;
+  entityId: z.ZodOptional<z.ZodString>;
+  attachmentType: z.ZodOptional<z.ZodString>;
+}> = z.looseObject({
+  entityType: z.string().trim().min(1).max(128).optional(),
+  entityId: chatIdSchema.optional(),
+  attachmentType: z.string().trim().min(1).max(128).optional(),
+});
 
-const chatAttachmentCardSourceSchema: z.ZodType<ChatAttachmentCardSource> =
-  z.looseObject({
-    entityType: z.string().trim().min(1).max(128).optional(),
-    entityId: chatIdSchema.optional(),
-    attachmentType: z.string().trim().min(1).max(128).optional(),
-  });
+const chatAttachmentCardDataSchema: Loose<{
+  mediaType: z.ZodString;
+  url: z.ZodString;
+  downloadUrl: z.ZodOptional<z.ZodString>;
+  previewUrl: z.ZodOptional<z.ZodString>;
+  filename: z.ZodOptional<z.ZodString>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<typeof chatAttachmentCardSourceSchema>;
+}> = z.looseObject({
+  mediaType: z.string().trim().min(1).max(255),
+  url: chatLinkUrlSchema,
+  downloadUrl: chatLinkUrlSchema.optional(),
+  previewUrl: chatLinkUrlSchema.optional(),
+  filename: z.string().trim().min(1).max(255).optional(),
+  sizeBytes: z.number().int().nonnegative().optional(),
+  source: chatAttachmentCardSourceSchema.optional(),
+});
 
-interface ChatAttachmentCardData {
-  [key: string]: unknown;
-  mediaType: string;
-  url: string;
-  downloadUrl?: string | undefined;
-  previewUrl?: string | undefined;
-  filename?: string | undefined;
-  sizeBytes?: number | undefined;
-  source?: ChatAttachmentCardSource | undefined;
-}
-
-const chatAttachmentCardDataSchema: z.ZodType<ChatAttachmentCardData> =
-  z.looseObject({
-    mediaType: z.string().trim().min(1).max(255),
-    url: chatLinkUrlSchema,
-    downloadUrl: chatLinkUrlSchema.optional(),
-    previewUrl: chatLinkUrlSchema.optional(),
-    filename: z.string().trim().min(1).max(255).optional(),
-    sizeBytes: z.number().int().nonnegative().optional(),
-    source: chatAttachmentCardSourceSchema.optional(),
-  });
-
-interface ChatAttachmentCard {
-  [key: string]: unknown;
-  kind: "attachment";
-  id: string;
-  jobId?: string | undefined;
-  title: string;
-  description?: string | undefined;
-  attachment: ChatAttachmentCardData;
-}
-
-const chatAttachmentCardSchema = z.looseObject({
+const chatAttachmentCardSchema: Loose<{
+  kind: z.ZodLiteral<"attachment">;
+  id: z.ZodString;
+  jobId: z.ZodOptional<z.ZodString>;
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  attachment: typeof chatAttachmentCardDataSchema;
+}> = z.looseObject({
   kind: z.literal("attachment"),
   id: chatIdSchema,
   jobId: chatIdSchema.optional(),
@@ -118,19 +106,16 @@ const chatAttachmentCardSchema = z.looseObject({
   attachment: chatAttachmentCardDataSchema,
 });
 
-interface ChatSourceCitation {
-  [key: string]: unknown;
-  id: string;
-  title?: string | undefined;
-  source: string;
-  url?: string | undefined;
-  entityType?: string | undefined;
-  entityId?: string | undefined;
-  excerpt?: string | undefined;
-  provenance?: Record<string, unknown> | undefined;
-}
-
-const chatSourceCitationSchema: z.ZodType<ChatSourceCitation> = z.looseObject({
+const chatSourceCitationSchema: Loose<{
+  id: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
+  source: z.ZodString;
+  url: z.ZodOptional<z.ZodString>;
+  entityType: z.ZodOptional<z.ZodString>;
+  entityId: z.ZodOptional<z.ZodString>;
+  excerpt: z.ZodOptional<z.ZodString>;
+  provenance: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.looseObject({
   id: chatIdSchema,
   title: z.string().max(4_096).optional(),
   source: z.string().trim().min(1).max(512),
@@ -141,126 +126,118 @@ const chatSourceCitationSchema: z.ZodType<ChatSourceCitation> = z.looseObject({
   provenance: z.record(z.string(), z.unknown()).optional(),
 });
 
-interface ChatSourcesCard {
-  [key: string]: unknown;
-  kind: "sources";
-  id: string;
-  title?: string | undefined;
-  sources: ChatSourceCitation[];
-}
-
-const chatSourcesCardSchema = z.looseObject({
+const chatSourcesCardSchema: Loose<{
+  kind: z.ZodLiteral<"sources">;
+  id: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
+  sources: z.ZodArray<typeof chatSourceCitationSchema>;
+}> = z.looseObject({
   kind: z.literal("sources"),
   id: chatIdSchema,
   title: z.string().max(4_096).optional(),
   sources: z.array(chatSourceCitationSchema).min(1).max(100),
 });
 
-interface ChatPromptAction {
-  type: "prompt";
-  id: string;
-  label: string;
-  prompt: string;
-  description?: string | undefined;
-}
+const chatSuggestedActionSchema: z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{
+      type: z.ZodLiteral<"prompt">;
+      id: z.ZodString;
+      label: z.ZodString;
+      prompt: z.ZodString;
+      description: z.ZodOptional<z.ZodString>;
+    }>,
+    z.ZodObject<{
+      type: z.ZodLiteral<"event">;
+      id: z.ZodString;
+      label: z.ZodString;
+      event: z.ZodString;
+      fromState: z.ZodOptional<z.ZodString>;
+      description: z.ZodOptional<z.ZodString>;
+    }>,
+  ],
+  "type"
+> = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("prompt"),
+    id: chatIdSchema,
+    label: z.string().trim().min(1).max(256),
+    prompt: z.string().min(1).max(100_000),
+    description: z.string().max(4_096).optional(),
+  }),
+  z.object({
+    type: z.literal("event"),
+    id: chatIdSchema,
+    label: z.string().trim().min(1).max(256),
+    event: z.string().trim().min(1).max(256),
+    fromState: z.string().trim().min(1).max(256).optional(),
+    description: z.string().max(4_096).optional(),
+  }),
+]);
 
-interface ChatSuggestedEventAction {
-  type: "event";
-  id: string;
-  label: string;
-  event: string;
-  fromState?: string | undefined;
-  description?: string | undefined;
-}
-
-type ChatSuggestedAction = ChatPromptAction | ChatSuggestedEventAction;
-
-const chatSuggestedActionSchema: z.ZodType<ChatSuggestedAction> =
-  z.discriminatedUnion("type", [
-    z.object({
-      type: z.literal("prompt"),
-      id: chatIdSchema,
-      label: z.string().trim().min(1).max(256),
-      prompt: z.string().min(1).max(100_000),
-      description: z.string().max(4_096).optional(),
-    }),
-    z.object({
-      type: z.literal("event"),
-      id: chatIdSchema,
-      label: z.string().trim().min(1).max(256),
-      event: z.string().trim().min(1).max(256),
-      fromState: z.string().trim().min(1).max(256).optional(),
-      description: z.string().max(4_096).optional(),
-    }),
-  ]);
-
-interface ChatActionsCard {
-  [key: string]: unknown;
-  kind: "actions";
-  id: string;
-  title?: string | undefined;
-  actions: ChatSuggestedAction[];
-}
-
-const chatActionsCardSchema = z.looseObject({
+const chatActionsCardSchema: Loose<{
+  kind: z.ZodLiteral<"actions">;
+  id: z.ZodString;
+  title: z.ZodOptional<z.ZodString>;
+  actions: z.ZodArray<typeof chatSuggestedActionSchema>;
+}> = z.looseObject({
   kind: z.literal("actions"),
   id: chatIdSchema,
   title: z.string().max(4_096).optional(),
   actions: z.array(chatSuggestedActionSchema).min(1).max(100),
 });
 
-export type ChatCard =
-  ChatToolApprovalCard | ChatAttachmentCard | ChatSourcesCard | ChatActionsCard;
-
-export const chatCardSchema: z.ZodType<ChatCard> = z.discriminatedUnion(
-  "kind",
+export const chatCardSchema: z.ZodDiscriminatedUnion<
   [
-    chatToolApprovalCardSchema,
-    chatAttachmentCardSchema,
-    chatSourcesCardSchema,
-    chatActionsCardSchema,
+    typeof chatToolApprovalCardSchema,
+    typeof chatAttachmentCardSchema,
+    typeof chatSourcesCardSchema,
+    typeof chatActionsCardSchema,
   ],
-);
+  "kind"
+> = z.discriminatedUnion("kind", [
+  chatToolApprovalCardSchema,
+  chatAttachmentCardSchema,
+  chatSourcesCardSchema,
+  chatActionsCardSchema,
+]);
+
+export type ChatCard = z.output<typeof chatCardSchema>;
 
 export type ChatEventAction = AgentEventAction;
 export const chatEventActionSchema: typeof agentEventActionSchema =
   agentEventActionSchema;
 
-interface ChatPendingConfirmation {
-  id: string;
-  toolCallId?: string | undefined;
-  toolName: string;
-  summary: string;
-  completionSummary?: string | undefined;
-  preview?: string | undefined;
-  args: unknown;
-}
+const chatPendingConfirmationSchema: z.ZodObject<{
+  id: z.ZodString;
+  toolCallId: z.ZodOptional<z.ZodString>;
+  toolName: z.ZodString;
+  summary: z.ZodString;
+  completionSummary: z.ZodOptional<z.ZodString>;
+  preview: z.ZodOptional<z.ZodString>;
+  args: z.ZodUnknown;
+}> = z.object({
+  id: chatIdSchema,
+  toolCallId: chatIdSchema.optional(),
+  toolName: z.string().trim().min(1).max(256),
+  summary: z.string().max(4_096),
+  completionSummary: z.string().max(4_096).optional(),
+  preview: z.string().max(100_000).optional(),
+  args: z.unknown(),
+});
 
-const chatPendingConfirmationSchema: z.ZodType<ChatPendingConfirmation> =
-  z.object({
-    id: chatIdSchema,
-    toolCallId: chatIdSchema.optional(),
-    toolName: z.string().trim().min(1).max(256),
-    summary: z.string().max(4_096),
-    completionSummary: z.string().max(4_096).optional(),
-    preview: z.string().max(100_000).optional(),
-    args: z.unknown(),
-  });
-
-interface ChatToolResultError {
-  message: string;
-  code?: string | undefined;
-}
-
-interface ChatToolResult {
-  toolName: string;
-  args?: Record<string, unknown> | undefined;
-  jobId?: string | undefined;
-  data?: unknown;
-  error?: ChatToolResultError | undefined;
-}
-
-const chatToolResultSchema: z.ZodType<ChatToolResult> = z.object({
+const chatToolResultSchema: z.ZodObject<{
+  toolName: z.ZodString;
+  args: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  jobId: z.ZodOptional<z.ZodString>;
+  data: z.ZodOptional<z.ZodUnknown>;
+  error: z.ZodOptional<
+    z.ZodObject<{
+      message: z.ZodString;
+      code: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}> = z.object({
   toolName: z.string().trim().min(1).max(256),
   args: z.record(z.string(), z.unknown()).optional(),
   jobId: chatIdSchema.optional(),
@@ -273,36 +250,34 @@ const chatToolResultSchema: z.ZodType<ChatToolResult> = z.object({
     .optional(),
 });
 
-interface ChatUsage {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-}
+export const chatActionResponseSchema: Loose<{
+  text: z.ZodString;
+  toolResults: z.ZodOptional<z.ZodArray<typeof chatToolResultSchema>>;
+  cards: z.ZodOptional<z.ZodArray<typeof chatCardSchema>>;
+  pendingConfirmations: z.ZodOptional<
+    z.ZodArray<typeof chatPendingConfirmationSchema>
+  >;
+  usage: z.ZodObject<{
+    promptTokens: z.ZodNumber;
+    completionTokens: z.ZodNumber;
+    totalTokens: z.ZodNumber;
+  }>;
+}> = z.looseObject({
+  text: z.string().max(1_000_000),
+  toolResults: z.array(chatToolResultSchema).max(100).optional(),
+  cards: z.array(chatCardSchema).max(100).optional(),
+  pendingConfirmations: z
+    .array(chatPendingConfirmationSchema)
+    .max(100)
+    .optional(),
+  usage: z.object({
+    promptTokens: z.number().int().nonnegative(),
+    completionTokens: z.number().int().nonnegative(),
+    totalTokens: z.number().int().nonnegative(),
+  }),
+});
 
-export interface ChatActionResponse {
-  [key: string]: unknown;
-  text: string;
-  toolResults?: ChatToolResult[] | undefined;
-  cards?: ChatCard[] | undefined;
-  pendingConfirmations?: ChatPendingConfirmation[] | undefined;
-  usage: ChatUsage;
-}
-
-export const chatActionResponseSchema: z.ZodType<ChatActionResponse> =
-  z.looseObject({
-    text: z.string().max(1_000_000),
-    toolResults: z.array(chatToolResultSchema).max(100).optional(),
-    cards: z.array(chatCardSchema).max(100).optional(),
-    pendingConfirmations: z
-      .array(chatPendingConfirmationSchema)
-      .max(100)
-      .optional(),
-    usage: z.object({
-      promptTokens: z.number().int().nonnegative(),
-      completionTokens: z.number().int().nonnegative(),
-      totalTokens: z.number().int().nonnegative(),
-    }),
-  });
+export type ChatActionResponse = z.output<typeof chatActionResponseSchema>;
 
 export interface ChatApiPaths {
   stream: string;
@@ -356,17 +331,12 @@ function normalizeChatApiPath(apiPath: string): string {
   return normalized;
 }
 
-export interface ChatContextHandoffRequest {
-  version: 1;
-  sourceId: string;
-  itemId: string;
-  titleSeed: string;
-}
-
-export const chatContextHandoffRequestSchema: z.ZodType<
-  ChatContextHandoffRequest,
-  ChatContextHandoffRequest
-> = z.strictObject({
+export const chatContextHandoffRequestSchema: Strict<{
+  version: z.ZodLiteral<1>;
+  sourceId: z.ZodString;
+  itemId: z.ZodString;
+  titleSeed: z.ZodString;
+}> = z.strictObject({
   version: z.literal(1),
   sourceId: z
     .string()
@@ -382,150 +352,141 @@ export const chatContextHandoffRequestSchema: z.ZodType<
     .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value)),
 });
 
-export interface ChatSession {
-  [key: string]: unknown;
-  id: string;
-  title: string;
-  lastActiveAt: string;
-  contextHandoff?: ChatContextHandoffRequest | undefined;
-}
+export type ChatContextHandoffRequest = z.output<
+  typeof chatContextHandoffRequestSchema
+>;
 
-export const chatSessionSchema: z.ZodType<ChatSession> = z.looseObject({
+export const chatSessionSchema: Loose<{
+  id: z.ZodString;
+  title: z.ZodString;
+  lastActiveAt: z.ZodString;
+  contextHandoff: z.ZodOptional<typeof chatContextHandoffRequestSchema>;
+}> = z.looseObject({
   id: chatIdSchema,
   title: chatTitleSchema,
   lastActiveAt: chatTimestampSchema,
   contextHandoff: chatContextHandoffRequestSchema.optional(),
 });
 
-export interface ChatSessionsResponse {
-  [key: string]: unknown;
-  sessions: ChatSession[];
-}
+export type ChatSession = z.output<typeof chatSessionSchema>;
 
-export const chatSessionsResponseSchema: z.ZodType<ChatSessionsResponse> =
-  z.looseObject({
-    sessions: z.array(chatSessionSchema).max(100),
-  });
-
-export interface ChatHistoryAttachmentSource {
-  [key: string]: unknown;
-  kind: string;
-  id: string;
-}
-
-export const chatHistoryAttachmentSourceSchema: z.ZodType<ChatHistoryAttachmentSource> =
-  z.looseObject({
-    kind: z.string().trim().min(1).max(64),
-    id: chatIdSchema,
-  });
-
-export interface ChatHistoryAttachment {
-  [key: string]: unknown;
-  kind: "text";
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  source?: ChatHistoryAttachmentSource | undefined;
-}
-
-export const chatHistoryAttachmentSchema: z.ZodType<ChatHistoryAttachment> =
-  z.looseObject({
-    kind: z.literal("text"),
-    filename: z.string().trim().min(1).max(255),
-    mediaType: z.string().trim().min(1).max(255),
-    sizeBytes: z.number().int().nonnegative(),
-    createdAt: chatTimestampSchema,
-    source: chatHistoryAttachmentSourceSchema.optional(),
-  });
-
-export interface ChatHistoryMessage {
-  [key: string]: unknown;
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  attachments?: ChatHistoryAttachment[] | undefined;
-  cards?: ChatCard[] | undefined;
-}
-
-export const chatHistoryMessageSchema: z.ZodType<ChatHistoryMessage> =
-  z.looseObject({
-    id: chatIdSchema,
-    role: z.enum(["user", "assistant"]),
-    content: z.string().max(1_000_000),
-    attachments: z.array(chatHistoryAttachmentSchema).max(100).optional(),
-    cards: z.array(chatCardSchema).max(100).optional(),
-  });
-
-export interface ChatMessagesResponse {
-  [key: string]: unknown;
-  messages: ChatHistoryMessage[];
-}
-
-export const chatMessagesResponseSchema: z.ZodType<ChatMessagesResponse> =
-  z.looseObject({
-    messages: z.array(chatHistoryMessageSchema).max(100),
-  });
-
-export interface ChatTextPart {
-  type: "text";
-  text: string;
-}
-
-export const chatTextPartSchema: z.ZodType<ChatTextPart, ChatTextPart> =
-  z.object({
-    type: z.literal("text"),
-    text: z.string().max(1_000_000),
-  });
-
-export interface ChatFilePart {
-  type: "file";
-  mediaType?: string | undefined;
-  filename?: string | undefined;
-  url: string;
-}
-
-export const chatFilePartSchema: z.ZodType<ChatFilePart, ChatFilePart> =
-  z.object({
-    type: z.literal("file"),
-    mediaType: z.string().trim().min(1).max(255).optional(),
-    filename: z.string().trim().min(1).max(255).optional(),
-    url: z.string().min(1).max(2_000_000),
-  });
-
-export interface ChatUploadPartData {
-  [key: string]: unknown;
-  ref: ChatUploadRef;
-}
-
-export interface ChatUploadPart {
-  type: "data-upload";
-  data: ChatUploadPartData;
-}
-
-export const chatUploadPartSchema: z.ZodType<ChatUploadPart> = z.object({
-  type: z.literal("data-upload"),
-  data: z.looseObject({
-    ref: z.object({
-      kind: z.literal("upload"),
-      id: chatUploadIdSchema,
-    }),
-  }),
+export const chatSessionsResponseSchema: Loose<{
+  sessions: z.ZodArray<typeof chatSessionSchema>;
+}> = z.looseObject({
+  sessions: z.array(chatSessionSchema).max(100),
 });
 
-export interface ChatApprovalResponse {
-  id: string;
-  approved: boolean;
-  toolCallId?: string | undefined;
-  toolName?: string | undefined;
-  input?: Record<string, unknown> | undefined;
-  title?: string | undefined;
-}
+export type ChatSessionsResponse = z.output<typeof chatSessionsResponseSchema>;
 
-export const chatApprovalResponseSchema: z.ZodType<
-  ChatApprovalResponse,
-  ChatApprovalResponse
-> = z.object({
+export const chatHistoryAttachmentSourceSchema: Loose<{
+  kind: z.ZodString;
+  id: z.ZodString;
+}> = z.looseObject({
+  kind: z.string().trim().min(1).max(64),
+  id: chatIdSchema,
+});
+
+export type ChatHistoryAttachmentSource = z.output<
+  typeof chatHistoryAttachmentSourceSchema
+>;
+
+export const chatHistoryAttachmentSchema: Loose<{
+  kind: z.ZodLiteral<"text">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  sizeBytes: z.ZodNumber;
+  createdAt: z.ZodString;
+  source: z.ZodOptional<typeof chatHistoryAttachmentSourceSchema>;
+}> = z.looseObject({
+  kind: z.literal("text"),
+  filename: z.string().trim().min(1).max(255),
+  mediaType: z.string().trim().min(1).max(255),
+  sizeBytes: z.number().int().nonnegative(),
+  createdAt: chatTimestampSchema,
+  source: chatHistoryAttachmentSourceSchema.optional(),
+});
+
+export type ChatHistoryAttachment = z.output<
+  typeof chatHistoryAttachmentSchema
+>;
+
+export const chatHistoryMessageSchema: Loose<{
+  id: z.ZodString;
+  role: z.ZodEnum<{ user: "user"; assistant: "assistant" }>;
+  content: z.ZodString;
+  attachments: z.ZodOptional<z.ZodArray<typeof chatHistoryAttachmentSchema>>;
+  cards: z.ZodOptional<z.ZodArray<typeof chatCardSchema>>;
+}> = z.looseObject({
+  id: chatIdSchema,
+  role: z.enum(["user", "assistant"]),
+  content: z.string().max(1_000_000),
+  attachments: z.array(chatHistoryAttachmentSchema).max(100).optional(),
+  cards: z.array(chatCardSchema).max(100).optional(),
+});
+
+export type ChatHistoryMessage = z.output<typeof chatHistoryMessageSchema>;
+
+export const chatMessagesResponseSchema: Loose<{
+  messages: z.ZodArray<typeof chatHistoryMessageSchema>;
+}> = z.looseObject({
+  messages: z.array(chatHistoryMessageSchema).max(100),
+});
+
+export type ChatMessagesResponse = z.output<typeof chatMessagesResponseSchema>;
+
+export const chatTextPartSchema: z.ZodObject<{
+  type: z.ZodLiteral<"text">;
+  text: z.ZodString;
+}> = z.object({
+  type: z.literal("text"),
+  text: z.string().max(1_000_000),
+});
+
+export type ChatTextPart = z.output<typeof chatTextPartSchema>;
+
+export const chatFilePartSchema: z.ZodObject<{
+  type: z.ZodLiteral<"file">;
+  mediaType: z.ZodOptional<z.ZodString>;
+  filename: z.ZodOptional<z.ZodString>;
+  url: z.ZodString;
+}> = z.object({
+  type: z.literal("file"),
+  mediaType: z.string().trim().min(1).max(255).optional(),
+  filename: z.string().trim().min(1).max(255).optional(),
+  url: z.string().min(1).max(2_000_000),
+});
+
+export type ChatFilePart = z.output<typeof chatFilePartSchema>;
+
+export const chatUploadRefSchema: z.ZodObject<{
+  kind: z.ZodLiteral<"upload">;
+  id: z.ZodString;
+}> = z.object({
+  kind: z.literal("upload"),
+  id: chatUploadIdSchema,
+});
+
+export type ChatUploadRef = z.output<typeof chatUploadRefSchema>;
+
+export const chatUploadPartSchema: z.ZodObject<{
+  type: z.ZodLiteral<"data-upload">;
+  data: Loose<{ ref: typeof chatUploadRefSchema }>;
+}> = z.object({
+  type: z.literal("data-upload"),
+  data: z.looseObject({ ref: chatUploadRefSchema }),
+});
+
+export type ChatUploadPart = z.output<typeof chatUploadPartSchema>;
+export type ChatUploadPartData = ChatUploadPart["data"];
+
+export const chatApprovalResponseSchema: z.ZodObject<{
+  id: z.ZodString;
+  approved: z.ZodBoolean;
+  toolCallId: z.ZodOptional<z.ZodString>;
+  toolName: z.ZodOptional<z.ZodString>;
+  input: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  title: z.ZodOptional<z.ZodString>;
+}> = z.object({
   id: chatIdSchema,
   approved: z.boolean(),
   toolCallId: chatIdSchema.optional(),
@@ -534,47 +495,42 @@ export const chatApprovalResponseSchema: z.ZodType<
   title: z.string().max(4_096).optional(),
 });
 
-export interface ChatApprovalResponsePart {
-  [key: string]: unknown;
-  state: "approval-responded";
-  toolCallId?: string | undefined;
-  toolName?: string | undefined;
-  input?: Record<string, unknown> | undefined;
-  title?: string | undefined;
-  approval: ChatApprovalResponse;
-}
+export type ChatApprovalResponse = z.output<typeof chatApprovalResponseSchema>;
 
-export const chatApprovalResponsePartSchema: z.ZodType<ChatApprovalResponsePart> =
-  z.looseObject({
-    state: z.literal("approval-responded"),
-    toolCallId: chatIdSchema.optional(),
-    toolName: z.string().trim().min(1).max(256).optional(),
-    input: z.record(z.string(), z.unknown()).optional(),
-    title: z.string().max(4_096).optional(),
-    approval: chatApprovalResponseSchema,
-  });
+export const chatApprovalResponsePartSchema: Loose<{
+  state: z.ZodLiteral<"approval-responded">;
+  toolCallId: z.ZodOptional<z.ZodString>;
+  toolName: z.ZodOptional<z.ZodString>;
+  input: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  title: z.ZodOptional<z.ZodString>;
+  approval: typeof chatApprovalResponseSchema;
+}> = z.looseObject({
+  state: z.literal("approval-responded"),
+  toolCallId: chatIdSchema.optional(),
+  toolName: z.string().trim().min(1).max(256).optional(),
+  input: z.record(z.string(), z.unknown()).optional(),
+  title: z.string().max(4_096).optional(),
+  approval: chatApprovalResponseSchema,
+});
 
-export type ChatMessageRole = "user" | "assistant" | "system";
+export type ChatApprovalResponsePart = z.output<
+  typeof chatApprovalResponsePartSchema
+>;
 
-export interface ChatMessage {
-  id?: string | undefined;
-  role: ChatMessageRole;
-  parts?: unknown[] | undefined;
-  content?: string | undefined;
-}
-
-export const chatMessageSchema: z.ZodType<ChatMessage, ChatMessage> = z.object({
+export const chatMessageSchema: z.ZodObject<{
+  id: z.ZodOptional<z.ZodString>;
+  role: z.ZodEnum<{ user: "user"; assistant: "assistant"; system: "system" }>;
+  parts: z.ZodOptional<z.ZodArray<z.ZodUnknown>>;
+  content: z.ZodOptional<z.ZodString>;
+}> = z.object({
   id: chatIdSchema.optional(),
   role: z.enum(["user", "assistant", "system"]),
   parts: z.array(z.unknown()).max(1_000).optional(),
   content: z.string().max(1_000_000).optional(),
 });
 
-export interface ChatSourceContext {
-  sourceId: string;
-  itemId: string;
-  label: string;
-}
+export type ChatMessage = z.output<typeof chatMessageSchema>;
+export type ChatMessageRole = ChatMessage["role"];
 
 const chatSafeText = (max: number): z.ZodString =>
   z
@@ -584,10 +540,11 @@ const chatSafeText = (max: number): z.ZodString =>
     .max(max)
     .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
 
-export const chatSourceContextSchema: z.ZodType<
-  ChatSourceContext,
-  ChatSourceContext
-> = z.strictObject({
+export const chatSourceContextSchema: Strict<{
+  sourceId: z.ZodString;
+  itemId: z.ZodString;
+  label: z.ZodString;
+}> = z.strictObject({
   sourceId: z
     .string()
     .trim()
@@ -597,17 +554,14 @@ export const chatSourceContextSchema: z.ZodType<
   label: chatSafeText(160),
 });
 
-export interface ChatMessageRequest {
-  id?: string | undefined;
-  messages: ChatMessage[];
-  trigger?: string | undefined;
-  inboxContext?: ChatSourceContext | undefined;
-}
+export type ChatSourceContext = z.output<typeof chatSourceContextSchema>;
 
-export const chatMessageRequestSchema: z.ZodType<
-  ChatMessageRequest,
-  ChatMessageRequest
-> = z
+export const chatMessageRequestSchema: Strict<{
+  id: z.ZodOptional<z.ZodString>;
+  messages: z.ZodArray<typeof chatMessageSchema>;
+  trigger: z.ZodOptional<z.ZodString>;
+  inboxContext: z.ZodOptional<typeof chatSourceContextSchema>;
+}> = z
   .object({
     id: chatIdSchema.optional(),
     messages: z.array(chatMessageSchema).min(1).max(200),
@@ -616,433 +570,466 @@ export const chatMessageRequestSchema: z.ZodType<
   })
   .strict();
 
-export interface ChatProgressEvent {
-  [key: string]: unknown;
-  type: "job" | "batch";
-  status: ChatJobStatusValue;
-  operationType:
-    | "file_operations"
-    | "content_operations"
-    | "data_processing"
-    | "batch_processing";
-  operationTarget?: string | undefined;
-  message?: string | undefined;
-  progress?: { current: number; total: number; percentage: number } | undefined;
-}
+export type ChatMessageRequest = z.output<typeof chatMessageRequestSchema>;
 
-export const chatProgressEventSchema: z.ZodType<ChatProgressEvent> =
-  z.looseObject({
-    type: z.enum(["job", "batch"]),
-    status: z.enum(["pending", "processing", "completed", "failed"]),
-    operationType: z.enum([
-      "file_operations",
-      "content_operations",
-      "data_processing",
-      "batch_processing",
-    ]),
-    operationTarget: z.string().max(1_024).optional(),
-    message: z.string().max(4_096).optional(),
-    progress: z
-      .object({
-        current: z.number().nonnegative(),
-        total: z.number().nonnegative(),
-        percentage: z.number().min(0).max(100),
-      })
-      .optional(),
-  });
+const chatJobStatusValueSchema: z.ZodEnum<{
+  pending: "pending";
+  processing: "processing";
+  completed: "completed";
+  failed: "failed";
+}> = z.enum(["pending", "processing", "completed", "failed"]);
 
-export type ChatToolStatusValue =
-  "tool-running" | "tool-completed" | "tool-awaiting-approval" | "tool-failed";
+export type ChatJobStatusValue = z.output<typeof chatJobStatusValueSchema>;
 
-export interface ChatToolStatusEvent {
-  [key: string]: unknown;
-  status: ChatToolStatusValue;
-  toolName: string;
-  error?: string | undefined;
-}
+export const chatProgressEventSchema: Loose<{
+  type: z.ZodEnum<{ job: "job"; batch: "batch" }>;
+  status: typeof chatJobStatusValueSchema;
+  operationType: z.ZodEnum<{
+    file_operations: "file_operations";
+    content_operations: "content_operations";
+    data_processing: "data_processing";
+    batch_processing: "batch_processing";
+  }>;
+  operationTarget: z.ZodOptional<z.ZodString>;
+  message: z.ZodOptional<z.ZodString>;
+  progress: z.ZodOptional<
+    z.ZodObject<{
+      current: z.ZodNumber;
+      total: z.ZodNumber;
+      percentage: z.ZodNumber;
+    }>
+  >;
+}> = z.looseObject({
+  type: z.enum(["job", "batch"]),
+  status: chatJobStatusValueSchema,
+  operationType: z.enum([
+    "file_operations",
+    "content_operations",
+    "data_processing",
+    "batch_processing",
+  ]),
+  operationTarget: z.string().max(1_024).optional(),
+  message: z.string().max(4_096).optional(),
+  progress: z
+    .object({
+      current: z.number().nonnegative(),
+      total: z.number().nonnegative(),
+      percentage: z.number().min(0).max(100),
+    })
+    .optional(),
+});
 
-export const chatToolStatusEventSchema: z.ZodType<ChatToolStatusEvent> =
-  z.looseObject({
-    status: z.enum([
-      "tool-running",
-      "tool-completed",
-      "tool-awaiting-approval",
-      "tool-failed",
-    ]),
-    toolName: z.string().trim().min(1).max(256),
-    error: z.string().max(4_096).optional(),
-  });
+export type ChatProgressEvent = z.output<typeof chatProgressEventSchema>;
 
-interface ChatProtocolEventBase {
-  [key: string]: unknown;
-}
+export const chatToolStatusEventSchema: Loose<{
+  status: z.ZodEnum<{
+    "tool-running": "tool-running";
+    "tool-completed": "tool-completed";
+    "tool-awaiting-approval": "tool-awaiting-approval";
+    "tool-failed": "tool-failed";
+  }>;
+  toolName: z.ZodString;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.looseObject({
+  status: z.enum([
+    "tool-running",
+    "tool-completed",
+    "tool-awaiting-approval",
+    "tool-failed",
+  ]),
+  toolName: z.string().trim().min(1).max(256),
+  error: z.string().max(4_096).optional(),
+});
 
-type ChatProtocolFinishReason =
-  "length" | "error" | "stop" | "content-filter" | "tool-calls" | "other";
-
-type ChatProtocolPayload =
-  | { type: "start"; messageId?: string | undefined }
-  | { type: "start-step" }
-  | { type: "finish-step" }
-  | {
-      type: "finish";
-      finishReason?: ChatProtocolFinishReason | undefined;
-    }
-  | { type: "abort"; reason?: string | undefined }
-  | { type: "error"; errorText: string }
-  | { type: "text-start"; id: string }
-  | { type: "text-delta"; id: string; delta: string }
-  | { type: "text-end"; id: string }
-  | { type: "reasoning-start"; id: string }
-  | { type: "reasoning-delta"; id: string; delta: string }
-  | { type: "reasoning-end"; id: string }
-  | {
-      type: "tool-input-start";
-      toolCallId: string;
-      toolName: string;
-      title?: string | undefined;
-    }
-  | { type: "tool-input-delta"; toolCallId: string; inputTextDelta: string }
-  | {
-      type: "tool-input-available";
-      toolCallId: string;
-      toolName: string;
-      input: unknown;
-      title?: string | undefined;
-    }
-  | {
-      type: "tool-input-error";
-      toolCallId: string;
-      toolName: string;
-      input: unknown;
-      errorText: string;
-      title?: string | undefined;
-    }
-  | { type: "tool-approval-request"; approvalId: string; toolCallId: string }
-  | {
-      type: "tool-output-available";
-      toolCallId: string;
-      output: unknown;
-      preliminary?: boolean | undefined;
-    }
-  | { type: "tool-output-error"; toolCallId: string; errorText: string }
-  | { type: "tool-output-denied"; toolCallId: string }
-  | {
-      type: "source-url";
-      sourceId: string;
-      url: string;
-      title?: string | undefined;
-    }
-  | {
-      type: "source-document";
-      sourceId: string;
-      mediaType: string;
-      title: string;
-      filename?: string | undefined;
-    }
-  | { type: "file"; url: string; mediaType: string }
-  | {
-      type: "data-progress";
-      id?: string | undefined;
-      data: ChatProgressEvent;
-      transient?: boolean | undefined;
-    }
-  | {
-      type: "data-status";
-      id?: string | undefined;
-      data: ChatToolStatusEvent;
-      transient?: boolean | undefined;
-    }
-  | {
-      type: "data-tool-result";
-      id?: string | undefined;
-      data: ChatToolResult;
-      transient?: boolean | undefined;
-    }
-  | {
-      type: "data-actions";
-      id?: string | undefined;
-      data: Extract<ChatCard, { kind: "actions" }>;
-      transient?: boolean | undefined;
-    }
-  | {
-      type: "data-sources";
-      id?: string | undefined;
-      data: Extract<ChatCard, { kind: "sources" }>;
-      transient?: boolean | undefined;
-    }
-  | {
-      type: "data-attachment";
-      id?: string | undefined;
-      data: Extract<ChatCard, { kind: "attachment" }>;
-      transient?: boolean | undefined;
-    };
-
-export type ChatProtocolEvent = ChatProtocolEventBase & ChatProtocolPayload;
+export type ChatToolStatusEvent = z.output<typeof chatToolStatusEventSchema>;
+export type ChatToolStatusValue = ChatToolStatusEvent["status"];
 
 /**
  * Version-1 wire events emitted by the Chat stream. These are transport and
  * server-owned lifecycle facts, not assembled UI messages or host view state.
  */
-export const chatProtocolEventSchema: z.ZodType<ChatProtocolEvent> =
-  z.discriminatedUnion("type", [
-    z.looseObject({
-      type: z.literal("start"),
-      messageId: chatIdSchema.optional(),
-    }),
-    z.looseObject({ type: z.literal("start-step") }),
-    z.looseObject({ type: z.literal("finish-step") }),
-    z.looseObject({
-      type: z.literal("finish"),
-      finishReason: z
-        .enum([
-          "length",
-          "error",
-          "stop",
-          "content-filter",
-          "tool-calls",
-          "other",
-        ])
-        .optional(),
-    }),
-    z.looseObject({
-      type: z.literal("abort"),
-      reason: z.string().max(4_096).optional(),
-    }),
-    z.looseObject({
-      type: z.literal("error"),
-      errorText: z.string().max(20_000),
-    }),
-    z.looseObject({ type: z.literal("text-start"), id: chatIdSchema }),
-    z.looseObject({
-      type: z.literal("text-delta"),
-      id: chatIdSchema,
-      delta: z.string().max(1_000_000),
-    }),
-    z.looseObject({ type: z.literal("text-end"), id: chatIdSchema }),
-    z.looseObject({
-      type: z.literal("reasoning-start"),
-      id: chatIdSchema,
-    }),
-    z.looseObject({
-      type: z.literal("reasoning-delta"),
-      id: chatIdSchema,
-      delta: z.string().max(1_000_000),
-    }),
-    z.looseObject({
-      type: z.literal("reasoning-end"),
-      id: chatIdSchema,
-    }),
-    z.looseObject({
-      type: z.literal("tool-input-start"),
-      toolCallId: chatIdSchema,
-      toolName: z.string().trim().min(1).max(256),
-      title: z.string().max(4_096).optional(),
-    }),
-    z.looseObject({
-      type: z.literal("tool-input-delta"),
-      toolCallId: chatIdSchema,
-      inputTextDelta: z.string().max(1_000_000),
-    }),
-    z.looseObject({
-      type: z.literal("tool-input-available"),
-      toolCallId: chatIdSchema,
-      toolName: z.string().trim().min(1).max(256),
-      input: z.unknown(),
-      title: z.string().max(4_096).optional(),
-    }),
-    z.looseObject({
-      type: z.literal("tool-input-error"),
-      toolCallId: chatIdSchema,
-      toolName: z.string().trim().min(1).max(256),
-      input: z.unknown(),
-      errorText: z.string().max(20_000),
-      title: z.string().max(4_096).optional(),
-    }),
-    z.looseObject({
-      type: z.literal("tool-approval-request"),
-      approvalId: chatIdSchema,
-      toolCallId: chatIdSchema,
-    }),
-    z.looseObject({
-      type: z.literal("tool-output-available"),
-      toolCallId: chatIdSchema,
-      output: z.unknown(),
-      preliminary: z.boolean().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("tool-output-error"),
-      toolCallId: chatIdSchema,
-      errorText: z.string().max(20_000),
-    }),
-    z.looseObject({
-      type: z.literal("tool-output-denied"),
-      toolCallId: chatIdSchema,
-    }),
-    z.looseObject({
-      type: z.literal("source-url"),
-      sourceId: chatIdSchema,
-      url: chatLinkUrlSchema,
-      title: z.string().max(4_096).optional(),
-    }),
-    z.looseObject({
-      type: z.literal("source-document"),
-      sourceId: chatIdSchema,
-      mediaType: z.string().trim().min(1).max(255),
-      title: z.string().max(4_096),
-      filename: z.string().trim().min(1).max(255).optional(),
-    }),
-    z.looseObject({
-      type: z.literal("file"),
-      url: chatLinkUrlSchema,
-      mediaType: z.string().trim().min(1).max(255),
-    }),
-    z.looseObject({
-      type: z.literal("data-progress"),
-      id: chatIdSchema.optional(),
-      data: chatProgressEventSchema,
-      transient: z.boolean().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("data-status"),
-      id: chatIdSchema.optional(),
-      data: chatToolStatusEventSchema,
-      transient: z.boolean().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("data-tool-result"),
-      id: chatIdSchema.optional(),
-      data: chatToolResultSchema,
-      transient: z.boolean().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("data-actions"),
-      id: chatIdSchema.optional(),
-      data: chatActionsCardSchema,
-      transient: z.boolean().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("data-sources"),
-      id: chatIdSchema.optional(),
-      data: chatSourcesCardSchema,
-      transient: z.boolean().optional(),
-    }),
-    z.looseObject({
-      type: z.literal("data-attachment"),
-      id: chatIdSchema.optional(),
-      data: chatAttachmentCardSchema,
-      transient: z.boolean().optional(),
-    }),
-  ]);
+export const chatProtocolEventSchema: z.ZodDiscriminatedUnion<
+  [
+    Loose<{
+      type: z.ZodLiteral<"start">;
+      messageId: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{ type: z.ZodLiteral<"start-step"> }>,
+    Loose<{ type: z.ZodLiteral<"finish-step"> }>,
+    Loose<{
+      type: z.ZodLiteral<"finish">;
+      finishReason: z.ZodOptional<
+        z.ZodEnum<{
+          length: "length";
+          error: "error";
+          stop: "stop";
+          "content-filter": "content-filter";
+          "tool-calls": "tool-calls";
+          other: "other";
+        }>
+      >;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"abort">;
+      reason: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{ type: z.ZodLiteral<"error">; errorText: z.ZodString }>,
+    Loose<{ type: z.ZodLiteral<"text-start">; id: z.ZodString }>,
+    Loose<{
+      type: z.ZodLiteral<"text-delta">;
+      id: z.ZodString;
+      delta: z.ZodString;
+    }>,
+    Loose<{ type: z.ZodLiteral<"text-end">; id: z.ZodString }>,
+    Loose<{ type: z.ZodLiteral<"reasoning-start">; id: z.ZodString }>,
+    Loose<{
+      type: z.ZodLiteral<"reasoning-delta">;
+      id: z.ZodString;
+      delta: z.ZodString;
+    }>,
+    Loose<{ type: z.ZodLiteral<"reasoning-end">; id: z.ZodString }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-input-start">;
+      toolCallId: z.ZodString;
+      toolName: z.ZodString;
+      title: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-input-delta">;
+      toolCallId: z.ZodString;
+      inputTextDelta: z.ZodString;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-input-available">;
+      toolCallId: z.ZodString;
+      toolName: z.ZodString;
+      input: z.ZodUnknown;
+      title: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-input-error">;
+      toolCallId: z.ZodString;
+      toolName: z.ZodString;
+      input: z.ZodUnknown;
+      errorText: z.ZodString;
+      title: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-approval-request">;
+      approvalId: z.ZodString;
+      toolCallId: z.ZodString;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-output-available">;
+      toolCallId: z.ZodString;
+      output: z.ZodUnknown;
+      preliminary: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-output-error">;
+      toolCallId: z.ZodString;
+      errorText: z.ZodString;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"tool-output-denied">;
+      toolCallId: z.ZodString;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"source-url">;
+      sourceId: z.ZodString;
+      url: z.ZodString;
+      title: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"source-document">;
+      sourceId: z.ZodString;
+      mediaType: z.ZodString;
+      title: z.ZodString;
+      filename: z.ZodOptional<z.ZodString>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"file">;
+      url: z.ZodString;
+      mediaType: z.ZodString;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"data-progress">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof chatProgressEventSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"data-status">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof chatToolStatusEventSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"data-tool-result">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof chatToolResultSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"data-actions">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof chatActionsCardSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"data-sources">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof chatSourcesCardSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+    Loose<{
+      type: z.ZodLiteral<"data-attachment">;
+      id: z.ZodOptional<z.ZodString>;
+      data: typeof chatAttachmentCardSchema;
+      transient: z.ZodOptional<z.ZodBoolean>;
+    }>,
+  ],
+  "type"
+> = z.discriminatedUnion("type", [
+  z.looseObject({
+    type: z.literal("start"),
+    messageId: chatIdSchema.optional(),
+  }),
+  z.looseObject({ type: z.literal("start-step") }),
+  z.looseObject({ type: z.literal("finish-step") }),
+  z.looseObject({
+    type: z.literal("finish"),
+    finishReason: z
+      .enum([
+        "length",
+        "error",
+        "stop",
+        "content-filter",
+        "tool-calls",
+        "other",
+      ])
+      .optional(),
+  }),
+  z.looseObject({
+    type: z.literal("abort"),
+    reason: z.string().max(4_096).optional(),
+  }),
+  z.looseObject({
+    type: z.literal("error"),
+    errorText: z.string().max(20_000),
+  }),
+  z.looseObject({ type: z.literal("text-start"), id: chatIdSchema }),
+  z.looseObject({
+    type: z.literal("text-delta"),
+    id: chatIdSchema,
+    delta: z.string().max(1_000_000),
+  }),
+  z.looseObject({ type: z.literal("text-end"), id: chatIdSchema }),
+  z.looseObject({
+    type: z.literal("reasoning-start"),
+    id: chatIdSchema,
+  }),
+  z.looseObject({
+    type: z.literal("reasoning-delta"),
+    id: chatIdSchema,
+    delta: z.string().max(1_000_000),
+  }),
+  z.looseObject({
+    type: z.literal("reasoning-end"),
+    id: chatIdSchema,
+  }),
+  z.looseObject({
+    type: z.literal("tool-input-start"),
+    toolCallId: chatIdSchema,
+    toolName: z.string().trim().min(1).max(256),
+    title: z.string().max(4_096).optional(),
+  }),
+  z.looseObject({
+    type: z.literal("tool-input-delta"),
+    toolCallId: chatIdSchema,
+    inputTextDelta: z.string().max(1_000_000),
+  }),
+  z.looseObject({
+    type: z.literal("tool-input-available"),
+    toolCallId: chatIdSchema,
+    toolName: z.string().trim().min(1).max(256),
+    input: z.unknown(),
+    title: z.string().max(4_096).optional(),
+  }),
+  z.looseObject({
+    type: z.literal("tool-input-error"),
+    toolCallId: chatIdSchema,
+    toolName: z.string().trim().min(1).max(256),
+    input: z.unknown(),
+    errorText: z.string().max(20_000),
+    title: z.string().max(4_096).optional(),
+  }),
+  z.looseObject({
+    type: z.literal("tool-approval-request"),
+    approvalId: chatIdSchema,
+    toolCallId: chatIdSchema,
+  }),
+  z.looseObject({
+    type: z.literal("tool-output-available"),
+    toolCallId: chatIdSchema,
+    output: z.unknown(),
+    preliminary: z.boolean().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("tool-output-error"),
+    toolCallId: chatIdSchema,
+    errorText: z.string().max(20_000),
+  }),
+  z.looseObject({
+    type: z.literal("tool-output-denied"),
+    toolCallId: chatIdSchema,
+  }),
+  z.looseObject({
+    type: z.literal("source-url"),
+    sourceId: chatIdSchema,
+    url: chatLinkUrlSchema,
+    title: z.string().max(4_096).optional(),
+  }),
+  z.looseObject({
+    type: z.literal("source-document"),
+    sourceId: chatIdSchema,
+    mediaType: z.string().trim().min(1).max(255),
+    title: z.string().max(4_096),
+    filename: z.string().trim().min(1).max(255).optional(),
+  }),
+  z.looseObject({
+    type: z.literal("file"),
+    url: chatLinkUrlSchema,
+    mediaType: z.string().trim().min(1).max(255),
+  }),
+  z.looseObject({
+    type: z.literal("data-progress"),
+    id: chatIdSchema.optional(),
+    data: chatProgressEventSchema,
+    transient: z.boolean().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("data-status"),
+    id: chatIdSchema.optional(),
+    data: chatToolStatusEventSchema,
+    transient: z.boolean().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("data-tool-result"),
+    id: chatIdSchema.optional(),
+    data: chatToolResultSchema,
+    transient: z.boolean().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("data-actions"),
+    id: chatIdSchema.optional(),
+    data: chatActionsCardSchema,
+    transient: z.boolean().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("data-sources"),
+    id: chatIdSchema.optional(),
+    data: chatSourcesCardSchema,
+    transient: z.boolean().optional(),
+  }),
+  z.looseObject({
+    type: z.literal("data-attachment"),
+    id: chatIdSchema.optional(),
+    data: chatAttachmentCardSchema,
+    transient: z.boolean().optional(),
+  }),
+]);
 
-export interface ChatContextHandoffResponse {
-  conversationId: string;
-}
+export type ChatProtocolEvent = z.output<typeof chatProtocolEventSchema>;
 
-export const chatContextHandoffResponseSchema: z.ZodType<
-  ChatContextHandoffResponse,
-  ChatContextHandoffResponse
-> = z.strictObject({
+export const chatContextHandoffResponseSchema: Strict<{
+  conversationId: z.ZodString;
+}> = z.strictObject({
   conversationId: chatIdSchema,
 });
 
-export interface RenameChatSessionRequest {
-  title: string;
-}
+export type ChatContextHandoffResponse = z.output<
+  typeof chatContextHandoffResponseSchema
+>;
 
-export const renameChatSessionRequestSchema: z.ZodType<
-  RenameChatSessionRequest,
-  RenameChatSessionRequest
-> = z
+export const renameChatSessionRequestSchema: Strict<{
+  title: z.ZodString;
+}> = z
   .object({
     title: chatTitleSchema,
   })
   .strict();
 
-export interface RenameChatSessionResponse {
-  renamed: boolean;
-  title: string;
-}
+export type RenameChatSessionRequest = z.output<
+  typeof renameChatSessionRequestSchema
+>;
 
-export const renameChatSessionResponseSchema: z.ZodType<RenameChatSessionResponse> =
-  z.object({
-    renamed: z.boolean(),
-    title: chatTitleSchema,
-  });
+export const renameChatSessionResponseSchema: z.ZodObject<{
+  renamed: z.ZodBoolean;
+  title: z.ZodString;
+}> = z.object({
+  renamed: z.boolean(),
+  title: chatTitleSchema,
+});
 
-export interface ArchiveChatSessionResponse {
-  archived: boolean;
-}
+export type RenameChatSessionResponse = z.output<
+  typeof renameChatSessionResponseSchema
+>;
 
-export const archiveChatSessionResponseSchema: z.ZodType<ArchiveChatSessionResponse> =
-  z.object({
-    archived: z.boolean(),
-  });
+export const archiveChatSessionResponseSchema: z.ZodObject<{
+  archived: z.ZodBoolean;
+}> = z.object({
+  archived: z.boolean(),
+});
 
-export interface DeleteChatSessionResponse {
-  deleted: boolean;
-}
+export type ArchiveChatSessionResponse = z.output<
+  typeof archiveChatSessionResponseSchema
+>;
 
-export const deleteChatSessionResponseSchema: z.ZodType<DeleteChatSessionResponse> =
-  z.object({
-    deleted: z.boolean(),
-  });
+export const deleteChatSessionResponseSchema: z.ZodObject<{
+  deleted: z.ZodBoolean;
+}> = z.object({
+  deleted: z.boolean(),
+});
 
-export interface ChatActionRequest {
-  conversationId: string;
-  action: ChatEventAction;
-}
+export type DeleteChatSessionResponse = z.output<
+  typeof deleteChatSessionResponseSchema
+>;
 
-export const chatActionRequestSchema: z.ZodType<
-  ChatActionRequest,
-  ChatActionRequest
-> = z
+export const chatActionRequestSchema: Strict<{
+  conversationId: z.ZodString;
+  action: typeof agentEventActionSchema;
+}> = z
   .object({
     conversationId: chatIdSchema,
     action: agentEventActionSchema,
   })
   .strict();
 
-export type ChatJobStatusValue =
-  "pending" | "processing" | "completed" | "failed";
+export type ChatActionRequest = z.output<typeof chatActionRequestSchema>;
 
-export interface ChatJobStatus {
-  [key: string]: unknown;
-  id: string;
-  status: ChatJobStatusValue;
-  message?: string | undefined;
-}
-
-export const chatJobStatusSchema: z.ZodType<ChatJobStatus> = z.looseObject({
+export const chatJobStatusSchema: Loose<{
+  id: z.ZodString;
+  status: typeof chatJobStatusValueSchema;
+  message: z.ZodOptional<z.ZodString>;
+}> = z.looseObject({
   id: chatIdSchema,
-  status: z.enum(["pending", "processing", "completed", "failed"]),
+  status: chatJobStatusValueSchema,
   message: z.string().max(4_096).optional(),
 });
 
-export interface ChatUploadRef {
-  kind: "upload";
-  id: string;
-}
+export type ChatJobStatus = z.output<typeof chatJobStatusSchema>;
 
-export const chatUploadRefSchema: z.ZodType<ChatUploadRef, ChatUploadRef> =
-  z.object({
-    kind: z.literal("upload"),
-    id: chatUploadIdSchema,
-  });
-
-export interface ChatUploadResponse {
-  [key: string]: unknown;
-  id: string;
-  ref: ChatUploadRef;
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  url: string;
-  downloadUrl: string;
-}
-
-export const chatUploadResponseSchema: z.ZodType<ChatUploadResponse> = z
+export const chatUploadResponseSchema: Loose<{
+  id: z.ZodString;
+  ref: typeof chatUploadRefSchema;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  sizeBytes: z.ZodNumber;
+  createdAt: z.ZodString;
+  url: z.ZodString;
+  downloadUrl: z.ZodString;
+}> = z
   .looseObject({
     id: chatUploadIdSchema,
     ref: chatUploadRefSchema,
@@ -1057,6 +1044,8 @@ export const chatUploadResponseSchema: z.ZodType<ChatUploadResponse> = z
     path: ["ref", "id"],
     message: "Upload response ids must match",
   });
+
+export type ChatUploadResponse = z.output<typeof chatUploadResponseSchema>;
 
 export type ChatFetch = (
   input: RequestInfo | URL,

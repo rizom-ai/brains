@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { studioApiPath, configureStudioApiBasePath } from "./api";
+import { studioApiPath } from "./api";
 
 describe("studioApiPath", () => {
   it("derives API requests from the configured Studio route", () => {
@@ -13,11 +13,5 @@ describe("studioApiPath", () => {
 
   it("retains the default Studio route", () => {
     expect(studioApiPath("types", "/studio")).toBe("/studio/api/types");
-  });
-
-  it("uses the configured shell base instead of the current deep pathname", () => {
-    configureStudioApiBasePath("/studio");
-    expect(studioApiPath("types")).toBe("/studio/api/types");
-    configureStudioApiBasePath("/studio");
   });
 });

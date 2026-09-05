@@ -1,5 +1,6 @@
 import type { UseQueryOptions } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
+import type { ChatClient } from "@brains/contracts/chat";
 import {
   fetchWebChatHistory,
   fetchWebChatSessions,
@@ -21,14 +22,17 @@ export const webChatKeys = {
 
 export function sessionHistoryQueryOptions(
   conversationId: string,
+  client: ChatClient,
 ): UseQueryOptions<UIMessage[], Error, UIMessage[], SessionHistoryQueryKey> {
   return {
     queryKey: webChatKeys.history(conversationId),
-    queryFn: () => fetchWebChatHistory(conversationId),
+    queryFn: () => fetchWebChatHistory(conversationId, client),
   };
 }
 
-export function sessionListQueryOptions(): UseQueryOptions<
+export function sessionListQueryOptions(
+  client: ChatClient,
+): UseQueryOptions<
   WebChatSession[],
   Error,
   WebChatSession[],
@@ -36,6 +40,6 @@ export function sessionListQueryOptions(): UseQueryOptions<
 > {
   return {
     queryKey: webChatKeys.sessions(),
-    queryFn: fetchWebChatSessions,
+    queryFn: () => fetchWebChatSessions(client),
   };
 }

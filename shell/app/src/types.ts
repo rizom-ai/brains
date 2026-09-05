@@ -4,16 +4,19 @@ import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/chat-repl";
 import type { PermissionConfig } from "@brains/templates";
 
-interface PluginMetadata {
-  id: string;
-  version: string;
-  type: "core" | "entity" | "service" | "interface";
-  description?: string | undefined;
-  dependencies?: string[] | undefined;
-  packageName: string;
-}
-
-const pluginMetadataSchema: z.ZodType<PluginMetadata> = z.object({
+const pluginMetadataSchema: z.ZodObject<{
+  id: z.ZodString;
+  version: z.ZodString;
+  type: z.ZodEnum<{
+    core: "core";
+    entity: "entity";
+    service: "service";
+    interface: "interface";
+  }>;
+  description: z.ZodOptional<z.ZodString>;
+  dependencies: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  packageName: z.ZodString;
+}> = z.object({
   id: z.string(),
   version: z.string(),
   type: z.enum(["core", "entity", "service", "interface"]),
@@ -22,14 +25,12 @@ const pluginMetadataSchema: z.ZodType<PluginMetadata> = z.object({
   packageName: z.string(),
 });
 
-interface AppIdentity {
-  name: string;
-  role: string;
-  purpose: string;
-  values: string[];
-}
-
-const appIdentitySchema: z.ZodType<AppIdentity> = z.object({
+const appIdentitySchema: z.ZodObject<{
+  name: z.ZodString;
+  role: z.ZodString;
+  purpose: z.ZodString;
+  values: z.ZodArray<z.ZodString>;
+}> = z.object({
   name: z.string(),
   role: z.string(),
   purpose: z.string(),
@@ -55,78 +56,44 @@ export const reasoningEffortSchema: z.ZodEnum<{
 export type ReasoningEffort = z.output<typeof reasoningEffortSchema>;
 export type LogLevel = z.output<typeof logLevelSchema>;
 
-export interface DeploymentConfig {
-  provider: "hetzner" | "docker";
-  serverSize: string;
-  location: string;
-  domain?: string | undefined;
-  docker: {
-    enabled: boolean;
-    image?: string | undefined;
-  };
-  ports: {
-    default: number;
-    preview: number;
-    production: number;
-  };
-  cdn: {
-    enabled: boolean;
-    provider: "bunny" | "none";
-  };
-  dns: {
-    enabled: boolean;
-    provider: "bunny" | "none";
-  };
-  paths: {
-    install?: string | undefined;
-    data?: string | undefined;
-  };
-}
+type ProviderToggleSchema = z.ZodPrefault<
+  z.ZodObject<{
+    enabled: z.ZodDefault<z.ZodBoolean>;
+    provider: z.ZodDefault<z.ZodEnum<{ bunny: "bunny"; none: "none" }>>;
+  }>
+>;
 
-export interface DeploymentConfigInput {
-  provider?: "hetzner" | "docker" | undefined;
-  serverSize?: string | undefined;
-  location?: string | undefined;
-  domain?: string | undefined;
-  docker?:
-    | {
-        enabled?: boolean | undefined;
-        image?: string | undefined;
-      }
-    | undefined;
-  ports?:
-    | {
-        default?: number | undefined;
-        preview?: number | undefined;
-        production?: number | undefined;
-      }
-    | undefined;
-  cdn?:
-    | {
-        enabled?: boolean | undefined;
-        provider?: "bunny" | "none" | undefined;
-      }
-    | undefined;
-  dns?:
-    | {
-        enabled?: boolean | undefined;
-        provider?: "bunny" | "none" | undefined;
-      }
-    | undefined;
-  paths?:
-    | {
-        install?: string | undefined;
-        data?: string | undefined;
-      }
-    | undefined;
-}
+type DeploymentConfigSchema = z.ZodObject<{
+  provider: z.ZodDefault<z.ZodEnum<{ hetzner: "hetzner"; docker: "docker" }>>;
+  serverSize: z.ZodDefault<z.ZodString>;
+  location: z.ZodDefault<z.ZodString>;
+  domain: z.ZodOptional<z.ZodString>;
+  docker: z.ZodPrefault<
+    z.ZodObject<{
+      enabled: z.ZodDefault<z.ZodBoolean>;
+      image: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+  ports: z.ZodPrefault<
+    z.ZodObject<{
+      default: z.ZodDefault<z.ZodNumber>;
+      preview: z.ZodDefault<z.ZodNumber>;
+      production: z.ZodDefault<z.ZodNumber>;
+    }>
+  >;
+  cdn: ProviderToggleSchema;
+  dns: ProviderToggleSchema;
+  paths: z.ZodPrefault<
+    z.ZodObject<{
+      install: z.ZodOptional<z.ZodString>;
+      data: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}>;
 
 // Deployment configuration schema
 // This consolidates all deployment settings that were previously in deploy.config.json
-export const deploymentConfigSchema: z.ZodType<
-  DeploymentConfig,
-  DeploymentConfigInput
-> = z.object({
+export const deploymentConfigSchema: DeploymentConfigSchema = z.object({
   // Server configuration
   provider: z.enum(["hetzner", "docker"]).default("hetzner"),
   serverSize: z.string().default("cx33"),
@@ -177,26 +144,29 @@ export const deploymentConfigSchema: z.ZodType<
     .prefault({}),
 });
 
-interface AppConfigSchemaRaw {
-  name: string;
-  version: string;
-  database?: string | undefined;
-  aiApiKey?: string | undefined;
-  aiImageKey?: string | undefined;
-  aiModel?: string | undefined;
-  aiReasoningEffort?: ReasoningEffort | undefined;
-  logLevel?: LogLevel | undefined;
-  logFile?: string | undefined;
-  profileKind?: string | undefined;
-  plugins: PluginMetadata[];
-  spaces: string[];
-  identity?: AppIdentity | undefined;
-  agentInstructions?: string[] | undefined;
-  deployment: DeploymentConfig;
-}
+export type DeploymentConfig = z.output<typeof deploymentConfigSchema>;
+export type DeploymentConfigInput = z.input<typeof deploymentConfigSchema>;
+
+type AppConfigSchema = z.ZodObject<{
+  name: z.ZodDefault<z.ZodString>;
+  version: z.ZodDefault<z.ZodString>;
+  database: z.ZodOptional<z.ZodString>;
+  aiApiKey: z.ZodOptional<z.ZodString>;
+  aiImageKey: z.ZodOptional<z.ZodString>;
+  aiModel: z.ZodOptional<z.ZodString>;
+  aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
+  logLevel: z.ZodOptional<typeof logLevelSchema>;
+  logFile: z.ZodOptional<z.ZodString>;
+  profileKind: z.ZodOptional<z.ZodString>;
+  plugins: z.ZodDefault<z.ZodArray<typeof pluginMetadataSchema>>;
+  spaces: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  identity: z.ZodOptional<typeof appIdentitySchema>;
+  agentInstructions: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  deployment: z.ZodPrefault<typeof deploymentConfigSchema>;
+}>;
 
 // App config focuses on app-level concerns, plugins come from Shell
-export const appConfigSchema: z.ZodType<AppConfigSchemaRaw> = z.object({
+export const appConfigSchema: AppConfigSchema = z.object({
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names
@@ -222,7 +192,7 @@ export const appConfigSchema: z.ZodType<AppConfigSchemaRaw> = z.object({
 });
 
 type AppConfigSchemaOutput = Omit<
-  AppConfigSchemaRaw,
+  z.output<typeof appConfigSchema>,
   "plugins" | "deployment" | "spaces"
 >;
 

@@ -6,42 +6,46 @@ export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
 /** @deprecated Use ContentTemplateDataSchema<T>. */
 export type ContentTemplateSchemaParser<T> = ContentTemplateDataSchema<T>;
 
-export interface ContentTemplateInput {
-  name: string;
-  description: string;
-  schema: unknown;
-  basePrompt?: string | undefined;
-  requiredPermission: "admin" | "trusted" | "public";
-  formatter?: unknown;
-  dataSourceId?: string | undefined;
-  layout?:
-    | {
-        component: unknown;
-        description?: string | undefined;
-        packageName?: string | undefined;
-      }
-    | undefined;
-}
-
 /**
  * Zod schema for ContentTemplate validation (used in plugin configurations)
  */
-export const ContentTemplateSchema: z.ZodType<ContentTemplateInput> = z.object({
+export const ContentTemplateSchema: z.ZodObject<{
+  name: z.ZodString;
+  description: z.ZodString;
+  schema: z.ZodUnknown;
+  basePrompt: z.ZodOptional<z.ZodString>;
+  requiredPermission: z.ZodEnum<{
+    admin: "admin";
+    trusted: "trusted";
+    public: "public";
+  }>;
+  formatter: z.ZodOptional<z.ZodUnknown>;
+  dataSourceId: z.ZodOptional<z.ZodString>;
+  layout: z.ZodOptional<
+    z.ZodObject<{
+      component: z.ZodUnknown;
+      description: z.ZodOptional<z.ZodString>;
+      packageName: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}> = z.object({
   name: z.string(),
   description: z.string(),
-  schema: z.any(), // ZodType can't be validated at runtime - required
+  schema: z.unknown(), // ZodType can't be validated at runtime - required
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   requiredPermission: z.enum(["admin", "trusted", "public"]),
-  formatter: z.any().optional(), // ContentFormatter instance
+  formatter: z.unknown().optional(), // ContentFormatter instance
   dataSourceId: z.string().optional(), // DataSource ID for content generation
   layout: z
     .object({
-      component: z.any(), // Component function or string
+      component: z.unknown(), // Component function or string
       description: z.string().optional(),
       packageName: z.string().optional(),
     })
     .optional(),
 });
+
+export type ContentTemplateInput = z.output<typeof ContentTemplateSchema>;
 
 /**
  * ContentTemplate for reusable generation patterns and view rendering
@@ -58,14 +62,33 @@ export interface ContentTemplate<T = unknown> extends Omit<
 /**
  * Context for content generation - simplified for template-based approach
  */
-export interface GenerationContext {
-  prompt?: string | undefined;
-  conversationHistory?: string | undefined;
-  data?: Record<string, unknown> | undefined;
-  representedIdentity?: "brain" | "anchor" | "none" | undefined;
-  styleGuide?:
-    { voice?: string | undefined; visual?: string | undefined } | undefined;
-}
+export const generationContextSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  conversationHistory: z.ZodOptional<z.ZodString>;
+  data: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  representedIdentity: z.ZodOptional<
+    z.ZodEnum<{ brain: "brain"; anchor: "anchor"; none: "none" }>
+  >;
+  styleGuide: z.ZodOptional<
+    z.ZodObject<{
+      voice: z.ZodOptional<z.ZodString>;
+      visual: z.ZodOptional<z.ZodString>;
+    }>
+  >;
+}> = z.object({
+  prompt: z.string().optional(),
+  conversationHistory: z.string().optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+  representedIdentity: z.enum(["brain", "anchor", "none"]).optional(),
+  styleGuide: z
+    .object({
+      voice: z.string().optional(),
+      visual: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type GenerationContext = z.output<typeof generationContextSchema>;
 
 /**
  * Options for content resolution with multiple strategies

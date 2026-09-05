@@ -11,6 +11,7 @@ import {
   type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
+import { isRecord } from "@brains/utils/is-record";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -72,10 +73,6 @@ function parseMessageMetadata(
   } catch {
     return null;
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 const PERMISSION_RANK: Record<UserPermissionLevel, number> = {

@@ -2,70 +2,66 @@ import { z } from "@brains/utils/zod";
 import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "../lib/oversized-file-error";
 
 /**
+ * Git configuration for directory sync
+ */
+export const directorySyncGitConfigSchema: z.ZodObject<{
+  repo: z.ZodOptional<z.ZodString>;
+  gitUrl: z.ZodOptional<z.ZodString>;
+  branch: z.ZodDefault<z.ZodString>;
+  authToken: z.ZodOptional<z.ZodString>;
+  authorName: z.ZodDefault<z.ZodString>;
+  authorEmail: z.ZodDefault<z.ZodString>;
+  bootstrapFromSeed: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+}> = z.object({
+  repo: z.string().optional().describe("GitHub repo (owner/name)"),
+  gitUrl: z
+    .string()
+    .optional()
+    .describe("Full git remote URL (overrides repo)"),
+  branch: z.string().default("main").describe("Git branch to sync"),
+  authToken: z.string().optional().describe("Auth token for private repos"),
+  authorName: z.string().default("Brain").describe("Git commit author name"),
+  authorEmail: z
+    .string()
+    .default("brain@localhost")
+    .describe("Git commit author email"),
+  bootstrapFromSeed: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "Bootstrap a missing/empty local file:// content remote from seedContentPath",
+    ),
+});
+
+export type DirectorySyncGitConfig = z.output<
+  typeof directorySyncGitConfigSchema
+>;
+export type DirectorySyncGitConfigInput = z.input<
+  typeof directorySyncGitConfigSchema
+>;
+
+/**
  * Configuration schema for directory sync plugin
  */
-export interface DirectorySyncGitConfig {
-  repo?: string | undefined;
-  gitUrl?: string | undefined;
-  branch: string;
-  authToken?: string | undefined;
-  authorName: string;
-  authorEmail: string;
-  bootstrapFromSeed: boolean;
-}
-
-export interface DirectorySyncGitConfigInput {
-  repo?: string | undefined;
-  gitUrl?: string | undefined;
-  branch?: string | undefined;
-  authToken?: string | undefined;
-  authorName?: string | undefined;
-  authorEmail?: string | undefined;
-  bootstrapFromSeed?: boolean | undefined;
-}
-
-export interface DirectorySyncConfig {
-  syncPath?: string | undefined;
-  autoSync: boolean;
-  watchInterval: number;
-  includeMetadata: boolean;
-  entityTypes?: string[] | undefined;
-  initialSync: boolean;
-  syncBatchSize: number;
-  syncPriority: number;
-  seedContent: boolean;
-  seedContentPath?: string | undefined;
-  strictSeedEntityTypes: boolean;
-  deleteOnFileRemoval: boolean;
-  syncInterval: number;
-  commitDebounce: number;
-  maxImportFileBytes: number;
-  git?: DirectorySyncGitConfig | undefined;
-}
-
-export interface DirectorySyncConfigInput {
-  syncPath?: string | undefined;
-  autoSync?: boolean | undefined;
-  watchInterval?: number | undefined;
-  includeMetadata?: boolean | undefined;
-  entityTypes?: string[] | undefined;
-  initialSync?: boolean | undefined;
-  syncBatchSize?: number | undefined;
-  syncPriority?: number | undefined;
-  seedContent?: boolean | undefined;
-  seedContentPath?: string | undefined;
-  strictSeedEntityTypes?: boolean | undefined;
-  deleteOnFileRemoval?: boolean | undefined;
-  syncInterval?: number | undefined;
-  commitDebounce?: number | undefined;
-  maxImportFileBytes?: number | undefined;
-  git?: DirectorySyncGitConfigInput | undefined;
-}
-
-export const directorySyncConfigSchema: z.ZodType<
-  DirectorySyncConfig,
-  DirectorySyncConfigInput
-> = z.object({
+export const directorySyncConfigSchema: z.ZodObject<{
+  syncPath: z.ZodOptional<z.ZodString>;
+  autoSync: z.ZodDefault<z.ZodBoolean>;
+  watchInterval: z.ZodDefault<z.ZodNumber>;
+  includeMetadata: z.ZodDefault<z.ZodBoolean>;
+  entityTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  initialSync: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  syncBatchSize: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  syncPriority: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  seedContent: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  seedContentPath: z.ZodOptional<z.ZodString>;
+  strictSeedEntityTypes: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  deleteOnFileRemoval: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  syncInterval: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  commitDebounce: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  maxImportFileBytes: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+  git: z.ZodOptional<typeof directorySyncGitConfigSchema>;
+}> = z.object({
   syncPath: z
     .string()
     .optional()
@@ -146,30 +142,10 @@ export const directorySyncConfigSchema: z.ZodType<
     .describe("Maximum bytes for text and inline base64 binary imports")
     .default(DEFAULT_MAX_IMPORT_FILE_BYTES),
 
-  git: z
-    .object({
-      repo: z.string().optional().describe("GitHub repo (owner/name)"),
-      gitUrl: z
-        .string()
-        .optional()
-        .describe("Full git remote URL (overrides repo)"),
-      branch: z.string().default("main").describe("Git branch to sync"),
-      authToken: z.string().optional().describe("Auth token for private repos"),
-      authorName: z
-        .string()
-        .default("Brain")
-        .describe("Git commit author name"),
-      authorEmail: z
-        .string()
-        .default("brain@localhost")
-        .describe("Git commit author email"),
-      bootstrapFromSeed: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe(
-          "Bootstrap a missing/empty local file:// content remote from seedContentPath",
-        ),
-    })
-    .optional(),
+  git: directorySyncGitConfigSchema.optional(),
 });
+
+export type DirectorySyncConfig = z.output<typeof directorySyncConfigSchema>;
+export type DirectorySyncConfigInput = z.input<
+  typeof directorySyncConfigSchema
+>;

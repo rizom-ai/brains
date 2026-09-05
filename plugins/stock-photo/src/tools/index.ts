@@ -12,6 +12,7 @@ import type {
 } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 import { getErrorMessage } from "@brains/utils/error";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
@@ -141,10 +142,12 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
           photographerUrl,
           sourceUrl,
           imageUrl,
-          ...(title !== undefined ? { title } : {}),
-          ...(alt !== undefined ? { alt } : {}),
-          ...(targetEntityType !== undefined ? { targetEntityType } : {}),
-          ...(targetEntityId !== undefined ? { targetEntityId } : {}),
+          ...definedFields({
+            title,
+            alt,
+            targetEntityType,
+            targetEntityId,
+          }),
         },
       });
 

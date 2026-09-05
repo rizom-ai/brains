@@ -32,11 +32,21 @@ export function createPublicSkillsNamespace(
     async list(): Promise<PublicSkill[]> {
       const entityService = shell.getEntityService();
       if (entityService.hasEntityType("skill")) {
+        // Scoped to the read alone: a card can still advertise public tools if
+        // skill storage is unavailable. Anything that goes wrong while shaping
+        // the rows below is our own fault and must surface, not be reported as
+        // "no skills stored".
+        let entities;
         try {
-          const entities = await entityService.listEntities({
+          entities = await entityService.listEntities({
             entityType: "skill",
             options: { filter: { visibilityScope: "public" } },
           });
+        } catch {
+          entities = undefined;
+        }
+
+        if (entities !== undefined) {
           const skills = entities
             .map((entity) => skillDataSchema.safeParse(entity.metadata))
             .filter((result) => result.success)
@@ -50,8 +60,6 @@ export function createPublicSkillsNamespace(
           if (skills.length > 0) {
             return skills.slice(0, MAX_PUBLIC_CARD_SKILLS);
           }
-        } catch {
-          // A card can still advertise public tools if skill storage is unavailable.
         }
       }
 

@@ -105,11 +105,11 @@ describe.skipIf(!LINUX)("broker-backed IGitSync", () => {
     await client.initialize();
 
     const outcome = await client.show("deadbeef", "missing.md").then(
-      () => undefined,
-      (error: unknown) => String(error),
+      () => "resolved",
+      (error: unknown) => error,
     );
 
-    expect(outcome).toBeDefined();
+    expect(outcome).toBeInstanceOf(Error);
     await client.cleanup();
   }, 60_000);
 });

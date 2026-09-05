@@ -143,7 +143,7 @@ describe("rendering a document", () => {
     ).toHaveLength(1);
     expect(document?.metadata["status"]).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("marks the pending document failed when no provider answers", async () => {
@@ -166,7 +166,7 @@ describe("rendering a document", () => {
       error: expect.stringContaining("No attachment provider"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses media that is not a document", async () => {
@@ -183,7 +183,7 @@ describe("rendering a document", () => {
       error: "Attachment provider returned image; expected document",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses a document larger than it will store", async () => {
@@ -197,7 +197,7 @@ describe("rendering a document", () => {
       error: expect.stringContaining("exceeds maxBytes=4"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses a document with more pages than it will store", async () => {
@@ -213,7 +213,7 @@ describe("rendering a document", () => {
       error: expect.stringContaining("exceeding maxPageCount=2"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("reuses the document the route found instead of asking for it again", async () => {
@@ -249,7 +249,7 @@ describe("rendering a document", () => {
       .getEntity({ entityType: "document", id: "existing-carousel" });
     expect(document?.content).toBe(existing);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("leaves the source pointing at what it rendered", async () => {
@@ -286,7 +286,7 @@ describe("rendering a document", () => {
     expect(post?.content).toContain("id: unrelated");
     expect(post?.content).not.toContain("id: old-carousel");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects job data that does not name what to render", async () => {
@@ -303,7 +303,7 @@ describe("rendering a document", () => {
       ),
     ).toMatchObject({ expectedContentHash: "carousel-pending-hash" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("leaves an edit made while it ran in place", async () => {
@@ -318,6 +318,6 @@ describe("rendering a document", () => {
 
     expect(outcome).toMatchObject({ status: "superseded" });
 
-    harness.reset();
+    await harness.reset();
   });
 });

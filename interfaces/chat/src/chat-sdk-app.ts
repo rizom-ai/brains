@@ -2,6 +2,7 @@ import {
   formatContentDispositionHeader,
   type IRuntimeStateNamespace,
   type WebRouteDefinition,
+  RuntimeUploadStoreError,
 } from "@brains/plugins";
 import type {
   ActionEvent,
@@ -170,9 +171,14 @@ export class ChatSdkAppHost {
       return new Response("Missing upload id", { status: 400 });
     }
 
+    const uploadStore = this.deps.getUploadStore(platform);
+    if (!uploadStore) {
+      // The adapter is configured but no store was registered for it. That is
+      // a gap on this side, not a request for something that does not exist.
+      return new Response("Chat upload storage unavailable", { status: 503 });
+    }
+
     try {
-      const uploadStore = this.deps.getUploadStore(platform);
-      if (!uploadStore) throw new Error("Chat upload store unavailable");
       const { record, content } = await uploadStore.read(uploadId);
       const body = new Uint8Array(content).buffer;
       return new Response(body, {
@@ -189,8 +195,18 @@ export class ChatSdkAppHost {
           }),
         },
       });
-    } catch {
-      return new Response("Upload not found", { status: 404 });
+    } catch (error) {
+      // A ref that does not resolve is genuinely absent. Stored metadata we
+      // cannot read, or a fault while building the response, is a failure on
+      // this side and saying "not found" would send the caller looking for a
+      // problem they do not have.
+      if (
+        error instanceof RuntimeUploadStoreError &&
+        error.code !== "invalid_metadata"
+      ) {
+        return new Response("Upload not found", { status: 404 });
+      }
+      return new Response("Upload could not be read", { status: 500 });
     }
   }
 }

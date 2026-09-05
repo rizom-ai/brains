@@ -17,7 +17,7 @@ describe("ProgressReporter", () => {
 
     it("should create a ProgressReporter when callback is provided", () => {
       const progress = CallbackProgressReporter.from(mockCallback);
-      expect(progress).toBeDefined();
+      expect(progress).toBeInstanceOf(CallbackProgressReporter);
     });
   });
 
@@ -29,10 +29,11 @@ describe("ProgressReporter", () => {
     });
 
     it("accepts reports without throwing", async () => {
-      await CallbackProgressReporter.noop().report({
+      const outcome = await CallbackProgressReporter.noop().report({
         progress: 50,
         total: 100,
       });
+      expect(outcome).toBeUndefined();
     });
 
     it("returns a distinct instance each call", () => {

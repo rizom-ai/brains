@@ -10,93 +10,63 @@ import {
 import type { RouteRegistry } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import type { SiteBuilderConfig } from "../config";
-import type {
-  SiteBuildEnvironment,
-  SiteBuildEnvironmentStatus,
-  SiteBuildStatusService,
+import {
+  recentSiteBuildSchema,
+  siteBuildEnvironmentSchema,
+  siteBuildEnvironmentStatusSchema,
+  type SiteBuildEnvironment,
+  type SiteBuildStatusService,
 } from "./site-build-status";
 import {
   readSitePublicationStatus,
   sitePublicationStatusSchema,
-  type SitePublicationStatus,
 } from "./site-publication-status";
 import { resolveSiteMetadata } from "./site-metadata";
 
-export type SiteWorkspaceAction =
-  { type: "build-preview" } | { type: "build-production"; confirmed: true };
+export const siteWorkspaceActionSchema: z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ type: z.ZodLiteral<"build-preview"> }>,
+    z.ZodObject<{
+      type: z.ZodLiteral<"build-production">;
+      confirmed: z.ZodLiteral<true>;
+    }>,
+  ],
+  "type"
+> = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("build-preview") }),
+  z.object({
+    type: z.literal("build-production"),
+    confirmed: z.literal(true),
+  }),
+]);
 
-export const siteWorkspaceActionSchema: z.ZodType<SiteWorkspaceAction> =
-  z.discriminatedUnion("type", [
-    z.object({ type: z.literal("build-preview") }),
-    z.object({
-      type: z.literal("build-production"),
-      confirmed: z.literal(true),
-    }),
-  ]);
+export type SiteWorkspaceAction = z.output<typeof siteWorkspaceActionSchema>;
 
-export interface SiteWorkspaceSnapshot {
-  site: {
-    title: string;
-    previewUrl?: string | undefined;
-    liveUrl?: string | undefined;
-  };
-  automation: {
-    autoRebuild: boolean;
-    debounceMs: number;
-    defaultEnvironment: SiteBuildEnvironment;
-  };
-  environments: Array<
-    SiteBuildEnvironmentStatus & { publication: SitePublicationStatus }
-  >;
-  recentBuilds: Awaited<
-    ReturnType<SiteBuildStatusService["getSnapshot"]>
-  >["recentBuilds"];
-  routes: Array<{ id: string; path: string; title: string }>;
-}
-
-const activeBuildSchema = z.object({
-  jobId: z.string().optional(),
-  state: z.enum(["debouncing", "queued", "building"]),
-  requestedAt: z.string().datetime(),
-  startedAt: z.string().datetime().optional(),
-});
-const buildEnvironmentSchema = z.object({
-  environment: z.enum(["preview", "production"]),
+const buildEnvironmentSchema: z.ZodObject<
+  (typeof siteBuildEnvironmentStatusSchema)["shape"] & {
+    publication: typeof sitePublicationStatusSchema;
+  }
+> = z.object({
+  ...siteBuildEnvironmentStatusSchema.shape,
   publication: sitePublicationStatusSchema,
-  active: activeBuildSchema.optional(),
-  lastSuccess: z
-    .object({
-      jobId: z.string(),
-      completedAt: z.string().datetime(),
-      routesBuilt: z.number().int().nonnegative(),
-      warnings: z.array(z.string()),
-    })
-    .optional(),
-  lastFailure: z
-    .object({
-      jobId: z.string(),
-      completedAt: z.string().datetime(),
-      message: z.string(),
-    })
-    .optional(),
-  lastCancellation: z
-    .object({
-      jobId: z.string(),
-      completedAt: z.string().datetime(),
-      message: z.string(),
-    })
-    .optional(),
 });
-const recentBuildSchema = z.object({
-  jobId: z.string(),
-  environment: z.enum(["preview", "production"]),
-  outcome: z.enum(["succeeded", "failed", "cancelled", "skipped"]),
-  completedAt: z.string().datetime(),
-  routesBuilt: z.number().int().nonnegative().optional(),
-  warnings: z.array(z.string()).optional(),
-  message: z.string().optional(),
-});
-const siteWorkspaceDataSchema: z.ZodType<SiteWorkspaceSnapshot> = z.object({
+const siteWorkspaceDataSchema: z.ZodObject<{
+  site: z.ZodObject<{
+    title: z.ZodString;
+    previewUrl: z.ZodOptional<z.ZodString>;
+    liveUrl: z.ZodOptional<z.ZodString>;
+  }>;
+  automation: z.ZodObject<{
+    autoRebuild: z.ZodBoolean;
+    debounceMs: z.ZodNumber;
+    defaultEnvironment: typeof siteBuildEnvironmentSchema;
+  }>;
+  environments: z.ZodArray<typeof buildEnvironmentSchema>;
+  recentBuilds: z.ZodArray<typeof recentSiteBuildSchema>;
+  routes: z.ZodArray<
+    z.ZodObject<{ id: z.ZodString; path: z.ZodString; title: z.ZodString }>
+  >;
+}> = z.object({
   site: z.object({
     title: z.string().min(1),
     previewUrl: z.string().url().optional(),
@@ -105,14 +75,16 @@ const siteWorkspaceDataSchema: z.ZodType<SiteWorkspaceSnapshot> = z.object({
   automation: z.object({
     autoRebuild: z.boolean(),
     debounceMs: z.number().int().nonnegative(),
-    defaultEnvironment: z.enum(["preview", "production"]),
+    defaultEnvironment: siteBuildEnvironmentSchema,
   }),
   environments: z.array(buildEnvironmentSchema),
-  recentBuilds: z.array(recentBuildSchema),
+  recentBuilds: z.array(recentSiteBuildSchema),
   routes: z.array(
     z.object({ id: z.string().min(1), path: z.string(), title: z.string() }),
   ),
 });
+
+export type SiteWorkspaceSnapshot = z.output<typeof siteWorkspaceDataSchema>;
 
 const actionOutputSchema = z.object({
   accepted: z.literal(true),

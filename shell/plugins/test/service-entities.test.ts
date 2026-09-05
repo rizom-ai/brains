@@ -501,7 +501,7 @@ describe("service package declaring entities", () => {
     );
 
     expect(enqueued).toEqual(["@fixture/bookmarks:capture:capture-bookmark"]);
-    harness.reset();
+    await harness.reset();
   });
 
   // The entity-side `publish` slot takes a static provider, which is enough
@@ -573,7 +573,7 @@ describe("service package declaring entities", () => {
         },
       ]);
 
-      harness.reset();
+      await harness.reset();
     });
 
     it("announces nothing when config supplies no credentials", async () => {
@@ -583,7 +583,7 @@ describe("service package declaring entities", () => {
 
       expect(registered).toEqual([]);
 
-      harness.reset();
+      await harness.reset();
     });
   });
 
@@ -623,7 +623,7 @@ describe("service package declaring entities", () => {
       ),
     ).toEqual({ source: "shared" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A projection rule that reads configuration cannot be static entity
@@ -703,7 +703,7 @@ describe("service package declaring entities", () => {
     expect(capabilities.projectionRules?.map(({ id }) => id)).toEqual([
       "bookmark-extraction",
     ]);
-    harness.reset();
+    await harness.reset();
 
     // Configuration decides whether the rule exists at all.
     const disabled = instantiatePluginPackageDefinition(
@@ -719,7 +719,7 @@ describe("service package declaring entities", () => {
     expect(
       (await second.installPlugin(disabled)).projectionRules,
     ).toBeUndefined();
-    second.reset();
+    await second.reset();
   });
 
   it("still emits only a service plugin when no entities are declared", () => {

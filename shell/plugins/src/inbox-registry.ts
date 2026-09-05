@@ -1,4 +1,3 @@
-import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 
 const inboxIdPattern = /^[a-z][a-z0-9-]*$/;
@@ -19,29 +18,26 @@ export const inboxUrgencySchema: z.ZodEnum<{
 export const inboxFacetKeySchema: z.ZodString = inboxIdSchema.max(40);
 export const inboxFacetValueSchema: z.ZodString = inboxIdSchema.max(40);
 
-interface InboxFacetOptionValue {
-  value: string;
-  label: string;
-}
+type InboxFacetOptionSchema = z.ZodObject<
+  { value: z.ZodString; label: z.ZodString },
+  z.core.$strict
+>;
 
-export const inboxFacetOptionSchema: z.ZodType<
-  InboxFacetOptionValue,
-  InboxFacetOptionValue
-> = z.strictObject({
+export const inboxFacetOptionSchema: InboxFacetOptionSchema = z.strictObject({
   value: inboxFacetValueSchema,
   label: z.string().trim().min(1).max(100),
 });
 
-interface InboxFacetDefinitionValue {
-  key: string;
-  label: string;
-  values: InboxFacetOptionValue[];
-}
+type InboxFacetDefinitionSchema = z.ZodObject<
+  {
+    key: z.ZodString;
+    label: z.ZodString;
+    values: z.ZodArray<InboxFacetOptionSchema>;
+  },
+  z.core.$strict
+>;
 
-export const inboxFacetDefinitionSchema: z.ZodType<
-  InboxFacetDefinitionValue,
-  InboxFacetDefinitionValue
-> = z
+export const inboxFacetDefinitionSchema: InboxFacetDefinitionSchema = z
   .strictObject({
     key: inboxFacetKeySchema,
     label: z.string().trim().min(1).max(100),
@@ -61,36 +57,29 @@ export const inboxFacetDefinitionSchema: z.ZodType<
     }
   });
 
-export const inboxFacetDefinitionsSchema: z.ZodType<
-  InboxFacetDefinitionValue[],
-  InboxFacetDefinitionValue[]
-> = z
-  .array(inboxFacetDefinitionSchema)
-  .max(8)
-  .superRefine((definitions, context) => {
-    const keys = new Set<string>();
-    for (const definition of definitions) {
-      if (keys.has(definition.key)) {
-        context.addIssue({
-          code: "custom",
-          path: [],
-          message: `Duplicate inbox facet key: ${definition.key}`,
-        });
-      }
-      keys.add(definition.key);
-    }
-  });
-
-interface InboxFacetsValue {
-  [key: string]: string;
-}
-
-export const inboxFacetsSchema: z.ZodType<InboxFacetsValue, InboxFacetsValue> =
+export const inboxFacetDefinitionsSchema: z.ZodArray<InboxFacetDefinitionSchema> =
   z
-    .record(inboxFacetKeySchema, inboxFacetValueSchema)
-    .refine((facets) => Object.keys(facets).length <= 8, {
-      message: "Inbox items may declare at most eight facets",
+    .array(inboxFacetDefinitionSchema)
+    .max(8)
+    .superRefine((definitions, context) => {
+      const keys = new Set<string>();
+      for (const definition of definitions) {
+        if (keys.has(definition.key)) {
+          context.addIssue({
+            code: "custom",
+            path: [],
+            message: `Duplicate inbox facet key: ${definition.key}`,
+          });
+        }
+        keys.add(definition.key);
+      }
     });
+
+export const inboxFacetsSchema: z.ZodRecord<z.ZodString, z.ZodString> = z
+  .record(inboxFacetKeySchema, inboxFacetValueSchema)
+  .refine((facets) => Object.keys(facets).length <= 8, {
+    message: "Inbox items may declare at most eight facets",
+  });
 
 const inboxFollowUpContextKeySchema = z
   .string()
@@ -103,97 +92,88 @@ const inboxFollowUpContextValueSchema = z
     message: "Inbox follow-up context values cannot contain controls",
   });
 
-interface InboxFollowUpDeclarationValue {
-  kind: string;
-  context: Record<string, string>;
-}
+type InboxFollowUpDeclarationSchema = z.ZodObject<
+  { kind: z.ZodString; context: z.ZodRecord<z.ZodString, z.ZodString> },
+  z.core.$strict
+>;
 
-const inboxFollowUpDeclarationSchema: z.ZodType<
-  InboxFollowUpDeclarationValue,
-  InboxFollowUpDeclarationValue
-> = z.strictObject({
-  kind: inboxIdSchema,
-  context: z
-    .record(inboxFollowUpContextKeySchema, inboxFollowUpContextValueSchema)
-    .refine((context) => Object.keys(context).length <= 8, {
-      message: "Inbox follow-up context may contain at most eight entries",
-    }),
+const inboxFollowUpDeclarationSchema: InboxFollowUpDeclarationSchema =
+  z.strictObject({
+    kind: inboxIdSchema,
+    context: z
+      .record(inboxFollowUpContextKeySchema, inboxFollowUpContextValueSchema)
+      .refine((context) => Object.keys(context).length <= 8, {
+        message: "Inbox follow-up context may contain at most eight entries",
+      }),
+  });
+
+const inboxFollowUpDeclarationsSchema: z.ZodArray<InboxFollowUpDeclarationSchema> =
+  z
+    .array(inboxFollowUpDeclarationSchema)
+    .max(8)
+    .superRefine((declarations, context) => {
+      const kinds = new Set<string>();
+      for (const declaration of declarations) {
+        if (kinds.has(declaration.kind)) {
+          context.addIssue({
+            code: "custom",
+            path: [],
+            message: `Duplicate inbox follow-up kind: ${declaration.kind}`,
+          });
+        }
+        kinds.add(declaration.kind);
+      }
+    });
+
+type InboxActionSchema = z.ZodObject<
+  { id: z.ZodString; label: z.ZodString; confirm: z.ZodOptional<z.ZodBoolean> },
+  z.core.$strict
+>;
+
+export const inboxActionSchema: InboxActionSchema = z.strictObject({
+  id: inboxIdSchema,
+  label: z.string().trim().min(1).max(100),
+  confirm: z.boolean().optional(),
 });
 
-const inboxFollowUpDeclarationsSchema: z.ZodType<
-  InboxFollowUpDeclarationValue[],
-  InboxFollowUpDeclarationValue[]
-> = z
-  .array(inboxFollowUpDeclarationSchema)
-  .max(8)
-  .superRefine((declarations, context) => {
-    const kinds = new Set<string>();
-    for (const declaration of declarations) {
-      if (kinds.has(declaration.kind)) {
-        context.addIssue({
-          code: "custom",
-          path: [],
-          message: `Duplicate inbox follow-up kind: ${declaration.kind}`,
-        });
-      }
-      kinds.add(declaration.kind);
-    }
-  });
+type InboxEntityRefSchema = z.ZodObject<
+  { entityType: z.ZodString; entityId: z.ZodString },
+  z.core.$strict
+>;
 
-interface InboxActionValue {
-  id: string;
-  label: string;
-  confirm?: boolean | undefined;
-}
-
-export const inboxActionSchema: z.ZodType<InboxActionValue, InboxActionValue> =
-  z.strictObject({
-    id: inboxIdSchema,
-    label: z.string().trim().min(1).max(100),
-    confirm: z.boolean().optional(),
-  });
-
-interface InboxEntityRefValue {
-  entityType: string;
-  entityId: string;
-}
-
-export const inboxEntityRefSchema: z.ZodType<
-  InboxEntityRefValue,
-  InboxEntityRefValue
-> = z.strictObject({
+export const inboxEntityRefSchema: InboxEntityRefSchema = z.strictObject({
   entityType: z.string().trim().min(1).max(100),
   entityId: z.string().trim().min(1).max(300),
 });
 
-interface InboxContactValue {
-  label: string;
-  personId?: string | undefined;
-}
+type InboxContactSchema = z.ZodObject<
+  { label: z.ZodString; personId: z.ZodOptional<z.ZodString> },
+  z.core.$strict
+>;
 
-export const inboxContactSchema: z.ZodType<
-  InboxContactValue,
-  InboxContactValue
-> = z.strictObject({
+export const inboxContactSchema: InboxContactSchema = z.strictObject({
   label: z.string().trim().min(1).max(300),
   personId: z.string().trim().min(1).max(200).optional(),
 });
 
-interface InboxItemValue {
-  id: string;
-  title: string;
-  summary?: string | undefined;
-  contact?: InboxContactValue | undefined;
-  threadOrdinal?: number | undefined;
-  receivedAt: string;
-  urgency: "high" | "normal";
-  entityRef?: InboxEntityRefValue | undefined;
-  facets?: InboxFacetsValue | undefined;
-  followUps?: InboxFollowUpDeclarationValue[] | undefined;
-  actions: InboxActionValue[];
-}
+type InboxItemSchema = z.ZodObject<
+  {
+    id: z.ZodString;
+    title: z.ZodString;
+    summary: z.ZodOptional<z.ZodString>;
+    contact: z.ZodOptional<InboxContactSchema>;
+    threadOrdinal: z.ZodOptional<z.ZodNumber>;
+    receivedAt: z.ZodISODateTime;
+    urgency: typeof inboxUrgencySchema;
+    entityRef: z.ZodOptional<InboxEntityRefSchema>;
+    facets: z.ZodOptional<typeof inboxFacetsSchema>;
+    followUps: z.ZodOptional<typeof inboxFollowUpDeclarationsSchema>;
+    actions: z.ZodArray<InboxActionSchema>;
+  },
+  z.core.$strict
+>;
 
-export const inboxItemSchema: z.ZodType<InboxItemValue, InboxItemValue> = z
+export const inboxItemSchema: InboxItemSchema = z
   .strictObject({
     id: inboxItemIdSchema,
     title: z.string().trim().min(1).max(160),
@@ -226,60 +206,62 @@ export const inboxItemSchema: z.ZodType<InboxItemValue, InboxItemValue> = z
     }
   });
 
-export const inboxItemListSchema: z.ZodType<
-  InboxItemValue[],
-  InboxItemValue[]
-> = z.array(inboxItemSchema).max(1_000);
+export const inboxItemListSchema: z.ZodArray<InboxItemSchema> = z
+  .array(inboxItemSchema)
+  .max(1_000);
 
-interface InboxActorValue {
-  permissionLevel: UserPermissionLevel;
-}
+type InboxActorSchema = z.ZodObject<
+  {
+    permissionLevel: z.ZodEnum<{
+      admin: "admin";
+      trusted: "trusted";
+      public: "public";
+    }>;
+  },
+  z.core.$strict
+>;
 
-export const inboxActorSchema: z.ZodType<InboxActorValue, InboxActorValue> =
-  z.strictObject({
-    permissionLevel: z.enum(["admin", "trusted", "public"]),
-  });
+export const inboxActorSchema: InboxActorSchema = z.strictObject({
+  permissionLevel: z.enum(["admin", "trusted", "public"]),
+});
 
-interface InboxItemDetailValue {
-  kind: "plain";
-  text: string;
-  truncated: boolean;
-}
+type InboxItemDetailSchema = z.ZodObject<
+  { kind: z.ZodLiteral<"plain">; text: z.ZodString; truncated: z.ZodBoolean },
+  z.core.$strict
+>;
 
-export const inboxItemDetailSchema: z.ZodType<
-  InboxItemDetailValue,
-  InboxItemDetailValue
-> = z.strictObject({
+export const inboxItemDetailSchema: InboxItemDetailSchema = z.strictObject({
   kind: z.literal("plain"),
   text: z.string().max(100_000),
   truncated: z.boolean(),
 });
 
-interface InboxSourceMetadataValue {
-  sourceId: string;
-  displayName: string;
-}
+type InboxSourceMetadataSchema = z.ZodObject<
+  { sourceId: z.ZodString; displayName: z.ZodString },
+  z.core.$strict
+>;
 
-export const inboxSourceMetadataSchema: z.ZodType<
-  InboxSourceMetadataValue,
-  InboxSourceMetadataValue
-> = z.strictObject({
-  sourceId: inboxIdSchema,
-  displayName: z.string().trim().min(1).max(100),
-});
+export const inboxSourceMetadataSchema: InboxSourceMetadataSchema =
+  z.strictObject({
+    sourceId: inboxIdSchema,
+    displayName: z.string().trim().min(1).max(100),
+  });
 
-interface InboxSourceDescriptorValue extends InboxSourceMetadataValue {
-  facets?: InboxFacetDefinitionValue[] | undefined;
-}
+type InboxSourceDescriptorSchema = z.ZodObject<
+  {
+    sourceId: z.ZodString;
+    displayName: z.ZodString;
+    facets: z.ZodOptional<typeof inboxFacetDefinitionsSchema>;
+  },
+  z.core.$strict
+>;
 
-export const inboxSourceDescriptorSchema: z.ZodType<
-  InboxSourceDescriptorValue,
-  InboxSourceDescriptorValue
-> = z.strictObject({
-  sourceId: inboxIdSchema,
-  displayName: z.string().trim().min(1).max(100),
-  facets: inboxFacetDefinitionsSchema.optional(),
-});
+export const inboxSourceDescriptorSchema: InboxSourceDescriptorSchema =
+  z.strictObject({
+    sourceId: inboxIdSchema,
+    displayName: z.string().trim().min(1).max(100),
+    facets: inboxFacetDefinitionsSchema.optional(),
+  });
 
 export type InboxAction = z.output<typeof inboxActionSchema>;
 export type InboxFollowUpDeclaration = z.output<
@@ -505,7 +487,7 @@ function freezeFacetDefinitions(
 
 function createSourceFacetsSchema(
   definitions: InboxFacetDefinition[],
-): z.ZodType<InboxFacets, InboxFacets> {
+): typeof inboxFacetsSchema {
   const allowed = new Map(
     definitions.map((definition) => [
       definition.key,

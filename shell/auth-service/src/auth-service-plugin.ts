@@ -16,66 +16,43 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import {
-  AUTH_BRAIN_ANCHOR_CONFIG_KINDS,
-  type AuthBrainAnchorConfigKind,
-} from "./admin-contracts";
+import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
 import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
-export type SetupEmailConfig =
-  | string
-  | {
-      to: string;
-      subject: string;
-      body: string;
-    };
+const setupEmailSchema: z.ZodUnion<
+  readonly [
+    z.ZodString,
+    z.ZodObject<
+      { to: z.ZodString; subject: z.ZodString; body: z.ZodString },
+      z.core.$strict
+    >,
+  ]
+> = z.union([
+  z.string().email(),
+  z
+    .object({
+      /** Setup email recipient. */
+      to: z.string().email(),
+      /** Notification subject. */
+      subject: z.string().min(1),
+      /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
+      body: z.string().min(1),
+    })
+    .strict(),
+]);
 
-const setupEmailSchema: z.ZodType<SetupEmailConfig, SetupEmailConfig> = z.union(
-  [
-    z.string().email(),
-    z
-      .object({
-        /** Setup email recipient. */
-        to: z.string().email(),
-        /** Notification subject. */
-        subject: z.string().min(1),
-        /** Notification body template. Supports {{setupUrl}}, {{expiresAt}}, and {{origin}}. */
-        body: z.string().min(1),
-      })
-      .strict(),
-  ],
-);
+export type SetupEmailConfig = z.output<typeof setupEmailSchema>;
 
-export interface AuthServiceConfig {
-  issuer?: string | undefined;
-  anchor: AuthBrainAnchorConfigKind;
-  trustedIssuers: string[];
-  allowLocalhostIssuers?: boolean | undefined;
-  storageDir?: string | undefined;
-  replica?: AuthRuntimeReplicaOptions | undefined;
-  setupTokenTtlSeconds: number;
-  setupEmail?: SetupEmailConfig | undefined;
-  accountSettingsEncryptionKey?: string | undefined;
-}
-
-export interface AuthServiceConfigInput {
-  issuer?: string | undefined;
-  anchor?: AuthBrainAnchorConfigKind | undefined;
-  trustedIssuers?: string[] | undefined;
-  allowLocalhostIssuers?: boolean | undefined;
-  storageDir?: string | undefined;
-  replica?: AuthRuntimeReplicaOptions | undefined;
-  setupTokenTtlSeconds?: number | undefined;
-  setupEmail?: SetupEmailConfig | undefined;
-  accountSettingsEncryptionKey?: string | undefined;
-}
-
-const authRuntimeReplicaSchema: z.ZodType<
-  AuthRuntimeReplicaOptions,
-  AuthRuntimeReplicaOptions
+const authRuntimeReplicaSchema: z.ZodObject<
+  {
+    syncUrl: z.ZodString;
+    authToken: z.ZodString;
+    syncIntervalMs: z.ZodOptional<z.ZodNumber>;
+  },
+  z.core.$strict
 > = z
   .object({
     /** Private remote libSQL primary URL. */
@@ -90,10 +67,34 @@ const authRuntimeReplicaSchema: z.ZodType<
   })
   .strict();
 
-const authServiceConfigSchema: z.ZodType<
-  AuthServiceConfig,
-  AuthServiceConfigInput
-> = z.object({
+// The replica options belong to the runtime database; the config schema must
+// accept every value typed by them and yield nothing outside them.
+function expectReplicaOptions(
+  value: z.output<typeof authRuntimeReplicaSchema>,
+): AuthRuntimeReplicaOptions {
+  return value;
+}
+function expectReplicaOptionsInput(
+  value: AuthRuntimeReplicaOptions,
+): z.input<typeof authRuntimeReplicaSchema> {
+  return value;
+}
+void expectReplicaOptions;
+void expectReplicaOptionsInput;
+
+const authServiceConfigSchema: z.ZodObject<{
+  issuer: z.ZodOptional<z.ZodString>;
+  anchor: z.ZodDefault<
+    z.ZodEnum<{ person: "person"; team: "team"; organization: "organization" }>
+  >;
+  trustedIssuers: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  allowLocalhostIssuers: z.ZodOptional<z.ZodBoolean>;
+  storageDir: z.ZodOptional<z.ZodString>;
+  replica: z.ZodOptional<typeof authRuntimeReplicaSchema>;
+  setupTokenTtlSeconds: z.ZodDefault<z.ZodNumber>;
+  setupEmail: z.ZodOptional<typeof setupEmailSchema>;
+  accountSettingsEncryptionKey: z.ZodOptional<z.ZodString>;
+}> = z.object({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
   issuer: z.string().optional(),
   /** Config-declared Anchor profile flavor. Team and organization are collective. */
@@ -117,6 +118,9 @@ const authServiceConfigSchema: z.ZodType<
   /** Deployment secret for encrypted per-account plugin settings. */
   accountSettingsEncryptionKey: z.string().min(32).optional(),
 });
+
+export type AuthServiceConfig = z.output<typeof authServiceConfigSchema>;
+export type AuthServiceConfigInput = z.input<typeof authServiceConfigSchema>;
 
 type PasskeySetupToolData =
   | { status: "setup_required"; setupUrl: string; expiresAt: number }

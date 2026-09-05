@@ -9,24 +9,21 @@ import { z } from "@brains/utils/zod";
  * type can be any entity type (post, link, summary, conversation, etc.)
  * entityId and contentHash enable tracking which entities have been processed
  */
-export interface SourceReference {
-  slug: string;
-  title: string;
-  type: string;
-  entityId: string;
-  contentHash: string;
-}
-
-export const sourceReferenceSchema: z.ZodType<
-  SourceReference,
-  SourceReference
-> = z.object({
+export const sourceReferenceSchema: z.ZodObject<{
+  slug: z.ZodString;
+  title: z.ZodString;
+  type: z.ZodString;
+  entityId: z.ZodString;
+  contentHash: z.ZodString;
+}> = z.object({
   slug: z.string(),
   title: z.string(),
   type: z.string(),
   entityId: z.string(),
   contentHash: z.string(),
 });
+
+export type SourceReference = z.output<typeof sourceReferenceSchema>;
 
 /**
  * Formatter for source lists in entity markdown

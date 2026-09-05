@@ -9,106 +9,135 @@ export const ATPROTO_BRAIN_CARD_UNAVAILABLE = "atproto:brain-card-unavailable";
 export const ATPROTO_BRAIN_CARD_CONFLICT = "atproto:brain-card-conflict";
 export const ATPROTO_JETSTREAM_GAP = "atproto:jetstream-gap";
 
-export interface AtprotoBrainCardDiscoveredPayload {
-  repoDid: string;
-  uri: string;
-  cid: string;
-  record: AtprotoBrainCardRecord;
-}
+const atprotoBrainCardRecordSchema: z.ZodCustom<
+  AtprotoBrainCardRecord,
+  AtprotoBrainCardRecord
+> = z.custom<AtprotoBrainCardRecord>(
+  (value) =>
+    canonicalAtprotoRecordSchemas["ai.rizom.brain.card"].safeParse(value)
+      .success,
+);
 
-export interface AtprotoBrainDiscoveryEventPayload {
-  agentId: string;
-  name: string;
-  url: string;
-  status: "discovered" | "approved" | "archived";
-  repoDid?: string | undefined;
-  brainDid?: string | undefined;
-  anchorDid?: string | undefined;
-  cardUri?: string | undefined;
-  cardCid?: string | undefined;
-}
+export const atprotoBrainCardDiscoveredPayloadSchema: z.ZodObject<
+  {
+    repoDid: z.ZodString;
+    uri: z.ZodString;
+    cid: z.ZodString;
+    record: typeof atprotoBrainCardRecordSchema;
+  },
+  z.core.$strict
+> = z
+  .object({
+    repoDid: z.string().min(1),
+    uri: z.string().min(1),
+    cid: z.string().min(1),
+    record: atprotoBrainCardRecordSchema,
+  })
+  .strict();
 
-export interface AtprotoBrainCardUnavailablePayload {
-  repoDid: string;
-  observedAt: string;
-  staleAfter?: string | undefined;
-  reason: "deleted" | "refresh-failed";
-  error?: string | undefined;
-}
+export type AtprotoBrainCardDiscoveredPayload = z.output<
+  typeof atprotoBrainCardDiscoveredPayloadSchema
+>;
 
-export interface AtprotoBrainCardConflictPayload {
-  domain: string;
-  existingRepoDid?: string | undefined;
-  candidateRepoDid: string;
-  observedAt: string;
-  reason: string;
-}
+export const atprotoBrainDiscoveryEventPayloadSchema: z.ZodObject<
+  {
+    agentId: z.ZodString;
+    name: z.ZodString;
+    url: z.ZodString;
+    status: z.ZodEnum<{
+      discovered: "discovered";
+      approved: "approved";
+      archived: "archived";
+    }>;
+    repoDid: z.ZodOptional<z.ZodString>;
+    brainDid: z.ZodOptional<z.ZodString>;
+    anchorDid: z.ZodOptional<z.ZodString>;
+    cardUri: z.ZodOptional<z.ZodString>;
+    cardCid: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    agentId: z.string().min(1),
+    name: z.string().min(1),
+    url: z.string().url(),
+    status: z.enum(["discovered", "approved", "archived"]),
+    repoDid: z.string().min(1).optional(),
+    brainDid: z.string().min(1).optional(),
+    anchorDid: z.string().min(1).optional(),
+    cardUri: z.string().min(1).optional(),
+    cardCid: z.string().min(1).optional(),
+  })
+  .strict();
 
-export interface AtprotoJetstreamGapPayload {
-  previousCursorTimeUs: number;
-  clampedCursorTimeUs: number;
-  observedAt: string;
-}
+export type AtprotoBrainDiscoveryEventPayload = z.output<
+  typeof atprotoBrainDiscoveryEventPayloadSchema
+>;
 
-const atprotoBrainCardRecordSchema: z.ZodType<AtprotoBrainCardRecord> =
-  z.custom<AtprotoBrainCardRecord>(
-    (value) =>
-      canonicalAtprotoRecordSchemas["ai.rizom.brain.card"].safeParse(value)
-        .success,
-  );
+export const atprotoBrainCardUnavailablePayloadSchema: z.ZodObject<
+  {
+    repoDid: z.ZodString;
+    observedAt: z.ZodString;
+    staleAfter: z.ZodOptional<z.ZodString>;
+    reason: z.ZodEnum<{
+      deleted: "deleted";
+      "refresh-failed": "refresh-failed";
+    }>;
+    error: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    repoDid: z.string().startsWith("did:plc:"),
+    observedAt: z.string().datetime(),
+    staleAfter: z.string().datetime().optional(),
+    reason: z.enum(["deleted", "refresh-failed"]),
+    error: z.string().min(1).optional(),
+  })
+  .strict();
 
-export const atprotoBrainCardDiscoveredPayloadSchema: z.ZodType<AtprotoBrainCardDiscoveredPayload> =
-  z
-    .object({
-      repoDid: z.string().min(1),
-      uri: z.string().min(1),
-      cid: z.string().min(1),
-      record: atprotoBrainCardRecordSchema,
-    })
-    .strict();
+export type AtprotoBrainCardUnavailablePayload = z.output<
+  typeof atprotoBrainCardUnavailablePayloadSchema
+>;
 
-export const atprotoBrainDiscoveryEventPayloadSchema: z.ZodType<AtprotoBrainDiscoveryEventPayload> =
-  z
-    .object({
-      agentId: z.string().min(1),
-      name: z.string().min(1),
-      url: z.string().url(),
-      status: z.enum(["discovered", "approved", "archived"]),
-      repoDid: z.string().min(1).optional(),
-      brainDid: z.string().min(1).optional(),
-      anchorDid: z.string().min(1).optional(),
-      cardUri: z.string().min(1).optional(),
-      cardCid: z.string().min(1).optional(),
-    })
-    .strict();
+export const atprotoBrainCardConflictPayloadSchema: z.ZodObject<
+  {
+    domain: z.ZodString;
+    existingRepoDid: z.ZodOptional<z.ZodString>;
+    candidateRepoDid: z.ZodString;
+    observedAt: z.ZodString;
+    reason: z.ZodString;
+  },
+  z.core.$strict
+> = z
+  .object({
+    domain: z.string().min(1),
+    existingRepoDid: z.string().min(1).optional(),
+    candidateRepoDid: z.string().startsWith("did:plc:"),
+    observedAt: z.string().datetime(),
+    reason: z.string().min(1),
+  })
+  .strict();
 
-export const atprotoBrainCardUnavailablePayloadSchema: z.ZodType<AtprotoBrainCardUnavailablePayload> =
-  z
-    .object({
-      repoDid: z.string().startsWith("did:plc:"),
-      observedAt: z.string().datetime(),
-      staleAfter: z.string().datetime().optional(),
-      reason: z.enum(["deleted", "refresh-failed"]),
-      error: z.string().min(1).optional(),
-    })
-    .strict();
+export type AtprotoBrainCardConflictPayload = z.output<
+  typeof atprotoBrainCardConflictPayloadSchema
+>;
 
-export const atprotoBrainCardConflictPayloadSchema: z.ZodType<AtprotoBrainCardConflictPayload> =
-  z
-    .object({
-      domain: z.string().min(1),
-      existingRepoDid: z.string().min(1).optional(),
-      candidateRepoDid: z.string().startsWith("did:plc:"),
-      observedAt: z.string().datetime(),
-      reason: z.string().min(1),
-    })
-    .strict();
+export const atprotoJetstreamGapPayloadSchema: z.ZodObject<
+  {
+    previousCursorTimeUs: z.ZodNumber;
+    clampedCursorTimeUs: z.ZodNumber;
+    observedAt: z.ZodString;
+  },
+  z.core.$strict
+> = z
+  .object({
+    previousCursorTimeUs: z.number().int().nonnegative(),
+    clampedCursorTimeUs: z.number().int().nonnegative(),
+    observedAt: z.string().datetime(),
+  })
+  .strict();
 
-export const atprotoJetstreamGapPayloadSchema: z.ZodType<AtprotoJetstreamGapPayload> =
-  z
-    .object({
-      previousCursorTimeUs: z.number().int().nonnegative(),
-      clampedCursorTimeUs: z.number().int().nonnegative(),
-      observedAt: z.string().datetime(),
-    })
-    .strict();
+export type AtprotoJetstreamGapPayload = z.output<
+  typeof atprotoJetstreamGapPayloadSchema
+>;

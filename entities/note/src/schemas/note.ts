@@ -5,16 +5,16 @@ import { z } from "@brains/utils/zod";
  * Note frontmatter schema (optional in markdown)
  * Title is optional - falls back to H1 heading or filename
  */
-export type NoteStatus = "generating" | "failed";
+export const noteStatusSchema: z.ZodEnum<{
+  generating: "generating";
+  failed: "failed";
+}> = z.enum(["generating", "failed"]);
 
-export const noteStatusSchema: z.ZodType<NoteStatus, NoteStatus> = z.enum([
-  "generating",
-  "failed",
-]);
+export type NoteStatus = z.output<typeof noteStatusSchema>;
 
 export const noteFrontmatterSchema: z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
-  status: z.ZodOptional<z.ZodType<NoteStatus, NoteStatus>>;
+  status: z.ZodOptional<typeof noteStatusSchema>;
   error: z.ZodOptional<z.ZodString>;
 }> = z.object({
   title: z.string().optional(),
@@ -30,7 +30,7 @@ export type NoteFrontmatter = z.output<typeof noteFrontmatterSchema>;
  */
 export const noteMetadataSchema: z.ZodObject<{
   title: z.ZodString;
-  status: z.ZodOptional<z.ZodType<NoteStatus, NoteStatus>>;
+  status: z.ZodOptional<typeof noteStatusSchema>;
   error: z.ZodOptional<z.ZodString>;
 }> = z.object({
   title: z.string(),

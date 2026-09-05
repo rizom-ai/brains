@@ -288,7 +288,7 @@ describe("entity package definitions", () => {
       "@fixture/guides:guide:guide-list",
     );
 
-    harness.reset();
+    await harness.reset();
   });
 
   const guideEntitySchema = baseEntitySchema.extend({
@@ -354,7 +354,7 @@ describe("entity package definitions", () => {
       ),
     ).toEqual({ guides: [{ id: "first" }] });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("serves a declared data source that reads more than one entity type", async () => {
@@ -439,7 +439,7 @@ describe("entity package definitions", () => {
       ),
     ).toEqual({ guides: ["first"], notice: "banner" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers a declared generation handler under the entity type", async () => {
@@ -505,7 +505,7 @@ describe("entity package definitions", () => {
       topic: "rivers",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("exposes declared projection rules and registers an atproto projection", async () => {
@@ -564,7 +564,7 @@ describe("entity package definitions", () => {
       AtprotoProjectionRegistry.getInstance().get("guide"),
     ).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers declared eval handlers with the same context generation gets", async () => {
@@ -622,7 +622,7 @@ describe("entity package definitions", () => {
       count: 1,
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("lets an eval reset its own seeded fixtures without reaching entity deletion", async () => {
@@ -681,7 +681,7 @@ describe("entity package definitions", () => {
     if (!handler) throw new Error("Eval handler was not registered");
     expect(await handler({})).toEqual({ count: 0 });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("runs a declared projection rule from an eval, so the eval measures the live path", async () => {
@@ -766,7 +766,7 @@ describe("entity package definitions", () => {
     if (!handler) throw new Error("Eval handler was not registered");
     expect(await handler({})).toEqual({ ids: ["guide-rivers"] });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("reads the upload a job was handed, without the job naming a transport", async () => {
@@ -842,7 +842,7 @@ describe("entity package definitions", () => {
       ),
     ).toEqual({ filename: "notes.md", body: "# Imported" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("writes a placeholder and delegates the slow part in one resolution", async () => {
@@ -941,7 +941,7 @@ describe("entity package definitions", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("owns the lifecycle of a job that fills in an entity it allocated", async () => {
@@ -1042,7 +1042,7 @@ describe("entity package definitions", () => {
       metadata: { status: "failed", error: "unreadable file" },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // An uploaded file reaches a type two ways: system_create with an upload
@@ -1137,7 +1137,7 @@ describe("entity package definitions", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A document's content is a data URL and its filename and media type
@@ -1314,7 +1314,7 @@ describe("entity package definitions", () => {
       { entityId: "rendered-guide" },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A caller who asks for a PDF gets a link to it before it has been
@@ -1408,7 +1408,7 @@ describe("entity package definitions", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Rendering a deck as a PDF has to leave the deck pointing at it. That
@@ -1502,7 +1502,7 @@ describe("entity package definitions", () => {
     expect(deck?.content).toContain("id: rendered");
     expect(deck?.content).not.toContain("guide-old");
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Records written before a shape changed still have to parse, and the one
@@ -1611,7 +1611,7 @@ describe("entity package definitions", () => {
       ],
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A package that summarises conversations has to read them. The narrow
@@ -1706,7 +1706,7 @@ describe("entity package definitions", () => {
       ),
     ).toEqual({ channel: "#planning", said: ["What did we decide?"] });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // "Put a cover image on the launch post" names the post the way a person
@@ -1779,7 +1779,7 @@ describe("entity package definitions", () => {
     expect(await run("The Launch")).toEqual({ found: "launch-post-2026" });
     expect(await run("nothing-by-that-name")).toEqual({ found: null });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A cover image is one image, not a list of them: the target holds an id
@@ -1874,7 +1874,7 @@ describe("entity package definitions", () => {
     expect(post?.content).toContain("coverImageId: drawn");
     expect(post?.content).not.toContain("old-picture");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers declared jobs and surfaces declared instructions", async () => {
@@ -1944,7 +1944,7 @@ describe("entity package definitions", () => {
     ).toEqual({ reindexed: "first" });
     expect(reported).toEqual([50]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // The runtime puts two fields into an allocated job's data — which entity
@@ -2029,7 +2029,7 @@ describe("entity package definitions", () => {
       }),
     ).toEqual({ guideId: "first" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Some creates finish immediately rather than becoming a job: a wish
@@ -2135,7 +2135,7 @@ describe("entity package definitions", () => {
         .getEntity({ entityType: "guide", id: "new-guide" });
       expect(stored?.metadata["title"]).toBe("Fishing");
 
-      harness.reset();
+      await harness.reset();
     });
 
     // Whoever asked for the entity is who it belongs to and who may see
@@ -2175,7 +2175,7 @@ describe("entity package definitions", () => {
         }),
       ]);
 
-      harness.reset();
+      await harness.reset();
     });
 
     it("updates when something matches, and says that instead", async () => {
@@ -2200,7 +2200,7 @@ describe("entity package definitions", () => {
         .getEntity({ entityType: "guide", id: "existing" });
       expect(stored?.metadata["requested"]).toBe(2);
 
-      harness.reset();
+      await harness.reset();
     });
 
     it("refuses with the message the route gave", async () => {
@@ -2255,7 +2255,7 @@ describe("entity package definitions", () => {
         result: { success: false, error: "Not while the moon is full." },
       });
 
-      harness.reset();
+      await harness.reset();
     });
   });
 
@@ -2337,7 +2337,7 @@ describe("entity package definitions", () => {
 
     expect(registered).toEqual(["top-guides"]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Not everything a package learns belongs in an entity. "I have already
@@ -2414,7 +2414,7 @@ describe("entity package definitions", () => {
     // The same card crawled again is not news.
     expect(await announce()).toEqual({ announced: false });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // The mirror of `atproto`. That slot publishes an entity as a record; this
@@ -2488,7 +2488,7 @@ describe("entity package definitions", () => {
         .getEntity({ entityType: "peer", id: "did-plc-elsewhere" }),
     ).not.toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   // "Where do the things I own sit relative to us" is a read, and a package
@@ -2593,7 +2593,7 @@ describe("entity package definitions", () => {
       maxNeighborDistance: 0.25,
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // What a type puts in front of a person to act on — an agent sighting to
@@ -2654,7 +2654,7 @@ describe("entity package definitions", () => {
       "Fishing",
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Something a type has to check on a schedule — an agent card goes stale,
@@ -2715,7 +2715,7 @@ describe("entity package definitions", () => {
     await registered[0]?.run({ signal: new AbortController().signal });
     expect(checked).toEqual(["checked 0"]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Some entity types are the brain's own record and nobody edits one by
@@ -2862,7 +2862,7 @@ describe("entity package definitions", () => {
     }
     expect(surveyed).toEqual({ summarized: 1, spaces: 2 });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("routes create by input shape and reports the outcome itself", async () => {
@@ -2941,7 +2941,7 @@ describe("entity package definitions", () => {
     expect(delegated.result.data.status).toBe("generating");
     expect(delegated.result.data.jobId).toBeTruthy();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers a declared publish provider once the pipeline is listening", async () => {
@@ -2990,7 +2990,7 @@ describe("entity package definitions", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers declared attachment providers and releases them on shutdown", async () => {
@@ -3044,7 +3044,7 @@ describe("entity package definitions", () => {
     await plugin.shutdown?.();
     expect(attachments.hasProvider("guide", "printable")).toBe(false);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers declared entity-type config with the entity registry", async () => {
@@ -3087,7 +3087,7 @@ describe("entity package definitions", () => {
       projectionSourceRole: "excluded",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers no entity-type overrides when config is not declared", async () => {
@@ -3115,7 +3115,7 @@ describe("entity package definitions", () => {
 
     expect(harness.getEntityService().getEntityTypeConfig("plain")).toEqual({});
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -3160,7 +3160,7 @@ describe("declarative entity seeding", () => {
   it("does not create the entity before the signal fires", async () => {
     const harness = await installSeeded();
     expect(await readSeed(harness)).toBeNull();
-    harness.reset();
+    await harness.reset();
   });
 
   it("creates the entity when the signal fires", async () => {
@@ -3174,7 +3174,7 @@ describe("declarative entity seeding", () => {
     });
     expect(entity?.content).toContain("Write plainly.");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("leaves an existing entity untouched", async () => {
@@ -3193,7 +3193,7 @@ describe("declarative entity seeding", () => {
     const entity = await readSeed(harness);
     expect(entity?.content).toContain("Authored by a human.");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("is inert for entities that declare no seed", async () => {
@@ -3221,7 +3221,7 @@ describe("declarative entity seeding", () => {
         .getEntity({ entityType: "unseeded", id: "unseeded" }),
     ).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Registering an insight was a namespace call announcing a static fact:
@@ -3274,7 +3274,7 @@ describe("declarative entity seeding", () => {
       ),
     ).toEqual({ guides: ["first"] });
 
-    harness.reset();
+    await harness.reset();
   });
 
   // system_generate persists a placeholder before enqueueing so the caller
@@ -3688,7 +3688,7 @@ describe("declarative entity seeding", () => {
         },
       ]);
 
-      harness.reset();
+      await harness.reset();
     });
 
     it("writes from every source at once in batch mode", async () => {
@@ -3708,7 +3708,7 @@ describe("declarative entity seeding", () => {
         },
       ]);
 
-      harness.reset();
+      await harness.reset();
     });
 
     it("reports a failure rather than writing from nothing", async () => {
@@ -3726,7 +3726,7 @@ describe("declarative entity seeding", () => {
         },
       ]);
 
-      harness.reset();
+      await harness.reset();
     });
 
     // The scheduler tracks what it asked for by entity id, which a
@@ -3748,7 +3748,7 @@ describe("declarative entity seeding", () => {
 
       expect(completed).toEqual([{ entityType: "guide", entityId: "a-guide" }]);
 
-      harness.reset();
+      await harness.reset();
     });
 
     it("ignores a request for some other entity type", async () => {
@@ -3760,7 +3760,7 @@ describe("declarative entity seeding", () => {
       expect(enqueued).toEqual([]);
       expect(failures).toEqual([]);
 
-      harness.reset();
+      await harness.reset();
     });
   });
 });

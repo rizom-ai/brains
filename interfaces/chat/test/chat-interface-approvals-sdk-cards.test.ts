@@ -3,7 +3,7 @@ import { PermissionService } from "@brains/plugins/test";
 import type { IConversationService } from "@brains/plugins";
 import {
   MockChatSdk,
-  createFetchStub,
+  stubFetch,
   createMessage,
   createPlugin,
   createSentMessage,
@@ -44,92 +44,85 @@ describe("ChatInterface SDK card approvals", () => {
         );
       }),
     });
-    const originalFetch = globalThis.fetch;
     const fetchMock = mock((_url: string, _init?: RequestInit) =>
       Promise.resolve(new Response("{}")),
     );
-    globalThis.fetch = createFetchStub(originalFetch, (input, init) =>
-      fetchMock(String(input), init ?? undefined),
-    );
+    stubFetch((input, init) => fetchMock(String(input), init ?? undefined));
 
-    try {
-      await chat?.handlers.mentions[0]?.(thread, createMessage());
-      await chat?.handlers.actions[0]?.handler({
-        actionId: "approval.confirm",
-        adapter: { name: "discord" },
-        messageId: "approval-message-1",
-        openModal: mock(() => Promise.resolve(undefined)),
-        raw: {},
-        thread,
-        threadId: thread.id,
-        user: {
-          userId: "user-789",
-          userName: "mira",
-          fullName: "Mira Ops",
-          isBot: false,
-          isMe: false,
-        },
-        value: "approval-1",
-      });
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    await chat?.handlers.actions[0]?.handler({
+      actionId: "approval.confirm",
+      adapter: { name: "discord" },
+      messageId: "approval-message-1",
+      openModal: mock(() => Promise.resolve(undefined)),
+      raw: {},
+      thread,
+      threadId: thread.id,
+      user: {
+        userId: "user-789",
+        userName: "mira",
+        fullName: "Mira Ops",
+        isBot: false,
+        isMe: false,
+      },
+      value: "approval-1",
+    });
 
-      expect(suite.agentService.confirmPendingAction).toHaveBeenCalledWith(
-        "discord-discord:guild-123:channel-123:thread-456",
-        true,
-        "approval-1",
-        expect.objectContaining({
+    expect(suite.agentService.confirmPendingAction).toHaveBeenCalledWith(
+      "discord-discord:guild-123:channel-123:thread-456",
+      true,
+      "approval-1",
+      expect.objectContaining({
+        channelId: "discord:guild-123:channel-123:thread-456",
+        channelName: "discord:guild-123:channel-123",
+        interfaceType: "discord",
+        userPermissionLevel: "public",
+        actor: expect.objectContaining({
+          identity: discordExternalIdentity,
+          displayName: "Mira Ops",
+          username: "mira",
+        }),
+        source: expect.objectContaining({
+          messageId: "approval-message-1",
           channelId: "discord:guild-123:channel-123:thread-456",
-          channelName: "discord:guild-123:channel-123",
-          interfaceType: "discord",
-          userPermissionLevel: "public",
-          actor: expect.objectContaining({
-            identity: discordExternalIdentity,
-            displayName: "Mira Ops",
-            username: "mira",
-          }),
-          source: expect.objectContaining({
-            messageId: "approval-message-1",
-            channelId: "discord:guild-123:channel-123:thread-456",
-            threadId: "thread-456",
-            metadata: expect.objectContaining({
-              actionId: "approval.confirm",
-              actionValue: "approval-1",
-              guildId: "guild-123",
-            }),
+          threadId: "thread-456",
+          metadata: expect.objectContaining({
+            actionId: "approval.confirm",
+            actionValue: "approval-1",
+            guildId: "guild-123",
           }),
         }),
-      );
-      expect(approvalMessage.edit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fallbackText: "Approval confirmed: Delete thing",
-          card: expect.objectContaining({
-            type: "card",
-            title: "Approval confirmed",
-            children: expect.not.arrayContaining([
-              expect.objectContaining({ type: "actions" }),
-            ]),
-          }),
+      }),
+    );
+    expect(approvalMessage.edit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approval confirmed: Delete thing",
+        card: expect.objectContaining({
+          type: "card",
+          title: "Approval confirmed",
+          children: expect.not.arrayContaining([
+            expect.objectContaining({ type: "actions" }),
+          ]),
         }),
-      );
-      expect(fetchMock).toHaveBeenCalledWith(
-        "https://discord.com/api/v10/channels/thread-456/messages/approval-message-1",
-        expect.objectContaining({
-          method: "PATCH",
-          headers: expect.objectContaining({
-            Authorization: "Bot discord-token",
-            "Content-Type": "application/json",
-          }),
-          body: JSON.stringify({ components: [] }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://discord.com/api/v10/channels/thread-456/messages/approval-message-1",
+      expect.objectContaining({
+        method: "PATCH",
+        headers: expect.objectContaining({
+          Authorization: "Bot discord-token",
+          "Content-Type": "application/json",
         }),
-      );
-      expect(thread.post).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          fallbackText: "Approved · Action confirmed.",
-          card: expect.objectContaining({ title: "Approval confirmed" }),
-        }),
-      );
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
+        body: JSON.stringify({ components: [] }),
+      }),
+    );
+    expect(thread.post).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        fallbackText: "Approved · Action confirmed.",
+        card: expect.objectContaining({ title: "Approval confirmed" }),
+      }),
+    );
   });
 
   it("does not confirm approval button actions when Discord DMs are disabled", async () => {

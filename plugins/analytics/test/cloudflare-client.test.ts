@@ -1,18 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { caughtError, mockFetch } from "@brains/test-utils";
-import { CloudflareClient } from "../src/lib/cloudflare-client";
+import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
+import {
+  CloudflareClient,
+  type CloudflareFetch,
+} from "../src/lib/cloudflare-client";
 import type { CloudflareConfig } from "../src/config";
+import { caughtError } from "@brains/test-utils";
 
-const originalFetch = globalThis.fetch;
+// The client is built with a delegate to this, so a test can stub before or
+// after construction. Unstubbed calls fail loudly rather than reaching the
+// network. It is a mock() so tests can read the requests off it.
+let fetchFn: Mock<CloudflareFetch> = mock(() =>
+  Promise.reject(new Error("fetch called without a stub")),
+);
+const delegatingFetch: CloudflareFetch = (url, init) => fetchFn(url, init);
 
-/**
- * Install a mock fetch that resolves with the given response.
- * Centralizes the single unavoidable cast.
- */
-function installMockFetch(
-  handler: (url: string, options: RequestInit) => Promise<Response>,
-): void {
-  mockFetch(handler);
+/** Point the client's fetch at a recording fake for the current test. */
+function installMockFetch(handler: CloudflareFetch): void {
+  fetchFn = mock(handler);
 }
 
 /**
@@ -55,17 +59,7 @@ describe("CloudflareClient", () => {
       apiToken: "cf_test_api_token",
       siteTag: "test_site_tag",
     };
-    client = new CloudflareClient(config);
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-  });
-
-  describe("constructor", () => {
-    it("should create client with config", () => {
-      expect(client).toBeDefined();
-    });
+    client = new CloudflareClient(config, { fetch: delegatingFetch });
   });
 
   describe("getWebsiteStats", () => {
@@ -105,8 +99,8 @@ describe("CloudflareClient", () => {
         endDate: "2025-01-16",
       });
 
-      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+      expect(fetchFn).toHaveBeenCalledWith(
         "https://api.cloudflare.com/client/v4/graphql",
         expect.objectContaining({
           method: "POST",

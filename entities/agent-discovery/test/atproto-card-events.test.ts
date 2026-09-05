@@ -61,7 +61,7 @@ describe("what a brain card does to the directory", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refreshes remote card fields without overwriting local relationship notes", async () => {
@@ -103,7 +103,7 @@ describe("what a brain card does to the directory", () => {
     expect(agent?.content).toContain("brainName: Peer Brain");
     expect(agent?.content).toContain("Local trust note. Do not overwrite.");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("enriches an approved agent from an ATProto brain card without downgrading it", async () => {
@@ -164,7 +164,7 @@ describe("what a brain card does to the directory", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("fails closed when a different repo DID claims an existing agent domain", async () => {
@@ -230,7 +230,7 @@ describe("what a brain card does to the directory", () => {
       }),
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("marks a deleted remote card unavailable without revoking approval", async () => {
@@ -285,7 +285,7 @@ describe("what a brain card does to the directory", () => {
     expect(after?.metadata.cardLastError).toContain("deleted");
     expect(after?.metadata.cardStaleAfter).toBe("2026-07-23T13:00:00.000Z");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("archives an expired never-approved unavailable candidate", async () => {
@@ -332,6 +332,6 @@ describe("what a brain card does to the directory", () => {
     );
     expect(expired?.metadata.status).toBe("archived");
     expect(expired?.metadata.cardCid).toBe("bafy-peer-card");
-    harness.reset();
+    await harness.reset();
   });
 });

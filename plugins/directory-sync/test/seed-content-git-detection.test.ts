@@ -30,7 +30,7 @@ describe("Seed Content Git Detection", () => {
     originalCwd = process.cwd();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.chdir(originalCwd);
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
@@ -64,7 +64,7 @@ describe("Seed Content Git Detection", () => {
 
     await harness.installPlugin(plugin);
     await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "test");
-    harness.reset();
+    await harness.reset();
   }
 
   describe("isBrainDataEmpty with git repository", () => {

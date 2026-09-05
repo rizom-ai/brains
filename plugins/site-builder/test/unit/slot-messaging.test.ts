@@ -18,8 +18,8 @@ describe("Site-builder slot messaging", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   describe("slot:register message handling", () => {

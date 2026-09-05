@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import {
   createSilentLogger,
@@ -40,10 +41,12 @@ describe("DirectoryImportJobHandler", () => {
 
   describe("validateAndParse", () => {
     it("should validate empty object (all fields optional)", () => {
-      const result = handler.validateAndParse({});
-      expect(result).not.toBeNull();
+      const result = expectDefined(
+        handler.validateAndParse({}),
+        "validateAndParse result",
+      );
       // batchSize is optional, defaults applied in process()
-      expect(result?.batchSize).toBeUndefined();
+      expect(result.batchSize).toBeUndefined();
     });
 
     it("should validate with paths array", () => {

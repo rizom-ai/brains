@@ -2,12 +2,19 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **14 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **15 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
-`@brains/chat-repl`, `@brains/mcp`).
+`@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`).
+
+The thirteen that remain all still extend a base class: `a2a`, `chat`,
+`webserver`, `atproto`, `content-pipeline`, `dashboard`,
+`directory-sync`, `email-workflows`, `newsletter`, `site-builder`,
+`site-content`, `stock-photo`, `studio`. Three that are converted —
+`admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
+for a symbol or two, which is a loose end rather than a class.
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is **28 tracked `package.json` files** under
@@ -733,9 +740,43 @@ chat door when both are mounted", which is a composition decision rather than
 a lookup. It wants its own slice, and guessing an API for it at the end of
 another one would be the wrong way to answer it.
 
-What is left of the conversion is then: `web-chat-interface.ts` and
-`chat-stream.ts`, holding the base class, the runtime contexts, the agent
-call, and that redirect.
+**web-chat is converted.** The class and the route table it built are gone;
+nineteen routes are `defineRoute`, and the browser's turn goes to
+`messages.receiveAuthenticated` rather than calling the agent itself. What
+stays is how an answer reads on a connection that is still open — `present`
+writing the runtime's directives as frames, one per piece.
+
+Measuring it against the pipeline closed five more gaps, each with web-chat as
+its named consumer:
+
+- `caller` on `receiveAuthenticated`, for an interface holding a verified
+  session. Without it every browser turn would have run as **public** — no
+  deployment writes a `web-chat:*` rule, because there is one per person, not
+  per browser — and been attributed to an external stand-in.
+- An inbound attachment carrying its bytes and its store reference rather than
+  only a URL, so an interface already holding the file does not answer an HTTP
+  request from inside the turn that request started.
+- `conversationKey: "channel"`, for an interface that mints its own session
+  keys and hands them out. Prefixing one would key a second conversation
+  beside the one the caller was gated against — and would have orphaned every
+  existing web-chat transcript.
+- `resolveApproval`, for a client that knows which question it answered.
+  It reports the one case a client cannot infer — an approval the brain is no
+  longer holding — so the tool call it drew gets closed rather than
+  resubmitted forever.
+- A confirmation attributed like the turn that prompted it. Authorising an
+  action is as much the person's act as asking for one.
+
+And it surfaced two live defects, both older than the conversion. The progress
+coordinator matched events against the plugin's runtime id, which is scoped by
+package name for a declared package while every event carries the channel type
+— so **every declared message interface, `chat-repl` included, was silently
+dropping all job progress and tool activity**. `deriveConsoleSurfaces`
+matched route plugin ids the same way, which would have removed web-chat's
+door from every other console's strip the moment it converted.
+
+The pattern holds: each conversion has found gaps in the API it converts to,
+and the second finding each time is worth more than the conversion.
 
 ## Validation
 

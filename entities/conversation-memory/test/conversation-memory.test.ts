@@ -63,7 +63,7 @@ describe("conversation memory package", () => {
       projectionSourceRole: "excluded",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("offers no tool of its own", async () => {
@@ -80,7 +80,7 @@ describe("conversation memory package", () => {
       expect(capabilities.tools).toEqual([]);
     }
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers the summary templates and data source", async () => {
@@ -100,7 +100,7 @@ describe("conversation memory package", () => {
       ),
     ).toBe(true);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("takes projection settings from config", async () => {
@@ -108,6 +108,6 @@ describe("conversation memory package", () => {
 
     expect(harness.getEntityService().getEntityTypes()).toContain("summary");
 
-    harness.reset();
+    await harness.reset();
   });
 });

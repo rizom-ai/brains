@@ -35,7 +35,7 @@ describe("known agent cards", () => {
       id: expect.stringContaining("agent-card-refresh"),
       cadence: "daily",
     });
-    harness.reset();
+    await harness.reset();
   });
 
   it("refreshes known agent cards from the recurring check", async () => {
@@ -120,7 +120,7 @@ describe("known agent cards", () => {
     expect(fetchMock.calls).toContain(
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     );
-    harness.reset();
+    await harness.reset();
   });
 
   it("keeps unchanged cards from churning entity writes", async () => {
@@ -166,7 +166,7 @@ describe("known agent cards", () => {
     );
     expect(agent?.updated).toBe("2026-03-31T00:00:00.000Z");
     expect(agent?.metadata.cardLastCheckedAt).toBeUndefined();
-    harness.reset();
+    await harness.reset();
   });
 
   it("records refresh errors without dropping the last good snapshot", async () => {
@@ -246,7 +246,7 @@ describe("known agent cards", () => {
     expect(repeatedlyUnavailable?.metadata.status).toBe("approved");
     expect(repeatedlyUnavailable?.metadata.cardFailureCount).toBe(3);
     expect(repeatedlyUnavailable?.metadata.cardUnavailableAt).toBeDefined();
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects a private PDS endpoint during known-card refresh", async () => {
@@ -301,7 +301,7 @@ describe("known agent cards", () => {
       `https://plc.directory/${testBrainCardPayload.repoDid}`,
     ]);
     expect(agent?.metadata.cardLastError).toContain("non-public");
-    harness.reset();
+    await harness.reset();
   });
 
   it("clears unavailable state when the same card snapshot reappears", async () => {
@@ -363,6 +363,6 @@ describe("known agent cards", () => {
     expect(recovered?.metadata.cardFailureCount).toBeUndefined();
     expect(recovered?.metadata.cardUnavailableAt).toBeUndefined();
     expect(recovered?.metadata.cardLastError).toBeUndefined();
-    harness.reset();
+    await harness.reset();
   });
 });

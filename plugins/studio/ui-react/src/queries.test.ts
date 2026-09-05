@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
-import { mockFetch } from "@brains/test-utils";
-import type {
-  EntityDetail,
-  EntitySummary,
-  EntityTypeInfo,
-  SyncStatus,
-  TypeSchema,
+import type { FetchLike } from "@brains/utils/fetch-like";
+import {
+  StudioApi,
+  type EntityDetail,
+  type EntitySummary,
+  type EntityTypeInfo,
+  type SyncStatus,
+  type TypeSchema,
 } from "./api";
 import { createEditorDocument } from "./editor-document";
 import { createStudioQueryClient } from "./query-client";
@@ -23,7 +24,22 @@ import {
   workspaceQueryOptions,
 } from "./queries";
 
-const originalFetch = globalThis.fetch;
+// The functions under test are handed a client built on delegatingFetch,
+// which reads the per-test handler at call time, so the global fetch is never
+// touched and there is nothing to restore.
+type StubHandler = (url: string, options: RequestInit) => Promise<Response>;
+let fetchFn: FetchLike = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: FetchLike = (input, init) => fetchFn(input, init);
+const studioApi = new StudioApi({
+  basePath: "/studio",
+  fetch: delegatingFetch,
+});
+
+function stubFetch(handler: StubHandler): void {
+  fetchFn = (input, init): Promise<Response> =>
+    handler(String(input), init ?? {});
+}
 
 function entity(title: string): EntitySummary {
   return {
@@ -109,14 +125,10 @@ function waitForResult<TQueryKey extends readonly unknown[]>(
   });
 }
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
-
 describe("Studio navigation query", () => {
   it("loads entity types and optional workspaces through one stable request", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({
         types: [entityType("post")],
@@ -133,7 +145,7 @@ describe("Studio navigation query", () => {
       });
     });
     const client = createStudioQueryClient();
-    const options = navigationQueryOptions();
+    const options = navigationQueryOptions(studioApi);
 
     const [first, second] = await Promise.all([
       client.fetchQuery(options),
@@ -150,7 +162,7 @@ describe("Studio navigation query", () => {
 
   it("surfaces a navigation error without retrying", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({ error: "Types unavailable" }, { status: 503 });
     });
@@ -158,7 +170,7 @@ describe("Studio navigation query", () => {
 
     let caught: unknown;
     try {
-      await client.fetchQuery(navigationQueryOptions());
+      await client.fetchQuery(navigationQueryOptions(studioApi));
     } catch (error: unknown) {
       caught = error;
     }
@@ -173,7 +185,7 @@ describe("Studio navigation query", () => {
 describe("Studio workspace query", () => {
   it("deduplicates one workspace snapshot request", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({
         workspace: {
@@ -194,7 +206,7 @@ describe("Studio workspace query", () => {
       });
     });
     const client = createStudioQueryClient();
-    const options = workspaceQueryOptions("publishing");
+    const options = workspaceQueryOptions(studioApi, "publishing");
 
     const [first, second] = await Promise.all([
       client.fetchQuery(options),
@@ -215,7 +227,7 @@ describe("Studio workspace query", () => {
 
   it("keys and requests server-filtered workspace pages independently", async () => {
     const requestedUrls: string[] = [];
-    mockFetch(async (input) => {
+    stubFetch(async (input) => {
       requestedUrls.push(String(input));
       return Response.json({
         workspace: {
@@ -235,7 +247,7 @@ describe("Studio workspace query", () => {
     } as const;
     const client = createStudioQueryClient();
 
-    await client.fetchQuery(workspaceQueryOptions("inbox", query));
+    await client.fetchQuery(workspaceQueryOptions(studioApi, "inbox", query));
 
     expect(studioKeys.workspace("inbox", query)).toEqual([
       "studio",
@@ -313,7 +325,7 @@ describe("Studio upload invalidation", () => {
 describe("Studio agent-targets query", () => {
   it("loads approved targets once through its own cache entry", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({
         agents: [{ id: "reviewer", label: "Reviewer" }],
@@ -322,7 +334,7 @@ describe("Studio agent-targets query", () => {
     const client = createStudioQueryClient();
 
     const first = await client.fetchQuery(
-      agentTargetsQueryOptions("post", "post-1"),
+      agentTargetsQueryOptions(studioApi, "post", "post-1"),
     );
     const second = client.getQueryData(
       studioKeys.agentTargets("post", "post-1"),
@@ -342,14 +354,16 @@ describe("Studio agent-targets query", () => {
 
   it("does not retry when optional agent discovery is unavailable", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({ error: "A2A unavailable" }, { status: 503 });
     });
     const client = createStudioQueryClient();
 
     try {
-      await client.fetchQuery(agentTargetsQueryOptions("post", "post-1"));
+      await client.fetchQuery(
+        agentTargetsQueryOptions(studioApi, "post", "post-1"),
+      );
     } catch {
       // The app treats absent query data as an empty optional target list.
     }
@@ -365,12 +379,15 @@ describe("Studio agent-targets query", () => {
 describe("Studio sync-status query", () => {
   it("polls by invalidating one active cache entry", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json(syncStatus(requests === 1 ? "abc123" : "def456"));
     });
     const client = createStudioQueryClient();
-    const observer = new QueryObserver(client, syncStatusQueryOptions());
+    const observer = new QueryObserver(
+      client,
+      syncStatusQueryOptions(studioApi),
+    );
     let resolveInitial: (() => void) | undefined;
     let resolveRefreshed: (() => void) | undefined;
     const initial = new Promise<void>((resolve) => {
@@ -399,19 +416,19 @@ describe("Studio sync-status query", () => {
 describe("Studio entity-schema query", () => {
   it("scopes schemas by type and avoids a duplicate observer request", async () => {
     const requestedUrls: string[] = [];
-    mockFetch(async (url) => {
+    stubFetch(async (url) => {
       requestedUrls.push(url);
       const type = new URL(url, "https://studio.test").searchParams.get("type");
       return Response.json(entitySchema(type ?? "unknown"));
     });
     const client = createStudioQueryClient();
-    const postOptions = entitySchemaQueryOptions("post");
+    const postOptions = entitySchemaQueryOptions(studioApi, "post");
 
     await client.fetchQuery({ ...postOptions, staleTime: 0 });
     const observer = new QueryObserver(client, postOptions);
     const unsubscribe = observer.subscribe(() => {});
     await client.fetchQuery({
-      ...entitySchemaQueryOptions("note"),
+      ...entitySchemaQueryOptions(studioApi, "note"),
       staleTime: 0,
     });
 
@@ -429,12 +446,12 @@ describe("Studio entity-schema query", () => {
 describe("Studio entity-detail query", () => {
   it("loads explicitly once before mounting its cache observer", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json({ entity: entityDetail("Field notes", "hash-1") });
     });
     const client = createStudioQueryClient();
-    const options = entityDetailQueryOptions("post", "field-notes");
+    const options = entityDetailQueryOptions(studioApi, "post", "field-notes");
 
     await client.fetchQuery({ ...options, staleTime: 0 });
     const observer = new QueryObserver(client, options);
@@ -473,12 +490,12 @@ describe("Studio entity-list query", () => {
 
   it("deduplicates the mounted query and initialization read", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return entitiesResponse([entity("Notes from the rhizome")]);
     });
     const client = createStudioQueryClient();
-    const options = entityListQueryOptions("post");
+    const options = entityListQueryOptions(studioApi, "post");
     const observer = new QueryObserver(client, options);
     const statuses: string[] = [];
     const unsubscribe = observer.subscribe((result) => {
@@ -497,7 +514,7 @@ describe("Studio entity-list query", () => {
 
   it("surfaces an entity-list error without retrying", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return Response.json(
         { error: "Entity list unavailable" },
@@ -505,7 +522,10 @@ describe("Studio entity-list query", () => {
       );
     });
     const client = createStudioQueryClient();
-    const observer = new QueryObserver(client, entityListQueryOptions("post"));
+    const observer = new QueryObserver(
+      client,
+      entityListQueryOptions(studioApi, "post"),
+    );
     const resultPromise = waitForResult(
       observer,
       (result) => result.status === "error",
@@ -520,14 +540,17 @@ describe("Studio entity-list query", () => {
 
   it("refetches one active list after targeted invalidation", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return entitiesResponse([
         entity(requests === 1 ? "Before mutation" : "After mutation"),
       ]);
     });
     const client = createStudioQueryClient();
-    const observer = new QueryObserver(client, entityListQueryOptions("post"));
+    const observer = new QueryObserver(
+      client,
+      entityListQueryOptions(studioApi, "post"),
+    );
     let resolveFirst: (() => void) | undefined;
     let resolveRefreshed:
       | ((result: QueryObserverResult<EntitySummary[], Error>) => void)

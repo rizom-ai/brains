@@ -10,8 +10,8 @@ type EmailReplyDraftFrontmatterSchema = z.ZodObject<{
   mailItemId: typeof inboxItemIdSchema;
   revision: z.ZodNumber;
   status: typeof emailReplyDraftStatusSchema;
-  updatedAt: ReturnType<typeof z.iso.datetime>;
-  sentAt: z.ZodOptional<ReturnType<typeof z.iso.datetime>>;
+  updatedAt: z.ZodISODateTime;
+  sentAt: z.ZodOptional<z.ZodISODateTime>;
   providerDeliveryId: z.ZodOptional<z.ZodString>;
 }>;
 
@@ -57,7 +57,7 @@ export const emailReplyDraftSchema: ReturnType<
   metadata: emailReplyDraftMetadataSchema,
 });
 
-export const emailReplyTextSchema: z.ZodType<string, string> = z
+export const emailReplyTextSchema: z.ZodString = z
   .string()
   .trim()
   .min(1)

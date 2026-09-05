@@ -418,6 +418,41 @@ function webChatRoutes(
   ];
 }
 
+/**
+ * The other doors the page's header links to.
+ *
+ * Asked of the runtime rather than read off the mounted route table: which
+ * surfaces exist and what each one requires is the runtime's to know, and a
+ * console matching plugin ids against paths is the coupling this package is
+ * getting out of.
+ *
+ * `selfHref` is deliberately not passed. A surface given its own href always
+ * resolves to it, which would hide the one thing worth asking — whether
+ * another console owns the chat door. When Studio is mounted it does, and its
+ * door is what the header offers.
+ */
+function headerDoors(
+  config: WebChatConfig,
+  state: WebChatState,
+  permissionLevel: UserPermissionLevel,
+): { dashboardHref: string; studioHref?: string } {
+  const surfaces = state.surfaces({
+    permissionLevel,
+    hasActiveSession: true,
+  });
+  const chatDoor = surfaces.find(
+    (surface) => surface.id === webChatInterfaceType,
+  )?.href;
+  return {
+    dashboardHref:
+      surfaces.find((surface) => surface.id === "dashboard")?.href ??
+      "/dashboard",
+    ...(chatDoor && chatDoor !== config.routePath
+      ? { studioHref: chatDoor }
+      : {}),
+  };
+}
+
 async function chatPage(
   config: WebChatConfig,
   state: WebChatState,
@@ -425,7 +460,9 @@ async function chatPage(
 ): Promise<Response> {
   const { principal, permissionLevel, hasChatAccess } =
     await state.access.resolve(request);
-  if (!hasChatAccess) return state.access.loginRequired(request);
+  if (!hasChatAccess || !principal) {
+    return state.access.loginRequired(request);
+  }
 
   const requestUrl = new URL(request.url);
   const returnTo = encodeURIComponent(
@@ -434,15 +471,13 @@ async function chatPage(
   return new Response(
     renderChatPage({
       apiPath: config.apiPath,
-      surfaces: [
-        ...state.surfaces({
-          permissionLevel,
-          hasActiveSession: principal !== undefined,
-          selfHref: config.routePath,
-        }),
-      ],
+      ...headerDoors(config, state, permissionLevel),
       sessionHref: `/logout?return_to=${returnTo}`,
       themeCSS: state.themeCSS,
+      principal: {
+        displayName: principal.displayName,
+        role: principal.role,
+      },
     }),
     { headers: { "Content-Type": "text/html; charset=utf-8" } },
   );

@@ -144,7 +144,7 @@ describe("generating an image", () => {
     ).toHaveLength(1);
     expect(stored?.metadata["status"]).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("says so rather than failing silently when it cannot generate", async () => {
@@ -171,7 +171,7 @@ describe("generating an image", () => {
       error: expect.stringContaining("no API key"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("distils a concept from the target's own words before drawing", async () => {
@@ -199,7 +199,7 @@ describe("generating an image", () => {
     expect(prompts[0]).toContain("A rope bridge between two cliffs");
     expect(prompts[0]).toContain("Cover image.");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("draws the prompt as given when distillation fails", async () => {
@@ -220,7 +220,7 @@ describe("generating an image", () => {
     ).toMatchObject({ success: true });
     expect(prompts[0]).toContain("Cover image.");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not distil from an image handed over as content", async () => {
@@ -244,7 +244,7 @@ describe("generating an image", () => {
 
     expect(distilled).toBe(0);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("leaves the target pointing at the cover it generated", async () => {
@@ -276,7 +276,7 @@ describe("generating an image", () => {
     expect(stored?.content).toContain("coverImageId: cover-launch-post");
     expect(stored?.content).not.toContain("old-cover");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects job data that does not say what to generate", async () => {
@@ -303,7 +303,7 @@ describe("generating an image", () => {
       }),
     ).toMatchObject({ expectedContentHash: "hash-1" });
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -351,7 +351,7 @@ describe("rendering an image", () => {
       dedupKey: "og-image:post:launch-post:resolved-attachment:post-hash",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("marks the pending image failed when no provider answers", async () => {
@@ -371,7 +371,7 @@ describe("rendering an image", () => {
       error: expect.stringContaining("No attachment provider"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses media that is not an image", async () => {
@@ -390,7 +390,7 @@ describe("rendering an image", () => {
       error: "Attachment provider returned document; expected image",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("reuses the image the route found instead of asking for it again", async () => {
@@ -417,7 +417,7 @@ describe("rendering an image", () => {
     });
     expect(asked).toBe(0);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("leaves the source pointing at the preview it rendered", async () => {
@@ -454,6 +454,6 @@ describe("rendering an image", () => {
     expect(stored?.content).toContain("ogImageId: og-post-launch-post");
     expect(stored?.content).toContain("coverImageId: a-cover");
 
-    harness.reset();
+    await harness.reset();
   });
 });

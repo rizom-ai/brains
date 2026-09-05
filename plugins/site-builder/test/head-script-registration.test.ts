@@ -11,8 +11,8 @@ describe("Head script registration", () => {
     await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should accept head script registration via message", async () => {
@@ -26,6 +26,12 @@ describe("Head script registration", () => {
       },
       "analytics",
     );
+
+    // Accepting the message means storing it; without this the test passed
+    // whether or not the script was kept.
+    expect(plugin.getRegisteredHeadScripts()).toEqual([
+      '<script defer src="https://example.com/beacon.min.js"></script>',
+    ]);
   });
 
   it("should store multiple registered head scripts", async () => {

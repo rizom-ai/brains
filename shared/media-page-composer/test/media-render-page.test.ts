@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createElement as h, type JSX } from "react";
@@ -197,6 +197,41 @@ describe("startStaticRenderServer", () => {
       expect(cssResponse.status).toBe(200);
       expect(await cssResponse.text()).toBe(".carousel-slide { color: red; }");
     } finally {
+      await server.close();
+    }
+  });
+
+  it("answers 400 for a malformed percent-encoded path", async () => {
+    // There is no decodable path to check against the root, so this is a bad
+    // request rather than a missing file.
+    const outputDir = await createTempDir();
+    const server = await startStaticRenderServer({ rootDir: outputDir });
+
+    try {
+      const response = await fetch(server.urlFor("/%E0%A4%A"));
+
+      expect(response.status).toBe(400);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("answers 500 when a resolved file cannot be read", async () => {
+    // Absence already answers 404. A file we resolved and then failed to read
+    // is a fault on this side, and reporting "not found" would send whoever
+    // is debugging a render looking for a missing asset that is right there.
+    const outputDir = await createTempDir();
+    const filePath = join(outputDir, "unreadable.css");
+    await writeFile(filePath, ".a { color: red; }");
+    await chmod(filePath, 0o000);
+    const server = await startStaticRenderServer({ rootDir: outputDir });
+
+    try {
+      const response = await fetch(server.urlFor("/unreadable.css"));
+
+      expect(response.status).toBe(500);
+    } finally {
+      await chmod(filePath, 0o600);
       await server.close();
     }
   });

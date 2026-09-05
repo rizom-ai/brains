@@ -18,90 +18,22 @@ const blockedUrlDomainsDefault: string[] = [
   "file.io",
 ];
 
-interface UrlCaptureConfig {
-  captureUrls: boolean;
-  blockedUrlDomains: string[];
-}
+type DiscordChatAdapterConfigSchema = z.ZodObject<{
+  botToken: z.ZodString;
+  publicKey: z.ZodString;
+  applicationId: z.ZodString;
+  mentionRoleIds: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  allowedChannels: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  requireMention: z.ZodDefault<z.ZodBoolean>;
+  allowDMs: z.ZodDefault<z.ZodBoolean>;
+  showTypingIndicator: z.ZodDefault<z.ZodBoolean>;
+  useThreads: z.ZodDefault<z.ZodBoolean>;
+  captureUrls: z.ZodDefault<z.ZodBoolean>;
+  blockedUrlDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  captureUrlEmoji: z.ZodDefault<z.ZodString>;
+}>;
 
-interface UrlCaptureConfigInput {
-  captureUrls?: boolean | undefined;
-  blockedUrlDomains?: string[] | undefined;
-}
-
-export interface DiscordChatAdapterConfig extends UrlCaptureConfig {
-  botToken: string;
-  publicKey: string;
-  applicationId: string;
-  mentionRoleIds: string[];
-  allowedChannels: string[];
-  requireMention: boolean;
-  allowDMs: boolean;
-  showTypingIndicator: boolean;
-  useThreads: boolean;
-  captureUrlEmoji: string;
-}
-
-interface DiscordChatAdapterConfigInput extends UrlCaptureConfigInput {
-  botToken: string;
-  publicKey: string;
-  applicationId: string;
-  mentionRoleIds?: string[] | undefined;
-  allowedChannels?: string[] | undefined;
-  requireMention?: boolean | undefined;
-  allowDMs?: boolean | undefined;
-  showTypingIndicator?: boolean | undefined;
-  useThreads?: boolean | undefined;
-  captureUrlEmoji?: string | undefined;
-}
-
-export interface SlackChatAdapterConfig extends UrlCaptureConfig {
-  botToken: string;
-  mode: "webhook" | "socket";
-  signingSecret?: string | undefined;
-  appToken?: string | undefined;
-  allowedChannels: string[];
-  requireMention: boolean;
-  allowDMs: boolean;
-  showTypingIndicator: boolean;
-}
-
-interface SlackChatAdapterConfigInput extends UrlCaptureConfigInput {
-  botToken: string;
-  mode?: "webhook" | "socket" | undefined;
-  signingSecret?: string | undefined;
-  appToken?: string | undefined;
-  allowedChannels?: string[] | undefined;
-  requireMention?: boolean | undefined;
-  allowDMs?: boolean | undefined;
-  showTypingIndicator?: boolean | undefined;
-}
-
-export interface ChatConfig {
-  userName: string;
-  adapters: {
-    discord?: DiscordChatAdapterConfig | undefined;
-    slack?: SlackChatAdapterConfig | undefined;
-  };
-  gatewayRunMs: number;
-  gatewayRestartDelayMs: number;
-}
-
-export interface ChatConfigInput {
-  userName?: string | undefined;
-  adapters?:
-    | {
-        discord?: DiscordChatAdapterConfigInput | undefined;
-        slack?: SlackChatAdapterConfigInput | undefined;
-      }
-    | undefined;
-  gatewayRunMs?: number | undefined;
-  gatewayRestartDelayMs?: number | undefined;
-}
-
-const discordAdapterConfigSchema: z.ZodType<
-  DiscordChatAdapterConfig,
-  DiscordChatAdapterConfigInput
-> = z.object({
+const discordAdapterConfigSchema: DiscordChatAdapterConfigSchema = z.object({
   botToken: z.string().min(1).describe("Discord bot token"),
   publicKey: z.string().min(1).describe("Discord application public key"),
   applicationId: z.string().min(1).describe("Discord application ID"),
@@ -116,10 +48,24 @@ const discordAdapterConfigSchema: z.ZodType<
   captureUrlEmoji: z.string().default("🔖"),
 });
 
-const slackAdapterConfigSchema: z.ZodType<
-  SlackChatAdapterConfig,
-  SlackChatAdapterConfigInput
-> = z
+export type DiscordChatAdapterConfig = z.output<
+  typeof discordAdapterConfigSchema
+>;
+
+type SlackChatAdapterConfigSchema = z.ZodObject<{
+  botToken: z.ZodString;
+  mode: z.ZodDefault<z.ZodEnum<{ webhook: "webhook"; socket: "socket" }>>;
+  signingSecret: z.ZodOptional<z.ZodString>;
+  appToken: z.ZodOptional<z.ZodString>;
+  allowedChannels: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  requireMention: z.ZodDefault<z.ZodBoolean>;
+  allowDMs: z.ZodDefault<z.ZodBoolean>;
+  showTypingIndicator: z.ZodDefault<z.ZodBoolean>;
+  captureUrls: z.ZodDefault<z.ZodBoolean>;
+  blockedUrlDomains: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}>;
+
+const slackAdapterConfigSchema: SlackChatAdapterConfigSchema = z
   .object({
     botToken: z.string().min(1).describe("Slack bot token"),
     mode: z.enum(["webhook", "socket"]).default("webhook"),
@@ -153,7 +99,21 @@ const slackAdapterConfigSchema: z.ZodType<
     }
   });
 
-export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> = z
+export type SlackChatAdapterConfig = z.output<typeof slackAdapterConfigSchema>;
+
+type ChatConfigSchema = z.ZodObject<{
+  userName: z.ZodDefault<z.ZodString>;
+  adapters: z.ZodDefault<
+    z.ZodObject<{
+      discord: z.ZodOptional<DiscordChatAdapterConfigSchema>;
+      slack: z.ZodOptional<SlackChatAdapterConfigSchema>;
+    }>
+  >;
+  gatewayRunMs: z.ZodDefault<z.ZodNumber>;
+  gatewayRestartDelayMs: z.ZodDefault<z.ZodNumber>;
+}>;
+
+export const chatConfigSchema: ChatConfigSchema = z
   .object({
     userName: z.string().default("brain"),
     adapters: z
@@ -181,3 +141,6 @@ export const chatConfigSchema: z.ZodType<ChatConfig, ChatConfigInput> = z
       });
     }
   });
+
+export type ChatConfig = z.output<typeof chatConfigSchema>;
+export type ChatConfigInput = z.input<typeof chatConfigSchema>;

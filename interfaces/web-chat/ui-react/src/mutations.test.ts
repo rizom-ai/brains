@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mockFetch } from "@brains/test-utils";
+import { describe, expect, it } from "bun:test";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import type { UIMessage } from "ai";
 import type { WebChatSession } from "./api";
 import {
@@ -10,13 +10,22 @@ import {
   renameWebChatSessionCache,
 } from "./mutations";
 import { createWebChatQueryClient } from "./query-client";
+import { createWebChatClient } from "./web-chat-client";
 import { webChatKeys } from "./queries";
 
-const originalFetch = globalThis.fetch;
+// The functions under test are handed a chat client built on delegatingFetch,
+// which reads the per-test handler at call time, so the global fetch is never
+// touched and there is nothing to restore.
+type StubHandler = (url: string, options: RequestInit) => Promise<Response>;
+let fetchFn: FetchLike = () =>
+  Promise.reject(new Error("fetch called without a stub"));
+const delegatingFetch: FetchLike = (input, init) => fetchFn(input, init);
+const chatClient = createWebChatClient({ fetch: delegatingFetch });
 
-afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
+function stubFetch(handler: StubHandler): void {
+  fetchFn = (input, init): Promise<Response> =>
+    handler(String(input), init ?? {});
+}
 
 describe("web-chat session mutation cache effects", () => {
   it("updates only the renamed session metadata", () => {
@@ -103,17 +112,17 @@ describe("web-chat session mutations", () => {
     let requests = 0;
     let requestedUrl = "";
     let requestOptions: RequestInit = {};
-    mockFetch(async (url, options) => {
+    stubFetch(async (url, options) => {
       requests += 1;
       requestedUrl = url;
       requestOptions = options;
       return Response.json({ renamed: true, title: "Field notes" });
     });
 
-    await renameWebChatSession({
-      conversationId: "thread/one",
-      title: "Field notes",
-    });
+    await renameWebChatSession(
+      { conversationId: "thread/one", title: "Field notes" },
+      chatClient,
+    );
 
     expect(requestedUrl).toBe("/api/chat/sessions?id=thread%2Fone");
     expect(requestOptions.method).toBe("PUT");
@@ -131,14 +140,14 @@ describe("web-chat session mutations", () => {
     let requests = 0;
     let requestedUrl = "";
     let requestOptions: RequestInit = {};
-    mockFetch(async (url, options) => {
+    stubFetch(async (url, options) => {
       requests += 1;
       requestedUrl = url;
       requestOptions = options;
       return Response.json({ archived: true });
     });
 
-    await archiveWebChatSession({ conversationId: "thread/one" });
+    await archiveWebChatSession({ conversationId: "thread/one" }, chatClient);
 
     expect(requestedUrl).toBe("/api/chat/sessions/archive?id=thread%2Fone");
     expect(requestOptions.method).toBe("PUT");
@@ -150,14 +159,14 @@ describe("web-chat session mutations", () => {
     let requests = 0;
     let requestedUrl = "";
     let requestOptions: RequestInit = {};
-    mockFetch(async (url, options) => {
+    stubFetch(async (url, options) => {
       requests += 1;
       requestedUrl = url;
       requestOptions = options;
       return Response.json({ deleted: true });
     });
 
-    await deleteWebChatSession({ conversationId: "thread/one" });
+    await deleteWebChatSession({ conversationId: "thread/one" }, chatClient);
 
     expect(requestedUrl).toBe("/api/chat/sessions?id=thread%2Fone");
     expect(requestOptions.method).toBe("DELETE");
@@ -167,14 +176,14 @@ describe("web-chat session mutations", () => {
 
   it("surfaces authorization failures without a second request", async () => {
     let requests = 0;
-    mockFetch(async () => {
+    stubFetch(async () => {
       requests += 1;
       return new Response("Forbidden", { status: 403 });
     });
     let caught: unknown;
 
     try {
-      await deleteWebChatSession({ conversationId: "thread/one" });
+      await deleteWebChatSession({ conversationId: "thread/one" }, chatClient);
     } catch (error: unknown) {
       caught = error;
     }

@@ -36,8 +36,8 @@ describe("Site Builder Content Resolution", () => {
     harness = createPluginHarness<SiteBuilderPlugin>();
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("should install successfully with templates", async () => {

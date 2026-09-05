@@ -111,7 +111,8 @@ describe("buildKnowledgeMapData", () => {
 
     // the far deck is filed nowhere, but remains an ordinary source point
     const deck = data.points.find((point) => point.id === "cococo");
-    expect(deck?.zoneId).toBeNull();
+    if (!deck) throw new Error("The far deck was not projected as a point");
+    expect(deck.zoneId).toBeNull();
 
     // kinds derive from entity type
     const kinds = Object.fromEntries(

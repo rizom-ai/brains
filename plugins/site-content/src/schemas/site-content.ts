@@ -1,32 +1,28 @@
-import { type BaseEntity, baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-export interface SiteContentMetadata extends Record<string, unknown> {
-  routeId: string;
-  sectionId: string;
-}
-
-export const siteContentMetadataSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<SiteContentMetadata, SiteContentMetadata> = z.object({
+export const siteContentMetadataSchema: z.ZodObject<
+  { routeId: z.ZodString; sectionId: z.ZodString },
+  z.core.$loose
+> = z.looseObject({
   routeId: z.string(),
   sectionId: z.string(),
 });
 
-const siteContentEntityMetadataSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<SiteContentMetadata, SiteContentMetadata> = z.object({
-  routeId: z.string(),
-  sectionId: z.string(),
+export type SiteContentMetadata = z.output<typeof siteContentMetadataSchema>;
+
+export const siteContentSchema: ReturnType<
+  typeof baseEntityParserSchema.extend<{
+    entityType: z.ZodLiteral<"site-content">;
+    template: z.ZodOptional<z.ZodString>;
+    content: z.ZodString;
+    metadata: typeof siteContentMetadataSchema;
+  }>
+> = baseEntityParserSchema.extend({
+  entityType: z.literal("site-content"),
+  template: z.string().optional(),
+  content: z.string(),
+  metadata: siteContentMetadataSchema,
 });
 
-export interface SiteContent extends BaseEntity<SiteContentMetadata> {
-  entityType: "site-content";
-  template?: string | undefined;
-}
-
-export const siteContentSchema: z.ZodType<SiteContent> =
-  baseEntityParserSchema.extend({
-    entityType: z.literal("site-content"),
-    template: z.string().optional(),
-    content: z.string(),
-    metadata: siteContentEntityMetadataSchema,
-  });
+export type SiteContent = z.output<typeof siteContentSchema>;

@@ -6,24 +6,25 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const BLOG_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const BLOG_OG_IMAGE_TEMPLATE_NAME = "blog:og-image";
 
-export interface BlogOgImageTemplateData {
-  title: string;
-  excerpt?: string | undefined;
-  author?: string | undefined;
-  publishedAt?: string | undefined;
-  brandLabel?: string | undefined;
-  coverImageUrl?: string | undefined;
-}
+export const blogOgImageTemplateSchema: z.ZodObject<{
+  title: z.ZodString;
+  excerpt: z.ZodOptional<z.ZodString>;
+  author: z.ZodOptional<z.ZodString>;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  brandLabel: z.ZodOptional<z.ZodString>;
+  coverImageUrl: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  title: z.string().min(1),
+  excerpt: z.string().optional(),
+  author: z.string().optional(),
+  publishedAt: z.string().optional(),
+  brandLabel: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+});
 
-export const blogOgImageTemplateSchema: z.ZodType<BlogOgImageTemplateData> =
-  z.object({
-    title: z.string().min(1),
-    excerpt: z.string().optional(),
-    author: z.string().optional(),
-    publishedAt: z.string().optional(),
-    brandLabel: z.string().optional(),
-    coverImageUrl: z.string().optional(),
-  });
+export type BlogOgImageTemplateData = z.output<
+  typeof blogOgImageTemplateSchema
+>;
 
 export const blogOgImageTemplate: MediaPageTemplate = {
   name: BLOG_OG_IMAGE_TEMPLATE_NAME,

@@ -9,28 +9,29 @@ import type { MediaPageTemplate } from "@brains/media-page-composer";
 export const BLOG_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const BLOG_PRINTABLE_TEMPLATE_NAME = "blog:printable";
 
-export interface BlogPrintableTemplateData {
-  title: string;
-  body: string;
-  excerpt?: string | undefined;
-  author?: string | undefined;
-  publishedAt?: string | undefined;
-  canonicalUrl?: string | undefined;
-  coverImageUrl?: string | undefined;
-  brandLabel?: string | undefined;
-}
+export const blogPrintableTemplateSchema: z.ZodObject<{
+  title: z.ZodString;
+  body: z.ZodString;
+  excerpt: z.ZodOptional<z.ZodString>;
+  author: z.ZodOptional<z.ZodString>;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  canonicalUrl: z.ZodOptional<z.ZodString>;
+  coverImageUrl: z.ZodOptional<z.ZodString>;
+  brandLabel: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  title: z.string().min(1),
+  body: z.string(),
+  excerpt: z.string().optional(),
+  author: z.string().optional(),
+  publishedAt: z.string().optional(),
+  canonicalUrl: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  brandLabel: z.string().optional(),
+});
 
-export const blogPrintableTemplateSchema: z.ZodType<BlogPrintableTemplateData> =
-  z.object({
-    title: z.string().min(1),
-    body: z.string(),
-    excerpt: z.string().optional(),
-    author: z.string().optional(),
-    publishedAt: z.string().optional(),
-    canonicalUrl: z.string().optional(),
-    coverImageUrl: z.string().optional(),
-    brandLabel: z.string().optional(),
-  });
+export type BlogPrintableTemplateData = z.output<
+  typeof blogPrintableTemplateSchema
+>;
 
 export const blogPrintableTemplate: MediaPageTemplate = {
   name: BLOG_PRINTABLE_TEMPLATE_NAME,

@@ -90,7 +90,7 @@ describe("the connect tool", () => {
     );
     expect(saved?.content).toContain("Research");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("returns not_an_agent when agents_connect cannot verify an Agent Card", async () => {
@@ -124,7 +124,7 @@ describe("the connect tool", () => {
       }),
     ).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects confirmed agents_connect args that do not match pending approval", async () => {
@@ -147,7 +147,7 @@ describe("the connect tool", () => {
       error: expect.stringContaining("do not match the pending approval"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("rejects confirmed agents_connect without a minted confirmation token", async () => {
@@ -165,7 +165,7 @@ describe("the connect tool", () => {
       error: expect.stringContaining("No pending"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("agents_connect approves an existing discovered agent", async () => {
@@ -206,7 +206,7 @@ describe("the connect tool", () => {
     expect(entities[0]?.metadata["status"]).toBe("approved");
     expect(entities[0]?.content).toContain("status: approved");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("agents_connect refreshes an existing approved agent without downgrading approval", async () => {
@@ -246,6 +246,6 @@ describe("the connect tool", () => {
     expect(entities).toHaveLength(1);
     expect(entities[0]?.metadata["status"]).toBe("approved");
 
-    harness.reset();
+    await harness.reset();
   });
 });

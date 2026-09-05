@@ -1,20 +1,41 @@
+import { z } from "@brains/utils/zod";
+
 export type RecurringCheckCadence = "daily" | "weekly";
 
 /** Alert payloads are operational state and must not contain secrets. */
-export interface RecurringAlert {
+export const recurringAlertSchema: z.ZodObject<
+  {
+    dedupeKey: z.ZodString;
+    title: z.ZodString;
+    body: z.ZodString;
+    html: z.ZodOptional<z.ZodString>;
+    sensitivity: z.ZodOptional<
+      z.ZodEnum<{ normal: "normal"; secret: "secret" }>
+    >;
+    includeInInbox: z.ZodOptional<z.ZodBoolean>;
+  },
+  z.core.$strict
+> = z.strictObject({
   /** Stable for one condition episode; change it when the condition changes. */
-  dedupeKey: string;
-  title: string;
-  body: string;
-  html?: string | undefined;
-  sensitivity?: "normal" | "secret" | undefined;
+  dedupeKey: z.string().min(1).max(512),
+  title: z.string().min(1),
+  body: z.string().min(1),
+  html: z.string().min(1).optional(),
+  sensitivity: z.enum(["normal", "secret"]).optional(),
   /** Override the check-level Inbox projection policy for this alert. */
-  includeInInbox?: boolean | undefined;
-}
+  includeInInbox: z.boolean().optional(),
+});
 
-export interface RecurringCheckResult {
-  alerts?: RecurringAlert[] | undefined;
-}
+export type RecurringAlert = z.output<typeof recurringAlertSchema>;
+
+export const recurringCheckResultSchema: z.ZodObject<
+  { alerts: z.ZodOptional<z.ZodArray<typeof recurringAlertSchema>> },
+  z.core.$strict
+> = z.strictObject({
+  alerts: z.array(recurringAlertSchema).optional(),
+});
+
+export type RecurringCheckResult = z.output<typeof recurringCheckResultSchema>;
 
 export interface RecurringCheckRunContext {
   /** Aborted when the caller cancels or the recurring-check daemon stops. */

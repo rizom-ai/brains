@@ -5,7 +5,6 @@ import {
   type ToolEventEmitter,
 } from "../src/tool-events";
 import { z } from "@brains/utils/zod";
-import { caughtError } from "@brains/test-utils";
 
 /**
  * The tool-event payload fields these tests read.
@@ -42,23 +41,83 @@ const defaultContextInfo = {
   interfaceType: "test",
 };
 
-// Helper to find event by type with type guard
-function findEvent(
-  events: Array<{ type: string; payload: unknown }>,
+interface RecordedEvent {
+  type: string;
+  payload: unknown;
+}
+
+interface EventRecorder {
+  emitter: ToolEventEmitter;
+  events: RecordedEvent[];
+  /** Event types in emission order — the whole sequence is asserted, not sampled. */
+  types: () => string[];
+}
+
+function recordEvents(): EventRecorder {
+  const events: RecordedEvent[] = [];
+  return {
+    events,
+    types: (): string[] => events.map((e) => e.type),
+    emitter: {
+      emit: (type, payload): void => {
+        events.push({ type, payload });
+      },
+    },
+  };
+}
+
+/**
+ * The Error a call rejects with, failing the test if it resolves instead.
+ *
+ * Returning the error lets callers assert on it directly. A try/catch around
+ * the call would swallow the "should have thrown" assertion along with it.
+ */
+async function rejection(promise: Promise<unknown>): Promise<Error> {
+  const settled = await promise.then(
+    (value) => ({ rejected: false as const, value }),
+    (error: unknown) => ({ rejected: true as const, error }),
+  );
+  if (!settled.rejected) {
+    throw new Error(
+      `Expected the call to reject, but it resolved with ${JSON.stringify(settled.value)}`,
+    );
+  }
+  if (!(settled.error instanceof Error)) {
+    throw new Error(
+      `Expected a rejection with an Error, got ${String(settled.error)}`,
+    );
+  }
+  return settled.error;
+}
+
+/**
+ * Parsed payload of the first event of `type`, throwing when it was never
+ * emitted.
+ *
+ * A missing event fails the test loudly; narrowing at the call site would let
+ * the assertions be skipped instead — exactly the case these tests exist to
+ * catch. Parsing rather than asserting the payload means an emitter that
+ * stops carrying a field fails here too.
+ */
+function expectEvent(
+  events: RecordedEvent[],
   type: string,
-): { type: string; payload: unknown } | undefined {
-  return events.find((e) => e.type === type);
+): z.output<typeof toolEventPayloadSchema> {
+  const match = events.find((e) => e.type === type);
+  if (!match) {
+    throw new Error(
+      `Expected a "${type}" event, but only got: [${events
+        .map((e) => e.type)
+        .join(", ")}]`,
+    );
+  }
+  return toolEventPayloadSchema.parse(match.payload);
 }
 
 describe("tool invocation events", () => {
   describe("tool:invoking event", () => {
     it("should emit tool:invoking event before handler executes", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, events } = recordEvents();
 
       let handlerExecuted = false;
       const handler = mock(async () => {
@@ -83,12 +142,7 @@ describe("tool invocation events", () => {
     });
 
     it("should include toolName and args in tool:invoking event", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, events } = recordEvents();
 
       const handler = mock(async () => ({ status: "ok", data: {} }));
       const wrapper = createToolExecuteWrapper(
@@ -100,31 +154,21 @@ describe("tool invocation events", () => {
 
       await wrapper({ query: "typescript", limit: 10 });
 
-      const invokingEvent = findEvent(events, "tool:invoking");
-      expect(invokingEvent).toBeDefined();
+      const payload = expectEvent(events, "tool:invoking");
 
-      if (invokingEvent) {
-        const payload = toolEventPayloadSchema.parse(invokingEvent.payload);
-
-        expect(payload.toolName).toBe("search_notes");
-        expect(payload.args).toEqual({ query: "typescript", limit: 10 });
-        expect(payload.conversationId).toBe("test-conv");
-        expect(payload.channelId).toBe("test-channel");
-        expect(payload.interfaceType).toBe("test");
-        expect(payload.actor).toEqual({
-          kind: "agent",
-          agentId: "brain-agent",
-        });
-      }
+      expect(payload.toolName).toBe("search_notes");
+      expect(payload.args).toEqual({ query: "typescript", limit: 10 });
+      expect(payload.conversationId).toBe("test-conv");
+      expect(payload.channelId).toBe("test-channel");
+      expect(payload.interfaceType).toBe("test");
+      expect(payload.actor).toEqual({
+        kind: "agent",
+        agentId: "brain-agent",
+      });
     });
 
     it("should include contextInfo for routing in tool:invoking event", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, events } = recordEvents();
 
       const handler = mock(async () => ({ status: "ok", data: {} }));
       const contextInfo = {
@@ -149,32 +193,24 @@ describe("tool invocation events", () => {
 
       await wrapper({});
 
-      const invokingEvent = findEvent(events, "tool:invoking");
-      if (invokingEvent) {
-        const payload = toolEventPayloadSchema.parse(invokingEvent.payload);
+      const payload = expectEvent(events, "tool:invoking");
 
-        expect(payload.conversationId).toBe("matrix-room-123");
-        expect(payload.channelId).toBe("!abc:matrix.org");
-        expect(payload.channelName).toBe("General Chat");
-        expect(payload.interfaceType).toBe("matrix");
-        expect(payload.actor).toEqual({
-          kind: "user",
-          userId: "usr_mira",
-          canonicalId: "user:mira",
-        });
-        expect(payload.displayName).toBe("Mira");
-      }
+      expect(payload.conversationId).toBe("matrix-room-123");
+      expect(payload.channelId).toBe("!abc:matrix.org");
+      expect(payload.channelName).toBe("General Chat");
+      expect(payload.interfaceType).toBe("matrix");
+      expect(payload.actor).toEqual({
+        kind: "user",
+        userId: "usr_mira",
+        canonicalId: "user:mira",
+      });
+      expect(payload.displayName).toBe("Mira");
     });
   });
 
   describe("tool:completed event", () => {
     it("should emit tool:completed event after handler returns", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, events } = recordEvents();
 
       const handler = mock(async () => ({
         status: "ok",
@@ -189,23 +225,13 @@ describe("tool invocation events", () => {
 
       await wrapper({});
 
-      const completedEvent = findEvent(events, "tool:completed");
-      expect(completedEvent).toBeDefined();
-
-      if (completedEvent) {
-        const payload = toolEventPayloadSchema.parse(completedEvent.payload);
-        expect(payload.toolName).toBe("test_tool");
-        expect(payload.conversationId).toBe("test-conv");
-      }
+      const payload = expectEvent(events, "tool:completed");
+      expect(payload.toolName).toBe("test_tool");
+      expect(payload.conversationId).toBe("test-conv");
     });
 
     it("should emit tool:completed after tool:invoking", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, types } = recordEvents();
 
       const handler = mock(async () => ({ status: "ok", data: {} }));
       const wrapper = createToolExecuteWrapper(
@@ -217,22 +243,11 @@ describe("tool invocation events", () => {
 
       await wrapper({});
 
-      const eventTypes = events.map((e) => e.type);
-      const invokingIndex = eventTypes.indexOf("tool:invoking");
-      const completedIndex = eventTypes.indexOf("tool:completed");
-
-      expect(invokingIndex).toBeGreaterThanOrEqual(0);
-      expect(completedIndex).toBeGreaterThanOrEqual(0);
-      expect(completedIndex).toBeGreaterThan(invokingIndex);
+      expect(types()).toEqual(["tool:invoking", "tool:completed"]);
     });
 
     it("should not emit tool:failed on successful completion", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, types } = recordEvents();
 
       const handler = mock(async () => ({ status: "ok", data: {} }));
       const wrapper = createToolExecuteWrapper(
@@ -244,19 +259,13 @@ describe("tool invocation events", () => {
 
       await wrapper({});
 
-      const failedEvent = findEvent(events, "tool:failed");
-      expect(failedEvent).toBeUndefined();
+      expect(types()).not.toContain("tool:failed");
     });
   });
 
   describe("tool:failed event", () => {
     it("should emit tool:failed event when handler throws", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, events } = recordEvents();
 
       const handler = mock(async () => {
         throw new Error("Tool execution failed");
@@ -269,31 +278,16 @@ describe("tool invocation events", () => {
         emitter,
       );
 
-      try {
-        await wrapper({});
-        expect.unreachable("Should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect(caughtError(error).message).toBe("Tool execution failed");
-      }
+      const error = await rejection(wrapper({}));
+      expect(error.message).toBe("Tool execution failed");
 
-      const failedEvent = findEvent(events, "tool:failed");
-      expect(failedEvent).toBeDefined();
-
-      if (failedEvent) {
-        const payload = toolEventPayloadSchema.parse(failedEvent.payload);
-        expect(payload.toolName).toBe("failing_tool");
-        expect(payload.error).toBe("Tool execution failed");
-      }
+      const payload = expectEvent(events, "tool:failed");
+      expect(payload.toolName).toBe("failing_tool");
+      expect(payload.error).toBe("Tool execution failed");
     });
 
     it("should include error message in tool:failed event", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, events } = recordEvents();
 
       const handler = mock(async () => {
         throw new Error("Connection timeout");
@@ -306,27 +300,15 @@ describe("tool invocation events", () => {
         emitter,
       );
 
-      try {
-        await wrapper({});
-        expect.unreachable("Should have thrown");
-      } catch {
-        // Expected
-      }
+      const error = await rejection(wrapper({}));
+      expect(error.message).toBe("Connection timeout");
 
-      const failedEvent = findEvent(events, "tool:failed");
-      if (failedEvent) {
-        const payload = toolEventPayloadSchema.parse(failedEvent.payload);
-        expect(payload.error).toBe("Connection timeout");
-      }
+      const payload = expectEvent(events, "tool:failed");
+      expect(payload.error).toBe("Connection timeout");
     });
 
     it("should emit tool:invoking before tool:failed", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, types } = recordEvents();
 
       const handler = mock(async () => {
         throw new Error("Failure");
@@ -339,28 +321,13 @@ describe("tool invocation events", () => {
         emitter,
       );
 
-      try {
-        await wrapper({});
-        expect.unreachable("Should have thrown");
-      } catch {
-        // Expected
-      }
+      expect((await rejection(wrapper({}))).message).toBe("Failure");
 
-      const eventTypes = events.map((e) => e.type);
-      const invokingIndex = eventTypes.indexOf("tool:invoking");
-      const failedIndex = eventTypes.indexOf("tool:failed");
-
-      expect(invokingIndex).toBeGreaterThanOrEqual(0);
-      expect(failedIndex).toBeGreaterThan(invokingIndex);
+      expect(types()).toEqual(["tool:invoking", "tool:failed"]);
     });
 
     it("should not emit tool:completed when tool fails", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter, types } = recordEvents();
 
       const handler = mock(async () => {
         throw new Error("Failure");
@@ -373,24 +340,13 @@ describe("tool invocation events", () => {
         emitter,
       );
 
-      try {
-        await wrapper({});
-        expect.unreachable("Should have thrown");
-      } catch {
-        // Expected
-      }
+      expect((await rejection(wrapper({}))).message).toBe("Failure");
 
-      const completedEvent = findEvent(events, "tool:completed");
-      expect(completedEvent).toBeUndefined();
+      expect(types()).not.toContain("tool:completed");
     });
 
     it("should re-throw the original error after emitting event", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter } = recordEvents();
 
       const originalError = new Error("Original error message");
       const handler = mock(async () => {
@@ -404,12 +360,8 @@ describe("tool invocation events", () => {
         emitter,
       );
 
-      try {
-        await wrapper({});
-        expect.unreachable("Should have thrown");
-      } catch (error) {
-        expect(error).toBe(originalError);
-      }
+      // Identity, not just message: the wrapper must not wrap or replace it.
+      expect(await rejection(wrapper({}))).toBe(originalError);
     });
   });
 
@@ -443,13 +395,8 @@ describe("tool invocation events", () => {
         undefined,
       );
 
-      try {
-        await wrapper({});
-        expect.unreachable("Should have thrown");
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect(caughtError(error).message).toBe("Test error");
-      }
+      const error = await rejection(wrapper({}));
+      expect(error.message).toBe("Test error");
     });
   });
 
@@ -516,12 +463,7 @@ describe("tool invocation events", () => {
 
   describe("handler result passthrough", () => {
     it("should return the handler result unchanged", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter } = recordEvents();
 
       const expectedResult = {
         status: "ok",
@@ -543,12 +485,7 @@ describe("tool invocation events", () => {
     });
 
     it("should pass args to handler correctly", async () => {
-      const events: Array<{ type: string; payload: unknown }> = [];
-      const emitter: ToolEventEmitter = {
-        emit: (type, payload) => {
-          events.push({ type, payload });
-        },
-      };
+      const { emitter } = recordEvents();
 
       const handler = mock(async (args: unknown) => {
         return { status: "ok", data: { receivedArgs: args } };

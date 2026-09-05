@@ -3,10 +3,10 @@ import {
   actorRefFromLegacy,
   actorRefSchema,
   messageRoleSchema,
-  type ActorRef,
   type MessageRole,
 } from "@brains/contracts";
 import type { Message, Conversation } from "./schema";
+import { isRecord } from "@brains/utils/is-record";
 
 /** Source kind for projections that derive entities from conversation events. */
 export const CONVERSATION_SOURCE_KIND = "conversation";
@@ -76,19 +76,14 @@ export interface StartConversationRequest {
   metadata: ConversationMetadata;
 }
 
-export interface ConversationMessageActor {
-  identity: ActorRef;
-  interfaceType: string;
-  role: MessageRole;
-  displayName?: string | undefined;
-  username?: string | undefined;
-  isBot?: boolean | undefined;
-}
-
-export const conversationMessageActorSchema: z.ZodType<
-  ConversationMessageActor,
-  ConversationMessageActor
-> = z.object({
+export const conversationMessageActorSchema: z.ZodObject<{
+  identity: typeof actorRefSchema;
+  interfaceType: z.ZodString;
+  role: typeof messageRoleSchema;
+  displayName: z.ZodOptional<z.ZodString>;
+  username: z.ZodOptional<z.ZodString>;
+  isBot: z.ZodOptional<z.ZodBoolean>;
+}> = z.object({
   identity: actorRefSchema,
   interfaceType: z.string(),
   role: messageRoleSchema,
@@ -97,9 +92,12 @@ export const conversationMessageActorSchema: z.ZodType<
   isBot: z.boolean().optional(),
 });
 
-const conversationMessageActorParserSchema: z.ZodType<
-  ConversationMessageActor,
-  unknown
+export type ConversationMessageActor = z.output<
+  typeof conversationMessageActorSchema
+>;
+
+const conversationMessageActorParserSchema: z.ZodPreprocess<
+  typeof conversationMessageActorSchema
 > = z.preprocess(
   normalizeLegacyConversationMessageActor,
   conversationMessageActorSchema,
@@ -160,19 +158,20 @@ export type ConversationMessageSource = z.output<
   typeof conversationMessageSourceSchema
 >;
 
-export interface ConversationMessageMetadata {
-  [key: string]: unknown;
-  actor?: ConversationMessageActor | undefined;
-  source?: ConversationMessageSource | undefined;
-}
-
-export const conversationMessageMetadataSchema: z.ZodType<
-  ConversationMessageMetadata,
-  unknown
+export const conversationMessageMetadataSchema: z.ZodObject<
+  {
+    actor: z.ZodOptional<typeof conversationMessageActorParserSchema>;
+    source: z.ZodOptional<typeof conversationMessageSourceSchema>;
+  },
+  z.core.$loose
 > = z.looseObject({
   actor: conversationMessageActorParserSchema.optional(),
   source: conversationMessageSourceSchema.optional(),
 });
+
+export type ConversationMessageMetadata = z.output<
+  typeof conversationMessageMetadataSchema
+>;
 
 export function parseConversationMessageMetadata(
   metadata: unknown,
@@ -207,10 +206,6 @@ export function isSavableAssistantMessage(
     if (card["kind"] === "tool-approval") return true;
     return card["kind"] === "actions" && card["id"] === "actions:upload-intent";
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export interface AddConversationMessageRequest {

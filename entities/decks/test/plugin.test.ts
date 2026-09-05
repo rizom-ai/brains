@@ -32,6 +32,6 @@ describe("decks package", () => {
 
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 });

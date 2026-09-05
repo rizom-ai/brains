@@ -1,7 +1,5 @@
 import { z } from "@brains/utils/zod";
 import {
-  type AnchorProfile,
-  type ProfileCategory,
   anchorProfileBodySchema,
   profileCategorySchema,
 } from "@brains/identity-service";
@@ -28,12 +26,14 @@ export const agentCardSkillSchema: z.ZodObject<{
   tags: z.array(z.string()).optional().default([]),
 });
 
-export interface AnchorExtensionProfile extends AnchorProfile {
-  kind?: string | undefined;
-  category?: ProfileCategory | undefined;
-}
+type AnchorExtensionParamsSchema = ReturnType<
+  typeof anchorProfileBodySchema.extend<{
+    kind: z.ZodOptional<z.ZodString>;
+    category: z.ZodOptional<typeof profileCategorySchema>;
+  }>
+>;
 
-export const anchorExtensionParamsSchema: z.ZodType<AnchorExtensionProfile> =
+export const anchorExtensionParamsSchema: AnchorExtensionParamsSchema =
   anchorProfileBodySchema
     .extend({
       kind: z.string().trim().min(1).optional(),
@@ -79,6 +79,10 @@ export const agentCardSchema: z.ZodObject<{
     })
     .optional(),
 });
+
+export type AnchorExtensionProfile = z.output<
+  typeof anchorExtensionParamsSchema
+>;
 
 /**
  * Parsed Agent Card with anchor extension data extracted.

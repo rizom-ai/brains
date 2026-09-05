@@ -1,4 +1,3 @@
-import type { AnchorProfileKind, BaseEntity } from "@brains/plugins";
 import {
   BaseEntityAdapter,
   anchorProfileKindSchema,
@@ -7,55 +6,35 @@ import {
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 
-export interface TestAgentSkill {
-  name: string;
-  description: string;
-  tags: string[];
-}
-
-type TestAgentSkillSchema = z.ZodObject<{
+export const testAgentSkillSchema: z.ZodObject<{
   name: z.ZodString;
   description: z.ZodString;
   tags: z.ZodArray<z.ZodString>;
-}>;
-
-export const testAgentSkillSchema: TestAgentSkillSchema = z.object({
+}> = z.object({
   name: z.string(),
   description: z.string(),
   tags: z.array(z.string()),
 });
 
-export type TestAgentStatus = "discovered" | "approved";
+export type TestAgentSkill = z.output<typeof testAgentSkillSchema>;
 
-export const testAgentStatusSchema: z.ZodType<
-  TestAgentStatus,
-  TestAgentStatus
-> = z.enum(["discovered", "approved"]);
+export const testAgentStatusSchema: z.ZodEnum<{
+  discovered: "discovered";
+  approved: "approved";
+}> = z.enum(["discovered", "approved"]);
 
-export interface TestAgentFrontmatter {
-  [key: string]: unknown;
-  name: string;
-  kind: AnchorProfileKind;
-  organization?: string | undefined;
-  brainName: string;
-  url: string;
-  did?: string | undefined;
-  status: TestAgentStatus;
-  discoveredAt: string;
-}
+export type TestAgentStatus = z.output<typeof testAgentStatusSchema>;
 
-type TestAgentFrontmatterSchema = z.ZodObject<{
+export const testAgentFrontmatterSchema: z.ZodObject<{
   name: z.ZodString;
   kind: typeof anchorProfileKindSchema;
   organization: z.ZodOptional<z.ZodString>;
   brainName: z.ZodString;
   url: z.ZodString;
   did: z.ZodOptional<z.ZodString>;
-  status: z.ZodType<TestAgentStatus, TestAgentStatus>;
+  status: typeof testAgentStatusSchema;
   discoveredAt: z.ZodString;
-}>;
-
-export const testAgentFrontmatterSchema: TestAgentFrontmatterSchema = z.object({
+}> = z.object({
   name: z.string(),
   kind: anchorProfileKindSchema,
   organization: z.string().optional(),
@@ -66,74 +45,67 @@ export const testAgentFrontmatterSchema: TestAgentFrontmatterSchema = z.object({
   discoveredAt: z.string().datetime(),
 });
 
-export interface TestAgentMetadata {
-  [key: string]: unknown;
-  name: string;
-  url: string;
-  status: TestAgentStatus;
-  slug: string;
-}
+export type TestAgentFrontmatter = z.output<typeof testAgentFrontmatterSchema>;
 
-export interface TestAgentEntity extends BaseEntity {
-  entityType: "agent";
-  metadata: TestAgentMetadata;
-}
+export const testAgentEntitySchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"agent">;
+    metadata: z.ZodObject<{
+      name: z.ZodString;
+      url: z.ZodString;
+      status: typeof testAgentStatusSchema;
+      slug: z.ZodString;
+    }>;
+  }>
+> = baseEntitySchema.extend({
+  entityType: z.literal("agent"),
+  metadata: z.object({
+    name: z.string(),
+    url: z.string().url(),
+    status: testAgentStatusSchema,
+    slug: z.string(),
+  }),
+});
 
-export const testAgentEntitySchema: z.ZodType<TestAgentEntity> =
-  baseEntitySchema.extend({
-    entityType: z.literal("agent"),
-    metadata: z.object({
-      name: z.string(),
-      url: z.string().url(),
-      status: testAgentStatusSchema,
-      slug: z.string(),
-    }),
-  });
+export type TestAgentEntity = z.output<typeof testAgentEntitySchema>;
 
-export interface TestSkillData {
-  [key: string]: unknown;
-  name: string;
-  description: string;
-  tags: string[];
-  examples: string[];
-}
-
-type TestSkillDataSchema = z.ZodObject<{
+export const testSkillDataSchema: z.ZodObject<{
   name: z.ZodString;
   description: z.ZodString;
   tags: z.ZodArray<z.ZodString>;
   examples: z.ZodArray<z.ZodString>;
-}>;
-
-export const testSkillDataSchema: TestSkillDataSchema = z.object({
+}> = z.object({
   name: z.string(),
   description: z.string(),
   tags: z.array(z.string()),
   examples: z.array(z.string()),
 });
 
-export interface TestSkillEntity extends BaseEntity {
-  entityType: "skill";
-  metadata: TestSkillData;
-}
+export type TestSkillData = z.output<typeof testSkillDataSchema>;
 
-export const testSkillEntitySchema: z.ZodType<TestSkillEntity> =
-  baseEntitySchema.extend({
-    entityType: z.literal("skill"),
-    metadata: testSkillDataSchema,
-  });
+export const testSkillEntitySchema: ReturnType<
+  typeof baseEntitySchema.extend<{
+    entityType: z.ZodLiteral<"skill">;
+    metadata: typeof testSkillDataSchema;
+  }>
+> = baseEntitySchema.extend({
+  entityType: z.literal("skill"),
+  metadata: testSkillDataSchema,
+});
 
-interface TestAgentBody {
-  about: string;
-  skills: TestAgentSkill[];
-  notes: string;
-}
+export type TestSkillEntity = z.output<typeof testSkillEntitySchema>;
 
-const testAgentBodySchema: z.ZodType<TestAgentBody, TestAgentBody> = z.object({
+const testAgentBodySchema: z.ZodObject<{
+  about: z.ZodString;
+  skills: z.ZodArray<typeof testAgentSkillSchema>;
+  notes: z.ZodString;
+}> = z.object({
   about: z.string(),
   skills: z.array(testAgentSkillSchema),
   notes: z.string(),
 });
+
+type TestAgentBody = z.output<typeof testAgentBodySchema>;
 
 function formatSkills(value: unknown): string {
   const parsed = z.array(testAgentSkillSchema).safeParse(value);

@@ -25,7 +25,7 @@ import {
   STUDIO_CHAT_WORKSPACE_ID,
   studioChatWorkspacePath,
 } from "../../src/chat-workspace";
-import type { StudioWorkspaceInfo } from "./api";
+import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioChatHandoff } from "./operator-launch";
 import { styles } from "./app-styles";
 import {
@@ -37,6 +37,8 @@ import {
   type StudioChatStreamState,
 } from "./chat-workspace-model";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import { StudioChrome } from "./studio-chrome";
+import chromeStyles from "./studio-chrome.css" with { type: "text" };
 import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
 import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
@@ -54,9 +56,11 @@ export interface StudioChatWorkspaceProps {
   apiPath?: string | undefined;
   studioBasePath: string;
   sessionId: string | null;
+  types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
   handoff: StudioChatHandoff | null;
   navigate: (href: string) => void;
+  selectEntityType: (entityType: string) => void;
   selectWorkspace: (workspaceId: string) => void;
 }
 
@@ -328,35 +332,27 @@ export function StudioChatWorkspace(
     }
   }, [chatClient, navigateToSession, props.sessionId, queryClient, sending]);
 
-  const returnToStudio = (): void => {
-    const overview = props.workspaces.find(
-      (workspace) => workspace.id === "studio:overview",
-    );
-    if (overview) props.selectWorkspace(overview.id);
-  };
+  const workspaceBadges = Object.fromEntries(
+    props.workspaces.flatMap((workspace) =>
+      workspace.badge === undefined ? [] : [[workspace.id, workspace.badge]],
+    ),
+  );
 
   return (
     <div className="studio" data-view="chat">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${chatStyles}`}</style>
-      <header className="crumbbar">
-        <button
-          className="studio-chat-crumb-action"
-          type="button"
-          onClick={returnToStudio}
-        >
-          Studio
-        </button>
-        <span aria-hidden="true">/</span>
-        <span className="crumb">Chat</span>
-        {currentSession ? (
-          <>
-            <span aria-hidden="true">/</span>
-            <span>{currentSession.title}</span>
-          </>
-        ) : null}
-        <span className="spacer" />
-        <span className="mono">{STUDIO_CHAT_WORKSPACE_ID}</span>
-      </header>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${chatStyles}`}</style>
+      <StudioChrome
+        contextLabel="Chat"
+        navigation={{
+          types: props.types,
+          workspaces: props.workspaces,
+          activeEntityType: null,
+          activeWorkspaceId: STUDIO_CHAT_WORKSPACE_ID,
+          workspaceBadges,
+          selectEntityType: props.selectEntityType,
+          selectWorkspace: props.selectWorkspace,
+        }}
+      />
       <div
         className="studio-chat-room"
         data-context-open={contextOpen ? "true" : "false"}

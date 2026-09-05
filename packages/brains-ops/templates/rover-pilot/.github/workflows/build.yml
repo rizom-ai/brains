@@ -11,14 +11,6 @@ on:
         description: "Space-separated exact site/theme packages for one explicit image build. Shared-fleet automatic builds derive the version-wide package union from desired state."
         required: false
         type: string
-      image_contract:
-        description: Image contract for an explicit version build
-        required: false
-        type: choice
-        options:
-          - isolated-sites-v1
-          - shared-fleet-v1
-        default: isolated-sites-v1
       overwrite:
         description: Rebuild an existing tag in place. Published tags are immutable; confirm only when replacing a tag whose containers were never deployed.
         required: false
@@ -67,7 +59,6 @@ jobs:
         env:
           BRAIN_VERSION_INPUT: ${{ inputs.brain_version || '' }}
           SITE_PACKAGES_INPUT: ${{ inputs.site_packages || '' }}
-          IMAGE_CONTRACT_INPUT: ${{ inputs.image_contract || 'isolated-sites-v1' }}
           ALLOW_TAG_OVERWRITE: ${{ inputs.overwrite && 'true' || 'false' }}
         run: bun deploy/scripts/resolve-missing-images.ts
 

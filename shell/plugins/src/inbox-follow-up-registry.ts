@@ -1,4 +1,8 @@
-import { PermissionService, type UserPermissionLevel } from "@brains/templates";
+import {
+  PermissionService,
+  UserPermissionLevelSchema,
+  type UserPermissionLevel,
+} from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { normalizeSameOriginPath } from "./internal/same-origin-path";
@@ -15,13 +19,7 @@ const MAX_STATE_BYTES = 8 * 1_024;
 
 export type InboxFollowUpMode = "universal" | "declared";
 export type InboxFollowUpContext = Readonly<Record<string, string>>;
-export type InboxFollowUpJson =
-  | null
-  | boolean
-  | number
-  | string
-  | InboxFollowUpJson[]
-  | { [key: string]: InboxFollowUpJson };
+export type InboxFollowUpJson = z.output<ReturnType<typeof z.json>>;
 
 export interface InboxFollowUpResolutionInput {
   sourceId: string;
@@ -33,13 +31,6 @@ export interface InboxFollowUpResolutionInput {
 export interface InboxFollowUpTargetInput {
   href: string;
   state?: unknown;
-}
-
-export interface ResolvedInboxFollowUp {
-  kind: string;
-  label: string;
-  href: string;
-  state?: Readonly<Record<string, InboxFollowUpJson>> | undefined;
 }
 
 export interface InboxFollowUpKindRegistration {
@@ -84,18 +75,35 @@ interface KindRegistration {
   kind: RegisteredInboxFollowUpKind;
 }
 
-const kindRegistrationSchema: z.ZodType<
-  InboxFollowUpKindRegistration,
-  InboxFollowUpKindRegistration
+type KindContextSchema = NonNullable<
+  InboxFollowUpKindRegistration["contextSchema"]
+>;
+type KindApplies = InboxFollowUpKindRegistration["applies"];
+type KindResolve = InboxFollowUpKindRegistration["resolve"];
+
+const kindRegistrationSchema: z.ZodObject<
+  {
+    kind: typeof inboxIdSchema;
+    label: z.ZodString;
+    priority: z.ZodNumber;
+    mode: z.ZodEnum<{ universal: "universal"; declared: "declared" }>;
+    permissionLevel: typeof UserPermissionLevelSchema;
+    contextSchema: z.ZodOptional<
+      z.ZodCustom<KindContextSchema, KindContextSchema>
+    >;
+    applies: z.ZodCustom<KindApplies, KindApplies>;
+    resolve: z.ZodCustom<KindResolve, KindResolve>;
+  },
+  z.core.$strict
 > = z
   .strictObject({
     kind: inboxIdSchema,
     label: z.string().trim().min(1).max(100),
     priority: z.number().int().min(0).max(1_000),
     mode: z.enum(["universal", "declared"]),
-    permissionLevel: z.enum(["admin", "trusted", "public"]),
+    permissionLevel: UserPermissionLevelSchema,
     contextSchema: z
-      .custom<z.ZodType<InboxFollowUpContext, unknown>>(
+      .custom<KindContextSchema>(
         (value) =>
           typeof value === "object" &&
           value !== null &&
@@ -103,12 +111,8 @@ const kindRegistrationSchema: z.ZodType<
           typeof value.safeParse === "function",
       )
       .optional(),
-    applies: z.custom<InboxFollowUpKindRegistration["applies"]>(
-      (value) => typeof value === "function",
-    ),
-    resolve: z.custom<InboxFollowUpKindRegistration["resolve"]>(
-      (value) => typeof value === "function",
-    ),
+    applies: z.custom<KindApplies>((value) => typeof value === "function"),
+    resolve: z.custom<KindResolve>((value) => typeof value === "function"),
   })
   .superRefine((registration, context) => {
     if (
@@ -133,14 +137,22 @@ const kindRegistrationSchema: z.ZodType<
     }
   });
 
+/** Registrations arrive typed by the plugin contract; the schema must accept every one. */
+function expectKindRegistrationInput(
+  value: InboxFollowUpKindRegistration,
+): z.input<typeof kindRegistrationSchema> {
+  return value;
+}
+void expectKindRegistrationInput;
+
 const targetSchema = z.strictObject({
   href: z.string(),
   state: z.unknown().optional(),
 });
 
-const inboxFollowUpStateSchema: z.ZodType<
-  Readonly<Record<string, InboxFollowUpJson>>,
-  Readonly<Record<string, InboxFollowUpJson>>
+const inboxFollowUpStateSchema: z.ZodRecord<
+  z.ZodString,
+  ReturnType<typeof z.json>
 > = z
   .record(z.string(), z.json())
   .refine(
@@ -150,19 +162,31 @@ const inboxFollowUpStateSchema: z.ZodType<
     { message: "Inbox follow-up state is too large" },
   );
 
-export const resolvedInboxFollowUpSchema: z.ZodType<
-  ResolvedInboxFollowUp,
-  ResolvedInboxFollowUp
-> = z.strictObject({
-  kind: inboxIdSchema,
-  label: z.string().trim().min(1).max(100),
-  href: z
-    .string()
-    .min(1)
-    .max(MAX_TARGET_LENGTH)
-    .refine((href) => normalizeSameOriginPath(href) === href),
-  state: inboxFollowUpStateSchema.optional(),
-});
+type ResolvedInboxFollowUpSchema = z.ZodObject<
+  {
+    kind: z.ZodString;
+    label: z.ZodString;
+    href: z.ZodString;
+    state: z.ZodOptional<typeof inboxFollowUpStateSchema>;
+  },
+  z.core.$strict
+>;
+
+export const resolvedInboxFollowUpSchema: ResolvedInboxFollowUpSchema =
+  z.strictObject({
+    kind: inboxIdSchema,
+    label: z.string().trim().min(1).max(100),
+    href: z
+      .string()
+      .min(1)
+      .max(MAX_TARGET_LENGTH)
+      .refine((href) => normalizeSameOriginPath(href) === href),
+    state: inboxFollowUpStateSchema.optional(),
+  });
+
+export type ResolvedInboxFollowUp = z.output<
+  typeof resolvedInboxFollowUpSchema
+>;
 
 /** App-scoped catalog of destination-owned, non-mutating Inbox launches. */
 export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {

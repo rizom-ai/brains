@@ -175,9 +175,8 @@ describe("Newsletter List Template", () => {
       expect(newsletterListTemplate.requiredPermission).toBe("public");
     });
 
-    it("should have a layout component", () => {
-      expect(newsletterListTemplate.layout).toBeDefined();
-      expect(newsletterListTemplate.layout?.component).toBeDefined();
+    it("should wire a callable layout component", () => {
+      expect(typeof newsletterListTemplate.layout?.component).toBe("function");
     });
   });
 });

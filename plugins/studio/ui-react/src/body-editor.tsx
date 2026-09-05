@@ -25,7 +25,8 @@ import {
   type ReactElement,
 } from "react";
 import { Streamdown } from "streamdown";
-import { requestAgentAnswer, requestAssist, type AgentTarget } from "./api";
+import type { AgentTarget } from "./api";
+import { useStudioApi } from "./studio-api-context";
 import { errorMessage } from "./ui-utils";
 
 export type BodyMode = "source" | "split" | "preview";
@@ -280,6 +281,7 @@ export function BodyEditor(props: {
   };
   readOnly?: boolean;
 }): ReactElement {
+  const api = useStudioApi();
   const {
     value,
     mode,
@@ -318,35 +320,40 @@ export function BodyEditor(props: {
 
     const request =
       assistTarget === MODEL_ASSIST_TARGET
-        ? requestAssist({
-            entityType: assist.entityType,
-            id: assist.entityId,
-            instruction,
-            selection: selectedText,
-          }).then(({ suggestion }) => {
-            setAssistState({ kind: "suggested", range, suggestion });
-          })
-        : requestAgentAnswer({
-            entityType: assist.entityType,
-            id: assist.entityId,
-            agent: assistTarget,
-            instruction,
-            selection: selectedText,
-          }).then(({ agentId, response }) => {
-            setAssistState({
-              kind: "agent-answer",
-              agentId,
-              response,
-              range,
-              replaceSelection: agentAskMode === "rewrite",
+        ? api
+            .requestAssist({
+              entityType: assist.entityType,
+              id: assist.entityId,
+              instruction,
+              selection: selectedText,
+            })
+            .then(({ suggestion }) => {
+              setAssistState({ kind: "suggested", range, suggestion });
+            })
+        : api
+            .requestAgentAnswer({
+              entityType: assist.entityType,
+              id: assist.entityId,
+              agent: assistTarget,
+              instruction,
+              selection: selectedText,
+            })
+            .then(({ agentId, response }) => {
+              setAssistState({
+                kind: "agent-answer",
+                agentId,
+                response,
+                range,
+                replaceSelection: agentAskMode === "rewrite",
+              });
             });
-          });
 
     request.catch((error: unknown) => {
       setAssistState({ kind: "error", message: errorMessage(error) });
     });
   }, [
     agentAskMode,
+    api,
     assist,
     assistTarget,
     instruction,

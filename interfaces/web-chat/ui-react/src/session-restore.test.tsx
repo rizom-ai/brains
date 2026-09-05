@@ -1,16 +1,16 @@
 /** @jsxImportSource react */
-import { stubMethod } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Window } from "happy-dom";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
 import { createWebChatQueryClient } from "./query-client";
-
-const originalFetch = globalThis.fetch;
+import { WebChatFetchProvider } from "./web-chat-fetch";
 
 let windowInstance: Window;
+let stubbedFetch: FetchLike;
 let root: Root;
 let fetchCalls: string[];
 let historyMessages: unknown[];
@@ -56,7 +56,7 @@ beforeEach(() => {
     "brain:web-chat:conversation-id",
     "web-persisted",
   );
-  const respond = async (input: RequestInfo | URL): Promise<Response> => {
+  stubbedFetch = async (input): Promise<Response> => {
     const url = String(input);
     fetchCalls.push(url);
     if (url === "/api/chat/sessions") {
@@ -75,11 +75,6 @@ beforeEach(() => {
     }
     throw new Error(`Unexpected fetch: ${url}`);
   };
-  stubMethod(
-    globalThis,
-    "fetch",
-    Object.assign(respond, { preconnect: originalFetch.preconnect }),
-  );
 
   // globalThis.document is the happy-dom document assigned above, but typed as
   // lib.dom's — so the element it makes is the one React's createRoot declares,
@@ -92,7 +87,6 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
-  globalThis.fetch = originalFetch;
 });
 
 describe("startup session restoration", () => {
@@ -103,7 +97,11 @@ describe("startup session restoration", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(App),
+          createElement(
+            WebChatFetchProvider,
+            { fetch: stubbedFetch },
+            createElement(App),
+          ),
         ),
       );
     });
@@ -142,7 +140,11 @@ describe("startup session restoration", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(App),
+          createElement(
+            WebChatFetchProvider,
+            { fetch: stubbedFetch },
+            createElement(App),
+          ),
         ),
       );
     });
@@ -155,11 +157,12 @@ describe("startup session restoration", () => {
     expect(app?.getAttribute("data-conversation-id")).toMatch(/^web-/);
     expect(app?.getAttribute("data-conversation-id")).not.toBe("web-persisted");
     const textarea = windowInstance.document.querySelector("#web-chat-input");
-    expect(
-      textarea instanceof windowInstance.HTMLTextAreaElement
-        ? textarea.value
-        : undefined,
-    ).toBe("Help me understand this Inbox item and decide what to do next.");
+    if (!(textarea instanceof windowInstance.HTMLTextAreaElement)) {
+      throw new Error("Expected the chat input to be a textarea");
+    }
+    expect(textarea.value).toBe(
+      "Help me understand this Inbox item and decide what to do next.",
+    );
     expect(windowInstance.document.body.textContent).toContain(
       "Project question",
     );
@@ -220,7 +223,11 @@ describe("startup session restoration", () => {
         createElement(
           QueryClientProvider,
           { client: queryClient },
-          createElement(App),
+          createElement(
+            WebChatFetchProvider,
+            { fetch: stubbedFetch },
+            createElement(App),
+          ),
         ),
       );
     });

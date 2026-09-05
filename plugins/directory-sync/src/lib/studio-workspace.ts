@@ -16,11 +16,12 @@ import type {
   IDirectorySync,
   IGitSync,
 } from "../types";
-import type {
-  ActiveDirectorySyncRun,
-  DirectorySyncIssue,
-  DirectorySyncOperationStatusService,
-  RecentDirectorySyncRun,
+import {
+  activeDirectorySyncRunSchema,
+  directorySyncIssueSchema,
+  recentDirectorySyncRunSchema,
+  type ActiveDirectorySyncRun,
+  type DirectorySyncOperationStatusService,
 } from "./directory-sync-operation-status";
 import { requestDirectorySync } from "./request-directory-sync";
 
@@ -28,111 +29,83 @@ export interface DirectorySyncWorkspaceAction {
   type: "sync-now";
 }
 
-export interface DirectorySyncWorkspaceSnapshot {
-  health: "healthy" | "active" | "attention";
-  directory: {
-    displayPath: string;
-    exists: boolean;
-    watching: boolean;
-    totalFiles: number;
-    byEntityType: Record<string, number>;
-    lastSettledAt?: string | undefined;
-  };
-  git: {
-    branch: string;
-    remoteLabel?: string | undefined;
-    hasChanges: boolean;
-    ahead: number;
-    behind: number;
-    lastCommit?: string | undefined;
-    changedFiles: Array<{ path: string; status: string }>;
-    changedFilesTruncated: boolean;
-  } | null;
-  automation: {
-    autoSync: boolean;
-    watchIntervalMs: number;
-    remoteIntervalMinutes?: number | undefined;
-    commitDebounceMs?: number | undefined;
-    deleteOnFileRemoval: boolean;
-  };
-  activeRun?: ActiveDirectorySyncRun | undefined;
-  recentRuns: RecentDirectorySyncRun[];
-  issues: DirectorySyncIssue[];
-}
+const directorySyncWorkspaceSnapshotSchema: z.ZodObject<{
+  health: z.ZodEnum<{
+    healthy: "healthy";
+    active: "active";
+    attention: "attention";
+  }>;
+  directory: z.ZodObject<{
+    displayPath: z.ZodString;
+    exists: z.ZodBoolean;
+    watching: z.ZodBoolean;
+    totalFiles: z.ZodNumber;
+    byEntityType: z.ZodRecord<z.ZodString, z.ZodNumber>;
+    lastSettledAt: z.ZodOptional<z.ZodString>;
+  }>;
+  git: z.ZodNullable<
+    z.ZodObject<{
+      branch: z.ZodString;
+      remoteLabel: z.ZodOptional<z.ZodString>;
+      hasChanges: z.ZodBoolean;
+      ahead: z.ZodNumber;
+      behind: z.ZodNumber;
+      lastCommit: z.ZodOptional<z.ZodString>;
+      changedFiles: z.ZodArray<
+        z.ZodObject<{ path: z.ZodString; status: z.ZodString }>
+      >;
+      changedFilesTruncated: z.ZodBoolean;
+    }>
+  >;
+  automation: z.ZodObject<{
+    autoSync: z.ZodBoolean;
+    watchIntervalMs: z.ZodNumber;
+    remoteIntervalMinutes: z.ZodOptional<z.ZodNumber>;
+    commitDebounceMs: z.ZodOptional<z.ZodNumber>;
+    deleteOnFileRemoval: z.ZodBoolean;
+  }>;
+  activeRun: z.ZodOptional<typeof activeDirectorySyncRunSchema>;
+  recentRuns: z.ZodArray<typeof recentDirectorySyncRunSchema>;
+  issues: z.ZodArray<typeof directorySyncIssueSchema>;
+}> = z.object({
+  health: z.enum(["healthy", "active", "attention"]),
+  directory: z.object({
+    displayPath: z.string().min(1),
+    exists: z.boolean(),
+    watching: z.boolean(),
+    totalFiles: z.number().int().nonnegative(),
+    byEntityType: z.record(z.string(), z.number().int().nonnegative()),
+    lastSettledAt: z.string().datetime().optional(),
+  }),
+  git: z
+    .object({
+      branch: z.string().min(1),
+      remoteLabel: z.string().min(1).optional(),
+      hasChanges: z.boolean(),
+      ahead: z.number().int().nonnegative(),
+      behind: z.number().int().nonnegative(),
+      lastCommit: z.string().min(1).optional(),
+      changedFiles: z.array(
+        z.object({ path: z.string().min(1), status: z.string().min(1) }),
+      ),
+      changedFilesTruncated: z.boolean(),
+    })
+    .nullable(),
+  automation: z.object({
+    autoSync: z.boolean(),
+    watchIntervalMs: z.number().int().nonnegative(),
+    remoteIntervalMinutes: z.number().nonnegative().optional(),
+    commitDebounceMs: z.number().int().nonnegative().optional(),
+    deleteOnFileRemoval: z.boolean(),
+  }),
+  activeRun: activeDirectorySyncRunSchema.optional(),
+  recentRuns: z.array(recentDirectorySyncRunSchema),
+  issues: z.array(directorySyncIssueSchema),
+});
 
-const directorySyncRunMetricsSchema = {
-  imported: z.number().int().nonnegative(),
-  skipped: z.number().int().nonnegative(),
-  failed: z.number().int().nonnegative(),
-  quarantined: z.number().int().nonnegative(),
-  exported: z.number().int().nonnegative(),
-};
-
-const directorySyncWorkspaceSnapshotSchema: z.ZodType<DirectorySyncWorkspaceSnapshot> =
-  z.object({
-    health: z.enum(["healthy", "active", "attention"]),
-    directory: z.object({
-      displayPath: z.string().min(1),
-      exists: z.boolean(),
-      watching: z.boolean(),
-      totalFiles: z.number().int().nonnegative(),
-      byEntityType: z.record(z.string(), z.number().int().nonnegative()),
-      lastSettledAt: z.string().datetime().optional(),
-    }),
-    git: z
-      .object({
-        branch: z.string().min(1),
-        remoteLabel: z.string().min(1).optional(),
-        hasChanges: z.boolean(),
-        ahead: z.number().int().nonnegative(),
-        behind: z.number().int().nonnegative(),
-        lastCommit: z.string().min(1).optional(),
-        changedFiles: z.array(
-          z.object({ path: z.string().min(1), status: z.string().min(1) }),
-        ),
-        changedFilesTruncated: z.boolean(),
-      })
-      .nullable(),
-    automation: z.object({
-      autoSync: z.boolean(),
-      watchIntervalMs: z.number().int().nonnegative(),
-      remoteIntervalMinutes: z.number().nonnegative().optional(),
-      commitDebounceMs: z.number().int().nonnegative().optional(),
-      deleteOnFileRemoval: z.boolean(),
-    }),
-    activeRun: z
-      .object({
-        id: z.string().min(1),
-        source: z.enum(["manual", "periodic", "watcher", "save"]),
-        state: z.enum(["pulling", "scanning", "importing", "settling"]),
-        startedAt: z.string().datetime(),
-        lastProgressAt: z.string().datetime(),
-        jobId: z.string().min(1).optional(),
-        batchId: z.string().min(1).optional(),
-        ...directorySyncRunMetricsSchema,
-      })
-      .optional(),
-    recentRuns: z.array(
-      z.object({
-        id: z.string().min(1),
-        source: z.enum(["manual", "periodic", "watcher", "save"]),
-        outcome: z.enum(["succeeded", "attention", "failed"]),
-        startedAt: z.string().datetime(),
-        completedAt: z.string().datetime(),
-        summary: z.string().min(1),
-        ...directorySyncRunMetricsSchema,
-      }),
-    ),
-    issues: z.array(
-      z.object({
-        id: z.string().min(1),
-        kind: z.enum(["quarantined", "import", "export", "git", "source"]),
-        path: z.string().min(1).optional(),
-        message: z.string().min(1),
-        occurredAt: z.string().datetime(),
-      }),
-    ),
-  });
+export type DirectorySyncWorkspaceSnapshot = z.output<
+  typeof directorySyncWorkspaceSnapshotSchema
+>;
 
 const syncNowAction = defineWorkspaceAction({
   name: "sync-now",

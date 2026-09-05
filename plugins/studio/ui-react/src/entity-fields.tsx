@@ -14,8 +14,9 @@ import type {
   EntityTypeInfo,
   FieldDescriptor,
 } from "./api";
-import { uploadImage } from "./mutations";
+import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
+import { useStudioApi } from "./studio-api-context";
 import { datetimeLocalValue, errorMessage } from "./ui-utils";
 
 const COLLECTION_ENTITY_TYPES = new Set([
@@ -44,6 +45,7 @@ const SYSTEM_ENTITY_TYPES = new Set([
   "prompts",
   "skill",
   "skills",
+  "style-guide",
   "swot",
   "swots",
 ]);
@@ -119,6 +121,7 @@ export function TypeSwitcher(props: {
   activeWorkspace?: string | null;
   workspaceBadges?: Record<string, number>;
   onSelectWorkspace?: (workspaceId: string) => void;
+  renderMode?: "all" | "mobile" | "desktop";
 }): ReactElement {
   const overviewWorkspace = props.workspaces?.find(
     (workspace) => workspace.id === "studio:overview",
@@ -233,126 +236,131 @@ export function TypeSwitcher(props: {
 
   return (
     <>
-      <SelectPrimitive.Root
-        value={activeMobileView}
-        onValueChange={selectMobileView}
-      >
-        <SelectPrimitive.Trigger
-          className="studio-mobile-switcher"
-          aria-label="Studio view"
+      {props.renderMode !== "desktop" ? (
+        <SelectPrimitive.Root
+          value={activeMobileView}
+          onValueChange={selectMobileView}
         >
-          <span className="studio-mobile-switcher-label">Browse</span>
-          <SelectPrimitive.Value placeholder="Choose a Studio view">
-            <span className="studio-mobile-switcher-value">
-              {activeMobileLabel}
-            </span>
-          </SelectPrimitive.Value>
-          <SelectPrimitive.Icon
-            className="studio-mobile-switcher-chevron"
-            aria-hidden="true"
+          <SelectPrimitive.Trigger
+            className="studio-mobile-switcher"
+            aria-label="Studio view"
           >
-            ↓
-          </SelectPrimitive.Icon>
-        </SelectPrimitive.Trigger>
-        <SelectPrimitive.Portal>
-          <SelectPrimitive.Content
-            className="studio-mobile-switcher-content"
-            position="popper"
-            sideOffset={6}
-            align="start"
-          >
-            <SelectPrimitive.ScrollUpButton className="studio-mobile-switcher-scroll">
-              ↑
-            </SelectPrimitive.ScrollUpButton>
-            <SelectPrimitive.Viewport className="studio-mobile-switcher-viewport">
-              {mobileGroups.map((group) => (
-                <SelectPrimitive.Group
-                  className="studio-mobile-switcher-group"
-                  key={`mobile:${group.label}`}
-                >
-                  <SelectPrimitive.Label className="studio-mobile-switcher-group-label">
-                    {group.label}
-                  </SelectPrimitive.Label>
-                  {group.options.map((option) => (
-                    <SelectPrimitive.Item
-                      className="studio-mobile-switcher-item"
-                      value={option.value}
-                      key={option.value}
-                    >
-                      <SelectPrimitive.ItemText>
-                        {option.label}
-                      </SelectPrimitive.ItemText>
-                      <SelectPrimitive.ItemIndicator className="studio-mobile-switcher-indicator">
-                        ✓
-                      </SelectPrimitive.ItemIndicator>
-                    </SelectPrimitive.Item>
-                  ))}
-                </SelectPrimitive.Group>
-              ))}
-            </SelectPrimitive.Viewport>
-            <SelectPrimitive.ScrollDownButton className="studio-mobile-switcher-scroll">
+            <span className="studio-mobile-switcher-label">Browse</span>
+            <SelectPrimitive.Value placeholder="Choose a Studio view">
+              <span className="studio-mobile-switcher-value">
+                {activeMobileLabel}
+              </span>
+            </SelectPrimitive.Value>
+            <SelectPrimitive.Icon
+              className="studio-mobile-switcher-chevron"
+              aria-hidden="true"
+            >
               ↓
-            </SelectPrimitive.ScrollDownButton>
-          </SelectPrimitive.Content>
-        </SelectPrimitive.Portal>
-      </SelectPrimitive.Root>
-      <nav className="types">
-        {overviewWorkspace && (
-          <section className="rail-group rail-group--overview">
-            <ul>
-              <li>
-                <button
-                  type="button"
-                  className={
-                    overviewWorkspace.id === props.activeWorkspace
-                      ? "type workspace-type active"
-                      : "type workspace-type"
-                  }
-                  onClick={() =>
-                    props.onSelectWorkspace?.(overviewWorkspace.id)
-                  }
-                >
-                  {overviewWorkspace.label}
-                  {(props.workspaceBadges?.[overviewWorkspace.id] ?? 0) > 0 && (
-                    <span className="count count--attention">
-                      {props.workspaceBadges?.[overviewWorkspace.id]}
-                    </span>
-                  )}
-                </button>
-              </li>
-            </ul>
-          </section>
-        )}
-        {primaryTypeGroups.map(renderGroup)}
-        {operationWorkspaces.length > 0 && (
-          <section className="rail-group rail-group--operations">
-            <div className="rail-title">Operations</div>
-            <ul>
-              {operationWorkspaces.map((workspace) => (
-                <li key={workspace.id}>
+            </SelectPrimitive.Icon>
+          </SelectPrimitive.Trigger>
+          <SelectPrimitive.Portal>
+            <SelectPrimitive.Content
+              className="studio-mobile-switcher-content"
+              position="popper"
+              sideOffset={6}
+              align="start"
+            >
+              <SelectPrimitive.ScrollUpButton className="studio-mobile-switcher-scroll">
+                ↑
+              </SelectPrimitive.ScrollUpButton>
+              <SelectPrimitive.Viewport className="studio-mobile-switcher-viewport">
+                {mobileGroups.map((group) => (
+                  <SelectPrimitive.Group
+                    className="studio-mobile-switcher-group"
+                    key={`mobile:${group.label}`}
+                  >
+                    <SelectPrimitive.Label className="studio-mobile-switcher-group-label">
+                      {group.label}
+                    </SelectPrimitive.Label>
+                    {group.options.map((option) => (
+                      <SelectPrimitive.Item
+                        className="studio-mobile-switcher-item"
+                        value={option.value}
+                        key={option.value}
+                      >
+                        <SelectPrimitive.ItemText>
+                          {option.label}
+                        </SelectPrimitive.ItemText>
+                        <SelectPrimitive.ItemIndicator className="studio-mobile-switcher-indicator">
+                          ✓
+                        </SelectPrimitive.ItemIndicator>
+                      </SelectPrimitive.Item>
+                    ))}
+                  </SelectPrimitive.Group>
+                ))}
+              </SelectPrimitive.Viewport>
+              <SelectPrimitive.ScrollDownButton className="studio-mobile-switcher-scroll">
+                ↓
+              </SelectPrimitive.ScrollDownButton>
+            </SelectPrimitive.Content>
+          </SelectPrimitive.Portal>
+        </SelectPrimitive.Root>
+      ) : null}
+      {props.renderMode !== "mobile" ? (
+        <nav className="types">
+          {overviewWorkspace && (
+            <section className="rail-group rail-group--overview">
+              <ul>
+                <li>
                   <button
                     type="button"
                     className={
-                      workspace.id === props.activeWorkspace
+                      overviewWorkspace.id === props.activeWorkspace
                         ? "type workspace-type active"
                         : "type workspace-type"
                     }
-                    onClick={() => props.onSelectWorkspace?.(workspace.id)}
+                    onClick={() =>
+                      props.onSelectWorkspace?.(overviewWorkspace.id)
+                    }
                   >
-                    {workspace.label}
-                    {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
+                    {overviewWorkspace.label}
+                    {(props.workspaceBadges?.[overviewWorkspace.id] ?? 0) >
+                      0 && (
                       <span className="count count--attention">
-                        {props.workspaceBadges?.[workspace.id]}
+                        {props.workspaceBadges?.[overviewWorkspace.id]}
                       </span>
                     )}
                   </button>
                 </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {secondaryTypeGroups.map(renderGroup)}
-      </nav>
+              </ul>
+            </section>
+          )}
+          {primaryTypeGroups.map(renderGroup)}
+          {operationWorkspaces.length > 0 && (
+            <section className="rail-group rail-group--operations">
+              <div className="rail-title">Operations</div>
+              <ul>
+                {operationWorkspaces.map((workspace) => (
+                  <li key={workspace.id}>
+                    <button
+                      type="button"
+                      className={
+                        workspace.id === props.activeWorkspace
+                          ? "type workspace-type active"
+                          : "type workspace-type"
+                      }
+                      onClick={() => props.onSelectWorkspace?.(workspace.id)}
+                    >
+                      {workspace.label}
+                      {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
+                        <span className="count count--attention">
+                          {props.workspaceBadges?.[workspace.id]}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {secondaryTypeGroups.map(renderGroup)}
+        </nav>
+      ) : null}
     </>
   );
 }
@@ -369,7 +377,11 @@ function ImageField(props: {
 }): ReactElement {
   const { descriptor, value, onChange } = props;
   const queryClient = useQueryClient();
-  const uploadMutation = useMutation({ mutationFn: uploadImage });
+  const api = useStudioApi();
+  const uploadMutation = useMutation({
+    mutationFn: (file: File): Promise<UploadImageResult> =>
+      uploadImage(api, file),
+  });
   const current = typeof value === "string" && value.length > 0 ? value : null;
 
   return (

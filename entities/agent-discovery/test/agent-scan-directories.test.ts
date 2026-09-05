@@ -213,7 +213,7 @@ describe("agents_scan-directories", () => {
         ],
       },
     ]);
-    harness.reset();
+    await harness.reset();
   });
 
   it("notifies on new agents when explicitly enabled", async () => {
@@ -241,7 +241,7 @@ describe("agents_scan-directories", () => {
         body: "Found vale.example, introduced through kai.brain. Review in Agent sightings.",
       }),
     ]);
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers as a trusted external tool", async () => {
@@ -255,7 +255,7 @@ describe("agents_scan-directories", () => {
     expect(tool?.sideEffects).toBe("external");
     expect(tool?.description).toContain("/.well-known/agent-directory.json");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("aborts in-flight directory requests through the tool signal", async () => {
@@ -301,7 +301,7 @@ describe("agents_scan-directories", () => {
       success: false,
       error: abortReason.message,
     });
-    harness.reset();
+    await harness.reset();
   });
 
   it("sights agents reported by approved peers' directories with provenance", async () => {
@@ -392,7 +392,7 @@ describe("agents_scan-directories", () => {
     expect(network.calls.some((url) => url.includes("noor.brain"))).toBe(false);
     expect(network.calls.some((url) => url.includes("self.brain"))).toBe(false);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("merges new introducers into an existing sighting without refetching its card", async () => {
@@ -445,7 +445,7 @@ describe("agents_scan-directories", () => {
       false,
     );
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not attach provenance to agents known first-hand", async () => {
@@ -486,7 +486,7 @@ describe("agents_scan-directories", () => {
     const parsed = parseAgentEntity(noor);
     expect(parsed.frontmatter.introducedBy).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("is a no-op when peers report nothing new", async () => {
@@ -536,6 +536,6 @@ describe("agents_scan-directories", () => {
     const parsed = parseAgentEntity(after);
     expect(parsed.frontmatter.introducedBy).toEqual(["kai.brain"]);
 
-    harness.reset();
+    await harness.reset();
   });
 });

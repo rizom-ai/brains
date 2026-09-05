@@ -99,11 +99,29 @@ export interface MockSlackAdapter {
  * mistake fails loudly here instead of silently handing over a stale adapter,
  * SDK instance, or auth resolver.
  */
+type HarnessFetch = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
 interface HarnessState {
   discordAdapter: MockDiscordAdapter | undefined;
   slackAdapter: MockSlackAdapter | undefined;
   resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
   sdkInstances: MockChatSdk[];
+  /** What the interface's attachment downloader reaches. Swap it per test. */
+  fetch: HarnessFetch;
+}
+
+/**
+ * Point the interface's attachment downloader at a fake for the current test.
+ *
+ * The plugin is built with a delegate that reads this at download time, so
+ * it can be set before or after createPlugin(). It lives in per-test state,
+ * so there is nothing to restore.
+ */
+export function stubFetch(handler: HarnessFetch): void {
+  state().fetch = handler;
 }
 
 let activeState: HarnessState | undefined;
@@ -651,16 +669,6 @@ export function createSentMessage(id = "sent-123"): MockSentMessage {
   return sentMessage;
 }
 
-export function createFetchStub(
-  originalFetch: typeof fetch,
-  handler: (
-    input: Parameters<typeof fetch>[0],
-    init?: Parameters<typeof fetch>[1],
-  ) => Promise<Response>,
-): typeof fetch {
-  return Object.assign(handler, { preconnect: originalFetch.preconnect });
-}
-
 export function createThread(overrides: Partial<MockThread> = {}): MockThread {
   return {
     id: "discord:guild-123:channel-123:thread-456",
@@ -770,6 +778,9 @@ export function createPlugin(
       gatewayRunMs: 50,
     },
     harnessIdentityAccess,
+    // A delegate rather than the handler itself, so stubFetch() can swap the
+    // handler after the plugin exists.
+    { fetch: (input, init): Promise<Response> => state().fetch(input, init) },
   );
 }
 
@@ -780,8 +791,8 @@ export interface ChatInterfaceTestContext {
 
 /**
  * Installs the beforeEach/afterEach every ChatInterface suite needs: fresh
- * adapter mocks, a stubbed global fetch, and a plugin harness wired to a mock
- * agent service. The returned context is mutated in place, so suites read
+ * adapter mocks, a per-test fetch the plugin is built to use, and a plugin
+ * harness wired to a mock agent service. The returned context is mutated in place, so suites read
  * `context.harness` inside their tests rather than destructuring it.
  */
 export function setupChatInterfaceTest(): ChatInterfaceTestContext {
@@ -789,8 +800,6 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     harness: createPluginHarness<ChatInterfaceInstance>(),
     agentService: createAgentService(),
   };
-  let originalFetch: typeof fetch;
-
   beforeEach(() => {
     // A fresh holder per test: nothing from the previous test — or from a
     // suite that ran earlier in this process — is reachable.
@@ -799,22 +808,18 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
       slackAdapter: undefined,
       resolveIdentityAccess: undefined,
       sdkInstances: [],
+      fetch: (): Promise<Response> => Promise.resolve(new Response("{}")),
     };
     createDiscordAdapterMock.mockClear();
     createSlackAdapterMock.mockClear();
     createMemoryStateMock.mockClear();
-    originalFetch = globalThis.fetch;
-    globalThis.fetch = createFetchStub(originalFetch, (_input, _init) =>
-      Promise.resolve(new Response("{}")),
-    );
     context.agentService = createAgentService();
     context.harness = createPluginHarness<ChatInterfaceInstance>();
     context.harness.setAgentService(context.agentService);
   });
 
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    context.harness.reset();
+  afterEach(async () => {
+    await context.harness.reset();
     activeState = undefined;
   });
 

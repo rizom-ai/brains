@@ -1,10 +1,15 @@
 import { dynamicTool, type ToolSet } from "ai";
-import type { ActorRef, JsonValue } from "@brains/contracts";
+import {
+  jsonValueSchema,
+  type ActorRef,
+  type JsonValue,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 export interface ToolContextInfo {
   conversationId: string;
@@ -34,17 +39,6 @@ const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
   "transform",
   "sourceAttachment",
 ]);
-
-const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.null(),
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema),
-  ]),
-);
 
 const attachmentToolOutputSchema = z.looseObject({
   success: z.literal(true),
@@ -122,7 +116,7 @@ export function toModelToolOutput(output: unknown): {
     ...(attachment.sizeBytes !== undefined
       ? { sizeBytes: attachment.sizeBytes }
       : {}),
-    ...(attachment.source !== undefined ? { source: attachment.source } : {}),
+    ...definedFields({ source: attachment.source }),
   };
 
   return {

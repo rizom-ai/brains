@@ -480,7 +480,8 @@ describe("a tool the agent must not wield", () => {
       tool.name.endsWith("_everyday"),
     );
     expect(readout?.agentTool).toBe(false);
-    expect(everyday?.agentTool).toBeUndefined();
+    if (!everyday) throw new Error("The everyday tool was not registered");
+    expect(everyday.agentTool).toBeUndefined();
   });
 });
 

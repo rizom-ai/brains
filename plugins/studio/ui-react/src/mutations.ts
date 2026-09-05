@@ -1,11 +1,5 @@
 import type { RuntimeOperatorActionControl } from "@brains/plugins";
-import {
-  createEntity,
-  deleteEntity,
-  runWorkspaceAction,
-  updateEntity,
-  uploadFile,
-} from "./api";
+import type { StudioApi } from "./api";
 
 export type SaveEntityInput =
   | {
@@ -45,9 +39,10 @@ export interface SaveEntityResult {
 }
 
 export function runDeclarativeWorkspaceAction(
+  api: StudioApi,
   input: DeclarativeWorkspaceActionInput,
 ): Promise<unknown> {
-  return runWorkspaceAction(input.workspaceId, {
+  return api.runWorkspaceAction(input.workspaceId, {
     actionId: input.action.actionId,
     input: input.action.input,
     ...(input.action.invocation?.mode === "prepare"
@@ -61,26 +56,33 @@ export function runDeclarativeWorkspaceAction(
   });
 }
 
-export function uploadImage(file: File): Promise<UploadImageResult> {
-  return uploadFile(file);
+export function uploadImage(
+  api: StudioApi,
+  file: File,
+): Promise<UploadImageResult> {
+  return api.uploadFile(file);
 }
 
 export function removeEntity(
+  api: StudioApi,
   input: DeleteEntityInput,
 ): Promise<{ deleted: boolean }> {
-  return deleteEntity(input.entityType, input.id);
+  return api.deleteEntity(input.entityType, input.id);
 }
 
-export function saveEntity(input: SaveEntityInput): Promise<SaveEntityResult> {
+export function saveEntity(
+  api: StudioApi,
+  input: SaveEntityInput,
+): Promise<SaveEntityResult> {
   const body = input.body === undefined ? {} : { body: input.body };
   if (input.kind === "create") {
-    return createEntity({
+    return api.createEntity({
       entityType: input.entityType,
       frontmatter: input.frontmatter,
       ...body,
     });
   }
-  return updateEntity({
+  return api.updateEntity({
     entityType: input.entityType,
     id: input.id,
     frontmatter: input.frontmatter,

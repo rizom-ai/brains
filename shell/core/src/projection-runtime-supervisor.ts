@@ -13,13 +13,6 @@ export interface ProjectionMutationTarget {
   entityId: string;
 }
 
-export interface ProjectionCircuitDiagnostic {
-  projectionId: string;
-  reason: string;
-  openedAt: number;
-  expiresAt: number;
-}
-
 export interface ProjectionRuntimeDiagnostics {
   status: "healthy" | "unhealthy";
   initialized: boolean;
@@ -55,13 +48,21 @@ interface RootCounters {
   updatedAt: number;
 }
 
-const ProjectionCircuitStateSchema: z.ZodType<ProjectionCircuitDiagnostic> =
-  z.object({
-    projectionId: z.string().min(1),
-    reason: z.string().min(1),
-    openedAt: z.number().int().nonnegative(),
-    expiresAt: z.number().int().nonnegative(),
-  });
+const ProjectionCircuitStateSchema: z.ZodObject<{
+  projectionId: z.ZodString;
+  reason: z.ZodString;
+  openedAt: z.ZodNumber;
+  expiresAt: z.ZodNumber;
+}> = z.object({
+  projectionId: z.string().min(1),
+  reason: z.string().min(1),
+  openedAt: z.number().int().nonnegative(),
+  expiresAt: z.number().int().nonnegative(),
+});
+
+export type ProjectionCircuitDiagnostic = z.output<
+  typeof ProjectionCircuitStateSchema
+>;
 
 const DEFAULT_MAX_DERIVATION_DEPTH = 8;
 const DEFAULT_MAX_JOBS_PER_ROOT = 32;

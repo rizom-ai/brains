@@ -24,7 +24,7 @@ describe("standalone Web Chat transport bootstrap", () => {
   it("publishes the configured API path without executable configuration", () => {
     const html = renderChatPage({
       apiPath: "/custom/chat-api",
-      surfaces: [],
+      dashboardHref: "/dashboard",
       sessionHref: "/logout",
     });
 

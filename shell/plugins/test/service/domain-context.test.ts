@@ -202,7 +202,9 @@ describe("Top-level context properties", () => {
       const context = createServicePluginContext(shell, "test-plugin");
 
       const info = await context.appInfo();
-      expect(info.model).toBeDefined();
+      // The value, not just its presence: a context wired to the wrong source
+      // still returns something defined.
+      expect(info.model).toBe("test-brain");
     });
   });
 });

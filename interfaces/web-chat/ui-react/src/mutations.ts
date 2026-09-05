@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
+import type { ChatClient } from "@brains/contracts/chat";
 import { describeClientFailure, type WebChatSession } from "./api";
-import { createWebChatClient } from "./web-chat-client";
 import { webChatKeys } from "./queries";
 
 export interface WebChatSessionMutationInput {
@@ -40,12 +40,10 @@ export function removeWebChatSessionCaches(
 
 export async function renameWebChatSession(
   input: RenameWebChatSessionInput,
+  client: ChatClient,
 ): Promise<void> {
   try {
-    await createWebChatClient().renameSession(
-      input.conversationId,
-      input.title,
-    );
+    await client.renameSession(input.conversationId, input.title);
   } catch (error) {
     throw new Error(
       describeClientFailure(error, "Could not rename that session."),
@@ -56,9 +54,10 @@ export async function renameWebChatSession(
 
 export async function archiveWebChatSession(
   input: WebChatSessionMutationInput,
+  client: ChatClient,
 ): Promise<void> {
   try {
-    await createWebChatClient().archiveSession(input.conversationId);
+    await client.archiveSession(input.conversationId);
   } catch (error) {
     throw new Error(
       describeClientFailure(error, "Could not archive that session."),
@@ -69,9 +68,10 @@ export async function archiveWebChatSession(
 
 export async function deleteWebChatSession(
   input: WebChatSessionMutationInput,
+  client: ChatClient,
 ): Promise<void> {
   try {
-    await createWebChatClient().deleteSession(input.conversationId);
+    await client.deleteSession(input.conversationId);
   } catch (error) {
     throw new Error(
       describeClientFailure(error, "Could not delete that session."),

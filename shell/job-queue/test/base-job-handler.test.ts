@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -157,10 +158,12 @@ describe("BaseJobHandler", () => {
       const handler = new TestJobHandler(mockLogger);
       const data = { title: "Test Title", count: 0 };
 
-      const result = handler.validateAndParse(data);
+      const result = expectDefined(
+        handler.validateAndParse(data),
+        "validateAndParse result",
+      );
 
-      expect(result).not.toBeNull();
-      expect(result?.content).toBeUndefined();
+      expect(result.content).toBeUndefined();
     });
 
     it("should return null for invalid data", () => {

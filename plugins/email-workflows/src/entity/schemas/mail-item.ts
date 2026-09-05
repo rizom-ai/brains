@@ -9,50 +9,54 @@ const mailCategories = [
   "personal",
 ] as const;
 
-type MailCategoryValue = (typeof mailCategories)[number];
-
-export const mailCategorySchema: z.ZodType<
-  MailCategoryValue,
-  MailCategoryValue
-> = z.enum(mailCategories);
+export const mailCategorySchema: z.ZodEnum<{
+  opportunity: "opportunity";
+  recruiting: "recruiting";
+  work: "work";
+  administrative: "administrative";
+  personal: "personal";
+}> = z.enum(mailCategories);
 
 const mailPriorities = ["high", "normal", "low"] as const;
-type MailPriorityValue = (typeof mailPriorities)[number];
 
-export const mailPrioritySchema: z.ZodType<
-  MailPriorityValue,
-  MailPriorityValue
-> = z.enum(mailPriorities);
+export const mailPrioritySchema: z.ZodEnum<{
+  high: "high";
+  normal: "normal";
+  low: "low";
+}> = z.enum(mailPriorities);
 
 const mailStatuses = ["new", "reviewed", "handled", "archived"] as const;
-type MailStatusValue = (typeof mailStatuses)[number];
 
-export const mailStatusSchema: z.ZodType<MailStatusValue, MailStatusValue> =
-  z.enum(mailStatuses);
+export const mailStatusSchema: z.ZodEnum<{
+  new: "new";
+  reviewed: "reviewed";
+  handled: "handled";
+  archived: "archived";
+}> = z.enum(mailStatuses);
 
-interface MailItemSourceValue {
-  ref: string;
-  senderKey: string;
-  threadKey?: string | undefined;
-  threadOrdinal?: number | undefined;
-  personId?: string | undefined;
-  domain?: string | undefined;
-}
-
-export const mailThreadKeySchema: z.ZodType<string, string> = z
+export const mailThreadKeySchema: z.ZodString = z
   .string()
   .regex(/^[a-f0-9]{64}$/);
 
-export const mailThreadOrdinalSchema: z.ZodType<number, number> = z
+export const mailThreadOrdinalSchema: z.ZodNumber = z
   .number()
   .int()
   .positive()
   .max(Number.MAX_SAFE_INTEGER);
 
-export const mailItemSourceSchema: z.ZodType<
-  MailItemSourceValue,
-  MailItemSourceValue
-> = z
+type MailItemSourceSchema = z.ZodObject<
+  {
+    ref: z.ZodString;
+    senderKey: z.ZodString;
+    threadKey: z.ZodOptional<typeof mailThreadKeySchema>;
+    threadOrdinal: z.ZodOptional<typeof mailThreadOrdinalSchema>;
+    personId: z.ZodOptional<z.ZodString>;
+    domain: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+>;
+
+export const mailItemSourceSchema: MailItemSourceSchema = z
   .strictObject({
     ref: z.string().min(1).max(1_024),
     senderKey: z.string().regex(/^[a-f0-9]{64}$/),
@@ -70,7 +74,7 @@ export const mailItemSourceSchema: z.ZodType<
     },
   );
 
-export const mailSenderLabelSchema: z.ZodType<string, string> = z
+export const mailSenderLabelSchema: z.ZodString = z
   .string()
   .trim()
   .min(1)
@@ -85,7 +89,7 @@ type MailItemFrontmatterSchema = z.ZodObject<{
   priority: typeof mailPrioritySchema;
   status: typeof mailStatusSchema;
   needsReply: z.ZodBoolean;
-  receivedAt: ReturnType<typeof z.iso.datetime>;
+  receivedAt: z.ZodISODateTime;
   source: typeof mailItemSourceSchema;
   senderLabel: z.ZodOptional<typeof mailSenderLabelSchema>;
   organization: z.ZodOptional<z.ZodString>;

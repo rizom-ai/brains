@@ -3,7 +3,8 @@
 `@brains/web-chat` provides the guest-facing Web Chat surface at `/ask` and
 owns the shared Chat HTTP APIs. Native authenticated Chat is hosted by Studio
 at `/chat`; the two presentations share the transport contract without sharing
-browser components.
+browser components. The standalone surface carries a small public Ask masthead;
+it does not restore the retired Dashboard/Chat/Studio product switcher.
 
 ## Public boundary
 

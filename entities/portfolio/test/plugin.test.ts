@@ -31,8 +31,8 @@ describe("portfolio package", () => {
     capabilities = await harness.installPlugin(plugin);
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("declares one entity and no projections", () => {
@@ -113,7 +113,7 @@ describe("portfolio package", () => {
         title: "API Gateway",
       });
     } finally {
-      localHarness.reset();
+      await localHarness.reset();
     }
   });
 
@@ -161,7 +161,7 @@ describe("portfolio package", () => {
 
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // These round-trips used to be asserted against ProjectAdapter's own

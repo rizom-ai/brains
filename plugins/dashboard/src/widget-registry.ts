@@ -1,8 +1,8 @@
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   PermissionService,
+  UserPermissionLevelSchema,
   type DashboardWidgetProviderContext,
-  type UserPermissionLevel,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { JSX } from "react";
@@ -20,7 +20,7 @@ export type WidgetComponent = (
   props: WidgetComponentProps,
 ) => JSX.Element | null;
 
-const widgetComponentSchema: z.ZodType<WidgetComponent, WidgetComponent> =
+const widgetComponentSchema: z.ZodCustom<WidgetComponent, WidgetComponent> =
   z.custom<WidgetComponent>((value) => typeof value === "function", {
     message: "widget component must be a function",
   });
@@ -33,72 +33,60 @@ export type WidgetDigestProvider = (data: unknown) => {
   digest?: DashboardDigestLine[];
   needsAttention?: number;
 };
-export type WidgetVisibility = UserPermissionLevel;
+export const widgetVisibilitySchema: typeof UserPermissionLevelSchema =
+  UserPermissionLevelSchema;
+export type WidgetVisibility = z.output<typeof widgetVisibilitySchema>;
 
-const widgetVisibilitySchema: z.ZodType<WidgetVisibility, WidgetVisibility> =
-  z.enum(["public", "trusted", "admin"]);
+export const dashboardWidgetSectionSchema: z.ZodEnum<{
+  primary: "primary";
+  secondary: "secondary";
+  sidebar: "sidebar";
+}> = z.enum(["primary", "secondary", "sidebar"]);
+export type DashboardWidgetSection = z.output<
+  typeof dashboardWidgetSectionSchema
+>;
 
-export type DashboardWidgetSection = "primary" | "secondary" | "sidebar";
-
-export interface DashboardDigestLine {
-  label: string;
-  value: string;
-  tone?: "plain" | "good" | "warn" | undefined;
-}
-
-export const dashboardDigestLineSchema: z.ZodType<
-  DashboardDigestLine,
-  DashboardDigestLine
-> = z.object({
+export const dashboardDigestLineSchema: z.ZodObject<{
+  label: z.ZodString;
+  value: z.ZodString;
+  tone: z.ZodOptional<
+    z.ZodEnum<{ plain: "plain"; good: "good"; warn: "warn" }>
+  >;
+}> = z.object({
   label: z.string(),
   value: z.string(),
   tone: z.enum(["plain", "good", "warn"]).optional(),
 });
+export type DashboardDigestLine = z.output<typeof dashboardDigestLineSchema>;
 
-export interface DashboardWidgetMeta {
-  id: string;
-  pluginId: string;
-  title: string;
-  description?: string | undefined;
-  group: string;
-  priority: number;
-  section: DashboardWidgetSection;
-  rendererName: typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER;
-  visibility: WidgetVisibility;
-  needsAttention?: number | undefined;
-  digest?: DashboardDigestLine[] | undefined;
-}
-
-export interface DashboardWidgetInput {
-  id: string;
-  pluginId: string;
-  title: string;
-  description?: string | undefined;
-  group: string;
-  priority?: number | undefined;
-  section?: DashboardWidgetSection | undefined;
-  rendererName: typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER;
-  visibility?: WidgetVisibility | undefined;
-  needsAttention?: number | undefined;
-  digest?: DashboardDigestLine[] | undefined;
-}
-
-export const dashboardWidgetSchema: z.ZodType<
-  DashboardWidgetMeta,
-  DashboardWidgetInput
-> = z.object({
+export const dashboardWidgetSchema: z.ZodObject<{
+  id: z.ZodString;
+  pluginId: z.ZodString;
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  group: z.ZodString;
+  priority: z.ZodDefault<z.ZodNumber>;
+  section: z.ZodDefault<typeof dashboardWidgetSectionSchema>;
+  rendererName: z.ZodLiteral<typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER>;
+  visibility: z.ZodDefault<typeof widgetVisibilitySchema>;
+  needsAttention: z.ZodOptional<z.ZodNumber>;
+  digest: z.ZodOptional<z.ZodArray<typeof dashboardDigestLineSchema>>;
+}> = z.object({
   id: z.string(),
   pluginId: z.string(),
   title: z.string(),
   description: z.string().optional(),
   group: z.string().min(1),
   priority: z.number().default(50),
-  section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
+  section: dashboardWidgetSectionSchema.default("primary"),
   rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
   visibility: widgetVisibilitySchema.default("public"),
   needsAttention: z.number().int().nonnegative().optional(),
   digest: z.array(dashboardDigestLineSchema).max(4).optional(),
 });
+
+export type DashboardWidgetMeta = z.output<typeof dashboardWidgetSchema>;
+export type DashboardWidgetInput = z.input<typeof dashboardWidgetSchema>;
 
 /**
  * The renderer a first-party widget brings with it. Kept beside the widget in

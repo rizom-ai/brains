@@ -41,7 +41,7 @@ describe("style guide entity definition", () => {
     await harness.sendMessage("sync:initial:completed", {});
     expect(await read()).toMatchObject({ id: "style-guide" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("does not overwrite a style guide that already exists", async () => {
@@ -62,7 +62,7 @@ describe("style guide entity definition", () => {
       .getEntity({ entityType: "style-guide", id: "style-guide" });
     expect(styleGuideFromEntity(entity).name).toBe("House voice");
 
-    harness.reset();
+    await harness.reset();
   });
 });
 

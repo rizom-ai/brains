@@ -124,6 +124,7 @@ Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
       // A human asks for a readout over MCP; the agent has no business
       // querying traffic on its own initiative.
       agentTool: false,
+      directMcpExposure: "basic",
       execute: async ({ input }) => {
         const validationError = validateParams(input);
         if (validationError) {

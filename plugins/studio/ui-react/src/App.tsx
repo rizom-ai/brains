@@ -44,7 +44,6 @@ import {
 } from "./app-view";
 import {
   ApiError,
-  requestFieldAssist,
   type AgentTarget,
   type StudioWorkspaceInfo,
   type FieldAssistResponse,
@@ -79,10 +78,13 @@ import {
   removeEntity,
   runDeclarativeWorkspaceAction,
   saveEntity,
+  type DeclarativeWorkspaceActionInput,
+  type DeleteEntityInput,
   type SaveEntityInput,
+  type SaveEntityResult,
 } from "./mutations";
+import { useStudioApi } from "./studio-api-context";
 import {
-  createInboxChatPrefillState,
   createStudioChatHandoffState,
   readStudioChatHandoffState,
 } from "./operator-launch";
@@ -164,14 +166,6 @@ interface WorkspaceQueryState {
   urlSearch?: string | undefined;
 }
 
-function consoleSurfaceHref(id: "web-chat"): string | undefined {
-  return (
-    document
-      .querySelector(`[data-console-surface="${id}"]`)
-      ?.getAttribute("href") ?? undefined
-  );
-}
-
 export function App(): ReactElement {
   const router = useRouter();
   const routePathname = useRouterState({
@@ -237,7 +231,8 @@ export function App(): ReactElement {
   const selectedEntityTypeRef = useRef(entityType);
   selectedEntityTypeRef.current = entityType;
   const queryClient = useQueryClient();
-  const navigationQuery = useQuery(navigationQueryOptions());
+  const api = useStudioApi();
+  const navigationQuery = useQuery(navigationQueryOptions(api));
   const types = navigationQuery.data?.types ?? null;
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
@@ -267,7 +262,11 @@ export function App(): ReactElement {
       : initialUrlWorkspaceQuery
     : EMPTY_WORKSPACE_QUERY;
   const workspaceQuery = useQuery({
-    ...workspaceQueryOptions(activeWorkspaceId ?? "", workspaceRequestQuery),
+    ...workspaceQueryOptions(
+      api,
+      activeWorkspaceId ?? "",
+      workspaceRequestQuery,
+    ),
     enabled: activeDeclarativeWorkspace,
   });
   const workspaceResponse = workspaceQuery.data ?? null;
@@ -277,7 +276,7 @@ export function App(): ReactElement {
     : null;
   const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
   const agentTargetsQuery = useQuery({
-    ...agentTargetsQueryOptions(entityType ?? "", activeEntityId ?? ""),
+    ...agentTargetsQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
     enabled:
       entityType !== null &&
       activeEntityId !== null &&
@@ -286,28 +285,35 @@ export function App(): ReactElement {
   });
   const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
   const syncStatusQuery = useQuery({
-    ...syncStatusQueryOptions(),
+    ...syncStatusQueryOptions(api),
     enabled: entityType !== null,
   });
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
-    ...entityListQueryOptions(entityType ?? ""),
+    ...entityListQueryOptions(api, entityType ?? ""),
     enabled: entityType !== null,
   });
   const entities = entityType ? (entityListQuery.data ?? null) : null;
   const entitySchemaQuery = useQuery({
-    ...entitySchemaQueryOptions(entityType ?? ""),
+    ...entitySchemaQueryOptions(api, entityType ?? ""),
     enabled: entityType !== null,
   });
   const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
   useQuery({
-    ...entityDetailQueryOptions(entityType ?? "", activeEntityId ?? ""),
+    ...entityDetailQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
     enabled: entityType !== null && activeEntityId !== null,
   });
-  const saveEntityMutation = useMutation({ mutationFn: saveEntity });
-  const deleteEntityMutation = useMutation({ mutationFn: removeEntity });
+  const saveEntityMutation = useMutation({
+    mutationFn: (input: SaveEntityInput): Promise<SaveEntityResult> =>
+      saveEntity(api, input),
+  });
+  const deleteEntityMutation = useMutation({
+    mutationFn: (input: DeleteEntityInput): Promise<{ deleted: boolean }> =>
+      removeEntity(api, input),
+  });
   const declarativeWorkspaceActionMutation = useMutation({
-    mutationFn: runDeclarativeWorkspaceAction,
+    mutationFn: (input: DeclarativeWorkspaceActionInput): Promise<unknown> =>
+      runDeclarativeWorkspaceAction(api, input),
   });
   const deleting = deleteEntityMutation.isPending;
   const declarativeWorkspaceData =
@@ -460,10 +466,10 @@ export function App(): ReactElement {
     let active = true;
     Promise.all([
       queryClient.fetchQuery({
-        ...entitySchemaQueryOptions(entityType),
+        ...entitySchemaQueryOptions(api, entityType),
         staleTime: 0,
       }),
-      queryClient.ensureQueryData(entityListQueryOptions(entityType)),
+      queryClient.ensureQueryData(entityListQueryOptions(api, entityType)),
     ])
       .then(([loadedSchema, loadedEntities]) => {
         if (!active || requestId !== openRequestId.current) return undefined;
@@ -496,7 +502,7 @@ export function App(): ReactElement {
         if (routeEntityId !== null) {
           return queryClient
             .fetchQuery({
-              ...entityDetailQueryOptions(entityType, routeEntityId),
+              ...entityDetailQueryOptions(api, entityType, routeEntityId),
               staleTime: 0,
             })
             .then((entity) => {
@@ -523,7 +529,7 @@ export function App(): ReactElement {
           if (record) {
             return queryClient
               .fetchQuery({
-                ...entityDetailQueryOptions(entityType, record.id),
+                ...entityDetailQueryOptions(api, entityType, record.id),
                 staleTime: 0,
               })
               .then((entity) => {
@@ -579,7 +585,7 @@ export function App(): ReactElement {
       const requestedType = entityType;
       queryClient
         .fetchQuery({
-          ...entityDetailQueryOptions(entityType, id),
+          ...entityDetailQueryOptions(api, entityType, id),
           staleTime: 0,
         })
         .then((entity) => {
@@ -659,14 +665,6 @@ export function App(): ReactElement {
         );
         return;
       }
-      const href = consoleSurfaceHref("web-chat");
-      if (!href) return;
-      window.history.pushState(
-        createInboxChatPrefillState(sourceId, itemId, label),
-        "",
-        href,
-      );
-      window.location.reload();
     },
     [router.history, studioBasePath, workspaces],
   );
@@ -759,6 +757,10 @@ export function App(): ReactElement {
   const selectEntityType = useCallback(
     (nextEntityType: string): void => {
       router.history.push(studioCollectionPath(studioBasePath, nextEntityType));
+      // A long rail can put its last groups below the document fold. Treat a
+      // rail selection like page navigation instead of retaining that offset
+      // and making the destination appear blank or partially missing.
+      window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
   );
@@ -770,6 +772,7 @@ export function App(): ReactElement {
           ? studioChatWorkspacePath(studioBasePath)
           : studioWorkspacePath(studioBasePath, workspaceId),
       );
+      window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
   );
@@ -811,12 +814,13 @@ export function App(): ReactElement {
       )
         return;
       setFieldAssistState({ kind: "loading", field, variant });
-      requestFieldAssist({
-        variant,
-        entityType,
-        id: mode.entity.id,
-        targetField: field,
-      })
+      api
+        .requestFieldAssist({
+          variant,
+          entityType,
+          id: mode.entity.id,
+          targetField: field,
+        })
         .then((response: FieldAssistResponse) => {
           const suggestion =
             response.variant === "summarise"
@@ -1157,9 +1161,11 @@ export function App(): ReactElement {
           apiPath={activeWorkspace.chatApiPath}
           studioBasePath={studioBasePath}
           sessionId={studioChatSessionId(routeSearch)}
+          types={types}
           workspaces={workspaces}
           handoff={readStudioChatHandoffState(routeState)}
           navigate={(href) => router.history.push(href)}
+          selectEntityType={selectEntityType}
           selectWorkspace={selectWorkspace}
         />
       </Suspense>

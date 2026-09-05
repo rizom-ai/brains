@@ -91,7 +91,7 @@ describe("image package registration", () => {
       projectionSourceRole: "excluded",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("claims image uploads without registering a second handler", async () => {
@@ -101,7 +101,7 @@ describe("image package registration", () => {
       harness.getEntityRegistry().getUploadSaveHandler("image/png")?.entityType,
     ).toBe("image");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("offers no tool of its own", async () => {
@@ -118,7 +118,7 @@ describe("image package registration", () => {
       expect(capabilities.tools).toEqual([]);
     }
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -167,7 +167,7 @@ describe("generating an image from a prompt", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("names the image after the target, and links it as a cover", async () => {
@@ -198,7 +198,7 @@ describe("generating an image from a prompt", () => {
       entityContent: expect.stringContaining("Why we built it"),
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("resolves a target named by title", async () => {
@@ -217,7 +217,7 @@ describe("generating an image from a prompt", () => {
       linkInto: { entityId: "launch-post-2026" },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses rather than generating into a target that is not there", async () => {
@@ -239,7 +239,7 @@ describe("generating an image from a prompt", () => {
     });
     expect(enqueued).toEqual([]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("treats an image target as the name to use, not an entity to attach to", async () => {
@@ -258,7 +258,7 @@ describe("generating an image from a prompt", () => {
     expect(result.result.data.entityId).toBe("harbour-light");
     expect(enqueued[0]?.data).not.toHaveProperty("linkInto");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("takes non-image content as the prompt", async () => {
@@ -271,7 +271,7 @@ describe("generating an image from a prompt", () => {
 
     expect(enqueued[0]?.data).toMatchObject({ prompt: "A harbour at dusk" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("stores image content as the image rather than describing one", async () => {
@@ -299,7 +299,7 @@ describe("generating an image from a prompt", () => {
       title: "Harbour Light",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -348,7 +348,7 @@ describe("rendering an image from a source attachment", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("delegates against the image it already rendered", async () => {
@@ -380,7 +380,7 @@ describe("rendering an image from a source attachment", () => {
       await harness.getEntityService().listEntities({ entityType: "image" }),
     ).toHaveLength(1);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("re-renders rather than reusing when asked to replace", async () => {
@@ -406,7 +406,7 @@ describe("rendering an image from a source attachment", () => {
 
     expect(enqueued[0]?.data).not.toHaveProperty("reuse");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses a source that is not there", async () => {
@@ -420,7 +420,7 @@ describe("rendering an image from a source attachment", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -507,7 +507,7 @@ describe("preserving an uploaded image", () => {
     });
     expect(stored?.visibility).toBe("shared");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses anything that is not an image", async () => {
@@ -534,7 +534,7 @@ describe("preserving an uploaded image", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses an upload it cannot read", async () => {
@@ -550,6 +550,6 @@ describe("preserving an uploaded image", () => {
       result: { success: false, error: "Upload ref not found" },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 });

@@ -91,7 +91,7 @@ describe("document package registration", () => {
       projectionSourceRole: "excluded",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("claims PDF uploads without registering a second handler", async () => {
@@ -105,7 +105,7 @@ describe("document package registration", () => {
         ?.entityType,
     ).toBe("document");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("offers no tool of its own", async () => {
@@ -125,7 +125,7 @@ describe("document package registration", () => {
       expect(capabilities.tools).toEqual([]);
     }
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -202,7 +202,7 @@ describe("creating a document from a source attachment", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("keys the dedup key on the source's content, so an edit re-renders", async () => {
@@ -223,7 +223,7 @@ describe("creating a document from a source attachment", () => {
       dedupKey: "carousel:deck:deck-1:resolved-attachment:deck-hash",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("delegates against the document it already rendered", async () => {
@@ -286,7 +286,7 @@ describe("creating a document from a source attachment", () => {
       reuse: true,
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("never reuses a document that is still pending or has failed", async () => {
@@ -327,7 +327,7 @@ describe("creating a document from a source attachment", () => {
     }
     expect(result.result.data.entityId).not.toBe("half-written");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("replace renders a new document and drops the one it supersedes", async () => {
@@ -392,7 +392,7 @@ describe("creating a document from a source attachment", () => {
         .getEntity({ entityType: "document", id: "old-carousel" }),
     ).not.toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("bounds the id it derives while keeping content-hash variants apart", async () => {
@@ -430,7 +430,7 @@ describe("creating a document from a source attachment", () => {
     for (const id of ids) expect(id.length).toBeLessThanOrEqual(80);
     expect(ids[0]).not.toBe(ids[1]);
 
-    harness.reset();
+    await harness.reset();
   });
 });
 
@@ -518,7 +518,7 @@ describe("preserving an uploaded PDF", () => {
     });
     expect(entity?.visibility).toBe("shared");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses anything that is not a PDF", async () => {
@@ -545,7 +545,7 @@ describe("preserving an uploaded PDF", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses an upload it cannot read", async () => {
@@ -561,7 +561,7 @@ describe("preserving an uploaded PDF", () => {
       result: { success: false, error: "Upload ref not found" },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses a filename it cannot derive an id from", async () => {
@@ -589,6 +589,6 @@ describe("preserving an uploaded PDF", () => {
       },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 });

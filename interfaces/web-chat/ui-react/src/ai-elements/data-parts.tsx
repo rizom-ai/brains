@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
 import { ActionsCardSchema, type EventChatAction } from "@brains/contracts";
+import { useWebChatClient } from "../web-chat-fetch";
 import { z } from "@brains/utils/zod";
 import {
   artifactStatusLabel as attachmentStatusLabel,
@@ -23,7 +24,6 @@ import {
   type ToolPart,
 } from "./tool";
 import { getErrorMessage } from "@brains/utils/error";
-import { createWebChatClient } from "../web-chat-client";
 
 export {
   attachmentStatusLabel,
@@ -147,6 +147,7 @@ function useAttachmentJobStatus(
   const [status, setStatus] = useState<AttachmentJobStatus | null>(
     jobId ? "pending" : null,
   );
+  const chatClient = useWebChatClient({ credentials: "same-origin" });
 
   useEffect(() => {
     if (!jobId) {
@@ -155,7 +156,6 @@ function useAttachmentJobStatus(
     }
 
     const pollingJobId = jobId;
-    const chatClient = createWebChatClient({ credentials: "same-origin" });
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     // The job row can lag behind the card (enqueue → row visible), and the
@@ -188,6 +188,8 @@ function useAttachmentJobStatus(
           scheduleNextPoll(2000);
         }
       } catch {
+        // Polling: any failure is retried with backoff and gives up after
+        // MAX_TRANSIENT_FAILURES, so the reason is not needed here.
         handleTransientFailure();
       }
     }
@@ -198,7 +200,7 @@ function useAttachmentJobStatus(
       if (timer) clearTimeout(timer);
     };
     return cleanup;
-  }, [jobId]);
+  }, [jobId, chatClient]);
 
   return status;
 }

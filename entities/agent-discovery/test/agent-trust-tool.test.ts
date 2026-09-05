@@ -36,7 +36,7 @@ describe("the inbound trust tool", () => {
     expect(tool?.description).toContain("inbound A2A trust");
     expect(tool?.description).toContain("does not add or remove");
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("agents_set-trust-level pins a peer key for inbound trusted access", async () => {
@@ -121,7 +121,7 @@ describe("the inbound trust tool", () => {
     );
 
     if (authPlugin.shutdown) await authPlugin.shutdown();
-    harness.reset();
+    await harness.reset();
   });
 
   it("agents_set-trust-level revokes inbound trusted access", async () => {
@@ -172,6 +172,6 @@ describe("the inbound trust tool", () => {
     expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
 
     if (authPlugin.shutdown) await authPlugin.shutdown();
-    harness.reset();
+    await harness.reset();
   });
 });

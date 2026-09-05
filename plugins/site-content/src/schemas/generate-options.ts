@@ -1,21 +1,11 @@
 import { z } from "@brains/utils/zod";
 
-export interface GenerateOptions {
-  routeId?: string | undefined;
-  sectionId?: string | undefined;
-  dryRun?: boolean | undefined;
-  force?: boolean | undefined;
-}
-
-interface ParsedGenerateOptions {
-  routeId?: string | undefined;
-  sectionId?: string | undefined;
-  dryRun: boolean;
-  force: boolean;
-}
-
-export const GenerateOptionsSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<ParsedGenerateOptions, GenerateOptions> = z.object({
+export const GenerateOptionsSchema: z.ZodObject<{
+  routeId: z.ZodOptional<z.ZodString>;
+  sectionId: z.ZodOptional<z.ZodString>;
+  dryRun: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+  force: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+}> = z.object({
   routeId: z.string().optional().describe("Optional: specific route filter"),
   sectionId: z
     .string()
@@ -33,31 +23,32 @@ export const GenerateOptionsSchema: z.ZodObject<z.ZodRawShape> &
     .describe("Force regeneration even if content exists"),
 });
 
-export interface GenerateResultJob {
-  jobId: string;
-  routeId: string;
-  sectionId: string;
-}
+export type GenerateOptions = z.input<typeof GenerateOptionsSchema>;
 
-export interface GenerateResult {
-  jobs: GenerateResultJob[];
-  totalSections: number;
-  queuedSections: number;
-  skippedSections?: number | undefined;
-  batchId?: string | undefined;
-}
+export const GenerateResultJobSchema: z.ZodObject<{
+  jobId: z.ZodString;
+  routeId: z.ZodString;
+  sectionId: z.ZodString;
+}> = z.object({
+  jobId: z.string(),
+  routeId: z.string(),
+  sectionId: z.string(),
+});
 
-export const GenerateResultSchema: z.ZodType<GenerateResult, GenerateResult> =
-  z.object({
-    jobs: z.array(
-      z.object({
-        jobId: z.string(),
-        routeId: z.string(),
-        sectionId: z.string(),
-      }),
-    ),
-    totalSections: z.number(),
-    queuedSections: z.number(),
-    skippedSections: z.number().optional(),
-    batchId: z.string().optional(),
-  });
+export type GenerateResultJob = z.output<typeof GenerateResultJobSchema>;
+
+export const GenerateResultSchema: z.ZodObject<{
+  jobs: z.ZodArray<typeof GenerateResultJobSchema>;
+  totalSections: z.ZodNumber;
+  queuedSections: z.ZodNumber;
+  skippedSections: z.ZodOptional<z.ZodNumber>;
+  batchId: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  jobs: z.array(GenerateResultJobSchema),
+  totalSections: z.number(),
+  queuedSections: z.number(),
+  skippedSections: z.number().optional(),
+  batchId: z.string().optional(),
+});
+
+export type GenerateResult = z.output<typeof GenerateResultSchema>;

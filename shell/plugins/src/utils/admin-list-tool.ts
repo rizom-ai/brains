@@ -4,10 +4,21 @@ import type { Tool } from "../interfaces";
 export type ListToolOutput<Data> =
   { success: true; data: Data } | { success: false; error: string };
 
+export type ListToolOutputSchema<TData extends z.ZodType> =
+  z.ZodDiscriminatedUnion<
+    [
+      z.ZodObject<{ success: z.ZodLiteral<true>; data: TData }, z.core.$strict>,
+      z.ZodObject<
+        { success: z.ZodLiteral<false>; error: z.ZodString },
+        z.core.$strict
+      >,
+    ]
+  >;
+
 /** Standard success/error envelope for read-only list tools. */
-export function createListToolOutputSchema<Data>(
-  dataSchema: z.ZodType<Data, Data>,
-): z.ZodType<ListToolOutput<Data>, ListToolOutput<Data>> {
+export function createListToolOutputSchema<TData extends z.ZodType>(
+  dataSchema: TData,
+): ListToolOutputSchema<TData> {
   return z.discriminatedUnion("success", [
     z.strictObject({ success: z.literal(true), data: dataSchema }),
     z.strictObject({ success: z.literal(false), error: z.string().min(1) }),

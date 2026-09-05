@@ -17,14 +17,6 @@ export const agePublicKeySchema: z.ZodString = z
   .min(1);
 
 export const CAPABILITY_BUNDLE_CONTRACT = "capability-bundles-v1" as const;
-export const SHARED_FLEET_IMAGE_CONTRACT = "shared-fleet-v1" as const;
-export const ISOLATED_SITE_IMAGE_CONTRACT = "isolated-sites-v1" as const;
-
-export const imageContractSchema: z.ZodEnum<{
-  "shared-fleet-v1": "shared-fleet-v1";
-  "isolated-sites-v1": "isolated-sites-v1";
-}> = z.enum([SHARED_FLEET_IMAGE_CONTRACT, ISOLATED_SITE_IMAGE_CONTRACT]);
-export type ImageContract = z.output<typeof imageContractSchema>;
 
 export const canonicalBundleIdSchema: z.ZodEnum<{
   core: "core";
@@ -62,48 +54,32 @@ export const profileKindSchema: z.ZodEnum<{
   organization: "organization";
 }> = z.enum(PROFILE_KINDS);
 
-export interface PilotConfig {
-  brainVersion: string;
-  bundleContract: typeof CAPABILITY_BUNDLE_CONTRACT;
-  imageContract: ImageContract;
-  bundles: CanonicalBundleId[];
-  add?: string[] | undefined;
-  remove?: string[] | undefined;
-  githubOrg: string;
-  contentRepoPrefix: string;
-  domainSuffix: string;
-  aiApiKey: string;
-  gitSyncToken: string;
-  contentRepoAdminToken: string;
-  agePublicKey: string;
-}
-
-export interface SiteOverrideConfig {
-  package: string;
-  version: string;
-  theme?: string | undefined;
-  themeVersion?: string | undefined;
-}
-
-export interface CohortConfig {
-  members: string[];
-  brainVersionOverride?: string | undefined;
-  bundlesOverride?: CanonicalBundleId[] | undefined;
-  addOverride?: string[] | undefined;
-  removeOverride?: string[] | undefined;
-  aiApiKeyOverride?: string | undefined;
-  gitSyncTokenOverride?: string | undefined;
-}
-
-const canonicalBundlesSchema = z.array(canonicalBundleIdSchema).min(1);
-const memberIdsSchema = z.array(z.string().min(1));
+const canonicalBundlesSchema: z.ZodArray<typeof canonicalBundleIdSchema> = z
+  .array(canonicalBundleIdSchema)
+  .min(1);
+const memberIdsSchema: z.ZodArray<z.ZodString> = z.array(z.string().min(1));
 
 /** Sole active desired-state contract for the canonical brain. */
-export const pilotSchema: z.ZodType<PilotConfig> = z
+export const pilotSchema: z.ZodObject<
+  {
+    brainVersion: z.ZodString;
+    bundleContract: z.ZodLiteral<typeof CAPABILITY_BUNDLE_CONTRACT>;
+    bundles: typeof canonicalBundlesSchema;
+    add: z.ZodOptional<typeof memberIdsSchema>;
+    remove: z.ZodOptional<typeof memberIdsSchema>;
+    githubOrg: z.ZodString;
+    contentRepoPrefix: z.ZodString;
+    domainSuffix: z.ZodString;
+    aiApiKey: z.ZodString;
+    gitSyncToken: z.ZodString;
+    contentRepoAdminToken: z.ZodString;
+    agePublicKey: z.ZodString;
+  },
+  z.core.$strict
+> = z
   .strictObject({
     brainVersion: exactVersionSchema,
     bundleContract: z.literal(CAPABILITY_BUNDLE_CONTRACT),
-    imageContract: imageContractSchema.default(ISOLATED_SITE_IMAGE_CONTRACT),
     bundles: canonicalBundlesSchema,
     add: memberIdsSchema.optional(),
     remove: memberIdsSchema.optional(),
@@ -125,7 +101,20 @@ export const pilotSchema: z.ZodType<PilotConfig> = z
     }
   });
 
-export const cohortSchema: z.ZodType<CohortConfig> = z
+export type PilotConfig = z.output<typeof pilotSchema>;
+
+export const cohortSchema: z.ZodObject<
+  {
+    members: z.ZodArray<z.ZodString>;
+    brainVersionOverride: z.ZodOptional<z.ZodString>;
+    bundlesOverride: z.ZodOptional<typeof canonicalBundlesSchema>;
+    addOverride: z.ZodOptional<typeof memberIdsSchema>;
+    removeOverride: z.ZodOptional<typeof memberIdsSchema>;
+    aiApiKeyOverride: z.ZodOptional<z.ZodString>;
+    gitSyncTokenOverride: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z
   .strictObject({
     members: z.array(handleSchema).min(1),
     brainVersionOverride: exactVersionSchema.optional(),
@@ -154,6 +143,8 @@ export const cohortSchema: z.ZodType<CohortConfig> = z
       });
     }
   });
+
+export type CohortConfig = z.output<typeof cohortSchema>;
 
 const anchorProfileSocialLinkSchema: z.ZodObject<{
   platform: z.ZodEnum<{
@@ -253,7 +244,15 @@ const atprotoSchema: z.ZodObject<{
   jetstream: atprotoJetstreamSchema.optional(),
 });
 
-export const siteOverrideSchema: z.ZodType<SiteOverrideConfig> = z
+export const siteOverrideSchema: z.ZodObject<
+  {
+    package: z.ZodString;
+    version: z.ZodString;
+    theme: z.ZodOptional<z.ZodString>;
+    themeVersion: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z
   .strictObject({
     package: z.string().min(1),
     version: exactVersionSchema,
@@ -277,6 +276,8 @@ export const siteOverrideSchema: z.ZodType<SiteOverrideConfig> = z
       });
     }
   });
+
+export type SiteOverrideConfig = z.output<typeof siteOverrideSchema>;
 
 const playbooksSchema: z.ZodObject<{
   onboarding: z.ZodOptional<z.ZodBoolean>;

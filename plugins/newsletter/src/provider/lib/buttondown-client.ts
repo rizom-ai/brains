@@ -7,6 +7,24 @@ export interface ButtondownConfig {
 }
 
 /**
+ * What the client needs from a response: the status check and the JSON body.
+ * A real Response satisfies this, and so does a test's bare object.
+ */
+export type ButtondownFetch = (
+  url: string,
+  init: RequestInit,
+) => Promise<Pick<Response, "ok" | "status" | "json">>;
+
+/**
+ * Runtime collaborators that are not configuration. Production leaves fetch
+ * unset and the client uses the global; a test hands in a fake and reads the
+ * requests off it instead of reassigning globalThis.fetch.
+ */
+export interface ButtondownClientDeps {
+  fetch?: ButtondownFetch | undefined;
+}
+
+/**
  * Buttondown API base URL
  */
 const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
@@ -15,25 +33,14 @@ const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
  * Subscriber status in Buttondown
  * "already_subscribed" is a local status indicating the subscriber already exists
  */
-export type SubscriberType =
-  "unactivated" | "regular" | "unsubscribed" | "already_subscribed";
+const subscriberTypeSchema: z.ZodEnum<{
+  unactivated: "unactivated";
+  regular: "regular";
+  unsubscribed: "unsubscribed";
+  already_subscribed: "already_subscribed";
+}> = z.enum(["unactivated", "regular", "unsubscribed", "already_subscribed"]);
 
-const subscriberTypeSchema: z.ZodType<SubscriberType, SubscriberType> = z.enum([
-  "unactivated",
-  "regular",
-  "unsubscribed",
-  "already_subscribed",
-]);
-
-/**
- * Buttondown subscriber
- */
-export interface Subscriber {
-  id: string;
-  email: string;
-  subscriber_type: SubscriberType;
-  metadata?: Record<string, string> | undefined;
-}
+export type SubscriberType = z.output<typeof subscriberTypeSchema>;
 
 /**
  * Input for creating a subscriber
@@ -47,25 +54,14 @@ export interface CreateSubscriberInput {
 /**
  * Buttondown email status
  */
-export type EmailStatus = "draft" | "about_to_send" | "scheduled" | "sent";
+const emailStatusSchema: z.ZodEnum<{
+  draft: "draft";
+  about_to_send: "about_to_send";
+  scheduled: "scheduled";
+  sent: "sent";
+}> = z.enum(["draft", "about_to_send", "scheduled", "sent"]);
 
-const emailStatusSchema: z.ZodType<EmailStatus, EmailStatus> = z.enum([
-  "draft",
-  "about_to_send",
-  "scheduled",
-  "sent",
-]);
-
-/**
- * Buttondown email
- */
-export interface ButtondownEmail {
-  id: string;
-  subject: string;
-  body?: string | undefined;
-  status: EmailStatus;
-  publish_date?: string | undefined;
-}
+export type EmailStatus = z.output<typeof emailStatusSchema>;
 
 /**
  * Input for creating an email
@@ -85,20 +81,47 @@ export interface ListResponse<T> {
   count: number;
 }
 
-const subscriberSchema = z.looseObject({
+/**
+ * Buttondown subscriber
+ */
+const subscriberSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    email: z.ZodString;
+    subscriber_type: typeof subscriberTypeSchema;
+    metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+  },
+  z.core.$loose
+> = z.looseObject({
   id: z.string(),
   email: z.string(),
   subscriber_type: subscriberTypeSchema,
   metadata: z.record(z.string(), z.string()).optional(),
 });
 
-const buttondownEmailSchema = z.looseObject({
+export type Subscriber = z.output<typeof subscriberSchema>;
+
+/**
+ * Buttondown email
+ */
+const buttondownEmailSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    subject: z.ZodString;
+    body: z.ZodOptional<z.ZodString>;
+    status: typeof emailStatusSchema;
+    publish_date: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$loose
+> = z.looseObject({
   id: z.string(),
   subject: z.string(),
   body: z.string().optional(),
   status: emailStatusSchema,
   publish_date: z.string().optional(),
 });
+
+export type ButtondownEmail = z.output<typeof buttondownEmailSchema>;
 
 const listSubscribersResponseSchema = z.looseObject({
   results: z.array(subscriberSchema),
@@ -137,9 +160,15 @@ export class ButtondownApiError extends Error {
 export class ButtondownClient {
   private config: ButtondownConfig;
   private logger: Logger;
-  constructor(config: ButtondownConfig, logger: Logger) {
+  private fetchFn: ButtondownFetch | undefined;
+  constructor(
+    config: ButtondownConfig,
+    logger: Logger,
+    deps: ButtondownClientDeps = {},
+  ) {
     this.config = config;
     this.logger = logger;
+    this.fetchFn = deps.fetch;
   }
 
   /**
@@ -156,7 +185,7 @@ export class ButtondownClient {
       method: options.method ?? "GET",
     });
 
-    const response = await fetch(url, {
+    const response = await (this.fetchFn ?? fetch)(url, {
       ...options,
       headers: {
         Authorization: `Token ${this.config.apiKey}`,

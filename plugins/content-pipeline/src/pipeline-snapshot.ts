@@ -11,50 +11,17 @@ const publicationStatusSchema = z.enum([
   "failed",
 ]);
 
-export interface PublicationQueueItem {
-  entityId: string;
-  entityType: string;
-  title: string;
-  position: number;
-  queuedAt: string;
-  destination: string;
-  scheduledFor?: string | undefined;
-}
+type PublicationQueueItemSchema = z.ZodObject<{
+  entityId: z.ZodString;
+  entityType: z.ZodString;
+  title: z.ZodString;
+  position: z.ZodNumber;
+  queuedAt: z.ZodString;
+  destination: z.ZodString;
+  scheduledFor: z.ZodOptional<z.ZodString>;
+}>;
 
-export interface PublicationJobItem {
-  id: string;
-  label: string;
-  target: string;
-  status: "pending" | "processing";
-}
-
-export interface PublicationFailureItem {
-  entityId: string;
-  entityType: string;
-  title: string;
-  error: string;
-  retryCount: number;
-}
-
-export interface PublicationPipelineSnapshot {
-  summary: {
-    draft: number;
-    queued: number;
-    generating: number;
-    failed: number;
-    published: number;
-    needsOperator: number;
-  };
-  queue: PublicationQueueItem[];
-  generating: PublicationJobItem[];
-  failures: PublicationFailureItem[];
-  publishableEntityTypes: string[];
-}
-
-export const publicationQueueItemSchema: z.ZodType<
-  PublicationQueueItem,
-  PublicationQueueItem
-> = z.object({
+export const publicationQueueItemSchema: PublicationQueueItemSchema = z.object({
   entityId: z.string(),
   entityType: z.string(),
   title: z.string(),
@@ -64,44 +31,79 @@ export const publicationQueueItemSchema: z.ZodType<
   scheduledFor: z.string().optional(),
 });
 
-export const publicationJobItemSchema: z.ZodType<
-  PublicationJobItem,
-  PublicationJobItem
-> = z.object({
+export type PublicationQueueItem = z.output<typeof publicationQueueItemSchema>;
+
+type PublicationJobItemSchema = z.ZodObject<{
+  id: z.ZodString;
+  label: z.ZodString;
+  target: z.ZodString;
+  status: z.ZodEnum<{ pending: "pending"; processing: "processing" }>;
+}>;
+
+export const publicationJobItemSchema: PublicationJobItemSchema = z.object({
   id: z.string(),
   label: z.string(),
   target: z.string(),
   status: z.enum(["pending", "processing"]),
 });
 
-export const publicationFailureItemSchema: z.ZodType<
-  PublicationFailureItem,
-  PublicationFailureItem
-> = z.object({
-  entityId: z.string(),
-  entityType: z.string(),
-  title: z.string(),
-  error: z.string(),
-  retryCount: z.number().int().nonnegative(),
-});
+export type PublicationJobItem = z.output<typeof publicationJobItemSchema>;
 
-export const publicationPipelineSnapshotSchema: z.ZodType<
-  PublicationPipelineSnapshot,
-  PublicationPipelineSnapshot
-> = z.object({
-  summary: z.object({
-    draft: z.number().int().nonnegative(),
-    queued: z.number().int().nonnegative(),
-    generating: z.number().int().nonnegative(),
-    failed: z.number().int().nonnegative(),
-    published: z.number().int().nonnegative(),
-    needsOperator: z.number().int().nonnegative(),
-  }),
-  queue: z.array(publicationQueueItemSchema),
-  generating: z.array(publicationJobItemSchema),
-  failures: z.array(publicationFailureItemSchema),
-  publishableEntityTypes: z.array(z.string()),
-});
+type PublicationFailureItemSchema = z.ZodObject<{
+  entityId: z.ZodString;
+  entityType: z.ZodString;
+  title: z.ZodString;
+  error: z.ZodString;
+  retryCount: z.ZodNumber;
+}>;
+
+export const publicationFailureItemSchema: PublicationFailureItemSchema =
+  z.object({
+    entityId: z.string(),
+    entityType: z.string(),
+    title: z.string(),
+    error: z.string(),
+    retryCount: z.number().int().nonnegative(),
+  });
+
+export type PublicationFailureItem = z.output<
+  typeof publicationFailureItemSchema
+>;
+
+type PublicationPipelineSnapshotSchema = z.ZodObject<{
+  summary: z.ZodObject<{
+    draft: z.ZodNumber;
+    queued: z.ZodNumber;
+    generating: z.ZodNumber;
+    failed: z.ZodNumber;
+    published: z.ZodNumber;
+    needsOperator: z.ZodNumber;
+  }>;
+  queue: z.ZodArray<PublicationQueueItemSchema>;
+  generating: z.ZodArray<PublicationJobItemSchema>;
+  failures: z.ZodArray<PublicationFailureItemSchema>;
+  publishableEntityTypes: z.ZodArray<z.ZodString>;
+}>;
+
+export const publicationPipelineSnapshotSchema: PublicationPipelineSnapshotSchema =
+  z.object({
+    summary: z.object({
+      draft: z.number().int().nonnegative(),
+      queued: z.number().int().nonnegative(),
+      generating: z.number().int().nonnegative(),
+      failed: z.number().int().nonnegative(),
+      published: z.number().int().nonnegative(),
+      needsOperator: z.number().int().nonnegative(),
+    }),
+    queue: z.array(publicationQueueItemSchema),
+    generating: z.array(publicationJobItemSchema),
+    failures: z.array(publicationFailureItemSchema),
+    publishableEntityTypes: z.array(z.string()),
+  });
+
+export type PublicationPipelineSnapshot = z.output<
+  typeof publicationPipelineSnapshotSchema
+>;
 
 type PublicationStatus = z.output<typeof publicationStatusSchema>;
 

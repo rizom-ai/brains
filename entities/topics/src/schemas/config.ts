@@ -4,22 +4,24 @@ import { z } from "@brains/utils/zod";
 /**
  * Configuration schema for the Topics plugin
  */
-export type TopicExtractionVisibility = "public" | "shared" | "restricted";
+const extractionVisibilitySchema: z.ZodEnum<{
+  public: "public";
+  shared: "shared";
+  restricted: "restricted";
+}> = z.enum(["public", "shared", "restricted"]);
 
-export interface TopicSourceRolePolicy {
-  weight: number;
-  canMint: boolean;
-}
+export type TopicExtractionVisibility = z.output<
+  typeof extractionVisibilitySchema
+>;
 
-const extractionVisibilitySchema: z.ZodType<
-  TopicExtractionVisibility,
-  TopicExtractionVisibility
-> = z.enum(["public", "shared", "restricted"]);
-
-const projectionSourceRoleSchema: z.ZodType<
-  ProjectionSourceRole,
-  ProjectionSourceRole
-> = z.enum([
+const projectionSourceRoleSchema: z.ZodEnum<{
+  canonical: "canonical";
+  primary: "primary";
+  secondary: "secondary";
+  supporting: "supporting";
+  ambient: "ambient";
+  excluded: "excluded";
+}> = z.enum([
   "canonical",
   "primary",
   "secondary",
@@ -28,13 +30,31 @@ const projectionSourceRoleSchema: z.ZodType<
   "excluded",
 ]);
 
-const topicSourceRolePolicySchema: z.ZodType<
-  TopicSourceRolePolicy,
-  TopicSourceRolePolicy
-> = z.object({
+// The role set belongs to the plugin contract; keep this enum equal to it.
+function expectProjectionSourceRole(
+  value: z.output<typeof projectionSourceRoleSchema>,
+): ProjectionSourceRole {
+  return value;
+}
+function expectProjectionSourceRoleInput(
+  value: ProjectionSourceRole,
+): z.input<typeof projectionSourceRoleSchema> {
+  return value;
+}
+void expectProjectionSourceRole;
+void expectProjectionSourceRoleInput;
+
+const topicSourceRolePolicySchema: z.ZodObject<{
+  weight: z.ZodNumber;
+  canMint: z.ZodBoolean;
+}> = z.object({
   weight: z.number().min(0).max(1),
   canMint: z.boolean(),
 });
+
+export type TopicSourceRolePolicy = z.output<
+  typeof topicSourceRolePolicySchema
+>;
 
 const defaultSourceRolePolicies: Record<
   ProjectionSourceRole,
@@ -48,55 +68,41 @@ const defaultSourceRolePolicies: Record<
   excluded: { weight: 0, canMint: false },
 };
 
-export interface TopicsPluginConfig {
-  includeEntityTypes: string[];
-  excludeEntityTypes: string[];
-  minRelevanceScore: number;
-  createRelevanceThreshold: number;
-  reinforceRelevanceThreshold: number;
-  sourceWeights: Record<string, number>;
-  mintableEntityTypes: string[];
-  sourceRolePolicies: Record<ProjectionSourceRole, TopicSourceRolePolicy>;
-  sourceRoleOverrides: Record<string, ProjectionSourceRole>;
-  maxEntitiesPerBatch: number;
-  topicSoftCeilingSourceRatio: number;
-  mergeSimilarityThreshold: number;
-  semanticMergeDistance: number;
-  reconciliationMaxPairs: number;
-  autoMerge: boolean;
-  extractableStatuses: string[];
-  enableAutoExtraction: boolean;
-  extractionVisibility: TopicExtractionVisibility;
-  sourceChangeBatchDelayMs: number;
-}
+type SourceRolePolicies = Record<ProjectionSourceRole, TopicSourceRolePolicy>;
 
-export interface TopicsPluginConfigInput {
-  includeEntityTypes?: string[] | undefined;
-  excludeEntityTypes?: string[] | undefined;
-  minRelevanceScore?: number | undefined;
-  createRelevanceThreshold?: number | undefined;
-  reinforceRelevanceThreshold?: number | undefined;
-  sourceWeights?: Record<string, number> | undefined;
-  mintableEntityTypes?: string[] | undefined;
-  sourceRolePolicies?:
-    Partial<Record<ProjectionSourceRole, TopicSourceRolePolicy>> | undefined;
-  sourceRoleOverrides?: Record<string, ProjectionSourceRole> | undefined;
-  maxEntitiesPerBatch?: number | undefined;
-  topicSoftCeilingSourceRatio?: number | undefined;
-  mergeSimilarityThreshold?: number | undefined;
-  semanticMergeDistance?: number | undefined;
-  reconciliationMaxPairs?: number | undefined;
-  autoMerge?: boolean | undefined;
-  extractableStatuses?: string[] | undefined;
-  enableAutoExtraction?: boolean | undefined;
-  extractionVisibility?: TopicExtractionVisibility | undefined;
-  sourceChangeBatchDelayMs?: number | undefined;
-}
-
-export const topicsPluginConfigSchema: z.ZodType<
-  TopicsPluginConfig,
-  TopicsPluginConfigInput
-> = z.object({
+export const topicsPluginConfigSchema: z.ZodObject<{
+  includeEntityTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  excludeEntityTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  minRelevanceScore: z.ZodDefault<z.ZodNumber>;
+  createRelevanceThreshold: z.ZodDefault<z.ZodNumber>;
+  reinforceRelevanceThreshold: z.ZodDefault<z.ZodNumber>;
+  sourceWeights: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodNumber>>;
+  mintableEntityTypes: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  sourceRolePolicies: z.ZodPipe<
+    z.ZodDefault<
+      ReturnType<
+        typeof z.partialRecord<
+          typeof projectionSourceRoleSchema,
+          typeof topicSourceRolePolicySchema
+        >
+      >
+    >,
+    z.ZodTransform<SourceRolePolicies, Partial<SourceRolePolicies>>
+  >;
+  sourceRoleOverrides: z.ZodDefault<
+    z.ZodRecord<z.ZodString, typeof projectionSourceRoleSchema>
+  >;
+  maxEntitiesPerBatch: z.ZodDefault<z.ZodNumber>;
+  topicSoftCeilingSourceRatio: z.ZodDefault<z.ZodNumber>;
+  mergeSimilarityThreshold: z.ZodDefault<z.ZodNumber>;
+  semanticMergeDistance: z.ZodDefault<z.ZodNumber>;
+  reconciliationMaxPairs: z.ZodDefault<z.ZodNumber>;
+  autoMerge: z.ZodDefault<z.ZodBoolean>;
+  extractableStatuses: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  enableAutoExtraction: z.ZodDefault<z.ZodBoolean>;
+  extractionVisibility: z.ZodDefault<typeof extractionVisibilitySchema>;
+  sourceChangeBatchDelayMs: z.ZodDefault<z.ZodNumber>;
+}> = z.object({
   /**
    * Deprecated allow-list of entity types to extract topics from. Defaults to
    * all registered projection sources. Prefer excludeEntityTypes for normal
@@ -210,3 +216,6 @@ export const topicsPluginConfigSchema: z.ZodType<
    */
   sourceChangeBatchDelayMs: z.number().int().min(0).default(1000),
 });
+
+export type TopicsPluginConfig = z.output<typeof topicsPluginConfigSchema>;
+export type TopicsPluginConfigInput = z.input<typeof topicsPluginConfigSchema>;

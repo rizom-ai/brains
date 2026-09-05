@@ -12,16 +12,10 @@ import type {
   IDirectorySync,
   IGitSync,
 } from "../types";
+import { gitReconciliationCheckpointSchema } from "../types/results";
 
-const commitSchema = z.string().regex(/^[a-f0-9]{40,64}$/);
-const checkpointSchema: z.ZodType<GitReconciliationCheckpoint> = z.object({
-  remoteFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-  branch: z.string().min(1).max(200),
-  lastReconciledGitHead: commitSchema,
-  lastObservedRemoteHead: commitSchema.optional(),
-});
 const storedCheckpointSchema = z.object({
-  checkpoint: checkpointSchema.optional(),
+  checkpoint: gitReconciliationCheckpointSchema.optional(),
 });
 
 type StoredCheckpoint = z.infer<typeof storedCheckpointSchema>;

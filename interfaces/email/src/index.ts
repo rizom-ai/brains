@@ -269,6 +269,7 @@ async function readSource(
   const imap = config.imap;
   if (!imap || !state.sourceLocators) return { kind: "unavailable" };
 
+  let read: unknown;
   try {
     const locator = await state.sourceLocators.resolve(request.data.sourceRef);
     if (!locator) return { kind: "unavailable" };
@@ -276,12 +277,21 @@ async function readSource(
     const signal = request.data.signal
       ? AbortSignal.any([request.data.signal, timeout])
       : timeout;
-    return emailSourceReadResponseSchema.parse(
-      await readEmailSource(imap, state.imapClientFactory, locator, signal),
+    read = await readEmailSource(
+      imap,
+      state.imapClientFactory,
+      locator,
+      signal,
     );
   } catch {
+    // A mailbox that will not answer, a message that is no longer there and a
+    // read that ran out of time are the same thing to a caller: the source
+    // cannot be read right now, and there is nothing it could do differently
+    // knowing which. Parsing the response is outside this on purpose — a shape
+    // we produced failing our own schema is a defect, not an absent mailbox.
     return { kind: "unavailable" };
   }
+  return emailSourceReadResponseSchema.parse(read);
 }
 
 /**

@@ -230,7 +230,7 @@ describe("console palette behavior", () => {
     ]);
   });
 
-  it("closes on Escape and reopens from the strip's command chip", async () => {
+  it("closes on Escape and reopens from a surface command trigger", async () => {
     await openPalette();
     keydown("Escape");
     expect(overlay()?.classList.contains("is-open")).toBe(false);

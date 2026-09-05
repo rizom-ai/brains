@@ -64,7 +64,7 @@ describe("note generation", () => {
     ).not.toBeNull();
     expect(handler.validateAndParse({})).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("generates in the brain's own voice, not a represented identity", async () => {
@@ -84,7 +84,7 @@ describe("note generation", () => {
       representedIdentity: "none",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("derives the id from the title, so two notes never become one", async () => {
@@ -102,7 +102,7 @@ describe("note generation", () => {
         .getEntity({ entityType: "note", id: "my-fancy-note" }),
     ).toMatchObject({ metadata: { title: "My Fancy Note!" } });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("asks for a different title when the derived id is already taken", async () => {
@@ -136,6 +136,6 @@ describe("note generation", () => {
         .getEntity({ entityType: "note", id: "fresh-title" }),
     ).toMatchObject({ metadata: { title: "Fresh Title" } });
 
-    harness.reset();
+    await harness.reset();
   });
 });

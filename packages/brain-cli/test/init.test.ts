@@ -426,10 +426,12 @@ describe("brain init", () => {
       const pkg = JSON.parse(
         readFileSync(join(testDir, "package.json"), "utf-8"),
       );
-      expect(pkg.dependencies.react).toBeDefined();
-      expect(pkg.dependencies["react-dom"]).toBeDefined();
-      expect(pkg.devDependencies["@types/react"]).toBeDefined();
-      expect(pkg.devDependencies["@types/react-dom"]).toBeDefined();
+      // React and its DOM renderer must be pinned to the same range, and the
+      // type packages must be real ranges rather than placeholders.
+      expect(pkg.dependencies.react).toMatch(/^\^19\./);
+      expect(pkg.dependencies["react-dom"]).toBe(pkg.dependencies.react);
+      expect(pkg.devDependencies["@types/react"]).toMatch(/^\^19\./);
+      expect(pkg.devDependencies["@types/react-dom"]).toMatch(/^\^19\./);
     });
 
     it("should set private: true", () => {

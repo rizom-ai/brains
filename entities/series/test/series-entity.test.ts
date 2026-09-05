@@ -41,7 +41,7 @@ async function install(): Promise<ReturnType<typeof createPluginHarness>> {
 describe("series entity", () => {
   // The projection registry is a singleton and stacks registrations, so a
   // test that asserts teardown needs a clean one.
-  beforeEach(() => {
+  beforeEach(async () => {
     AtprotoProjectionRegistry.resetInstance();
   });
 
@@ -95,7 +95,7 @@ describe("series entity", () => {
       "@brains/series:entities",
     );
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers one scheduler-owned projection rule", async () => {
@@ -119,7 +119,7 @@ describe("series entity", () => {
     });
     expect(capabilities.tools).toHaveLength(0);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers its atproto projection and releases it on shutdown", async () => {
@@ -144,7 +144,7 @@ describe("series entity", () => {
       AtprotoProjectionRegistry.getInstance().get("series"),
     ).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   // A template carries its data source id as a string and the registry looks
@@ -155,6 +155,6 @@ describe("series entity", () => {
 
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 });

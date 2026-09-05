@@ -6,7 +6,10 @@ import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import { analyticsConfigSchema } from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
-import { CloudflareClient } from "./lib/cloudflare-client";
+import {
+  CloudflareClient,
+  type CloudflareFetch,
+} from "./lib/cloudflare-client";
 import { createTrafficOverviewInsight } from "./insights/traffic-overview";
 
 /**
@@ -22,14 +25,28 @@ import { createTrafficOverviewInsight } from "./insights/traffic-overview";
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
-const analyticsPackage: ServicePackageDefinition<typeof analyticsConfigSchema> =
-  defineServicePlugin({
+/**
+ * What this package reaches the outside world through.
+ *
+ * Only one thing, and only for a test: the Cloudflare client binds the global
+ * fetch, so a test asserting what was requested would otherwise have to
+ * reassign `globalThis.fetch` before installing the plugin and put it back
+ * afterwards. Production passes nothing.
+ */
+export interface AnalyticsDependencies {
+  fetch?: CloudflareFetch | undefined;
+}
+
+export function analyticsService(
+  dependencies: AnalyticsDependencies = {},
+): ServicePackageDefinition<typeof analyticsConfigSchema> {
+  return defineServicePlugin({
     id: "analytics",
     config: analyticsConfigSchema,
 
     setup: ({ config }) => ({
       client: config.cloudflare
-        ? new CloudflareClient(config.cloudflare)
+        ? new CloudflareClient(config.cloudflare, dependencies)
         : undefined,
     }),
 
@@ -55,6 +72,11 @@ const analyticsPackage: ServicePackageDefinition<typeof analyticsConfigSchema> =
       });
     },
   });
+}
+
+/** The package as a deployment installs it: no injected dependencies. */
+const analyticsPackage: ServicePackageDefinition<typeof analyticsConfigSchema> =
+  analyticsService();
 
 export default analyticsPackage;
 

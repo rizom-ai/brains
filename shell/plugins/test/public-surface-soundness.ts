@@ -1,4 +1,3 @@
-import { describe, expect, it } from "bun:test";
 import type * as Public from "../src/public/types";
 import type * as Interfaces from "../src/interfaces";
 
@@ -23,15 +22,12 @@ type RuntimeSatisfiesPublic<Runtime extends Published, Published> = Runtime;
 
 type _Plugin = RuntimeSatisfiesPublic<Interfaces.Plugin, Public.Plugin>;
 
-/** Keeps the assertion above from being reported as an unused declaration. */
+/**
+ * Keeps the assertion above from being reported as an unused declaration.
+ *
+ * This file is checked by `bun run typecheck`, not by `bun test`: the
+ * assertion is the type alias above, and there is nothing to run. A reader
+ * who lands here from a typecheck error has found the guard; the rest of the
+ * invariant lives in the contexts' extends clauses.
+ */
 export type PublicSurfaceAssertions = [_Plugin];
-
-describe("published plugin surface soundness", () => {
-  it("keeps the runtime Plugin assignable to the published Plugin", () => {
-    // Enforced by the type-level assertion above, which fails `bun run
-    // typecheck`. This case documents the guard so a reader who lands here
-    // from a typecheck error knows what broke and where the rest of the
-    // invariant lives (the contexts' extends clauses).
-    expect(true).toBe(true);
-  });
-});

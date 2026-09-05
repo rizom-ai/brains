@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [`06ff050`](https://github.com/rizom-ai/brains/commit/06ff050e26b0db643d59323096ac81b82a02367e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Studio's system navigation coherent by grouping the Style Guide with other brain machinery, preserving the desktop rail while editing, and resetting the document offset when selecting rail destinations.
+
+## 0.2.0-alpha.354
+
+## 0.2.0-alpha.353
+
+### Minor Changes
+
+- [`3ba5b39`](https://github.com/rizom-ai/brains/commit/3ba5b398215a0b6e69bfdab755a1777b2fac85a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace the cross-product console strip with authentication-state chrome: anonymous Dashboard pages receive a public identity masthead, authenticated operators enter Studio directly, and Studio owns one responsive context, command, and identity header across its workspaces.
+
+## 0.2.0-alpha.352
+
 ## 0.2.0-alpha.351
 
 ### Minor Changes

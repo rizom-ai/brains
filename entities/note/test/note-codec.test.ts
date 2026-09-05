@@ -27,8 +27,8 @@ beforeAll(async () => {
   adapter = harness.getEntityRegistry().getAdapter("note");
 });
 
-afterAll(() => {
-  harness.reset();
+afterAll(async () => {
+  await harness.reset();
 });
 
 /** The entity a stored file decodes to, as the registry would build it. */

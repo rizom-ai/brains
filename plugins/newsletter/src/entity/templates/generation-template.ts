@@ -5,24 +5,23 @@ import { NEWSLETTER_CHANNELS } from "@brains/contracts";
 /**
  * Schema for AI-generated newsletter
  */
-export interface NewsletterGeneration {
-  subject: string;
-  content: string;
-}
+export const newsletterGenerationSchema: z.ZodObject<{
+  subject: z.ZodString;
+  content: z.ZodString;
+}> = z.object({
+  subject: z
+    .string()
+    .describe(
+      "Email subject line, 40-60 characters. MUST reflect the specific topic from the user's prompt. Create curiosity or promise value.",
+    ),
+  content: z
+    .string()
+    .describe(
+      "Newsletter body in markdown. Include: brief personal intro, main content with ## headers, closing with soft CTA. 300-600 words.",
+    ),
+});
 
-export const newsletterGenerationSchema: z.ZodType<NewsletterGeneration> =
-  z.object({
-    subject: z
-      .string()
-      .describe(
-        "Email subject line, 40-60 characters. MUST reflect the specific topic from the user's prompt. Create curiosity or promise value.",
-      ),
-    content: z
-      .string()
-      .describe(
-        "Newsletter body in markdown. Include: brief personal intro, main content with ## headers, closing with soft CTA. 300-600 words.",
-      ),
-  });
+export type NewsletterGeneration = z.output<typeof newsletterGenerationSchema>;
 
 /**
  * Template for AI-powered newsletter generation

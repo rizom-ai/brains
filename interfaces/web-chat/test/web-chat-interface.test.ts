@@ -382,8 +382,8 @@ describe("the web chat interface", () => {
     );
   });
 
-  afterEach(() => {
-    harness.reset();
+  afterEach(async () => {
+    await harness.reset();
   });
 
   it("registers as the web-chat interface", async () => {
@@ -1593,21 +1593,19 @@ describe("the web chat interface", () => {
       'root.setAttribute("data-theme", climate === "paper" ? "light" : "dark")',
     );
     expect(html).not.toContain("var(--dashboard-");
-    // The console strip: chat is the active surface; only registered
-    // surfaces get doors (no dashboard or studio plugin in this harness).
-    expect(html).toContain('class="console-strip"');
-    expect(html).toContain("surface-nav-link is-active");
-    expect(html).toContain(">Chat</a>");
-    expect(html).not.toContain(">Studio<");
-    expect(html).not.toContain(">Dashboard<");
-    // Authenticated surface: the shared session chip shows signed-in state.
-    expect(html).toContain('class="session-chip"');
-    expect(html).toContain("Sign out");
+    // Ask carries only public wayfinding, not the retired product switcher.
+    expect(html).toContain('class="ask-header"');
+    expect(html).toContain('class="ask-header-brand"');
+    expect(html).toContain('href="/dashboard"');
+    expect(html).not.toContain('class="console-strip"');
+    expect(html).not.toContain('class="surface-nav"');
+    // Authenticated fallback rendering keeps one compact identity exit.
+    expect(html).toContain('class="ask-header-identity"');
     expect(html).toContain('href="/logout?return_to=%2Fask"');
-    // Climate preference is console-wide, toggled from the strip.
+    // Climate preference remains shared without the console strip.
     expect(html).toContain('localStorage.getItem("console.climate")');
     expect(html).toContain('id="climateToggle"');
-    expect(html).toContain('class="climate-chip"');
+    expect(html).toContain('class="ask-header-climate"');
     // The ⌘K jump palette ships with the shell.
     expect(html).toContain("/api/console/jump");
     expect(html).toContain(".web-chat-session-dialog-backdrop");
@@ -2689,7 +2687,7 @@ describe("the web chat interface", () => {
       ).exists(),
     ).toBe(false);
 
-    scopedHarness.reset();
+    await scopedHarness.reset();
     await rm(root, { recursive: true, force: true });
   });
 

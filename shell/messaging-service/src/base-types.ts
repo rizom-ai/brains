@@ -1,23 +1,24 @@
 import { z } from "@brains/utils/zod";
 
-export type MessageResponse<T = unknown> =
-  | {
-      success: boolean;
-      data?: T | undefined;
-      error?: string | undefined;
-    }
-  | { noop: true };
-
 /**
  * Simple response schema for message handlers
  */
-export const messageResponseSchema: z.ZodType<
-  Exclude<MessageResponse, { noop: true }>
-> = z.object({
+export const messageResponseSchema: z.ZodObject<{
+  success: z.ZodBoolean;
+  data: z.ZodOptional<z.ZodUnknown>;
+  error: z.ZodOptional<z.ZodString>;
+}> = z.object({
   success: z.boolean(),
   data: z.unknown().optional(),
   error: z.string().optional(),
 });
+
+/** A handler's reply: the parsed response with its data narrowed to T, or a no-op. */
+export type MessageResponse<T = unknown> =
+  | (Omit<z.output<typeof messageResponseSchema>, "data"> & {
+      data?: T | undefined;
+    })
+  | { noop: true };
 
 type BaseMessageSchema = z.ZodObject<{
   id: z.ZodString;

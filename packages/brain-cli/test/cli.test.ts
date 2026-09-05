@@ -10,6 +10,7 @@ import {
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
+import { runCommand } from "../src/run-command";
 
 describe("parseArgs", () => {
   it("should parse 'init' with directory as first arg", () => {
@@ -582,5 +583,35 @@ describe("secrets push (end-to-end)", () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain("Dry run");
+  });
+});
+
+describe("help output", () => {
+  it("says brain commands are unavailable when the brain will not start", async () => {
+    // Previously the failure was swallowed and help simply printed no brain
+    // commands, indistinguishable from a brain that declares none.
+    const dir = mkdtempSync(join(tmpdir(), "brain-help-"));
+    writeFileSync(join(dir, "bun.lock"), "");
+    writeFileSync(join(dir, "brain.yaml"), "brain: test\n");
+    mkdirSync(join(dir, "shell", "app", "src"), { recursive: true });
+    writeFileSync(
+      join(dir, "shell", "app", "src", "runner.ts"),
+      "process.exit(1);\n",
+    );
+
+    const written: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]): void => {
+      written.push(args.map(String).join(" "));
+    };
+
+    try {
+      await runCommand({ command: "help", args: [], flags: {} }, dir);
+    } finally {
+      console.log = original;
+      rmSync(dir, { recursive: true, force: true });
+    }
+
+    expect(written.join("\n")).toContain("Brain commands: unavailable");
   });
 });

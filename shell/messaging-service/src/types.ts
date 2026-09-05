@@ -30,34 +30,32 @@ export {
  * Internal message bus response schema (with more details than the simple MessageResponse)
  * This is used internally by the message bus for tracking and debugging
  */
-export interface InternalMessageResponse {
-  id: string;
-  requestId: string;
-  success: boolean;
-  data?: unknown;
-  error?:
-    | {
-        message: string;
-        code?: string | undefined;
-      }
-    | undefined;
-  timestamp: string;
-}
+export const internalMessageResponseSchema: z.ZodObject<{
+  id: z.ZodString;
+  requestId: z.ZodString;
+  success: z.ZodBoolean;
+  data: z.ZodOptional<z.ZodUnknown>;
+  error: z.ZodOptional<
+    z.ZodObject<{ message: z.ZodString; code: z.ZodOptional<z.ZodString> }>
+  >;
+  timestamp: z.ZodString;
+}> = z.object({
+  id: z.string().min(1),
+  requestId: z.string().min(1),
+  success: z.boolean(),
+  data: z.unknown().optional(),
+  error: z
+    .object({
+      message: z.string(),
+      code: z.string().optional(),
+    })
+    .optional(),
+  timestamp: z.string().datetime(),
+});
 
-export const internalMessageResponseSchema: z.ZodType<InternalMessageResponse> =
-  z.object({
-    id: z.string().min(1),
-    requestId: z.string().min(1),
-    success: z.boolean(),
-    data: z.unknown().optional(),
-    error: z
-      .object({
-        message: z.string(),
-        code: z.string().optional(),
-      })
-      .optional(),
-    timestamp: z.string().datetime(),
-  });
+export type InternalMessageResponse = z.output<
+  typeof internalMessageResponseSchema
+>;
 
 /**
  * Type guard to check if a message has a payload

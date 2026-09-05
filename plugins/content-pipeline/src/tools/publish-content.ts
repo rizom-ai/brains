@@ -69,30 +69,38 @@ export async function preparePublishContent(
 }
 
 function parsePublishContent(content: string): ParsedPublishContent {
+  // Only the frontmatter parse is tolerated, and only because gray-matter
+  // raises on malformed YAML: a body whose frontmatter block will not parse
+  // carries nothing we can use, so it publishes verbatim. The field reads
+  // below work on already-parsed data, so a fault there is a bug — not a
+  // reason to quietly publish the post with its frontmatter still visible and
+  // its cover image and attachments dropped.
+  let parsed;
   try {
-    const parsed = parseMarkdownWithFrontmatter(
+    parsed = parseMarkdownWithFrontmatter(
       content,
       z.record(z.string(), z.unknown()),
     );
-    const rawCoverImageId = parsed.metadata["coverImageId"];
-    const coverImageId =
-      typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
-    const documents = parseDocumentReferences(parsed.metadata["documents"]);
-    const sourceEntityType = parseStringField(
-      parsed.metadata["sourceEntityType"],
-    );
-    const sourceEntityId = parseStringField(parsed.metadata["sourceEntityId"]);
-
-    return {
-      bodyContent: parsed.content,
-      ...(coverImageId && { coverImageId }),
-      ...(documents.length > 0 && { documents }),
-      ...(sourceEntityType && { sourceEntityType }),
-      ...(sourceEntityId && { sourceEntityId }),
-    };
   } catch {
     return { bodyContent: content };
   }
+
+  const rawCoverImageId = parsed.metadata["coverImageId"];
+  const coverImageId =
+    typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
+  const documents = parseDocumentReferences(parsed.metadata["documents"]);
+  const sourceEntityType = parseStringField(
+    parsed.metadata["sourceEntityType"],
+  );
+  const sourceEntityId = parseStringField(parsed.metadata["sourceEntityId"]);
+
+  return {
+    bodyContent: parsed.content,
+    ...(coverImageId && { coverImageId }),
+    ...(documents.length > 0 && { documents }),
+    ...(sourceEntityType && { sourceEntityType }),
+    ...(sourceEntityId && { sourceEntityId }),
+  };
 }
 
 function parseDocumentReferences(value: unknown): PublishDocumentReference[] {

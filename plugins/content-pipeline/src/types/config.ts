@@ -3,38 +3,39 @@ import { z } from "@brains/utils/zod";
 /**
  * Configuration for publish behavior per entity type
  */
-export type PublishExecutionMode = "provider";
+export const publishExecutionModeSchema: z.ZodEnum<{ provider: "provider" }> =
+  z.enum(["provider"]);
 
-export const publishExecutionModeSchema: z.ZodType<
-  PublishExecutionMode,
-  PublishExecutionMode
-> = z.enum(["provider"]);
+export type PublishExecutionMode = z.output<typeof publishExecutionModeSchema>;
 
-export interface PublishConfig {
-  executionMode?: PublishExecutionMode | undefined;
-  publishResultIdField?: string | undefined;
-  publishTimestampField?: string | undefined;
-  enabled?: boolean | undefined;
-}
+type PublishConfigSchema = z.ZodObject<
+  {
+    executionMode: z.ZodOptional<typeof publishExecutionModeSchema>;
+    publishResultIdField: z.ZodOptional<z.ZodString>;
+    publishTimestampField: z.ZodOptional<z.ZodString>;
+    enabled: z.ZodOptional<z.ZodBoolean>;
+  },
+  z.core.$strict
+>;
 
-export type PublishConfigInput = PublishConfig;
+export const publishConfigSchema: PublishConfigSchema = z
+  .object({
+    /** Publishing execution mode. Only provider execution is supported. */
+    executionMode: publishExecutionModeSchema.optional(),
 
-export const publishConfigSchema: z.ZodType<PublishConfig, PublishConfigInput> =
-  z
-    .object({
-      /** Publishing execution mode. Only provider execution is supported. */
-      executionMode: publishExecutionModeSchema.optional(),
+    /** Optional metadata/frontmatter field for storing provider result IDs. */
+    publishResultIdField: z.string().min(1).optional(),
 
-      /** Optional metadata/frontmatter field for storing provider result IDs. */
-      publishResultIdField: z.string().min(1).optional(),
+    /** Optional metadata/frontmatter field for storing publish timestamps. */
+    publishTimestampField: z.string().min(1).optional(),
 
-      /** Optional metadata/frontmatter field for storing publish timestamps. */
-      publishTimestampField: z.string().min(1).optional(),
+    /** Whether this entity type is enabled for publishing */
+    enabled: z.boolean().optional(),
+  })
+  .strict();
 
-      /** Whether this entity type is enabled for publishing */
-      enabled: z.boolean().optional(),
-    })
-    .strict();
+export type PublishConfig = z.output<typeof publishConfigSchema>;
+export type PublishConfigInput = z.input<typeof publishConfigSchema>;
 
 /**
  * Default configuration values
@@ -69,17 +70,14 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
  * Generation condition schema
  * Controls when automatic draft generation should occur
  */
-export interface GenerationCondition {
-  skipIfDraftExists?: boolean | undefined;
-  minSourceEntities?: number | undefined;
-  maxUnpublishedDrafts?: number | undefined;
-  sourceEntityType?: string | undefined;
-}
+type GenerationConditionSchema = z.ZodObject<{
+  skipIfDraftExists: z.ZodOptional<z.ZodBoolean>;
+  minSourceEntities: z.ZodOptional<z.ZodNumber>;
+  maxUnpublishedDrafts: z.ZodOptional<z.ZodNumber>;
+  sourceEntityType: z.ZodOptional<z.ZodString>;
+}>;
 
-export type GenerationConditionInput = GenerationCondition;
-
-export const generationConditionSchema: z.ZodObject<z.ZodRawShape> &
-  z.ZodType<GenerationCondition, GenerationConditionInput> = z.object({
+export const generationConditionSchema: GenerationConditionSchema = z.object({
   /** Skip generation if a draft already exists for this period (default: true) */
   skipIfDraftExists: z.boolean().optional(),
 
@@ -93,59 +91,69 @@ export const generationConditionSchema: z.ZodObject<z.ZodRawShape> &
   sourceEntityType: z.string().optional(),
 });
 
+export type GenerationCondition = z.output<typeof generationConditionSchema>;
+export type GenerationConditionInput = z.input<
+  typeof generationConditionSchema
+>;
+
+type ContentPipelineConfigSchema = z.ZodObject<{
+  entitySchedules: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+  generationSchedules: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+  generationConditions: z.ZodOptional<
+    z.ZodRecord<z.ZodString, GenerationConditionSchema>
+  >;
+}>;
+
 /**
  * Plugin configuration schema
  */
-export interface ContentPipelineConfig {
-  entitySchedules?: Record<string, string> | undefined;
-  generationSchedules?: Record<string, string> | undefined;
-  generationConditions?: Record<string, GenerationCondition> | undefined;
-}
+export const contentPipelineConfigSchema: ContentPipelineConfigSchema =
+  z.object({
+    /**
+     * Per-entity-type publish schedules (cron syntax).
+     * Entity types without a schedule are processed immediately when queued.
+     *
+     * Examples:
+     *   "0 9 * * *"      - Daily at 9am
+     *   "0 9 * * 1-5"    - Weekdays at 9am
+     *   "0 *\/6 * * *"    - Every 6 hours
+     *   "* * * * *"      - Every minute
+     */
+    entitySchedules: z.record(z.string(), z.string()).optional(),
 
-export type ContentPipelineConfigInput = ContentPipelineConfig;
+    /**
+     * Per-entity-type generation schedules (cron syntax).
+     * Triggers automatic draft generation on schedule.
+     *
+     * Example:
+     *   generationSchedules: {
+     *     newsletter: "0 9 * * 1",     // Generate newsletter draft Monday 9am
+     *     'social-post': "0 9 * * *",  // Generate social post daily 9am
+     *   }
+     */
+    generationSchedules: z.record(z.string(), z.string()).optional(),
 
-export const contentPipelineConfigSchema: z.ZodType<
-  ContentPipelineConfig,
-  ContentPipelineConfigInput
-> = z.object({
-  /**
-   * Per-entity-type publish schedules (cron syntax).
-   * Entity types without a schedule are processed immediately when queued.
-   *
-   * Examples:
-   *   "0 9 * * *"      - Daily at 9am
-   *   "0 9 * * 1-5"    - Weekdays at 9am
-   *   "0 *\/6 * * *"    - Every 6 hours
-   *   "* * * * *"      - Every minute
-   */
-  entitySchedules: z.record(z.string(), z.string()).optional(),
+    /**
+     * Conditions that must be met before generating drafts.
+     *
+     * Example:
+     *   generationConditions: {
+     *     newsletter: {
+     *       skipIfDraftExists: true,
+     *       minSourceEntities: 1,
+     *       maxUnpublishedDrafts: 3,
+     *       sourceEntityType: "post",
+     *     },
+     *   }
+     */
+    generationConditions: z
+      .record(z.string(), generationConditionSchema)
+      .optional(),
+  });
 
-  /**
-   * Per-entity-type generation schedules (cron syntax).
-   * Triggers automatic draft generation on schedule.
-   *
-   * Example:
-   *   generationSchedules: {
-   *     newsletter: "0 9 * * 1",     // Generate newsletter draft Monday 9am
-   *     'social-post': "0 9 * * *",  // Generate social post daily 9am
-   *   }
-   */
-  generationSchedules: z.record(z.string(), z.string()).optional(),
-
-  /**
-   * Conditions that must be met before generating drafts.
-   *
-   * Example:
-   *   generationConditions: {
-   *     newsletter: {
-   *       skipIfDraftExists: true,
-   *       minSourceEntities: 1,
-   *       maxUnpublishedDrafts: 3,
-   *       sourceEntityType: "post",
-   *     },
-   *   }
-   */
-  generationConditions: z
-    .record(z.string(), generationConditionSchema)
-    .optional(),
-});
+export type ContentPipelineConfig = z.output<
+  typeof contentPipelineConfigSchema
+>;
+export type ContentPipelineConfigInput = z.input<
+  typeof contentPipelineConfigSchema
+>;

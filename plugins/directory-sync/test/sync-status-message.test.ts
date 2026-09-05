@@ -115,7 +115,7 @@ describe("sync:status:request message handler", () => {
       remote: "origin/main",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("reports git: null when git sync is not enabled", async () => {
@@ -130,7 +130,7 @@ describe("sync:status:request message handler", () => {
     expect(result?.git).toBeNull();
     expect(result?.lastSync).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("degrades git to null when the git status query fails", async () => {
@@ -151,7 +151,7 @@ describe("sync:status:request message handler", () => {
     expect(result).toBeDefined();
     expect(result?.git).toBeNull();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("normalises absent commit and remote to null", async () => {
@@ -182,6 +182,6 @@ describe("sync:status:request message handler", () => {
       remote: null,
     });
 
-    harness.reset();
+    await harness.reset();
   });
 });

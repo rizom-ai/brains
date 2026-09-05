@@ -93,7 +93,6 @@ export {
 } from "./mock-message-sender";
 
 // Fetch mocks
-export { mockFetch, type FetchHandler } from "./mock-fetch";
 
 // Test entity fixtures
 export { createTestEntity, createTestEntities } from "./fixtures";

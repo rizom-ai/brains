@@ -206,6 +206,18 @@ const OperatorRendererHostContext = createContext<OperatorRendererHost>({
   components: CSS_COMPONENTS,
 });
 
+/**
+ * What an operator is told when an action fails.
+ *
+ * Both action handlers used to answer a bare "Action failed.", discarding the
+ * reason the caller returned. An operator reading that has nothing to act on,
+ * so the message carries the cause when there is one.
+ */
+export function actionFailureMessage(error: unknown): string {
+  const reason = error instanceof Error ? error.message.trim() : "";
+  return reason ? `Action failed: ${reason}` : "Action failed.";
+}
+
 function displayScalar(value: RuntimeOperatorScalar): string {
   if (value === null) return "—";
   if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -593,8 +605,8 @@ export function OperatorActionButton(props: {
       const output = await props.onAction(invocation);
       setResult(presentedActionResult(invocation, output));
       setMessage("Completed.");
-    } catch {
-      setMessage("Action failed.");
+    } catch (error) {
+      setMessage(actionFailureMessage(error));
       setFailed(true);
     } finally {
       setPending(false);
@@ -635,8 +647,8 @@ export function OperatorActionButton(props: {
           invocation: { mode: "execute", token: prepared.token },
         },
       });
-    } catch {
-      setMessage("Action failed.");
+    } catch (error) {
+      setMessage(actionFailureMessage(error));
       setFailed(true);
     } finally {
       setPending(false);

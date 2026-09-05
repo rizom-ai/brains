@@ -51,7 +51,7 @@ describe("blog package", () => {
       status: "generating",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers templates that point at data sources it declares", async () => {
@@ -62,7 +62,7 @@ describe("blog package", () => {
 
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 
   describe("blogPostFrontmatterSchema", () => {
@@ -98,8 +98,8 @@ describe("blog package", () => {
       adapter = harness.getEntityRegistry().getAdapter("post");
     });
 
-    afterEach(() => {
-      harness.reset();
+    afterEach(async () => {
+      await harness.reset();
     });
 
     it("carries frontmatter the metadata does not index", () => {

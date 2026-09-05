@@ -39,7 +39,7 @@ const executionContext: CreateExecutionContext = {
 
 describe("link package", () => {
   // The projection registry is a singleton and stacks registrations.
-  beforeEach(() => {
+  beforeEach(async () => {
     AtprotoProjectionRegistry.resetInstance();
   });
 
@@ -78,7 +78,7 @@ describe("link package", () => {
     // when something renders.
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 
   // Moved off the deleted adapter class: the registry builds the adapter
@@ -132,7 +132,7 @@ describe("link package", () => {
       capturedAt: "2025-01-30T10:00:00.000Z",
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("exposes no tools — capture is reached through system_create", async () => {
@@ -146,7 +146,7 @@ describe("link package", () => {
     const capabilities = await harness.installPlugin(entityPlugin);
 
     expect(capabilities.tools).toHaveLength(0);
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers its atproto projection and releases it on shutdown", async () => {
@@ -166,7 +166,7 @@ describe("link package", () => {
     await entityPlugin.shutdown?.();
     expect(AtprotoProjectionRegistry.getInstance().get("link")).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("routes a create request to the capture job the package declares", async () => {
@@ -210,7 +210,7 @@ describe("link package", () => {
       result: { success: true, data: { status: "generating" } },
     });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("refuses an upload, which is not a URL", async () => {
@@ -237,6 +237,6 @@ describe("link package", () => {
       ),
     ).toMatchObject({ kind: "handled", result: { success: false } });
 
-    harness.reset();
+    await harness.reset();
   });
 });

@@ -16,11 +16,13 @@ describe("OnlineEmbeddingProvider", () => {
     });
 
     test("creates provider with valid config", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(provider).toBeDefined();
+      // Counterpart to the missing-key case above: a valid key is accepted.
+      expect(() =>
+        OnlineEmbeddingProvider.createFresh({
+          apiKey: "test-key",
+          logger: createSilentLogger(),
+        }),
+      ).not.toThrow();
     });
 
     test("uses text-embedding-3-small as default model", () => {
@@ -55,32 +57,6 @@ describe("OnlineEmbeddingProvider", () => {
         logger: createSilentLogger(),
       });
       expect(provider.dimensions).toBe(1536);
-    });
-  });
-
-  describe("implements IEmbeddingService", () => {
-    test("has dimensions property", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(provider.dimensions).toBe(1536);
-    });
-
-    test("has generateEmbedding method", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(typeof provider.generateEmbedding).toBe("function");
-    });
-
-    test("has generateEmbeddings method", () => {
-      const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
-        logger: createSilentLogger(),
-      });
-      expect(typeof provider.generateEmbeddings).toBe("function");
     });
   });
 

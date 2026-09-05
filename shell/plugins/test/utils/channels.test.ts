@@ -159,7 +159,7 @@ describe("Typed Message Channels", () => {
         z.object({ id: z.string() }),
       );
 
-      context.messaging.subscribe(
+      const unsubscribe = context.messaging.subscribe(
         // @ts-expect-error the handler below takes a whole message, so the
         // payload inferred from it does not match this channel's. Reported
         // against the channel because inference reads the handler first. The
@@ -169,6 +169,9 @@ describe("Typed Message Channels", () => {
         channel,
         async (message: BaseMessage) => ({ success: true, data: message.id }),
       );
+      // The pair is rejected at compile time only; at runtime the subscription
+      // is still registered and hands back its unsubscribe.
+      expect(unsubscribe).toBeInstanceOf(Function);
     });
 
     it("should return unsubscribe function for Channel-based subscribe", async () => {

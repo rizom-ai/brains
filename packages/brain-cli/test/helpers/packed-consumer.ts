@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
 import { packedBrainTarball } from "./packed-evidence";
+import { isRecord } from "@brains/utils/is-record";
 
 export {
   packedCompatibilityEvidenceEnabled,
@@ -348,10 +349,6 @@ export type RegistryPackageVersions = Readonly<Record<string, string>>;
 
 interface PackageManifestDocument extends Record<string, unknown> {
   readonly name: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function isPackageManifestDocument(

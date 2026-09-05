@@ -6,6 +6,7 @@ import {
   type BrainRecipeName,
 } from "./brain-recipes";
 import { CANONICAL_BUNDLE_CONTRACT } from "../model/canonical-bundles";
+import { isRecord } from "@brains/utils/is-record";
 
 export type LegacyBrainModel = "rover" | "relay";
 type MigrationSourceModel = LegacyBrainModel | "brain";
@@ -192,10 +193,6 @@ function mergeSelections(
     ...(additions ?? []).map((value) => memberAliases[value] ?? value),
   ]);
   return merged.length > 0 ? merged : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function isMigrationInput(value: unknown): value is MigrationInput {

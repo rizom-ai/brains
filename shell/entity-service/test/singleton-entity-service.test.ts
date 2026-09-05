@@ -130,6 +130,11 @@ describe("SingletonEntityService", () => {
       createEntitySpy.mockRejectedValue(new Error("Database error"));
 
       await service.initialize();
+
+      // A failed default write must still leave the service readable, which
+      // is the whole point of handling it rather than propagating. It falls
+      // back to the same default the empty-cache case returns.
+      expect(service.get()).toEqual(defaultBody);
     });
 
     it("should reload cache after creating default entity", async () => {

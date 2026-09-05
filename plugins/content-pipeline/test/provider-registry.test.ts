@@ -15,14 +15,6 @@ describe("ProviderRegistry", () => {
   });
 
   describe("register", () => {
-    it("should register a provider for entity type", () => {
-      const provider = createMockProvider("linkedin");
-
-      registry.register("social-post", provider);
-
-      expect(registry.get("social-post")).toBe(provider);
-    });
-
     it("should override existing provider", () => {
       const provider1 = createMockProvider("provider1");
       const provider2 = createMockProvider("provider2");

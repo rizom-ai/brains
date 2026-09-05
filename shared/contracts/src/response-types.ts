@@ -3,42 +3,22 @@ import { z } from "@brains/utils/zod";
 /**
  * Query response schemas used throughout the system
  */
-export interface DefaultQuerySource {
-  id: string;
-  type: string;
-  excerpt?: string | undefined;
-  relevance?: number | undefined;
-}
+type DefaultQuerySourceSchema = z.ZodObject<{
+  id: z.ZodString;
+  type: z.ZodString;
+  excerpt: z.ZodOptional<z.ZodString>;
+  relevance: z.ZodOptional<z.ZodNumber>;
+}>;
 
-export interface DefaultQueryResponse {
-  message: string;
-  summary?: string | undefined;
-  topics?: string[] | undefined;
-  sources?: DefaultQuerySource[] | undefined;
-  metadata?: Record<string, unknown> | undefined;
-}
+type DefaultQueryResponseSchema = z.ZodObject<{
+  message: z.ZodString;
+  summary: z.ZodOptional<z.ZodString>;
+  topics: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  sources: z.ZodOptional<z.ZodArray<DefaultQuerySourceSchema>>;
+  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}>;
 
-export interface SimpleTextResponse {
-  message: string;
-}
-
-export interface CreateEntityResponse {
-  success: boolean;
-  entityId?: string | undefined;
-  message: string;
-}
-
-export interface UpdateEntityResponse {
-  success: boolean;
-  entityId: string;
-  changes?: string[] | undefined;
-  message: string;
-}
-
-export const defaultQueryResponseSchema: z.ZodType<
-  DefaultQueryResponse,
-  DefaultQueryResponse
-> = z
+export const defaultQueryResponseSchema: DefaultQueryResponseSchema = z
   .object({
     message: z.string().describe("Natural language response to the query"),
     summary: z.string().optional().describe("Brief summary if applicable"),
@@ -58,19 +38,26 @@ export const defaultQueryResponseSchema: z.ZodType<
   })
   .describe("defaultQueryResponse");
 
-export const simpleTextResponseSchema: z.ZodType<
-  SimpleTextResponse,
-  SimpleTextResponse
-> = z
+export type DefaultQueryResponse = z.output<typeof defaultQueryResponseSchema>;
+export type DefaultQuerySource = z.output<DefaultQuerySourceSchema>;
+
+type SimpleTextResponseSchema = z.ZodObject<{ message: z.ZodString }>;
+
+export const simpleTextResponseSchema: SimpleTextResponseSchema = z
   .object({
     message: z.string(),
   })
   .describe("simpleTextResponse");
 
-export const createEntityResponseSchema: z.ZodType<
-  CreateEntityResponse,
-  CreateEntityResponse
-> = z
+export type SimpleTextResponse = z.output<typeof simpleTextResponseSchema>;
+
+type CreateEntityResponseSchema = z.ZodObject<{
+  success: z.ZodBoolean;
+  entityId: z.ZodOptional<z.ZodString>;
+  message: z.ZodString;
+}>;
+
+export const createEntityResponseSchema: CreateEntityResponseSchema = z
   .object({
     success: z.boolean(),
     entityId: z.string().optional(),
@@ -78,10 +65,16 @@ export const createEntityResponseSchema: z.ZodType<
   })
   .describe("createEntityResponse");
 
-export const updateEntityResponseSchema: z.ZodType<
-  UpdateEntityResponse,
-  UpdateEntityResponse
-> = z
+export type CreateEntityResponse = z.output<typeof createEntityResponseSchema>;
+
+type UpdateEntityResponseSchema = z.ZodObject<{
+  success: z.ZodBoolean;
+  entityId: z.ZodString;
+  changes: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  message: z.ZodString;
+}>;
+
+export const updateEntityResponseSchema: UpdateEntityResponseSchema = z
   .object({
     success: z.boolean(),
     entityId: z.string(),
@@ -89,3 +82,5 @@ export const updateEntityResponseSchema: z.ZodType<
     message: z.string(),
   })
   .describe("updateEntityResponse");
+
+export type UpdateEntityResponse = z.output<typeof updateEntityResponseSchema>;

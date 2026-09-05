@@ -9,6 +9,7 @@ const preparedBuild = {
   preparedAt: "2026-08-31T00:00:00.000Z",
   environment: "production",
   site: {
+    represents: "anchor",
     title: "Docs",
     description: "Docs",
     copyright: "Rizom",

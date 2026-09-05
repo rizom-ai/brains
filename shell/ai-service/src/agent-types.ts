@@ -1,6 +1,5 @@
 import {
   actorRefSchema,
-  type ActorRef,
   type AgentContextItem,
   type AgentContextRequest,
   type AgentResponse,
@@ -51,7 +50,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
-  actor: z.ZodOptional<z.ZodType<ActorRef, ActorRef>>;
+  actor: z.ZodOptional<typeof actorRefSchema>;
   displayName: z.ZodOptional<z.ZodString>;
   agentContextInstructions: z.ZodOptional<z.ZodString>;
   disableTools: z.ZodOptional<z.ZodBoolean>;

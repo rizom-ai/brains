@@ -39,17 +39,51 @@ type RuntimeStudioOperatorListItem = Extract<
   { type: "list" }
 >["items"][number];
 
-interface StoredContribution extends Omit<
-  StudioOverviewContributionRegistration,
-  "priority" | "section"
-> {
-  readonly priority: number;
-  readonly section: "primary" | "secondary" | "sidebar";
-}
+type ContributionDataProvider = (
+  context: DashboardWidgetProviderContext,
+) => Promise<unknown>;
+type ContributionDigestProvider = NonNullable<
+  DashboardWidgetRegistration["digestProvider"]
+>;
 
-const contributionSchema: z.ZodType<
-  StoredContribution,
-  StudioOverviewContributionRegistration
+const contributionSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    pluginId: z.ZodString;
+    title: z.ZodString;
+    description: z.ZodOptional<z.ZodString>;
+    group: z.ZodString;
+    rendererName: z.ZodLiteral<typeof DECLARATIVE_DASHBOARD_WIDGET_RENDERER>;
+    priority: z.ZodDefault<z.ZodNumber>;
+    section: z.ZodDefault<
+      z.ZodEnum<{
+        primary: "primary";
+        secondary: "secondary";
+        sidebar: "sidebar";
+      }>
+    >;
+    visibility: z.ZodEnum<{ trusted: "trusted"; admin: "admin" }>;
+    needsAttention: z.ZodOptional<z.ZodNumber>;
+    digest: z.ZodOptional<
+      z.ZodArray<
+        z.ZodObject<{
+          label: z.ZodString;
+          value: z.ZodString;
+          tone: z.ZodOptional<
+            z.ZodEnum<{ plain: "plain"; good: "good"; warn: "warn" }>
+          >;
+        }>
+      >
+    >;
+    dataProvider: z.ZodCustom<
+      ContributionDataProvider,
+      ContributionDataProvider
+    >;
+    digestProvider: z.ZodOptional<
+      z.ZodCustom<ContributionDigestProvider, ContributionDigestProvider>
+    >;
+  },
+  z.core.$strict
 > = z
   .object({
     id: z.string().trim().min(1).max(120),
@@ -72,13 +106,12 @@ const contributionSchema: z.ZodType<
       )
       .max(4)
       .optional(),
-    dataProvider: z.custom<
-      (context: DashboardWidgetProviderContext) => Promise<unknown>
-    >((value) => typeof value === "function", {
-      message: "Expected Overview contribution data provider function",
-    }),
+    dataProvider: z.custom<ContributionDataProvider>(
+      (value) => typeof value === "function",
+      { message: "Expected Overview contribution data provider function" },
+    ),
     digestProvider: z
-      .custom<NonNullable<DashboardWidgetRegistration["digestProvider"]>>(
+      .custom<ContributionDigestProvider>(
         (value) => typeof value === "function",
         {
           message: "Expected Overview contribution digest provider function",
@@ -87,6 +120,16 @@ const contributionSchema: z.ZodType<
       .optional(),
   })
   .strict();
+
+type StoredContribution = z.output<typeof contributionSchema>;
+
+/** Registrations arrive typed by the plugin contract; the schema must accept every one. */
+function expectContributionInput(
+  value: StudioOverviewContributionRegistration,
+): z.input<typeof contributionSchema> {
+  return value;
+}
+void expectContributionInput;
 
 const entityActivityPayloadSchema = z.object({
   entityType: z.string().trim().min(1).max(120),

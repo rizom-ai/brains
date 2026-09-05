@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.351",
+  "version": "0.2.0-alpha.355",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",
@@ -55,7 +55,9 @@
     "./yaml": "./src/yaml.ts",
     "./zod": "./src/zod.ts",
     "./zod-introspect": "./src/zod-introspect.ts",
-    "./confirmation-response": "./src/confirmation-response.ts"
+    "./confirmation-response": "./src/confirmation-response.ts",
+    "./expect-defined": "./src/expect-defined.ts",
+    "./is-record": "./src/is-record.ts"
   },
   "private": true,
   "scripts": {

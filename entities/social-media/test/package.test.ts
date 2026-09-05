@@ -56,7 +56,7 @@ describe("social media package", () => {
     );
     expectTemplateDataSourcesResolve(harness);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers social posts as secondary topic sources", async () => {
@@ -69,7 +69,7 @@ describe("social media package", () => {
       harness.getEntityRegistry().getEntityTypeConfig("social-post"),
     ).toMatchObject({ projectionSourceRole: "secondary" });
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("registers its atproto projection and releases it on shutdown", async () => {
@@ -89,7 +89,7 @@ describe("social media package", () => {
       AtprotoProjectionRegistry.getInstance().get("social-post"),
     ).toBeUndefined();
 
-    harness.reset();
+    await harness.reset();
   });
 
   // The provider reaches LinkedIn, so it exists only when this brain has
@@ -108,7 +108,7 @@ describe("social media package", () => {
         await harness.installPlugin(plugin);
       }
       await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {});
-      harness.reset();
+      await harness.reset();
       return registered;
     }
 

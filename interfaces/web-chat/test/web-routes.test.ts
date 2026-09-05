@@ -54,6 +54,6 @@ describe("Web Chat public API routes", () => {
     expect(registered).toContain(paths.jobStatus);
     expect(registered).not.toContain("/api/chat/sessions");
 
-    harness.reset();
+    await harness.reset();
   });
 });

@@ -1,10 +1,10 @@
 import {
   ChatApiError,
+  type ChatClient,
   type ChatHistoryMessage,
   type ChatSession,
 } from "@brains/contracts/chat";
 import type { UIMessage } from "ai";
-import { createWebChatClient } from "./web-chat-client";
 import { toUiMessages } from "./history-messages";
 
 export type WebChatSession = ChatSession;
@@ -24,10 +24,11 @@ export function describeClientFailure(
 
 export async function fetchWebChatHistory(
   conversationId: string,
+  client: ChatClient,
 ): Promise<UIMessage[]> {
   let messages: ChatHistoryMessage[];
   try {
-    messages = await createWebChatClient().getMessages(conversationId);
+    messages = await client.getMessages(conversationId);
   } catch (error) {
     throw new Error(
       describeClientFailure(error, "Could not reopen that session."),
@@ -37,9 +38,11 @@ export async function fetchWebChatHistory(
   return toUiMessages(messages);
 }
 
-export async function fetchWebChatSessions(): Promise<WebChatSession[]> {
+export async function fetchWebChatSessions(
+  client: ChatClient,
+): Promise<WebChatSession[]> {
   try {
-    return await createWebChatClient().listSessions();
+    return await client.listSessions();
   } catch (error) {
     throw new Error(
       describeClientFailure(error, "Could not load saved sessions."),

@@ -501,7 +501,13 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
           }
         }
       } catch {
-        // Couldn't boot brain — skip dynamic commands
+        // The brain did not start. Say so, rather than printing a command
+        // list that quietly omits every brain command — the branch below
+        // already explains the other reason they can be absent.
+        lines.push(
+          "",
+          "Brain commands: unavailable (the brain in this directory did not start).",
+        );
       }
     }
   } else {

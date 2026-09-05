@@ -1,5 +1,41 @@
 # @brains/admin
 
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/auth-service@0.2.0-alpha.355
+  - @brains/plugins@0.2.0-alpha.355
+
+## 0.2.0-alpha.354
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.354
+  - @brains/auth-service@0.2.0-alpha.354
+  - @brains/plugins@0.2.0-alpha.354
+
+## 0.2.0-alpha.353
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.353
+  - @brains/auth-service@0.2.0-alpha.353
+  - @brains/plugins@0.2.0-alpha.353
+
+## 0.2.0-alpha.352
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.352
+  - @brains/auth-service@0.2.0-alpha.352
+  - @brains/plugins@0.2.0-alpha.352
+
 ## 0.2.0-alpha.351
 
 ### Patch Changes

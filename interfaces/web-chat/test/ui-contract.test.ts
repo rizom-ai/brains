@@ -108,7 +108,8 @@ describe("Web chat UI contract", () => {
     expect(uiSource).toContain("Conversations");
     expect(uiSource).not.toContain("window.prompt");
     expect(uiSource).not.toContain("window.confirm");
-    expect(mutationSource).toContain("createWebChatClient");
+    expect(mutationSource).toContain("client: ChatClient");
+    expect(uiSource).toContain("useWebChatClient");
     expect(mutationSource).toContain(".renameSession(");
     expect(mutationSource).toContain(".archiveSession(");
     expect(mutationSource).toContain(".deleteSession(");

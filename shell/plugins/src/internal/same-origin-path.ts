@@ -29,6 +29,8 @@ export function normalizeSameOriginPath(value: unknown): string | undefined {
       ? normalized
       : undefined;
   } catch {
+    // new URL raises on input it cannot parse. A path we cannot parse is
+    // not a path we should treat as same-origin.
     return undefined;
   }
 }

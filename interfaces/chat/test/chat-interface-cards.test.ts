@@ -511,7 +511,7 @@ describe("ChatInterface cards and suggested actions", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage());
     const staleToken = getFirstPromptActionToken(thread);
 
-    suite.harness.reset();
+    await suite.harness.reset();
     MockChatSdk.instances = [];
     suite.harness = createPluginHarness<ChatInterfaceInstance>();
     suite.harness.setAgentService(suite.agentService);

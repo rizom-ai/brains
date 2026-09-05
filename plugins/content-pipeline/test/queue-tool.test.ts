@@ -432,8 +432,18 @@ describe("publish_queue tool", () => {
       expect(tool.sideEffects).toBe("writes");
     });
 
-    it("should have output schema", () => {
-      expect(tool.outputSchema).toBeDefined();
+    it("declares an output schema covering both result branches", () => {
+      // Asserting the schema merely exists would hold for one that accepts
+      // nothing, and the tool answers in two shapes.
+      expect(tool.outputSchema?.safeParse({ success: true }).success).toBe(
+        true,
+      );
+      expect(
+        tool.outputSchema?.safeParse({ success: false, error: "nope" }).success,
+      ).toBe(true);
+      expect(tool.outputSchema?.safeParse({ success: false }).success).toBe(
+        false,
+      );
     });
   });
 });

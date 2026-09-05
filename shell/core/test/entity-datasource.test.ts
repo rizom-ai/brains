@@ -55,8 +55,10 @@ describe("EntityDataSource", () => {
       expect(entityDataSource.name).toBe("Entity DataSource");
     });
 
-    it("should have description", () => {
-      expect(entityDataSource.description).toBeDefined();
+    it("should have correct description", () => {
+      expect(entityDataSource.description).toBe(
+        "Fetches entity content from the entity service",
+      );
     });
   });
 

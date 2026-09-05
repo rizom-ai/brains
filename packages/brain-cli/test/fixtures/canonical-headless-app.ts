@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { App, parseInstanceOverrides, resolve } from "@brains/app";
 import { ConsoleLogger } from "@brains/utils/logger";
 import { canonicalBrain } from "../../src/model/canonical-brain";
+import { isRecord } from "@brains/utils/is-record";
 
 const cwd = process.cwd();
 const overrides = parseInstanceOverrides(
@@ -22,10 +23,6 @@ if (plugins.some(({ id }) => id === "notifications")) {
 }
 if (mcpConfig?.["transport"] !== "stdio") {
   throw new Error("Canonical headless app did not resolve MCP stdio transport");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 // MCP owns stdout. Keep every application diagnostic on stderr so the SDK

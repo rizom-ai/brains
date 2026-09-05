@@ -1,5 +1,25 @@
 # @brains/ops
 
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [#221](https://github.com/rizom-ai/brains/pull/221) [`5cd4e82`](https://github.com/rizom-ai/brains/commit/5cd4e8252056516b29f9ed1ab3c61af7c89ad28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the generated verified predeploy-backup script self-contained so it runs in pilot repositories without private monorepo packages.
+
+## 0.2.0-alpha.354
+
+### Patch Changes
+
+- [#220](https://github.com/rizom-ai/brains/pull/220) [`b905612`](https://github.com/rizom-ai/brains/commit/b905612601329c62adabfb17bc44fec1e873c2a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Accept Cloudflare's object-shaped successful DNS mutation response while retaining strict array validation for record lookups.
+
+## 0.2.0-alpha.353
+
+## 0.2.0-alpha.352
+
+### Patch Changes
+
+- [#218](https://github.com/rizom-ai/brains/pull/218) [`f217448`](https://github.com/rizom-ai/brains/commit/f2174483578b3f9cc685f4aefe641ad2e4f3be0d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the shared fleet image topology unconditional: every effective Brain version resolves to one immutable `brain-${brainVersion}` image containing the union of exact site and theme package pins. Remove the image-contract selector and legacy site-hashed image mode.
+
 ## 0.2.0-alpha.351
 
 ### Patch Changes

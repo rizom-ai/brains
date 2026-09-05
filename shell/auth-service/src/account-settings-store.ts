@@ -9,8 +9,9 @@ import { and, eq } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { authAccountPluginSettings } from "./runtime-schema";
 
-const storedValuesSchema: z.ZodType<
-  Record<string, string | number | boolean | null>
+const storedValuesSchema: z.ZodRecord<
+  z.ZodString,
+  z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>
 > = z.record(
   z.string(),
   z.union([z.string(), z.number().finite(), z.boolean(), z.null()]),

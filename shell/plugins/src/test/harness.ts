@@ -60,6 +60,8 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   private mockShell: MockShell;
   private plugin: TPlugin | undefined;
   private capabilities: PluginCapabilities | undefined;
+  /** Every plugin installed since the last reset, so reset can shut them down. */
+  private installedPlugins: Plugin[] = [];
   private readonly options: HarnessOptions;
   private readonly logger: Logger;
 
@@ -108,6 +110,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   async installPlugin(plugin: TPlugin): Promise<PluginCapabilities> {
     this.plugin = plugin;
+    this.installedPlugins.push(plugin);
 
     // Update logger context based on plugin type if not explicitly set
     // If no custom logger was provided in options, create one with the plugin type context
@@ -442,15 +445,28 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
-   * Reset the harness
+   * Reset the harness: shut every installed plugin down, then start from a
+   * fresh MockShell.
+   *
+   * A plugin's shutdown is what clears module-level state it registered —
+   * the auth-service plugin's active-service singleton, for one — and bun
+   * runs every test file in one process, so a plugin left running leaks
+   * into the next file. The shutdown hooks run synchronously up to their
+   * first await, so even an un-awaited reset() leaves no such state behind;
+   * await it when a plugin's shutdown does async work the next test relies
+   * on.
    */
-  reset(): void {
+  async reset(): Promise<void> {
+    const plugins = this.installedPlugins.splice(0).reverse();
     this.plugin = undefined;
     this.capabilities = undefined;
     // Create a fresh MockShell
     this.mockShell = createMockShell({
       logger: this.mockShell.getLogger(),
     });
+    for (const plugin of plugins) {
+      await plugin.shutdown?.();
+    }
   }
 
   /**

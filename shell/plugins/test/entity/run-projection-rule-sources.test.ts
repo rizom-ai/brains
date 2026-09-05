@@ -64,7 +64,7 @@ describe("running a projection rule from an eval", () => {
       },
     ]);
 
-    harness.reset();
+    await harness.reset();
   });
 
   it("still measures against the corpus when no sources are named", async () => {
@@ -72,6 +72,6 @@ describe("running a projection rule from an eval", () => {
 
     expect(await harness.getMockShell().runProjectionRule(rule)).toEqual([]);
 
-    harness.reset();
+    await harness.reset();
   });
 });

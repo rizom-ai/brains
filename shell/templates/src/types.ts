@@ -32,26 +32,6 @@ export interface RuntimeScript {
   module?: boolean;
 }
 
-export interface TemplateInput {
-  name: string;
-  description: string;
-  schema: unknown;
-  basePrompt?: string | undefined;
-  useKnowledgeContext?: boolean | undefined;
-  requiredPermission: "admin" | "trusted" | "public";
-  /** Stable author-owned version for output-affecting renderer behavior. */
-  renderVersion?: string | undefined;
-  formatter?: unknown;
-  overlayFormatter?: unknown;
-  layout?:
-    | {
-        component?: unknown;
-        fullscreen?: boolean | undefined;
-      }
-    | undefined;
-  dataSourceId?: string | undefined;
-}
-
 /**
  * Wrap a component so its props are parsed before it runs.
  *
@@ -201,21 +181,45 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
 /**
  * Template schema for validation
  */
-export const TemplateSchema: z.ZodType<TemplateInput> = z.object({
+export const TemplateSchema: z.ZodObject<{
+  name: z.ZodString;
+  description: z.ZodString;
+  schema: z.ZodUnknown;
+  basePrompt: z.ZodOptional<z.ZodString>;
+  useKnowledgeContext: z.ZodOptional<z.ZodBoolean>;
+  requiredPermission: z.ZodEnum<{
+    admin: "admin";
+    trusted: "trusted";
+    public: "public";
+  }>;
+  renderVersion: z.ZodOptional<z.ZodString>;
+  formatter: z.ZodOptional<z.ZodUnknown>;
+  overlayFormatter: z.ZodOptional<z.ZodUnknown>;
+  layout: z.ZodOptional<
+    z.ZodObject<{
+      component: z.ZodOptional<z.ZodUnknown>;
+      fullscreen: z.ZodOptional<z.ZodBoolean>;
+    }>
+  >;
+  dataSourceId: z.ZodOptional<z.ZodString>;
+}> = z.object({
   name: z.string(),
   description: z.string(),
-  schema: z.any(), // ZodType can't be validated at runtime - required
+  schema: z.unknown(), // ZodType can't be validated at runtime - required
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
   useKnowledgeContext: z.boolean().optional(),
   requiredPermission: z.enum(["admin", "trusted", "public"]),
+  /** Stable author-owned version for output-affecting renderer behavior. */
   renderVersion: z.string().min(1).optional(),
-  formatter: z.any().optional(), // ContentFormatter instance
-  overlayFormatter: z.any().optional(), // ContentFormatter for authored overlay
+  formatter: z.unknown().optional(), // ContentFormatter instance
+  overlayFormatter: z.unknown().optional(), // ContentFormatter for authored overlay
   layout: z
     .object({
-      component: z.any().optional(), // ComponentType or string
+      component: z.unknown().optional(), // ComponentType or string
       fullscreen: z.boolean().optional(),
     })
     .optional(),
   dataSourceId: z.string().optional(),
 });
+
+export type TemplateInput = z.output<typeof TemplateSchema>;

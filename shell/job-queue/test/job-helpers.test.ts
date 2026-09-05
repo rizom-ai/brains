@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { createEnqueueJobFn } from "../src/job-helpers";
 import type { IJobQueueService } from "../src/types";
 import type { JobEnqueuer } from "../src/job-helpers";
@@ -112,7 +113,10 @@ describe("createEnqueueJobFn", () => {
         }),
       }),
     );
-    const request = enqueue.mock.calls[0]?.[0];
-    expect(request?.options?.metadata).not.toHaveProperty("requestedByUserId");
+    const request = expectDefined(
+      enqueue.mock.calls[0]?.[0],
+      "enqueue() request",
+    );
+    expect(request.options?.metadata).not.toHaveProperty("requestedByUserId");
   });
 });
