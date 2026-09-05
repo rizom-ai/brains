@@ -1,3 +1,4 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -10,7 +11,6 @@ import {
   projectGenerationJobSchema,
 } from "../src/handlers/generation-handler";
 import {
-  createMockEntityPluginContext,
   createMockLogger,
   createMockProgressReporter,
 } from "@brains/test-utils";

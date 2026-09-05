@@ -1,10 +1,10 @@
+import { createTestEntity } from "../src/test/index";
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
-import { createTestEntity } from "@brains/test-utils";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 describe("search diagnostics", () => {

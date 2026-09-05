@@ -1,6 +1,7 @@
+import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { AgentService } from "../src/agent-service";
-import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { IAnchorProfileService } from "@brains/identity-service";
 import type { AgentConversationStore } from "../src/turn-processor";
 import type { BrainAgentConfig } from "../src/brain-agent";

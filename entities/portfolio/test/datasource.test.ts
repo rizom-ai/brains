@@ -1,17 +1,17 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { ProjectDataSource } from "../src/datasources/project-datasource";
 import { PortfolioPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createMockShell,
+  createPluginHarness,
+  type MockShell,
+} from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
 import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import {
-  createMockLogger,
-  createMockShell,
-  createTestEntity,
-} from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
 
 describe("ProjectDataSource", () => {
   let datasource: ProjectDataSource;

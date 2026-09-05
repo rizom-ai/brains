@@ -6,7 +6,7 @@ import type {
   JobValidator,
   JobQueueDiagnostics,
   JobQueueEnqueueRequest,
-} from "@brains/job-queue";
+} from "../index";
 
 /**
  * Options for configuring mock job queue service return values

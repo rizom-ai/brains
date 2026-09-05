@@ -1,8 +1,12 @@
-import { createTempDataDir } from "@brains/plugins/test";
+import {
+  createMockShell,
+  createTempDataDir,
+  type MockShell,
+} from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+
 import { z, type ZodType } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "../src";
 

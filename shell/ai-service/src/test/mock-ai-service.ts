@@ -1,6 +1,6 @@
+import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
-import type { IAIService } from "@brains/ai-service";
-import { genericSpy } from "./generic-spy";
+import type { IAIService } from "../index";
 
 /**
  * Options for configuring mock AI service return values

@@ -22,7 +22,7 @@ import type {
   ContentVisibility,
   IEntityService,
   IEntityRegistry,
-  ICoreEntityService,
+  ReadOnlyEntityService,
 } from "@brains/entity-service";
 import type {
   Tool,
@@ -207,7 +207,7 @@ export interface IInsightsRegistry {
   getTypes(): string[];
   get(
     type: string,
-    entityService: ICoreEntityService,
+    entityService: ReadOnlyEntityService,
     visibilityScope: ContentVisibility,
   ): Promise<Record<string, unknown>>;
 }

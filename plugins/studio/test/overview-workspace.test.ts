@@ -11,8 +11,12 @@ import {
   type StudioWorkspaceRegistration,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { createTempDataDir } from "@brains/plugins/test";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+import {
+  createMockShell,
+  createTempDataDir,
+  type MockShell,
+} from "@brains/plugins/test";
+
 import { afterEach, describe, expect, it } from "bun:test";
 import { studioPlugin, type StudioPlugin } from "../src";
 import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../src/overview-workspace";

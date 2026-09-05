@@ -1,5 +1,6 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { createMockShell } from "@brains/test-utils";
+
 import {
   PlaybookRunStore,
   createPlaybookRun,

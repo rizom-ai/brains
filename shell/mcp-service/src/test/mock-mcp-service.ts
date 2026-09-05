@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import type { IMCPService } from "@brains/mcp-service";
+import type { IMCPService } from "../index";
 
 /**
  * Create a mock IMCPService for tests that need to satisfy the interface

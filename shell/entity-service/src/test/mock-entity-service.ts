@@ -1,11 +1,11 @@
+import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
 import type {
   BaseEntity,
   EntityMutationResult,
+  IEntityService,
   SearchResult,
-} from "@brains/entity-service";
-import type { IEntityService } from "@brains/plugins";
-import { genericSpy } from "./generic-spy";
+} from "../index";
 
 /**
  * Return value configuration for mock entity service methods

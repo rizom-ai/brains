@@ -1,4 +1,4 @@
-import type { AppInfo } from "@brains/plugins";
+import type { AppInfo } from "../index";
 
 export function createMockAppInfo(overrides: Partial<AppInfo> = {}): AppInfo {
   const base: AppInfo = {

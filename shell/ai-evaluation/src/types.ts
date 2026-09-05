@@ -8,43 +8,9 @@ import type {
   TurnResult,
 } from "./schemas";
 
-/**
- * Handler function for plugin evaluations
- * Plugins register these to enable direct (non-chat) testing
- */
-export type EvalHandler<TInput = unknown, TOutput = unknown> = (
-  input: TInput,
-) => Promise<TOutput>;
-
-/**
- * Registry for plugin eval handlers
- */
-export interface IEvalHandlerRegistry {
-  /**
-   * Register an eval handler for a plugin
-   */
-  register(pluginId: string, handlerId: string, handler: EvalHandler): void;
-
-  /**
-   * Get an eval handler by plugin and handler ID
-   */
-  get(pluginId: string, handlerId: string): EvalHandler | undefined;
-
-  /**
-   * List all registered handlers
-   */
-  list(): Array<{ pluginId: string; handlerId: string }>;
-
-  /**
-   * Check if a handler exists
-   */
-  has(pluginId: string, handlerId: string): boolean;
-
-  /**
-   * Remove a handler
-   */
-  unregister(pluginId: string, handlerId: string): boolean;
-}
+// The plugin system owns both: plugins register handlers through it, and this
+// package only runs what it hands back.
+export type { EvalHandler, IEvalHandlerRegistry } from "@brains/plugins";
 
 /**
  * Options for running evaluations

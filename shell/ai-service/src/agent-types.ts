@@ -132,12 +132,14 @@ export interface BrainAgent {
 export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
 
 /**
- * Configuration for the AgentService
+ * The part of the canonical identity service that fills in an actor.
+ *
+ * Not `@brains/identity-service`'s `CanonicalIdentityResolver`, which is the
+ * lookup function that service is configured with. This is a projection of
+ * `ICanonicalIdentityService` down to the one method the agent needs, so the
+ * agent can be handed the service without depending on the rest of it.
  */
-export type CanonicalIdentityResolver = Pick<
-  ICanonicalIdentityService,
-  "enrichActor"
->;
+export type ActorEnricher = Pick<ICanonicalIdentityService, "enrichActor">;
 
 export interface AgentIndexReadiness {
   isIndexReady(): boolean;
@@ -157,7 +159,7 @@ export interface AgentConfig {
   /** Stable agent id used for assistant messages, e.g. brain:relay */
   assistantAgentId?: string;
   /** Optional explicit actor -> canonical identity resolver */
-  canonicalIdentityResolver?: CanonicalIdentityResolver;
+  canonicalIdentityResolver?: ActorEnricher;
   /** Optional semantic-index readiness gate for retrieval-backed chat. */
   indexReadiness?: AgentIndexReadiness;
   /** Optional provider for same-turn retrieved context, e.g. durable memory. */

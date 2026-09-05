@@ -20,7 +20,7 @@ import type {
   IEntityService,
   IEntityRegistry,
 } from "@brains/entity-service";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+import { createMockShell, type MockShell } from "./mock-shell";
 import {
   createServicePluginContext,
   type ServicePluginContext,

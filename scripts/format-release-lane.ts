@@ -3,6 +3,7 @@ import {
   packageMatchesReleaseLane,
   type ReleaseLane,
 } from "@brains/build-tools";
+import { runProcess } from "@brains/utils/run-process";
 import { getPackages } from "@manypkg/get-packages";
 import { existsSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -16,16 +17,15 @@ const siteDirectories = packages.packages
   )
   .map(({ dir }) => relative(repositoryRoot, dir).split(sep).join("/"));
 
-const tracked = Bun.spawnSync(
+const tracked = await runProcess(
   ["git", "ls-files", "-z", "--", "*.ts", "*.tsx", "*.md"],
-  { cwd: repositoryRoot, stdout: "pipe", stderr: "inherit" },
+  { cwd: repositoryRoot },
 );
 if (tracked.exitCode !== 0) {
   process.exit(tracked.exitCode);
 }
 
-const files = new TextDecoder()
-  .decode(tracked.stdout)
+const files = tracked.stdout
   .split("\0")
   .filter(Boolean)
   .filter((file) => existsSync(join(repositoryRoot, file)))

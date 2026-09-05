@@ -1,3 +1,5 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
 import type {
   IRuntimeStateStore,
@@ -6,12 +8,7 @@ import type {
 import { InboxRegistry, PluginManager } from "@brains/plugins";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
-import {
-  createMockJobQueueService,
-  createMockShell,
-  createSilentLogger,
-} from "@brains/test-utils";
-import { createTestDirectory } from "@brains/test-utils";
+import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {

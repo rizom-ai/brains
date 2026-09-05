@@ -1,12 +1,12 @@
+import {
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import {
-  createMockEntityService,
-  createSilentLogger,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { TINY_PDF_BYTES } from "./fixtures";
 

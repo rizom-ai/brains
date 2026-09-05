@@ -106,7 +106,7 @@ Built-in templates for common operations:
 The package includes testing utilities:
 
 ```typescript
-import { createMockShell } from "@brains/core/test";
+import { createMockShell } from "@brains/plugins/test";
 
 const mockShell = createMockShell({
   // Test configuration

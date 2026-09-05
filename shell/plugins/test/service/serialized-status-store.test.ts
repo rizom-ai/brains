@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { waitUntil } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import { z } from "@brains/utils/zod";
 import type {
   IRuntimeStateNamespace,
@@ -148,9 +150,13 @@ describe("SerializedStatusStore", () => {
     const store = createStore(memory);
     const order: string[] = [];
 
+    // Held open rather than slow: the second mutation must wait however long
+    // the first takes, so the queue is tested against a mutation that has
+    // definitely not finished rather than one that probably has not.
+    const finishSlowMutation = deferred();
     const slow = store.mutate(async (state) => {
       order.push("slow:start");
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await finishSlowMutation.promise;
       state.total += 1;
       order.push("slow:end");
     });
@@ -159,6 +165,13 @@ describe("SerializedStatusStore", () => {
       state.total += 1;
     });
 
+    await waitUntil(
+      () => order.includes("slow:start"),
+      "the first mutation to start",
+    );
+    expect(order).not.toContain("fast");
+
+    finishSlowMutation.resolve();
     await Promise.all([slow, fast]);
 
     // The second mutation must not observe or overwrite the first mid-flight.

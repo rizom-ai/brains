@@ -792,6 +792,7 @@ export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+  type DashboardDigestLine,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
   type DashboardWidgetRenderer,

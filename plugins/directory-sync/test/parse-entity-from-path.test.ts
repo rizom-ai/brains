@@ -1,6 +1,6 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
-import { createMockEntityService } from "@brains/test-utils";
 import { join } from "path";
 
 describe("FileOperations.parseEntityFromPath", () => {

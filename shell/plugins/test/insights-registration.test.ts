@@ -1,5 +1,6 @@
+import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+
 import { createBasePluginContext } from "../src/base/context";
 
 describe("insights registration via plugin context", () => {

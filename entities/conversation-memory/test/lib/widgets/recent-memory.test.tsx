@@ -1,5 +1,5 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { createMockEntityPluginContext } from "@brains/test-utils";
 import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
 import { createMockSummaryEntity } from "../../fixtures/summary-entities";
 import { buildRecentConversationMemoryData } from "../../../src/lib/widgets/recent-memory";

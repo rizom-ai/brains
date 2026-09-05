@@ -1,5 +1,5 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, expect, it, mock } from "bun:test";
-import { createTestEntity } from "@brains/test-utils";
 import {
   drainDurableEntityExports,
   type DurableEntityExportDeps,

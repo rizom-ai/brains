@@ -1,6 +1,7 @@
+import { createMockShell as createBaseMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
-import { createMockShell as createBaseMockShell } from "@brains/test-utils";
+import { waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,
@@ -28,18 +29,18 @@ function createMockShell(
   return shell;
 }
 
+/**
+ * Let queued work run to completion.
+ *
+ * Yielding, not sleeping: `Bun.sleep(0)` gives the loop a turn rather than
+ * waiting for a duration. Used where the assertion is that something has *not*
+ * happened, which has no condition to wait for — only turns in which it did
+ * not occur.
+ */
 async function settleTicks(count = 20): Promise<void> {
   for (let i = 0; i < count; i += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await Bun.sleep(0);
   }
-}
-
-async function untilTrue(condition: () => boolean): Promise<void> {
-  for (let i = 0; i < 200; i += 1) {
-    if (condition()) return;
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  }
-  throw new Error("condition not reached");
 }
 
 function createEntity(
@@ -593,7 +594,7 @@ describe("AT Protocol ambient publishing triggers", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await untilTrue(() => calls.includes("put:start"));
+    await waitUntil(() => calls.includes("put:start"), "the upsert to start");
 
     await shell.getMessageBus().send({
       type: "entity:deleted",
@@ -649,7 +650,10 @@ describe("AT Protocol ambient publishing triggers", () => {
     }
     // Both upserts must be in flight while the gate is closed: per-entity
     // serialization must not degrade into one global write queue.
-    await untilTrue(() => putRecord.mock.calls.length === 2);
+    await waitUntil(
+      () => putRecord.mock.calls.length === 2,
+      "both records to be written",
+    );
 
     releaseUpserts();
     await plugin.shutdown?.();

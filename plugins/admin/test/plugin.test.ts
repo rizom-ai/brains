@@ -1,3 +1,4 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
@@ -6,7 +7,7 @@ import {
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
-import { createMockShell, createTempDir } from "@brains/test-utils";
+import { createTempDir } from "@brains/test-utils";
 import { adminPlugin } from "../src";
 
 describe("administration workspace provider", () => {

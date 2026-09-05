@@ -1,5 +1,6 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
 import { DashboardWidgetRegistry } from "../src/widget-registry";
 import { DashboardDataSource } from "../src/dashboard-datasource";
 import type { RegisteredWidget } from "../src/widget-registry";

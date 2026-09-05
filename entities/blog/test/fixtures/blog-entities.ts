@@ -1,3 +1,4 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import type {
   BlogPost,
   BlogPostWithData,
@@ -5,7 +6,6 @@ import type {
   BlogPostFrontmatter,
   BlogPostStatus,
 } from "../../src/schemas/blog-post";
-import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Default blog post metadata for tests

@@ -1,5 +1,5 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import type { SiteContent } from "../../src/schemas/site-content";
-import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Create a mock SiteContent entity with computed contentHash

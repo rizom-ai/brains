@@ -1,3 +1,4 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import {
   describe,
   it,
@@ -21,7 +22,6 @@ import {
   type MockShell,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { createMockJobQueueService } from "@brains/test-utils";
 
 // Named off the mock shell rather than imported from @brains/job-queue:
 // plugins reach shell packages through @brains/plugins, which does not

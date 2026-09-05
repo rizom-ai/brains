@@ -1,7 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { JobInfo } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins/test";
-import { createMockShell } from "@brains/test-utils";
+import {
+  createMockShell,
+  createServicePluginContext,
+} from "@brains/plugins/test";
+
 import { SiteBuildStatusService } from "../../src/lib/site-build-status";
 
 type StatusServiceJobs = ConstructorParameters<

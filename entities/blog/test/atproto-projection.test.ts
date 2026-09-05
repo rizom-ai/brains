@@ -6,8 +6,8 @@ import {
 import {
   createMockServicePluginContext,
   createMockShell,
-} from "@brains/test-utils";
-import { createPluginHarness } from "@brains/plugins/test";
+  createPluginHarness,
+} from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
 import { createBlogAtprotoProjection } from "../src/atproto-projection";

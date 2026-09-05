@@ -1,6 +1,7 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
-import { createTestEntity, waitUntil } from "@brains/test-utils";
+import { waitUntil } from "@brains/test-utils";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { MockEntityAdapter } from "./fixtures";
 

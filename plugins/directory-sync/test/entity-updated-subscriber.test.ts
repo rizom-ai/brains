@@ -1,13 +1,14 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
-import type { BaseEntity } from "@brains/plugins/test";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
+  createPluginHarness,
   emptyFrontmatterSchema,
 } from "@brains/plugins/test";
-import { createTestEntity, waitUntil } from "@brains/test-utils";
+import type { BaseEntity } from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, readFileSync, mkdirSync, mkdtempSync } from "fs";

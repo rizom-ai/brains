@@ -1,3 +1,5 @@
+import { createMockMCPService } from "@brains/mcp-service/test";
+import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
@@ -8,8 +10,8 @@ import {
   type ProjectionRule,
 } from "../src/entity/projection-rule";
 import type { ServicePluginContext } from "../src/service/context";
-import { createMockShell, type MockShell } from "@brains/test-utils";
-import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
+
+import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
 import {

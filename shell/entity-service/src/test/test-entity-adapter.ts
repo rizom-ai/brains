@@ -2,8 +2,8 @@ import {
   BaseEntityAdapter,
   baseEntitySchema,
   emptyFrontmatterSchema,
-} from "@brains/entity-service";
-import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
+} from "../index";
+import type { BaseEntity, EntityAdapter } from "../index";
 
 /**
  * A working adapter for a type a test only needs registered.

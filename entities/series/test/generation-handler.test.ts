@@ -1,10 +1,8 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createSilentLogger,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   SeriesGenerationHandler,
   generatedSeriesDescriptionSchema,

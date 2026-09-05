@@ -1,8 +1,8 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
 import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
 import type { ICoreEntityService } from "@brains/plugins";
-import { createMockEntityService } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 const topPagesSchema = z.array(

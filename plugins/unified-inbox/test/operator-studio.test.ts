@@ -1,3 +1,4 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
@@ -8,7 +9,7 @@ import {
   type InboxActor,
   type InboxItem,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import { z } from "@brains/utils/zod";
 import {
   InboxDataSource,

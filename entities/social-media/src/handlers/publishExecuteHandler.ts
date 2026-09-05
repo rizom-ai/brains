@@ -6,6 +6,7 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type {
+  AttachmentResolveRequest,
   MessageSender,
   BaseEntity,
   EntitySchema,
@@ -30,12 +31,6 @@ export interface PublishExecutePayload {
     userPermissionLevel?: ToolContext["userPermissionLevel"];
     authorization?: "user" | "system";
   };
-}
-
-export interface AttachmentResolveRequest {
-  sourceEntityType: string;
-  sourceEntityId: string;
-  attachmentType: string;
 }
 
 export type ResolveAttachmentFn = (

@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import type { TemplateRegistry, Template } from "@brains/templates";
+import type { TemplateRegistry, Template } from "../index";
 
 /**
  * Options for configuring mock template registry return values

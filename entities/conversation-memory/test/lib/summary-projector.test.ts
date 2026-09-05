@@ -1,3 +1,4 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, spyOn } from "bun:test";
 import { summarySchema } from "../../src/schemas/summary";
 import { createExternalActorId } from "@brains/contracts";
@@ -6,10 +7,7 @@ import type {
   ConversationMessageActor,
   Message,
 } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   getActorsMentionedInText,
   SummaryProjector,

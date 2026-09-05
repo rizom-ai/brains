@@ -148,6 +148,7 @@ export type {
   SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
+  ReadOnlyEntityService,
   EntityServiceClient,
   DurableBulkMutationCoordinator,
   ICoreEntityService,

@@ -1,3 +1,4 @@
+import { createTestEntity } from "../src/test/index";
 import { describe, expect, test, beforeEach } from "bun:test";
 import type {
   CreateExecutionContext,
@@ -9,7 +10,7 @@ import { z } from "@brains/utils/zod";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
-import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import { type Logger } from "@brains/utils/logger";
 import matter from "gray-matter";

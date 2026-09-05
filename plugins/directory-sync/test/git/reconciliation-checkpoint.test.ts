@@ -1,13 +1,13 @@
+import {
+  createMockServicePluginContext,
+  createMockShell,
+} from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { execSync } from "node:child_process";
+import { runGit } from "./real-git";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServicePluginContext } from "@brains/plugins";
-import {
-  createMockServicePluginContext,
-  createMockShell,
-} from "@brains/test-utils";
 import { GitReconciliationService } from "../../src/lib/git-reconciliation";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type {
@@ -259,10 +259,7 @@ describe("GitReconciliationService", () => {
     const writerDir = join(root, "writer");
     mkdirSync(remoteDir);
     mkdirSync(dataDir);
-    execSync("git init --bare --initial-branch=main", {
-      cwd: remoteDir,
-      stdio: "ignore",
-    });
+    await runGit(["init", "--bare", "--initial-branch=main"], remoteDir);
     const gitSync = await createBrokerGitSync({
       logger: createContext().logger,
       dataDir,
@@ -285,14 +282,22 @@ describe("GitReconciliationService", () => {
       const beforeCrash = new GitReconciliationService(runtimeState);
       await beforeCrash.captureCurrent(gitSync);
 
-      execSync(`git clone ${remoteDir} ${writerDir}`, { stdio: "ignore" });
+      await runGit(["clone", remoteDir, writerDir], root);
       writeFileSync(join(writerDir, "remote-after-checkpoint.md"), "# Remote");
-      execSync("git add -A", { cwd: writerDir, stdio: "ignore" });
-      execSync(
-        'git -c user.name=Test -c user.email=test@example.com commit -m "remote after checkpoint"',
-        { cwd: writerDir, stdio: "ignore" },
+      await runGit(["add", "-A"], writerDir);
+      await runGit(
+        [
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@example.com",
+          "commit",
+          "-m",
+          "remote after checkpoint",
+        ],
+        writerDir,
       );
-      execSync("git push", { cwd: writerDir, stdio: "ignore" });
+      await runGit(["push"], writerDir);
 
       // Simulate process loss after Git changed HEAD but before durable enqueue.
       await gitSync.pull();

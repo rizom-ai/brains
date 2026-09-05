@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { runProcess } from "@brains/utils/run-process";
 
 export interface ProcessResourceSample {
   atMs: number;
@@ -130,6 +131,32 @@ export class ProcessResourceTracker {
   }
 }
 
+const SETTLE_POLL_INTERVAL_MS = 50;
+
+/**
+ * Wait for RSS to fall to `below`, giving up after `budgetMs`.
+ *
+ * Returns the last reading either way, so a process whose memory never comes
+ * down still reports the honest number and fails the caller's assertion —
+ * the wait is shortened, not the check.
+ */
+async function settleRss(budgetMs: number, below?: number): Promise<number> {
+  const deadline = performance.now() + budgetMs;
+  const poll = async (): Promise<number> => {
+    const rss = process.memoryUsage.rss();
+    if (below !== undefined && rss <= below) return rss;
+    if (performance.now() >= deadline) return rss;
+    await Bun.sleep(
+      Math.min(
+        SETTLE_POLL_INTERVAL_MS,
+        Math.max(0, deadline - performance.now()),
+      ),
+    );
+    return poll();
+  };
+  return poll();
+}
+
 function takeProcessResourceSample(): ProcessResourceSample {
   const cpu = process.cpuUsage();
   return {
@@ -142,7 +169,19 @@ function takeProcessResourceSample(): ProcessResourceSample {
 export interface ProcessResourceMonitor {
   snapshot(): ProcessResourceSnapshot;
   stop(options?: {
+    /**
+     * How long to wait, at most, for RSS to come back down after the burst.
+     *
+     * A ceiling rather than a fixed pause: with `settleBelowRssBytes` the wait
+     * ends as soon as RSS is under that mark, which is the condition the
+     * caller goes on to assert. Sleeping the whole budget every run measured
+     * the clock, not the process — it cost five seconds a run whether memory
+     * had settled in the first two hundred milliseconds or never settled at
+     * all. Without a target this still sleeps the full time.
+     */
     finalSampleDelayMs?: number;
+    /** Stop waiting once RSS is at or below this. */
+    settleBelowRssBytes?: number;
   }): Promise<ProcessResourceSnapshot>;
 }
 
@@ -182,8 +221,9 @@ export function startProcessResourceMonitor(options: {
       tracker.observe(takeProcessResourceSample());
       await finished;
       if (finalSampleDelayMs > 0) {
-        await Bun.sleep(finalSampleDelayMs);
-        tracker.observeFinalRss(process.memoryUsage.rss());
+        tracker.observeFinalRss(
+          await settleRss(finalSampleDelayMs, options.settleBelowRssBytes),
+        );
       }
       return tracker.snapshot();
     },
@@ -238,19 +278,16 @@ export async function constrainCurrentProcessCpu(
   const allowed = await readAllowedCpuList(process.pid);
   const allowedCount = parseCpuList(allowed).length;
   if (allowedCount > limit) {
-    const result = Bun.spawnSync(
-      [
-        "taskset",
-        "--all-tasks",
-        "--pid",
-        "--cpu-list",
-        limitedCpuList(allowed, limit),
-        String(process.pid),
-      ],
-      { stdout: "pipe", stderr: "pipe" },
-    );
+    const result = await runProcess([
+      "taskset",
+      "--all-tasks",
+      "--pid",
+      "--cpu-list",
+      limitedCpuList(allowed, limit),
+      String(process.pid),
+    ]);
     if (result.exitCode !== 0) {
-      const error = new TextDecoder().decode(result.stderr).trim();
+      const error = result.stderr.trim();
       throw new Error(
         `Unable to constrain feature-load CPU affinity: ${error}`,
       );

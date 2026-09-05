@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import {
   existsSync,
   mkdtempSync,
@@ -69,7 +69,7 @@ function findEffectDeclarationImports(source: string): string[] {
 }
 
 describe("@rizom/brain public plugin API surface", () => {
-  it("declares root and plugin-author subpath exports", () => {
+  it("declares root and plugin-author subpath exports", async () => {
     const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));
 
     expect(pkg.exports?.["."]).toEqual({
@@ -85,7 +85,7 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("has entry files and generated declarations for every plugin-author subpath", () => {
+  it("has entry files and generated declarations for every plugin-author subpath", async () => {
     for (const subpath of ["index", ...subpaths]) {
       expect(
         existsSync(join(pkgDir, "src", "entries", `${subpath}.ts`)),
@@ -97,17 +97,17 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("publishes bundle authoring from the root declaration", () => {
+  it("publishes bundle authoring from the root declaration", async () => {
     const rootTypes = readFileSync(join(pkgDir, "dist", "index.d.ts"), "utf-8");
 
     expect(rootTypes).toContain("CapabilityBundleDefinition");
     expect(rootTypes).toContain("declare function defineBundle");
   });
 
-  it("ships runtime validation for public bundle definitions", () => {
-    const result = spawnSync(
-      "bun",
+  it("ships runtime validation for public bundle definitions", async () => {
+    const result = await runProcess(
       [
+        "bun",
         "-e",
         `import { defineBundle } from "./dist/index.js";
          defineBundle({ id: "core", members: [] });
@@ -116,14 +116,14 @@ describe("@rizom/brain public plugin API surface", () => {
            process.exit(1);
          } catch {}`,
       ],
-      { cwd: pkgDir, encoding: "utf-8" },
+      { cwd: pkgDir },
     );
 
     expect(result.stdout).toBe("");
-    expect(result.status).toBe(0);
+    expect(result.exitCode).toBe(0);
   });
 
-  it("does not leave emitted declarations in source directories", () => {
+  it("does not leave emitted declarations in source directories", async () => {
     const declarations = listDeclarationFiles(join(pkgDir, "src")).map((path) =>
       relative(pkgDir, path),
     );
@@ -131,7 +131,7 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(declarations).toEqual([]);
   });
 
-  it("points every typed package export at generated dist declarations", () => {
+  it("points every typed package export at generated dist declarations", async () => {
     for (const publicExport of listTypedPublicExports()) {
       expect(publicExport.types).toStartWith("./dist/");
       expect(publicExport.types).toEndWith(".d.ts");
@@ -139,7 +139,7 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("publishes the accepted operator contracts without runtime internals", () => {
+  it("publishes the accepted operator contracts without runtime internals", async () => {
     const servicesTypes = readFileSync(
       join(pkgDir, "dist", "services.d.ts"),
       "utf-8",
@@ -176,7 +176,7 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("compiles the Phase 1 fixtures against generated declarations", () => {
+  it("compiles the Phase 1 fixtures against generated declarations", async () => {
     const tempDir = mkdtempSync(join(pkgDir, ".tmp-operator-declarations-"));
     try {
       writeFileSync(
@@ -211,18 +211,17 @@ describe("@rizom/brain public plugin API surface", () => {
         }),
       );
 
-      const result = spawnSync(
-        "bun",
-        ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
-        { cwd: tempDir, encoding: "utf-8" },
+      const result = await runProcess(
+        ["bun", "x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+        { cwd: tempDir },
       );
-      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+      expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
     } finally {
       rmSync(tempDir, { force: true, recursive: true });
     }
   });
 
-  it("keeps published declarations free of internal @brains/* imports", () => {
+  it("keeps published declarations free of internal @brains/* imports", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
       // Import positions only. Doc comments legitimately name internal
@@ -236,7 +235,7 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("keeps internal HTTP route registry types out of public declarations", () => {
+  it("keeps internal HTTP route registry types out of public declarations", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
       expect(types).not.toContain("RegisteredHttpRoute");
@@ -244,14 +243,14 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("keeps Effect and private /effect imports out of public declarations", () => {
+  it("keeps Effect and private /effect imports out of public declarations", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
       expect(findEffectDeclarationImports(types)).toEqual([]);
     }
   });
 
-  it("keeps shell internals out of public plugin types", () => {
+  it("keeps shell internals out of public plugin types", async () => {
     const pluginsTypes = readFileSync(
       join(pkgDir, "dist", "plugins.d.ts"),
       "utf-8",
@@ -295,7 +294,7 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(pluginsTypes).not.toContain("themeCSS");
   });
 
-  it("resolves every typed package export against generated dist declarations", () => {
+  it("resolves every typed package export against generated dist declarations", async () => {
     const publicExports = listTypedPublicExports();
     const tempDir = mkdtempSync(join(pkgDir, ".tmp-public-export-resolution-"));
 
@@ -331,18 +330,21 @@ describe("@rizom/brain public plugin API surface", () => {
         ),
       );
 
-      const result = spawnSync(
-        "bun",
-        ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
-        {
-          cwd: tempDir,
-          encoding: "utf-8",
-          maxBuffer: 20 * 1024 * 1024,
-        },
+      const result = await runProcess(
+        [
+          "bun",
+          "x",
+          "tsc",
+          "--noEmit",
+          "--traceResolution",
+          "-p",
+          "tsconfig.json",
+        ],
+        { cwd: tempDir },
       );
 
       const output = `${result.stdout}\n${result.stderr}`;
-      if (result.status !== 0) {
+      if (result.exitCode !== 0) {
         throw new Error(output);
       }
 
@@ -357,7 +359,7 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("build script includes every public plugin API library entry", () => {
+  it("build script includes every public plugin API library entry", async () => {
     const src = readFileSync(join(pkgDir, "scripts", "build.ts"), "utf-8");
     const libEntries = src.match(
       /libraryEntries\s*=\s*\[([\s\S]*?)\]\s*as\s+const/,

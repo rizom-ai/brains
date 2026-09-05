@@ -1,11 +1,12 @@
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
 import type { BaseEntity, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { createMockLogger, createMockShell } from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
+
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckDataSource", () => {

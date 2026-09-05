@@ -1,3 +1,4 @@
+import { createMockEntityService, createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { normalizeDirectorySyncOptions } from "../src/lib/directory-options";
@@ -5,12 +6,7 @@ import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, unlinkSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import {
-  createMockEntityService,
-  createSilentLogger,
-  createTestEntity,
-  waitUntil,
-} from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type {
   BaseEntity,

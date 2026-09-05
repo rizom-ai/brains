@@ -7,6 +7,18 @@ import { ImageOptimizer } from "../src/image-optimizer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestPng } from "./helpers/test-png";
 
+/**
+ * Let enough wall-clock pass that a rewrite would show a different mtime.
+ *
+ * A real duration, and not one that can be waited away: the assertion is that
+ * the cached files were *not* rewritten, which is read from their mtime. Two
+ * writes inside the filesystem's timestamp granularity are indistinguishable,
+ * so without this gap the check could pass on a rewrite.
+ */
+async function pastFilesystemMtimeGranularity(): Promise<void> {
+  await Bun.sleep(50);
+}
+
 describe("ImageOptimizer", () => {
   const logger = createSilentLogger();
   let imagesDir: string;
@@ -118,8 +130,7 @@ describe("ImageOptimizer", () => {
         mtimes.set(f, stat.mtimeMs);
       }
 
-      // Small delay to ensure mtime would differ
-      await new Promise((r) => setTimeout(r, 50));
+      await pastFilesystemMtimeGranularity();
 
       // Second call should use cache
       const result2 = await optimizer.optimize(buffer, "/images/photo.png");

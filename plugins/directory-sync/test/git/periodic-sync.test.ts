@@ -1,10 +1,8 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
 import { DirectorySyncRuntime } from "../../src/lib/directory-sync-runtime";
 import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";

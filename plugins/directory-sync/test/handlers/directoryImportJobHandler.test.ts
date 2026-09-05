@@ -1,11 +1,11 @@
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import {
   createSilentLogger,
-  createMockServicePluginContext,
   createMockProgressReporter,
-  createMockEntityService,
   genericSpy,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";

@@ -1,10 +1,10 @@
-import { describe, expect, it, beforeEach } from "bun:test";
-import { authenticatedUserId } from "@brains/contracts";
 import {
   expectConfirmationArgs,
   expectToolError,
   expectToolSuccess,
-} from "@brains/test-utils";
+} from "@brains/mcp-service/test";
+import { describe, expect, it, beforeEach } from "bun:test";
+import { authenticatedUserId } from "@brains/contracts";
 import { createSystemTools } from "../../src/system/tools";
 import {
   createInputSchema,

@@ -5,8 +5,8 @@ import {
   resetPromptCache,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
-import { createMockLogger, createMockShell } from "@brains/test-utils";
+import { createMockShell, createPluginHarness } from "@brains/plugins/test";
+import { createMockLogger } from "@brains/test-utils";
 
 import {
   EmailWorkflowsPlugin,

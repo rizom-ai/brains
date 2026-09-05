@@ -1,6 +1,6 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, mock, test } from "bun:test";
 import type { SemanticSpaceProjection } from "@brains/plugins";
-import { createMockEntityService } from "@brains/test-utils";
 import { ProximityMapDataSource } from "../src/datasources/proximity-map-datasource";
 import { proximityMapDataSchema } from "../src/lib/proximity-map-schema";
 import { createTestAgent } from "./fixtures/agent";

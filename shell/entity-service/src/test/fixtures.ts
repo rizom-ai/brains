@@ -1,5 +1,5 @@
 import { computeContentHash } from "@brains/utils/hash";
-import type { BaseEntity, RawContentVisibility } from "@brains/entity-service";
+import type { BaseEntity, RawContentVisibility } from "../index";
 
 type TestEntityOverrides<T extends BaseEntity> = Partial<
   Omit<T, "entityType" | "visibility">

@@ -1,12 +1,10 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   CallbackProgressReporter,
   type ProgressReporter,
 } from "@brains/utils/progress";
-import {
-  createMockEntityPluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { SourceImageRenderJobHandler } from "../../src/handlers/source-image-render-handler";
 
 const TINY_PNG_BASE64 =

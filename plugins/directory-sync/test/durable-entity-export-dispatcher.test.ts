@@ -1,5 +1,6 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, expect, it, mock } from "bun:test";
-import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 import {

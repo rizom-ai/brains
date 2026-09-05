@@ -1,12 +1,10 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { enrichWithUrls } from "../../src/lib/content-enrichment";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { EntityDisplayMap } from "../../src/config";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SiteImageLookup } from "@brains/site-engine";
 import { EntityUrlGenerator } from "@brains/site-composition";

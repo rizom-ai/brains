@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createTempDataDir } from "@brains/plugins/test";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+
 import {
   actionRequest,
   administrationTab,

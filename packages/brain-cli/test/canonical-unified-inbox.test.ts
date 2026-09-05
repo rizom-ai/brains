@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fromYaml } from "@brains/utils/yaml";
@@ -22,16 +23,16 @@ const TEST_APP_CONFIG = "packages/brain-cli/test-apps/unified-inbox/brain.yaml";
  * exactly what will land in the repository, including its site/publishing
  * composition, without consulting a developer's ignored environment files.
  */
-function stagedFile(path: string): string {
-  const shown = Bun.spawnSync(["git", "show", `:${path}`], {
+async function stagedFile(path: string): Promise<string> {
+  const shown = await runProcess(["git", "show", `:${path}`], {
     cwd: repositoryRoot,
   });
-  if (!shown.success) {
+  if (shown.exitCode !== 0) {
     throw new Error(
-      `Expected ${path} to be tracked by git: ${shown.stderr.toString().trim()}`,
+      `Expected ${path} to be tracked by git: ${shown.stderr.trim()}`,
     );
   }
-  return shown.stdout.toString();
+  return shown.stdout;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -42,8 +43,8 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 describe("canonical unified inbox test app", () => {
-  test("keeps email workflows explicit above the professional bundle selection", () => {
-    const yaml = stagedFile(TEST_APP_CONFIG);
+  test("keeps email workflows explicit above the professional bundle selection", async () => {
+    const yaml = await stagedFile(TEST_APP_CONFIG);
     const config = asRecord(fromYaml(yaml));
     const plugins = asRecord(config["plugins"]);
     const site = asRecord(config["site"]);

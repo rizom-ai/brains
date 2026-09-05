@@ -1,8 +1,9 @@
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryDataSource } from "../../src/datasources/summary-datasource";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import { createSilentLogger, createMockShell } from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
+
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";

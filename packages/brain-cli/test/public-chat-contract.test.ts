@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -80,7 +81,7 @@ describe("public headless Chat package boundary", () => {
     }
   });
 
-  it("typechecks the external fixture against only the public source entry", () => {
+  it("typechecks the external fixture against only the public source entry", async () => {
     const tsconfigPath = join(
       repositoryRoot,
       ".public-chat-contract.tsconfig.json",
@@ -104,19 +105,17 @@ describe("public headless Chat package boundary", () => {
           ],
         }),
       );
-      const result = Bun.spawnSync(
+      const result = await runProcess(
         ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
         {
           cwd: repositoryRoot,
           env: process.env,
-          stdout: "pipe",
-          stderr: "pipe",
         },
       );
 
       expect(
         result.exitCode,
-        `public Chat fixture failed to compile:\n${result.stdout.toString()}${result.stderr.toString()}`,
+        `public Chat fixture failed to compile:\n${result.stdout}${result.stderr}`,
       ).toBe(0);
     } finally {
       rmSync(tsconfigPath, { force: true });

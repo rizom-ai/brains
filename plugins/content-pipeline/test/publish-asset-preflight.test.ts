@@ -1,6 +1,6 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, type mock } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
-import { createMockServicePluginContext } from "@brains/test-utils";
 import { PublishAssetPreflight } from "../src/publish-asset-preflight";
 import { PublishAssetRegistry } from "../src/publish-assets";
 

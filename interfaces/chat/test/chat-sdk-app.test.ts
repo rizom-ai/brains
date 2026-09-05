@@ -1,10 +1,11 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
 import {
   RuntimeUploadStoreError,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { caughtError, createMockShell } from "@brains/test-utils";
+import { caughtError } from "@brains/test-utils";
 import type { ChatUploadReader } from "../src/types";
 import { ChatSdkAppHost, type ChatSdkApp } from "../src/chat-sdk-app";
 import type {

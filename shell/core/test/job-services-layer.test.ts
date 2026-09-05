@@ -1,9 +1,11 @@
+import {
+  createMockBatchJobManager,
+  createMockJobQueueService,
+} from "@brains/job-queue/test";
 import { describe, expect, it, mock, spyOn } from "bun:test";
 import type { IJobQueueWorker, JobQueueWorkerStats } from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import {
-  createMockBatchJobManager,
-  createMockJobQueueService,
   createMockProgressReporter,
   createSilentLogger,
 } from "@brains/test-utils";

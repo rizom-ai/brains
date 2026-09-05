@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, existsSync, rmSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { execSync } from "child_process";
+import { runGit } from "./real-git";
 import { createServer, type Socket } from "net";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type { IGitSync } from "../../src/types";
@@ -55,7 +55,7 @@ describe("GitSync (simplified)", () => {
   let dataDir: string;
   let gitSync: IGitSync;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     testDir = mkdtempSync(join(tmpdir(), "test-git-sync-"));
     remoteDir = join(testDir, "remote.git");
     dataDir = join(testDir, "brain-data");
@@ -64,10 +64,7 @@ describe("GitSync (simplified)", () => {
 
     // Create bare remote repo with main as default branch
     mkdirSync(remoteDir, { recursive: true });
-    execSync("git init --bare --initial-branch=main", {
-      cwd: remoteDir,
-      stdio: "ignore",
-    });
+    await runGit(["init", "--bare", "--initial-branch=main"], remoteDir);
   });
 
   afterEach(async () => {
@@ -76,6 +73,22 @@ describe("GitSync (simplified)", () => {
       rmSync(testDir, { recursive: true, force: true });
     }
   });
+
+  /** A clone of the remote, identified, ready to commit. */
+  async function seedClone(path: string, name = "Remote"): Promise<void> {
+    await runGit(["clone", remoteDir, path], testDir);
+    await runGit(["config", "user.name", name], path);
+    await runGit(
+      ["config", "user.email", `${name.toLowerCase()}@test.com`],
+      path,
+    );
+  }
+
+  async function commitAndPush(path: string, message: string): Promise<void> {
+    await runGit(["add", "-A"], path);
+    await runGit(["commit", "-m", message], path);
+    await runGit(["push"], path);
+  }
 
   async function createGitSync(
     opts: {
@@ -108,10 +121,9 @@ describe("GitSync (simplified)", () => {
     it("should set remote when gitUrl is provided", async () => {
       const gs = await createGitSync();
       await gs.initialize();
-      const remote = execSync("git remote get-url origin", {
-        cwd: dataDir,
-        encoding: "utf-8",
-      }).trim();
+      const remote = (
+        await runGit(["remote", "get-url", "origin"], dataDir)
+      ).trim();
       expect(remote).toBe(remoteDir);
     });
 
@@ -128,10 +140,7 @@ describe("GitSync (simplified)", () => {
 
       // First (and only) commit should contain the seed files, not just
       // an empty .gitkeep.
-      const tracked = execSync("git ls-files", {
-        cwd: dataDir,
-        encoding: "utf-8",
-      })
+      const tracked = (await runGit(["ls-files"], dataDir))
         .trim()
         .split("\n")
         .sort();
@@ -177,10 +186,7 @@ describe("GitSync (simplified)", () => {
       writeFileSync(join(dataDir, "test.md"), "# Hello");
       await gs.commit("test commit");
 
-      const log = execSync("git log --oneline", {
-        cwd: dataDir,
-        encoding: "utf-8",
-      }).trim();
+      const log = (await runGit(["log", "--oneline"], dataDir)).trim();
       expect(log).toContain("test commit");
     });
 
@@ -213,10 +219,7 @@ describe("GitSync (simplified)", () => {
 
       await gs.commit("document conflict markers");
 
-      const log = execSync("git log --oneline", {
-        cwd: dataDir,
-        encoding: "utf-8",
-      }).trim();
+      const log = (await runGit(["log", "--oneline"], dataDir)).trim();
       expect(log).toContain("document conflict markers");
     });
 
@@ -249,10 +252,8 @@ describe("GitSync (simplified)", () => {
       writeFileSync(join(dataDir, ".gitkeep"), "");
       await gs.commit("initial");
       await gs.push();
-      execSync(
-        "git config --unset-all branch.main.remote; git config --unset-all branch.main.merge",
-        { cwd: dataDir, stdio: "ignore" },
-      );
+      await runGit(["config", "--unset-all", "branch.main.remote"], dataDir);
+      await runGit(["config", "--unset-all", "branch.main.merge"], dataDir);
 
       writeFileSync(join(dataDir, "pending.md"), "# Pending");
       await gs.commit("pending without upstream");
@@ -267,10 +268,7 @@ describe("GitSync (simplified)", () => {
         result.checkpoint?.lastReconciledGitHead,
       );
 
-      const remoteLog = execSync("git log --oneline main", {
-        cwd: remoteDir,
-        encoding: "utf-8",
-      });
+      const remoteLog = await runGit(["log", "--oneline", "main"], remoteDir);
       expect(remoteLog).toContain("pending without upstream");
     });
 
@@ -283,17 +281,10 @@ describe("GitSync (simplified)", () => {
       await gs.push();
 
       const cloneDir = join(testDir, "checkpoint-clone");
-      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
-      execSync("git config user.name Remote && git config user.email r@r.com", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
+      await seedClone(cloneDir);
       writeFileSync(join(cloneDir, "remote.md"), "# Remote");
-      execSync("git add -A && git commit -m remote && git push", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
-      execSync("git fetch origin", { cwd: dataDir, stdio: "ignore" });
+      await commitAndPush(cloneDir, "remote");
+      await runGit(["fetch", "origin"], dataDir);
 
       const status = await gs.getStatus();
       expect(status.ahead).toBe(0);
@@ -314,10 +305,9 @@ describe("GitSync (simplified)", () => {
       await gs.push();
 
       // Verify remote has the commit
-      const remoteLog = execSync("git log --oneline main", {
-        cwd: remoteDir,
-        encoding: "utf-8",
-      }).trim();
+      const remoteLog = (
+        await runGit(["log", "--oneline", "main"], remoteDir)
+      ).trim();
       expect(remoteLog).toContain("test commit");
     });
   });
@@ -334,25 +324,20 @@ describe("GitSync (simplified)", () => {
       await gs.initialize();
 
       // Sanity: remote has no branches yet
-      const refsBefore = execSync("git branch", {
-        cwd: remoteDir,
-        encoding: "utf-8",
-      }).trim();
+      const refsBefore = (await runGit(["branch"], remoteDir)).trim();
       expect(refsBefore).toBe("");
 
       const result = await gs.pull();
       expect(result.files).toEqual([]);
 
       // Remote `main` now exists and contains the seed file
-      const remoteLog = execSync("git log --oneline main", {
-        cwd: remoteDir,
-        encoding: "utf-8",
-      }).trim();
+      const remoteLog = (
+        await runGit(["log", "--oneline", "main"], remoteDir)
+      ).trim();
       expect(remoteLog.length).toBeGreaterThan(0);
-      const remoteTracked = execSync("git ls-tree -r --name-only main", {
-        cwd: remoteDir,
-        encoding: "utf-8",
-      }).trim();
+      const remoteTracked = (
+        await runGit(["ls-tree", "-r", "--name-only", "main"], remoteDir)
+      ).trim();
       expect(remoteTracked).toContain("bootstrap-seed.md");
     });
 
@@ -367,14 +352,22 @@ describe("GitSync (simplified)", () => {
 
       // Simulate remote change: clone, add file, push
       const cloneDir = join(testDir, "clone");
-      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
+      await seedClone(cloneDir);
       writeFileSync(join(cloneDir, "new-post.md"), "# Remote post");
-      execSync("git add -A", { cwd: cloneDir, stdio: "ignore" });
-      execSync(
-        'git -c user.name="Test" -c user.email="test@test.com" commit -m "remote change"',
-        { cwd: cloneDir, stdio: "ignore" },
+      await runGit(["add", "-A"], cloneDir);
+      await runGit(
+        [
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@test.com",
+          "commit",
+          "-m",
+          "remote change",
+        ],
+        cloneDir,
       );
-      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+      await runGit(["push"], cloneDir);
 
       // Pull should return the changed file
       const result = await gs.pull();
@@ -391,16 +384,21 @@ describe("GitSync (simplified)", () => {
       await gs.push();
 
       const cloneDir = join(testDir, "clone");
-      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
-      execSync("git mv post/old.md post/new.md", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
-      execSync(
-        'git -c user.name="Test" -c user.email="test@test.com" commit -m "remote rename"',
-        { cwd: cloneDir, stdio: "ignore" },
+      await seedClone(cloneDir);
+      await runGit(["mv", "post/old.md", "post/new.md"], cloneDir);
+      await runGit(
+        [
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@test.com",
+          "commit",
+          "-m",
+          "remote rename",
+        ],
+        cloneDir,
       );
-      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+      await runGit(["push"], cloneDir);
 
       const result = await gs.pull();
       expect(result.files).toEqual(
@@ -421,28 +419,16 @@ describe("GitSync (simplified)", () => {
       await gs.push();
 
       const cloneDir = join(testDir, "delete-clone");
-      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
-      execSync("git config user.name Test", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
-      execSync("git config user.email test@test.com", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
+      await seedClone(cloneDir);
+      await runGit(["config", "user.name", "Test"], cloneDir);
+      await runGit(["config", "user.email", "test@test.com"], cloneDir);
 
       writeFileSync(probePath, "# Locally exported after baseline");
       await gs.commit("local export before pull");
 
-      execSync("git rm post/probe.md", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
-      execSync('git commit -m "remote delete"', {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
-      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+      await runGit(["rm", "post/probe.md"], cloneDir);
+      await runGit(["commit", "-m", "remote delete"], cloneDir);
+      await runGit(["push"], cloneDir);
 
       const result = await gs.pull();
 
@@ -450,10 +436,12 @@ describe("GitSync (simplified)", () => {
       expect(result.files).toContain("post/probe.md");
       expect(result.deletedFiles).toContain("post/probe.md");
       expect(
-        execSync("git diff --name-only origin/main -- post/probe.md", {
-          cwd: dataDir,
-          encoding: "utf-8",
-        }).trim(),
+        (
+          await runGit(
+            ["diff", "--name-only", "origin/main", "--", "post/probe.md"],
+            dataDir,
+          )
+        ).trim(),
       ).toBe("");
     });
 
@@ -488,20 +476,14 @@ describe("GitSync (simplified)", () => {
       const checkpoint = await createBaseline(gs);
 
       const cloneDir = join(testDir, "reconcile-clone");
-      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
-      execSync("git config user.name Test", { cwd: cloneDir, stdio: "ignore" });
-      execSync("git config user.email test@test.com", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
+      await seedClone(cloneDir);
+      await runGit(["config", "user.name", "Test"], cloneDir);
+      await runGit(["config", "user.email", "test@test.com"], cloneDir);
       writeFileSync(join(cloneDir, "remote.md"), "# Remote");
-      execSync("git rm baseline.md", { cwd: cloneDir, stdio: "ignore" });
-      execSync("git add -A", { cwd: cloneDir, stdio: "ignore" });
-      execSync('git commit -m "remote replacement"', {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
-      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+      await runGit(["rm", "baseline.md"], cloneDir);
+      await runGit(["add", "-A"], cloneDir);
+      await runGit(["commit", "-m", "remote replacement"], cloneDir);
+      await runGit(["push"], cloneDir);
 
       await gs.pull();
       const delta = await gs.getReconciliationDelta(checkpoint);
@@ -560,19 +542,11 @@ describe("GitSync (simplified)", () => {
         reason: "missing-local-checkpoint",
       });
 
-      const emptyTree = execSync("git mktree", {
-        cwd: dataDir,
-        input: "",
-        encoding: "utf8",
-      }).trim();
-      const unrelatedCommit = execSync(
-        `printf 'rewritten history\\n' | git commit-tree ${emptyTree}`,
-        { cwd: dataDir, encoding: "utf8" },
+      const emptyTree = (await runGit(["mktree"], dataDir, "")).trim();
+      const unrelatedCommit = (
+        await runGit(["commit-tree", emptyTree], dataDir, "rewritten history\n")
       ).trim();
-      execSync(`git reset --hard ${unrelatedCommit}`, {
-        cwd: dataDir,
-        stdio: "ignore",
-      });
+      await runGit(["reset", "--hard", unrelatedCommit], dataDir);
       const nonAncestor = await gs.getReconciliationDelta(checkpoint);
       expect(nonAncestor).toMatchObject({
         mode: "full",
@@ -643,14 +617,22 @@ describe("GitSync (simplified)", () => {
 
       // Remote change pushed by another clone
       const cloneDir = join(testDir, "clone");
-      execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
+      await seedClone(cloneDir);
       writeFileSync(join(cloneDir, "remote-post.md"), "# Remote");
-      execSync("git add -A", { cwd: cloneDir, stdio: "ignore" });
-      execSync(
-        'git -c user.name="Test" -c user.email="test@test.com" commit -m "remote change"',
-        { cwd: cloneDir, stdio: "ignore" },
+      await runGit(["add", "-A"], cloneDir);
+      await runGit(
+        [
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@test.com",
+          "commit",
+          "-m",
+          "remote change",
+        ],
+        cloneDir,
       );
-      execSync("git push", { cwd: cloneDir, stdio: "ignore" });
+      await runGit(["push"], cloneDir);
 
       const result = await gs.pull();
       expect(result.files).toContain("remote-post.md");
@@ -665,10 +647,10 @@ describe("GitSync (simplified)", () => {
         await gs.commit("initial");
 
         // Point origin at the unresponsive server.
-        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
-          cwd: dataDir,
-          stdio: "ignore",
-        });
+        await runGit(
+          ["remote", "set-url", "origin", `git://127.0.0.1:${port}/repo.git`],
+          dataDir,
+        );
 
         const start = performance.now();
         let error: unknown;
@@ -697,10 +679,10 @@ describe("GitSync (simplified)", () => {
         writeFileSync(join(dataDir, "note.md"), "# Note");
         await gs.commit("initial");
 
-        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
-          cwd: dataDir,
-          stdio: "ignore",
-        });
+        await runGit(
+          ["remote", "set-url", "origin", `git://127.0.0.1:${port}/repo.git`],
+          dataDir,
+        );
 
         const start = performance.now();
         let error: unknown;
@@ -764,10 +746,10 @@ describe("GitSync (simplified)", () => {
         await gs.initialize();
         writeFileSync(join(dataDir, ".gitkeep"), "");
         await gs.commit("initial");
-        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
-          cwd: dataDir,
-          stdio: "ignore",
-        });
+        await runGit(
+          ["remote", "set-url", "origin", `git://127.0.0.1:${port}/repo.git`],
+          dataDir,
+        );
 
         const pulling = gs.pull();
         await connected;
@@ -799,10 +781,10 @@ describe("GitSync (simplified)", () => {
         await gs.push();
 
         // Stall a pull against the dead remote.
-        execSync(`git remote set-url origin git://127.0.0.1:${port}/repo.git`, {
-          cwd: dataDir,
-          stdio: "ignore",
-        });
+        await runGit(
+          ["remote", "set-url", "origin", `git://127.0.0.1:${port}/repo.git`],
+          dataDir,
+        );
         let stallError: unknown;
         try {
           await gs.pull();
@@ -814,10 +796,7 @@ describe("GitSync (simplified)", () => {
         // Restore the working remote — subsequent operations must succeed
         // promptly, proving the stalled task left no held lock or blocked
         // git instance behind it.
-        execSync(`git remote set-url origin ${remoteDir}`, {
-          cwd: dataDir,
-          stdio: "ignore",
-        });
+        await runGit(["remote", "set-url", "origin", remoteDir], dataDir);
 
         const status = await gs.getStatus();
         expect(status.isRepo).toBe(true);

@@ -1,20 +1,12 @@
 import type { DefaultQueryResponse } from "@brains/contracts";
 import type { ZodType } from "@brains/utils/zod";
+import type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 import type { ContentGenerationConfig } from "../contracts/generation";
 
 export type AIGenerationSchema<T> = ZodType<T>;
-
-export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-
-export interface ImageGenerationOptions {
-  aspectRatio?: AspectRatio;
-  signal?: AbortSignal;
-}
-
-export interface ImageGenerationResult {
-  base64: string;
-  dataUrl: string;
-}
 
 export interface IEntityAINamespace {
   query: (

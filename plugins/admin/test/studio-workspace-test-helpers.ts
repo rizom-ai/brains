@@ -1,9 +1,10 @@
+import { type MockShell } from "@brains/plugins/test";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
-import type { MockShell } from "@brains/test-utils";
+
 import { adminPlugin } from "../src";
 
 export const adminActor: StudioWorkspaceActor = {

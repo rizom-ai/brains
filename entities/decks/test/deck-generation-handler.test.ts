@@ -1,11 +1,11 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
 import { styleGuideAdapter, type StyleGuideEntity } from "@brains/style-guide";
 import {
-  createMockEntityPluginContext,
   createMockProgressReporter,
   createSilentLogger,
-  createTestEntity,
 } from "@brains/test-utils";
 import {
   DeckGenerationJobHandler,

@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { runProcess } from "@brains/utils/run-process";
 
 /**
  * Find reads of a field that `toMatchObject` has already replaced.
@@ -120,18 +121,15 @@ export function findMutatedAssertionReadsInSource(
 export async function findMutatedAssertionReads(
   root: string,
 ): Promise<MutatedAssertionRead[]> {
-  const listed = Bun.spawnSync({
-    cmd: ["git", "ls-files", "-z", "*.test.ts", "*.test.tsx"],
-    cwd: root,
-  });
+  const listed = await runProcess(
+    ["git", "ls-files", "-z", "*.test.ts", "*.test.tsx"],
+    { cwd: root },
+  );
   if (listed.exitCode !== 0) {
     throw new Error(`git ls-files failed in ${root}`);
   }
 
-  const files = listed.stdout
-    .toString()
-    .split("\0")
-    .filter((file) => file !== "");
+  const files = listed.stdout.split("\0").filter((file) => file !== "");
 
   const found: MutatedAssertionRead[] = [];
   for (const file of files) {

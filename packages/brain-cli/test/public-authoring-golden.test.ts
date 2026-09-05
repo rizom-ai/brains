@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import {
   existsSync,
   readFileSync,
@@ -252,7 +253,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the approved Phase 1 operator contract fixtures", () => {
+  it("compiles the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
       {
         directory: "operator-surface",
@@ -303,18 +304,16 @@ describe("public authoring 0.2 golden packages", () => {
             ],
           }),
         );
-        const result = Bun.spawnSync(
+        const result = await runProcess(
           ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
           {
             cwd: repositoryRoot,
             env: process.env,
-            stdout: "pipe",
-            stderr: "pipe",
           },
         );
         expect(
           result.exitCode,
-          `${fixture.directory} failed to compile:\n${result.stdout.toString()}${result.stderr.toString()}`,
+          `${fixture.directory} failed to compile:\n${result.stdout}${result.stderr}`,
         ).toBe(0);
       } finally {
         rmSync(tsconfigPath, { force: true });

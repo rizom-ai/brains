@@ -1,9 +1,10 @@
-import { describe, it, expect, mock } from "bun:test";
 import {
   createMemoryRuntimeStateNamespace,
   createMockEntityPluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { describe, it, expect, mock } from "bun:test";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -267,15 +268,34 @@ describe("deriveSkills", () => {
       }),
     );
     const { context, deleteEntity } = contextForSkills(staleSkills, []);
+    // The first delete is held rather than made to take a millisecond. If
+    // deletes were issued concurrently the others would start while it waits,
+    // and holding it makes that observable for as long as the test likes —
+    // where a 1ms window only sampled whether an overlap happened to occur.
+    const releaseFirstDelete = deferred();
     deleteEntity.mockImplementation(async () => {
       inFlight++;
       maxInFlight = Math.max(maxInFlight, inFlight);
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      if (inFlight === 1 && maxInFlight === 1) {
+        await releaseFirstDelete.promise;
+      }
       inFlight--;
       return true;
     });
 
-    await deriveSkills(context, createSilentLogger(), { replaceAll: true });
+    const deriving = deriveSkills(context, createSilentLogger(), {
+      replaceAll: true,
+    });
+    await waitUntil(
+      () => deleteEntity.mock.calls.length > 0,
+      "the first delete to start",
+    );
+    // Give any concurrent deletes the turns they would need to begin.
+    for (let turn = 0; turn < 5; turn += 1) await Bun.sleep(0);
+    expect(deleteEntity).toHaveBeenCalledTimes(1);
+
+    releaseFirstDelete.resolve();
+    await deriving;
 
     expect(deleteEntity).toHaveBeenCalledTimes(12);
     expect(maxInFlight).toBe(1);

@@ -1,3 +1,4 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import {
@@ -15,10 +16,7 @@ import {
   type BaseEntity,
   type EntityMutationResult,
 } from "@brains/plugins";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 function createEntityValidationError(message: string): EntityValidationError {
   return new EntityValidationError("note", new Error(message));

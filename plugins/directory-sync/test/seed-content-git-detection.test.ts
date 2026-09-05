@@ -13,7 +13,7 @@ import {
   readFileSync,
   mkdtempSync,
 } from "fs";
-import { execSync } from "child_process";
+import { runGit } from "./git/real-git";
 import { MockEntityAdapter } from "./fixtures";
 
 describe("Seed Content Git Detection", () => {
@@ -70,14 +70,11 @@ describe("Seed Content Git Detection", () => {
   describe("isBrainDataEmpty with git repository", () => {
     it("should copy seed content when .git exists with a remote but the repo has no commits yet", async () => {
       mkdirSync(brainDataPath, { recursive: true });
-      execSync("git init --initial-branch=main", {
-        cwd: brainDataPath,
-        stdio: "ignore",
-      });
-      execSync("git remote add origin https://github.com/example/repo.git", {
-        cwd: brainDataPath,
-        stdio: "ignore",
-      });
+      await runGit(["init", "--initial-branch=main"], brainDataPath);
+      await runGit(
+        ["remote", "add", "origin", "https://github.com/example/repo.git"],
+        brainDataPath,
+      );
 
       mkdirSync(join(seedContentPath, "post"), { recursive: true });
       writeFileSync(
@@ -94,19 +91,24 @@ describe("Seed Content Git Detection", () => {
 
     it("should NOT copy seed content when .git exists with a remote and local history already exists", async () => {
       mkdirSync(brainDataPath, { recursive: true });
-      execSync("git init --initial-branch=main", {
-        cwd: brainDataPath,
-        stdio: "ignore",
-      });
-      execSync("git remote add origin https://github.com/example/repo.git", {
-        cwd: brainDataPath,
-        stdio: "ignore",
-      });
+      await runGit(["init", "--initial-branch=main"], brainDataPath);
+      await runGit(
+        ["remote", "add", "origin", "https://github.com/example/repo.git"],
+        brainDataPath,
+      );
       writeFileSync(join(brainDataPath, "existing.md"), "existing");
-      execSync("git add -A", { cwd: brainDataPath, stdio: "ignore" });
-      execSync(
-        'git -c user.name="Test" -c user.email="test@example.com" commit -m "initial"',
-        { cwd: brainDataPath, stdio: "ignore" },
+      await runGit(["add", "-A"], brainDataPath);
+      await runGit(
+        [
+          "-c",
+          "user.name=Test",
+          "-c",
+          "user.email=test@example.com",
+          "commit",
+          "-m",
+          "initial",
+        ],
+        brainDataPath,
       );
 
       mkdirSync(join(seedContentPath, "post"), { recursive: true });
@@ -142,7 +144,7 @@ describe("Seed Content Git Detection", () => {
 
     it("should copy seed content when .git exists but has NO remote", async () => {
       mkdirSync(brainDataPath, { recursive: true });
-      execSync("git init", { cwd: brainDataPath, stdio: "ignore" });
+      await runGit(["init"], brainDataPath);
 
       mkdirSync(join(seedContentPath, "topic"), { recursive: true });
       writeFileSync(

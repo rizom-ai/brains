@@ -1,12 +1,10 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import {
   ImageGenerationJobHandler,
   type ImageGenerationJobData,
 } from "../../src/handlers/image-generation-handler";
-import {
-  createSilentLogger,
-  createMockEntityPluginContext,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
