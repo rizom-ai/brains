@@ -252,4 +252,3 @@ export type PublicSurfaceAssertions = [
   _FrontmatterSchemaParser,
   _EntityPluginEntitiesNamespace,
 ];
-

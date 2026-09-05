@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Keeps `contract-fidelity.test.ts` exhaustive.
+ * Keeps `contract-fidelity.ts` exhaustive.
  *
  * Each `src/contracts/*` module restates types owned by one shell service.
  * The assertions that hold a restatement to its service are written by hand,
@@ -78,7 +78,7 @@ function exported(file: string): Set<string> {
 describe("plugin contract coverage", () => {
   test("every restated service type is asserted", () => {
     const fidelity = readFileSync(
-      join(pluginsRoot, "test/contract-fidelity.test.ts"),
+      join(pluginsRoot, "test/contract-fidelity.ts"),
       "utf-8",
     );
     // The fidelity test imports each contract module under its own alias:

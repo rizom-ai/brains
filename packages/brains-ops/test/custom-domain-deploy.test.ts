@@ -197,10 +197,13 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     const repo = join(root, "rover-pilot");
 
     await initPilotRepo(repo);
-    const output = execFileSync(
-      process.execPath,
-      ["-e", 'await import("./deploy/scripts/create-predeploy-backup.ts")'],
-      { cwd: repo, encoding: "utf8" },
+    const output = await runProcessOrThrow(
+      [
+        process.execPath,
+        "-e",
+        'await import("./deploy/scripts/create-predeploy-backup.ts")',
+      ],
+      { cwd: repo },
     );
 
     expect(output).toBe("");
@@ -216,9 +219,13 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     await linkPilotDependencies(repo);
     await writeCloudflareFetchMock(preloadPath);
 
-    const result = spawnSync(
-      process.execPath,
-      ["--preload", preloadPath, "deploy/scripts/update-dns.ts"],
+    const result = await runProcess(
+      [
+        process.execPath,
+        "--preload",
+        preloadPath,
+        "deploy/scripts/update-dns.ts",
+      ],
       {
         cwd: repo,
         env: {
@@ -229,10 +236,9 @@ describe("rover-pilot custom-domain deploy scripts", () => {
           SERVER_IP: "192.0.2.1",
           FETCH_LOG: fetchLogPath,
         },
-        encoding: "utf8",
       },
     );
-    if (result.status !== 0) {
+    if (result.exitCode !== 0) {
       throw new Error(result.stderr);
     }
 

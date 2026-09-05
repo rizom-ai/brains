@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Keeps `public-surface-soundness.test.ts` exhaustive.
+ * Keeps `public-surface-soundness.ts` exhaustive.
  *
  * That file asserts each published type against its runtime counterpart, but
  * the assertions are written by hand: a new declaration on the published

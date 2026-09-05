@@ -1,4 +1,3 @@
-import { describe, expect, it } from "bun:test";
 import type * as AgentContract from "../src/contracts/agent";
 import type * as IdentityContract from "../src/contracts/identity";
 import type * as MessagingContract from "../src/contracts/messaging";
@@ -95,12 +94,3 @@ export type ContractFidelityAssertions = [
   _ChatContext,
   _ChatAttachment,
 ];
-
-describe("plugin contract fidelity", () => {
-  it("keeps each service type assignable to the contract that restates it", () => {
-    // Enforced by the type-level assertions above, which fail `bun run
-    // typecheck`. This case documents the guard so a reader who lands here
-    // from a typecheck error knows what broke.
-    expect(true).toBe(true);
-  });
-});

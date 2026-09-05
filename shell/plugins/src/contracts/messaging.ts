@@ -60,7 +60,7 @@ export type MessageSender<T = unknown, R = unknown> = (
  * Re-exported rather than restated. The copy that stood here declared every
  * field optional and `timestamp` as a string, while the bus delivers all of
  * them and a `Date` — a shape no value ever had, published to plugin authors
- * through `@rizom/brain/plugins`. `contract-fidelity.test.ts` now holds the
+ * through `@rizom/brain/plugins`. `contract-fidelity.ts` now holds the
  * restatements in this file to what the services produce.
  */
 export type { MessageContext } from "@brains/messaging-service";
