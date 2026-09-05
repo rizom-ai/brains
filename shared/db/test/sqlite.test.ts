@@ -1,93 +1,75 @@
 import { describe, expect, it } from "bun:test";
-import { createClient } from "@libsql/client";
 import { sql } from "drizzle-orm";
-import {
-  applySqlitePragmas,
-  createSqliteDatabase,
-  resolveAuthToken,
-} from "../src/sqlite";
+import { integer, sqliteTable } from "drizzle-orm/sqlite-core";
+import { applySqlitePragmas, createSqliteDatabase } from "../src/sqlite";
+import { closeSqliteClient } from "../src/turso-client";
 
-function restoreDatabaseEngine(previousEngine: string | undefined): void {
-  if (previousEngine === undefined) {
-    delete process.env["BRAINS_DB_ENGINE"];
-  } else {
-    process.env["BRAINS_DB_ENGINE"] = previousEngine;
-  }
+function restoreEnvironment(key: string, previous: string | undefined): void {
+  if (previous === undefined) delete process.env[key];
+  else process.env[key] = previous;
 }
 
 describe("createSqliteDatabase", () => {
-  it("defaults local file urls to libsql", async () => {
-    const previousEngine = process.env["BRAINS_DB_ENGINE"];
-    delete process.env["BRAINS_DB_ENGINE"];
+  it("uses Turso regardless of the retired engine selector", async () => {
+    const key = "BRAINS_DB_ENGINE";
+    const previous = process.env[key];
     try {
-      const { db, client, url, engine } = createSqliteDatabase({
-        url: "file::memory:",
-        schema: {},
-      });
-      expect(url).toBe("file::memory:");
-      expect(engine).toBe("libsql");
-      expect(db).toBeDefined();
-      expect(client).toBeDefined();
-      await client.execute("SELECT 1");
-      client.close();
+      for (const setting of [undefined, "libsql", "turso"]) {
+        restoreEnvironment(key, setting);
+        const { db, client, url } = createSqliteDatabase({
+          url: "file::memory:",
+          schema: {},
+        });
+        try {
+          expect(url).toBe("file::memory:");
+          await client.execute("CREATE TABLE t (x INTEGER)");
+          await client.execute("INSERT INTO t VALUES (7)");
+          expect(await db.all<{ x: number }>(sql`SELECT x FROM t`)).toEqual([
+            { x: 7 },
+          ]);
+          // Native Turso identifies itself independently of any config flag.
+          const version = await client.execute(
+            "SELECT turso_version() AS version",
+          );
+          expect(typeof version.rows[0]?.["version"]).toBe("string");
+        } finally {
+          await closeSqliteClient(client);
+        }
+      }
     } finally {
-      restoreDatabaseEngine(previousEngine);
+      restoreEnvironment(key, previous);
     }
   });
 
-  it("uses the turso engine for file urls when BRAINS_DB_ENGINE=turso", async () => {
-    const previousEngine = process.env["BRAINS_DB_ENGINE"];
-    process.env["BRAINS_DB_ENGINE"] = "turso";
+  it("preserves typed Drizzle queries and transaction rollback", async () => {
+    const entries = sqliteTable("entries", { id: integer("id").primaryKey() });
+    const { db, client } = createSqliteDatabase({
+      url: "file::memory:",
+      schema: { entries },
+    });
     try {
-      const { db, client, engine } = createSqliteDatabase({
-        url: "file::memory:",
-        schema: {},
+      await client.execute("CREATE TABLE entries (id INTEGER PRIMARY KEY)");
+      const failure = await db
+        .transaction(async (tx) => {
+          await tx.insert(entries).values({ id: 1 });
+          throw new Error("abort transaction");
+        })
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+      expect(failure).toBeInstanceOf(Error);
+      expect(await db.query.entries.findMany()).toEqual([]);
+      await db.transaction(async (tx) => {
+        await tx.insert(entries).values({ id: 2 });
       });
-      expect(engine).toBe("turso");
-      // the turso file client is distinguishable by its unsupported sync()
-      expect(client.sync()).rejects.toThrow(/turso/);
-      await client.execute("CREATE TABLE t (x INTEGER)");
-      await client.execute("INSERT INTO t VALUES (7)");
-      const rows = await db.all<{ x: number }>(sql`SELECT x FROM t`);
-      expect(rows).toEqual([{ x: 7 }]);
-      client.close();
+      expect(await db.query.entries.findMany()).toEqual([{ id: 2 }]);
     } finally {
-      restoreDatabaseEngine(previousEngine);
+      await closeSqliteClient(client);
     }
   });
 
-  it("uses libsql as the explicit file fallback", () => {
-    const previousEngine = process.env["BRAINS_DB_ENGINE"];
-    process.env["BRAINS_DB_ENGINE"] = "libsql";
-    try {
-      const { client, engine } = createSqliteDatabase({
-        url: "file::memory:",
-        schema: {},
-      });
-      expect(engine).toBe("libsql");
-      client.close();
-    } finally {
-      restoreDatabaseEngine(previousEngine);
-    }
-  });
-
-  it("lets an explicit engine override the environment", () => {
-    const previousEngine = process.env["BRAINS_DB_ENGINE"];
-    process.env["BRAINS_DB_ENGINE"] = "turso";
-    try {
-      const { client, engine } = createSqliteDatabase({
-        url: "file::memory:",
-        schema: {},
-        engine: "libsql",
-      });
-      expect(engine).toBe("libsql");
-      client.close();
-    } finally {
-      restoreDatabaseEngine(previousEngine);
-    }
-  });
-
-  it("rejects local opens when the process is fenced to the database owner", () => {
+  it("rejects local opens in an endpoint-only process", () => {
     const key = "BRAINS_FORBID_LOCAL_DATABASE_OPEN";
     const previous = process.env[key];
     process.env[key] = "1";
@@ -96,116 +78,51 @@ describe("createSqliteDatabase", () => {
         createSqliteDatabase({ url: "file::memory:", schema: {} }),
       ).toThrow(/forbidden in this process/);
     } finally {
-      if (previous === undefined) delete process.env[key];
-      else process.env[key] = previous;
+      restoreEnvironment(key, previous);
     }
   });
 
-  it("rejects the embedded Turso engine for remote urls", () => {
-    expect(() =>
-      createSqliteDatabase({
-        url: "libsql://example.turso.io",
-        schema: {},
-        engine: "turso",
-      }),
-    ).toThrow(/only supports file:/);
-  });
-
-  it("keeps libsql for remote urls even when BRAINS_DB_ENGINE=turso", () => {
-    const previousEngine = process.env["BRAINS_DB_ENGINE"];
-    process.env["BRAINS_DB_ENGINE"] = "turso";
-    try {
-      const { client, engine } = createSqliteDatabase({
-        url: "libsql://example.turso.io",
-        schema: {},
-        authToken: "token",
-      });
-      expect(engine).toBe("libsql");
-      // the libsql remote client reports its protocol; the adapter is file-only
-      expect(client.protocol).not.toBe("file");
-      client.close();
-    } finally {
-      restoreDatabaseEngine(previousEngine);
+  it("rejects remote URLs without connecting", () => {
+    for (const url of [
+      "libsql://example.turso.io",
+      "https://example.turso.io",
+      "wss://example.turso.io",
+    ]) {
+      expect(() => createSqliteDatabase({ url, schema: {} })).toThrow(
+        /only supports file:/,
+      );
     }
-  });
-});
-
-describe("resolveAuthToken", () => {
-  it("prefers an explicit token over the environment fallback", () => {
-    const key = "BRAINS_DB_TEST_TOKEN";
-    process.env[key] = "env-token";
-    try {
-      expect(
-        resolveAuthToken({ authToken: "explicit-token", authTokenEnv: key }),
-      ).toBe("explicit-token");
-    } finally {
-      delete process.env[key];
-    }
-  });
-
-  it("reads the token from the named environment variable", () => {
-    const key = "BRAINS_DB_TEST_TOKEN";
-    process.env[key] = "env-token";
-    try {
-      expect(resolveAuthToken({ authTokenEnv: key })).toBe("env-token");
-    } finally {
-      delete process.env[key];
-    }
-  });
-
-  it("returns undefined when neither source provides a token", () => {
-    expect(
-      resolveAuthToken({ authTokenEnv: "BRAINS_DB_TEST_TOKEN_UNSET" }),
-    ).toBeUndefined();
-    expect(resolveAuthToken({})).toBeUndefined();
   });
 });
 
 describe("applySqlitePragmas", () => {
-  it("enables WAL journaling and a busy timeout for local files", async () => {
-    const client = createClient({ url: "file::memory:" });
-    try {
-      await applySqlitePragmas(client, "file::memory:");
-      const busyTimeout = await client.execute("PRAGMA busy_timeout");
-      expect(busyTimeout.rows[0]?.["timeout"]).toBe(5000);
-    } finally {
-      client.close();
-    }
+  it("enables WAL without relying on Turso's no-op busy timeout", async () => {
+    const executed: string[] = [];
+    await applySqlitePragmas(
+      {
+        execute: async (statement) => {
+          executed.push(statement);
+        },
+      },
+      "file:test.db",
+    );
+    expect(executed).toEqual(["PRAGMA journal_mode = WAL"]);
   });
 
-  it("sets the busy timeout before WAL initialization can contend", async () => {
+  it("rejects remote URLs before executing a statement", async () => {
     const executed: string[] = [];
-    const contendedClient = {
-      execute: async (statement: string): Promise<void> => {
-        executed.push(statement);
-        if (statement === "PRAGMA journal_mode = WAL") {
-          throw new Error("SQLITE_BUSY");
-        }
+    const failure = await applySqlitePragmas(
+      {
+        execute: async (statement) => {
+          executed.push(statement);
+        },
       },
-    };
-
-    expect(
-      applySqlitePragmas(contendedClient, "file:test.sqlite"),
-    ).rejects.toThrow("SQLITE_BUSY");
-    expect(executed).toEqual([
-      "PRAGMA busy_timeout = 5000",
-      "PRAGMA journal_mode = WAL",
-    ]);
-  });
-
-  it("skips pragmas for remote libsql urls", async () => {
-    const executed: string[] = [];
-    const client = createClient({ url: "file::memory:" });
-    const recordingClient = {
-      execute: async (statement: string): Promise<void> => {
-        executed.push(statement);
-      },
-    };
-    try {
-      await applySqlitePragmas(recordingClient, "libsql://example.turso.io");
-      expect(executed).toEqual([]);
-    } finally {
-      client.close();
-    }
+      "libsql://example.turso.io",
+    ).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(Error);
+    expect(executed).toEqual([]);
   });
 });

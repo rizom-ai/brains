@@ -154,7 +154,6 @@
   "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brain-cli#readme",
   "optionalDependencies": {
     "@bitwarden/sdk-napi": "^1.0.0",
-    "@libsql/client": "^0.17.4",
     "@tailwindcss/oxide": "^4.1.4",
     "@tursodatabase/database": "^0.7.2",
     "lightningcss": "^1.29.2",

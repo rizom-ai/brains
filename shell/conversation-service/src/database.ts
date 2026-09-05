@@ -18,7 +18,5 @@ export function createConversationDatabase(
   return createSqliteDatabase({
     url: config.url,
     schema: { conversations, messages, summaryTracking },
-    authToken: config.authToken,
-    authTokenEnv: "CONVERSATION_DATABASE_AUTH_TOKEN",
   });
 }

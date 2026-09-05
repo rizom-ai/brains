@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { createClient } from "@libsql/client";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -91,11 +91,14 @@ describe("auth runtime clean cutover", () => {
       expect(await readFile(join(storageDir, name), "utf8")).toBe(contents);
     }
 
-    const client = createClient({ url: `file:${join(storageDir, "auth.db")}` });
+    const { client } = createSqliteDatabase({
+      url: `file:${join(storageDir, "auth.db")}`,
+      schema: {},
+    });
     const legacyImportTable = await client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'auth_legacy_imports'",
     );
     expect(legacyImportTable.rows).toHaveLength(0);
-    client.close();
+    await closeSqliteClient(client);
   });
 });

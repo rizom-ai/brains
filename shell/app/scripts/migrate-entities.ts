@@ -13,9 +13,6 @@ async function main(): Promise<void> {
     await migrateEntities(
       {
         url: config.database.url,
-        ...(config.database.authToken && {
-          authToken: config.database.authToken,
-        }),
       },
       logger,
     );

@@ -18,8 +18,6 @@ export function createJobQueueDatabase(
   return createSqliteDatabase({
     url: config.url,
     schema: { jobQueue, jobWorkerSessions },
-    authToken: config.authToken,
-    authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
   });
 }
 

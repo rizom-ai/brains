@@ -14,19 +14,15 @@ describe("MigrationManager", () => {
   const mockConfig = {
     database: {
       url: "file:test.db",
-      authToken: "test-token",
     },
     jobQueueDatabase: {
       url: "file:job-queue.db",
-      authToken: "job-token",
     },
     conversationDatabase: {
       url: "file:conversation.db",
-      authToken: "conv-token",
     },
     runtimeStateDatabase: {
       url: "file:runtime-state.db",
-      authToken: "runtime-state-token",
     },
     embedding: { enabled: true },
   } satisfies StandardConfig;
@@ -71,7 +67,6 @@ describe("MigrationManager", () => {
       expect(mockMigrations.migrateEntities).toHaveBeenCalledWith(
         {
           url: mockConfig.database.url,
-          authToken: mockConfig.database.authToken,
         },
         mockLogger,
       );
@@ -79,7 +74,6 @@ describe("MigrationManager", () => {
       expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(
         {
           url: mockConfig.jobQueueDatabase.url,
-          authToken: mockConfig.jobQueueDatabase.authToken,
         },
         mockLogger,
       );
@@ -87,7 +81,6 @@ describe("MigrationManager", () => {
       expect(mockMigrations.migrateConversations).toHaveBeenCalledWith(
         {
           url: mockConfig.conversationDatabase.url,
-          authToken: mockConfig.conversationDatabase.authToken,
         },
         mockLogger,
       );
@@ -95,7 +88,6 @@ describe("MigrationManager", () => {
       expect(mockMigrations.migrateRuntimeState).toHaveBeenCalledWith(
         {
           url: mockConfig.runtimeStateDatabase.url,
-          authToken: mockConfig.runtimeStateDatabase.authToken,
         },
         mockLogger,
       );
@@ -108,62 +100,6 @@ describe("MigrationManager", () => {
       );
 
       expect(migrationManager.runAllMigrations()).rejects.toThrow(configError);
-    });
-
-    it("should work without auth tokens", async () => {
-      const configWithoutTokens = {
-        database: {
-          url: "file:test.db",
-          authToken: undefined,
-        },
-        jobQueueDatabase: {
-          url: "file:job-queue.db",
-          authToken: undefined,
-        },
-        conversationDatabase: {
-          url: "file:conversation.db",
-          authToken: undefined,
-        },
-        runtimeStateDatabase: {
-          url: "file:runtime-state.db",
-          authToken: undefined,
-        },
-        embedding: { enabled: true },
-      } satisfies StandardConfig;
-
-      mockMigrations.getStandardConfigWithDirectories = mock(() =>
-        Promise.resolve(configWithoutTokens),
-      );
-
-      await migrationManager.runAllMigrations();
-
-      expect(mockMigrations.migrateEntities).toHaveBeenCalledWith(
-        {
-          url: configWithoutTokens.database.url,
-        },
-        mockLogger,
-      );
-
-      expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(
-        {
-          url: configWithoutTokens.jobQueueDatabase.url,
-        },
-        mockLogger,
-      );
-
-      expect(mockMigrations.migrateConversations).toHaveBeenCalledWith(
-        {
-          url: configWithoutTokens.conversationDatabase.url,
-        },
-        mockLogger,
-      );
-
-      expect(mockMigrations.migrateRuntimeState).toHaveBeenCalledWith(
-        {
-          url: configWithoutTokens.runtimeStateDatabase.url,
-        },
-        mockLogger,
-      );
     });
 
     it("should propagate migration errors", async () => {

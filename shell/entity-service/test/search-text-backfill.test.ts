@@ -41,7 +41,7 @@ describe("search_text backfill", () => {
           metadata, created, updated, search_text
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
         args: [
-          `note-${index}`,
+          `note-${String(index).padStart(6, "0")}`,
           "test",
           `Corpus entry ${index} about Café`,
           `hash-${index}`,
@@ -108,6 +108,29 @@ describe("search_text backfill", () => {
     expect(await seeded.readBackfilled()).toBe(rowCount);
   });
 
+  test("keeps entities sharing an id across a page boundary", async () => {
+    const rowCount = SEARCH_TEXT_BACKFILL_PAGE_SIZE + 1;
+    const seeded = await seedRowsWithoutSearchText(rowCount);
+    const { client } = createSqliteDatabase({ url: seeded.url, schema: {} });
+    try {
+      await client.execute({
+        sql: `INSERT INTO entities (
+          id, entityType, content, contentHash, visibility,
+          metadata, created, updated, search_text
+        ) SELECT id, 'test-z', content, contentHash, visibility,
+          metadata, created, updated, NULL FROM entities WHERE id = ?`,
+        args: [
+          `note-${String(SEARCH_TEXT_BACKFILL_PAGE_SIZE - 1).padStart(6, "0")}`,
+        ],
+      });
+    } finally {
+      await closeSqliteClient(client);
+    }
+
+    await bootService(seeded.url);
+    expect(await seeded.readBackfilled()).toBe(rowCount + 1);
+  });
+
   test("commits each page, so an interrupted boot resumes instead of restarting", async () => {
     const rowCount = SEARCH_TEXT_BACKFILL_PAGE_SIZE * 2 + 7;
     const seeded = await seedRowsWithoutSearchText(rowCount);
@@ -119,7 +142,7 @@ describe("search_text backfill", () => {
     await client.execute(`
       CREATE TRIGGER block_last_backfill
       BEFORE UPDATE OF search_text ON entities
-      WHEN NEW.id = 'note-${rowCount - 1}'
+      WHEN NEW.id = 'note-${String(rowCount - 1).padStart(6, "0")}'
       BEGIN SELECT RAISE(ABORT, 'blocked'); END
     `);
     await closeSqliteClient(client);
@@ -133,6 +156,18 @@ describe("search_text backfill", () => {
     expect(await seeded.readBackfilled()).toBe(
       SEARCH_TEXT_BACKFILL_PAGE_SIZE * 2,
     );
+
+    const { client: recoveryClient } = createSqliteDatabase({
+      url: seeded.url,
+      schema: {},
+    });
+    try {
+      await recoveryClient.execute("DROP TRIGGER block_last_backfill");
+    } finally {
+      await closeSqliteClient(recoveryClient);
+    }
+    await bootService(seeded.url);
+    expect(await seeded.readBackfilled()).toBe(rowCount);
   });
 
   test("normalizes the backfilled text the same way search does", async () => {
@@ -145,6 +180,6 @@ describe("search_text backfill", () => {
       query: "café",
       options: { visibilityScope: "restricted" },
     });
-    expect(results.map((result) => result.entity.id)).toContain("note-0");
+    expect(results.map((result) => result.entity.id)).toContain("note-000000");
   });
 });

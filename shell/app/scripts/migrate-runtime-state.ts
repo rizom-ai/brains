@@ -13,9 +13,6 @@ async function main(): Promise<void> {
     await migrateRuntimeState(
       {
         url: config.runtimeStateDatabase.url,
-        ...(config.runtimeStateDatabase.authToken && {
-          authToken: config.runtimeStateDatabase.authToken,
-        }),
       },
       logger,
     );

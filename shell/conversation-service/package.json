@@ -8,10 +8,10 @@
     "@brains/db": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@libsql/client": "^0.17.4",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
+    "@libsql/client": "^0.17.4",
     "@types/bun": "^1.4.0",
     "@types/node": "^24.13.3",
     "drizzle-kit": "^0.31.10",

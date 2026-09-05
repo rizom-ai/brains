@@ -2,7 +2,6 @@ import type { ZodType } from "@brains/utils/zod";
 
 export interface RuntimeStateDbConfig {
   url: string;
-  authToken?: string | undefined;
 }
 
 export type RuntimeStateServiceConfig = RuntimeStateDbConfig;

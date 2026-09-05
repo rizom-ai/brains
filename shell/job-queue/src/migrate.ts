@@ -17,7 +17,6 @@ export async function migrateJobQueue(
     config,
     schema: { jobQueue, jobWorkerSessions },
     migrationsFolder: resolveMigrationsFolder(import.meta.url, "job-queue"),
-    authTokenEnv: "JOB_QUEUE_DATABASE_AUTH_TOKEN",
     logger,
   });
 }

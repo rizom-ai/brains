@@ -13,9 +13,6 @@ async function main(): Promise<void> {
     await migrateJobQueue(
       {
         url: config.jobQueueDatabase.url,
-        ...(config.jobQueueDatabase.authToken && {
-          authToken: config.jobQueueDatabase.authToken,
-        }),
       },
       logger,
     );

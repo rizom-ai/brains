@@ -2,7 +2,22 @@
 
 ## Status
 
-Complete through Phase 6. The 2026-09-02 pre-merge review confirmed ten
+**Release decision: 0.2 stays on libSQL; 0.3 is Turso-only.** This supersedes
+all earlier default-engine, fallback, remote-libSQL, and auth-replica exceptions
+below. The dual-engine implementation is a migration foundation, not the final
+0.3 runtime contract. Phase 7 is reopened as the 0.3 release gate; this worktree
+is not ready to merge into the 0.2 release line as a whole.
+
+Every 0.3 runtime database, including authentication, must use Turso. libSQL
+belongs only in a separately packaged one-time 0.2 import tool, not in the 0.3
+runtime or its transitive dependencies. Backup/restore must replace the current
+libSQL auth-replica dependency. Rollback restores the old binary and its backup,
+not an engine environment variable. No claim of operational readiness is made
+until migration and restore have been rehearsed.
+
+### Implementation history (superseded release policy)
+
+Complete through Phase 6 under the previous policy. The 2026-09-02 pre-merge review confirmed ten
 defects, most on the supervised web-owner plus worker path that no boundary
 test exercised; Phase 5H fixed them and now covers that production-shaped
 boundary end to end. Phase 6 restored libSQL as the alpha default behind a
@@ -858,15 +873,14 @@ cleanup list are green on both engines.
 if the directory-sync RPC fields, cleanup read, or execution-only site-builder
 registration regress.
 
-### Phase 6 — Engine default and dual-engine gate — MERGE GATE
+### Phase 6 — Engine default and dual-engine gate — Historical
 
 Decided 2026-09-02, superseding the default-Turso decision for the alpha
 channel: local files default to **libSQL** until the fleet has soaked;
 `BRAINS_DB_ENGINE=turso` opts an instance in. The safety control lives in
 code, where every instance and every outside consumer inherits it, rather
-than in deploy configuration the gates cannot see. Stable v0.2.0 flips the
-default to Turso deliberately, with its own changeset, once Phase 7 has
-production hours behind it.
+than in deploy configuration the gates cannot see. The proposed stable v0.2.0 default flip was superseded by the 0.3-only
+release decision above.
 
 The gate runs both engines: today `turbo run test` runs once under the
 default and only four test files pin an engine, so whichever engine is not
@@ -879,36 +893,89 @@ behavior changes.
 **Phase 6 exit: met.** The code default and packed-consumer test use libSQL;
 CI, pre-commit, and the migration-sensitive package suites gate both engines.
 
-### Phase 7 — Gradual fleet rollout
+### Phase 7 — Turso-only 0.3 migration and rollout — RELEASE GATE
 
-The engine flip is atomic per instance because the single-owner topology
-gives each instance exactly one process that opens the database files — an
-instance is entirely Turso or entirely libSQL, never mixed. Do not open a live
-Turso instance's database with libsql/sqlite3 tooling: the engines' WAL
-formats are not mutually visible; checkpoint first or use the engine-aware
-client.
+**Open.** Keep 0.2 on its libSQL storage contract. Ship the single-owner
+boundary, consolidated embeddings, search storage changes, and Turso-only
+runtime together in 0.3; retaining a libSQL default would not isolate 0.2 from
+those behavior changes.
 
-1. Upgrading to the release changes no engine: the default is libSQL.
-2. Opt in one instance at a time by setting `BRAINS_DB_ENGINE=turso` in its
-   deploy config, each flip behind the verified predeploy backup the deploy
-   gate already requires: smoke rover first (it exists to be broken), then
-   yeehaa, then rizom.ai.
-3. Soak each instance on normal traffic for a few days before the next:
-   imports, search, projection waves, job throughput, headless commands
-   beside the running owner.
-4. Rollback per instance never touches code: stop the instance, remove the
-   env var, and restart under libSQL; restore the predeploy backup if anything
-   beyond the entity database looks off. The portable schema is shared by both
-   engines, so no separate rollback command is required.
+#### Runtime and recovery prerequisites
 
-Release gate: stable v0.2.0 flips the default to Turso only after smoke rover
-and at least one real instance have soaked on it — the public default must
-not ship with zero production hours.
+**Runtime implementation:** all service databases now open local Turso through
+`@brains/db`. The selector, remote URLs, database tokens, and auth replica
+configuration are removed. Drizzle's public session/database classes preserve
+queries and transactions without loading its libSQL client factory. The packed
+runtime no longer installs `@libsql/client`; development-only types, historical
+benchmarks, and legacy fixtures may still use it. Auth shutdown awaits admitted
+writes and durable close. The runtime refuses legacy FTS5 entity files instead
+of rewriting them with libSQL. CI and pre-commit now run one Turso runtime gate.
+The separate database importer now exists; complete operational migration and
+replacement backup/restore remain open.
+
+**Offline importer implementation:** [`@rizom/db-migration`](../../packages/db-migration/README.md)
+imports the five runtime databases from a checksum-verified 0.2 snapshot into a
+new private directory. It never opens a source database handle, confines libSQL
+cleanup to staging copies, checks required source tables and integrity, and
+compares paged durable-table counts/content digests across migration. Processing
+jobs are refused; pending jobs and auth data are preserved without automatic
+replay. Failed imports retain incomplete staging and never overwrite a destination.
+Tests cover preservation across multiple pages, checksum/sidecar rejection,
+existing destinations, cancellation, failed-import retry, and an independently
+installed packed CLI with its bundled migration assets. Turbo invalidates the
+importer build/test when those source migration files change.
+
+This is a database-only importer, not deployment-ready output: restoring Git,
+configuration and encryption secrets, validating queued-job execution and login,
+and production-snapshot interruption/rollback rehearsal still gate release.
+
+- Remove engine selection, remote-libSQL runtime paths, and libSQL runtime
+  dependencies, including the auth database and its optional replica path.
+  Retain the owner/worker boundary and standalone combined-process behavior.
+- Move released-schema import and legacy FTS cleanup into a separately packaged
+  migration tool. New 0.3 databases start with the supported destination schema;
+  their boot path must not open libSQL to clean up old schema objects.
+- Replace the backup gate's retired `embeddings.db` requirement and live Bun
+  SQLite reads with a Turso-supported, verified capture/restore procedure.
+  Include auth data and document the replacement for auth replica recovery.
+  Never read a live Turso database with libSQL or SQLite backup tooling: their
+  WAL formats are not mutually visible.
+- Replace permanent dual-engine runtime gates with Turso runtime tests and
+  released-0.2-to-0.3 migration tests. Verify the packed runtime contains no
+  libSQL dependency; only the separate migration tool may carry it.
+
+#### Per-instance procedure
+
+1. Stop the 0.2 runtime and fence all writers, including any auth replica sync.
+2. Capture and verify the complete source state with the old engine. Retain
+   the old binary, configuration, content checkout, and database directory.
+3. Import into a new data directory; never convert the only source copy in
+   place. Preserve entities, conversations, auth, runtime state, and durable
+   jobs. Define recovery of in-flight jobs explicitly. Rebuild derived indexes
+   and embeddings under a documented readiness policy; Git alone is not a
+   complete backup.
+4. Validate the destination before switching paths: counts and content, auth
+   access, job recovery, search, imports/exports, and owner/worker operation.
+   Interrupted imports must leave the source usable and have a tested restart
+   or discard-and-retry path.
+5. Start 0.3 with traffic fenced, run smoke checks, then reopen traffic.
+6. Before accepting new writes, rollback can restore the old binary and source
+   directory. After accepting writes, reverting that snapshot loses new state:
+   document and approve the recovery policy rather than claiming lossless
+   rollback. Do not reopen 0.3 files using the 0.2 engine.
+
+Rehearse migration, interruption, backup, restore, and rollback on smoke rover
+first. Soak it for several days, then migrate yeehaa and rizom.ai one at a time.
+Stable 0.3 requires smoke rover and at least one real instance to have soaked
+successfully, including a verified backup and restore of the Turso runtime.
+
+**Exit: not met.** The existing dual-engine tests and boundary suite do not
+prove these operational gates.
 
 ## Non-goals
 
-- No changes to auth-service's replica path — it stays on `@libsql/client`
-  against Turso Cloud for the duration of this plan.
+- No permanent dual-engine runtime, environment-variable fallback, or remote
+  libSQL exception in 0.3. Authentication is included, not exempted.
 - No reliance on experimental page-level "partial sync" for embeddings
   exclusion — access-pattern lazy loading guarantees nothing on `push()`.
 - No wholesale one-DB consolidation. Phase 5 folds only embeddings into the
@@ -917,8 +984,8 @@ not ship with zero production hours.
 ## Risks
 
 - Installations upgrading from a released build carry the libSQL-era
-  `entity_fts` table in `brain.db`, so its startup cleanup is required and
-  permanent. The dead `embeddings_embedding_idx` exists only in the retired
+  `entity_fts` table in `brain.db`; the separate import tool must handle it
+  without leaving a permanent libSQL cleanup path in the 0.3 runtime. The dead `embeddings_embedding_idx` exists only in the retired
   separate `embeddings.db`, which the final runtime does not open. Turso native
   FTS is also different: it never shipped, so no released installation can
   hold it (see Phase 5F).

@@ -59,12 +59,14 @@ export default defineBrain({
 
 External authors should use the published `@rizom/brain` contracts rather than importing shell internals.
 
-## Database engine selection
+## Database storage (0.3)
 
-Local `file:` databases use libSQL by default during the alpha fleet soak.
-Set `BRAINS_DB_ENGINE=turso` to opt an instance into the embedded Turso engine;
-remote database URLs continue to use libSQL.
+Every runtime database uses local Turso, including authentication. Only `file:`
+URLs are supported. There is no engine selector, remote libSQL path, or runtime
+fallback; `BRAINS_DB_ENGINE` no longer changes the engine.
 
-Stop the app before changing engines. Both engines use the same portable
-entities-table keyword search, and migration removes the historical FTS5 table
-created by released libSQL builds.
+The 0.2 release line remains on libSQL. Its data must be imported offline into a
+new directory before starting 0.3; the runtime rejects legacy FTS5 entity files
+rather than opening libSQL to rewrite them. Migration tooling and verified Turso
+backup/restore remain release gates. Never use SQLite/libSQL tooling to capture
+an active Turso database.

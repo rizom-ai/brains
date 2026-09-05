@@ -36,16 +36,10 @@ describe("JobQueueService Database", () => {
       trackClient(client);
     });
 
-    test("creates database with auth token", () => {
-      const config = {
-        url: "libsql://test.turso.io",
-        authToken: "test-token",
-      };
-      const { db, client, url } = createJobQueueDatabase(config);
-      expect(db).toBeDefined();
-      expect(client).toBeDefined();
-      expect(url).toBe(config.url);
-      trackClient(client);
+    test("rejects remote libSQL configuration", () => {
+      expect(() =>
+        createJobQueueDatabase({ url: "libsql://test.turso.io" }),
+      ).toThrow(/only supports file:/);
     });
   });
 

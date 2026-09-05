@@ -52,6 +52,11 @@ describe("canonical packed consumer", () => {
           ),
         ),
       ).toBe(false);
+      expect(
+        existsSync(
+          join(consumerDirectory, "node_modules", "@libsql", "client"),
+        ),
+      ).toBe(false);
       await runCommand(["bun", "run", "import-smoke.ts"], consumerDirectory);
       const runtimeEnv = { ...process.env };
       delete runtimeEnv["BRAINS_DB_ENGINE"];
@@ -73,7 +78,6 @@ describe("canonical packed consumer", () => {
         {
           env: {
             ...runtimeEnv,
-            BRAINS_DB_ENGINE: "turso",
             BRAINS_FORBID_LOCAL_DATABASE_OPEN: "1",
           },
         },
@@ -83,15 +87,15 @@ describe("canonical packed consumer", () => {
         "Local SQLite opens are forbidden in this process",
       );
 
-      const tursoOptIn = await runCommand(
+      const retiredSelector = await runCommand(
         ["bun", "run", "brain", "start", "--startup-check"],
         consumerDirectory,
         {
-          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "turso" },
+          env: { ...runtimeEnv, BRAINS_DB_ENGINE: "libsql" },
           timeoutMs: 90_000,
         },
       );
-      expect(combinedOutput(tursoOptIn)).toContain(
+      expect(combinedOutput(retiredSelector)).toContain(
         "Dashboard plugin registered",
       );
     } finally {

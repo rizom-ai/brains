@@ -13,9 +13,6 @@ async function main(): Promise<void> {
     await migrateConversations(
       {
         url: config.conversationDatabase.url,
-        ...(config.conversationDatabase.authToken && {
-          authToken: config.conversationDatabase.authToken,
-        }),
       },
       logger,
     );

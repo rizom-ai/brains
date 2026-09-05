@@ -393,6 +393,14 @@
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
         </div>
+        <div class="card status-parked">
+          <div class="card-head">
+            <span class="card-name">Turso Database engine migration</span>
+            <span class="badge badge-parked">Parked</span>
+          </div>
+          <div class="card-desc">**0.3 release gate open; 0.2 stays on libSQL**: the runtime now uses Turso for every database, including authentication, without engine selection or a remote-libSQL exception. The packed runtime no longer installs the libSQL client. The owner/worker boundary, consolidated embeddings, portable search, and durable job outbox form the implementation foundation. A separate database-only 0.2 importer now verifies staged migration and source preservation, including a packed-CLI test. Remaining gates: content/configuration restore and deployment integration, Turso-aware backup/restore, production-snapshot migration/recovery rehearsal, and fleet soak. Git remains the only content sync model. MVCC stays parked until owner-connection saturation is observed.</div>
+          <div class="card-file">turso-database-engine.md</div>
+        </div>
         <div class="card status-done">
           <div class="card-head">
             <span class="card-name">Operational alerts reach a human</span>
@@ -416,14 +424,6 @@
           </div>
           <div class="card-desc">make the embedding model and dimensions user-configurable at initialization (they are hardcoded today behind a dead config block), and fail fast with an explicit re-embed remedy when a configured dimension does not match stored vectors.</div>
           <div class="card-file">configurable-embedding-provider.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Turso Database engine migration</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">**complete through Phase 6; Phase 7 fleet soak pending**: local files default to libSQL during alpha, with embedded Turso opt-in, packed native bindings, dual-engine gates, and production-shaped cutover coverage. Git remains the only content sync model. The web process is the sole local database owner; worker persistence routes through the bounded private endpoint. Entity mutations atomically maintain normalized lexical search, embeddings, projection state, and durable embedding-job intents. MVCC remains intentionally parked until owner-connection saturation is observed.</div>
-          <div class="card-file">turso-database-engine.md</div>
         </div>
         </div>
       </details>

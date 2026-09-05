@@ -70,7 +70,7 @@ describe("ConversationService", () => {
   });
 
   describe("database readiness", () => {
-    it("applies local write pragmas for the selected engine", async () => {
+    it("enables WAL for the local Turso connection", async () => {
       const owned = ConversationService.createFreshFromConfig(
         logger,
         messageBus,
@@ -79,11 +79,10 @@ describe("ConversationService", () => {
 
       try {
         await owned.initialize();
-        const busyTimeout = await owned
+        const journalMode = await owned
           .getDatabaseClient()
-          .execute("PRAGMA busy_timeout");
-        const row = busyTimeout.rows[0];
-        expect(row?.["timeout"] ?? row?.["busy_timeout"]).toBe(5000);
+          .execute("PRAGMA journal_mode");
+        expect(journalMode.rows[0]?.["journal_mode"]).toBe("wal");
       } finally {
         await owned.closeAsync();
       }

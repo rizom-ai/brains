@@ -12,13 +12,11 @@ import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler, JobQueueDbConfig } from "../src/types";
 import type { JobOptions } from "../src/schema/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
-import { createSilentLogger, waitUntil } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
-import { resolveSqliteEngine } from "@brains/db";
-import { access, writeFile } from "node:fs/promises";
 /**
  * This double is registered for several job types and ignores its payload,
  * so it accepts any object rather than claiming one job types shape.
@@ -32,20 +30,6 @@ const defaultEnqueueOptions: JobOptions = {
 function enqueueOpts(overrides: Partial<JobOptions> = {}): JobOptions {
   return { ...defaultEnqueueOptions, ...overrides };
 }
-
-async function waitForFile(path: string): Promise<void> {
-  await waitUntil(
-    async () =>
-      access(path)
-        .then(() => true)
-        .catch(() => false),
-    `${path} to exist`,
-    { timeoutMs: 5_000, intervalMs: 5 },
-  );
-}
-
-const itWithIndependentLocalOpeners =
-  resolveSqliteEngine("file:test.db") === "libsql" ? it : it.skip;
 
 class TestJobHandler implements JobHandler<"shell:embedding"> {
   public processCallCount = 0;
@@ -1203,54 +1187,40 @@ describe("JobQueueService", () => {
         await secondService.closeAsync();
       }
     });
-    itWithIndependentLocalOpeners(
-      "preserves atomic skip across independent processes",
-      async () => {
-        const startFile = `${dbPath}.start`;
-        const readyFiles = [`${dbPath}.ready-a`, `${dbPath}.ready-b`];
-        const fixturePath = new URL(
-          "./fixtures/concurrent-enqueue-process.ts",
-          import.meta.url,
-        ).pathname;
-        const children = readyFiles.map((readyFile) =>
-          Bun.spawn(
-            [
-              "bun",
-              fixturePath,
-              config.url,
-              startFile,
-              readyFile,
-              "site-build",
-              "site-build:cross-process",
-            ],
-            { stdout: "pipe", stderr: "pipe" },
-          ),
+    it("refuses an independent worker process opening the owner's queue", async () => {
+      const fixturePath = new URL(
+        "./fixtures/concurrent-enqueue-process.ts",
+        import.meta.url,
+      ).pathname;
+      const child = Bun.spawn(
+        [
+          "bun",
+          fixturePath,
+          config.url,
+          `${dbPath}.start`,
+          `${dbPath}.ready`,
+          "site-build",
+          "site-build:cross-process",
+        ],
+        {
+          env: { ...process.env, BRAINS_FORBID_LOCAL_DATABASE_OPEN: "1" },
+          stdout: "ignore",
+          stderr: "pipe",
+        },
+      );
+      try {
+        const [exitCode, stderr] = await Promise.all([
+          child.exited,
+          new Response(child.stderr).text(),
+        ]);
+        expect(exitCode).not.toBe(0);
+        expect(stderr).toContain(
+          "Local SQLite opens are forbidden in this process",
         );
-
-        try {
-          await Promise.all(readyFiles.map(waitForFile));
-          await writeFile(startFile, "start");
-          const outputs = await Promise.all(
-            children.map(async (child) => {
-              const [exitCode, stdout, stderr] = await Promise.all([
-                child.exited,
-                new Response(child.stdout).text(),
-                new Response(child.stderr).text(),
-              ]);
-              if (exitCode !== 0) {
-                throw new Error(`Concurrent enqueue process failed: ${stderr}`);
-              }
-              return z.array(z.string()).parse(JSON.parse(stdout));
-            }),
-          );
-
-          expect(new Set(outputs.flat()).size).toBe(1);
-          expect(await service.getActiveJobs(["site-build"])).toHaveLength(1);
-        } finally {
-          for (const child of children) child.kill();
-        }
-      },
-    );
+      } finally {
+        child.kill();
+      }
+    });
     it("keeps concurrent keyed groups independent", async () => {
       await service.initialize();
       const ids = await Promise.all(

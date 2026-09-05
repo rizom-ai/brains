@@ -16,7 +16,7 @@ Studio hosts the browser management presentation. Its Account workspace uses thi
 
 ## Runtime database
 
-The default database is `./data/auth/auth.db`. [`runtime-schema.ts`](./src/runtime-schema.ts) is the canonical schema, and [`drizzle/`](./drizzle/) contains the generated migration history. The local database enables foreign keys, WAL, and a busy timeout; its directory and file are restricted to `0700` and `0600`. An optional embedded-replica configuration can synchronize the local file with a private remote libSQL primary.
+The database is local Turso, defaulting to `./data/auth/auth.db`. [`runtime-schema.ts`](./src/runtime-schema.ts) is the canonical schema, and [`drizzle/`](./drizzle/) contains the generated migration history. The database enables foreign keys and WAL; its directory and file are restricted to `0700` and `0600`. Shutdown awaits admitted writes, a checkpoint, and the native handle's close. Remote URLs and the former libSQL replica configuration are not supported. A verified Turso backup/restore replacement is a 0.3 release gate; removing replication does not by itself provide a backup.
 
 Deployments must persist the configured auth storage directory across container replacement. Never place it under synchronized `brain-data`. See the [deployment guide](../../packages/brain-cli/docs/deployment-guide.md) and [brain configuration reference](../../packages/brain-cli/docs/brain-yaml-reference.md).
 
@@ -59,7 +59,7 @@ See the [CLI reference](../../packages/brain-cli/docs/cli-reference.md) for flag
 
 ## Implementation map
 
-- [`runtime-db.ts`](./src/runtime-db.ts) — database lifecycle, permissions, pragmas, replicas, and migrations
+- [`runtime-db.ts`](./src/runtime-db.ts) — Turso database lifecycle, permissions, pragmas, and migrations
 - [`runtime-schema.ts`](./src/runtime-schema.ts) — canonical Drizzle tables and constraints
 - [`principal-service.ts`](./src/principal-service.ts) — bearer and interface-principal resolution
 - [`user-management-service.ts`](./src/user-management-service.ts) — role/status and Admin/Anchor invariants

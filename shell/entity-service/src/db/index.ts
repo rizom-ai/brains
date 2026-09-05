@@ -46,8 +46,6 @@ export function createEntityDatabase(config: EntityDbConfig): SqliteConnection {
       projectionWaveRules,
       projectionRuleMemos,
     },
-    authToken: config.authToken,
-    authTokenEnv: "DATABASE_AUTH_TOKEN",
   });
 }
 

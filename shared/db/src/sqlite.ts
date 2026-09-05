@@ -1,104 +1,85 @@
-import { createClient, type Client } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import { LibSQLDatabase } from "drizzle-orm/libsql/driver-core";
+import { LibSQLSession } from "drizzle-orm/libsql/session";
+import { SQLiteAsyncDialect } from "drizzle-orm/sqlite-core";
+import {
+  createTableRelationsHelpers,
+  extractTablesRelationalConfig,
+  type ExtractTablesWithRelations,
+} from "drizzle-orm/relations";
 import { createTursoClient } from "./turso-client";
 import { isLocalFileDatabaseUrl } from "./local-file-url";
 
-export type SqliteDatabase = LibSQLDatabase<Record<string, unknown>>;
-export type SqliteEngine = "libsql" | "turso";
+export type SqliteDatabase<
+  TSchema extends Record<string, unknown> = Record<string, unknown>,
+> = LibSQLDatabase<TSchema>;
 
 const forbidLocalDatabaseOpenEnv = "BRAINS_FORBID_LOCAL_DATABASE_OPEN";
 
-/** The subset of the libSQL client the pragma helper needs. */
 export interface PragmaClient {
   execute: (statement: string) => Promise<unknown>;
 }
 
-export interface CreateSqliteDatabaseOptions {
-  /** Database url — `file:` for local SQLite, `libsql:` for remote. */
+export interface CreateSqliteDatabaseOptions<
+  TSchema extends Record<string, unknown> = Record<string, unknown>,
+> {
+  /** Local Turso database URL. Remote databases are not supported. */
   url: string;
-  /** Drizzle schema tables for this database. */
-  schema: Record<string, unknown>;
-  /** Explicit auth token; wins over `authTokenEnv`. */
-  authToken?: string | undefined;
-  /** Environment variable consulted when no explicit token is given. */
-  authTokenEnv?: string | undefined;
-  /** Explicit engine selection; overrides `BRAINS_DB_ENGINE`. */
-  engine?: SqliteEngine | undefined;
+  schema: TSchema;
 }
 
-export interface SqliteConnection {
-  db: SqliteDatabase;
-  client: Client;
+export interface SqliteConnection<
+  TSchema extends Record<string, unknown> = Record<string, unknown>,
+> {
+  db: SqliteDatabase<TSchema>;
+  client: ReturnType<typeof createTursoClient>;
   url: string;
-  engine: SqliteEngine;
 }
 
 /**
- * Resolve the auth token from an explicit value, else the named env var.
+ * Open the sole supported runtime engine. Compose Drizzle's public session and
+ * database classes: its URL-based entrypoint imports a libSQL runtime client
+ * even when a custom client is supplied.
  */
-export function resolveAuthToken(options: {
-  authToken?: string | undefined;
-  authTokenEnv?: string | undefined;
-}): string | undefined {
-  if (options.authToken !== undefined) return options.authToken;
-  if (options.authTokenEnv === undefined) return undefined;
-  return process.env[options.authTokenEnv];
-}
-
-/** Resolve the selected engine. libSQL is the alpha default; Turso is opt-in. */
-export function resolveSqliteEngine(
-  url: string,
-  requestedEngine?: SqliteEngine,
-): SqliteEngine {
-  if (requestedEngine === "turso" && !isLocalFileDatabaseUrl(url)) {
-    throw new Error("The Turso embedded engine only supports file: urls");
-  }
-  if (requestedEngine !== undefined) return requestedEngine;
-  if (!isLocalFileDatabaseUrl(url)) return "libsql";
-  return process.env["BRAINS_DB_ENGINE"] === "turso" ? "turso" : "libsql";
-}
-
-/**
- * Create a SQLite-backed drizzle database using the selected engine.
- *
- * Every shell service database is built this way; the per-service parts are
- * the url, the drizzle schema, and which env var holds the auth token.
- */
-export function createSqliteDatabase(
-  options: CreateSqliteDatabaseOptions,
-): SqliteConnection {
+export function createSqliteDatabase<TSchema extends Record<string, unknown>>(
+  options: CreateSqliteDatabaseOptions<TSchema>,
+): SqliteConnection<TSchema> {
   const { url, schema } = options;
-  if (
-    isLocalFileDatabaseUrl(url) &&
-    process.env[forbidLocalDatabaseOpenEnv] === "1"
-  ) {
+  if (!isLocalFileDatabaseUrl(url)) {
+    throw new Error("The Turso runtime only supports file: database URLs");
+  }
+  if (process.env[forbidLocalDatabaseOpenEnv] === "1") {
     throw new Error(`Local SQLite opens are forbidden in this process: ${url}`);
   }
-  const authToken = resolveAuthToken(options);
-
-  const engine = resolveSqliteEngine(url, options.engine);
-  const client =
-    engine === "turso"
-      ? createTursoClient({ url })
-      : authToken
-        ? createClient({ url, authToken })
-        : createClient({ url });
-
-  return { db: drizzle(client, { schema }), client, url, engine };
+  const client = createTursoClient({ url });
+  const dialect = new SQLiteAsyncDialect();
+  const tables = extractTablesRelationalConfig<
+    ExtractTablesWithRelations<TSchema>
+  >(schema, createTableRelationsHelpers);
+  const relationalSchema = {
+    fullSchema: schema,
+    schema: tables.tables,
+    tableNamesMap: tables.tableNamesMap,
+  };
+  const session = new LibSQLSession<
+    TSchema,
+    ExtractTablesWithRelations<TSchema>
+  >(client, dialect, relationalSchema, {}, undefined);
+  const db = new LibSQLDatabase<TSchema>(
+    "async",
+    dialect,
+    session,
+    relationalSchema,
+  );
+  return { db, client, url };
 }
 
-/**
- * Enable WAL journaling and a busy timeout so concurrent readers and writers
- * wait instead of failing with SQLITE_BUSY. Only meaningful for local files —
- * remote libSQL manages its own concurrency.
- */
+/** Enable WAL on the single-owner Turso connection. */
 export async function applySqlitePragmas(
   client: PragmaClient,
   url: string,
 ): Promise<void> {
-  if (!isLocalFileDatabaseUrl(url)) return;
-
-  await client.execute("PRAGMA busy_timeout = 5000");
+  if (!isLocalFileDatabaseUrl(url)) {
+    throw new Error("The Turso runtime only supports file: database URLs");
+  }
   await client.execute("PRAGMA journal_mode = WAL");
 }

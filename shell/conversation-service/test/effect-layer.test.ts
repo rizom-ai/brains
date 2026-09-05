@@ -51,7 +51,7 @@ describe("conversation-service Effect layer", () => {
     return url;
   }
 
-  it("applies busy_timeout to the connection it hands out", async () => {
+  it("enables WAL on the connection it hands out", async () => {
     const url = await createDatabaseUrl("pragmas");
     const scope = Effect.runSync(Scope.make());
     const context = Effect.runSync(
@@ -68,10 +68,7 @@ describe("conversation-service Effect layer", () => {
 
     await service.initialize?.();
 
-    // busy_timeout is per-connection and is not stored in the file, so it has
-    // to be read from the service's own connection. Without it a conversation
-    // insert fails outright whenever another writer holds the lock — which is
-    // what a brain seeding content in the background does constantly.
+    // Probe the service-owned connection, not an independent file opener.
     if (
       !("getDatabaseClient" in service) ||
       typeof service.getDatabaseClient !== "function"
@@ -80,9 +77,8 @@ describe("conversation-service Effect layer", () => {
     }
     const result = await service
       .getDatabaseClient()
-      .execute("PRAGMA busy_timeout");
-    const timeout = Number(Object.values(result.rows[0] ?? {})[0]);
-    expect(timeout).toBeGreaterThan(0);
+      .execute("PRAGMA journal_mode");
+    expect(result.rows[0]?.["journal_mode"]).toBe("wal");
 
     closeScope(scope);
   });

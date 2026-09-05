@@ -18,7 +18,6 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
-import type { AuthRuntimeReplicaOptions } from "./runtime-db";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
 import packageJson from "../package.json";
 
@@ -46,55 +45,25 @@ const setupEmailSchema: z.ZodUnion<
 
 export type SetupEmailConfig = z.output<typeof setupEmailSchema>;
 
-const authRuntimeReplicaSchema: z.ZodObject<
+const authServiceConfigSchema: z.ZodObject<
   {
-    syncUrl: z.ZodString;
-    authToken: z.ZodString;
-    syncIntervalMs: z.ZodOptional<z.ZodNumber>;
+    issuer: z.ZodOptional<z.ZodString>;
+    anchor: z.ZodDefault<
+      z.ZodEnum<{
+        person: "person";
+        team: "team";
+        organization: "organization";
+      }>
+    >;
+    trustedIssuers: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    allowLocalhostIssuers: z.ZodOptional<z.ZodBoolean>;
+    storageDir: z.ZodOptional<z.ZodString>;
+    setupTokenTtlSeconds: z.ZodDefault<z.ZodNumber>;
+    setupEmail: z.ZodOptional<typeof setupEmailSchema>;
+    accountSettingsEncryptionKey: z.ZodOptional<z.ZodString>;
   },
   z.core.$strict
-> = z
-  .object({
-    /** Private remote libSQL primary URL. */
-    syncUrl: z
-      .string()
-      .url()
-      .regex(/^(?:libsql|https):\/\//),
-    /** Authentication token for the private remote primary. */
-    authToken: z.string().min(1),
-    /** Remote-to-local sync cadence in milliseconds. */
-    syncIntervalMs: z.number().int().positive().optional(),
-  })
-  .strict();
-
-// The replica options belong to the runtime database; the config schema must
-// accept every value typed by them and yield nothing outside them.
-function expectReplicaOptions(
-  value: z.output<typeof authRuntimeReplicaSchema>,
-): AuthRuntimeReplicaOptions {
-  return value;
-}
-function expectReplicaOptionsInput(
-  value: AuthRuntimeReplicaOptions,
-): z.input<typeof authRuntimeReplicaSchema> {
-  return value;
-}
-void expectReplicaOptions;
-void expectReplicaOptionsInput;
-
-const authServiceConfigSchema: z.ZodObject<{
-  issuer: z.ZodOptional<z.ZodString>;
-  anchor: z.ZodDefault<
-    z.ZodEnum<{ person: "person"; team: "team"; organization: "organization" }>
-  >;
-  trustedIssuers: z.ZodDefault<z.ZodArray<z.ZodString>>;
-  allowLocalhostIssuers: z.ZodOptional<z.ZodBoolean>;
-  storageDir: z.ZodOptional<z.ZodString>;
-  replica: z.ZodOptional<typeof authRuntimeReplicaSchema>;
-  setupTokenTtlSeconds: z.ZodDefault<z.ZodNumber>;
-  setupEmail: z.ZodOptional<typeof setupEmailSchema>;
-  accountSettingsEncryptionKey: z.ZodOptional<z.ZodString>;
-}> = z.object({
+> = z.strictObject({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
   issuer: z.string().optional(),
   /** Config-declared Anchor profile flavor. Team and organization are collective. */
@@ -105,8 +74,6 @@ const authServiceConfigSchema: z.ZodObject<{
   allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Defaults to ./data/auth, outside brain-data/content. */
   storageDir: z.string().optional(),
-  /** Private remote libSQL primary for embedded-replica backup and PITR. */
-  replica: authRuntimeReplicaSchema.optional(),
   /** First-passkey setup token lifetime in seconds. */
   setupTokenTtlSeconds: z
     .number()
@@ -188,7 +155,6 @@ export class AuthServicePlugin extends ServicePlugin<
         : (context.siteUrl ?? context.localSiteUrl));
     this.service = new AuthService({
       storageDir: resolveAuthStorageDir(this.config.storageDir),
-      ...(this.config.replica ? { replica: this.config.replica } : {}),
       anchor: this.config.anchor,
       anchorProfileEntityId: "anchor-profile/anchor-profile",
       resolveProfileDisplayName: (

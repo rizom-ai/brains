@@ -2,12 +2,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createClient } from "@libsql/client";
-import {
-  AuthRuntimeDatabase,
-  authRuntimeConnectionPragmas,
-  buildAuthRuntimeClientConfig,
-} from "../src/runtime-db";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
+import { AuthRuntimeDatabase } from "../src/runtime-db";
 
 const tempDirs: string[] = [];
 const legacyAuthV4Fixture = await Bun.file(
@@ -61,44 +57,36 @@ async function tableNames(database: AuthRuntimeDatabase): Promise<string[]> {
 }
 
 describe("AuthRuntimeDatabase", () => {
-  it("configures a private embedded replica for remote backup and PITR", () => {
-    expect(
-      buildAuthRuntimeClientConfig({
-        url: "file:/srv/auth/auth.db",
-        replica: {
-          syncUrl: "libsql://private-auth.example.turso.io",
-          authToken: "secret-token",
-        },
-      }),
-    ).toEqual({
-      url: "file:/srv/auth/auth.db",
-      syncUrl: "libsql://private-auth.example.turso.io",
-      authToken: "secret-token",
-      syncInterval: 60_000,
-    });
+  it("rejects remote database URLs before opening a connection", () => {
+    for (const url of [
+      "libsql://auth.example.com",
+      "https://auth.example.com",
+    ]) {
+      expect(() => new AuthRuntimeDatabase({ url })).toThrow(
+        "Auth runtime database requires a local file: URL",
+      );
+    }
+  });
 
-    expect(() =>
-      buildAuthRuntimeClientConfig({
-        url: "libsql://primary.example.turso.io",
-        replica: {
-          syncUrl: "libsql://backup.example.turso.io",
-          authToken: "secret-token",
-        },
-      }),
-    ).toThrow("Auth embedded replicas require a local file database");
-    expect(() =>
-      buildAuthRuntimeClientConfig({
-        url: "file:/srv/auth/auth.db",
-        replica: {
-          syncUrl: "file:/srv/auth/not-a-remote.db",
-          authToken: "secret-token",
-        },
-      }),
-    ).toThrow("Auth embedded replicas require a remote libSQL URL");
+  it("drains admitted writes before concurrent shutdown completes", async () => {
+    const storageDir = await tempStorageDir();
+    const database = new AuthRuntimeDatabase({ storageDir });
+    await database.start();
+    await database.client.execute("CREATE TABLE durability_probe (value TEXT)");
+    const write = database.client.execute(
+      "INSERT INTO durability_probe VALUES ('persisted')",
+    );
+    await Promise.all([write, database.stop(), database.stop()]);
 
-    expect(
-      authRuntimeConnectionPragmas("file:/srv/auth/auth.db", true),
-    ).toEqual(["PRAGMA foreign_keys = ON"]);
+    await database.start();
+    try {
+      const result = await database.client.execute(
+        "SELECT value FROM durability_probe",
+      );
+      expect(result.rows[0]?.["value"]).toBe("persisted");
+    } finally {
+      await database.stop();
+    }
   });
 
   it("creates a private local auth database with the initial schema", async () => {
@@ -205,9 +193,12 @@ describe("AuthRuntimeDatabase", () => {
 
   it("rejects unsupported pre-Drizzle auth databases", async () => {
     const storageDir = await tempStorageDir();
-    const legacy = createClient({ url: `file:${join(storageDir, "auth.db")}` });
+    const { client: legacy } = createSqliteDatabase({
+      url: `file:${join(storageDir, "auth.db")}`,
+      schema: {},
+    });
     await legacy.executeMultiple(legacyAuthV4Fixture);
-    legacy.close();
+    await closeSqliteClient(legacy);
 
     const database = new AuthRuntimeDatabase({ storageDir });
     expect(database.start()).rejects.toThrow();

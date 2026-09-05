@@ -159,8 +159,6 @@ console.log("Building @rizom/brain...");
 
 // Native modules, lazy-loaded SDKs, and the JSX runtime.
 const sharedExternals = [
-  "@libsql/client",
-  "libsql",
   "@tursodatabase/database",
   "lightningcss",
   "@tailwindcss/oxide",

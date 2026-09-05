@@ -17,12 +17,16 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Client, Row, Transaction } from "@libsql/client";
 import {
-  applySqlitePragmas,
-  createSqliteDatabase,
-  type SqliteEngine,
-} from "@brains/db";
+  createClient,
+  type Client,
+  type Row,
+  type Transaction,
+} from "@libsql/client";
+import { applySqlitePragmas, createSqliteDatabase } from "@brains/db";
+
+// Historical libSQL baseline belongs to this benchmark, not the runtime.
+type SqliteEngine = "libsql" | "turso";
 
 interface OpenDatabase {
   client: Client;
@@ -69,7 +73,10 @@ async function openDatabase(
   engine: SqliteEngine,
 ): Promise<OpenDatabase> {
   const url = `file:${join(directory, filename)}`;
-  const { client } = createSqliteDatabase({ url, schema: {}, engine });
+  const client =
+    engine === "libsql"
+      ? createClient({ url })
+      : createSqliteDatabase({ url, schema: {} }).client;
   await applySqlitePragmas(client, url);
   return { client };
 }

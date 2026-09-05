@@ -14,7 +14,5 @@ export function createRuntimeStateDatabase(
   return createSqliteDatabase({
     url: config.url,
     schema: { runtimeStateRecords },
-    authToken: config.authToken,
-    authTokenEnv: "RUNTIME_STATE_DATABASE_AUTH_TOKEN",
   });
 }

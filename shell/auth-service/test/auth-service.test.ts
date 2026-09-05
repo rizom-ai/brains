@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
-import { createClient } from "@libsql/client";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -19,7 +19,6 @@ import {
   authServicePlugin,
   normalizeIssuer,
   reinitializeAuthAccessStorage,
-  type AuthServiceConfig,
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
@@ -102,25 +101,15 @@ describe("AuthService", () => {
     expect(resolveAuthStorageDir("/srv/brain-auth")).toBe("/srv/brain-auth");
   });
 
-  it("retains private embedded-replica configuration", () => {
-    class InspectableAuthServicePlugin extends AuthServicePlugin {
-      get parsedConfig(): AuthServiceConfig {
-        return this.config;
-      }
-    }
-    const plugin = new InspectableAuthServicePlugin({
+  it("rejects retired replica configuration rather than silently dropping backup settings", () => {
+    const config = {
+      issuer: "https://brain.example.com",
       replica: {
         syncUrl: "libsql://private-auth.example.turso.io",
         authToken: "secret-token",
-        syncIntervalMs: 30_000,
       },
-    });
-
-    expect(plugin.parsedConfig.replica).toEqual({
-      syncUrl: "libsql://private-auth.example.turso.io",
-      authToken: "secret-token",
-      syncIntervalMs: 30_000,
-    });
+    };
+    expect(() => new AuthServicePlugin(config)).toThrow();
   });
 
   it("joins repeated shutdown calls", async () => {
@@ -1197,7 +1186,11 @@ describe("AuthService", () => {
     expectSuccess(setupResponse);
     const setup = setupRequiredToolDataSchema.parse(setupResponse.data);
     const rawToken = new URL(setup.setupUrl).searchParams.get("token") ?? "";
-    const database = createClient({ url: `file:${storeFile}` });
+    await harness.getPlugin().getService().close();
+    const { client: database } = createSqliteDatabase({
+      url: `file:${storeFile}`,
+      schema: {},
+    });
     try {
       const rows = await database.execute(
         `SELECT setup_tokens.token_hash, setup_token_deliveries.recipient_hash
@@ -1212,7 +1205,7 @@ describe("AuthService", () => {
       expect(rows.rows[0]?.["recipient_hash"]).toMatch(/^[0-9a-f]{64}$/);
       expect(rows.rows[0]?.["recipient_hash"]).not.toBe("user@example.com");
     } finally {
-      database.close();
+      await closeSqliteClient(database);
     }
   });
 

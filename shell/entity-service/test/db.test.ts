@@ -36,16 +36,10 @@ describe("EntityService Database", () => {
       expect(url).toBe(customUrl);
     });
 
-    test("creates database with auth token", () => {
-      const config = {
-        url: "libsql://test.turso.io",
-        authToken: "test-token",
-      };
-      const { db, client, url } = createEntityDatabase(config);
-      trackClient(client);
-      expect(db).toBeDefined();
-      expect(client).toBeDefined();
-      expect(url).toBe(config.url);
+    test("rejects remote libSQL configuration", () => {
+      expect(() =>
+        createEntityDatabase({ url: "libsql://test.turso.io" }),
+      ).toThrow(/only supports file:/);
     });
   });
 

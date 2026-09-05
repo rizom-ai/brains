@@ -1,13 +1,10 @@
 export {
   applySqlitePragmas,
   createSqliteDatabase,
-  resolveAuthToken,
-  resolveSqliteEngine,
   type CreateSqliteDatabaseOptions,
   type PragmaClient,
   type SqliteConnection,
   type SqliteDatabase,
-  type SqliteEngine,
 } from "./sqlite";
 
 export { closeSqliteClient } from "./turso-client";

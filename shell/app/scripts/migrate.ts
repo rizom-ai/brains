@@ -18,9 +18,6 @@ async function main(): Promise<void> {
     await migrateEntities(
       {
         url: config.database.url,
-        ...(config.database.authToken && {
-          authToken: config.database.authToken,
-        }),
       },
       logger,
     );
@@ -29,9 +26,6 @@ async function main(): Promise<void> {
     await migrateJobQueue(
       {
         url: config.jobQueueDatabase.url,
-        ...(config.jobQueueDatabase.authToken && {
-          authToken: config.jobQueueDatabase.authToken,
-        }),
       },
       logger,
     );
@@ -40,9 +34,6 @@ async function main(): Promise<void> {
     await migrateConversations(
       {
         url: config.conversationDatabase.url,
-        ...(config.conversationDatabase.authToken && {
-          authToken: config.conversationDatabase.authToken,
-        }),
       },
       logger,
     );
@@ -51,9 +42,6 @@ async function main(): Promise<void> {
     await migrateRuntimeState(
       {
         url: config.runtimeStateDatabase.url,
-        ...(config.runtimeStateDatabase.authToken && {
-          authToken: config.runtimeStateDatabase.authToken,
-        }),
       },
       logger,
     );

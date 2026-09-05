@@ -64,7 +64,6 @@ describe("projection migrations", () => {
     await runPackageMigrations({
       label: "legacy-entity-test",
       config: { url: databaseUrl },
-      engine: "libsql",
       schema: {},
       migrationsFolder: legacyMigrations,
     });

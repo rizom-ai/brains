@@ -20,7 +20,6 @@ export async function migrateConversations(
       import.meta.url,
       "conversation-service",
     ),
-    authTokenEnv: "CONVERSATION_DATABASE_AUTH_TOKEN",
     logger,
   });
 }

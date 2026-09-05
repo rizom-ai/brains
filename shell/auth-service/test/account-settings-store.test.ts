@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { createClient } from "@libsql/client";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -71,7 +71,10 @@ describe("auth account settings store", () => {
       ).toMatchObject({ revision: 2 });
       await database.stop();
 
-      const client = createClient({ url: `file:${join(dir, "auth.db")}` });
+      const { client } = createSqliteDatabase({
+        url: `file:${join(dir, "auth.db")}`,
+        schema: {},
+      });
       try {
         const rows = await client.execute(
           "SELECT payload FROM auth_account_plugin_settings",
@@ -80,7 +83,7 @@ describe("auth account settings store", () => {
         expect(payload).not.toContain("imap.example.com");
         expect(payload).not.toContain("mailbox-secret");
       } finally {
-        client.close();
+        await closeSqliteClient(client);
       }
     } finally {
       await database.stop();

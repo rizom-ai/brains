@@ -11,14 +11,17 @@
 import { cpus, tmpdir } from "node:os";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import type { Client, Transaction } from "@libsql/client";
+import { createClient, type Client, type Transaction } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import {
   applySqlitePragmas,
   createSqliteDatabase,
   type SqliteDatabase,
-  type SqliteEngine,
 } from "@brains/db";
 import { sql } from "drizzle-orm";
+
+// Historical libSQL baseline belongs to this benchmark, not the runtime.
+type SqliteEngine = "libsql" | "turso";
 
 interface OpenDatabase {
   client: Client;
@@ -128,7 +131,11 @@ async function openDatabase(
   engine: SqliteEngine,
 ): Promise<OpenDatabase> {
   const url = `file:${join(directory, filename)}`;
-  const { client, db } = createSqliteDatabase({ url, schema: {}, engine });
+  const client =
+    engine === "libsql"
+      ? createClient({ url })
+      : createSqliteDatabase({ url, schema: {} }).client;
+  const db = drizzle(client, { schema: {} });
   await applySqlitePragmas(client, url);
   await client.execute("PRAGMA foreign_keys=ON");
   return { client, db, url };

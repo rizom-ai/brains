@@ -1,17 +1,17 @@
 import { z } from "@brains/utils/zod";
 
-type DbConfigSchema = z.ZodObject<{
-  url: z.ZodString;
-  authToken: z.ZodOptional<z.ZodString>;
-}>;
+type DbConfigSchema = z.ZodObject<
+  {
+    url: z.ZodString;
+  },
+  z.core.$strict
+>;
 
 /**
- * Shared database configuration — used by all services (entity, embedding,
- * job queue, conversation).
+ * Local Turso database configuration shared by runtime services.
  */
-export const dbConfigSchema: DbConfigSchema = z.object({
-  url: z.string(),
-  authToken: z.string().optional(),
+export const dbConfigSchema: DbConfigSchema = z.strictObject({
+  url: z.string().startsWith("file:"),
 });
 
 export type DbConfig = z.output<typeof dbConfigSchema>;

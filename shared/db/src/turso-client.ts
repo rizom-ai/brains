@@ -368,7 +368,7 @@ class TursoTransaction implements Transaction {
 
 /**
  * Create a libSQL-`Client`-compatible client backed by the Turso database
- * engine. Only `file:` urls are supported — remote urls stay on `@libsql/client`.
+ * engine. Runtime databases support local `file:` URLs only.
  */
 export function createTursoClient(options: CreateTursoClientOptions): Client {
   return new TursoClient(options.url);

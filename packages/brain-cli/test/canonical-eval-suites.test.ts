@@ -112,6 +112,11 @@ function createSuiteApp(
   const plugins = {
     ...basePlugins,
     ...(selection.plugins ?? {}),
+    "auth-service": {
+      ...(basePlugins["auth-service"] ?? {}),
+      ...(selection.plugins?.["auth-service"] ?? {}),
+      storageDir: join(directory, "auth"),
+    },
     "directory-sync": {
       ...(basePlugins["directory-sync"] ?? {}),
       ...(selection.plugins?.["directory-sync"] ?? {}),

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { createClient } from "@libsql/client";
 import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { createSilentLogger } from "@brains/test-utils";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -6,16 +7,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { migrateEntities } from "../src/migrate";
 
-describe("Turso entity database cutover", () => {
+describe("Turso entity database startup", () => {
   const directories: string[] = [];
-  const previousEngine = process.env["BRAINS_DB_ENGINE"];
-
   afterEach(async () => {
-    if (previousEngine === undefined) {
-      delete process.env["BRAINS_DB_ENGINE"];
-    } else {
-      process.env["BRAINS_DB_ENGINE"] = previousEngine;
-    }
     await Promise.all(
       directories
         .splice(0)
@@ -23,201 +17,70 @@ describe("Turso entity database cutover", () => {
     );
   });
 
-  test("upgrades released libSQL schema and switches back without data loss", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "brains-turso-cutover-"));
+  test("refuses released FTS5 schema without modifying its durable contents", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "brains-turso-legacy-"));
     directories.push(directory);
-    const entityConfig = { url: `file:${join(directory, "entities.db")}` };
-    const legacyEmbeddingUrl = `file:${join(directory, "embeddings.db")}`;
-    const logger = createSilentLogger();
-
-    process.env["BRAINS_DB_ENGINE"] = "libsql";
-    await migrateEntities(entityConfig, logger);
-
-    const entityLibsql = createSqliteDatabase({
-      url: entityConfig.url,
-      schema: {},
-      engine: "libsql",
-    });
+    const url = `file:${join(directory, "entities.db")}`;
+    // libSQL is a fixture producer only, never a runtime fallback.
+    const legacy = createClient({ url });
     try {
-      // Reconstruct the released 0011 schema so this exercises the real 0012
-      // migration rather than runtime cleanup after an already-current schema.
-      await entityLibsql.client.execute(
-        "DROP INDEX entity_job_outbox_pending_delivery_order_idx",
-      );
-      await entityLibsql.client.execute(
-        "ALTER TABLE entity_job_outbox DROP COLUMN parked_at",
-      );
-      await entityLibsql.client.execute(
-        "ALTER TABLE entity_job_outbox DROP COLUMN failure_reason",
-      );
-      await entityLibsql.client.execute(
-        "ALTER TABLE entities DROP COLUMN search_text",
-      );
-      await entityLibsql.client.execute(
-        "DELETE FROM __drizzle_migrations WHERE created_at = (SELECT MAX(created_at) FROM __drizzle_migrations)",
-      );
-      await entityLibsql.client.execute(`
-        CREATE VIRTUAL TABLE entity_fts USING fts5(
-          entity_id UNINDEXED,
-          entity_type UNINDEXED,
-          content
-        )
-      `);
-      await entityLibsql.client.execute({
-        sql: `INSERT INTO entities (
-          id, entityType, content, contentHash, visibility,
-          metadata, created, updated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          "existing-note",
-          "note",
-          "Existing production content",
-          "existing-hash",
-          "public",
-          "{}",
-          1,
-          1,
-        ],
-      });
-      await entityLibsql.client.execute(
-        `INSERT INTO entity_fts (entity_id, entity_type, content)
-         VALUES ('existing-note', 'note', 'Existing production content')`,
-      );
-    } finally {
-      await closeSqliteClient(entityLibsql.client);
-    }
-
-    const legacy = createSqliteDatabase({
-      url: legacyEmbeddingUrl,
-      schema: {},
-      engine: "libsql",
-    });
-    try {
-      await legacy.client.execute(`CREATE TABLE embeddings (
-        entity_id TEXT NOT NULL,
-        entity_type TEXT NOT NULL,
-        embedding F32_BLOB(4) NOT NULL,
-        content_hash TEXT NOT NULL,
-        PRIMARY KEY (entity_id, entity_type)
-      )`);
-      await legacy.client.execute({
-        sql: "INSERT INTO embeddings VALUES (?, ?, vector32(?), ?)",
-        args: [
-          "existing-note",
-          "note",
-          JSON.stringify([0.1, 0.2, 0.3, 0.4]),
-          "existing-hash",
-        ],
-      });
-      await legacy.client.execute(`
-        CREATE INDEX embeddings_embedding_idx
-        ON embeddings(libsql_vector_idx(embedding))
+      await legacy.executeMultiple(`
+        CREATE TABLE entities (id TEXT PRIMARY KEY, content TEXT NOT NULL);
+        INSERT INTO entities VALUES ('existing-note', 'Existing production content');
+        CREATE VIRTUAL TABLE entity_fts USING fts5(entity_id UNINDEXED, content);
+        INSERT INTO entity_fts VALUES ('existing-note', 'Existing production content');
       `);
     } finally {
-      await closeSqliteClient(legacy.client);
+      await closeSqliteClient(legacy);
     }
 
-    process.env["BRAINS_DB_ENGINE"] = "turso";
-    await migrateEntities(entityConfig, logger);
+    const failure = await migrateEntities({ url }, createSilentLogger()).then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(Error);
+    if (!(failure instanceof Error))
+      throw new Error("Expected legacy-schema rejection");
+    expect(failure.message).toContain(
+      "Import the 0.2 backup into a new 0.3 data directory",
+    );
 
-    const entityTurso = createSqliteDatabase({
-      url: entityConfig.url,
-      schema: {},
-      engine: "turso",
-    });
+    const reader = createClient({ url });
     try {
-      const entity = await entityTurso.client.execute(
+      const entity = await reader.execute(
         "SELECT content FROM entities WHERE id = 'existing-note'",
       );
       expect(entity.rows[0]?.["content"]).toBe("Existing production content");
+      const matches = await reader.execute(
+        "SELECT entity_id FROM entity_fts WHERE entity_fts MATCH 'production'",
+      );
+      expect(matches.rows[0]?.["entity_id"]).toBe("existing-note");
+      const migrations = await reader.execute(
+        "SELECT name FROM sqlite_master WHERE name = '__drizzle_migrations'",
+      );
+      expect(migrations.rows).toEqual([]);
+    } finally {
+      await closeSqliteClient(reader);
+    }
+  });
 
-      const searchSchema = await entityTurso.client.execute(
+  test("creates and reopens the Turso schema without a libSQL cleanup pass", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "brains-turso-fresh-"));
+    directories.push(directory);
+    const config = { url: `file:${join(directory, "entities.db")}` };
+    const logger = createSilentLogger();
+    await migrateEntities(config, logger);
+    await migrateEntities(config, logger);
+    const { client } = createSqliteDatabase({ url: config.url, schema: {} });
+    try {
+      const searchSchema = await client.execute(
         "SELECT name FROM sqlite_master WHERE name = 'entity_fts'",
       );
       expect(searchSchema.rows).toEqual([]);
-
-      await entityTurso.client.execute({
-        sql: `INSERT INTO embeddings
-          (entity_id, entity_type, embedding, content_hash)
-          VALUES (?, ?, vector32(?), ?)`,
-        args: [
-          "existing-note",
-          "note",
-          JSON.stringify([0.1, 0.2]),
-          "existing-hash",
-        ],
-      });
-      await entityTurso.client.execute({
-        sql: `INSERT INTO entity_job_outbox (id, request, created_at)
-          VALUES (?, ?, ?)`,
-        args: [
-          "roundtrip-intent",
-          JSON.stringify({
-            type: "generate-embedding",
-            data: { entityId: "existing-note", entityType: "note" },
-            idempotencyKey: "roundtrip-intent",
-          }),
-          2,
-        ],
-      });
+      const columns = await client.execute("PRAGMA table_info(entities)");
+      expect(columns.rows.map((row) => row["name"])).toContain("search_text");
     } finally {
-      await closeSqliteClient(entityTurso.client);
-    }
-
-    process.env["BRAINS_DB_ENGINE"] = "libsql";
-    await migrateEntities(entityConfig, logger);
-
-    const fallback = createSqliteDatabase({
-      url: entityConfig.url,
-      schema: {},
-      engine: "libsql",
-    });
-    try {
-      const matches = await fallback.client.execute({
-        sql: `SELECT id FROM entities
-          WHERE instr(lower(content), lower(?)) > 0`,
-        args: ["production content"],
-      });
-      expect(matches.rows).toEqual([
-        expect.objectContaining({ id: "existing-note" }),
-      ]);
-
-      const embeddings = await fallback.client.execute(
-        "SELECT content_hash FROM embeddings WHERE entity_id = 'existing-note'",
-      );
-      expect(embeddings.rows[0]?.["content_hash"]).toBe("existing-hash");
-
-      const outbox = await fallback.client.execute(
-        "SELECT request FROM entity_job_outbox WHERE id = 'roundtrip-intent'",
-      );
-      expect(String(outbox.rows[0]?.["request"])).toContain(
-        '"idempotencyKey":"roundtrip-intent"',
-      );
-
-      const searchSchema = await fallback.client.execute(
-        "SELECT name FROM sqlite_master WHERE name = 'entity_fts'",
-      );
-      expect(searchSchema.rows).toEqual([]);
-    } finally {
-      await closeSqliteClient(fallback.client);
-    }
-
-    const unchangedLegacy = createSqliteDatabase({
-      url: legacyEmbeddingUrl,
-      schema: {},
-      engine: "libsql",
-    });
-    try {
-      const rows = await unchangedLegacy.client.execute(
-        "SELECT content_hash FROM embeddings",
-      );
-      expect(rows.rows[0]?.["content_hash"]).toBe("existing-hash");
-      const indexes = await unchangedLegacy.client.execute(
-        "SELECT name FROM sqlite_master WHERE name = 'embeddings_embedding_idx'",
-      );
-      expect(indexes.rows).toHaveLength(1);
-    } finally {
-      await closeSqliteClient(unchangedLegacy.client);
+      await closeSqliteClient(client);
     }
   });
 });

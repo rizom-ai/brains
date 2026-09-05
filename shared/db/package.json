@@ -3,13 +3,13 @@
   "version": "0.2.0-alpha.352",
   "dependencies": {
     "@brains/utils": "workspace:*",
-    "@libsql/client": "^0.17.4",
     "@tursodatabase/database": "^0.7.2",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@libsql/client": "^0.17.4",
     "@types/bun": "^1.4.0",
     "@types/node": "^24.13.3",
     "drizzle-kit": "^0.31.10",

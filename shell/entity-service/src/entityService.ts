@@ -46,7 +46,7 @@ import type {
 import { embeddings } from "./schema/embeddings";
 import { entities } from "./schema/entities";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
-import { isNull, sql } from "drizzle-orm";
+import { and, asc, gte, isNull, sql } from "drizzle-orm";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
@@ -335,7 +335,10 @@ export class EntityService implements IEntityService {
    * rows still missing the column instead of starting over.
    */
   private async backfillSearchText(): Promise<void> {
-    const pageAtATime = async (): Promise<void> => {
+    const pageAtATime = async (after?: {
+      id: string;
+      entityType: string;
+    }): Promise<void> => {
       const rows = await this.db
         .select({
           id: entities.id,
@@ -343,7 +346,18 @@ export class EntityService implements IEntityService {
           content: entities.content,
         })
         .from(entities)
-        .where(isNull(entities.searchText))
+        .where(
+          and(
+            isNull(entities.searchText),
+            // Turso needs the leading scalar bound to seek the primary key;
+            // the tuple alone is evaluated as a scan filter by this engine.
+            after ? gte(entities.id, after.id) : undefined,
+            after
+              ? sql`(${entities.id}, ${entities.entityType}) > (${after.id}, ${after.entityType})`
+              : undefined,
+          ),
+        )
+        .orderBy(asc(entities.id), asc(entities.entityType))
         .limit(SEARCH_TEXT_BACKFILL_PAGE_SIZE);
       if (rows.length === 0) return;
 
@@ -358,9 +372,11 @@ export class EntityService implements IEntityService {
         }
       });
 
-      // Every committed page shrinks the predicate, so the next select seeks
-      // the remaining rows rather than paging by a drifting offset.
-      if (rows.length === SEARCH_TEXT_BACKFILL_PAGE_SIZE) await pageAtATime();
+      // Seek on the composite primary key instead of rescanning completed rows.
+      const last = rows.at(-1);
+      if (rows.length === SEARCH_TEXT_BACKFILL_PAGE_SIZE && last) {
+        await pageAtATime({ id: last.id, entityType: last.entityType });
+      }
     };
 
     await pageAtATime();

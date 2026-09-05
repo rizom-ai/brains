@@ -1,10 +1,6 @@
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
-import {
-  applySqlitePragmas,
-  createSqliteDatabase,
-  type SqliteEngine,
-} from "./sqlite";
+import { applySqlitePragmas, createSqliteDatabase } from "./sqlite";
 import { closeSqliteClient } from "./turso-client";
 
 export interface PackageMigrationOptions {
@@ -13,16 +9,11 @@ export interface PackageMigrationOptions {
   /** Database connection config. */
   config: {
     url: string;
-    authToken?: string | undefined;
   };
-  /** Explicit engine override, primarily for controlled cutover operations. */
-  engine?: SqliteEngine | undefined;
   /** Drizzle schema tables for this database. */
   schema: Record<string, unknown>;
   /** Absolute path to the drizzle migrations folder. */
   migrationsFolder: string;
-  /** Environment variable consulted when config has no explicit token. */
-  authTokenEnv?: string | undefined;
   logger?: Logger | undefined;
 }
 
@@ -42,15 +33,12 @@ export async function runPackageMigrations(
   const { db, client, url } = createSqliteDatabase({
     url: config.url,
     schema,
-    authToken: config.authToken,
-    authTokenEnv: options.authTokenEnv,
-    engine: options.engine,
   });
 
   log.debug(`Running ${label} migrations...`);
 
   try {
-    // Pragmas first so the migration itself benefits from the busy timeout.
+    // Establish the runtime journal mode before applying migrations.
     await applySqlitePragmas(client, url);
     await migrate(db, { migrationsFolder });
 

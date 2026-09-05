@@ -17,7 +17,6 @@ export async function migrateRuntimeState(
     config,
     schema: { runtimeStateRecords },
     migrationsFolder: resolveMigrationsFolder(import.meta.url, "runtime-state"),
-    authTokenEnv: "RUNTIME_STATE_DATABASE_AUTH_TOKEN",
     logger,
   });
 }

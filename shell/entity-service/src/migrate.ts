@@ -4,7 +4,6 @@ import {
   createSqliteDatabase,
   refuseDirectMigrationRun,
   resolveMigrationsFolder,
-  resolveSqliteEngine,
   runPackageMigrations,
 } from "@brains/db";
 import { embeddings } from "./schema/embeddings";
@@ -27,9 +26,6 @@ async function hasLegacyEntitySearchTable(
   const { client } = createSqliteDatabase({
     url: config.url,
     schema: {},
-    authToken: config.authToken,
-    authTokenEnv: "DATABASE_AUTH_TOKEN",
-    engine: "turso",
   });
   try {
     const result = await client.execute(
@@ -44,12 +40,10 @@ async function hasLegacyEntitySearchTable(
 function runEntityMigrations(
   config: EntityDbConfig,
   logger: Logger | undefined,
-  engine?: "libsql" | "turso",
 ): Promise<void> {
   return runPackageMigrations({
     label: "entity",
     config,
-    ...(engine && { engine }),
     schema: {
       assets,
       entities,
@@ -65,7 +59,6 @@ function runEntityMigrations(
       import.meta.url,
       "entity-service",
     ),
-    authTokenEnv: "DATABASE_AUTH_TOKEN",
     logger,
   });
 }
@@ -74,14 +67,12 @@ export async function migrateEntities(
   config: EntityDbConfig,
   logger?: Logger,
 ): Promise<void> {
-  // Turso cannot remove a legacy FTS5 virtual table it cannot load. For that
-  // pre-0012 schema only, execute the generated migration through libSQL.
-  // Fresh and already-current Turso databases never open a libSQL connection.
-  if (
-    resolveSqliteEngine(config.url) === "turso" &&
-    (await hasLegacyEntitySearchTable(config))
-  ) {
-    await runEntityMigrations(config, logger, "libsql");
+  // Released libSQL schemas belong to the offline import tool, never an
+  // alternate runtime engine or an in-place cleanup during application boot.
+  if (await hasLegacyEntitySearchTable(config)) {
+    throw new Error(
+      "Legacy libSQL entity database detected. Import the 0.2 backup into a new 0.3 data directory before starting this runtime.",
+    );
   }
   await runEntityMigrations(config, logger);
 }

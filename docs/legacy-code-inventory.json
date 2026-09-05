@@ -223,12 +223,24 @@
       "paths": ["shell/entity-service/src/migrate.ts"],
       "symbol": "hasLegacyEntitySearchTable",
       "owner": "@brains/entity-service",
+      "class": "rejection-only-compatibility",
+      "behavior": "Rejects legacy FTS5 entity files during 0.3 startup and directs operators to offline import; no runtime libSQL cleanup remains.",
+      "currentConsumers": "Operators pointing the 0.3 runtime at an unimported 0.2 entity database.",
+      "removalPrerequisite": "Unsupported source databases can be rejected by a general storage-version gate instead.",
+      "rollbackDependency": "None; rollback uses the retained 0.2 binary and backup, not a runtime engine switch.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "offline-libsql-backup-import",
+      "paths": ["packages/db-migration/src/import-backup.ts"],
+      "symbol": "importBackup",
+      "owner": "@rizom/db-migration",
       "class": "durable-data-compatibility",
-      "behavior": "Detects the legacy FTS5 entity-search table and runs migration 0012 through libSQL before Turso opens the portable schema.",
-      "currentConsumers": "Local entity databases created before portable search_text became canonical.",
-      "removalPrerequisite": "The minimum supported upgrade source includes migration 0012 and all supported local databases have crossed the Turso alpha rollback window.",
-      "rollbackDependency": "Pre-0012 libSQL databases must remain directly upgradeable while they are supported rollback sources.",
-      "targetRelease": "post-turso-alpha-soak"
+      "behavior": "Uses libSQL only in the separate offline tool to inspect staged 0.2 backup copies and remove FTS5 before verified Turso migration.",
+      "currentConsumers": "Checksum-verified 0.2 database snapshots imported into new 0.3 data directories.",
+      "removalPrerequisite": "Retire supported 0.2 imports; the 0.3 runtime never depends on this package.",
+      "rollbackDependency": "Source snapshots remain unchanged for restoring the 0.2 binary; destination files are not reopened as a runtime fallback.",
+      "targetRelease": "after-0.2-import-support-ends"
     },
     {
       "id": "entity-vector-drizzle-schema",

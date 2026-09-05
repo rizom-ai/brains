@@ -1,11 +1,13 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["BRAINS_DB_ENGINE"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": true
+    },
+    "@rizom/db-migration#build": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/shell/*/drizzle/**"]
     },
     "lint": {
       "inputs": [

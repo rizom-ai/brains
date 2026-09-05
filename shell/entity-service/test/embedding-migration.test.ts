@@ -65,7 +65,6 @@ async function createLegacyEntityDatabase(): Promise<{
   await runPackageMigrations({
     label: "legacy-embedding-test",
     config: { url },
-    engine: "libsql",
     schema: {},
     migrationsFolder: legacyMigrations,
   });
@@ -76,7 +75,6 @@ async function seedLegacyRows(url: string): Promise<void> {
   const { client } = createSqliteDatabase({
     url,
     schema: {},
-    engine: "libsql",
   });
   await client.execute({
     sql: `INSERT INTO entities
@@ -133,7 +131,6 @@ describe("embedding consolidation migration", () => {
     const before = createSqliteDatabase({
       url: legacy.url,
       schema: {},
-      engine: "libsql",
     });
     await before.client.execute("CREATE TABLE __new_embeddings (value TEXT)");
     await closeSqliteClient(before.client);

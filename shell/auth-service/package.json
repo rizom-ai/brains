@@ -9,7 +9,6 @@
     "@brains/notifications": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@libsql/client": "^0.17.4",
     "@simplewebauthn/server": "^13.3.1",
     "drizzle-orm": "^0.45.2",
     "jose": "^6.2.3"

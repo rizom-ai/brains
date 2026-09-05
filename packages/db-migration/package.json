@@ -1,0 +1,34 @@
+{
+  "name": "@rizom/db-migration",
+  "version": "0.3.0-alpha.0",
+  "private": true,
+  "description": "Offline 0.2 libSQL backup importer for the Turso-only 0.3 runtime",
+  "type": "module",
+  "bin": {
+    "brain-db-migrate": "./dist/brain-db-migrate.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@libsql/client": "^0.17.4",
+    "@tursodatabase/database": "^0.7.2"
+  },
+  "devDependencies": {
+    "@brains/db": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^24.13.3",
+    "drizzle-orm": "^0.45.2",
+    "typescript": "^7.0.2"
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  }
+}

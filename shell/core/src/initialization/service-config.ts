@@ -43,6 +43,5 @@ export function createAIModelConfig(config: ShellConfig): AIModelConfig {
 export function createDatabaseConfig(config: DbConfig): DbConfig {
   return {
     url: config.url,
-    ...(config.authToken ? { authToken: config.authToken } : {}),
   };
 }

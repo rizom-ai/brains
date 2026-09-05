@@ -60,12 +60,16 @@ describe("standard shell paths", () => {
     }
   });
 
-  it("does not read database auth tokens from ambient env", () => {
+  it("provides only local database URLs, without remote credentials", () => {
     const config = getStandardConfig();
-
-    expect(config.database.authToken).toBeUndefined();
-    expect(config.jobQueueDatabase.authToken).toBeUndefined();
-    expect(config.conversationDatabase.authToken).toBeUndefined();
-    expect(config.runtimeStateDatabase.authToken).toBeUndefined();
+    for (const database of [
+      config.database,
+      config.jobQueueDatabase,
+      config.conversationDatabase,
+      config.runtimeStateDatabase,
+    ]) {
+      expect(Object.keys(database)).toEqual(["url"]);
+      expect(database.url.startsWith("file:")).toBe(true);
+    }
   });
 });

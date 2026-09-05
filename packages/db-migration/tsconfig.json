@@ -1,0 +1,5 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": { "noEmit": true, "types": ["bun", "node"] },
+  "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"]
+}

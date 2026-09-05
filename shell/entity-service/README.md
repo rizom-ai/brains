@@ -4,14 +4,14 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 
 ## Overview
 
-`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by libSQL or Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in the entity database. Local files default to libSQL during the alpha fleet soak; set `BRAINS_DB_ENGINE=turso` to opt in to the embedded Turso engine.
+`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by local Turso Database. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in the entity database. The 0.3 runtime has no engine selector or remote libSQL path. Released 0.2 data requires offline import; startup rejects legacy FTS5 entity files rather than attempting an in-place libSQL cleanup.
 
 ## Features
 
 - Typed entity registration with Zod schemas and markdown adapters
 - Entity CRUD with immediate persistence
 - Async embedding job enqueueing through `@brains/job-queue`
-- Vector search with portable literal keyword boosting on libSQL and Turso Database
+- Vector search with portable literal keyword boosting on Turso Database
 - Metadata filtering, published filtering, pagination, and multi-field sorting
 - Markdown/frontmatter serialization helpers
 - Optional structural event bus for entity lifecycle notifications
