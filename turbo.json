@@ -40,6 +40,19 @@
       "outputs": [],
       "cache": true
     },
+    "test:surface": {
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "test/**/*.tsx",
+        "scripts/**",
+        "package.json"
+      ],
+      "outputs": [],
+      "cache": true
+    },
     "typecheck": {
       "dependsOn": ["^typecheck", "^build", "build"],
       "inputs": [
