@@ -1,9 +1,9 @@
+import { createTestEntity } from "@brains/entity-service/test";
 /**
  * Test fixtures for link entities
  */
 
 import type { LinkEntity } from "../../src";
-import { createTestEntity } from "@brains/test-utils";
 
 export const mockLinkContent = {
   simple: `---

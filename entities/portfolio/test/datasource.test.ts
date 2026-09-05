@@ -1,18 +1,20 @@
+import {
+  createTestEntity,
+  createMockEntityService,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { projectDataSource } from "../src/datasources/project-datasource";
-import { createDeclarativeEntityDataSource } from "@brains/plugins";
+import {
+  createDeclarativeEntityDataSource,
+  type IEntityService,
+  type BaseDataSourceContext,
+} from "@brains/plugins";
 import { projectEntityPlugin } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { Project } from "../src/schemas/project";
-import { projectSchema } from "../src/schemas/project";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import { type Project, projectSchema } from "../src/schemas/project";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import {
-  createMockLogger,
-  createMockEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
 
 describe("ProjectDataSource", () => {
   let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;

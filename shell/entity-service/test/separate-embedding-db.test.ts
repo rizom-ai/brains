@@ -1,3 +1,5 @@
+import { createTestEntity } from "../src/test/index";
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,11 +10,7 @@ import { EntityRegistry } from "../src/entityRegistry";
 import { migrateEntities } from "../src/migrate";
 import { migrateEmbeddingDatabase } from "../src/db/embedding-db";
 import { createClient } from "@libsql/client";
-import {
-  createSilentLogger,
-  createMockJobQueueService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { mockEmbeddingService, MOCK_DIMENSIONS } from "./helpers/mock-services";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import type { EntityDbConfig } from "../src/types";

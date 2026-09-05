@@ -13,6 +13,8 @@
     "simple-git": "^3.36.0"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

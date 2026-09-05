@@ -11,7 +11,8 @@ import {
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
+import { createMockEntityService } from "@brains/entity-service/test";
 import { createMockPost } from "./fixtures/blog-entities";
 import { getTemplates } from "../src/lib/register-templates";
 import { blogPostSchema } from "../src/schemas/blog-post";

@@ -1,3 +1,4 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { A2AInterface } from "@brains/a2a";
 import {
@@ -8,7 +9,7 @@ import {
 } from "@brains/atproto";
 import { resolve } from "@brains/app";
 import { createServicePluginContext } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import { z } from "@brains/utils/zod";
 import { canonicalBrain } from "../src/model/canonical-brain";
 

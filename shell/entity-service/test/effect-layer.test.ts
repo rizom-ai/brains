@@ -1,10 +1,8 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import { Context, Effect, Exit, Layer, Scope } from "@brains/utils/effect";
 import type { IJobQueueService } from "@brains/job-queue";
-import {
-  createMockJobQueueService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   EntityServiceTag,
   createEntityServiceLayer,

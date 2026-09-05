@@ -2,7 +2,8 @@ import { describe, expect, it, beforeEach, mock, type Mock } from "bun:test";
 import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
 
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { OperationContext } from "@brains/operation-context";
@@ -697,8 +698,12 @@ describe("MessageBus", () => {
 
   describe("response collection", () => {
     it("collects every matching handler response in registration order", async () => {
+      // The first handler finishes last, so a result ordered by completion
+      // rather than registration would come back reversed. A gate makes that
+      // certain where a 10ms sleep only made it likely.
+      const finishFirstHandler = deferred();
       messageBus.subscribe("test.collect", async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await finishFirstHandler.promise;
         return { success: true, data: "first" };
       });
       messageBus.subscribe("test.collect", () => ({
@@ -706,11 +711,13 @@ describe("MessageBus", () => {
         data: "second",
       }));
 
-      const responses = await messageBus.collect({
+      const collecting = messageBus.collect({
         type: "test.collect",
         payload: {},
         sender: "sender",
       });
+      finishFirstHandler.resolve();
+      const responses = await collecting;
 
       expect(responses).toEqual([
         { success: true, data: "first" },
@@ -783,13 +790,18 @@ describe("MessageBus", () => {
     it("should await all handlers for broadcast messages before returning", async () => {
       const executionOrder: string[] = [];
 
+      // Gated rather than slow. The claim is that `send` does not resolve
+      // until its handlers have, and a gate proves it: the send is still
+      // pending while the gate is shut, whatever the machine is doing. Two
+      // sleeps of 50ms and 30ms only made that likely.
+      const finishHandlers = deferred();
       const handler1 = mock(async () => {
-        await new Promise((r) => setTimeout(r, 50));
+        await finishHandlers.promise;
         executionOrder.push("handler1");
         return { success: true };
       });
       const handler2 = mock(async () => {
-        await new Promise((r) => setTimeout(r, 30));
+        await finishHandlers.promise;
         executionOrder.push("handler2");
         return { success: true };
       });
@@ -803,12 +815,22 @@ describe("MessageBus", () => {
       messageBus.subscribe("sync:initial:completed", handler3);
 
       // Send with broadcast=true - should await all handlers
-      await messageBus.send({
+      const sending = messageBus.send({
         type: "sync:initial:completed",
         payload: { success: true },
         sender: "directory-sync",
         broadcast: true,
       });
+
+      // Only the ungated handler can have run while the gate is shut.
+      await waitUntil(
+        () => executionOrder.includes("handler3"),
+        "the ungated handler to run",
+      );
+      expect(executionOrder).toEqual(["handler3"]);
+
+      finishHandlers.resolve();
+      await sending;
 
       // All handlers should have been called AND completed
       expect(executionOrder).toHaveLength(3);
@@ -820,27 +842,37 @@ describe("MessageBus", () => {
     it("should invoke broadcast handlers concurrently", async () => {
       let inFlight = 0;
       let maxInFlight = 0;
-      const makeSlowHandler = (): Mock<
+      // Every handler holds at the same gate, so all three are in flight at
+      // once the moment delivery is concurrent — and none of them can leave
+      // until the test says so. A 20ms sleep only overlapped them if the
+      // scheduler cooperated; this makes the overlap the thing being waited
+      // for.
+      const releaseHandlers = deferred();
+      const makeGatedHandler = (): Mock<
         () => Promise<{ readonly noop: true }>
       > =>
         mock(async () => {
           inFlight++;
           maxInFlight = Math.max(maxInFlight, inFlight);
-          await new Promise((r) => setTimeout(r, 20));
+          await releaseHandlers.promise;
           inFlight--;
           return { noop: true } as const;
         });
 
-      messageBus.subscribe("test.broadcast", makeSlowHandler());
-      messageBus.subscribe("test.broadcast", makeSlowHandler());
-      messageBus.subscribe("test.broadcast", makeSlowHandler());
+      messageBus.subscribe("test.broadcast", makeGatedHandler());
+      messageBus.subscribe("test.broadcast", makeGatedHandler());
+      messageBus.subscribe("test.broadcast", makeGatedHandler());
 
-      await messageBus.send({
+      const sending = messageBus.send({
         type: "test.broadcast",
         payload: { content: "broadcast message" },
         sender: "sender",
         broadcast: true,
       });
+
+      await waitUntil(() => inFlight === 3, "all three handlers to be running");
+      releaseHandlers.resolve();
+      await sending;
 
       // One slow subscriber must not serialize delivery to the others
       expect(maxInFlight).toBe(3);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { markdownToHtml } from "./markdown-html";
-import type { RenderedImageRef } from "@brains/contracts";
+import type { RenderedImageRef } from "./render-contracts";
 
 describe("markdownToHtml sanitization", () => {
   it("strips inline <script> tags from markdown HTML passthrough", () => {

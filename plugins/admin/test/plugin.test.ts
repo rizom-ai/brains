@@ -1,3 +1,4 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
@@ -5,13 +6,11 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
-} from "@brains/plugins";
-import { createMockShell, createTempDir } from "@brains/test-utils";
-import {
   bindPluginPackageMetadata,
   instantiatePluginPackageDefinition,
   type Plugin,
 } from "@brains/plugins";
+import { createTempDir } from "@brains/test-utils";
 import adminPackage from "../src";
 import packageJson from "../package.json";
 

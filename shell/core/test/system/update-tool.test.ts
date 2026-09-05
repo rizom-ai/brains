@@ -1,3 +1,4 @@
+import { expectToolError } from "@brains/mcp-service/test";
 import { beforeEach, describe, expect, it } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createSystemTools } from "../../src/system/tools";
@@ -11,11 +12,7 @@ import {
 } from "@brains/entity-service";
 import { BrainCharacterAdapter } from "@brains/identity-service";
 import { PermissionService } from "@brains/templates";
-import {
-  createSilentLogger,
-  stubMethod,
-  expectToolError,
-} from "@brains/test-utils";
+import { createSilentLogger, stubMethod } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
 const confirmationArgsSchema = z.record(z.string(), z.unknown());

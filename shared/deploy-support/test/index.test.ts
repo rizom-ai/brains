@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createTempDirSync } from "@brains/test-utils";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import {
   backendBootstrapEnvSchema,
   deployProvisionEnvSchema,
@@ -257,5 +257,28 @@ describe("deploy templates", () => {
     );
 
     expect(script).toContain('entry.key !== "BWS_ACCESS_TOKEN"');
+  });
+});
+
+describe("deploy script inventory", () => {
+  it("lists every script in src/deploy-scripts", () => {
+    // `deployScriptNames` drives both `copyDeployScripts` and the drift guards
+    // in each consuming package's `package-metadata.test.ts`. A script added to
+    // the directory but left off the list is never copied into a template and
+    // never checked against one, so it goes wrong quietly.
+    //
+    // `helpers.ts` is excluded deliberately: it is the one per-template file,
+    // re-exporting `@brains/deploy-support` for brain-cli and
+    // `@rizom/ops/deploy` for the rover pilot, so those copies are meant to
+    // differ.
+    const directory = dirname(
+      resolveDeployScriptPath("create-predeploy-backup.ts"),
+    );
+    const present = readdirSync(directory)
+      .filter((file) => file.endsWith(".ts"))
+      .filter((file) => file !== "helpers.ts")
+      .sort();
+
+    expect(present).toEqual([...deployScriptNames].sort());
   });
 });

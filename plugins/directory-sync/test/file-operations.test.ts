@@ -1,3 +1,4 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
 import {
@@ -14,7 +15,6 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
 import type { FileOperationsEntityService } from "../src/lib/file-operations";
-import { createTestEntity } from "@brains/test-utils";
 import {
   TINY_PDF_BYTES,
   TINY_PDF_DATA_URL,

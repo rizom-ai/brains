@@ -16,7 +16,7 @@ import {
 } from "./fixtures/agent-network";
 
 import { agentEntitySchema } from "../src/schemas/agent";
-import { expectConfirmationArgs } from "@brains/test-utils";
+import { expectConfirmationArgs } from "@brains/mcp-service/test";
 
 describe("the connect tool", () => {
   it("registers agents_connect as the canonical confirmation-gated A2A verification tool", async () => {

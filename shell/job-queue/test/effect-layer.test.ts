@@ -1,3 +1,7 @@
+import {
+  createMockBatchJobManager,
+  createMockJobQueueService,
+} from "../src/test/index";
 import { describe, expect, it } from "bun:test";
 import {
   BatchJobManagerTag,
@@ -9,8 +13,6 @@ import {
 } from "@brains/job-queue/effect";
 import { MessageBus } from "@brains/messaging-service";
 import {
-  createMockBatchJobManager,
-  createMockJobQueueService,
   createMockProgressReporter,
   createSilentLogger,
 } from "@brains/test-utils";

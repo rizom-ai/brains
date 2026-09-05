@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { runProcessOrThrow } from "../src/run-process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -8,10 +8,10 @@ const productionBoundary = "shared/utils/src/effect.ts";
 const testBoundary = "shared/utils/src/effect-test.ts";
 const dependencyBoundary = "shared/utils/package.json";
 
-function listCandidateFiles(): string[] {
-  return execFileSync(
-    "git",
+async function listCandidateFiles(): Promise<string[]> {
+  const listed = await runProcessOrThrow(
     [
+      "git",
       "ls-files",
       "--cached",
       "--others",
@@ -20,16 +20,17 @@ function listCandidateFiles(): string[] {
       "*.ts",
       "package.json",
     ],
-    { cwd: repositoryRoot, encoding: "utf8" },
-  )
+    { cwd: repositoryRoot },
+  );
+  return listed
     .split(/\r?\n/)
     .map((file) => file.trim())
     .filter(Boolean);
 }
 
 describe("Effect import boundary", () => {
-  it("keeps direct Effect imports and dependencies in the utility boundary", () => {
-    const violations = listCandidateFiles()
+  it("keeps direct Effect imports and dependencies in the utility boundary", async () => {
+    const violations = (await listCandidateFiles())
       .filter((file) => existsSync(resolve(repositoryRoot, file)))
       .filter(
         (file) =>

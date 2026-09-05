@@ -1,3 +1,4 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import {
   createServicePluginContext,
@@ -5,7 +6,7 @@ import {
   type StudioWorkspaceRegistration,
   type ServicePluginContext,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import {
   directorySyncConfigSchema,
   type IDirectorySync,

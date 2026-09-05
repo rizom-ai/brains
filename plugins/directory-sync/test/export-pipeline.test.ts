@@ -1,9 +1,10 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import {
   exportEntities,
   type ExportPipelineDeps,
 } from "../src/lib/export-pipeline";
-import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 
 function createMockDeps(

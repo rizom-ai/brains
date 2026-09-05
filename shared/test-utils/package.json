@@ -3,18 +3,6 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.355",
   "dependencies": {
-    "@brains/ai-service": "workspace:*",
-    "@brains/content-service": "workspace:*",
-    "@brains/contracts": "workspace:*",
-    "@brains/conversation-service": "workspace:*",
-    "@brains/entity-service": "workspace:*",
-    "@brains/identity-service": "workspace:*",
-    "@brains/job-queue": "workspace:*",
-    "@brains/mcp-service": "workspace:*",
-    "@brains/messaging-service": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/runtime-state": "workspace:*",
-    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "parse5": "^7.3.0"
   },

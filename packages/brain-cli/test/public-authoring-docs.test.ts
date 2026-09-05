@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -191,18 +192,16 @@ describe("public authoring documentation", () => {
         )}\n`,
       );
 
-      const result = Bun.spawnSync(
+      const result = await runProcess(
         ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
         {
           cwd: repositoryRoot,
           env: process.env,
-          stdout: "pipe",
-          stderr: "pipe",
         },
       );
       expect(
         result.exitCode,
-        `Documented TypeScript examples failed to compile:\n${result.stdout.toString()}${result.stderr.toString()}`,
+        `Documented TypeScript examples failed to compile:\n${result.stdout}${result.stderr}`,
       ).toBe(0);
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });

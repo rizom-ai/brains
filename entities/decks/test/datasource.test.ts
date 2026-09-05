@@ -10,7 +10,8 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { createMockLogger } from "@brains/test-utils";
+import { createMockEntityService } from "@brains/entity-service/test";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckDataSource", () => {

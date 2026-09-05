@@ -1,4 +1,4 @@
-import type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
+import type { HeadCollectorInterface, HeadProps } from "./render-contracts";
 import {
   createContext,
   createElement as h,
@@ -8,7 +8,7 @@ import {
   useContext,
 } from "react";
 
-export type { HeadCollectorInterface, HeadProps } from "@brains/contracts";
+export type { HeadCollectorInterface, HeadProps } from "./render-contracts";
 
 /**
  * Context for sharing the HeadCollector during SSR

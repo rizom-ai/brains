@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
@@ -295,6 +296,20 @@ describe("SiteBuilderPlugin", () => {
       throw new Error("Expected Studio workspace actions");
     }
     const actionHandler = registration.actionHandler;
+    const workspaceRegistration = registration;
+    /** The workspace once it shows `buildId`, or a failure naming what it waited for. */
+    const waitUntilWorkspaceShows = async (
+      buildId: string,
+      description: string,
+    ): Promise<unknown> => {
+      let workspace: unknown;
+      await waitUntil(async () => {
+        workspace =
+          await workspaceRegistration.dataProvider(adminWorkspaceActor);
+        return JSON.stringify(workspace).includes(`"id":"${buildId}"`);
+      }, description);
+      return workspace;
+    };
     expect(
       await Promise.resolve(registration.accessHandler(publicWorkspaceActor)),
     ).toBe(false);
@@ -329,9 +344,12 @@ describe("SiteBuilderPlugin", () => {
       adminWorkspaceActor,
     );
     expect(result).toEqual({ accepted: true, environment: "preview" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const previewWorkspace =
-      await registration.dataProvider(adminWorkspaceActor);
+    // The action is accepted before the build is queued, so wait for the
+    // workspace to show it rather than for 10ms to pass.
+    const previewWorkspace = await waitUntilWorkspaceShows(
+      "preview-build",
+      "the preview build to appear in the workspace",
+    );
     expect(JSON.stringify(previewWorkspace)).toContain('"id":"preview-build"');
     expect(JSON.stringify(previewWorkspace)).toContain('"state":"queued"');
     expect(
@@ -346,9 +364,10 @@ describe("SiteBuilderPlugin", () => {
         adminWorkspaceActor,
       ),
     ).toEqual({ accepted: true, environment: "production" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const productionWorkspace =
-      await registration.dataProvider(adminWorkspaceActor);
+    const productionWorkspace = await waitUntilWorkspaceShows(
+      "production-build",
+      "the production build to appear in the workspace",
+    );
     expect(JSON.stringify(productionWorkspace)).toContain(
       '"id":"production-build"',
     );

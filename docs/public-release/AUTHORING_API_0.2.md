@@ -429,6 +429,7 @@ Types:
 - `OgCardProps`
 - `PaginationProps`
 - `PresentationLayoutProps`
+- `RenderedImageRef`
 - `SectionHeaderProps`
 - `StatBadgeProps`
 - `StatusBadgeProps`

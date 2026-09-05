@@ -1,11 +1,13 @@
-import { describe, expect, it } from "bun:test";
-import { createTestEntityAccess } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockEntityPluginContext,
-  createTestEntity,
-} from "@brains/test-utils";
-import { buildActionItemsWidgetData } from "../../../src/lib/widgets/action-items";
-import { actionItemsWidgetDeclaration } from "../../../src/lib/widgets/action-items";
+  createTestEntityAccess,
+} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
+import {
+  buildActionItemsWidgetData,
+  actionItemsWidgetDeclaration,
+} from "../../../src/lib/widgets/action-items";
 import type { ActionItemEntity } from "../../../src/schemas/conversation-memory";
 
 function createActionItem(overrides: {

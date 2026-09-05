@@ -6,11 +6,11 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { LinkStatus, LinkEntity } from "../src/schemas/link";
 import { linkSchema } from "../src/schemas/link";
+import { createMockLogger } from "@brains/test-utils";
 import {
-  createMockLogger,
   createMockEntityService,
   createTestEntity,
-} from "@brains/test-utils";
+} from "@brains/entity-service/test";
 
 describe("LinksDataSource", () => {
   let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;

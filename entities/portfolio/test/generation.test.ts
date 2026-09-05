@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import type { EntityGenerationResult, JobEntityAccess } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createSilentLogger,
   createTestEntityAccess,
   createTestJobContext,
   type MockEntityPluginContext,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import type { z } from "@brains/utils/zod";
 import {
   buildProjectGenerationPrompt,

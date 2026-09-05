@@ -2,9 +2,9 @@ import { describe, expect, it, spyOn } from "bun:test";
 import { narrowContext } from "../fixtures/narrow-context";
 import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, SearchResult } from "@brains/plugins";
-import { createMockEntityPluginContext } from "@brains/test-utils";
 import {
   createEntityPluginContext,
+  createMockEntityPluginContext,
   createMockShell,
 } from "@brains/plugins/test";
 import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-retriever";

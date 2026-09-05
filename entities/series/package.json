@@ -8,6 +8,7 @@
     "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",

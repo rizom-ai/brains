@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createTempDirSync } from "@brains/test-utils";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import {
   chmodSync,
   mkdirSync,
@@ -35,12 +35,9 @@ interface WatchdogHarness {
   stateDir: string;
 }
 
-function expectValidBash(script: string): void {
-  const result = spawnSync("bash", ["-n"], {
-    input: script,
-    encoding: "utf8",
-  });
-  expect(result.status).toBe(0);
+async function expectValidBash(script: string): Promise<void> {
+  const result = await runProcess(["bash", "-n"], { stdin: script });
+  expect(result.exitCode).toBe(0);
   expect(result.stderr).toBe("");
 }
 
@@ -166,11 +163,13 @@ esac
   };
 }
 
-function runWatchdog(harness: WatchdogHarness, attempts = 1): void {
+async function runWatchdog(
+  harness: WatchdogHarness,
+  attempts = 1,
+): Promise<void> {
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const result = spawnSync("bash", [], {
-      input: healthWatchdogScript,
-      encoding: "utf8",
+    const result = await runProcess(["bash"], {
+      stdin: healthWatchdogScript,
       env: {
         ...process.env,
         PATH: `${harness.binDir}:${process.env["PATH"] ?? ""}`,
@@ -181,7 +180,7 @@ function runWatchdog(harness: WatchdogHarness, attempts = 1): void {
         BRAIN_WATCHDOG_LOCK_PATH: harness.lockPath,
       },
     });
-    expect(result.status).toBe(0);
+    expect(result.exitCode).toBe(0);
   }
 }
 
@@ -190,10 +189,10 @@ function readCalls(harness: WatchdogHarness): string[] {
 }
 
 describe("health watchdog deployment artifacts", () => {
-  it("renders syntactically valid host scripts and systemd units", () => {
+  it("renders syntactically valid host scripts and systemd units", async () => {
     const installScript = buildHealthWatchdogInstallScript();
-    expectValidBash(healthWatchdogScript);
-    expectValidBash(installScript);
+    await expectValidBash(healthWatchdogScript);
+    await expectValidBash(installScript);
 
     expect(healthWatchdogServiceUnit).toContain(
       "ExecStart=/usr/local/sbin/brains-health-watchdog",
@@ -218,7 +217,7 @@ describe("health watchdog deployment artifacts", () => {
     expect(installScript).toContain("no running Brain containers found");
   });
 
-  it("keeps a zero-match post-install diagnostic non-fatal", () => {
+  it("keeps a zero-match post-install diagnostic non-fatal", async () => {
     const root = createTempDirSync("brain-watchdog-install-test-");
     const binDir = join(root, "bin");
     mkdirSync(binDir);
@@ -239,21 +238,20 @@ esac
     chmodSync(join(binDir, "id"), 0o755);
     chmodSync(join(binDir, "sudo"), 0o755);
 
-    const result = spawnSync("bash", [], {
-      input: buildHealthWatchdogInstallScript(),
-      encoding: "utf8",
+    const result = await runProcess(["bash"], {
+      stdin: buildHealthWatchdogInstallScript(),
       env: {
         ...process.env,
         PATH: `${binDir}:${process.env["PATH"] ?? ""}`,
       },
     });
 
-    expect(result.status).toBe(0);
+    expect(result.exitCode).toBe(0);
     expect(result.stderr).toContain("no running Brain containers found");
     expect(result.stderr).toContain(BRAIN_WATCHDOG_LABEL_FILTER);
   });
 
-  it("touches only unhealthy exact-labelled Brain containers", () => {
+  it("touches only unhealthy exact-labelled Brain containers", async () => {
     const harness = createWatchdogHarness([
       {
         id: "brain-unhealthy",
@@ -290,7 +288,7 @@ esac
       },
     ]);
 
-    runWatchdog(harness, 4);
+    await runWatchdog(harness, 4);
 
     const calls = readCalls(harness);
     const joinedCalls = calls.join("\n");
@@ -316,7 +314,7 @@ esac
     ).toBeTrue();
   });
 
-  it("captures diagnostics before restart and enforces its restart budget", () => {
+  it("captures diagnostics before restart and enforces its restart budget", async () => {
     const harness = createWatchdogHarness([
       {
         id: "container-1",
@@ -327,7 +325,7 @@ esac
       },
     ]);
 
-    runWatchdog(harness, 4);
+    await runWatchdog(harness, 4);
 
     const calls = readCalls(harness);
     const logIndex = calls.findIndex((call) => call.startsWith("logs "));
@@ -350,7 +348,7 @@ esac
     ).toBe(true);
   });
 
-  it("allows recovery again after the restart window expires", () => {
+  it("allows recovery again after the restart window expires", async () => {
     const harness = createWatchdogHarness([
       {
         id: "windowed-container",
@@ -361,20 +359,20 @@ esac
       },
     ]);
 
-    runWatchdog(harness, 3);
+    await runWatchdog(harness, 3);
     const stateFile = readdirSync(harness.stateDir)[0];
     expect(stateFile).toBeDefined();
     if (!stateFile) throw new Error("Expected restart state file");
     writeFileSync(join(harness.stateDir, stateFile), "0\n0\n0\n");
 
-    runWatchdog(harness);
+    await runWatchdog(harness);
 
     expect(
       readCalls(harness).filter((call) => call.startsWith("restart ")),
     ).toHaveLength(4);
   });
 
-  it("does not restart when diagnostic capture fails", () => {
+  it("does not restart when diagnostic capture fails", async () => {
     const harness = createWatchdogHarness([
       {
         id: "diagnostic-failure",
@@ -386,9 +384,8 @@ esac
       },
     ]);
 
-    const result = spawnSync("bash", [], {
-      input: healthWatchdogScript,
-      encoding: "utf8",
+    const result = await runProcess(["bash"], {
+      stdin: healthWatchdogScript,
       env: {
         ...process.env,
         PATH: `${harness.binDir}:${process.env["PATH"] ?? ""}`,
@@ -400,7 +397,7 @@ esac
       },
     });
 
-    expect(result.status).not.toBe(0);
+    expect(result.exitCode).not.toBe(0);
     expect(
       readCalls(harness).some((call) => call.startsWith("logs ")),
     ).toBeTrue();
@@ -409,7 +406,7 @@ esac
     ).toBeFalse();
   });
 
-  it("keeps colliding sanitized identities on independent budgets", () => {
+  it("keeps colliding sanitized identities on independent budgets", async () => {
     const harness = createWatchdogHarness([
       {
         id: "aaaaaaaaaaaa",
@@ -427,7 +424,7 @@ esac
       },
     ]);
 
-    runWatchdog(harness, 4);
+    await runWatchdog(harness, 4);
 
     const calls = readCalls(harness);
     expect(calls.filter((call) => call.startsWith("restart "))).toHaveLength(6);

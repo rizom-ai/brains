@@ -9,7 +9,8 @@ import type {
   Plugin,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createMockShell } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 interface WebRoutePlugin extends Plugin {

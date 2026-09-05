@@ -1,6 +1,6 @@
 import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import {
   mkdir,
   readFile,
@@ -123,19 +123,16 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 `;
 
-function ensureOpsPackageBuilt(): void {
+async function ensureOpsPackageBuilt(): Promise<void> {
   if (existsSync(join(opsPackageDir, "dist", "deploy.js"))) {
     return;
   }
 
-  execFileSync("bun", ["run", "build"], {
-    cwd: opsPackageDir,
-    encoding: "utf8",
-  });
+  await runProcessOrThrow(["bun", "run", "build"], { cwd: opsPackageDir });
 }
 
 async function linkOpsPackage(repoDir: string): Promise<void> {
-  ensureOpsPackageBuilt();
+  await ensureOpsPackageBuilt();
 
   const target = join(repoDir, "node_modules", "@rizom", "ops");
   await mkdir(dirname(target), { recursive: true });
@@ -1127,9 +1124,8 @@ describe("initPilotRepo", () => {
     await linkOpsPackage(repo);
     await writeFile(outputPath, "");
 
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1138,7 +1134,6 @@ describe("initPilotRepo", () => {
           HANDLE_INPUT: "alice",
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
 
@@ -1153,20 +1148,19 @@ describe("initPilotRepo", () => {
 
     await initPilotRepo(repo);
     await linkOpsPackage(repo);
-    initializeGitRepo(repo);
-    const beforeSha = commitAll(repo, "initial");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "initial");
 
     await mkdir(join(repo, "users", "alice"), { recursive: true });
     await writeFile(
       join(repo, "users", "alice", ".env"),
       "BRAIN_VERSION=0.1.1-alpha.14\n",
     );
-    const currentSha = commitAll(repo, "add alice env");
+    const currentSha = await commitAll(repo, "add alice env");
     await writeFile(outputPath, "");
 
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1176,7 +1170,6 @@ describe("initPilotRepo", () => {
           GITHUB_SHA: currentSha,
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
 
@@ -1191,8 +1184,8 @@ describe("initPilotRepo", () => {
 
     await initPilotRepo(repo);
     await linkOpsPackage(repo);
-    initializeGitRepo(repo);
-    const beforeSha = commitAll(repo, "initial");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "initial");
 
     // A raw users/<handle>.yaml registry edit does NOT trigger a deploy handle
     // on its own: it flows through Build (image) + Reconcile, and it is the
@@ -1202,11 +1195,10 @@ describe("initPilotRepo", () => {
       join(repo, "users", "alice.yaml"),
       `handle: alice\ndiscord:\n  enabled: false\nsiteOverride:\n  package: "@rizom/site-docs"\n  version: 0.2.0-alpha.136\n`,
     );
-    const registrySha = commitAll(repo, "update alice site package");
+    const registrySha = await commitAll(repo, "update alice site package");
     await writeFile(outputPath, "");
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1216,7 +1208,6 @@ describe("initPilotRepo", () => {
           GITHUB_SHA: registrySha,
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
     expect(await readFile(outputPath, "utf8")).toContain("handles_json=[]");
@@ -1228,11 +1219,10 @@ describe("initPilotRepo", () => {
       join(repo, "users", "alice", "brain.yaml"),
       "version: 0.2.0-alpha.136\n",
     );
-    const reconciledSha = commitAll(repo, "reconcile alice brain.yaml");
+    const reconciledSha = await commitAll(repo, "reconcile alice brain.yaml");
     await writeFile(outputPath, "");
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1242,7 +1232,6 @@ describe("initPilotRepo", () => {
           GITHUB_SHA: reconciledSha,
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
     expect(await readFile(outputPath, "utf8")).toContain(
@@ -1257,20 +1246,19 @@ describe("initPilotRepo", () => {
 
     await initPilotRepo(repo);
     await linkOpsPackage(repo);
-    initializeGitRepo(repo);
-    const beforeSha = commitAll(repo, "initial");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "initial");
 
     await mkdir(join(repo, "users", "alice"), { recursive: true });
     await writeFile(
       join(repo, "users", "alice", ".env"),
       "BRAIN_VERSION=0.1.1-alpha.14\n",
     );
-    commitAll(repo, "add alice env");
+    await commitAll(repo, "add alice env");
     await writeFile(outputPath, "");
 
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1279,7 +1267,6 @@ describe("initPilotRepo", () => {
           BEFORE_SHA: beforeSha,
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
 
@@ -1294,8 +1281,8 @@ describe("initPilotRepo", () => {
 
     await initPilotRepo(repo);
     await linkOpsPackage(repo);
-    initializeGitRepo(repo);
-    const beforeSha = commitAll(repo, "initial");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "initial");
 
     await mkdir(join(repo, "users", "alice", "content", "anchor-profile"), {
       recursive: true,
@@ -1311,12 +1298,11 @@ describe("initPilotRepo", () => {
       ),
       "---\nname: Alice Example\nkind: person\n---\n",
     );
-    const currentSha = commitAll(repo, "seed alice anchor profile");
+    const currentSha = await commitAll(repo, "seed alice anchor profile");
     await writeFile(outputPath, "");
 
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1326,7 +1312,6 @@ describe("initPilotRepo", () => {
           GITHUB_SHA: currentSha,
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
 
@@ -1341,19 +1326,18 @@ describe("initPilotRepo", () => {
 
     await initPilotRepo(repo);
     await linkOpsPackage(repo);
-    initializeGitRepo(repo);
-    const beforeSha = commitAll(repo, "initial");
+    await initializeGitRepo(repo);
+    const beforeSha = await commitAll(repo, "initial");
 
     await writeFile(
       join(repo, "deploy", "kamal", "deploy.yml"),
       "service: rover\nimage: contract-only-change\n",
     );
-    const currentSha = commitAll(repo, "contract-only change");
+    const currentSha = await commitAll(repo, "contract-only change");
     await writeFile(outputPath, "");
 
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
@@ -1363,7 +1347,6 @@ describe("initPilotRepo", () => {
           GITHUB_SHA: currentSha,
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
 
@@ -1378,27 +1361,24 @@ describe("initPilotRepo", () => {
 
     await initPilotRepo(repo);
     await linkOpsPackage(repo);
-    initializeGitRepo(repo);
-    commitAll(repo, "initial");
+    await initializeGitRepo(repo);
+    await commitAll(repo, "initial");
 
     await writeFile(outputPath, "");
 
-    execFileSync(
-      process.execPath,
-      ["deploy/scripts/resolve-deploy-handles.ts"],
+    await runProcessOrThrow(
+      [process.execPath, "deploy/scripts/resolve-deploy-handles.ts"],
       {
         cwd: repo,
         env: {
           ...process.env,
           GITHUB_EVENT_NAME: "push",
           BEFORE_SHA: "0000000000000000000000000000000000000000",
-          GITHUB_SHA: execFileSync("git", ["rev-parse", "HEAD"], {
-            cwd: repo,
-            encoding: "utf8",
-          }).trim(),
+          GITHUB_SHA: (
+            await runProcessOrThrow(["git", "rev-parse", "HEAD"], { cwd: repo })
+          ).trim(),
           GITHUB_OUTPUT: outputPath,
         },
-        encoding: "utf8",
       },
     );
 
@@ -1407,29 +1387,20 @@ describe("initPilotRepo", () => {
   });
 });
 
-function initializeGitRepo(repo: string): void {
-  execFileSync("git", ["init", "-b", "main"], {
+async function initializeGitRepo(repo: string): Promise<void> {
+  await runProcessOrThrow(["git", "init", "-b", "main"], { cwd: repo });
+  await runProcessOrThrow(["git", "config", "user.name", "Test User"], {
     cwd: repo,
-    encoding: "utf8",
   });
-  execFileSync("git", ["config", "user.name", "Test User"], {
+  await runProcessOrThrow(["git", "config", "user.email", "test@example.com"], {
     cwd: repo,
-    encoding: "utf8",
-  });
-  execFileSync("git", ["config", "user.email", "test@example.com"], {
-    cwd: repo,
-    encoding: "utf8",
   });
 }
 
-function commitAll(repo: string, message: string): string {
-  execFileSync("git", ["add", "."], { cwd: repo, encoding: "utf8" });
-  execFileSync("git", ["commit", "-m", message], {
-    cwd: repo,
-    encoding: "utf8",
-  });
-  return execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: repo,
-    encoding: "utf8",
-  }).trim();
+async function commitAll(repo: string, message: string): Promise<string> {
+  await runProcessOrThrow(["git", "add", "."], { cwd: repo });
+  await runProcessOrThrow(["git", "commit", "-m", message], { cwd: repo });
+  return (
+    await runProcessOrThrow(["git", "rev-parse", "HEAD"], { cwd: repo })
+  ).trim();
 }

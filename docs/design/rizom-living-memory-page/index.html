@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Living memory — rizom.ai</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <style>
+/* Living memory: one editorial grid, with the approved lantern as its focal object. */
+html { scroll-behavior: smooth; scroll-padding-top: 144px; }
+body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); }
+*, *::before, *::after { box-sizing: border-box; }
+a { text-decoration: none; }
+button { cursor: pointer; }
+button, a { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+::selection { background: var(--color-selection-bg); color: var(--color-selection-text); }
+.shell { width: min(1120px, calc(100% - 96px)); margin-inline: auto; }
+.section { padding-block: 86px; }
+.eyebrow, .small-label { font-family: var(--font-label); font-size: 10px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; line-height: 1.5; }
+.eyebrow { display: flex; align-items: center; gap: 12px; margin: 0 0 22px; color: var(--color-accent); }
+.eyebrow::before { content: ''; width: 20px; height: 1px; background: currentColor; }
+.small-label { margin: 0 0 12px; color: var(--color-text-muted); }
+.heading { margin: 0; font-family: var(--font-display); font-size: clamp(32px, 3.3vw, 44px); font-weight: 450; font-variation-settings: 'SOFT' 70, 'opsz' 72; letter-spacing: -.025em; line-height: 1.12; text-wrap: pretty; }
+.heading em { font-style: normal; font-weight: inherit; color: inherit; }
+.copy { margin: 21px 0 0; color: var(--color-text-muted); font-size: 16.5px; line-height: 1.7; text-wrap: pretty; }
+.copy strong { color: var(--color-text); font-weight: 500; }
+.button { display: inline-flex; align-items: center; justify-content: space-between; gap: 23px; min-height: 46px; padding: 12px 20px; border: 1px solid transparent; border-radius: var(--rizom-btn-radius); background: var(--color-accent); color: var(--color-on-accent); font-size: 14px; font-weight: 500; line-height: 1.4; transition: background .18s, transform .18s; }
+.button:hover { background: var(--color-accent-bright); transform: translateY(-1px); }
+html[data-theme='light'] .button { background: var(--color-accent-bright); }
+html[data-theme='light'] .button:hover { background: var(--color-accent-dark); }
+.text-link { display: inline-flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 44px; padding: 9px 0; border-bottom: 1px solid var(--color-border); font-size: 14px; color: var(--color-text-muted); }
+.text-link:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.skip { position: fixed; top: 12px; left: 12px; z-index: 100; padding: 12px 20px; background: var(--color-accent); color: var(--color-on-accent); transform: translateY(-200%); }
+.skip:focus { transform: none; }
+
+/* The faces strip and umbrella navigation retain their separate jobs. */
+.site-header { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--color-bg) 95%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--color-border-light); }
+.faces-bar { border-bottom: 1px solid var(--color-border-light); }
+.faces-strip { display: flex; align-items: center; gap: 25px; min-height: 40px; font-family: var(--font-label); font-size: 10px; letter-spacing: .11em; text-transform: uppercase; }
+.faces-strip a { padding-block: 12px; color: var(--color-text-muted); }
+.faces-strip a:first-child { color: var(--color-text); }
+.faces-strip a:hover, .main-nav a:hover { color: var(--color-accent); }
+.theme-toggle { margin-left: auto; padding: 12px 0 12px 8px; border: 0; background: transparent; color: var(--color-text-muted); font: inherit; letter-spacing: inherit; text-transform: inherit; white-space: nowrap; }
+.masthead { display: flex; align-items: center; gap: 30px; min-height: 74px; }
+.wordmark { font-family: var(--font-display); font-size: 30px; font-weight: 550; line-height: 1; letter-spacing: -.035em; color: var(--color-text); }
+.wordmark span { color: var(--color-accent); }
+.main-nav { display: flex; gap: 27px; }
+.main-nav a { padding-block: 12px; color: var(--color-text-muted); font-size: 14px; transition: color .18s; }
+.header-actions { margin-left: auto; }
+.header-actions .button { min-height: 39px; padding: 9px 15px; font-size: 13px; }
+
+/* The opening states the proposition; the diagram supports it. */
+.hero { padding-top: 58px; overflow: clip; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; gap: 45px; }
+.hero-title { max-width: 18ch; margin: 0; font-family: var(--font-display); font-size: clamp(44px, 4.2vw, 58px); font-weight: 450; font-variation-settings: 'SOFT' 75, 'opsz' 100; letter-spacing: -.03em; line-height: 1.08; }
+.hero-title em { display: block; margin-top: 12px; font-size: inherit; font-style: normal; font-weight: 400; color: var(--color-accent-bright); }
+.hero-conclusion { display: block; }
+.hero .copy { max-width: 48ch; margin-top: 24px; }
+.hero-cta { margin-top: 24px; }
+.hero-map, .proof-visual { --console-accent: var(--color-accent); --console-secondary: var(--color-secondary); --console-text: var(--color-text); --console-text-dim: var(--color-text-muted); --console-text-muted: var(--color-text-muted); --console-text-faint: var(--color-text-light); --console-rule: color-mix(in srgb, var(--color-text) 10%, transparent); --console-card: var(--color-bg); }
+.hero-map { min-width: 0; margin: 20px 0 0; }
+.proximity-field { position: relative; }
+.proximity-field > svg { display: block; width: 100%; height: auto; overflow: visible; }
+.proximity-node-label { fill: var(--color-text-muted); font-family: var(--font-label); font-size: 12px; letter-spacing: .01em; }
+.proximity-strata-label { fill: var(--color-text-light); font-family: var(--font-label); font-size: 9px; }
+.proximity-center-label { fill: var(--color-text-muted); font-family: var(--font-label); font-size: 10px; text-anchor: middle; letter-spacing: .1em; text-transform: uppercase; }
+.proximity-cluster-label { fill: var(--color-secondary); font-family: var(--font-label); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.proximity-agent { animation: none !important; cursor: default; }
+.proximity-agent:focus { outline: none; filter: drop-shadow(0 0 5px var(--color-accent)); }
+.proximity-ripple { opacity: .35; }
+.map-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 15px; border-top: 1px solid var(--color-border-light); font-family: var(--font-label); font-size: 10px; letter-spacing: .015em; color: var(--color-text-light); }
+.map-caption b { color: var(--color-accent); font-weight: 400; }
+.problem-strip { margin-top: 44px; padding: 26px 0 29px; border-block: 1px solid var(--color-border); }
+.problem-strip .eyebrow { color: var(--color-text-light); margin-bottom: 22px; }
+.problem-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.problem-grid h3 { margin: 0; min-height: 2.4em; color: var(--color-text); font-family: var(--font-display); font-size: 22px; font-weight: 450; line-height: 1.2; letter-spacing: -.016em; text-wrap: pretty; }
+.problem-grid p { margin: 10px 0 0; color: var(--color-text-muted); font-size: 14.5px; line-height: 1.6; text-wrap: pretty; }
+
+.science-grid { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 88px; align-items: center; }
+.science-copy .heading { max-width: 19ch; }
+.science-copy .copy { max-width: 47ch; }
+.lantern { width: 100%; max-width: 480px; justify-self: end; }
+
+/* A hinge in the argument, not another oversized hero. */
+.turn { padding-block: 48px; border-block: 1px solid var(--color-border); background: var(--color-bg-subtle); }
+.turn .shell { display: grid; grid-template-columns: 1.2fr 1fr; column-gap: 80px; align-items: center; }
+.turn .eyebrow { grid-column: 1 / -1; margin-bottom: 24px; }
+.turn blockquote { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 420; line-height: 1.2; letter-spacing: -.022em; }
+.turn-intro { display: block; }
+.turn-emphasis { display: block; margin-top: 11px; color: var(--color-accent-bright); font-style: italic; }
+.turn-bottom .copy { margin: 0; font-size: 16px; }
+.turn-symbol { display: none; }
+
+.section-intro { display: grid; grid-template-columns: 1.05fr 1fr; gap: 80px; align-items: start; }
+.section-intro .heading { max-width: 20ch; }
+.section-intro > .copy { margin-top: 35px; }
+.availability { display: inline-flex; gap: 7px; align-items: center; margin-left: 6px; font-size: 9px; color: var(--color-text-muted); letter-spacing: .025em; }
+.availability::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--color-secondary); }
+.comparison { width: 100%; margin-top: 39px; border-collapse: collapse; table-layout: fixed; text-align: left; }
+.comparison th, .comparison td { width: 50%; padding: 20px 24px; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.comparison th:first-child, .comparison td:first-child { padding-left: 0; }
+.comparison th:last-child, .comparison td:last-child { border-left: 1px solid var(--color-border); }
+.comparison th { border-top: 1px solid var(--color-border); font-weight: 400; padding-block: 24px; }
+.comparison .small-label { display: block; margin-bottom: 13px; }
+.comparison th:last-child .small-label { color: var(--color-accent); }
+.comparison-title { display: block; max-width: 26ch; font-family: var(--font-display); font-size: 25px; font-weight: 450; line-height: 1.18; letter-spacing: -.02em; }
+.comparison td { color: var(--color-text-muted); font-size: 15.5px; line-height: 1.6; }
+.comparison td:last-child { color: var(--color-text); }
+
+/* One connected organism. On phones its spine runs through all three stages. */
+.organism { padding-top: 0; }
+.organism-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.organism-map { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+.organism-ray { fill: none; stroke: url(#org-thread); stroke-width: 1.5; stroke-linecap: round; }
+.organism-ray-soft { fill: none; stroke: url(#org-thread); stroke-width: 6; opacity: .16; filter: url(#org-blur); }
+.organism-ray-fine { stroke-width: .8; opacity: .45; }
+.organism-wire { fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.organism-wire-faint { stroke-width: .8; opacity: .28; }
+.organism-peer { fill: var(--color-bg); stroke: currentColor; stroke-width: 1.4; }
+.organism-hot { fill: var(--color-text); }
+.organism-halo { fill: none; stroke: currentColor; stroke-width: .7; opacity: .38; }
+.organism-brain { color: var(--palette-brass); --stage-color: var(--palette-brass); }
+.organism-team { color: var(--palette-ruby-soft); --stage-color: var(--palette-ruby-soft); }
+.organism-network { color: var(--palette-moss); --stage-color: var(--palette-moss); }
+.organism-stages { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 45px; }
+.organism-stage { min-width: 0; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.organism-stage .small-label { color: var(--stage-color); font-size: 10px; margin-bottom: 8px; }
+.organism-stage h3 { margin: 0; color: var(--color-text); font-family: var(--font-display); font-size: 27px; font-weight: 450; line-height: 1.15; letter-spacing: -.02em; }
+.organism-stage .copy { margin-top: 13px; font-size: 15.5px; line-height: 1.65; }
+.organism-mini { display: none; }
+
+.proof { display: grid; grid-template-columns: 1.05fr 1fr; gap: 30px 80px; padding-top: 0; }
+.proof-heading { grid-column: 1; grid-row: 1; }
+.proof-description { grid-column: 2; grid-row: 1; }
+.proof-description .copy { margin-top: 34px; }
+.proof-links { display: flex; flex-wrap: wrap; gap: 5px 24px; margin-top: 14px; }
+.proof-links .text-link { font-size: 13px; }
+.proof-visual { grid-column: 1 / -1; grid-row: 2; position: relative; margin: 0; border-block: 1px solid var(--color-border); }
+.proof-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 19px 0 0; font-family: var(--font-label); font-size: 10px; color: var(--color-text-muted); letter-spacing: .03em; }
+.proof-bar strong { color: var(--color-accent); font-weight: 400; }
+.kmap { --kmap-glow: var(--color-accent); --kmap-hot: var(--color-text); --kmap-zone: var(--color-secondary); --kmap-ink-dim: var(--color-text-muted); --kmap-ink-faint: var(--color-text-light); display: block; position: relative; width: 100%; height: auto; max-height: 395px; }
+.kmap text { font-family: var(--font-label); }
+.kmap-label--zone { font-size: 14px; font-weight: 500; letter-spacing: .04em; paint-order: stroke; stroke: var(--color-bg); stroke-width: 5px; }
+.kmap-weave { stroke-dasharray: none; }
+.kmap-legend { display: none; }
+.map-key { display: flex; justify-content: center; flex-wrap: wrap; gap: 22px; margin-bottom: 10px; color: var(--color-text-muted); font-family: var(--font-label); font-size: 10px; }
+.map-key span { display: inline-flex; align-items: center; gap: 8px; }
+.map-key span::before { content: ''; width: 6px; height: 6px; border: 1px solid var(--color-text-muted); border-radius: 50%; }
+.map-key .key-topic::before { border-color: var(--color-secondary); border-style: dashed; }
+.map-key .key-published::before { background: var(--color-accent); border-color: var(--color-accent); }
+.proof-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 5px 0 15px; }
+.proof-footer > span { font-family: var(--font-label); font-size: 9px; line-height: 1.6; color: var(--color-text-light); }
+.proof-footer-links { display: flex; gap: 24px; }
+.proof-footer .text-link { font-size: 13px; }
+
+.arc { padding-top: 0; }
+.arc-header { display: flex; align-items: baseline; justify-content: space-between; gap: 25px; }
+.arc-header .heading { font-size: 32px; }
+.arc-header .eyebrow { margin: 0; }
+.roadmap { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; margin-top: 30px; }
+.roadmap article { display: flex; flex-direction: column; padding-top: 19px; border-top: 1px solid var(--color-border); }
+.step { display: flex; align-items: baseline; gap: 14px; }
+.step-number { font-family: var(--font-label); font-size: 12px; color: var(--color-accent); }
+.step .small-label { margin: 0; font-size: 10px; }
+.roadmap h3 { margin: 18px 0 0; font-family: var(--font-display); font-size: 24px; font-weight: 450; line-height: 1.2; letter-spacing: -.015em; }
+.roadmap .copy { margin-top: 15px; font-size: 15px; line-height: 1.65; }
+.roadmap-detail { margin-bottom: auto; }
+.roadmap-detail > summary { display: none; }
+.status { margin-top: auto; padding-top: 23px; font-family: var(--font-label); font-size: 10px; color: var(--color-text-light); }
+.status::before { content: ''; display: inline-block; width: 4px; height: 4px; margin-right: 8px; border: 1px solid var(--color-accent); border-radius: 50%; }
+
+.doors { padding-top: 0; }
+.doors-header { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0 80px; }
+.doors-header .eyebrow { grid-column: 1 / -1; }
+.doors-header .copy { margin: 0; }
+.entries { display: grid; grid-template-columns: 1fr 1fr; gap: 55px; margin-top: 34px; }
+.entry { display: flex; flex-direction: column; align-items: flex-start; padding-top: 25px; border-top: 1px solid var(--color-border); }
+.entry .small-label { color: var(--color-accent); }
+.entry h3 { margin: 0; font-family: var(--font-display); font-size: 29px; font-weight: 450; line-height: 1.15; letter-spacing: -.02em; }
+.entry .copy { margin: 16px 0 24px; font-size: 16px; }
+.entry > a { margin-top: auto; }
+
+.site-footer { border-top: 1px solid var(--color-border); padding-top: 39px; }
+.footer-grid { display: grid; grid-template-columns: 1.3fr repeat(3, 1fr); gap: 35px; padding-bottom: 37px; }
+.footer-brand .wordmark { font-size: 44px; }
+.footer-brand p { max-width: 24ch; margin-top: 14px; color: var(--color-text-light); font-size: 13px; line-height: 1.65; }
+.footer-col .small-label { margin-bottom: 13px; }
+.footer-col a { display: block; padding: 5px 0; color: var(--color-text-muted); font-size: 13px; }
+.footer-col a:hover { color: var(--color-accent); }
+.footer-base { display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--color-border-light); padding: 19px 0 24px; font-family: var(--font-label); font-size: 10px; color: var(--color-text-light); }
+
+@media (max-width: 1050px) {
+  .shell { width: calc(100% - 64px); }
+  .hero-grid { gap: 30px; }
+  .hero-title { font-size: 48px; }
+  .science-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 40px; }
+  .turn .shell, .section-intro, .proof, .doors-header { column-gap: 42px; }
+  .organism-stages { gap: 28px; }
+}
+@media (max-width: 800px) {
+  .shell { width: min(600px, calc(100% - 48px)); }
+  .section { padding-block: 64px; }
+  .hero { padding-top: 40px; }
+  .hero-grid { grid-template-columns: 1fr; gap: 26px; }
+  .hero-title { max-width: 21ch; font-size: 46px; }
+  .hero .copy { max-width: 55ch; }
+  .hero-map { width: 100%; max-width: 510px; margin: 0 auto; }
+  .problem-strip { margin-top: 28px; }
+  .problem-grid { gap: 22px; }
+  .problem-grid h3 { font-size: 20px; min-height: 3.6em; }
+  .science-grid { grid-template-columns: 1fr; gap: 32px; }
+  .science-copy .heading { max-width: 24ch; }
+  .science-copy .copy { max-width: none; }
+  .lantern { justify-self: center; }
+  .turn { padding-block: 39px; }
+  .turn .shell { grid-template-columns: 1fr; }
+  .turn-bottom .copy { margin-top: 23px; }
+  .section-intro { grid-template-columns: 1fr; gap: 20px; }
+  .section-intro .heading { max-width: 23ch; }
+  .section-intro > .copy { margin: 0; }
+  .organism, .proof, .arc, .doors { padding-top: 0; }
+  .organism-map { display: none; }
+  .organism-stages { display: block; margin-top: 13px; }
+  .organism-stages::before { content: ''; position: absolute; left: 3.75%; top: 14px; bottom: 18px; width: 1px; background: linear-gradient(var(--palette-brass), var(--palette-ruby-soft) 45%, var(--palette-moss)); opacity: .35; }
+  .organism-stage { position: relative; padding: 0 0 27px; border: 0; }
+  .organism-stage:last-child { padding-bottom: 0; }
+  .organism-mini { display: block; width: 100%; height: auto; overflow: visible; }
+  .organism-stage > div { margin-left: 8%; }
+  .organism-stage .copy { margin-top: 12px; font-size: 16px; }
+  .organism-branch { fill: none; stroke: currentColor; stroke-width: 1; stroke-linecap: round; opacity: .55; }
+  .proof { grid-template-columns: 1fr; gap: 24px; }
+  .proof-heading { grid-column: 1; grid-row: 1; }
+  .proof-visual { grid-column: 1; grid-row: 2; }
+  .proof-description { grid-column: 1; grid-row: 3; }
+  .proof-description .copy { margin: 0; }
+  .proof-links { margin-top: 16px; }
+  .arc-header { display: block; }
+  .arc-header .eyebrow { margin-bottom: 18px; }
+  .roadmap { grid-template-columns: 1fr; gap: 22px; }
+  .roadmap h3 { margin-top: 12px; font-size: 25px; }
+  .roadmap-detail { margin-top: 10px; }
+  .roadmap-detail > summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; color: var(--color-text-muted); font-size: 14px; list-style: none; }
+  .roadmap-detail > summary::-webkit-details-marker { display: none; }
+  .roadmap-detail > summary::after { content: '+'; color: var(--color-accent); font-size: 21px; }
+  .roadmap-detail[open] > summary::after { content: '−'; }
+  .roadmap-detail .copy { margin-top: 7px; }
+  .status { padding-top: 10px; }
+  .doors-header { display: block; }
+  .doors-header .copy { margin-top: 20px; }
+  .entries { gap: 30px; }
+  .entry h3 { font-size: 27px; }
+  .footer-grid { grid-template-columns: repeat(3, 1fr); gap: 25px; }
+  .footer-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  /* Half a section break on each side; smaller steps keep related content together. */
+  body { --page-space-section: 88px; --page-space-group: 32px; --page-space-copy: 16px; --page-space-detail: 8px; }
+  html { scroll-padding-top: 22px; }
+  .shell { width: calc(100% - 40px); }
+  .site-header { position: relative; }
+  .faces-strip { min-height: 39px; gap: clamp(10px, 3.5vw, 18px); font-size: 9px; letter-spacing: .055em; }
+  .faces-strip a { padding-block: 12px; }
+  .masthead { min-height: 62px; }
+  .main-nav { display: none; }
+  .wordmark { font-size: 28px; }
+  .header-actions .button { min-height: 38px; font-size: 12px; padding-inline: 14px; }
+  .hero { padding-top: calc(var(--page-space-section) / 2); }
+  .hero .eyebrow { margin-bottom: var(--page-space-group); }
+  .hero-title { font-size: clamp(33px, 9.3vw, 39px); line-height: 1.09; }
+  .hero-title em { margin-top: 12px; }
+  .hero .copy { margin-top: var(--page-space-group); font-size: 16px; line-height: 1.65; }
+  .hero-cta { margin-top: var(--page-space-group); }
+  .hero-grid { gap: var(--page-space-group); }
+  /* Trim the SVG's empty frame, not the diagram's scale. */
+  .proximity-field > svg { aspect-ratio: 680 / 456; }
+  .proximity-node-label { font-size: 13px; opacity: .65; }
+  .proximity-cluster-label { opacity: .65; }
+  [data-proximity-node='rizom-docs'] .proximity-node-label { text-anchor: end; transform: translate(-25px, 22px); }
+  .proximity-strata-label { display: none; }
+  .proximity-center-label { font-size: 11px; opacity: .65; }
+  .map-caption { margin-top: 0; padding-top: var(--page-space-detail); font-size: 9px; }
+  .map-caption .snapshot { display: none; }
+  .problem-strip { margin-top: calc(var(--page-space-section) / 2); padding: calc(var(--page-space-section) / 2) 0 0; border-bottom: 0; }
+  .problem-strip .eyebrow { margin-bottom: var(--page-space-detail); }
+  .problem-grid { grid-template-columns: 1fr; gap: 0; }
+  .problem-grid article { padding: var(--page-space-copy) 0; border-bottom: 1px solid var(--color-border-light); }
+  .problem-grid h3 { font-size: 20px; min-height: 0; }
+  .problem-grid p { margin-top: var(--page-space-detail); }
+  .section, .turn { padding-block: calc(var(--page-space-section) / 2); }
+  #science { padding-top: calc(var(--page-space-section) - var(--page-space-copy)); }
+  .eyebrow { margin-bottom: var(--page-space-copy); font-size: 10px; }
+  .heading { font-size: 31px; line-height: 1.13; }
+  .copy { font-size: 16px; line-height: 1.65; }
+  .science-copy .copy { margin-top: var(--page-space-copy); }
+  .science-grid { gap: var(--page-space-group); }
+  .turn .eyebrow { margin-bottom: var(--page-space-copy); }
+  .turn blockquote { font-size: 29px; }
+  .turn-emphasis { margin-top: 12px; }
+  .turn-bottom .copy { margin-top: var(--page-space-group); font-size: 16px; }
+  .section-intro { gap: 24px; }
+  .availability { font-size: 9px; margin-left: 0; }
+  .comparison { margin-top: var(--page-space-group); }
+  .comparison th, .comparison td { padding: 16px 13px; }
+  .comparison th:first-child, .comparison td:first-child { padding-left: 0; padding-right: 13px; }
+  .comparison th:last-child, .comparison td:last-child { padding-right: 0; }
+  .comparison .small-label { font-size: 9px; letter-spacing: .06em; margin-bottom: 12px; min-height: 27px; }
+  .comparison-title { font-size: 21px; line-height: 1.2; }
+  .comparison td { font-size: 14px; line-height: 1.6; }
+  .organism, .proof, .arc, .doors { padding-top: calc(var(--page-space-section) / 2); }
+  .organism-stages { margin-top: var(--page-space-group); }
+  .organism-stage:not(:last-child) { padding-bottom: var(--page-space-group); }
+  .organism-stage h3 { font-size: 27px; }
+  .organism-stage .small-label { font-size: 10px; }
+  .proof { row-gap: var(--page-space-group); }
+  .proof-bar { font-size: 9px; gap: 9px; padding-top: var(--page-space-copy); }
+  .kmap { min-height: 0; margin-block: var(--page-space-detail); }
+  .map-key { margin-block: var(--page-space-detail); }
+  .kmap-label--zone { font-size: 19px; letter-spacing: .02em; stroke-width: 3.5px; opacity: .7; }
+  .proof-footer { gap: 4px; padding: 0 0 var(--page-space-copy); }
+  .proof-footer-links { width: 100%; justify-content: space-between; }
+  .proof-links { flex-direction: column; gap: 0; }
+  .proof-links .text-link { font-size: 14px; }
+  .arc-header .eyebrow { margin-bottom: var(--page-space-copy); }
+  .arc-header .heading { font-size: 29px; }
+  .roadmap { margin-top: var(--page-space-group); gap: var(--page-space-group); }
+  .roadmap article { padding-top: 20px; }
+  .roadmap h3 { font-size: 23px; }
+  .roadmap-detail { margin-top: var(--page-space-detail); }
+  .status { padding-top: var(--page-space-detail); }
+  .doors-header .copy { margin-top: var(--page-space-copy); }
+  .entries { grid-template-columns: 1fr; gap: 32px; margin-top: 32px; }
+  .entry { padding-top: var(--page-space-group); }
+  .entry .copy { margin-top: var(--page-space-copy); }
+  .site-footer { padding-top: calc(var(--page-space-section) / 2); }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 24px 25px; }
+  .footer-base { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .proximity-ripple, .proximity-pulse { display: none; }
+}
+
+/* Approved lantern, unchanged. */
+@scope (.lantern) {
+      
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+    }
+    .page { width: min(100%, 520px); margin-inline: auto; padding: 56px 20px 80px; }
+
+    /* A single illuminated surface, rather than a stack of instrument panels. */
+    .card {
+      --lantern-light: var(--color-accent-bright);
+      --lantern-hot: color-mix(in srgb, var(--color-text) 86%, var(--color-accent));
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      background: linear-gradient(150deg, var(--color-bg-card), var(--color-bg-subtle) 66%);
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--color-text) 6%, transparent),
+        0 28px 65px -30px color-mix(in srgb, var(--color-bg-subtle) 85%, transparent);
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background-image: var(--bg-noise);
+      opacity: .65;
+    }
+    .meta {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 25px 30px 0;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .13em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+    .meta-name { color: var(--color-text-muted); }
+    .meta-index { flex-shrink: 0; color: var(--color-text-light); letter-spacing: .06em; }
+    .meta-current { color: var(--color-accent); }
+
+    /* The triangle is the subject. Light occupies it, not just its vertices. */
+    .stage { position: relative; margin-top: 2px; }
+    .mark { display: block; width: 100%; height: auto; overflow: visible; }
+    .light-state { opacity: 0; transition: opacity .65s ease; }
+    .card[data-active="0"] .light-0,
+    .card[data-active="1"] .light-1,
+    .card[data-active="2"] .light-2 { opacity: 1; }
+    .triangle {
+      fill: color-mix(in srgb, var(--color-accent) 2%, transparent);
+      stroke: color-mix(in srgb, var(--color-accent) 28%, transparent);
+      stroke-width: 1;
+    }
+    .filament { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .filament--bloom { stroke-width: 7; filter: url(#lantern-blur); opacity: .45; }
+    .filament--lit { stroke-width: 1.7; }
+    .node-rest {
+      fill: var(--color-bg-card);
+      stroke: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
+      stroke-width: 1.5;
+    }
+    .aura { animation: lantern-breathe 6s ease-in-out infinite; transform-origin: 0 0; }
+    .node-ring { fill: none; stroke: var(--lantern-light); stroke-width: .6; opacity: .38; }
+    .node-core { fill: var(--lantern-hot); }
+
+    .panels {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      padding: 7px 32px 29px;
+    }
+    .panel {
+      grid-area: 1 / 1;
+      min-width: 0;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(5px);
+      transition: opacity .3s ease, transform .4s ease, visibility .3s;
+    }
+    .panel[aria-hidden="false"] { visibility: visible; opacity: 1; transform: none; }
+    .title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-weight: 450;
+      font-variation-settings: 'SOFT' 85, 'opsz' 90;
+      letter-spacing: -.035em;
+      line-height: 1.04;
+      text-wrap: balance;
+    }
+    .title em {
+      display: block;
+      color: var(--color-accent-bright);
+      font-weight: 400;
+      font-variation-settings: 'SOFT' 100, 'opsz' 90;
+    }
+    .body {
+      max-width: 38ch;
+      margin: 15px 0 0;
+      color: var(--color-text-muted);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* Numbered reading tabs, with one continuous line of light. */
+    .tabs {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-inline: 24px;
+      border-top: 1px solid var(--color-border);
+    }
+    .tabs::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: 0;
+      width: calc(100% / 3);
+      height: 2px;
+      pointer-events: none;
+      background: var(--color-accent);
+      box-shadow: 0 0 16px color-mix(in srgb, var(--color-accent) 50%, transparent);
+      transition: transform .55s cubic-bezier(.22,.8,.25,1);
+    }
+    .card[data-active="1"] .tabs::before { transform: translateX(100%); }
+    .card[data-active="2"] .tabs::before { transform: translateX(200%); }
+    .tab {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+      min-width: 0;
+      margin: 0;
+      border: 0;
+      padding: 17px 8px 23px;
+      background: transparent;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1.3;
+      transition: color .25s, background .25s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab-number {
+      color: var(--color-text-light);
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: .05em;
+      transition: color .25s;
+    }
+    .tab[aria-selected="true"], .tab[aria-selected="true"] .tab-number { color: var(--color-accent-bright); }
+    .tab[aria-selected="true"] { background: linear-gradient(color-mix(in srgb, var(--color-accent) 6%, transparent), transparent); }
+    .tab:hover { color: var(--color-text); background-color: var(--color-bg-muted); }
+    .tab:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -4px; border-radius: 3px; }
+    .panel:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 6px; }
+
+    @keyframes lantern-breathe { 50% { opacity: .72; transform: scale(.94); } }
+    @media (max-width: 410px) {
+      .page { padding: 28px 12px 48px; }
+      .meta { padding: 22px 23px 0; font-size: 9px; letter-spacing: .1em; }
+      .panels { padding: 12px 24px 26px; }
+      .title { font-size: 34px; }
+      .body { margin-top: 13px; font-size: 15px; }
+      .tabs { margin-inline: 16px; }
+      .tab { padding: 16px 8px 21px; font-size: 11.5px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .card *, .card *::before { animation: none; transition: none; }
+    }
+  
+    }
+  </style>
+</head>
+<body id="top">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="faces-bar">
+      <nav class="faces-strip shell" aria-label="Rizom faces">
+        <a href="https://rizom.ai/">Rizom</a><a href="https://rizom.ai/brain">Brain</a><a href="https://rizom.ai/work">Work</a><a href="https://rizom.ai/foundation">Foundation</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch to light theme">☀ Light</button>
+      </nav>
+    </div>
+    <div class="masthead shell">
+      <a class="wordmark" href="https://rizom.ai/" aria-label="Rizom home">rizom<span>.</span></a>
+      <nav class="main-nav" aria-label="Rizom indexes">
+        <a href="https://rizom.ai/writing">Writing</a><a href="https://rizom.ai/network">Network</a>
+      </nav>
+      <div class="header-actions">
+        <a class="button" href="https://rizom.ai/brain">Get started <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-heading">
+      <div class="shell">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">Living memory</p>
+            <h1 class="hero-title" id="hero-heading">AI didn't break your knowledge system. <em>It exposed that <span class="hero-conclusion">you never had one.</span></em></h1>
+            <p class="copy">Rizom builds living memory for hybrid human–AI teams: shared memory that stays current because it is made out of the work itself.</p>
+            <a class="button hero-cta" href="https://rizom.ai/work">Book a knowledge session <span aria-hidden="true">↗</span></a>
+          </div>
+          <figure class="hero-map">
+            <div class="proximity-field proximity-field--site" data-proximity-map="true"><svg viewBox="180 0 680 520" preserveAspectRatio="xMidYMid slice" width="100%" role="img" aria-label="Semantic proximity of saved agents to this brain"><defs><filter id="proximity-blur-site" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6"></feGaussianBlur></filter><radialGradient id="proximity-mist-site"><stop offset="0%" stop-color="var(--console-secondary)" stop-opacity="0.3"></stop><stop offset="70%" stop-color="var(--console-secondary)" stop-opacity="0.11"></stop><stop offset="100%" stop-color="var(--console-secondary)" stop-opacity="0"></stop></radialGradient></defs><g data-proximity-ring="0.2"><circle cx="520" cy="260" r="51.76470588235295" fill="none" stroke="var(--console-rule)" stroke-width="1"></circle><text class="proximity-strata-label" x="524" y="203.23529411764704">0.2</text></g><g data-proximity-ring="0.4"><circle cx="520" cy="260" r="103.5294117647059" fill="none" stroke="var(--console-rule)" stroke-width="1"></circle><text class="proximity-strata-label" x="524" y="151.4705882352941">0.4</text></g><g data-proximity-ring="0.6"><circle cx="520" cy="260" r="155.29411764705884" fill="none" stroke="var(--console-rule)" stroke-width="1"></circle><text class="proximity-strata-label" x="524" y="99.70588235294116">0.6</text></g><g data-proximity-ring="0.8"><circle cx="520" cy="260" r="207.0588235294118" fill="none" stroke="var(--console-rule)" stroke-width="1"></circle><text class="proximity-strata-label" x="524" y="47.9411764705882">0.8</text></g><g data-proximity-cluster="practice" data-proximity-cluster-id="cluster-0" data-proximity-cluster-label="practice" data-proximity-cluster-members="2" tabindex="0"><circle class="proximity-cluster-mist" cx="468.1542003325663" cy="233.7652865806764" r="126.10832504883307" fill="url(#proximity-mist-site)"></circle><g class="proximity-cluster-weave"><g><path d="M 545.6829159773016 170.43302786080605 Q 484.2613156310759 238.9748576167209, 390.625484687831 297.0975453005467" fill="none" stroke="var(--console-secondary)" stroke-opacity="0.22" stroke-width="2.6" filter="url(#proximity-blur-site)"></path><path d="M 545.6829159773016 170.43302786080605 Q 484.2613156310759 238.9748576167209, 390.625484687831 297.0975453005467" fill="none" stroke="var(--console-secondary)" stroke-opacity="0.5" stroke-width="0.9"></path></g></g><text class="proximity-cluster-label" x="468.1542003325663" y="97.65696153184332" text-anchor="middle">practice</text></g><g><path d="M 520 260 C 538.9606772513213 255.704688185689, 560.1188207423612 254.4871716853056, 574.1542769278652 242.40420879088535" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 538.9606772513213 255.704688185689, 560.1188207423612 254.4871716853056, 574.1542769278652 242.40420879088535" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 554.0195474465353 248.9463789776908 Q 569.6210205584025 255.4467107807187, 584.2814891071466 261.88952746547545" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g><path d="M 520 260 C 525.9455213766129 228.74816469257854, 538.2767537942852 197.38877396519965, 545.6829159773016 170.43302786080605" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 525.9455213766129 228.74816469257854, 538.2767537942852 197.38877396519965, 545.6829159773016 170.43302786080605" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 531.9283268684204 218.40098058821513 Q 537.0624728168998 205.48972220179326, 547.3346483742547 195.86592863894523" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g><path d="M 520 260 C 508.53742981073714 217.74610033366184, 468.85989905453994 198.68878768054935, 442.332422054059 176.71171962736975" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 508.53742981073714 217.74610033366184, 468.85989905453994 198.68878768054935, 442.332422054059 176.71171962736975" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 474.32338298930745 211.01782513795217 Q 472.5204164477696 202.0211393331337, 467.54391953996003 191.0112176501159" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g><path d="M 520 260 C 474.1513308838256 266.1219226395121, 432.4864215625912 296.5999515907615, 390.625484687831 297.0975453005467" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 474.1513308838256 266.1219226395121, 432.4864215625912 296.5999515907615, 390.625484687831 297.0975453005467" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 445.60763353336097 281.331667819987 Q 430.007186872006 287.48092347642654, 412.8782624822842 294.72961251025123" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g><path d="M 520 260 C 477.7956694461571 300.84408859936417, 463.1547597249756 356.23015414690946, 460.85622960421716 406.38596856807396" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 477.7956694461571 300.84408859936417, 463.1547597249756 356.23015414690946, 460.85622960421716 406.38596856807396" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 487.74657695461286 339.83002335731186 Q 481.73900229979387 341.6790682719435, 475.43300233934013 350.7006841006052" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g><path d="M 520 260 C 561.8030004600622 310.6666838215953, 607.2975360095329 363.5435874235532, 621.4951249613714 422.42615300501905" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 561.8030004600622 310.6666838215953, 607.2975360095329 363.5435874235532, 621.4951249613714 422.42615300501905" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 573.9527844823131 346.342503944956 Q 587.0781692375017 353.84999916602595, 593.5275344693974 368.83416815406656" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g><path d="M 520 260 C 586.0204897541098 298.86771028451324, 676.2983110014634 277.317729877466, 729.2324335849338 327.9837387624885" fill="none" stroke="var(--console-accent)" stroke-opacity="0.14" stroke-width="3.4" filter="url(#proximity-blur-site)"></path><path d="M 520 260 C 586.0204897541098 298.86771028451324, 676.2983110014634 277.317729877466, 729.2324335849338 327.9837387624885" fill="none" stroke="var(--console-accent)" stroke-opacity="0.3" stroke-width="1" stroke-linecap="round"></path><path d="M 632.0066726531252 296.39317405451203 Q 644.1384366880429 294.3779580263779, 659.827825241832 290.1548495579843" fill="none" stroke="var(--console-accent)" stroke-opacity="0.12" stroke-width="0.6"></path></g><g class="proximity-ripple" aria-hidden="true"><circle cx="520" cy="260" fill="none" stroke="var(--console-accent)" stroke-width="5" filter="url(#proximity-blur-site)"><animate attributeName="r" values="14;232" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.2 0 0.4 1"></animate><animate attributeName="stroke-opacity" values="0.1;0.07;0" keyTimes="0;0.6;1" dur="8s" repeatCount="indefinite"></animate></circle><circle cx="520" cy="260" fill="none" stroke="var(--console-accent)" stroke-width="1.1"><animate attributeName="r" values="14;232" dur="8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.2 0 0.4 1"></animate><animate attributeName="stroke-opacity" values="0.38;0.22;0" keyTimes="0;0.6;1" dur="8s" repeatCount="indefinite"></animate></circle></g><g data-proximity-center="identity"><circle class="proximity-center-halo" cx="520" cy="260" r="26" fill="var(--console-accent)" opacity="0.1" filter="url(#proximity-blur-site)"></circle><circle cx="520" cy="260" r="11" fill="var(--console-accent)" opacity="0.28" filter="url(#proximity-blur-site)"></circle><circle cx="520" cy="260" r="4.6" fill="var(--console-accent)"></circle><circle cx="520" cy="260" r="2" fill="var(--console-text)"></circle><text class="proximity-center-label" x="520" y="290">Brain identity</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:1.58s" data-proximity-node="yeehaa" data-proximity-name="yeehaa" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.22" data-proximity-tags="architecture" tabindex="0"><title>yeehaa · distance 0.22</title><g><circle class="proximity-bulb-glow" cx="574.1542769278652" cy="242.40420879088535" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="574.1542769278652" cy="242.40420879088535" r="3.4" fill="var(--console-accent)"></circle><circle cx="574.1542769278652" cy="242.40420879088535" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="586.1542769278652" y="245.40420879088535" text-anchor="start">yeehaa</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:2.91s" data-proximity-node="sam" data-proximity-node-cluster="cluster-0" data-proximity-name="sam" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.36" data-proximity-tags="brand" tabindex="0"><title>sam · distance 0.36</title><circle cx="545.6829159773016" cy="170.43302786080605" r="15" fill="var(--console-secondary)" opacity="0.2" filter="url(#proximity-blur-site)"></circle><g><circle class="proximity-bulb-glow" cx="545.6829159773016" cy="170.43302786080605" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="545.6829159773016" cy="170.43302786080605" r="3.4" fill="var(--console-accent)"></circle><circle cx="545.6829159773016" cy="170.43302786080605" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="557.6829159773016" y="173.43302786080605" text-anchor="start">sam</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:3.67s" data-proximity-node="jo" data-proximity-name="jo" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.44" data-proximity-tags="research" tabindex="0"><title>jo · distance 0.44</title><g><circle class="proximity-bulb-glow" cx="442.332422054059" cy="176.71171962736975" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="442.332422054059" cy="176.71171962736975" r="3.4" fill="var(--console-accent)"></circle><circle cx="442.332422054059" cy="176.71171962736975" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="430.332422054059" y="179.71171962736975" text-anchor="end">jo</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:4.43s" data-proximity-node="niels" data-proximity-node-cluster="cluster-0" data-proximity-name="niels" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.52" data-proximity-tags="design" tabindex="0"><title>niels · distance 0.52</title><circle cx="390.625484687831" cy="297.0975453005467" r="15" fill="var(--console-secondary)" opacity="0.2" filter="url(#proximity-blur-site)"></circle><g><circle class="proximity-bulb-glow" cx="390.625484687831" cy="297.0975453005467" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="390.625484687831" cy="297.0975453005467" r="3.4" fill="var(--console-accent)"></circle><circle cx="390.625484687831" cy="297.0975453005467" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="378.625484687831" y="300.0975453005467" text-anchor="end">niels</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:5.28s" data-proximity-node="becca" data-proximity-name="becca" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.61" data-proximity-tags="ops" tabindex="0"><title>becca · distance 0.61</title><g><circle class="proximity-bulb-glow" cx="460.85622960421716" cy="406.38596856807396" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="460.85622960421716" cy="406.38596856807396" r="3.4" fill="var(--console-accent)"></circle><circle cx="460.85622960421716" cy="406.38596856807396" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="448.85622960421716" y="409.38596856807396" text-anchor="end">becca</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:6.51s" data-proximity-node="mindinn" data-proximity-name="mindinn" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.74" data-proximity-tags="practice" tabindex="0"><title>mindinn · distance 0.74</title><g><circle class="proximity-bulb-glow" cx="621.4951249613714" cy="422.42615300501905" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="621.4951249613714" cy="422.42615300501905" r="3.4" fill="var(--console-accent)"></circle><circle cx="621.4951249613714" cy="422.42615300501905" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="633.4951249613714" y="425.42615300501905" text-anchor="start">mindinn</text></g><g class="proximity-agent" style="animation:proximityRippleShimmer 8s linear infinite;animation-delay:7.56s" data-proximity-node="rizom-docs" data-proximity-name="rizom brain docs" data-proximity-kind="person" data-proximity-status="active" data-proximity-distance="0.85" data-proximity-tags="docs" tabindex="0"><title>rizom brain docs · distance 0.85</title><g><circle class="proximity-bulb-glow" cx="729.2324335849338" cy="327.9837387624885" r="10.88" fill="var(--console-accent)" opacity="0.13" filter="url(#proximity-blur-site)"></circle><circle cx="729.2324335849338" cy="327.9837387624885" r="3.4" fill="var(--console-accent)"></circle><circle cx="729.2324335849338" cy="327.9837387624885" r="1.428" fill="var(--console-text)" opacity="0.9"></circle></g><text class="proximity-node-label" x="741.2324335849338" y="330.9837387624885" text-anchor="start">rizom brain docs</text></g><circle class="proximity-spore" cx="863.9553170632571" cy="126.33479588944465" r="1.196422742609866" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-3.9s"></circle><circle class="proximity-spore" cx="125.3231011396274" cy="364.54757927078754" r="1.2659351639682428" fill="var(--console-accent)" opacity="0.26" style="animation-delay:-6.9s"></circle><circle class="proximity-spore" cx="869.8549210615456" cy="285.6801982168108" r="1.1966512425104157" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-7.2s"></circle><circle class="proximity-spore" cx="368.31184606067836" cy="381.52189353108406" r="1.5595530149759724" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-6.0s"></circle><circle class="proximity-spore" cx="872.2479302613065" cy="355.08469843212515" r="1.0370559265604242" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-8.5s"></circle><circle class="proximity-spore" cx="378.2322139730677" cy="282.1865900028497" r="1.192508806218393" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-5.4s"></circle><circle class="proximity-spore" cx="526.4984943075106" cy="367.45361530035734" r="1.0990512580843643" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-5.9s"></circle><circle class="proximity-spore" cx="472.1435121158138" cy="281.4603048088029" r="1.5232462601270527" fill="var(--console-secondary)" opacity="0.26" style="animation-delay:-9.6s"></circle><circle class="proximity-spore" cx="663.8373133232817" cy="329.5725113283843" r="0.9948254422750324" fill="var(--console-accent)" opacity="0.26" style="animation-delay:-1.7s"></circle></svg></div>
+            <figcaption class="map-caption"><span><b>7</b> agents · <b>1</b> constellation discovered</span><span class="snapshot">Network snapshot</span></figcaption>
+          </figure>
+        </div>
+        <section class="problem-strip" id="problem" aria-labelledby="problem-heading">
+          <h2 class="eyebrow" id="problem-heading">Alone, it withers</h2>
+          <div class="problem-grid">
+            <article><h3>Your best thinking never ships</h3><p>Good ideas stay in drafts instead of reaching the people who need them.</p></article>
+            <article><h3>Your team forgets what it knows</h3><p>People leave, context disappears, and expertise gets buried in chat threads.</p></article>
+            <article><h3>The right people never find each other</h3><p>Titles and résumés hide the knowledge a piece of work actually needs.</p></article>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="section shell" id="science" aria-labelledby="science-heading">
+      <div class="science-grid">
+        <div class="science-copy">
+          <p class="eyebrow">The science</p>
+          <h2 class="heading" id="science-heading">A team's intelligence is <em>not the sum</em> of its members' talent.</h2>
+          <p class="copy">Organisational psychology has one finding it keeps replicating. Intelligence lives in the team's <strong>transactive memory system</strong> — the shared, mostly invisible map of who knows what, whose judgment settles which questions, and how knowledge moves. Strong-memory teams outperform equally talented ones, and the gap is structural rather than personal.</p>
+        </div>
+        <div class="lantern">
+          <section class="card" data-active="0" aria-label="Three dimensions of transactive memory">
+      <header class="meta">
+        <span class="meta-name">Transactive memory</span>
+        <span class="meta-index" aria-hidden="true"><span class="meta-current">01</span> / 03</span>
+      </header>
+
+      <div class="stage" aria-hidden="true">
+        <svg class="mark" viewBox="0 0 480 292" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="lantern-blur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3.5"></feGaussianBlur>
+            </filter>
+            <radialGradient id="lantern-aura">
+              <stop offset="0" stop-color="var(--color-accent)" stop-opacity=".42"></stop>
+              <stop offset=".22" stop-color="var(--color-accent)" stop-opacity=".19"></stop>
+              <stop offset=".55" stop-color="var(--color-accent)" stop-opacity=".055"></stop>
+              <stop offset="1" stop-color="var(--color-accent)" stop-opacity="0"></stop>
+            </radialGradient>
+            <radialGradient id="lantern-bulb">
+              <stop offset="0" stop-color="var(--lantern-hot)"></stop>
+              <stop offset=".16" stop-color="var(--lantern-hot)" stop-opacity=".95"></stop>
+              <stop offset=".3" stop-color="var(--lantern-light)" stop-opacity=".8"></stop>
+              <stop offset=".6" stop-color="var(--color-accent)" stop-opacity=".2"></stop>
+              <stop offset="1" stop-color="var(--color-accent)" stop-opacity="0"></stop>
+            </radialGradient>
+            <linearGradient id="lantern-ray" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--lantern-hot)"></stop>
+              <stop offset=".23" stop-color="var(--lantern-light)"></stop>
+              <stop offset="1" stop-color="var(--color-accent)" stop-opacity=".38"></stop>
+            </linearGradient>
+            <radialGradient id="lantern-membrane" gradientUnits="userSpaceOnUse" cx="0" cy="-112" r="263">
+              <stop offset="0" stop-color="var(--lantern-light)" stop-opacity=".42"></stop>
+              <stop offset=".22" stop-color="var(--color-accent)" stop-opacity=".15"></stop>
+              <stop offset=".65" stop-color="var(--color-accent)" stop-opacity=".025"></stop>
+              <stop offset="1" stop-color="var(--color-accent)" stop-opacity="0"></stop>
+            </radialGradient>
+            <!-- Each light is the same optical form, rotated around the triangle's centre. -->
+            <g id="lantern-light">
+              <circle cx="0" cy="-112" r="164" fill="url(#lantern-aura)"></circle>
+              <path d="M0 -112 L117.78 92 L-117.78 92 Z" fill="url(#lantern-membrane)"></path>
+              <path class="filament filament--bloom" d="M-117.78 92 L0 -112 L117.78 92" stroke="url(#lantern-ray)"></path>
+              <path class="filament filament--lit" d="M-117.78 92 L0 -112 L117.78 92" stroke="url(#lantern-ray)"></path>
+              <g transform="translate(0 -112)">
+                <g class="aura">
+                  <circle r="54" fill="url(#lantern-aura)"></circle>
+                  <circle r="36" fill="var(--color-accent)" opacity=".04"></circle>
+                  <circle r="23" class="node-ring"></circle>
+                </g>
+                <circle r="22" fill="url(#lantern-bulb)"></circle>
+                <circle r="5.5" class="node-core"></circle>
+              </g>
+            </g>
+          </defs>
+
+          <!-- Equilateral geometry: centre (240,180), circumradius 136. -->
+          <g transform="translate(240 180)">
+            <path class="triangle" d="M0 -136 L117.78 68 L-117.78 68 Z"></path>
+            <circle class="node-rest" cx="0" cy="-136" r="3.5"></circle>
+            <circle class="node-rest" cx="117.78" cy="68" r="3.5"></circle>
+            <circle class="node-rest" cx="-117.78" cy="68" r="3.5"></circle>
+            <g class="light-state light-0"><use href="#lantern-light" y="-24"></use></g>
+            <g class="light-state light-1" transform="rotate(120)"><use href="#lantern-light" y="-24"></use></g>
+            <g class="light-state light-2" transform="rotate(240)"><use href="#lantern-light" y="-24"></use></g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="panels">
+        <section class="panel" id="panel-0" role="tabpanel" aria-labelledby="tab-0" aria-hidden="false" tabindex="0">
+          <h3 class="title">Who knows <em>what</em></h3>
+          <p class="body">And who is the only one who knows it — the expertise that leaves when they do.</p>
+        </section>
+        <section class="panel" id="panel-1" role="tabpanel" aria-labelledby="tab-1" aria-hidden="true" tabindex="-1">
+          <h3 class="title">Whose judgment <em>settles it</em></h3>
+          <p class="body">Which questions end with which person, without anyone calling a meeting.</p>
+        </section>
+        <section class="panel" id="panel-2" role="tabpanel" aria-labelledby="tab-2" aria-hidden="true" tabindex="-1">
+          <h3 class="title">How knowledge <em>moves</em></h3>
+          <p class="body">What reaches the right person before they have to think to ask for it.</p>
+        </section>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Memory dimensions">
+        <button class="tab" id="tab-0" type="button" role="tab" aria-controls="panel-0" aria-selected="true" tabindex="0">
+          <span class="tab-number" aria-hidden="true">01</span>Specialization
+        </button>
+        <button class="tab" id="tab-1" type="button" role="tab" aria-controls="panel-1" aria-selected="false" tabindex="-1">
+          <span class="tab-number" aria-hidden="true">02</span>Credibility
+        </button>
+        <button class="tab" id="tab-2" type="button" role="tab" aria-controls="panel-2" aria-selected="false" tabindex="-1">
+          <span class="tab-number" aria-hidden="true">03</span>Coordination
+        </button>
+      </div>
+    </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="turn" aria-label="The shift to hybrid teams">
+      <div class="shell">
+        <p class="eyebrow">The shift</p>
+        <blockquote>
+          <span class="turn-intro">Four decades of that research studied teams of humans.</span>
+          <span class="turn-emphasis">Those teams no longer exist.</span>
+        </blockquote>
+        <div class="turn-bottom">
+          
+          <p class="copy">Every team is now a hybrid team, and AI arrives with no place in the team's memory — it doesn't know who knows what, whose word is trusted, or why last year's decision was made. This is why AI rollouts underdeliver so predictably.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section shell" id="system" aria-labelledby="system-heading">
+      <div class="section-intro">
+        <div>
+          <p class="eyebrow">The system <span class="availability">Available now</span></p>
+          <h2 class="heading" id="system-heading">Shared memory as <em>working infrastructure,</em> not documentation.</h2>
+        </div>
+        <p class="copy">Living memory stays alive because it feeds itself. A <strong>brain</strong> captures from where work already happens — the chat where a decision lands, the email thread, the conversation — so people and AI finally work from the same map. It is open source and self-hostable, because memory this important belongs to the organisation that creates it.</p>
+      </div>
+      <table class="comparison" aria-label="Documentation compared with living memory"><thead><tr><th scope="col"><span class="small-label">Wikis and knowledge platforms</span><span class="comparison-title">They demand upkeep nobody has time for.</span></th><th scope="col"><span class="small-label">Living memory</span><span class="comparison-title">It accumulates as a by-product of working.</span></th></tr></thead><tbody><tr><td>Written on purpose, then left to rot</td><td>Captured where the decision already lands</td></tr><tr><td>Point-in-time, out of date on arrival</td><td>Current without anyone maintaining it</td></tr><tr><td>Separate from where the work happens</td><td>One map for people and AI alike</td></tr></tbody></table>
+    </section>
+
+    <section class="section organism shell" id="growth" aria-labelledby="organism-heading">
+      <p class="eyebrow">One organism</p>
+      <h2 class="heading organism-heading" id="organism-heading">How it <em>comes together.</em></h2>
+      <svg class="organism-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="org-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter>
+          <radialGradient id="org-brain-light"><stop stop-color="var(--palette-brass)" stop-opacity=".36"></stop><stop offset=".3" stop-color="var(--palette-brass)" stop-opacity=".13"></stop><stop offset="1" stop-color="var(--palette-brass)" stop-opacity="0"></stop></radialGradient>
+          <radialGradient id="org-team-light"><stop stop-color="var(--palette-ruby-soft)" stop-opacity=".38"></stop><stop offset=".3" stop-color="var(--palette-ruby-soft)" stop-opacity=".12"></stop><stop offset="1" stop-color="var(--palette-ruby-soft)" stop-opacity="0"></stop></radialGradient>
+          <radialGradient id="org-net-light"><stop stop-color="var(--palette-moss)" stop-opacity=".4"></stop><stop offset=".3" stop-color="var(--palette-moss)" stop-opacity=".13"></stop><stop offset="1" stop-color="var(--palette-moss)" stop-opacity="0"></stop></radialGradient>
+          <linearGradient id="org-thread" gradientUnits="userSpaceOnUse" x1="180" y1="0" x2="940" y2="0"><stop stop-color="var(--palette-brass)" stop-opacity=".85"></stop><stop offset=".5" stop-color="var(--palette-ruby-soft)" stop-opacity=".6"></stop><stop offset="1" stop-color="var(--palette-moss)" stop-opacity=".65"></stop></linearGradient>
+          <symbol id="org-brain" viewBox="-90 -90 180 180" overflow="visible">
+            <circle r="85" fill="url(#org-brain-light)"></circle>
+            <circle r="38" fill="url(#org-brain-light)"></circle>
+            <circle r="23" class="organism-halo"></circle>
+            <circle r="10" fill="currentColor" opacity=".18"></circle>
+            <circle r="6.5" fill="currentColor"></circle>
+            <circle r="3.6" class="organism-hot"></circle>
+          </symbol>
+          <symbol id="org-team" viewBox="-90 -90 180 180" overflow="visible">
+            <circle cx="0" cy="-52" r="73" fill="url(#org-team-light)"></circle>
+            <path d="M0 -52 L48 30 L-48 30 Z" fill="color-mix(in srgb, var(--palette-ruby-soft) 3%, transparent)"></path>
+            <path class="organism-wire" d="M-48 30 L0 -52 L48 30 Z"></path>
+            <path class="organism-wire" d="M-48 30 L0 -52 L48 30" filter="url(#org-blur)" opacity=".4"></path>
+            <circle cx="-48" cy="30" r="20" fill="url(#org-team-light)"></circle>
+            <circle cx="48" cy="30" r="20" fill="url(#org-team-light)"></circle>
+            <circle cx="-48" cy="30" r="3.7" class="organism-peer"></circle>
+            <circle cx="48" cy="30" r="3.7" class="organism-peer"></circle>
+            <circle cx="0" cy="-52" r="16" class="organism-halo"></circle>
+            <circle cx="0" cy="-52" r="23" fill="url(#org-team-light)"></circle>
+            <circle cx="0" cy="-52" r="4.5" fill="currentColor"></circle>
+            <circle cx="0" cy="-52" r="2.4" class="organism-hot"></circle>
+          </symbol>
+          <symbol id="org-network" viewBox="-90 -90 180 180" overflow="visible">
+            <circle r="89" fill="url(#org-net-light)" opacity=".35"></circle>
+            <path class="organism-wire organism-wire-faint" d="M-33 12 Q-2 -14 22 -8 M-33 12 Q-13 42 9 36 M22 -8 Q51 3 65 24 M-45 -30 Q-9 -63 32 -58 M-70 -8 L-70 64 M67 -24 L78 3 M-45 -30 L-60 -68"></path>
+            <path class="organism-wire" d="M-45 -30 L-70 -8 L-33 12 Z M32 -58 L67 -24 L22 -8 Z M9 36 L48 68 L65 24 Z"></path>
+            <path class="organism-wire" d="M-33 12 Q-2 -14 22 -8 M22 -8 Q51 3 65 24" filter="url(#org-blur)"></path>
+            <circle cx="-45" cy="-30" r="32" fill="url(#org-net-light)"></circle>
+            <circle cx="32" cy="-58" r="27" fill="url(#org-net-light)"></circle>
+            <circle cx="9" cy="36" r="29" fill="url(#org-net-light)"></circle>
+            <circle cx="-45" cy="-30" r="4" fill="currentColor"></circle><circle cx="-45" cy="-30" r="2" class="organism-hot"></circle>
+            <circle cx="32" cy="-58" r="3.8" fill="currentColor"></circle><circle cx="32" cy="-58" r="1.8" class="organism-hot"></circle>
+            <circle cx="9" cy="36" r="3.8" fill="currentColor"></circle><circle cx="9" cy="36" r="1.8" class="organism-hot"></circle>
+            <circle cx="-70" cy="-8" r="2.8" class="organism-peer"></circle><circle cx="-33" cy="12" r="3" class="organism-peer"></circle>
+            <circle cx="67" cy="-24" r="3" class="organism-peer"></circle><circle cx="22" cy="-8" r="2.8" class="organism-peer"></circle>
+            <circle cx="48" cy="68" r="3" class="organism-peer"></circle><circle cx="65" cy="24" r="2.8" class="organism-peer"></circle>
+            <g opacity=".4"><circle cx="-70" cy="64" r="2.6" class="organism-peer"></circle><circle cx="78" cy="3" r="2.6" class="organism-peer"></circle><circle cx="-60" cy="-68" r="2.6" class="organism-peer"></circle></g>
+          </symbol>
+        </defs>
+      </svg>
+      <svg class="organism-map" viewBox="0 0 1080 280" role="img" aria-labelledby="organism-map-title organism-map-desc">
+        <title id="organism-map-title">One brain becomes a team, then a network</title>
+        <desc id="organism-map-desc">A brass light branches into a ruby triangle of people, then into three connected moss-green clusters. The same triangular form grows from the team's memory into a wider network.</desc>
+        <path class="organism-ray-soft" d="M180 142 C302 81 403 54 540 90 M588 172 C702 165 754 88 855 112"></path>
+        <path class="organism-ray" d="M180 142 C302 81 403 54 540 90 M588 172 C702 165 754 88 855 112"></path>
+        <path class="organism-ray organism-ray-fine" d="M180 142 C284 177 391 208 492 172 M540 90 C665 32 793 29 932 84 M492 172 C621 240 791 239 909 178"></path>
+        <circle cx="180" cy="142" r="126" fill="url(#org-brain-light)" opacity=".35"></circle>
+        <circle cx="540" cy="142" r="112" fill="url(#org-team-light)" opacity=".24"></circle>
+        <circle cx="900" cy="142" r="126" fill="url(#org-net-light)" opacity=".25"></circle>
+        <use href="#org-brain" class="organism-brain" x="90" y="52" width="180" height="180"></use>
+        <use href="#org-team" class="organism-team" x="450" y="52" width="180" height="180"></use>
+        <use href="#org-network" class="organism-network" x="810" y="52" width="180" height="180"></use>
+      </svg>
+      <div class="organism-stages">
+        <article class="organism-stage organism-brain">
+          <svg class="organism-mini" viewBox="0 0 320 96" aria-hidden="true"><path class="organism-branch" d="M12 60 C58 60 110 60 160 60"></path><use href="#org-brain" x="90" y="-10" width="140" height="140"></use></svg>
+          <div><p class="small-label">You</p><h3>The brain</h3><p class="copy">One agent that ships what you know. The thinking that used to die in drafts goes out — and speaks.</p></div>
+        </article>
+        <article class="organism-stage organism-team">
+          <svg class="organism-mini" viewBox="0 0 320 104" aria-hidden="true"><path class="organism-branch" d="M12 43 C57 43 114 1 160 20"></path><use href="#org-team" x="90" y="-10" width="140" height="140"></use></svg>
+          <div><p class="small-label">Team</p><h3>The practice</h3><p class="copy">Working sessions — people, not software — map what a team knows before it walks out the door. Brains hold it as people come and go.</p></div>
+        </article>
+        <article class="organism-stage organism-network">
+          <svg class="organism-mini" viewBox="0 0 320 132" aria-hidden="true"><path class="organism-branch" d="M12 42 C53 42 92 56 125 37"></path><use href="#org-network" x="90" y="-10" width="140" height="140"></use></svg>
+          <div><p class="small-label">Network</p><h3>The network</h3><p class="copy">Brains find each other by substance, not titles, and constellations form: the start of a team, a field, or a piece of work.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section proof shell" id="knowledge" aria-labelledby="proof-heading"><div class="proof-heading">
+          <p class="eyebrow">The working proof</p>
+          <h2 class="heading" id="proof-heading">This page runs on <em>the memory it describes.</em></h2>
+        </div><figure class="proof-visual">
+        <figcaption class="proof-bar"><span>RIZOM / KNOWLEDGE MAP</span><span><strong>36</strong> entities &nbsp;·&nbsp; <strong>4</strong> topics</span></figcaption>
+        <svg class="kmap kmap--site" viewBox="160 0 850 510" role="img" aria-labelledby="kmap-title-site kmap-desc-site"><title id="kmap-title-site">Knowledge map</title><desc id="kmap-desc-site">Semantic knowledge map with 36 entities and 4 topics. Labeled territories include coordination, team memory, agent systems, ownership. Published work glows; other source material appears as quiet context marks.</desc><defs><filter id="kmap-blur-site" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4"></feGaussianBlur></filter><radialGradient id="kmap-mist-site"><stop offset="0%" stop-color="var(--kmap-zone)" stop-opacity="0.25"></stop><stop offset="70%" stop-color="var(--kmap-zone)" stop-opacity="0.09"></stop><stop offset="100%" stop-color="var(--kmap-zone)" stop-opacity="0"></stop></radialGradient></defs><circle class="kmap-dot kmap-point--source kmap-point--context" cx="268.74" cy="251.86085780713051" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.40s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="357.2034786912212" cy="142.7357348824002" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.43s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="536.4262376466525" cy="177.18173458066104" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.46s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="788.7439686269555" cy="151.64297315351678" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.49s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="709.1130274621738" cy="289.1450974093581" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.52s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="893.305252491102" cy="370.6729169578837" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.55s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="432.35382893592094" cy="322.0899160633536" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.58s"></circle><circle class="kmap-dot kmap-point--source kmap-point--context" cx="379.0750657678443" cy="435.72801527943784" r="1.5" fill="var(--kmap-ink-faint)" style="--d:1.61s"></circle><path class="kmap-weave kmap-topic-link" pathLength="1" d="M 329.4459623980723 201.024205664308 Q 348.6910648306771 283.8402669706771, 388.2339893559416 376.2641502342544" fill="none" stroke="var(--kmap-glow)" stroke-opacity="0.11" stroke-width="0.75" style="--d:1.15s"></path><path class="kmap-weave kmap-topic-link" pathLength="1" d="M 664.5031190832258 172.64948708654228 Q 725.1722391270205 243.08956456618813, 786.8075338012635 335.08418200850565" fill="none" stroke="var(--kmap-glow)" stroke-opacity="0.11" stroke-width="0.75" style="--d:1.26s"></path><path class="kmap-weave kmap-topic-link" pathLength="1" d="M 329.4459623980723 201.024205664308 Q 500.2735201562073 177.473778373149, 664.5031190832258 172.64948708654228" fill="none" stroke="var(--kmap-glow)" stroke-opacity="0.11" stroke-width="0.75" style="--d:1.37s"></path><path class="kmap-weave kmap-topic-link" pathLength="1" d="M 664.5031190832258 172.64948708654228 Q 539.9266695547651 278.610162890659, 388.2339893559416 376.2641502342544" fill="none" stroke="var(--kmap-glow)" stroke-opacity="0.11" stroke-width="0.75" style="--d:1.48s"></path><path class="kmap-weave kmap-topic-link" pathLength="1" d="M 786.8075338012635 335.08418200850565 Q 595.8861582663635 362.61603286894933, 388.2339893559416 376.2641502342544" fill="none" stroke="var(--kmap-glow)" stroke-opacity="0.11" stroke-width="0.75" style="--d:1.59s"></path><path class="kmap-weave kmap-topic-link" pathLength="1" d="M 329.4459623980723 201.024205664308 Q 552.6152657998967 267.34286662261286, 786.8075338012635 335.08418200850565" fill="none" stroke="var(--kmap-glow)" stroke-opacity="0.11" stroke-width="0.75" style="--d:1.70s"></path><g><path d="M 424.02102928032616 175.15263167771792 Q 446.892511872846 201.024205664308, 436.11890106160934 235.62591463564414 Q 425.3452902503726 270.2276236069803, 385.2693635473995 274.02851181462034 Q 345.19343684442646 277.8294000222604, 307.37163594859453 284.0363512109218 Q 269.54983505276255 290.24330239958323, 250.3032080612286 261.03240068564605 Q 231.05658106969466 231.82149897170885, 222.57303601078485 198.3687338853586 Q 214.089490951875 164.9159687990084, 242.37230157069047 139.18372921165266 Q 270.6551121895059 113.45148962429694, 308.4559492069043 116.2421122427491 Q 346.2567862243026 119.03273486120126, 373.7031664560544 134.15689627616456 Q 401.14954668780626 149.28105769112787, 424.02102928032616 175.15263167771792 Z" fill="url(#kmap-mist-site)"></path><path class="kmap-weave" pathLength="1" d="M 424.02102928032616 175.15263167771792 Q 446.892511872846 201.024205664308, 436.11890106160934 235.62591463564414 Q 425.3452902503726 270.2276236069803, 385.2693635473995 274.02851181462034 Q 345.19343684442646 277.8294000222604, 307.37163594859453 284.0363512109218 Q 269.54983505276255 290.24330239958323, 250.3032080612286 261.03240068564605 Q 231.05658106969466 231.82149897170885, 222.57303601078485 198.3687338853586 Q 214.089490951875 164.9159687990084, 242.37230157069047 139.18372921165266 Q 270.6551121895059 113.45148962429694, 308.4559492069043 116.2421122427491 Q 346.2567862243026 119.03273486120126, 373.7031664560544 134.15689627616456 Q 401.14954668780626 149.28105769112787, 424.02102928032616 175.15263167771792 Z" fill="none" stroke="var(--kmap-zone)" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="3 5" stroke-linecap="round" style="--d:0.20s"></path><text class="kmap-label kmap-label--zone" x="329.4459623980723" y="204.024205664308" text-anchor="middle" fill="var(--kmap-zone)" font-size="9" font-weight="600" letter-spacing="0.18em" style="--d:0.95s;text-transform:uppercase">coordination · 9</text></g><g><path d="M 807.3354136766718 135.79669490823898 Q 848.0294583268139 172.64948708654228, 818.2698906420462 217.392878671181 Q 788.5103229572786 262.1362702558197, 741.2514868553545 289.30755994819816 Q 693.9926507534304 316.47884964057664, 638.2664222872885 305.608667246643 Q 582.5401938211465 294.7384848527093, 537.264055674571 260.6938572491773 Q 491.98791752799536 226.64922964564528, 502.69077025279535 175.9996341262057 Q 513.3936229775953 125.35003860676616, 542.0677288641248 79.16806030047614 Q 570.7418347506541 32.98608199418612, 631.3170283904095 36.02531625295997 Q 691.8922220301649 39.06455051173381, 729.2667955283473 69.00422662083474 Q 766.6413690265298 98.94390272993567, 807.3354136766718 135.79669490823898 Z" fill="url(#kmap-mist-site)"></path><path class="kmap-weave" pathLength="1" d="M 807.3354136766718 135.79669490823898 Q 848.0294583268139 172.64948708654228, 818.2698906420462 217.392878671181 Q 788.5103229572786 262.1362702558197, 741.2514868553545 289.30755994819816 Q 693.9926507534304 316.47884964057664, 638.2664222872885 305.608667246643 Q 582.5401938211465 294.7384848527093, 537.264055674571 260.6938572491773 Q 491.98791752799536 226.64922964564528, 502.69077025279535 175.9996341262057 Q 513.3936229775953 125.35003860676616, 542.0677288641248 79.16806030047614 Q 570.7418347506541 32.98608199418612, 631.3170283904095 36.02531625295997 Q 691.8922220301649 39.06455051173381, 729.2667955283473 69.00422662083474 Q 766.6413690265298 98.94390272993567, 807.3354136766718 135.79669490823898 Z" fill="none" stroke="var(--kmap-zone)" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="3 5" stroke-linecap="round" style="--d:0.28s"></path><text class="kmap-label kmap-label--zone" x="664.5031190832258" y="175.64948708654228" text-anchor="middle" fill="var(--kmap-zone)" font-size="9" font-weight="600" letter-spacing="0.18em" style="--d:1.03s;text-transform:uppercase">team memory · 9</text></g><g><path d="M 925.8071216702515 289.22040890222416 Q 937.6943458896194 335.08418200850565, 916.7126752993934 374.3851690426153 Q 895.7310047091672 413.6861560767249, 855.6120019012983 444.33901289607115 Q 815.4929990934293 474.99186971541735, 762.4520450986215 462.68149142510435 Q 709.4110911038136 450.37111313479136, 688.6151892681816 411.350164931119 Q 667.8192874325495 372.32921672744675, 658.4123154794531 332.1396643129722 Q 649.0053435263569 291.95011189849765, 684.8499743925593 264.27743790620457 Q 720.6946052587615 236.60476391391154, 766.9685026360162 221.37905521576914 Q 813.242400013271 206.15334651762672, 863.5811487320773 224.75499115678468 Q 913.9198974508836 243.35663579594265, 925.8071216702515 289.22040890222416 Z" fill="url(#kmap-mist-site)"></path><path class="kmap-weave" pathLength="1" d="M 925.8071216702515 289.22040890222416 Q 937.6943458896194 335.08418200850565, 916.7126752993934 374.3851690426153 Q 895.7310047091672 413.6861560767249, 855.6120019012983 444.33901289607115 Q 815.4929990934293 474.99186971541735, 762.4520450986215 462.68149142510435 Q 709.4110911038136 450.37111313479136, 688.6151892681816 411.350164931119 Q 667.8192874325495 372.32921672744675, 658.4123154794531 332.1396643129722 Q 649.0053435263569 291.95011189849765, 684.8499743925593 264.27743790620457 Q 720.6946052587615 236.60476391391154, 766.9685026360162 221.37905521576914 Q 813.242400013271 206.15334651762672, 863.5811487320773 224.75499115678468 Q 913.9198974508836 243.35663579594265, 925.8071216702515 289.22040890222416 Z" fill="none" stroke="var(--kmap-zone)" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="3 5" stroke-linecap="round" style="--d:0.36s"></path><text class="kmap-label kmap-label--zone" x="786.8075338012635" y="338.08418200850565" text-anchor="middle" fill="var(--kmap-zone)" font-size="9" font-weight="600" letter-spacing="0.18em" style="--d:1.11s;text-transform:uppercase">agent systems · 9</text></g><g><path d="M 496.1512493313667 343.2513215767175 Q 512.5727949944276 376.2641502342544, 486.73148089614267 402.4794320627874 Q 460.89016679785783 428.6947138913205, 433.69259468309696 447.01172229868916 Q 406.4950225683361 465.32873070605785, 375.86772308940124 452.81726778613404 Q 345.24042361046634 440.3058048662102, 326.2552606798443 420.9564095861688 Q 307.27009774922226 401.6070143061273, 294.22407554406277 372.18055740215596 Q 281.1780533389033 342.75410049818464, 313.3676315114492 327.7242345672689 Q 345.5572096839951 312.69436863635326, 374.3716732460449 308.01618737115876 Q 403.1861368080948 303.33800610596427, 441.45792023820036 306.78824951257246 Q 479.7297036683059 310.23849291918066, 496.1512493313667 343.2513215767175 Z" fill="url(#kmap-mist-site)"></path><path class="kmap-weave" pathLength="1" d="M 496.1512493313667 343.2513215767175 Q 512.5727949944276 376.2641502342544, 486.73148089614267 402.4794320627874 Q 460.89016679785783 428.6947138913205, 433.69259468309696 447.01172229868916 Q 406.4950225683361 465.32873070605785, 375.86772308940124 452.81726778613404 Q 345.24042361046634 440.3058048662102, 326.2552606798443 420.9564095861688 Q 307.27009774922226 401.6070143061273, 294.22407554406277 372.18055740215596 Q 281.1780533389033 342.75410049818464, 313.3676315114492 327.7242345672689 Q 345.5572096839951 312.69436863635326, 374.3716732460449 308.01618737115876 Q 403.1861368080948 303.33800610596427, 441.45792023820036 306.78824951257246 Q 479.7297036683059 310.23849291918066, 496.1512493313667 343.2513215767175 Z" fill="none" stroke="var(--kmap-zone)" stroke-opacity="0.32" stroke-width="1" stroke-dasharray="3 5" stroke-linecap="round" style="--d:0.44s"></path><text class="kmap-label kmap-label--zone" x="388.2339893559416" y="379.2641502342544" text-anchor="middle" fill="var(--kmap-zone)" font-size="9" font-weight="600" letter-spacing="0.18em" style="--d:1.19s;text-transform:uppercase">ownership · 9</text></g><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="383.40000000000003" cy="200.8" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:0.50s"></circle><circle class="kmap-dot" cx="383.40000000000003" cy="200.8" r="5" fill="var(--kmap-glow)" style="--d:0.50s"></circle><circle class="kmap-dot" cx="383.40000000000003" cy="200.8" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:0.50s"></circle></g><circle class="kmap-dot kmap-point--source" cx="392.9564372320147" cy="222.86047076444203" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:0.55s"></circle><circle class="kmap-dot kmap-point--source" cx="352.43857269604075" cy="246.7314336004894" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:0.60s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="288.35506158149053" cy="208.3244431531647" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:0.65s"></circle><circle class="kmap-dot" cx="288.35506158149053" cy="208.3244431531647" r="5" fill="var(--kmap-glow)" style="--d:0.65s"></circle><circle class="kmap-dot" cx="288.35506158149053" cy="208.3244431531647" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:0.65s"></circle></g><circle class="kmap-dot kmap-point--source" cx="262.5698960671252" cy="189.06186868106306" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:0.70s"></circle><circle class="kmap-dot kmap-point--source" cx="282.46" cy="160.40857516749378" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:0.75s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="371.93617771283" cy="186.65867258689616" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:0.80s"></circle><circle class="kmap-dot" cx="371.93617771283" cy="186.65867258689616" r="5" fill="var(--kmap-glow)" style="--d:0.80s"></circle><circle class="kmap-dot" cx="371.93617771283" cy="186.65867258689616" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:0.80s"></circle></g><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="694.0748129875388" cy="192.91236166577374" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:0.85s"></circle><circle class="kmap-dot" cx="694.0748129875388" cy="192.91236166577374" r="5" fill="var(--kmap-glow)" style="--d:0.85s"></circle><circle class="kmap-dot" cx="694.0748129875388" cy="192.91236166577374" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:0.85s"></circle></g><circle class="kmap-dot kmap-point--source" cx="657.8927663819459" cy="208.4421384041613" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:0.90s"></circle><circle class="kmap-dot kmap-point--source" cx="591.2622613037556" cy="206.03189176542799" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:0.95s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="628.6196122843318" cy="161.06954433538112" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.00s"></circle><circle class="kmap-dot" cx="628.6196122843318" cy="161.06954433538112" r="5" fill="var(--kmap-glow)" style="--d:1.00s"></circle><circle class="kmap-dot" cx="628.6196122843318" cy="161.06954433538112" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.00s"></circle></g><circle class="kmap-dot kmap-point--source" cx="650.7894632650815" cy="140.92021032678525" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.05s"></circle><circle class="kmap-dot kmap-point--source" cx="715.2377159399613" cy="132.95331665997708" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.10s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="714.3843523960353" cy="180.9406999737384" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.15s"></circle><circle class="kmap-dot" cx="714.3843523960353" cy="180.9406999737384" r="5" fill="var(--kmap-glow)" style="--d:1.15s"></circle><circle class="kmap-dot" cx="714.3843523960353" cy="180.9406999737384" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.15s"></circle></g><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="764.80880500919" cy="357.204543390165" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.20s"></circle><circle class="kmap-dot" cx="764.80880500919" cy="357.204543390165" r="5" fill="var(--kmap-glow)" style="--d:1.20s"></circle><circle class="kmap-dot" cx="764.80880500919" cy="357.204543390165" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.20s"></circle></g><circle class="kmap-dot kmap-point--source" cx="716.1538813531146" cy="351.9256209884594" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.25s"></circle><circle class="kmap-dot kmap-point--source" cx="684.6705148192787" cy="325.4501345191749" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.30s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="789.1225516856903" cy="315.27060497910213" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.35s"></circle><circle class="kmap-dot" cx="789.1225516856903" cy="315.27060497910213" r="5" fill="var(--kmap-glow)" style="--d:1.35s"></circle><circle class="kmap-dot" cx="789.1225516856903" cy="315.27060497910213" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.35s"></circle></g><circle class="kmap-dot kmap-point--source" cx="838.8645604113599" cy="312.7597161981004" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.40s"></circle><circle class="kmap-dot kmap-point--source" cx="888.617535537305" cy="332.8039476741042" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.45s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="798.2192092434211" cy="358.40923796870896" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.50s"></circle><circle class="kmap-dot" cx="798.2192092434211" cy="358.40923796870896" r="5" fill="var(--kmap-glow)" style="--d:1.50s"></circle><circle class="kmap-dot" cx="798.2192092434211" cy="358.40923796870896" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.50s"></circle></g><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="334.8903676665782" cy="379.90464017731705" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.55s"></circle><circle class="kmap-dot" cx="334.8903676665782" cy="379.90464017731705" r="5" fill="var(--kmap-glow)" style="--d:1.55s"></circle><circle class="kmap-dot" cx="334.8903676665782" cy="379.90464017731705" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.55s"></circle></g><circle class="kmap-dot kmap-point--source" cx="318.49567938573944" cy="358.67043554664843" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.60s"></circle><circle class="kmap-dot kmap-point--source" cx="351.1051133944829" cy="332.4711494087115" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.65s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="426.619115156999" cy="366.43345027245005" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.70s"></circle><circle class="kmap-dot" cx="426.619115156999" cy="366.43345027245005" r="5" fill="var(--kmap-glow)" style="--d:1.70s"></circle><circle class="kmap-dot" cx="426.619115156999" cy="366.43345027245005" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.70s"></circle></g><circle class="kmap-dot kmap-point--source" cx="458.20070820223407" cy="383.8695062847386" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.75s"></circle><circle class="kmap-dot kmap-point--source" cx="447.51574989605115" cy="413.49628892322596" r="2.9" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.2" style="--d:1.80s"></circle><g class="kmap-point--published"><circle class="kmap-dot kmap-breathe" cx="350.6842651535651" cy="393.1781003866607" r="15" fill="var(--kmap-glow)" opacity="0.12" filter="url(#kmap-blur-site)" style="--d:1.85s"></circle><circle class="kmap-dot" cx="350.6842651535651" cy="393.1781003866607" r="5" fill="var(--kmap-glow)" style="--d:1.85s"></circle><circle class="kmap-dot" cx="350.6842651535651" cy="393.1781003866607" r="2.1" fill="var(--kmap-hot)" opacity="0.9" style="--d:1.85s"></circle></g><g class="kmap-legend" aria-hidden="true"><g transform="translate(720 537)"><circle cx="0" cy="0" r="4" fill="none" stroke="var(--kmap-zone)" stroke-width="1.1" stroke-dasharray="2 2"></circle><text x="9" y="3.5" class="kmap-label kmap-label--legend">topics</text></g><g transform="translate(815 537)"><circle cx="0" cy="0" r="3.3" fill="none" stroke="var(--kmap-ink-dim)" stroke-width="1.1"></circle><text x="9" y="3.5" class="kmap-label kmap-label--legend">sources</text></g><g transform="translate(910 537)"><circle cx="0" cy="0" r="4" fill="var(--kmap-glow)"></circle><text x="9" y="3.5" class="kmap-label kmap-label--legend">published</text></g></g></svg>
+        <div class="map-key"><span class="key-topic">Topics</span><span>Sources</span><span class="key-published">Published</span></div>
+        <div class="proof-footer">
+          <span>Memory snapshot · from the last site build</span>
+          <div class="proof-footer-links"><a class="text-link" href="https://rizom.ai/network">Talk to it <span aria-hidden="true">↗</span></a><a class="text-link" href="https://rizom.ai/.well-known/agent-card.json">Agent card <span aria-hidden="true">↗</span></a></div>
+        </div>
+      </figure><div class="proof-description">
+          <p class="copy">Rizom is not a slide about living memory. This site is a brain, and the map below is its own memory as it stands right now — every topic drawn from real work, nothing curated for the occasion. Yours accumulates the same way.</p>
+          <div class="proof-links"><a class="text-link" href="https://rizom.ai/brain#quickstart">Start your own brain <span aria-hidden="true">↗</span></a><a class="text-link" href="https://rizom.ai/work">Book a knowledge session <span aria-hidden="true">↗</span></a></div>
+        </div></section>
+
+    <section class="section arc shell" id="arc" aria-labelledby="arc-heading">
+      <div class="arc-header"><p class="eyebrow">Where this goes</p><h2 class="heading" id="arc-heading">Measure. Connect. Coordinate.</h2></div>
+      <div class="roadmap">
+        <article>
+          <div class="step"><span class="step-number" aria-hidden="true">01</span><p class="small-label">Measure</p></div>
+          <h3>A score read from the work, not a survey</h3>
+          <details class="roadmap-detail" open=""><summary>Read more</summary><p class="copy">Forty years of research assessed transactive memory by questionnaire — self-reported, twice a year, out of date by the time it is read. The same three dimensions can be derived from what a team actually does: continuous, behavioural, and a number an organisation can move.</p></details>
+          <p class="status">In development</p>
+        </article>
+        <article>
+          <div class="step"><span class="step-number" aria-hidden="true">02</span><p class="small-label">Connect</p></div>
+          <h3>Brains that reach each other — signed, permissioned, selective</h3>
+          <details class="roadmap-detail" open=""><summary>Read more</summary><p class="copy">Each brain keeps its own boundary and shares only what it chooses to, so a team's memory can reach an organisation and an organisation's can reach an ecosystem without anyone handing over the whole map.</p></details>
+          <p class="status">Emerging</p>
+        </article>
+        <article>
+          <div class="step"><span class="step-number" aria-hidden="true">03</span><p class="small-label">Coordinate</p></div>
+          <h3>An economy's coordination layer</h3>
+          <details class="roadmap-detail" open=""><summary>Read more</summary><p class="copy">A brain holds not just what its people know but how they work. Those same signals become composition logic: teams of people and agents assembled on evidence of how they actually collaborate, rather than on resumes and keywords.</p></details>
+          <p class="status">Not yet built</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section doors shell" id="doors" aria-labelledby="doors-heading">
+      <div class="doors-header">
+        <p class="eyebrow">Two ways in</p>
+        <h2 class="heading" id="doors-heading">Start with one session, <em>or start with the code.</em></h2>
+        <p class="copy">Most teams start with a session, because the first thing worth knowing is what your memory actually looks like. Teams who would rather read the code first are welcome to — it is the same system either way.</p>
+      </div>
+      <div class="entries">
+        <article class="entry" data-room="work">
+          <p class="small-label">The practice</p><h3>A knowledge session</h3>
+          <p class="copy">Half a day with your team. We map what it knows, where the memory is thin, and which decisions your AI is already getting wrong for lack of context. You leave with the map, whether or not you go further.</p>
+          <a class="button" href="https://rizom.ai/work">Book a session <span aria-hidden="true">↗</span></a>
+        </article>
+        <article class="entry" data-room="platform">
+          <p class="small-label">The platform</p><h3>Run a brain yourself</h3>
+          <p class="copy">Open source and self-hostable. Point a brain at your own work, on your own server, and see what your team's memory looks like before you talk to anyone.</p>
+          <a class="text-link" href="https://github.com/rizom-ai/brains">See the repository <span aria-hidden="true">↗</span></a>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell">
+      <div class="footer-grid">
+        <div class="footer-brand"><a class="wordmark" href="https://rizom.ai/" aria-label="Rizom home">rizom<span>.</span></a><p>Living memory for hybrid human–AI teams</p></div>
+        <div class="footer-col"><p class="small-label">The brain</p><a href="https://rizom.ai/brain#quickstart">Get started</a><a href="https://docs.rizom.ai">Documentation ↗</a><a href="https://github.com/rizom-ai">GitHub ↗</a><a href="https://rizom.ai/network">Network</a></div>
+        <div class="footer-col"><p class="small-label">The practice</p><a href="https://rizom.ai/work#workshop">The workshop</a><a href="https://rizom.ai/work#quiz">Team Type quiz</a><a href="https://rizom.ai/work#contact">Contact</a></div>
+        <div class="footer-col"><p class="small-label">The foundation</p><a href="https://rizom.ai/foundation">Manifesto</a><a href="https://rizom.ai/writing">Writing</a><a href="https://rizom.ai/foundation#events">Events</a><a href="https://rizom.ai/foundation#support">Support</a></div>
+      </div>
+      <div class="footer-base"><span>Rizom B.V.</span><a href="#top">Back to top ↑</a></div>
+    </div>
+  </footer>
+  <script>
+    (() => {
+      
+    const card = document.querySelector('.card');
+    const tabs = [...card.querySelectorAll('[role="tab"]')];
+    const panels = [...card.querySelectorAll('[role="tabpanel"]')];
+
+    function select(index) {
+      card.dataset.active = index;
+      card.querySelector('.meta-current').textContent = String(index + 1).padStart(2, '0');
+      tabs.forEach((tab, i) => {
+        tab.setAttribute('aria-selected', String(i === index));
+        tab.tabIndex = i === index ? 0 : -1;
+        panels[i].setAttribute('aria-hidden', String(i !== index));
+        panels[i].tabIndex = i === index ? 0 : -1;
+      });
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => select(index));
+      tab.addEventListener('keydown', (event) => {
+        const next = {
+          ArrowRight: (index + 1) % tabs.length,
+          ArrowLeft: (index + tabs.length - 1) % tabs.length,
+          Home: 0,
+          End: tabs.length - 1,
+        }[event.key];
+        if (next === undefined) return;
+        event.preventDefault();
+        select(next);
+        tabs[next].focus();
+      });
+    });
+  
+    })();
+    (() => {
+      const mobile = matchMedia('(max-width: 800px)');
+      const details = [...document.querySelectorAll('.roadmap-detail')];
+      function setMode() {
+        details.forEach(detail => { detail.open = !mobile.matches; });
+      }
+      mobile.addEventListener('change', setMode);
+      setMode();
+    })();
+    (() => {
+      const toggle = document.getElementById('themeToggle');
+      function setTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        const label = `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`;
+        toggle.setAttribute('aria-label', label);
+        toggle.title = label;
+        toggle.textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+      }
+      toggle.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+    })();
+  </script>
+
+
+</body></html>

@@ -1,4 +1,5 @@
 import { expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import {
   mkdir,
   mkdtemp,
@@ -431,12 +432,9 @@ async function waitForHealth(
   );
 }
 
-function readClockTicksPerSecond(): number {
-  const result = Bun.spawnSync(["getconf", "CLK_TCK"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const value = Number(new TextDecoder().decode(result.stdout).trim());
+async function readClockTicksPerSecond(): Promise<number> {
+  const result = await runProcess(["getconf", "CLK_TCK"]);
+  const value = Number(result.stdout.trim());
   if (result.exitCode !== 0 || !Number.isFinite(value) || value <= 0) {
     throw new Error("Unable to determine Linux clock ticks per second");
   }
@@ -515,7 +513,7 @@ async function startHealthMonitor(
   const startedAt = Date.now();
   const cpuCapacity = await readCpuCapacity(supervisor.pid);
   const resourceTracker = new ResourceUsageTracker({
-    clockTicksPerSecond: readClockTicksPerSecond(),
+    clockTicksPerSecond: await readClockTicksPerSecond(),
     cpuCapacity,
     saturationFraction: CPU_SATURATION_FRACTION,
   });

@@ -1,9 +1,7 @@
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "../../src/test/mock-entity-plugin-context";
 import { describe, expect, it, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
-import {
-  createMockEntityPluginContext,
-  createMockEntityService,
-} from "@brains/test-utils";
 import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
 import {

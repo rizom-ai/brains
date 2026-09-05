@@ -9,11 +9,11 @@ import type {
 } from "@brains/entity-service";
 import {
   createMockProgressReporter,
-  createMockEntityService,
-  createMockShell,
   createSilentLogger,
   stubMethod,
 } from "@brains/test-utils";
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockShell } from "@brains/plugins/test";
 import { createPluginHarness } from "../src/test/harness";
 import { createTemplate } from "@brains/templates";
 import { PluginManager } from "../src/manager/pluginManager";

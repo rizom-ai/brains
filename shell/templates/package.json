@@ -9,6 +9,7 @@
     "react": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/react": "^19.2.17",
     "bun-types": "^1.4.0",
@@ -18,7 +19,8 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./test": "./src/test/index.ts"
   },
   "main": "src/index.ts",
   "private": true,

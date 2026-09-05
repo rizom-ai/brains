@@ -5,9 +5,9 @@ import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   createMockEntityService,
-  createMockLogger,
   createTestEntity,
-} from "@brains/test-utils";
+} from "@brains/entity-service/test";
+import { createMockLogger } from "@brains/test-utils";
 import type { SocialPost } from "../src/schemas/social-post";
 
 describe("socialPostDataSource", () => {

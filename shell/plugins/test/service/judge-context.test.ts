@@ -1,7 +1,8 @@
+import { createMockShell } from "../../src/test/mock-shell";
 import { describe, expect, it, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createBasePluginContext } from "../../src/base/context";
-import { createMockShell } from "@brains/test-utils";
+
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("plugin context judge capability", () => {

@@ -1,10 +1,10 @@
-import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
-import { MarkdownImageConverter } from "../../src/lib/markdown-image-converter";
 import {
-  createSilentLogger,
   createMockEntityService,
   createTestEntity,
-} from "@brains/test-utils";
+} from "@brains/entity-service/test";
+import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
+import { MarkdownImageConverter } from "../../src/lib/markdown-image-converter";
+import { createSilentLogger } from "@brains/test-utils";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("MarkdownImageConverter", () => {

@@ -1,9 +1,9 @@
-import { describe, expect, it } from "bun:test";
-import type { AgentContextRequest } from "@brains/contracts";
 import {
   createMockEntityPluginContext,
   createTestEntityAccess,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
+import type { AgentContextRequest } from "@brains/contracts";
 import { conversationMemoryAgentContext } from "../../src/lib/agent-context-provider";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import type {

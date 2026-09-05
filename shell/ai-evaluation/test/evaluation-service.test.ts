@@ -1,5 +1,6 @@
 import { rm, writeFile } from "fs/promises";
-import { createTempDir } from "@brains/test-utils";
+import { createTempDir, waitUntil } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import { join } from "path";
 import { describe, expect, it, mock } from "bun:test";
 
@@ -302,6 +303,13 @@ successCriteria:
 
       let activeChats = 0;
       let maxActiveChats = 0;
+      // One gate per test case instead of staggered sleeps. The sleeps were
+      // doing two jobs: holding chats open long enough to observe the parallel
+      // cap, and finishing out of order so result ordering could not simply be
+      // completion order. Gates do both without timing — the cap is waited
+      // for, and releasing in reverse makes the overlapping pair finish
+      // backwards.
+      const chatGates = Array.from({ length: 5 }, () => deferred());
 
       const agentService: IAgentService = {
         chat: mock(async (message: string) => {
@@ -309,7 +317,7 @@ successCriteria:
           maxActiveChats = Math.max(maxActiveChats, activeChats);
 
           const index = Number(message.match(/\d+$/)?.[0] ?? 0);
-          await new Promise((resolve) => setTimeout(resolve, 30 - index * 3));
+          await chatGates[index]?.promise;
 
           activeChats -= 1;
           return createResponse(`ok ${message}`);
@@ -328,11 +336,18 @@ successCriteria:
       const expectedOrder = (await service.listTestCases()).map(
         (testCase) => testCase.id,
       );
-      const summary = await service.runEvaluations({
+      const running = service.runEvaluations({
         skipLLMJudge: true,
         parallel: true,
         maxParallel: 2,
       });
+
+      await waitUntil(
+        () => activeChats === 2,
+        "both parallel slots to be occupied",
+      );
+      for (const gate of [...chatGates].reverse()) gate.resolve();
+      const summary = await running;
 
       expect(summary.totalTests).toBe(5);
       expect(summary.passedTests).toBe(5);

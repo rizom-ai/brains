@@ -1,11 +1,13 @@
-import { describe, expect, it } from "bun:test";
-import { createTestEntityAccess } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockEntityPluginContext,
-  createTestEntity,
-} from "@brains/test-utils";
-import { buildDecisionsWidgetData } from "../../../src/lib/widgets/decisions";
-import { decisionsWidgetDeclaration } from "../../../src/lib/widgets/decisions";
+  createTestEntityAccess,
+} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
+import {
+  buildDecisionsWidgetData,
+  decisionsWidgetDeclaration,
+} from "../../../src/lib/widgets/decisions";
 import type { DecisionEntity } from "../../../src/schemas/conversation-memory";
 
 function createDecision(overrides: {

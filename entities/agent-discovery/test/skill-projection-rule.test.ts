@@ -5,11 +5,9 @@ import type {
   ProjectionExecutionContext,
   ProjectionInputContext,
 } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { createSkillContent } from "../src/lib/directory-markdown";
 import { createSkillProjectionRule } from "../src/lib/skill-projection";
 import type { SkillFrontmatter } from "../src/schemas/skill";

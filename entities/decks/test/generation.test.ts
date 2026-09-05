@@ -3,12 +3,12 @@ import type { EntityGenerationResult, JobEntityAccess } from "@brains/plugins";
 import type { StyleGuideEntity } from "@brains/style-guide";
 import {
   createMockEntityPluginContext,
-  createSilentLogger,
   createTestEntityAccess,
   createTestJobContext,
-  createTestEntity,
   type MockEntityPluginContext,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import type { z } from "@brains/utils/zod";
 import { deckGeneration } from "../src/handlers/deckGenerationJobHandler";
 

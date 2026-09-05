@@ -1,82 +1,55 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
-import { RebuildManager } from "../../src/lib/auto-rebuild";
-import type { MessageHandler } from "@brains/plugins";
-import { createTestConfig } from "../test-helpers";
 import {
   createMockServicePluginContext,
   type MockServicePluginContext,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
+import { RebuildManager } from "../../src/lib/auto-rebuild";
 import { z } from "@brains/utils/zod";
+import { createTestConfig } from "../test-helpers";
+import { genericSpy, waitUntil } from "@brains/test-utils";
 
-interface WavePayload {
-  waveId: string;
-  sourceTypes: string[];
-  changedTargetTypes: string[];
-}
-
-/** The envelope every delivered message carries, around the payload. */
-const envelope = {
-  id: "message-1",
-  timestamp: "2026-01-01T00:00:00.000Z",
-  type: "projection:wave-ready",
-  source: "projection-runtime",
-};
-
-/**
- * What a site-build enqueue carries, parsed from the recorded call.
- *
- * The job payload is `unknown` at the enqueue boundary, so the fields these
- * tests read are checked here rather than declared at each assertion.
- */
-const enqueuedBuildSchema = z.object({
+/** The build payload these tests read off an enqueued job. */
+const buildJobDataSchema = z.looseObject({
+  inputGeneration: z.number().optional(),
   environment: z.string().optional(),
   outputDir: z.string().optional(),
-  inputGeneration: z.number().optional(),
 });
 
-type EnqueueSpy = MockServicePluginContext["jobs"]["enqueue"];
-
-function enqueuedBuild(
-  enqueue: EnqueueSpy,
-  index: number,
-): z.output<typeof enqueuedBuildSchema> {
-  const call = enqueue.mock.calls[index];
-  if (!call?.[0]) throw new Error(`No enqueue recorded at index ${index}`);
-  return enqueuedBuildSchema.parse(call[0].data);
-}
-
-function inputGenerationOf(
-  enqueue: EnqueueSpy,
-  index: number,
-): number | undefined {
-  return enqueuedBuild(enqueue, index).inputGeneration;
-}
-
-function deduplicationKeyOf(
-  enqueue: EnqueueSpy,
-  index: number,
-): string | undefined {
-  const call = enqueue.mock.calls[index];
-  if (!call?.[0]) throw new Error(`No enqueue recorded at index ${index}`);
-  return call[0].options?.deduplicationKey;
-}
+/** The projection-wave handler these tests capture from the subscription. */
+type WaveReadyHandler = (message: {
+  payload: {
+    waveId: string;
+    sourceTypes: string[];
+    changedTargetTypes: string[];
+  };
+}) => Promise<{ success: boolean }>;
 
 describe("RebuildManager", () => {
   let context: MockServicePluginContext;
+  // Spied once per test, so the recorded arguments are typed by the member
+  // rather than reached for through an assertion afterwards.
+  let enqueue: ReturnType<
+    typeof spyOn<MockServicePluginContext["jobs"], "enqueue">
+  >;
 
   beforeEach(() => {
     context = createMockServicePluginContext({
       returns: { jobsEnqueue: "job-1" },
     });
+    enqueue = spyOn(context.jobs, "enqueue");
   });
 
   test("successful projection waves enqueue a build before acknowledgment", async () => {
-    let waveReadyHandler: MessageHandler<WavePayload> | undefined;
-    context.messaging.subscribeExecution = mock(
-      (_type, handler): (() => void) => {
+    let waveReadyHandler: WaveReadyHandler | undefined;
+    // mock() erases the type parameters subscribeExecution declares;
+    // genericSpy names that as the only reason.
+    context.messaging.subscribeExecution = genericSpy<
+      typeof context.messaging.subscribeExecution
+    >(
+      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
         waveReadyHandler = handler;
         return () => {};
-      },
+      }),
     );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
@@ -88,7 +61,6 @@ describe("RebuildManager", () => {
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     await waveReadyHandler({
-      ...envelope,
       payload: {
         waveId: "wave-1",
         sourceTypes: ["post"],
@@ -101,12 +73,16 @@ describe("RebuildManager", () => {
   });
 
   test("does not rebuild for note-only waves", async () => {
-    let waveReadyHandler: MessageHandler<WavePayload> | undefined;
-    context.messaging.subscribeExecution = mock(
-      (_type, handler): (() => void) => {
+    let waveReadyHandler: WaveReadyHandler | undefined;
+    // mock() erases the type parameters subscribeExecution declares;
+    // genericSpy names that as the only reason.
+    context.messaging.subscribeExecution = genericSpy<
+      typeof context.messaging.subscribeExecution
+    >(
+      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
         waveReadyHandler = handler;
         return () => {};
-      },
+      }),
     );
     const manager = new RebuildManager(
       createTestConfig(),
@@ -118,7 +94,6 @@ describe("RebuildManager", () => {
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     await waveReadyHandler({
-      ...envelope,
       payload: {
         waveId: "wave-note",
         sourceTypes: ["note"],
@@ -131,18 +106,24 @@ describe("RebuildManager", () => {
   });
 
   test("enqueues one dirty-generation successor after an active build", async () => {
-    let waveReadyHandler: MessageHandler<WavePayload> | undefined;
-    context.messaging.subscribeExecution = mock(
-      (_type, handler): (() => void) => {
+    let waveReadyHandler: WaveReadyHandler | undefined;
+    // mock() erases the type parameters subscribeExecution declares;
+    // genericSpy names that as the only reason.
+    context.messaging.subscribeExecution = genericSpy<
+      typeof context.messaging.subscribeExecution
+    >(
+      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
         waveReadyHandler = handler;
         return () => {};
-      },
+      }),
     );
     let nextJob = 0;
-    context.jobs.enqueue = mock(async () => {
-      nextJob += 1;
-      return `job-${nextJob}`;
-    });
+    enqueue.mockImplementation(
+      mock(async () => {
+        nextJob += 1;
+        return `job-${nextJob}`;
+      }),
+    );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
       context,
@@ -153,7 +134,6 @@ describe("RebuildManager", () => {
     if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     await waveReadyHandler({
-      ...envelope,
       payload: {
         waveId: "wave-1",
         sourceTypes: ["post"],
@@ -163,7 +143,6 @@ describe("RebuildManager", () => {
     manager.markBuildStarted("preview", "job-1", 1);
 
     await waveReadyHandler({
-      ...envelope,
       payload: {
         waveId: "wave-2",
         sourceTypes: ["post"],
@@ -171,7 +150,6 @@ describe("RebuildManager", () => {
       },
     });
     await waveReadyHandler({
-      ...envelope,
       payload: {
         waveId: "wave-3",
         sourceTypes: ["page"],
@@ -180,10 +158,15 @@ describe("RebuildManager", () => {
     });
     await manager.markBuildFinished("preview", "job-1", 1);
 
-    const enqueue = context.jobs.enqueue;
     expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(inputGenerationOf(enqueue, 0)).toBe(1);
-    expect(inputGenerationOf(enqueue, 1)).toBe(3);
+    expect(
+      buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data)
+        .inputGeneration,
+    ).toBe(1);
+    expect(
+      buildJobDataSchema.parse(enqueue.mock.calls[1]?.[0]?.data)
+        .inputGeneration,
+    ).toBe(3);
     await manager.dispose();
   });
 
@@ -199,9 +182,12 @@ describe("RebuildManager", () => {
     manager.requestBuild("production");
     await Promise.resolve();
 
-    const enqueue = context.jobs.enqueue;
-    expect(deduplicationKeyOf(enqueue, 0)).toBe("site-build:preview");
-    expect(deduplicationKeyOf(enqueue, 1)).toBe("site-build:production");
+    expect(enqueue.mock.calls[0]?.[0]?.options?.deduplicationKey).toBe(
+      "site-build:preview",
+    );
+    expect(enqueue.mock.calls[1]?.[0]?.options?.deduplicationKey).toBe(
+      "site-build:production",
+    );
     await manager.dispose();
   });
 
@@ -216,13 +202,15 @@ describe("RebuildManager", () => {
 
     manager.requestBuild();
 
-    // The debounce fires immediately on first trigger (leading edge).
-    // Wait a tick for the async enqueue call.
-    await new Promise((r) => setTimeout(r, 10));
+    // The debounce fires immediately on first trigger (leading edge), so the
+    // enqueue is what to wait for — not ten milliseconds, which only had to
+    // be longer than the enqueue usually takes.
+    await waitUntil(
+      () => enqueue.mock.calls.length > 0,
+      "the build to be enqueued",
+    );
 
-    const enqueue = context.jobs.enqueue;
-    expect(enqueue).toHaveBeenCalled();
-    const data = enqueuedBuild(enqueue, 0);
+    const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
 
@@ -240,11 +228,12 @@ describe("RebuildManager", () => {
 
     manager.requestBuild();
 
-    await new Promise((r) => setTimeout(r, 10));
+    await waitUntil(
+      () => enqueue.mock.calls.length > 0,
+      "the build to be enqueued",
+    );
 
-    const enqueue = context.jobs.enqueue;
-    expect(enqueue).toHaveBeenCalled();
-    const data = enqueuedBuild(enqueue, 0);
+    const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("production");
 
     await manager.dispose();
@@ -311,11 +300,12 @@ describe("RebuildManager", () => {
 
     manager.requestBuild("production");
 
-    await new Promise((r) => setTimeout(r, 10));
+    await waitUntil(
+      () => enqueue.mock.calls.length > 0,
+      "the build to be enqueued",
+    );
 
-    const enqueue = context.jobs.enqueue;
-    expect(enqueue).toHaveBeenCalled();
-    const data = enqueuedBuild(enqueue, 0);
+    const data = buildJobDataSchema.parse(enqueue.mock.calls[0]?.[0]?.data);
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");
 

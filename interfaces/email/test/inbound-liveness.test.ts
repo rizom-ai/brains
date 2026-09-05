@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { emailPlugin, EMAIL_PLUGIN_ID } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 
 import {
   type EmailImapConfig,
@@ -76,14 +77,6 @@ function livenessClient(options: {
   };
 }
 
-async function waitUntil(predicate: () => boolean): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (predicate()) return;
-    await new Promise((resolve) => setTimeout(resolve, 1));
-  }
-  throw new Error("Timed out waiting for inbound liveness transition");
-}
-
 describe("inbound email liveness", () => {
   it("degrades to polling for one connection and restores IDLE after reconnect", async () => {
     const events: string[] = [];
@@ -113,7 +106,10 @@ describe("inbound email liveness", () => {
     const registry = harness.getMockShell().getDaemonRegistry();
 
     await registry.startPlugin(EMAIL_PLUGIN_ID);
-    await waitUntil(() => events.includes("client-2:idle"));
+    await waitUntil(
+      () => events.includes("client-2:idle"),
+      "the second client to reach IDLE",
+    );
     await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(sleeps).toEqual([config.pollIntervalMs, 1_000]);
@@ -158,7 +154,10 @@ describe("inbound email liveness", () => {
     const registry = harness.getMockShell().getDaemonRegistry();
 
     await registry.startPlugin(EMAIL_PLUGIN_ID);
-    await waitUntil(() => events.includes("client-3:idle"));
+    await waitUntil(
+      () => events.includes("client-3:idle"),
+      "the third client to reach IDLE after reconnect",
+    );
     await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(sleeps).toEqual([1_000, 2_000]);

@@ -24,7 +24,7 @@ import {
 } from "@brains/plugins";
 import packageJson from "../package.json";
 import { z } from "@brains/utils/zod";
-import { createStubAuth, createTestPrincipal } from "@brains/test-utils";
+import { createStubAuth, createTestPrincipal } from "@brains/plugins/test";
 
 /**
  * The turn as a client sees it: the stream read to the end.

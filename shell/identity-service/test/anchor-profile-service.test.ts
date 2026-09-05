@@ -1,16 +1,16 @@
+import {
+  createMockEntityService,
+  createTestEntity,
+  spyOnEntityCreate,
+  spyOnEntityGet,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { AnchorProfileService } from "../src/anchor-profile-service";
 import type {
   IEntityService,
   EntityMutationResult,
 } from "@brains/entity-service";
-import {
-  createSilentLogger,
-  createMockEntityService,
-  spyOnEntityGet,
-  spyOnEntityCreate,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { AnchorProfileEntity } from "../src/anchor-profile-schema";
 
 describe("AnchorProfileService", () => {

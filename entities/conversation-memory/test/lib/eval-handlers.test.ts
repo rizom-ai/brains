@@ -1,10 +1,10 @@
-import { describe, expect, it, mock, spyOn } from "bun:test";
-import type { EvalHandler, SearchResult } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createSilentLogger,
   createTestEntityAccess,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
+import type { EvalHandler, SearchResult } from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
 import { summaryEvalHandlers } from "../../src/lib/eval-handlers";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";

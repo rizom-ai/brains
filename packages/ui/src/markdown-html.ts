@@ -1,8 +1,8 @@
 import { Marked, type Tokens } from "marked";
 import sanitizeHtml from "sanitize-html";
-import type { ImageRenderer } from "@brains/contracts";
+import type { ImageRenderer } from "./render-contracts";
 
-export type { ImageRenderer, RenderedImageRef } from "@brains/contracts";
+export type { ImageRenderer, RenderedImageRef } from "./render-contracts";
 
 export interface MarkdownToHtmlOptions {
   imageRenderer?: ImageRenderer;

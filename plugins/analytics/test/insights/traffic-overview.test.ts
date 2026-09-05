@@ -1,11 +1,11 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import type { EntityInsightContext } from "@brains/sdk/services";
-import { createTrafficOverviewInsight } from "../../src/insights/traffic-overview";
-import type { TrafficStatsClient } from "../../src/insights/traffic-overview";
 import {
-  createTestEntityAccess,
-  createMockEntityService,
-} from "@brains/test-utils";
+  createTrafficOverviewInsight,
+  type TrafficStatsClient,
+} from "../../src/insights/traffic-overview";
+import { createTestEntityAccess } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 
 // The insight reads nothing from the brain — its data comes from Cloudflare —

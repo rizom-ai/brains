@@ -8,10 +8,12 @@
     "@brains/contracts": "workspace:*",
     "@brains/http-signatures": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "hono": "^4.12.25"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

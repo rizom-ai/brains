@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type -- fixture callbacks stay structurally checked by the production constructor. */
 import { describe, expect, it } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
-import { createSilentLogger, expectConfirmationArgs } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { expectConfirmationArgs } from "@brains/mcp-service/test";
 import { ConversationProjectionBackfill } from "../../src/conversation-projection-backfill";
 import { createConversationProjectionBackfillTools } from "../../src/system/conversation-projection-backfill-tool";
 import { createMockSystemServices } from "./mock-services";

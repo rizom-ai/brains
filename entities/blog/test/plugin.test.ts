@@ -7,7 +7,8 @@ import {
 } from "../src/schemas/blog-post";
 import type { EntityAdapter } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   createPluginHarness,
   expectTemplateDataSourcesResolve,

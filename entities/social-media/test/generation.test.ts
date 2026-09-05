@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { EntityGenerationResult, JobEntityAccess } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createSilentLogger,
   createTestEntityAccess,
   createTestJobContext,
-  createTestEntity,
   type MockEntityPluginContext,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   socialPostGeneration,
   type GenerationJobData,

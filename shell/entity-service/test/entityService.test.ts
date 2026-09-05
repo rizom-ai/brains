@@ -1,18 +1,15 @@
+import { createTestEntity } from "../src/test/index";
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { chmod, writeFile } from "node:fs/promises";
 import { createClient } from "@libsql/client";
 import { dirname, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { EntityService } from "../src/entityService";
-import { genericSpy } from "@brains/test-utils";
+import { createSilentLogger, genericSpy } from "@brains/test-utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
-import {
-  createSilentLogger,
-  createMockJobQueueService,
-  createTestEntity,
-} from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import { type Logger } from "@brains/utils/logger";

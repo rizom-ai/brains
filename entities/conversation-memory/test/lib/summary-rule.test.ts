@@ -8,10 +8,10 @@ import type {
 } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createMockEntityService,
-  createSilentLogger,
   createTestAppInfo,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { createSummaryProjectionRule } from "../../src/lib/summary-rule";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 import type { EntitySchema } from "@brains/sdk/entities";

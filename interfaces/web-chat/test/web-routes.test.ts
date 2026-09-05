@@ -5,7 +5,7 @@ import {
   instantiatePluginPackageDefinition,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createStubAuth } from "@brains/test-utils";
+import { createStubAuth } from "@brains/plugins/test";
 import webChatPackage from "../src";
 import packageJson from "../package.json";
 

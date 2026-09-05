@@ -10,6 +10,8 @@
     "@brains/ai-service": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",

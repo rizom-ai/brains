@@ -12,6 +12,7 @@
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
+    "@brains/test-utils": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/node": "^24.13.3",
     "drizzle-kit": "^0.31.10",

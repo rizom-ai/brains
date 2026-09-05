@@ -1,11 +1,15 @@
+import {
+  createMockEntityPluginContext,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { createTestEntityAccess } from "@brains/test-utils";
 import { type Conversation, type Message } from "@brains/plugins";
-import { buildSummaryCoverageData } from "../../../src/lib/widgets/coverage";
-import { summaryCoverageWidgetDeclaration } from "../../../src/lib/widgets/coverage";
+import {
+  buildSummaryCoverageData,
+  summaryCoverageWidgetDeclaration,
+} from "../../../src/lib/widgets/coverage";
 import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
-import { createMockEntityPluginContext } from "@brains/test-utils";
 
 const defaultMemoryVisibility = summaryConfigSchema.parse({}).memoryVisibility;
 

@@ -7,10 +7,10 @@ import {
 } from "@brains/plugins";
 import {
   createMockEntityPluginContext,
-  createMockEntityService,
-  createSilentLogger,
   createTestAppInfo,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   appendMemoryProjectionEnvelope,
   parseMemoryProjectionEnvelope,

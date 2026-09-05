@@ -1,5 +1,5 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
-import { createMockEntityService } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
 import { createBlogOgImageProvider } from "../../src/attachments/og-image-provider";
 import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "../../src/attachments/og-image-template";

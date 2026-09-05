@@ -1,14 +1,12 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { z } from "@brains/utils/zod";
 import { mkdirSync, rmSync, writeFileSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
-import { createMockServicePluginContext } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { TINY_PDF_BYTES, TINY_PNG_BYTES } from "./fixtures";
 
 describe("queueSyncBatch should include images (regression)", () => {

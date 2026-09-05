@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",

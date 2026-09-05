@@ -1,6 +1,5 @@
-import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-import { ExtensionMetadataSchema } from "./metadata";
+import type { ExtensionMetadataSchema } from "./metadata";
 
 export const MessageResponseSchema: z.ZodUnion<
   [
@@ -26,23 +25,15 @@ export type MessageResponse<T = unknown> =
     })
   | { noop: true };
 
-export const BaseMessageSchema: z.ZodObject<{
-  id: z.ZodString;
-  timestamp: z.ZodString;
-  type: z.ZodString;
-  source: z.ZodString;
-  target: z.ZodOptional<z.ZodString>;
-  metadata: z.ZodOptional<typeof ExtensionMetadataSchema>;
-}> = z.object({
-  id: z.string(),
-  timestamp: z.string(),
-  type: z.string(),
-  source: z.string(),
-  target: z.string().optional(),
-  metadata: ExtensionMetadataSchema.optional(),
-});
-
-export type BaseMessage = z.output<typeof BaseMessageSchema>;
+// The bus's own schema, not a second one. The copy that stood here accepted
+// an empty `id`, `type` or `source` that the bus rejects, so a plugin author
+// validating against the published schema got a pass the runtime would not
+// honour.
+import type { BaseMessage } from "@brains/messaging-service";
+export {
+  baseMessageSchema as BaseMessageSchema,
+  type BaseMessage,
+} from "@brains/messaging-service";
 
 export type MessageWithPayload<T = unknown> = BaseMessage & {
   payload: T;
@@ -64,20 +55,12 @@ export type MessageSender<T = unknown, R = unknown> = (
 ) => Promise<MessageResponse<R>>;
 
 /**
- * What a subscriber is given: the whole message, envelope included, not the
- * payload on its own. Declared here because a plugin that subscribes has to
- * name this type to hold on to its own handler.
+ * The context a message arrives with.
+ *
+ * Re-exported rather than restated. The copy that stood here declared every
+ * field optional and `timestamp` as a string, while the bus delivers all of
+ * them and a `Date` — a shape no value ever had, published to plugin authors
+ * through `@rizom/brain/plugins`. `contract-fidelity.ts` now holds the
+ * restatements in this file to what the services produce.
  */
-export type MessageHandler<T = unknown, R = unknown> = (
-  message: MessageWithPayload<T>,
-) => Promise<MessageResponse<R>> | MessageResponse<R>;
-
-export interface MessageContext {
-  userId?: string;
-  channelId?: string;
-  messageId?: string;
-  timestamp?: string;
-  interfaceType?: string;
-  userPermissionLevel?: UserPermissionLevel;
-  threadId?: string;
-}
+export type { MessageContext, MessageHandler } from "@brains/messaging-service";

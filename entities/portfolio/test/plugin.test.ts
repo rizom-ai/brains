@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
-  createSilentLogger,
-  createTestEntity,
   createTestEntityAccess,
   createTestJobContext,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
 import {
   createPluginHarness,
   expectTemplateDataSourcesResolve,

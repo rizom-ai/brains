@@ -1,6 +1,7 @@
+import { createMockShell } from "../../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createMockShell } from "@brains/test-utils";
+
 import { createServicePluginContext } from "../../src/service/context";
 
 describe("runtime state plugin context", () => {

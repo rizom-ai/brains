@@ -1,6 +1,6 @@
+import { createTestEntity } from "../src/test/index";
 import { afterEach, describe, expect, test } from "bun:test";
 import { createClient, type Client } from "@libsql/client";
-import { createTestEntity } from "@brains/test-utils";
 import type { EntityTypeConfig } from "../src";
 import {
   setupEntityService,

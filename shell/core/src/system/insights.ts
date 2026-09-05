@@ -1,7 +1,7 @@
 import type {
   BaseEntity,
   ContentVisibility,
-  ICoreEntityService,
+  ReadOnlyEntityService,
 } from "@brains/entity-service";
 import type { IInsightsRegistry, InsightHandler } from "@brains/plugins";
 
@@ -47,7 +47,7 @@ export class InsightsRegistry implements IInsightsRegistry {
 
   async get(
     type: string,
-    entityService: ICoreEntityService,
+    entityService: ReadOnlyEntityService,
     visibilityScope: ContentVisibility,
   ): Promise<Record<string, unknown>> {
     const handler = this.handlers.get(type);
@@ -76,7 +76,7 @@ export function createInsightsRegistry(): InsightsRegistry {
 // ── Built-in insight handlers (entity-type agnostic) ──
 
 async function getOverview(
-  entityService: ICoreEntityService,
+  entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
 ): Promise<Record<string, unknown>> {
   const counts = await entityService.getEntityCounts(visibilityScope);
@@ -117,7 +117,7 @@ async function getOverview(
 }
 
 async function getPublishingCadence(
-  entityService: ICoreEntityService,
+  entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
 ): Promise<Record<string, unknown>> {
   const allEntities = await getAllEntities(entityService, visibilityScope);
@@ -148,7 +148,7 @@ async function getPublishingCadence(
 }
 
 async function getContentHealth(
-  entityService: ICoreEntityService,
+  entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
 ): Promise<Record<string, unknown>> {
   const allEntities = await getAllEntities(entityService, visibilityScope);
@@ -189,7 +189,7 @@ function getDrafts(entities: BaseEntity[]): BaseEntity[] {
 }
 
 async function getAllEntities(
-  entityService: ICoreEntityService,
+  entityService: ReadOnlyEntityService,
   visibilityScope: ContentVisibility,
 ): Promise<BaseEntity[]> {
   const types = entityService.getEntityTypes();

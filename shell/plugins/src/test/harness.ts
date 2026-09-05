@@ -21,7 +21,7 @@ import type {
   IEntityRegistry,
 } from "@brains/entity-service";
 import type { IAttachmentsNamespace } from "../service/attachment-registry";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+import { createMockShell, type MockShell } from "./mock-shell";
 import { createReactionContext } from "../service/reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";

@@ -1,3 +1,8 @@
+import { createMockAIService } from "@brains/ai-service/test";
+import {
+  createMockDataSourceRegistry,
+  createMockEntityService,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
@@ -8,12 +13,7 @@ import {
   type Template,
   type TemplateRegistry,
 } from "@brains/templates";
-import {
-  createSilentLogger,
-  createMockEntityService,
-  createMockAIService,
-  createMockDataSourceRegistry,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 function makeTemplate(overrides: Partial<NonLayoutTemplate> = {}): Template {
   return {

@@ -6,7 +6,7 @@ import {
   instantiatePluginPackageDefinition,
   type AuthPrincipal,
 } from "../src";
-import { createStubAuth } from "@brains/test-utils";
+import { createStubAuth } from "@brains/plugins/test";
 
 /**
  * What `@brains/admin`, `@brains/studio` and `@brains/dashboard` do today by

@@ -94,6 +94,7 @@ export type {
   OgCardProps,
   PaginationProps,
   PresentationLayoutProps,
+  RenderedImageRef,
   SectionHeaderProps,
   StatBadgeProps,
   StatusBadgeProps,

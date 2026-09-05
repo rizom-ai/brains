@@ -5,6 +5,7 @@
   "description": "Shared site composition contract and merge helpers",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },

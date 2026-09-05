@@ -20,7 +20,7 @@ import {
   useNetwork,
 } from "./fixtures/agent-network";
 import { createTestAgent } from "./fixtures/agent";
-import { expectConfirmationArgs } from "@brains/test-utils";
+import { expectConfirmationArgs } from "@brains/mcp-service/test";
 
 describe("the inbound trust tool", () => {
   it("registers agents_set-trust-level as the explicit inbound trust tool", async () => {

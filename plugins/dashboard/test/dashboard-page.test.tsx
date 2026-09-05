@@ -1,5 +1,6 @@
+import { createMockAppInfo } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { createMockAppInfo, normalizeRendererHtml } from "@brains/test-utils";
+import { normalizeRendererHtml } from "@brains/test-utils";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,

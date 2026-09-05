@@ -1,5 +1,5 @@
+import { createTestEntity } from "../src/test/index";
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { createTestEntity } from "@brains/test-utils";
 import { createEmbeddingDatabase } from "../src/db/embedding-db";
 import { embeddings } from "../src/schema/embeddings";
 import { and, eq } from "drizzle-orm";

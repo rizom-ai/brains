@@ -1,5 +1,6 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, test } from "bun:test";
-import { createMockShell, createTestEntity } from "@brains/test-utils";
 import {
   fetchAnchorProfileData,
   organizationProfileFields,

@@ -93,12 +93,12 @@ const sharedInstanceTsConfigPath = join(
 cpSync(sharedInstanceTsConfigPath, packageInstanceTsConfigPath);
 
 console.log("Building bundled web chat UI...");
-const webChatBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+const webChatBuildResult = await Bun.spawn(["bun", "run", "build"], {
   cwd: webChatPackageDir,
   stdout: "inherit",
   stderr: "inherit",
-});
-if (webChatBuildResult.exitCode !== 0) {
+}).exited;
+if (webChatBuildResult !== 0) {
   console.error("Web chat UI build failed");
   process.exit(1);
 }
@@ -114,12 +114,12 @@ if (!existsSync(webChatUiStylesheetPath)) {
 }
 
 console.log("Building bundled Studio editor UI...");
-const studioBuildResult = Bun.spawnSync(["bun", "run", "build"], {
+const studioBuildResult = await Bun.spawn(["bun", "run", "build"], {
   cwd: studioPackageDir,
   stdout: "inherit",
   stderr: "inherit",
-});
-if (studioBuildResult.exitCode !== 0) {
+}).exited;
+if (studioBuildResult !== 0) {
   console.error("Studio editor UI build failed");
   process.exit(1);
 }
@@ -137,12 +137,12 @@ const envSchemaScript = join(
   import.meta.dir,
   "generate-canonical-env-schema.ts",
 );
-const envSchemaResult = Bun.spawnSync(["bun", envSchemaScript], {
+const envSchemaResult = await Bun.spawn(["bun", envSchemaScript], {
   cwd: monorepoRoot,
   stdout: "inherit",
   stderr: "inherit",
-});
-if (envSchemaResult.exitCode !== 0) {
+}).exited;
+if (envSchemaResult !== 0) {
   console.error("Bundled model env schema generation failed");
   process.exit(1);
 }

@@ -1,4 +1,4 @@
-import { createTestEntityAccess } from "@brains/test-utils";
+import { createTestEntityAccess } from "@brains/plugins/test";
 import type {
   EntityConversationReader,
   IEntityAINamespace,

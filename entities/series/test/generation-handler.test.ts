@@ -1,12 +1,12 @@
-import { describe, expect, it } from "bun:test";
-
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockEntityPluginContext,
-  createSilentLogger,
-  createTestEntity,
   createTestEntityAccess,
   createTestJobContext,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
+
+import { createSilentLogger } from "@brains/test-utils";
 import { seriesDescriptionJob } from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
 

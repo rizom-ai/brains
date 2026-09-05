@@ -7,9 +7,9 @@ import { createPluginHarness } from "@brains/plugins/test";
 import {
   createMockProgressReporter,
   createSilentLogger,
-  createTestEntity,
   stubMethod,
 } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import notes from "../src";
 import type { Note } from "../src/schemas/note";
 

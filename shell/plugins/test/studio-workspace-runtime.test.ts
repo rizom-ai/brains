@@ -1,5 +1,6 @@
+import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
-import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
