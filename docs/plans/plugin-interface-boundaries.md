@@ -785,6 +785,8 @@ and the second finding each time is worth more than the conversion.
 - Per-package: `src` imports only `@brains/sdk`, `@brains/utils`,
   `@brains/contracts` and whatever the phase-5 decision admits.
 - The export ledger and authoring doc stay consistent with every capability
-  added, enforced by `public-authoring-golden.test.ts`.
+  added, enforced by `public-authoring-golden.test.ts` — which runs under
+  `surface:check` with the other published-surface checks, against a fresh
+  build, rather than inside the unit suite.
 - A count in this plan's status, updated as packages land, so the tranche's
   progress is a measured number rather than an impression.
