@@ -1,4 +1,7 @@
-import { createMockEntityService, createTestEntity } from "@brains/entity-service/test";
+import {
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { normalizeDirectorySyncOptions } from "../src/lib/directory-options";
