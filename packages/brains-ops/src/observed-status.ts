@@ -1,6 +1,6 @@
 import { lookup } from "node:dns/promises";
 
-import type { FetchLike } from "@brains/deploy-support/origin-ca";
+import type { FetchLike } from "@brains/utils/fetch-like";
 
 import type { ObservedUserStatus, ResolvedUserIdentity } from "./load-registry";
 

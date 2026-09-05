@@ -7,15 +7,10 @@
  * is cosmetic, never worth failing the turn.
  */
 
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { getThreadIdParts } from "./discord-routing";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
-
-/** Structural fetch (Bun's `typeof fetch` drags in `preconnect`). */
-export type FetchLike = (
-  input: string | URL,
-  init?: RequestInit,
-) => Promise<Response>;
 
 export async function clearDiscordMessageComponents(input: {
   threadId: string;

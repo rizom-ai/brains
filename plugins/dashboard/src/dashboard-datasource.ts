@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+
 import type {
   DashboardDigestLine,
   DashboardWidgetRegistry,

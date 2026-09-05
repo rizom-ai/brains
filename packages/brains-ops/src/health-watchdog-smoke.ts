@@ -6,7 +6,7 @@ import {
   BRAIN_WATCHDOG_LABEL_FILTER,
   healthWatchdogScript,
 } from "@brains/deploy-support/health-watchdog";
-import type { FetchLike } from "@brains/deploy-support/origin-ca";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 
