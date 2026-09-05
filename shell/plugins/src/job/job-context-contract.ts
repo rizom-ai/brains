@@ -94,6 +94,18 @@ export interface JobEntityAccess {
   getEntityCounts(
     visibilityScope?: ContentVisibility,
   ): Promise<Array<{ entityType: string; count: number }>>;
+  /**
+   * How many entities of one type a filter matches. A page of results says
+   * nothing about how many there are, and listing everything to find out is
+   * not an answer for a list that reports its total. Capped at the scope the
+   * access was built with, like every other read here. Named consumer:
+   * @brains/email-workflows, whose triage list reports `total` beside a
+   * bounded page.
+   */
+  count(request: {
+    entityType: string;
+    options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
+  }): Promise<number>;
   /** One entity by id. Schema-less and schema-bearing, as `listEntities`. */
   getEntity(request: {
     entityType: string;
@@ -212,6 +224,10 @@ export interface JobAttachmentReader {
   }): Promise<PublishMediaData | undefined>;
 }
 
+export interface JobPrompts {
+  resolve(target: string, fallback: string): Promise<string>;
+}
+
 export interface JobMessagePublisher {
   publish(input: {
     readonly topic: string;
@@ -280,6 +296,14 @@ export interface JobHandlerContext<TInput> {
     getSelectedDefinition(): ProfileKindDefinition | undefined;
   };
   readonly messaging: JobMessagePublisher;
+  /**
+   * Operator-editable prompt text the runtime keeps as prompt entities. A
+   * job that classifies against a rubric asks for the current text by target
+   * and supplies the default that stands until someone edits it; where the
+   * text lives is the runtime's business. Named consumer:
+   * @brains/email-workflows.
+   */
+  readonly prompts: JobPrompts;
   readonly progress: ProgressContract;
   readonly signal: AbortSignal;
   /**

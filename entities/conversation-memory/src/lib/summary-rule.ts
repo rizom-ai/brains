@@ -367,6 +367,7 @@ function createCaptureEntityAccess(input: {
     getEntity: getEntityStub,
     listEntities: listEntitiesStub,
     find: async () => null,
+    count: async () => 0,
     getEntityTypes: () => [
       SUMMARY_ENTITY_TYPE,
       DECISION_ENTITY_TYPE,

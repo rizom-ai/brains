@@ -1630,6 +1630,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       progress,
       signal,
       ai: context.ai,
+      prompts: context.prompts,
       logger: this.logger,
       entities: this.entityAccess(context),
       createRouted: createRoutedCreate({
@@ -1707,6 +1708,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             payload: message.data,
           });
         },
+        request: (message): Promise<unknown> =>
+          context.messaging.send({
+            type: message.type,
+            payload: message.payload,
+          }),
       },
       // Namespaced under the declaring package, so two packages cannot read
       // or corrupt each other's notes — and so one package's plugins can.

@@ -145,6 +145,8 @@ Definitions and schema vocabulary:
 - `defineProjection`
 - `frontmatterInContent`
 - `z`
+- `inboxActorSchema`
+- `inboxItemIdSchema`
 
 Types:
 
@@ -158,6 +160,8 @@ Types:
 - `EntitySeedDefinition`
 - `EntitySeedTrigger`
 - `ProjectionDefinition`
+- `InboxAction`
+- `InboxFacetDefinition`
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 

@@ -30,7 +30,7 @@ import { directorySync } from "@brains/directory-sync";
 import docPackage from "@brains/doc";
 import documentPackage from "@brains/document-plugin";
 import emailPackage from "@brains/email";
-import { emailWorkflows } from "@brains/email-workflows";
+import emailWorkflowsPackage from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import mcpPackage from "@brains/mcp";
@@ -228,7 +228,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       "@brains/obsidian-vault",
       obsidianVaultPackage,
     ),
-    ["email-workflows", emailWorkflows, undefined],
+    packageCapability(
+      "email-workflows",
+      "@brains/email-workflows",
+      emailWorkflowsPackage,
+    ),
     packageCapability(
       "unified-inbox",
       "@brains/unified-inbox",

@@ -682,9 +682,23 @@ export interface EntityInboxDeclaration {
  * logger. Deliberately not a plugin context: reacting to an event is not a
  * licence to reach the whole runtime.
  */
+export interface ReactionMessaging extends JobMessagePublisher {
+  request(message: {
+    readonly type: string;
+    readonly payload: unknown;
+  }): Promise<unknown>;
+}
+
 export interface EntityReactionContext {
   readonly entities: JobEntityAccess;
-  readonly messaging: JobMessagePublisher;
+  /**
+   * Announce with `publish`; ask with `request`. Most reactions only tell
+   * the brain what happened, but an inbox item whose body lives in the
+   * mailbox the email interface reads has to ask that interface for it and
+   * wait for the answer. The answer is whatever the responder sent, so the
+   * caller parses it. Named consumer: @brains/email-workflows.
+   */
+  readonly messaging: ReactionMessaging;
   /**
    * Bookkeeping that is not an entity.
    *

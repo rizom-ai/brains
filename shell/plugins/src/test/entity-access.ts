@@ -141,6 +141,7 @@ export function createTestEntityAccess(options: {
     listEntities,
     getEntityCounts: (visibilityScope) =>
       service.getEntityCounts(visibilityScope),
+    count: (request) => service.countEntities(request),
     getEntity,
     find,
     getEntityTypes: () => service.getEntityTypes(),

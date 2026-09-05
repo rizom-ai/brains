@@ -69,6 +69,14 @@ export function createReactionContext(input: {
           payload: message.data,
         });
       },
+      request: (message: {
+        readonly type: string;
+        readonly payload: unknown;
+      }): Promise<unknown> =>
+        context.messaging.send({
+          type: message.type,
+          payload: message.payload,
+        }),
     },
     // Namespaced under the declaring package, so two packages cannot read
     // or corrupt each other's notes — and so one package's plugins can.

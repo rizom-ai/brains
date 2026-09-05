@@ -268,7 +268,11 @@
         "styleGuideMessagingSchema",
         "styleGuideVisualSchema",
         "styleGuideVoiceSchema",
-        "z"
+        "z",
+        "inboxActorSchema",
+        "inboxItemIdSchema",
+        "InboxAction",
+        "InboxFacetDefinition"
       ],
       "advanced-with-consumer": [
         "ActorRef",

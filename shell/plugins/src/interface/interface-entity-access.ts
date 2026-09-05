@@ -131,6 +131,7 @@ export function createInterfaceEntityAccess(
     listEntities,
     getEntityCounts: (visibilityScope) =>
       entityService.getEntityCounts(visibilityScope),
+    count: (request) => entityService.countEntities(request),
     getEntity,
     find,
     getEntityTypes: () => entityService.getEntityTypes(),

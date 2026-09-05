@@ -28,6 +28,8 @@ export function createTestJobContext<TInput>(options: {
   readonly signal?: AbortSignal | undefined;
   /** A create through another type's route; refused unless the test supplies one. */
   readonly createRouted?: JobHandlerContext<TInput>["createRouted"] | undefined;
+  /** Operator-editable prompts; the fallback answers unless the test supplies one. */
+  readonly prompts?: JobHandlerContext<TInput>["prompts"] | undefined;
 }): JobHandlerContext<TInput> {
   return {
     input: options.input,
@@ -48,6 +50,9 @@ export function createTestJobContext<TInput>(options: {
       getSelectedDefinition: () => undefined,
     },
     messaging: { publish: async (): Promise<void> => {} },
+    prompts: options.prompts ?? {
+      resolve: async (_target, fallback): Promise<string> => fallback,
+    },
     progress: createMockProgressReporter(),
     signal: options.signal ?? new AbortController().signal,
     template: options.template,

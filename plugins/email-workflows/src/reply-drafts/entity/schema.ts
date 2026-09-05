@@ -1,4 +1,7 @@
-import { baseEntityParserSchema, inboxItemIdSchema } from "@brains/plugins";
+import {
+  baseEntityParserSchema,
+  inboxItemIdSchema,
+} from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 export const emailReplyDraftStatusSchema: z.ZodEnum<{
@@ -37,7 +40,7 @@ type EmailReplyDraftMetadataSchema = z.ZodObject<
   >
 >;
 
-const emailReplyDraftMetadataSchema: EmailReplyDraftMetadataSchema =
+export const emailReplyDraftMetadataSchema: EmailReplyDraftMetadataSchema =
   emailReplyDraftFrontmatterSchema.pick({
     mailItemId: true,
     revision: true,

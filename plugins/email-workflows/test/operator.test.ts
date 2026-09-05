@@ -8,8 +8,6 @@ import type {
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
-  MailTriageOperatorService,
   createMailItemProjection,
   mailTriageFilterSchema,
   mailTriageListResultSchema,
@@ -20,20 +18,9 @@ import {
   type MailStatus,
 } from "../src";
 
-const receivedAt = "2026-08-03T09:00:00.000Z";
+import { installMailItem, operatorFor } from "./helpers/install";
 
-function createOperatorHarness(): ReturnType<typeof createPluginHarness> {
-  const harness = createPluginHarness();
-  const entityService = harness.getEntityService();
-  entityService.countEntities = async (request): Promise<number> =>
-    (
-      await entityService.listEntities({
-        entityType: request.entityType,
-        ...(request.options ? { options: request.options } : {}),
-      })
-    ).length;
-  return harness;
-}
+const receivedAt = "2026-08-03T09:00:00.000Z";
 
 function inbound(id: string, received = receivedAt): InboundEmail {
   return {
@@ -78,9 +65,7 @@ async function persistItem(
     },
   });
   if (input.status && input.status !== "new") {
-    const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-workflows"),
-    );
+    const operator = operatorFor(harness);
     await operator.act(
       {
         type:
@@ -116,8 +101,8 @@ describe("mail triage operator service", () => {
   });
 
   it("applies combined filters and returns only restricted derived fields", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    const harness = createPluginHarness();
+    await installMailItem(harness);
     await persistItem(harness, {
       id: "matching",
       title: "Matching opportunity",
@@ -156,9 +141,7 @@ describe("mail triage operator service", () => {
       return schema ? originalList(request, schema) : originalList(request);
     }
     entityService.listEntities = trackingList;
-    const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-workflows"),
-    );
+    const operator = operatorFor(harness);
     const result = mailTriageListResultSchema.parse(
       await operator.list({
         category: "opportunity",
@@ -202,8 +185,8 @@ describe("mail triage operator service", () => {
   });
 
   it("keeps inbox attention new-only while retaining reviewed history", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    const harness = createPluginHarness();
+    await installMailItem(harness);
     await persistItem(harness, {
       id: "new-high",
       title: "Urgent administration",
@@ -222,9 +205,7 @@ describe("mail triage operator service", () => {
       receivedAt: "2026-08-03T08:00:00.000Z",
     });
 
-    const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-workflows"),
-    );
+    const operator = operatorFor(harness);
 
     expect((await operator.listInboxItems()).map((item) => item.title)).toEqual(
       ["Urgent administration"],
@@ -240,8 +221,8 @@ describe("mail triage operator service", () => {
   });
 
   it("enforces Admin status actions and updates through one typed path", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    const harness = createPluginHarness();
+    await installMailItem(harness);
     const id = await persistItem(harness, {
       id: "status-action",
       title: "Status action",
@@ -249,9 +230,7 @@ describe("mail triage operator service", () => {
       priority: "normal",
       needsReply: true,
     });
-    const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-workflows"),
-    );
+    const operator = operatorFor(harness);
 
     expect(
       operator.act(

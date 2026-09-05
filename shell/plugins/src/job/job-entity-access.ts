@@ -165,6 +165,18 @@ export function createJobEntityAccess(
       requested?: ContentVisibility,
     ): Promise<Array<{ entityType: string; count: number }>> =>
       entityService.getEntityCounts(requested ?? visibilityScope),
+    count: (request): Promise<number> =>
+      entityService.countEntities(
+        visibilityScope === undefined
+          ? request
+          : {
+              ...request,
+              options: {
+                ...request.options,
+                filter: { ...request.options?.filter, visibilityScope },
+              },
+            },
+      ),
     get: async <TDefinition extends EntityDefinitionShape>(
       definition: TDefinition,
       id: string,

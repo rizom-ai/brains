@@ -187,6 +187,7 @@ function runtimeJobHandler(
           },
         }),
         ai: context.ai,
+        prompts: context.prompts,
         logger: context.logger,
         conversations: context.conversations,
         identity: context.identity,

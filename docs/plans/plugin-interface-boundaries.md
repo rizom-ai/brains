@@ -2,18 +2,17 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **18 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **19 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
 `@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
-`@brains/chat`, `@brains/newsletter`).
+`@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`).
 
-The ten that remain all still extend a base class: `a2a`,
+The nine that remain all still extend a base class: `a2a`,
 `webserver`, `atproto`, `content-pipeline`, `dashboard`,
-`directory-sync`, `email-workflows`, `site-builder`,
-`site-content`, `studio`. Three that are converted —
+`directory-sync`, `site-builder`, `site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -583,6 +582,32 @@ verbatim` hands the handler's own `Response` through untouched.
    `/api/buttondown/subscribe`. Without an API key the package now declares
    no publisher at all, where the entity used to announce an internal
    provider that recorded `internal` as the send id.
+
+   **`email-workflows` needed three additions, each a read the runtime already
+   had and a declaration could not reach.** Converted. The package is one
+   service declaring the `mail-item` entity; the persist validator is an
+   entity extension, the inbox source is the `inbox` slot, the list tool is
+   `defineTool`, and the thread-position migration runs from `ready`, which
+   the runtime already keeps off worker processes. The additions, each with
+   `@brains/email-workflows` as the named consumer: `count` on entity access,
+   because a list that reports its total cannot list everything to find it;
+   `prompts.resolve` on the job context, because the classification rubric is
+   an operator-editable prompt the runtime keeps; and `messaging.request` on
+   the reaction context, because an inbox item's body lives in the mailbox and
+   only the email interface can fetch it back — a request, not an
+   announcement. The SDK's entities entry gained the inbox actor and item-id
+   schemas and the facet and action types a source declares with.
+
+   One rule changed. Subscriptions read; a handler that must write enqueues a
+   job. The inbound-mail handler used to classify and write the mail item
+   before answering, and the email interface advanced its cursor on that
+   answer. It now validates and enqueues the `triage` job, and the answer
+   means durably queued; the job classifies, writes, and retries three times
+   with the same attempt counter and fallback as before. The durable store the
+   cursor trusts moved from the entity table to the job queue. The tool is
+   `email-workflows_triage-list`, named after the service that offers it.
+   The dormant reply-draft entity is a `defineEntity` the service does not
+   declare, so it stays out of every brain until the drafting flow lands.
 
    **`site-content` is parked behind `site-builder`.** Its generate tool
    decides which sections can generate by asking

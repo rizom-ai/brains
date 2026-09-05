@@ -207,8 +207,18 @@ export type {
 
 // What an inbox item is, and who is acting on it. A package that declares
 // an inbox source has to name what it puts there.
-export { inboxItemListSchema } from "@brains/plugins";
-export type { InboxActor, InboxItem, InboxItemDetail } from "@brains/plugins";
+export {
+  inboxActorSchema,
+  inboxItemIdSchema,
+  inboxItemListSchema,
+} from "@brains/plugins";
+export type {
+  InboxAction,
+  InboxActor,
+  InboxFacetDefinition,
+  InboxItem,
+  InboxItemDetail,
+} from "@brains/plugins";
 
 export type {
   EntityAtprotoDiscovery,
