@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveDeployScriptPath } from "@brains/deploy-support";
+import {
+  deployScriptNames,
+  resolveDeployScriptPath,
+} from "@brains/deploy-support";
 import { z } from "@brains/utils/zod";
 
 import packageJson from "../package.json";
@@ -80,13 +83,19 @@ describe("@rizom/brain package metadata", () => {
   it("keeps committed deploy script templates identical to @brains/deploy-support", () => {
     // templates/deploy/scripts is regenerated from @brains/deploy-support by
     // scripts/build.ts (copyDeployScripts); this guards against hand-edits.
-    const scripts = [
-      "create-predeploy-backup.ts",
-      "install-health-watchdog.ts",
-      "provision-server.ts",
-      "update-dns.ts",
-      "write-ssh-key.ts",
-    ] as const;
+    //
+    // Derived rather than listed here. This template carries a subset of
+    // `deployScriptNames` — it provisions a single brain and has no use for
+    // the secrets scripts — and a hand-written list would let a script added
+    // to the subset go unchecked. `deploy-support`'s own inventory test keeps
+    // `deployScriptNames` complete, so filtering it by what this template
+    // ships covers everything either side can add.
+    const scriptDir = join(packageDir, "templates", "deploy", "scripts");
+    const scripts = deployScriptNames.filter((script) =>
+      existsSync(join(scriptDir, script)),
+    );
+
+    expect(scripts.length).toBeGreaterThan(0);
 
     for (const script of scripts) {
       const committed = readPackageFile(
