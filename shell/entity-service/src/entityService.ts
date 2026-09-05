@@ -88,6 +88,14 @@ export interface EntityServiceOptions {
  * - EntitySerializer: markdown serialization
  * - ContentResolver: entity reference resolution
  */
+
+/**
+ * Rows rewritten per committed page when backfilling `search_text`. Bounds
+ * both the entity content held in memory and the work an interrupted boot
+ * has to repeat.
+ */
+export const SEARCH_TEXT_BACKFILL_PAGE_SIZE = 200;
+
 export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
@@ -318,27 +326,44 @@ export class EntityService implements IEntityService {
     }
   }
 
+  /**
+   * Fill `search_text` for rows migrated before it existed.
+   *
+   * This runs inside initialize(), so it is on every instance's boot path
+   * after the search_text migration: it pages rather than reading the whole
+   * corpus, and commits each page. A boot interrupted midway resumes from the
+   * rows still missing the column instead of starting over.
+   */
   private async backfillSearchText(): Promise<void> {
-    const rows = await this.db
-      .select({
-        id: entities.id,
-        entityType: entities.entityType,
-        content: entities.content,
-      })
-      .from(entities)
-      .where(isNull(entities.searchText));
-    if (rows.length === 0) return;
+    const pageAtATime = async (): Promise<void> => {
+      const rows = await this.db
+        .select({
+          id: entities.id,
+          entityType: entities.entityType,
+          content: entities.content,
+        })
+        .from(entities)
+        .where(isNull(entities.searchText))
+        .limit(SEARCH_TEXT_BACKFILL_PAGE_SIZE);
+      if (rows.length === 0) return;
 
-    await this.db.transaction(async (transaction) => {
-      for (const row of rows) {
-        await transaction
-          .update(entities)
-          .set({ searchText: normalizeSearchText(row.content) })
-          .where(
-            sql`${entities.id} = ${row.id} AND ${entities.entityType} = ${row.entityType}`,
-          );
-      }
-    });
+      await this.db.transaction(async (transaction) => {
+        for (const row of rows) {
+          await transaction
+            .update(entities)
+            .set({ searchText: normalizeSearchText(row.content) })
+            .where(
+              sql`${entities.id} = ${row.id} AND ${entities.entityType} = ${row.entityType}`,
+            );
+        }
+      });
+
+      // Every committed page shrinks the predicate, so the next select seeks
+      // the remaining rows rather than paging by a drifting offset.
+      if (rows.length === SEARCH_TEXT_BACKFILL_PAGE_SIZE) await pageAtATime();
+    };
+
+    await pageAtATime();
   }
 
   /** Drain durable embedding intents while the owner job database is open. */
