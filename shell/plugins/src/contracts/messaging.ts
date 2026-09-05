@@ -1,4 +1,3 @@
-import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { ExtensionMetadataSchema } from "./metadata";
 
@@ -63,12 +62,13 @@ export type MessageSender<T = unknown, R = unknown> = (
   request: MessageSendRequest<T>,
 ) => Promise<MessageResponse<R>>;
 
-export interface MessageContext {
-  userId?: string;
-  channelId?: string;
-  messageId?: string;
-  timestamp?: string;
-  interfaceType?: string;
-  userPermissionLevel?: UserPermissionLevel;
-  threadId?: string;
-}
+/**
+ * The context a message arrives with.
+ *
+ * Re-exported rather than restated. The copy that stood here declared every
+ * field optional and `timestamp` as a string, while the bus delivers all of
+ * them and a `Date` — a shape no value ever had, published to plugin authors
+ * through `@rizom/brain/plugins`. `contract-fidelity.test.ts` now holds the
+ * restatements in this file to what the services produce.
+ */
+export type { MessageContext } from "@brains/messaging-service";
