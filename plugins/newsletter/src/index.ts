@@ -1,23 +1,199 @@
-import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { newsletterPlugin } from "./entity";
-import { buttondownPlugin } from "./provider";
+import { PUBLISH_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import {
+  defineRoute,
+  defineServicePlugin,
+  defineSubscription,
+  verbatim,
+  type LoggerContract,
+  type PublishProvider,
+  type PublishResult,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { NewsletterSignup } from "@rizom/brain-ui";
+import { createElement as h } from "react";
+import { newsletterConfigSchema } from "./config";
+import { newsletterEntity } from "./entity";
+import {
+  ButtondownClient,
+  type ButtondownFetch,
+} from "./lib/buttondown-client";
+import {
+  handlePublishCompleted,
+  publishCompletedSchema,
+} from "./lib/publish-handler";
+import { handleSubscribe, SUBSCRIBE_PATH } from "./routes";
+import { subscribersTool } from "./tools";
 
-export { NewsletterPlugin, newsletterPlugin } from "./entity";
+/**
+ * The newsletter package: an issue is an entity the brain writes; sending it,
+ * managing who receives it, and taking signups is Buttondown's work and
+ * belongs to the service half.
+ *
+ * Nothing here runs without an API key. Without one the service declares no
+ * tool, no route, no publisher and no signup form, so a brain that does not
+ * send newsletters carries only the entity type.
+ */
+
+/**
+ * What this package reaches Buttondown through, for a test to supply.
+ * Production passes nothing and the client uses the global fetch.
+ */
+export interface NewsletterDependencies {
+  readonly fetch?: ButtondownFetch | undefined;
+}
+
+interface NewsletterState {
+  readonly client: ButtondownClient | undefined;
+  readonly logger: LoggerContract;
+}
+
+/** Publishing an issue is sending it. */
+function buttondownProvider(client: ButtondownClient): PublishProvider {
+  return {
+    name: "buttondown",
+    publish: async (content, metadata): Promise<PublishResult> => {
+      const subject =
+        typeof metadata["subject"] === "string" ? metadata["subject"] : "";
+      const email = await client.createEmail({
+        subject,
+        body: content,
+        status: "about_to_send",
+      });
+      return { id: email.id };
+    },
+  };
+}
+
+export function newsletterService(
+  dependencies: NewsletterDependencies = {},
+): ServicePackageDefinition<typeof newsletterConfigSchema> {
+  // Routes exist as a function of config alone, so composition tooling can
+  // list them before anything is registered; the client they answer with is
+  // built at setup, so the route closes over the state setup produces.
+  let state: NewsletterState | undefined;
+
+  return defineServicePlugin({
+    id: "buttondown",
+    config: newsletterConfigSchema,
+    entities: [newsletterEntity],
+
+    setup: ({ config, logger }): NewsletterState => {
+      state = {
+        client: config.apiKey
+          ? new ButtondownClient(
+              { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
+              logger,
+              { fetch: dependencies.fetch },
+            )
+          : undefined,
+        logger,
+      };
+      return state;
+    },
+
+    tools: ({ state }) => (state.client ? [subscribersTool(state.client)] : []),
+
+    routes: ({ config }) =>
+      config.apiKey
+        ? [
+            defineRoute({
+              method: "POST",
+              path: SUBSCRIBE_PATH,
+              security: { kind: "public" },
+              response: verbatim,
+              handle: ({ request }) => handleSubscribe(request, state?.client),
+            }),
+          ]
+        : [],
+
+    // A published post goes out to subscribers, when the operator asked for
+    // that. Throwing is how the handler reports a failed send to the bus.
+    subscriptions: ({ config, state }) =>
+      config.autoSendOnPublish && state.client
+        ? [
+            defineSubscription({
+              topic: PUBLISH_CHANNELS.completed,
+              payload: publishCompletedSchema,
+              handle: async ({ payload, entities }) => {
+                const client = state.client;
+                if (!client) throw new Error("Buttondown is not configured");
+                const result = await handlePublishCompleted(
+                  payload,
+                  client,
+                  entities,
+                  state.logger,
+                );
+                if (!result.success) {
+                  state.logger.error("Buttondown auto-send failed", {
+                    entityId: payload.entityId,
+                    error: result.error,
+                  });
+                  throw new Error(result.error);
+                }
+                return result;
+              },
+            }),
+          ]
+        : [],
+
+    publish: ({ state }) =>
+      state.client
+        ? [
+            {
+              entityType: "newsletter",
+              provider: buttondownProvider(state.client),
+              resultIdField: "buttondownId",
+              timestampField: "sentAt",
+            },
+          ]
+        : [],
+
+    // The signup form in the site footer, offered once every plugin has
+    // registered so the site builder is listening for slots.
+    ready: async ({ config, messaging }) => {
+      if (!config.apiKey) return;
+      await messaging.send({
+        type: SITE_BUILDER_CHANNELS.slotRegister,
+        payload: {
+          pluginId: "buttondown",
+          slotName: "footer-top",
+          render: () => h(NewsletterSignup, { variant: "inline" }),
+        },
+      });
+    },
+  });
+}
+
+const newsletterPackage: ServicePackageDefinition<
+  typeof newsletterConfigSchema
+> = newsletterService();
+
+export default newsletterPackage;
+
+export { newsletterEntity } from "./entity";
+export {
+  newsletterConfigSchema,
+  type NewsletterConfig,
+  type NewsletterConfigInput,
+} from "./config";
 export type {
   Newsletter,
   NewsletterMetadata,
   NewsletterStatus,
   CreateNewsletterInput,
-} from "./entity";
+} from "./schemas/newsletter";
 export {
   newsletterSchema,
   newsletterMetadataSchema,
   newsletterStatusSchema,
   createNewsletter,
-} from "./entity";
-export { ButtondownPlugin, buttondownPlugin } from "./provider";
-export { ButtondownClient } from "./provider";
+} from "./schemas/newsletter";
+export {
+  newsletterGeneration,
+  generationJobSchema,
+  type GenerationJobData,
+} from "./handlers/generation";
+export { ButtondownClient } from "./lib/buttondown-client";
 export type {
   Subscriber,
   SubscriberType,
@@ -25,77 +201,4 @@ export type {
   ButtondownEmail,
   EmailStatus,
   CreateEmailInput,
-} from "./provider";
-
-/**
- * Composite config for the newsletter feature.
- *
- * Distributes shared credentials and behavior to the newsletter entity plugin
- * and the buttondown service plugin. One brain.yaml block configures both.
- */
-export const newsletterCompositeConfigSchema: z.ZodObject<{
-  apiKey: z.ZodOptional<z.ZodString>;
-  doubleOptIn: z.ZodOptional<z.ZodBoolean>;
-  autoSendOnPublish: z.ZodOptional<z.ZodBoolean>;
-}> = z.object({
-  apiKey: z.string().optional().describe("Buttondown API key"),
-  doubleOptIn: z
-    .boolean()
-    .optional()
-    .describe("Require email confirmation for new subscribers"),
-  autoSendOnPublish: z
-    .boolean()
-    .optional()
-    .describe("Automatically send newsletter when a blog post is published"),
-});
-
-export type NewsletterCompositeConfig = z.output<
-  typeof newsletterCompositeConfigSchema
->;
-export type NewsletterCompositeConfigInput = z.input<
-  typeof newsletterCompositeConfigSchema
->;
-
-/**
- * Composite factory: returns the newsletter entity plugin + buttondown service
- * plugin from a single shared config block.
- *
- * Use as a capability factory in `defineBrain()`:
- *
- * ```ts
- * capabilities: [
- *   ["newsletter", newsletter, { apiKey: "${BUTTONDOWN_API_KEY}" }],
- * ]
- * ```
- *
- * The composite is gated by the capability id `newsletter` — adding or removing
- * it from a preset enables or disables both sub-plugins.
- */
-export function newsletter(
-  config: NewsletterCompositeConfigInput = {},
-): Plugin[] {
-  const parsedConfig = newsletterCompositeConfigSchema.safeParse(config);
-  if (!parsedConfig.success) {
-    throw new PluginConfigValidationError(
-      "newsletter",
-      parsedConfig.error.issues.map((issue) => ({
-        path: issue.path.map(String).join("."),
-        code: issue.code,
-        message: issue.message,
-      })),
-    );
-  }
-  const parsed = parsedConfig.data;
-  return [
-    newsletterPlugin({}),
-    buttondownPlugin({
-      ...(parsed.apiKey !== undefined && { apiKey: parsed.apiKey }),
-      ...(parsed.doubleOptIn !== undefined && {
-        doubleOptIn: parsed.doubleOptIn,
-      }),
-      ...(parsed.autoSendOnPublish !== undefined && {
-        autoSendOnPublish: parsed.autoSendOnPublish,
-      }),
-    }),
-  ];
-}
+} from "./lib/buttondown-client";

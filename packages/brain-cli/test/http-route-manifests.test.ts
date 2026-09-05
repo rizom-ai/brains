@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseInstanceOverrides, resolve } from "@brains/app";
 import chatPackage from "@brains/chat";
-import { newsletter } from "@brains/newsletter";
+import newsletterPackage from "@brains/newsletter";
 import type {
   ApiRouteDefinition,
   Plugin,
@@ -248,9 +248,15 @@ describe("canonical HTTP route manifests", () => {
     );
   });
 
-  test("records the configured newsletter tool route without making it a public fixture", () => {
-    expect(routeManifest(newsletter({ apiKey: "fixture-api-key" }))).toEqual(
-      readExpected("newsletter"),
-    );
+  test("records the configured newsletter subscribe route without making it a public fixture", () => {
+    expect(
+      routeManifest(
+        instantiatePluginPackageDefinition(
+          newsletterPackage,
+          { apiKey: "fixture-api-key" },
+          { name: "@brains/newsletter", version: "0.0.0-test" },
+        ),
+      ),
+    ).toEqual(readExpected("newsletter"));
   });
 });

@@ -1,112 +1,91 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
+import type { PluginCapabilities } from "@brains/plugins";
 import {
   createPluginHarness,
-  expectSuccess,
   expectError,
+  expectSuccess,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { ButtondownPlugin } from "../src/provider/plugin";
-import { createButtondownTools } from "../src/provider/tools";
-import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
+import { subscribersInputSchema } from "../src/tools";
+import {
+  installNewsletter,
+  jsonResponse,
+  stubbableFetch,
+} from "./helpers/install";
 
-// The client is built with a delegate to this, so a test can stub before or
-// after construction. Unstubbed calls fail loudly rather than reaching the
-// network.
-let fetchFn: ButtondownFetch = () =>
-  Promise.reject(new Error("fetch called without a stub"));
-const delegatingFetch: ButtondownFetch = (url, init) => fetchFn(url, init);
+const TOOL = "buttondown_subscribers";
 
-function stubFetch(handler: ButtondownFetch): void {
-  fetchFn = handler;
-}
-
-describe("Buttondown Tools", () => {
-  let harness: ReturnType<typeof createPluginHarness>;
-
-  it("registers one canonical newsletter subscriber tool", () => {
-    const tools = createButtondownTools(
-      { apiKey: "test-key", doubleOptIn: true },
-      createSilentLogger("buttondown-tools-test"),
-    );
-
-    expect(tools.map((tool) => tool.name)).toEqual(["newsletter_subscribers"]);
+describe("buttondown_subscribers", () => {
+  const harness = createPluginHarness({
+    logger: createSilentLogger("newsletter-tools-test"),
   });
-
-  it("uses OpenAI-compatible email patterns in model-visible tool schemas", () => {
-    const tools = createButtondownTools(
-      { apiKey: "test-key", doubleOptIn: true },
-      createSilentLogger("buttondown-tools-test"),
-    );
-
-    for (const tool of tools) {
-      const jsonSchema = z.toJSONSchema(z.object(tool.inputSchema));
-      expect(JSON.stringify(jsonSchema)).not.toContain("(?!");
-    }
-  });
-
-  beforeEach(async () => {
-    harness = createPluginHarness();
-  });
+  const network = stubbableFetch();
 
   afterEach(async () => {
     await harness.reset();
   });
 
-  describe("newsletter_subscribers subscribe action", () => {
-    it("should subscribe email via Buttondown API", async () => {
-      stubFetch(() =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () =>
-            Promise.resolve({
-              id: "sub-123",
-              email: "test@example.com",
-              subscriber_type: "unactivated",
-            }),
+  async function install(
+    config: { apiKey?: string } = { apiKey: "test-key" },
+  ): Promise<PluginCapabilities> {
+    const { capabilities } = await installNewsletter(harness, config, {
+      fetch: network.fetch,
+    });
+    return capabilities;
+  }
+
+  it("uses OpenAI-compatible email patterns in the model-visible schema", () => {
+    const jsonSchema = z.toJSONSchema(subscribersInputSchema);
+    expect(JSON.stringify(jsonSchema)).not.toContain("(?!");
+  });
+
+  it("is the one tool the service offers, and only once Buttondown is configured", async () => {
+    const configured = await install();
+    expect(configured.tools.map((tool) => tool.name)).toEqual([TOOL]);
+    await harness.reset();
+
+    const unconfigured = await install({});
+    expect(unconfigured.tools).toEqual([]);
+  });
+
+  describe("subscribe", () => {
+    it("subscribes an address through the Buttondown API", async () => {
+      network.stub(() =>
+        jsonResponse({
+          id: "sub-123",
+          email: "test@example.com",
+          subscriber_type: "unactivated",
         }),
       );
+      await install();
 
-      await harness.installPlugin(
-        new ButtondownPlugin(
-          { apiKey: "test-key", doubleOptIn: true },
-          { fetch: delegatingFetch },
-        ),
-      );
-
-      const result = await harness.executeTool("newsletter_subscribers", {
+      const result = await harness.executeTool(TOOL, {
         action: "subscribe",
         email: "test@example.com",
       });
 
       expectSuccess(result);
-      expect(result.data).toHaveProperty("subscriberId", "sub-123");
+      expect(result.data).toMatchObject({
+        subscriberId: "sub-123",
+        email: "test@example.com",
+        message: "subscribed",
+      });
     });
 
-    it("should include name when provided", async () => {
+    it("sends the name along when given one", async () => {
       let capturedBody: string | undefined;
-      stubFetch((_url, options) => {
+      network.stub((_url, options) => {
         capturedBody = z.string().parse(options.body);
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () =>
-            Promise.resolve({
-              id: "sub-123",
-              email: "test@example.com",
-            }),
+        return jsonResponse({
+          id: "sub-123",
+          email: "test@example.com",
+          subscriber_type: "unactivated",
         });
       });
+      await install();
 
-      await harness.installPlugin(
-        new ButtondownPlugin(
-          { apiKey: "test-key", doubleOptIn: true },
-          { fetch: delegatingFetch },
-        ),
-      );
-
-      await harness.executeTool("newsletter_subscribers", {
+      await harness.executeTool(TOOL, {
         action: "subscribe",
         email: "test@example.com",
         name: "Test User",
@@ -115,156 +94,95 @@ describe("Buttondown Tools", () => {
       expect(capturedBody).toContain("Test User");
     });
 
-    it("should surface the API's error detail", async () => {
-      // A well-formed address, so the request goes out and the stubbed 400
-      // is what the tool has to report.
-      stubFetch(() =>
-        Promise.resolve({
-          ok: false,
-          status: 400,
-          json: () => Promise.resolve({ detail: "Subscriber limit reached" }),
-        }),
+    it("surfaces the API's error detail", async () => {
+      network.stub(() =>
+        jsonResponse({ detail: "This email address is blocked" }, 400),
       );
+      await install();
 
-      await harness.installPlugin(
-        new ButtondownPlugin(
-          { apiKey: "test-key", doubleOptIn: true },
-          { fetch: delegatingFetch },
-        ),
-      );
-
-      const result = await harness.executeTool("newsletter_subscribers", {
+      const result = await harness.executeTool(TOOL, {
         action: "subscribe",
-        email: "one-too-many@example.com",
+        email: "blocked@example.com",
       });
 
       expectError(result);
-      expect(result.error).toContain("Subscriber limit reached");
+      expect(result.error).toContain("This email address is blocked");
     });
 
-    it("should detect already subscribed users", async () => {
-      stubFetch((_url, options) => {
-        if (options.method === "POST") {
-          return Promise.resolve({
-            ok: false,
-            status: 400,
-            json: () =>
-              Promise.resolve({
-                code: "email_already_exists",
-                detail:
-                  "That email address already has an associated subscriber.",
-              }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () =>
-            Promise.resolve({
-              id: "sub-existing",
-              email: "existing@example.com",
-              subscriber_type: "regular",
-            }),
-        });
-      });
-
-      await harness.installPlugin(
-        new ButtondownPlugin(
-          { apiKey: "test-key", doubleOptIn: true },
-          { fetch: delegatingFetch },
-        ),
+    it("reports an address that is already subscribed", async () => {
+      network.stub(() =>
+        jsonResponse({
+          id: "sub-existing",
+          email: "test@example.com",
+          subscriber_type: "already_subscribed",
+        }),
       );
+      await install();
 
-      const result = await harness.executeTool("newsletter_subscribers", {
+      const result = await harness.executeTool(TOOL, {
         action: "subscribe",
-        email: "existing@example.com",
+        email: "test@example.com",
       });
 
       expectSuccess(result);
-      expect(result.data).toHaveProperty("message", "already_subscribed");
-      expect(result.data).toHaveProperty("subscriberId", "sub-existing");
+      expect(result.data).toMatchObject({ message: "already_subscribed" });
+    });
+
+    it("refuses to subscribe without an address", async () => {
+      await install();
+
+      const result = await harness.executeTool(TOOL, { action: "subscribe" });
+
+      expectError(result);
+      expect(result.error).toContain("email is required");
     });
   });
 
-  describe("newsletter_subscribers unsubscribe action", () => {
-    it("should unsubscribe email via Buttondown API", async () => {
-      stubFetch(() =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () => Promise.resolve({}),
-        }),
-      );
+  describe("unsubscribe", () => {
+    it("unsubscribes an address through the Buttondown API", async () => {
+      const calls: string[] = [];
+      network.stub((url) => {
+        calls.push(url);
+        return jsonResponse({});
+      });
+      await install();
 
-      await harness.installPlugin(
-        new ButtondownPlugin(
-          { apiKey: "test-key", doubleOptIn: true },
-          { fetch: delegatingFetch },
-        ),
-      );
-
-      const result = await harness.executeTool("newsletter_subscribers", {
+      const result = await harness.executeTool(TOOL, {
         action: "unsubscribe",
         email: "test@example.com",
       });
 
       expectSuccess(result);
+      expect(result.data).toEqual({ email: "test@example.com" });
+      expect(calls.some((url) => url.includes("test%40example.com"))).toBe(
+        true,
+      );
     });
   });
 
-  describe("newsletter_subscribers list action", () => {
-    it("should list subscribers from Buttondown API", async () => {
-      stubFetch(() =>
-        Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () =>
-            Promise.resolve({
-              results: [
-                {
-                  id: "sub-1",
-                  email: "a@test.com",
-                  subscriber_type: "regular",
-                },
-                {
-                  id: "sub-2",
-                  email: "b@test.com",
-                  subscriber_type: "regular",
-                },
-              ],
-              count: 2,
-            }),
+  describe("list", () => {
+    it("lists subscribers from the Buttondown API", async () => {
+      network.stub(() =>
+        jsonResponse({
+          count: 2,
+          results: [
+            { id: "sub-1", email: "a@example.com", subscriber_type: "regular" },
+            { id: "sub-2", email: "b@example.com", subscriber_type: "regular" },
+          ],
         }),
       );
+      await install();
 
-      await harness.installPlugin(
-        new ButtondownPlugin(
-          { apiKey: "test-key", doubleOptIn: true },
-          { fetch: delegatingFetch },
-        ),
-      );
-
-      const result = await harness.executeTool("newsletter_subscribers", {
-        action: "list",
-      });
+      const result = await harness.executeTool(TOOL, { action: "list" });
 
       expectSuccess(result);
-      expect(result.data).toHaveProperty("subscribers");
-      expect(result.data).toHaveProperty("count", 2);
-    });
-  });
-
-  describe("without buttondown config", () => {
-    it("should return empty tools array when no config provided", async () => {
-      await harness.installPlugin(new ButtondownPlugin({}));
-
-      // Tools should not be registered, so executing should throw
-      expect(
-        harness.executeTool("newsletter_subscribers", {
-          action: "subscribe",
-          email: "test@example.com",
-        }),
-      ).rejects.toThrow("Tool not found");
+      expect(result.data).toEqual({
+        count: 2,
+        subscribers: [
+          { id: "sub-1", email: "a@example.com", status: "regular" },
+          { id: "sub-2", email: "b@example.com", status: "regular" },
+        ],
+      });
     });
   });
 });

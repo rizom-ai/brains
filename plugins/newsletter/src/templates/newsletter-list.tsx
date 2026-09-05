@@ -1,11 +1,11 @@
 import type { JSX } from "react";
-import type { PaginationInfo } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   createTemplate,
   paginationInfoSchema,
+  type PaginationInfo,
   type Template,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import {
   Head,
   Pagination,
@@ -137,7 +137,7 @@ export const newsletterListTemplate: Template = createTemplate<
   name: "newsletter-list",
   description: "Newsletter list page template",
   schema: newsletterListSchema,
-  dataSourceId: "newsletter:entities",
+  dataSourceId: "entities",
   requiredPermission: "public",
   layout: {
     component: NewsletterListTemplate,

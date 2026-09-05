@@ -34,7 +34,7 @@ import { emailWorkflows } from "@brains/email-workflows";
 import imagePackage from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import mcpPackage from "@brains/mcp";
-import { newsletter } from "@brains/newsletter";
+import newsletterPackage from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import obsidianVaultPackage from "@brains/obsidian-vault";
@@ -201,7 +201,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       "@brains/social-media",
       socialMediaPackage,
     ),
-    ["newsletter", newsletter, undefined],
+    packageCapability("newsletter", "@brains/newsletter", newsletterPackage),
     packageCapability("stock-photo", "@brains/stock-photo", stockPhotoPackage),
     [
       "atproto",

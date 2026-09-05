@@ -2,17 +2,17 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **17 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **18 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
 `@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
-`@brains/chat`).
+`@brains/chat`, `@brains/newsletter`).
 
-The eleven that remain all still extend a base class: `a2a`,
+The ten that remain all still extend a base class: `a2a`,
 `webserver`, `atproto`, `content-pipeline`, `dashboard`,
-`directory-sync`, `email-workflows`, `newsletter`, `site-builder`,
+`directory-sync`, `email-workflows`, `site-builder`,
 `site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
@@ -561,6 +561,28 @@ verbatim` hands the handler's own `Response` through untouched.
    messages — `username`, `isBot`, `guildId`, `actionId` — which nothing
    reads back; the pipeline's actor and source shapes are what every
    declared interface stores.
+
+   **`newsletter` needed no additions to the contract and one to the SDK.
+   Converted.** It was two classes talking to each other over two private
+   bus channels: the entity plugin asked the service plugin whether it was
+   configured before offering the signup slot, and its publish provider sent
+   the issue to the service over the bus to be emailed. As one
+   `defineServicePlugin` declaring the `newsletter` entity, the service knows
+   its own config and builds the provider on its own client, so both
+   channels are gone. The entity's hand-written generate-execute subscriber
+   was the runtime's `scheduledGeneration` in `batch` mode, spelled out; the
+   markdown adapter was `frontmatterInContent`. The one SDK addition is
+   `verbatim` on the services entry: the subscribe route was the repo's only
+   tool-backed API route, which the stable contract deliberately excludes,
+   and as a handler route it has to redirect a plain form submission — a
+   redirect does not survive a JSON envelope. Two things changed for a
+   brain: the tool is `buttondown_subscribers`, since a tool is named after
+   the service that offers it and the service cannot share the entity's
+   name; and the signup form posts to `/api/newsletter/subscribe`, which is
+   where the UI component always posted while the tool route was mounted at
+   `/api/buttondown/subscribe`. Without an API key the package now declares
+   no publisher at all, where the entity used to announce an internal
+   provider that recorded `internal` as the send id.
 
    **`site-content` is parked behind `site-builder`.** Its generate tool
    decides which sections can generate by asking

@@ -1,201 +1,140 @@
-import { createMockEntityService } from "@brains/entity-service/test";
-import { describe, it, expect, spyOn } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
-import { createSilentLogger } from "@brains/test-utils";
+import { afterEach, describe, expect, it } from "bun:test";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  ButtondownClient,
-  type ButtondownFetch,
-} from "../src/provider/lib/buttondown-client";
-import { ButtondownPlugin } from "../src/provider/plugin";
+import { createTestEntity } from "@brains/entity-service/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { expectDefined } from "@brains/utils/expect-defined";
 import { z } from "@brains/utils/zod";
+import { ButtondownClient } from "../src/lib/buttondown-client";
+import {
+  handlePublishCompleted,
+  type PublishCompletedPayload,
+} from "../src/lib/publish-handler";
+import {
+  installNewsletter,
+  jsonResponse,
+  stubbableFetch,
+} from "./helpers/install";
 
-// The client is built with a delegate to this, so a test can stub before or
-// after construction. Unstubbed calls fail loudly rather than reaching the
-// network.
-let fetchFn: ButtondownFetch = () =>
-  Promise.reject(new Error("fetch called without a stub"));
-const delegatingFetch: ButtondownFetch = (url, init) => fetchFn(url, init);
+const logger = createSilentLogger("newsletter-auto-send-test");
 
-function stubFetch(handler: ButtondownFetch): void {
-  fetchFn = handler;
+function publishedPost(
+  id: string,
+  title: string,
+): ReturnType<typeof createTestEntity> {
+  return createTestEntity("post", {
+    id,
+    content: `# ${title}\n\nThis is the content.`,
+    metadata: { title, slug: id, status: "published" },
+  });
 }
 
-const mockLogger = createSilentLogger();
+describe("auto-send on publish", () => {
+  const network = stubbableFetch();
 
-describe("Newsletter Auto-Send on Publish", () => {
   describe("handlePublishCompleted", () => {
-    it("should create and send newsletter when post is published and autoSendOnPublish is true", async () => {
+    const client = (): ButtondownClient =>
+      new ButtondownClient({ apiKey: "test-key", doubleOptIn: true }, logger, {
+        fetch: network.fetch,
+      });
+    const payload = (
+      entityType: string,
+      entityId: string,
+    ): PublishCompletedPayload => ({
+      entityType,
+      entityId,
+      result: { id: entityId },
+    });
+    const reader = (
+      entity: ReturnType<typeof createTestEntity> | null,
+    ): Parameters<typeof handlePublishCompleted>[2] => ({
+      getEntity: async (): Promise<unknown> => entity,
+    });
+
+    it("sends the published post to every subscriber", async () => {
       let capturedEmailBody: string | undefined;
-      stubFetch((_url, options) => {
+      network.stub((_url, options) => {
         capturedEmailBody = z.string().parse(options.body);
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () =>
-            Promise.resolve({
-              id: "email-123",
-              subject: "My Blog Post",
-              status: "sent",
-            }),
+        return jsonResponse({
+          id: "email-123",
+          subject: "My Blog Post",
+          status: "sent",
         });
       });
 
-      const { handlePublishCompleted } =
-        await import("../src/provider/publish-handler");
-
-      const mockEntityService = createMockEntityService();
-      spyOn(mockEntityService, "getEntity").mockResolvedValue({
-        id: "post-1",
-        entityType: "post",
-        content: "# My Blog Post\n\nThis is the content.",
-        visibility: "public",
-        metadata: {
-          title: "My Blog Post",
-          slug: "my-blog-post",
-          status: "published",
-        },
-        contentHash: "",
-        created: "",
-        updated: "",
-      });
-
       const result = await handlePublishCompleted(
-        {
-          entityType: "post",
-          entityId: "post-1",
-          result: { id: "post-1" },
-        },
-        new ButtondownClient(
-          { apiKey: "test-key", doubleOptIn: true },
-          mockLogger,
-          { fetch: delegatingFetch },
-        ),
-        mockEntityService,
-        mockLogger,
+        payload("post", "post-1"),
+        client(),
+        reader(publishedPost("post-1", "My Blog Post")),
+        logger,
       );
 
-      expect(result.success).toBe(true);
-      if (result.success && "emailId" in result) {
-        expect(result.emailId).toBe("email-123");
-      }
+      expect(result).toEqual({ success: true, emailId: "email-123" });
       expect(capturedEmailBody).toContain("My Blog Post");
       expect(capturedEmailBody).toContain("about_to_send");
     });
 
-    it("should skip non-post entity types", async () => {
-      const { handlePublishCompleted } =
-        await import("../src/provider/publish-handler");
-
-      const mockEntityService = createMockEntityService();
-
+    it("skips anything that is not a post", async () => {
       const result = await handlePublishCompleted(
-        {
-          entityType: "deck",
-          entityId: "deck-1",
-          result: { id: "deck-1" },
-        },
-        new ButtondownClient(
-          { apiKey: "test-key", doubleOptIn: true },
-          mockLogger,
-          { fetch: delegatingFetch },
-        ),
-        mockEntityService,
-        mockLogger,
+        payload("deck", "deck-1"),
+        client(),
+        reader(null),
+        logger,
       );
 
-      expect(result.success).toBe(true);
-      if (result.success && "skipped" in result) {
-        expect(result.skipped).toBe(true);
-        expect(result.reason).toContain("post");
-      }
+      expect(result).toMatchObject({ success: true, skipped: true });
     });
 
-    it("should handle missing post gracefully", async () => {
-      const { handlePublishCompleted } =
-        await import("../src/provider/publish-handler");
-
-      const mockEntityService = createMockEntityService();
-
+    it("fails when the post is gone", async () => {
       const result = await handlePublishCompleted(
-        {
-          entityType: "post",
-          entityId: "non-existent",
-          result: { id: "non-existent" },
-        },
-        new ButtondownClient(
-          { apiKey: "test-key", doubleOptIn: true },
-          mockLogger,
-          { fetch: delegatingFetch },
-        ),
-        mockEntityService,
-        mockLogger,
+        payload("post", "non-existent"),
+        client(),
+        reader(null),
+        logger,
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("not found");
-      }
-    });
-
-    it("should handle Buttondown API errors gracefully", async () => {
-      stubFetch(() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          json: () => Promise.resolve({ detail: "Server error" }),
-        }),
-      );
-
-      const { handlePublishCompleted } =
-        await import("../src/provider/publish-handler");
-
-      const mockEntityService = createMockEntityService();
-      spyOn(mockEntityService, "getEntity").mockResolvedValue({
-        id: "post-1",
-        entityType: "post",
-        content: "# Test\n\nContent",
-        visibility: "public",
-        metadata: { title: "Test", slug: "test", status: "published" },
-        contentHash: "",
-        created: "",
-        updated: "",
+      expect(result).toEqual({
+        success: false,
+        error: "Post non-existent not found",
       });
+    });
+
+    it("reports a Buttondown refusal as the failure", async () => {
+      network.stub(() => jsonResponse({ detail: "Server error" }, 500));
 
       const result = await handlePublishCompleted(
-        {
-          entityType: "post",
-          entityId: "post-1",
-          result: { id: "post-1" },
-        },
-        new ButtondownClient(
-          { apiKey: "test-key", doubleOptIn: true },
-          mockLogger,
-          { fetch: delegatingFetch },
-        ),
-        mockEntityService,
-        mockLogger,
+        payload("post", "post-1"),
+        client(),
+        reader(publishedPost("post-1", "Test")),
+        logger,
       );
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("Server error");
-      }
+      if (!result.success) expect(result.error).toContain("Server error");
     });
   });
 
-  describe("publish:completed subscriber", () => {
-    it("should propagate handler failure to the bus response", async () => {
-      const harness = createPluginHarness();
-      await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", autoSendOnPublish: true }),
+  describe("publish:completed subscription", () => {
+    const harness = createPluginHarness({
+      logger: createSilentLogger("newsletter-auto-send-bus-test"),
+    });
+
+    afterEach(async () => {
+      await harness.reset();
+    });
+
+    it("propagates a failed send to the bus response", async () => {
+      await installNewsletter(
+        harness,
+        { apiKey: "test-key", autoSendOnPublish: true },
+        { fetch: network.fetch },
       );
 
       const response = await harness
         .getMockShell()
         .getMessageBus()
         .send({
-          type: "publish:completed",
+          type: PUBLISH_CHANNELS.completed,
           payload: {
             entityType: "post",
             entityId: "missing-post",
@@ -210,7 +149,58 @@ describe("Newsletter Auto-Send on Publish", () => {
         "failure response carrying an error",
       );
       expect(failure.error).toContain("not found");
-      await harness.reset();
+    });
+
+    it("sends the post when one it can read is published", async () => {
+      network.stub(() =>
+        jsonResponse({ id: "email-7", subject: "Hello", status: "sent" }),
+      );
+      await installNewsletter(
+        harness,
+        { apiKey: "test-key", autoSendOnPublish: true },
+        { fetch: network.fetch },
+      );
+      harness.addEntities([publishedPost("post-7", "Hello")]);
+
+      const response = await harness.sendMessage(PUBLISH_CHANNELS.completed, {
+        entityType: "post",
+        entityId: "post-7",
+        result: { id: "post-7" },
+      });
+
+      expect(response).toEqual({ success: true, emailId: "email-7" });
+    });
+
+    it("listens to nothing unless auto-send is switched on", async () => {
+      let sends = 0;
+      network.stub(() => {
+        sends += 1;
+        return jsonResponse({ id: "email-x", subject: "x", status: "sent" });
+      });
+      await installNewsletter(
+        harness,
+        { apiKey: "test-key" },
+        { fetch: network.fetch },
+      );
+      harness.addEntities([publishedPost("post-1", "Hello")]);
+
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: PUBLISH_CHANNELS.completed,
+          payload: {
+            entityType: "post",
+            entityId: "post-1",
+            result: { id: "post-1" },
+          },
+          sender: "test",
+        });
+
+      // Nobody answered: the bus reports the broadcast went out and no email
+      // was attempted.
+      expect(response).toEqual({ success: true });
+      expect(sends).toBe(0);
     });
   });
 });

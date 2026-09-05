@@ -116,7 +116,9 @@ describe("canonical professional posture", () => {
         "social-post": "0 10 * * *",
       },
     });
-    expect(pluginConfig(resolved, "buttondown")).toMatchObject({
+    expect(
+      pluginConfig(resolved, "@brains/newsletter:buttondown"),
+    ).toMatchObject({
       doubleOptIn: true,
     });
     expect(pluginIds(resolved)).toContain("atproto");

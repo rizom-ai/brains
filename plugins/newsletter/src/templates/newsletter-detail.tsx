@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/plugins";
+import { createTemplate, type Template } from "@brains/sdk/entities";
 import {
   Head,
   Breadcrumb,
@@ -199,7 +199,7 @@ export const newsletterDetailTemplate: Template = createTemplate<
   name: "newsletter-detail",
   description: "Individual newsletter detail template",
   schema: newsletterDetailSchema,
-  dataSourceId: "newsletter:entities",
+  dataSourceId: "entities",
   requiredPermission: "public",
   layout: {
     component: NewsletterDetailTemplate,

@@ -214,6 +214,7 @@ Definitions and schema vocabulary:
 - `defineTool`
 - `defineWorkspaceAction`
 - `z`
+- `verbatim`
 
 Types:
 

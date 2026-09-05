@@ -430,7 +430,7 @@ For LinkedIn, social posts support text-only posts, image posts via `coverImageI
 
 ### `newsletter`
 
-Newsletter entities store email drafts and delivery metadata. The entity type is defined by the compound `@brains/newsletter` package (`plugins/newsletter`) alongside the generation and Buttondown send workflows.
+Newsletter entities store email drafts and delivery metadata. The entity type is declared by the `@brains/newsletter` service package (`plugins/newsletter`) alongside the generation and Buttondown send workflows.
 
 Key frontmatter:
 

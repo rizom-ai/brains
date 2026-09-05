@@ -11,6 +11,10 @@ export {
   defineSubscription,
   defineTool,
   defineWorkspaceAction,
+  // A route whose answer is the response itself. A service taking a form
+  // submission redirects the browser, and a redirect does not survive a JSON
+  // envelope. Named consumer: @brains/newsletter.
+  verbatim,
 } from "@brains/plugins";
 export type {
   AccountSettingsDefinition,

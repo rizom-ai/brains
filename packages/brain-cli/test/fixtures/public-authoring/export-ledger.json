@@ -498,7 +498,8 @@
         "WorkspaceActionResultFieldDefinition",
         "WorkspaceActionResultFieldMap",
         "WorkspacePreparedConfirmation",
-        "z"
+        "z",
+        "verbatim"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",
