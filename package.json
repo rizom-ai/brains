@@ -85,6 +85,7 @@
     "prepare": "husky install",
     "roadmap:build": "bun scripts/build-roadmap-visual.ts",
     "roadmap:check": "bun scripts/build-roadmap-visual.ts --check",
+    "surface:check": "turbo run test:surface --filter @rizom/brain",
     "test": "turbo run test",
     "test:git-broker-process-inventory": "RUN_GIT_ZOMBIE_SOAK=1 GIT_ZOMBIE_SOAK_CYCLES=100 bun test plugins/directory-sync/test/git/git-zombie-soak.test.ts",
     "test:git-broker-recovery": "bun run --filter @rizom/brain build && RUN_GIT_BROKER_PACKAGED_RECOVERY=1 bun test packages/brain-cli/test/git-broker-packaged-recovery.test.ts",

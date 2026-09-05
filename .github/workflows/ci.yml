@@ -235,6 +235,14 @@ jobs:
       - name: Build core packages
         run: bunx turbo run build --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
+      # What we publish, checked against the build we just made: every public
+      # subpath resolves, generated declarations leak no internals, the docs'
+      # examples compile, the built binary boots. These compile the whole
+      # public surface with tsc, so they run here, serially, and not inside
+      # the unit suite.
+      - name: Check published surface
+        run: bun run surface:check
+
   console-visual:
     name: Console visual regression
     timeout-minutes: 20

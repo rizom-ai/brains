@@ -73,6 +73,9 @@ if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; t
   bun run typecheck:scripts
 
   # Run tests on all packages (required for monorepo correctness).
+  # The published-surface checks — tsc over the generated declarations, the
+  # built binary booting — are not in this suite; `bun run surface:check`
+  # runs them, and CI runs it against a fresh build.
   echo "🧪 Running tests..."
   bun run test -- --continue
 else
