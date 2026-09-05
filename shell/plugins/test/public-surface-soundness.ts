@@ -1,6 +1,8 @@
 import type * as Public from "../src/public/types";
 import type * as Runtime from "../src/index";
 import type * as Interfaces from "../src/interfaces";
+import type * as EntityContext from "../src/entity/context";
+import type { Logger as UtilsLogger } from "@brains/utils/logger";
 
 /**
  * `src/public/types.ts` is the authoring surface published as
@@ -187,6 +189,18 @@ type _SaveRuntimeUploadInput = RuntimeSatisfiesPublic<
   Public.SaveRuntimeUploadInput
 >;
 
+// Restated from packages this one does not re-export them from, so the pairing
+// is invisible at `src/index.ts` and has to be named here.
+type _Logger = RuntimeSatisfiesPublic<UtilsLogger, Public.Logger>;
+type _FrontmatterSchemaParser = RuntimeSatisfiesPublic<
+  EntityContext.FrontmatterSchemaParser,
+  Public.FrontmatterSchemaParser
+>;
+type _EntityPluginEntitiesNamespace = RuntimeSatisfiesPublic<
+  EntityContext.EntityPluginEntitiesNamespace,
+  Public.EntityPluginEntitiesNamespace
+>;
+
 /**
  * Keeps the assertions above from being reported as unused declarations.
  *
@@ -234,5 +248,8 @@ export type PublicSurfaceAssertions = [
   _RuntimeUploadResponseBody,
   _RuntimeUploadScopeOptions,
   _SaveRuntimeUploadInput,
+  _Logger,
+  _FrontmatterSchemaParser,
+  _EntityPluginEntitiesNamespace,
 ];
 
