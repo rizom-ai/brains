@@ -2,7 +2,7 @@ import {
   baseEntitySchema,
   type BaseEntity,
   type EntityAdapter,
-} from "@brains/plugins";
+} from "../index";
 import type { z } from "@brains/utils/zod";
 
 /**

@@ -78,3 +78,4 @@ export {
   fetchable,
   type FetchableDataSource,
 } from "./src/test/fetchable-data-source";
+export { coverTakingType } from "./src/test/cover-taking-type";

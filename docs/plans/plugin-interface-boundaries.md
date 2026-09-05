@@ -2,17 +2,17 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **15 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **16 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
-`@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`).
+`@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`).
 
-The thirteen that remain all still extend a base class: `a2a`, `chat`,
+The twelve that remain all still extend a base class: `a2a`, `chat`,
 `webserver`, `atproto`, `content-pipeline`, `dashboard`,
 `directory-sync`, `email-workflows`, `newsletter`, `site-builder`,
-`site-content`, `stock-photo`, `studio`. Three that are converted —
+`site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -436,17 +436,19 @@ verbatim` hands the handler's own `Response` through untouched.
 6. **The remaining conversions**, in dependency order, each closing its
    package's internal imports.
 
-   **`stock-photo` is gated on a measured API gap.** Its select job creates
-   `image` entities — another package's type — and stamps cover ids on
-   arbitrary targets. The sanctioned mechanisms both exist and both fall
-   short: `EntityGenerationLink` lets the runtime do the cross-type link,
-   but only for entity-generation-family jobs; create-route delegation runs
-   the owning package's logic, but only the agent's system tools invoke the
-   create interceptor — no package-facing path reaches it. Closing this
-   means a URL-intake job on `entities/image` (owned-type create, linkInto)
-   plus a programmatic enqueue for another type's declared generation — its
-   own slice, with stock-photo as the named consumer, not a detail of its
-   conversion.
+   **`stock-photo` was gated on a measured API gap, now closed.** Its select
+   job created `image` entities — another package's type — and stamped cover
+   ids on arbitrary targets, and no package-facing path reached the owning
+   type's create route. The gap closed as one capability, `createRouted`:
+   tool and job handlers hand a create request to the route the owning type
+   declared, attributed to the caller or to the actor recorded on the job,
+   with no fallback write. Two smaller gaps surfaced measuring it and closed
+   with it — a create route may answer `existing` and may `linkInto` a
+   target, and the declarative adapter had lost `supportsCoverImage` on
+   conversion, so every converted type refused a cover through
+   `system_update`. Converted: the select job fetches the bytes and hands
+   them to the image route, which names, deduplicates by source URL and
+   links; a missing target fails the job rather than leaving an orphan.
 
    **The chat interfaces are gated on confirmations.** `chat-repl`, `chat`
    and `web-chat` each hand-roll the same three things: a

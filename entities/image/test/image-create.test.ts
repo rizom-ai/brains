@@ -13,7 +13,7 @@ import {
   stubMethod,
 } from "@brains/test-utils";
 import images from "../src";
-import { coverTakingType } from "./helpers/cover-taking-type";
+import { coverTakingType } from "@brains/plugins/test";
 
 const PACKAGE_METADATA = { name: "@brains/image-plugin", version: "0.1.0" };
 
