@@ -38,6 +38,7 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
   defineEntity({
     type: "post",
     purpose: "A published piece of writing.",
+    coverImage: true,
     metadata: blogPostMetadataSchema,
     config: {
       weight: 2.0,

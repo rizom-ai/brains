@@ -1815,17 +1815,25 @@ describe("entity package definitions", () => {
         >,
       },
     });
+    // The target declares a cover: a link into `coverImageId` is refused for
+    // a type that never said it takes one, by the same rule system_update
+    // applies, so the target here has to be a type that did.
+    const postType = defineEntity({
+      type: "post",
+      purpose: "Something a picture is drawn for.",
+      metadata: z.object({}),
+      coverImage: true,
+    });
     const definition = defineEntityPackage({
       id: "pictures",
-      entities: [picture],
+      entities: [picture, postType],
     });
-    const plugin = createEntityPackagePlugins(
+    const plugins = createEntityPackagePlugins(
       definition.entities,
       definition.projections,
       { name: "@fixture/pictures", version: "0.1.0" },
       (id) => `@fixture/pictures:${id}`,
-    )[0];
-    if (!plugin) throw new Error("Picture entity plugin was not created");
+    );
 
     const harness = createPluginHarness({
       logger: createSilentLogger("entity-link-field-test"),
@@ -1837,7 +1845,7 @@ describe("entity package definitions", () => {
     });
     harness.getMockShell().getJobQueueService = (): typeof queue => queue;
 
-    await harness.installPlugin(plugin);
+    for (const plugin of plugins) await harness.installPlugin(plugin);
     const entities = harness.getEntityService();
     await entities.createEntity({
       entity: {

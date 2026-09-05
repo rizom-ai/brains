@@ -50,6 +50,7 @@ import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { definitionEntitySchema, parseDefinitionEntity } from "./entity-schema";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
+import { createRoutedCreate } from "./routed-create";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
   agentContextRequestSchema,
@@ -304,6 +305,7 @@ function entityAdapter(
     // Left off entirely when undeclared: system_generate reads its absence
     // as "this type does not support queued generation" and says so.
     ...(definition.stub ? { buildStub: definition.stub } : {}),
+    ...(definition.coverImage ? { supportsCoverImage: true } : {}),
   };
 }
 
@@ -687,6 +689,48 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               },
             };
           }
+          // Found rather than made. The runtime checks the claim — an entity
+          // the route says exists must exist — and writes only the link.
+          if ("existing" in resolution) {
+            const found = await context.entityService.getEntity({
+              entityType: this.entityType,
+              id: resolution.existing.id,
+            });
+            if (!found) {
+              return {
+                kind: "handled",
+                result: {
+                  success: false,
+                  error: `Cannot reuse ${this.entityType} "${resolution.existing.id}", which does not exist`,
+                },
+              };
+            }
+            if (resolution.linkInto) {
+              const problem = await this.linkProblem(
+                context,
+                resolution.linkInto,
+              );
+              if (problem) {
+                return {
+                  kind: "handled",
+                  result: { success: false, error: problem },
+                };
+              }
+              await this.linkGenerated(context, found.id, resolution.linkInto);
+            }
+            const attachment = resolution.attachment?.({ entityId: found.id });
+            return {
+              kind: "handled",
+              result: {
+                success: true,
+                data: {
+                  status: "existing",
+                  entityId: found.id,
+                  ...(attachment ? { attachment } : {}),
+                },
+              },
+            };
+          }
           // The runtime performs the write, so "created" and "updated"
           // describe what it did rather than what the route claims.
           if ("update" in resolution) {
@@ -718,6 +762,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               },
             };
           }
+          if (resolution.linkInto) {
+            const problem = await this.linkProblem(
+              context,
+              resolution.linkInto,
+            );
+            if (problem) {
+              return {
+                kind: "handled",
+                result: { success: false, error: problem },
+              };
+            }
+          }
           const written = await context.entityService.createEntity({
             entity: {
               id: resolution.create.id,
@@ -738,6 +794,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               },
             },
           });
+          if (resolution.linkInto) {
+            await this.linkGenerated(
+              context,
+              written.entityId,
+              resolution.linkInto,
+            );
+          }
           const attachment = resolution.attachment?.({
             entityId: written.entityId,
           });
@@ -1090,13 +1153,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       },
       process: async (
         data: unknown,
-        _jobId: string,
+        jobId: string,
         progress: ProgressContract,
         signal: AbortSignal,
       ): Promise<unknown> =>
         this.runGeneration(context, data, (entityId) =>
           generation.generate({
-            ...this.jobContext(data, context, progress, signal),
+            ...this.jobContext(data, context, progress, signal, jobId),
             entityId,
           }),
         ),
@@ -1111,11 +1174,46 @@ class DeclarativeEntityPlugin extends EntityPlugin<
    * artifact exists. Stored as a `documents` list in the source's
    * frontmatter, which is the shape already on disk.
    */
+  /**
+   * Why a link could not be written, if it could not.
+   *
+   * Asked before anything is created, so a create that was to be somebody's
+   * cover refuses rather than leaving an orphan. The cover rule is the one
+   * `system_update` applies: a type that never declared a cover does not get
+   * one through this door either — which is what makes the declaration a
+   * declaration rather than a suggestion.
+   */
+  private async linkProblem(
+    context: EntityPluginContext,
+    link: EntityGenerationLink,
+  ): Promise<string | undefined> {
+    const target = await context.entityService.getEntity({
+      entityType: link.entityType,
+      id: link.entityId,
+    });
+    if (!target) {
+      return `Target entity not found: ${link.entityType}/${link.entityId}`;
+    }
+    if ("field" in link && link.field === "coverImageId") {
+      const adapter = context.entities.getAdapter(link.entityType);
+      if (adapter?.supportsCoverImage !== true) {
+        return `Entity type '${link.entityType}' doesn't support cover images`;
+      }
+    }
+    return undefined;
+  }
+
   private async linkGenerated(
     context: EntityPluginContext,
     entityId: string,
     link: EntityGenerationLink,
   ): Promise<void> {
+    const problem = await this.linkProblem(context, link);
+    if (problem) {
+      throw new Error(
+        `Cannot link ${this.entityType} "${entityId}" into ${link.entityType} "${link.entityId}": ${problem}`,
+      );
+    }
     const target = await context.entityService.getEntity({
       entityType: link.entityType,
       id: link.entityId,
@@ -1459,11 +1557,17 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       },
       process: async (
         data: unknown,
-        _jobId: string,
+        jobId: string,
         progress: ProgressContract,
         signal: AbortSignal,
       ): Promise<unknown> => {
-        const jobContext = this.jobContext(data, context, progress, signal);
+        const jobContext = this.jobContext(
+          data,
+          context,
+          progress,
+          signal,
+          jobId,
+        );
         if ("handle" in declaration) return declaration.handle(jobContext);
         // Declared with `generate`, so the entity's lifecycle belongs to
         // the runtime: the write on success, the failure marking on error.
@@ -1519,6 +1623,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     context: EntityPluginContext,
     progress: ProgressContract,
     signal: AbortSignal,
+    jobId: string,
   ): JobHandlerContext<unknown> {
     return {
       input,
@@ -1527,6 +1632,32 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       ai: context.ai,
       logger: this.logger,
       entities: this.entityAccess(context),
+      createRouted: createRoutedCreate({
+        requester: this.id,
+        interceptorFor: (entityType) =>
+          context.entities.getCreateInterceptor(entityType),
+        assertAllowed: (entityType, userPermissionLevel) =>
+          context.permissions.assertEntityActionAllowed(entityType, "create", {
+            userPermissionLevel,
+          }),
+        caller: async () => {
+          const job = await context.jobs.getStatus(jobId);
+          const actor = job?.metadata.requestedByActor;
+          if (!job || !actor) return undefined;
+          return {
+            execution: {
+              interfaceType:
+                job.metadata.interfaceType ??
+                job.metadata.requestedByInterface ??
+                "job",
+              actor,
+              ...(job.metadata.channelId
+                ? { channelId: job.metadata.channelId }
+                : {}),
+            },
+          };
+        },
+      }),
       messaging: {
         publish: async (message): Promise<void> => {
           await context.messaging.send({

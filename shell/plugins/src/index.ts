@@ -322,6 +322,7 @@ export type {
   JobHandlerContext,
   JobMessagePublisher,
   JobTemplateFormatter,
+  RoutedCreate,
 } from "./job/job-context-contract";
 export { paginateItems } from "@brains/entity-service";
 export type { PaginateOptions, PaginateResult } from "@brains/entity-service";

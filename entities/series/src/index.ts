@@ -32,6 +32,7 @@ export const series: EntityDefinition<"series", typeof seriesMetadataSchema> =
   defineEntity({
     type: "series",
     purpose: "A named sequence its member entities opt into.",
+    coverImage: true,
     metadata: seriesMetadataSchema,
     markdown: {
       decode: ({ content, frontmatter }) => {

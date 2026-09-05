@@ -68,6 +68,7 @@ export type {
   EntityGenerationDeclaration,
   JobEntityAccess,
   JobHandlerContext,
+  RoutedCreate,
   AnyEntityJobDeclaration,
   EntityGenerationJobDeclaration,
   EntityGenerationResult,

@@ -190,6 +190,16 @@ export interface EntityDefinition<
    * Omitted, the type follows the platform baseline.
    */
   readonly actions?: EntityActionPolicyRule | undefined;
+  /**
+   * Whether this type carries a cover image in `coverImageId`.
+   *
+   * `system_update` refuses a cover on a type that has not said so, which
+   * is how a note stays a note. Declared here because it is a fact about
+   * the type, not a behaviour — and because a type that forgets to say it
+   * cannot be given a cover through the runtime at all, which is exactly
+   * what happened to every converted type before this existed.
+   */
+  readonly coverImage?: boolean | undefined;
   readonly seed?: EntitySeedDefinition<TMetadataSchema> | undefined;
   /** Keyed by local template name; the runtime scopes them to the plugin. */
   readonly templates?: Record<string, Template> | undefined;
@@ -391,6 +401,29 @@ export type EntityCreateResolution =
         readonly content: string;
         readonly metadata: Record<string, unknown>;
       };
+      readonly attachment?: EntityCreateAttachment | undefined;
+      /**
+       * Point another entity at what was created — a cover that arrived as
+       * bytes becoming the target's cover. The same write a generation asks
+       * for with its own `linkInto`, done by the runtime for the same
+       * reason: neither package may write the other's type. Checked before
+       * anything is written, so a missing target refuses the create rather
+       * than leaving an orphan behind.
+       */
+      readonly linkInto?: EntityGenerationLink | undefined;
+    }
+  /**
+   * The thing asked for already exists, and nothing is to be written to it.
+   *
+   * The delegate path has this shape for a render it can reuse; the
+   * immediate path needs it for the same reason — a picture the brain holds
+   * is found by where it came from, not stored a second time. What may still
+   * be written is a link: the second post this picture is chosen for gets it
+   * as a cover, and the runtime does that write as it does every link.
+   */
+  | {
+      readonly existing: { readonly id: string };
+      readonly linkInto?: EntityGenerationLink | undefined;
       readonly attachment?: EntityCreateAttachment | undefined;
     }
   | {

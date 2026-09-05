@@ -34,6 +34,7 @@ export const project: EntityDefinition<
 > = defineEntity({
   type: "project",
   purpose: "A portfolio case study for a piece of work.",
+  coverImage: true,
   metadata: projectMetadataSchema,
   config: { projectionSourceRole: "secondary" },
   // What system_generate persists before the case study is written. A year

@@ -1,4 +1,5 @@
 import type {
+  CreateResult,
   IEntityAINamespace,
   JobEntityAccess,
   JobHandlerContext,
@@ -25,12 +26,20 @@ export function createTestJobContext<TInput>(options: {
   readonly domain?: string | undefined;
   readonly profileKinds?: JobHandlerContext<TInput>["profileKinds"] | undefined;
   readonly signal?: AbortSignal | undefined;
+  /** A create through another type's route; refused unless the test supplies one. */
+  readonly createRouted?: JobHandlerContext<TInput>["createRouted"] | undefined;
 }): JobHandlerContext<TInput> {
   return {
     input: options.input,
     ai: options.ai,
     logger: options.logger,
     entities: options.entities,
+    createRouted:
+      options.createRouted ??
+      (async (): Promise<CreateResult> => ({
+        success: false,
+        error: "This test job creates nothing through another type's route",
+      })),
     conversations: options.conversations,
     identity: options.identity,
     domain: options.domain,

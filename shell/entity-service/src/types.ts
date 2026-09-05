@@ -913,6 +913,16 @@ export interface IEntitiesNamespace {
     interceptor: CreateInterceptor,
   ): void;
 
+  /**
+   * The create interceptor another type registered, if it registered one.
+   *
+   * How a package creates a type it does not own: not by writing it, but by
+   * handing the request to the route the owner declared — the same route
+   * `system_create` takes. Undefined for a type with no route, which is a
+   * type nobody else can create.
+   */
+  getCreateInterceptor(entityType: string): CreateInterceptor | undefined;
+
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 

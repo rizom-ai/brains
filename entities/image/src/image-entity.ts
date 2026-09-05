@@ -393,13 +393,57 @@ async function routeFromContent(
   // Text is a description of what to make; a data URL is the thing itself.
   if (!content || !isImageDataUrl(content)) return routeFromPrompt(context);
 
-  const title = context.input.title?.trim() ?? "image";
+  // The same target the prompt route takes: bytes handed over on behalf of
+  // another entity become its cover, and are named after it when unnamed.
+  const resolved = await resolveTarget(context);
+  if (resolved.kind === "refuse") return { refuse: resolved.refuse };
+  const target = resolved.kind === "target" ? resolved : undefined;
+  const requestedTitle = context.input.title?.trim();
+  const naming = {
+    prompt: requestedTitle ?? "image",
+    ...(requestedTitle !== undefined ? { title: requestedTitle } : {}),
+    ...(target ? { targetEntityId: target.id } : {}),
+  };
+  const title = generatedImageTitle(naming);
+  // Where the bytes came from, when the caller knows: a stock photo's page,
+  // a fetched URL. Recorded so the same picture is found rather than stored
+  // twice — and looked for first, so choosing it again links it again.
+  const sourceUrl = context.input.url?.trim();
+  if (sourceUrl) {
+    const [held] = await context.entities.listEntities({
+      entityType: "image",
+      options: { limit: 1, filter: { metadata: { sourceUrl } } },
+    });
+    if (held) {
+      return {
+        existing: { id: held.id },
+        ...(target ? { linkInto: linkFor(target) } : {}),
+        attachment: ({ entityId }) =>
+          imageLink({
+            entityId,
+            attachmentType: "uploaded",
+            mediaType: `image/${parseDataUrl(content).format}`,
+          }),
+      };
+    }
+  }
   return {
     create: {
-      id: generatedImageId({ prompt: title, title }),
+      id: generatedImageId(naming),
       content,
-      metadata: imageMetadataFor(content, { title, alt: title }),
+      metadata: imageMetadataFor(content, {
+        title,
+        alt: title,
+        ...(sourceUrl ? { sourceUrl } : {}),
+        ...(target
+          ? {
+              sourceEntityType: target.entityType,
+              sourceEntityId: target.id,
+            }
+          : {}),
+      }),
     },
+    ...(target ? { linkInto: linkFor(target) } : {}),
     attachment: ({ entityId }) =>
       imageLink({
         entityId,

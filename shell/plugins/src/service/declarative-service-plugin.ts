@@ -41,6 +41,8 @@ import {
   createDeclarativeEntityDataSource,
 } from "../public/entity-data-source";
 import { createReactionContext } from "./reaction-context";
+import { createRoutedCreate } from "../entity/routed-create";
+import type { RoutedCreate } from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import {
   createRuntimeRoute,
@@ -139,7 +141,7 @@ function runtimeJobHandler(
     },
     async process(
       input: unknown,
-      _jobId: string,
+      jobId: string,
       progress: ProgressReporter,
       signal: AbortSignal,
     ): Promise<unknown> {
@@ -153,6 +155,37 @@ function runtimeJobHandler(
           owned,
           serviceId,
         ),
+        createRouted: createRoutedCreate({
+          requester: serviceId,
+          interceptorFor: (entityType) =>
+            context.entities.getCreateInterceptor(entityType),
+          assertAllowed: (entityType, userPermissionLevel) =>
+            context.permissions.assertEntityActionAllowed(
+              entityType,
+              "create",
+              {
+                userPermissionLevel,
+              },
+            ),
+          // Who asked is on the job: the enqueue recorded the tool's caller.
+          caller: async () => {
+            const job = await context.jobs.getStatus(jobId);
+            const actor = job?.metadata.requestedByActor;
+            if (!job || !actor) return undefined;
+            return {
+              execution: {
+                interfaceType:
+                  job.metadata.interfaceType ??
+                  job.metadata.requestedByInterface ??
+                  "job",
+                actor,
+                ...(job.metadata.channelId
+                  ? { channelId: job.metadata.channelId }
+                  : {}),
+              },
+            };
+          },
+        }),
         ai: context.ai,
         logger: context.logger,
         conversations: context.conversations,
@@ -1258,11 +1291,35 @@ class DeclarativeServicePlugin<
     });
   }
 
+  /** A create through another type's route, done as this caller. */
+  private routedCreate(caller: ToolContext): RoutedCreate {
+    const context = this.getContext();
+    return createRoutedCreate({
+      requester: this.publicId,
+      interceptorFor: (entityType) =>
+        context.entities.getCreateInterceptor(entityType),
+      assertAllowed: (entityType, userPermissionLevel) =>
+        context.permissions.assertEntityActionAllowed(entityType, "create", {
+          userPermissionLevel,
+        }),
+      caller: () => ({
+        execution: {
+          interfaceType: caller.interfaceType,
+          actor: caller.actor,
+          ...(caller.channelId ? { channelId: caller.channelId } : {}),
+          ...(caller.channelName ? { channelName: caller.channelName } : {}),
+        },
+        permissionLevel: caller.userPermissionLevel,
+      }),
+    });
+  }
+
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
     return createRuntimeTool({
       definition,
       pluginId: this.publicId,
       reaction: () => this.reaction(),
+      routedCreate: (caller) => this.routedCreate(caller),
       // A service attributes nested work to the caller for the duration of
       // the handler, so a job it enqueues carries who asked for it.
       run: (toolContext, operation) =>

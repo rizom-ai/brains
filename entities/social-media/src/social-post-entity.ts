@@ -27,6 +27,7 @@ export const socialPost: EntityDefinition<
 > = defineEntity({
   type: "social-post",
   purpose: "A post written for a social platform.",
+  coverImage: true,
   metadata: socialPostMetadataSchema,
   config: {
     projectionSourceRole: "secondary",

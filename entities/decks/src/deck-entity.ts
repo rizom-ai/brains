@@ -36,6 +36,7 @@ export const deck: EntityDefinition<"deck", typeof deckMetadataSchema> =
   defineEntity({
     type: "deck",
     purpose: "A slide deck presented from markdown.",
+    coverImage: true,
     metadata: deckMetadataSchema,
     config: { weight: 1.5, projectionSourceRole: "primary" },
     markdown: {

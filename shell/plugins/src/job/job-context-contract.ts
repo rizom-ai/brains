@@ -1,6 +1,8 @@
 import type {
   BaseEntity,
   ContentVisibility,
+  CreateInput,
+  CreateResult,
   EntityInput,
   EntityMutationResult,
   EntitySchema,
@@ -233,9 +235,26 @@ export interface JobTemplateFormatter {
  * Config is deliberately absent: a service declares jobs as a function of
  * config, so a handler closes over exactly the settings it needs.
  */
+/**
+ * Create an entity of a type this package does not own, through the route
+ * its owner declared.
+ *
+ * Writes are scoped to the types a package declares, and that rule holds: a
+ * service holding bytes for an image does not write an image. It hands the
+ * request to the image type's create route — exactly the route
+ * `system_create` would take — and the owner writes. The answer is what the
+ * runtime did, attributed to whoever asked this package in the first place.
+ *
+ * No fallback. `system_create` writes an ordinary entity when no route claims
+ * the input; from here that would be the trespass this exists to remove, so
+ * an input no route claims is refused. Named consumer: @brains/stock-photo.
+ */
+export type RoutedCreate = (input: CreateInput) => Promise<CreateResult>;
+
 export interface JobHandlerContext<TInput> {
   readonly input: TInput;
   readonly entities: JobEntityAccess;
+  readonly createRouted: RoutedCreate;
   readonly ai: IEntityAINamespace;
   readonly logger: LoggerContract;
   readonly conversations: EntityConversationReader;

@@ -80,6 +80,8 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     ): void => {
       entityRegistry.registerCreateInterceptor(entityType, interceptor);
     },
+    getCreateInterceptor: (entityType: string): CreateInterceptor | undefined =>
+      entityRegistry.getCreateInterceptor(entityType),
     registerUploadSaveHandler: (
       registration: UploadSaveHandlerRegistration,
     ): void => {

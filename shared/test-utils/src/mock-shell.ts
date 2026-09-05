@@ -950,6 +950,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       metadata: {
         rootJobId: id,
         operationType: "data_processing",
+        // The real queue keeps the metadata the enqueue arrived with — which
+        // by this point carries the enqueuing tool's caller, so a job can say
+        // who it works for. A fake that dropped it would let a handler pass
+        // here and refuse against a real brain.
+        ...(request.options?.metadata ?? {}),
       },
       progress: null,
       result: null,

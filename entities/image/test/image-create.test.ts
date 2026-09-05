@@ -13,6 +13,7 @@ import {
   stubMethod,
 } from "@brains/test-utils";
 import images from "../src";
+import { coverTakingType } from "./helpers/cover-taking-type";
 
 const PACKAGE_METADATA = { name: "@brains/image-plugin", version: "0.1.0" };
 
@@ -52,6 +53,8 @@ async function install(options: { dataDir?: string } = {}): Promise<Installed> {
     PACKAGE_METADATA,
   );
   for (const plugin of plugins) await harness.installPlugin(plugin);
+  const post = coverTakingType("post");
+  harness.getEntityRegistry().registerEntityType("post", post.schema, post);
 
   const interceptor: CreateInterceptor | undefined = harness
     .getEntityRegistry()
@@ -297,6 +300,111 @@ describe("generating an image from a prompt", () => {
     expect(stored?.metadata).toMatchObject({
       format: "png",
       title: "Harbour Light",
+    });
+
+    await harness.reset();
+  });
+
+  it("stores content handed over for a target as that target's cover", async () => {
+    // Bytes on behalf of another entity: a stock photo picked for a post.
+    // No job to delegate to, so the link is the route's to ask for and the
+    // runtime's to write — the same write a generated cover gets.
+    const { harness, create, enqueued } = await install();
+    harness.addEntities([post()]);
+
+    const result = await create({
+      entityType: "image",
+      content: PNG_DATA_URL,
+      url: "https://unsplash.com/photos/abc123",
+      targetEntityType: "post",
+      targetEntityId: "launch-post",
+    });
+
+    if (result.kind !== "handled" || !result.result.success) {
+      throw new Error("Expected the create to be handled");
+    }
+    expect(result.result.data).toMatchObject({
+      status: "created",
+      entityId: "cover-launch-post",
+    });
+    expect(enqueued).toEqual([]);
+    const stored = await harness
+      .getEntityService()
+      .getEntity({ entityType: "image", id: "cover-launch-post" });
+    expect(stored?.metadata).toMatchObject({
+      sourceUrl: "https://unsplash.com/photos/abc123",
+      sourceEntityType: "post",
+      sourceEntityId: "launch-post",
+    });
+    const target = await harness
+      .getEntityService()
+      .getEntity({ entityType: "post", id: "launch-post" });
+    expect(target?.content).toContain("coverImageId: cover-launch-post");
+
+    await harness.reset();
+  });
+
+  it("links a picture it already holds rather than storing it twice", async () => {
+    // The same photo picked for a second post: the route knows the picture
+    // by where it came from, and the second selection is a link, not a copy.
+    const { harness, create } = await install();
+    harness.addEntities([post(), post("follow-up-post")]);
+    const first = await create({
+      entityType: "image",
+      content: PNG_DATA_URL,
+      url: "https://unsplash.com/photos/abc123",
+      targetEntityType: "post",
+      targetEntityId: "launch-post",
+    });
+    if (first.kind !== "handled" || !first.result.success) {
+      throw new Error("Expected the first create to be handled");
+    }
+
+    const second = await create({
+      entityType: "image",
+      content: PNG_DATA_URL,
+      url: "https://unsplash.com/photos/abc123",
+      targetEntityType: "post",
+      targetEntityId: "follow-up-post",
+    });
+
+    expect(second).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { status: "existing", entityId: first.result.data.entityId },
+      },
+    });
+    const images = await harness
+      .getEntityService()
+      .listEntities({ entityType: "image" });
+    expect(images).toHaveLength(1);
+    const followUp = await harness
+      .getEntityService()
+      .getEntity({ entityType: "post", id: "follow-up-post" });
+    expect(followUp?.content).toContain(
+      `coverImageId: ${first.result.data.entityId}`,
+    );
+
+    await harness.reset();
+  });
+
+  it("refuses content for a target that is not there", async () => {
+    const { harness, create } = await install();
+
+    const result = await create({
+      entityType: "image",
+      content: PNG_DATA_URL,
+      targetEntityType: "post",
+      targetEntityId: "never-written",
+    });
+
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: {
+        success: false,
+        error: "Target entity not found: post/never-written",
+      },
     });
 
     await harness.reset();

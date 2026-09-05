@@ -10,6 +10,7 @@ import {
 import { imageMetadataSchema } from "@brains/image";
 import type { PublishMediaData } from "@brains/contracts";
 import images from "../src";
+import { coverTakingType } from "./helpers/cover-taking-type";
 import type { EntitySchema } from "@brains/sdk/entities";
 
 const PACKAGE_METADATA = { name: "@brains/image-plugin", version: "0.1.0" };
@@ -72,6 +73,8 @@ async function install(
     PACKAGE_METADATA,
   );
   for (const plugin of plugins) await harness.installPlugin(plugin);
+  const post = coverTakingType("post");
+  harness.getEntityRegistry().registerEntityType("post", post.schema, post);
 
   const handler = (job: "generate" | "render"): JobHandler => {
     const found = handlers.get(`@brains/image-plugin:image:${job}`);

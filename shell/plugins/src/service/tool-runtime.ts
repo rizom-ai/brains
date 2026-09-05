@@ -10,6 +10,8 @@ import type { EntityReactionContext } from "../entity/entity-definition-contract
 import type { AnyServiceToolDefinition } from "./service-definition-contract";
 import { createToolAgent, isToolAsk } from "./tool-agent";
 import type { AgentNamespace } from "../contracts/agent";
+import type { RoutedCreate } from "../job/job-context-contract";
+import { noRoutedCreate } from "../entity/routed-create";
 
 export const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -50,6 +52,12 @@ export function createRuntimeTool(input: {
    * Named consumer: @brains/mcp, through the interface family.
    */
   readonly agent?: (() => AgentNamespace | undefined) | undefined;
+  /**
+   * A create through another type's route, for the caller. A service
+   * supplies this; an interface, which creates nothing of its own, does not,
+   * and its tools get a refusal that says so.
+   */
+  readonly routedCreate?: ((caller: ToolContext) => RoutedCreate) | undefined;
 }): Tool {
   const { definition, pluginId, reaction } = input;
   const run =
@@ -108,6 +116,8 @@ export function createRuntimeTool(input: {
             input: parsed,
             signal: toolContext.signal ?? new AbortController().signal,
             caller: toolContext,
+            createRouted:
+              input.routedCreate?.(toolContext) ?? noRoutedCreate(name),
             agent: createToolAgent({
               pluginId,
               toolName: name,

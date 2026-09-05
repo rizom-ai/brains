@@ -102,6 +102,7 @@ import type {
   JobEntityAccess,
   JobHandlerContext,
   JobTemplateFormatter,
+  RoutedCreate,
 } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AIGenerationSchema } from "../entity/ai-types";
@@ -374,6 +375,11 @@ export interface ServiceToolDefinition<
        * may reach it — see `createToolAgent`. Named consumer: @brains/mcp.
        */
       readonly agent: ToolAgent;
+      /**
+       * Create a type this package does not own, through the owner's route,
+       * as the caller. See `RoutedCreate`.
+       */
+      readonly createRouted: RoutedCreate;
     },
   ):
     | z.input<TOutputSchema>

@@ -68,6 +68,7 @@ export function defineEntity<
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
   readonly actions?: EntityActionPolicyRule | undefined;
+  readonly coverImage?: boolean | undefined;
   readonly checks?: readonly EntityCheckDeclaration[] | undefined;
   readonly inbox?: EntityInboxDeclaration | undefined;
   readonly atprotoDiscovery?: EntityAtprotoDiscovery | undefined;
