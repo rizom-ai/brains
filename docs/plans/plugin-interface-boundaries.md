@@ -139,7 +139,8 @@ made the entity tranche find real defects rather than move code.
    | `web-chat`  | message    | 47      | —                |
    | `chat`      | message    | 55      | —                |
 
-   **`webserver` is not convertible and should leave this list.** It _is_ the
+   **`webserver` is not convertible and should leave this list**; how it leaves is
+   [runtime-http-host](./runtime-http-host.md). It _is_ the
    HTTP host: it reads `context.httpRoutes.getRoutes()` and runs
    `Bun.serve()`, serving the routes other interfaces declare. The authoring
    contract says the runtime owns HTTP hosting, so webserver cannot be
