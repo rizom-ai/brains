@@ -605,7 +605,12 @@
         "resolveArtifactEntityRefFromCard",
         "UserPermissionLevel",
         "UserPermissionLevelSchema",
-        "z"
+        "z",
+        "ANCHOR_EXTENSION_URI",
+        "PublicSkill",
+        "ResolvedProfileKind",
+        "ToolInfo",
+        "AnySubscriptionDefinition"
       ],
       "advanced-with-consumer": [
         "AgentNamespace",

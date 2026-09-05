@@ -1,11 +1,13 @@
-import { z } from "@brains/utils/zod";
-import type {
-  ContentVisibility,
-  Tool,
-  ToolResponse,
-  ParsedAgentCard,
-} from "@brains/plugins";
-import { internalFullScope, parseAgentCard } from "@brains/plugins";
+import {
+  parseAgentCard,
+  type ContentVisibility,
+  type ParsedAgentCard,
+} from "@brains/sdk/entities";
+import {
+  defineTool,
+  z,
+  type AnyServiceToolDefinition,
+} from "@brains/sdk/interfaces";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -24,6 +26,21 @@ interface A2AError {
 }
 
 type A2AResult = A2ASuccess | A2AError;
+
+/**
+ * What a successful call carries back: the answer, and whatever else the
+ * path attached — a save candidate for an unsaved peer, the agent called.
+ */
+export interface A2ACallData extends Record<string, unknown> {
+  state: string;
+  response: string;
+  taskId?: string | undefined;
+}
+
+/** What a call comes back with: the answer, or why there is none. */
+export type A2ACallResponse =
+  | { success: true; data: A2ACallData }
+  | { success: false; error: string; code?: string | undefined };
 
 export interface A2ARequestToSign {
   method: "POST";
@@ -287,7 +304,7 @@ async function sendMessage(
   requestSigner: A2ARequestSigner | undefined,
   options: Required<A2ANetworkOptions>,
   signal?: AbortSignal,
-): Promise<ToolResponse> {
+): Promise<A2ACallResponse> {
   const maxAttempts = Math.max(1, options.maxNetworkAttempts);
   const clientMessageId = crypto.randomUUID();
   let lastError: unknown;
@@ -385,7 +402,7 @@ async function readStreamToCompletion(
   body: ReadableStream<Uint8Array>,
   streamIdleTimeoutMs: number,
   signal?: AbortSignal,
-): Promise<ToolResponse> {
+): Promise<A2ACallResponse> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -543,6 +560,19 @@ function formatNetworkFailure(error: unknown, attempts: number): string {
 
 // -- Tool factory --
 
+/** The one read the client makes: a saved agent by id, at any visibility. */
+export interface SavedAgentReader {
+  getEntity(request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: ContentVisibility | undefined;
+  }): Promise<{
+    id: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  } | null>;
+}
+
 export interface A2ANetworkOptions {
   /** Max time to receive POST response headers. */
   requestTimeoutMs?: number;
@@ -556,18 +586,8 @@ export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
   /** Signs outbound A2A requests. */
   requestSigner?: A2ARequestSigner;
-  /** Entity service for agent directory resolution */
-  entityService?: {
-    getEntity(request: {
-      entityType: string;
-      id: string;
-      visibilityScope?: ContentVisibility;
-    }): Promise<{
-      id: string;
-      content: string;
-      metadata: Record<string, unknown>;
-    } | null>;
-  };
+  /** Saved agents, for resolving a target the operator already approved. */
+  entities?: SavedAgentReader;
 }
 
 export interface ExecuteAgentCallOptions {
@@ -578,14 +598,14 @@ export interface ExecuteAgentCallOptions {
 }
 
 /**
- * Execute the validated outbound path shared by the agent_call tool and
+ * Execute the validated outbound path shared by the a2a_call tool and
  * trusted in-process consumers such as the Studio selection ask flow.
  */
 export async function executeAgentCall(
   input: { agent: string; message: string },
   deps: A2AClientDeps = {},
   options: ExecuteAgentCallOptions = {},
-): Promise<ToolResponse> {
+): Promise<A2ACallResponse> {
   const fetchFn = deps.fetch ?? globalThis.fetch;
   const signal = options.signal;
   signal?.throwIfAborted();
@@ -602,7 +622,7 @@ export async function executeAgentCall(
   }
   const { agentId } = normalized;
 
-  if (!deps.entityService) {
+  if (!deps.entities) {
     return {
       success: false,
       error:
@@ -610,12 +630,12 @@ export async function executeAgentCall(
     };
   }
 
-  const entity = await deps.entityService.getEntity({
+  // The call tool is trusted-only and resolves saved remote agents at any
+  // visibility, so the read is as wide as the store allows.
+  const entity = await deps.entities.getEntity({
     entityType: "agent",
     id: agentId,
-    visibilityScope: internalFullScope(
-      "agent_call is admin-only and resolves saved remote agents at any visibility",
-    ),
+    visibilityScope: "restricted",
   });
   signal?.throwIfAborted();
   if (!entity) {
@@ -662,15 +682,11 @@ export async function executeAgentCall(
       networkOptions,
       signal,
     );
-    if ("success" in oneShotResult && oneShotResult.success === true) {
-      const baseData =
-        typeof oneShotResult.data === "object" && oneShotResult.data !== null
-          ? oneShotResult.data
-          : {};
+    if (oneShotResult.success) {
       return {
         ...oneShotResult,
         data: {
-          ...baseData,
+          ...oneShotResult.data,
           agentCall: { mode: "one-shot", agent: agentId },
           agentContactCandidate: {
             source: { kind: "url", url: normalized.sourceUrl ?? agentId },
@@ -726,26 +742,37 @@ export async function executeAgentCall(
   );
 }
 
-/** Create the agent_call tool for calling remote A2A agents. */
-export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
-  return {
-    name: "agent_call",
+// Loose: the answer carries what the path attached, and the agent reads a
+// save candidate off it.
+const a2aCallOutputSchema = z.looseObject({
+  state: z.string(),
+  response: z.string(),
+  taskId: z.string().optional(),
+});
+
+/**
+ * The call tool, registered as `a2a_call`. Trusted callers only; the tool
+ * enforces the directory gates itself before any network contact.
+ */
+export function agentCallTool(
+  deps: A2AClientDeps = {},
+): AnyServiceToolDefinition {
+  return defineTool({
+    name: "call",
     description:
       "Call a remote A2A agent by exact domain-like target or saved local agent id. Use this when the user asks what an exact domain-like agent id has to say, asks to talk/message/contact that id, or asks that agent for its skills/capabilities. For saved agents, the tool enforces approved/not-archived status before network contact. For unsaved exact domains, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; it returns a typed save/connect candidate after success. Use bare ids such as yeehaa.io, docs.rizom.ai, or save-it-regression.example; .example test domains are exact domain-like ids. If the user provides an HTTPS URL such as https://docs.rizom.ai/a2a, pass only the hostname docs.rizom.ai. For follow-ups to a prior exact-id call, call again with the same id so the tool revalidates current state. Never pass a full URL, a display name like Brain, or a non-HTTPS URL. If the user gives an ambiguous name, ask them to connect/save or clarify the agent first.",
-    inputSchema: a2aCallInputSchema,
-    visibility: "trusted",
+    input: z.object(a2aCallInputSchema),
+    output: a2aCallOutputSchema,
+    permission: "trusted",
     sideEffects: "external",
-    handler: async (input, context): Promise<ToolResponse> => {
-      const parsed = a2aCallInputParserSchema.safeParse(input);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.message}`,
-        };
-      }
-      return executeAgentCall(parsed.data, deps, {
-        ...(context.signal ? { signal: context.signal } : {}),
-      });
+    execute: async ({ input, signal }) => {
+      const result = await executeAgentCall(
+        a2aCallInputParserSchema.parse(input),
+        deps,
+        { signal },
+      );
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     },
-  };
+  });
 }

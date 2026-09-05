@@ -28,7 +28,7 @@ turns:
           argsContain:
             source.kind: "url"
             source.url: "https://field-agent.example/a2a"
-        - toolName: agent_call
+        - toolName: a2a_call
           shouldBeCalled: false
         - toolName: system_create
           shouldBeCalled: false
@@ -37,7 +37,7 @@ turns:
       responseNotContains:
         - "wish"
         - "I contacted"
-        - "agent_call failed"
+        - "a2a_call failed"
   - userMessage: "Confirm the agent connection."
     confirmPendingAction: true
     successCriteria:
@@ -49,7 +49,7 @@ turns:
       responseNotContains:
         - "Completed"
         - "I contacted"
-        - "agent_call failed"
+        - "a2a_call failed"
 
 successCriteria:
   expectedTools:
@@ -58,7 +58,7 @@ successCriteria:
       argsContain:
         source.kind: "url"
         source.url: "https://field-agent.example/a2a"
-    - toolName: agent_call
+    - toolName: a2a_call
       shouldBeCalled: false
     - toolName: system_create
       shouldBeCalled: false

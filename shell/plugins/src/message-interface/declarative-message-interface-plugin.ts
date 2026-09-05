@@ -12,6 +12,7 @@ import type { AnyAccountSettingsDefinition } from "../operator/account-settings-
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { createDeclarativeDaemon } from "../interface/declarative-daemon";
+import { registerDeclaredSubscriptions } from "../interface/declared-subscriptions";
 import { createInterfaceEntityAccess } from "../interface/interface-entity-access";
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import { createRuntimeRoute } from "../interface/route-runtime";
@@ -276,6 +277,10 @@ class DeclarativeMessageInterfacePlugin<
             context.entityService,
             this.definition.id,
           ),
+          identity: context.identity,
+          profileKinds: context.profileKinds,
+          tools: context.tools,
+          publicSkills: context.publicSkills,
           spaces: context.spaces,
           domain: context.domain,
           displayBaseUrl: effectiveDisplayBaseUrl(context),
@@ -400,51 +405,15 @@ class DeclarativeMessageInterfacePlugin<
       context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
     }
 
-    const subscriptions =
-      this.definition.subscriptions?.({
-        config: this.config,
-        state: this.requireState(),
-      }) ?? [];
-    const topics = new Set<string>();
-    for (const subscription of subscriptions) {
-      if (topics.has(subscription.topic)) {
-        throw new Error(
-          `Message interface "${this.definition.id}" subscribes to "${subscription.topic}" more than once`,
-        );
-      }
-      topics.add(subscription.topic);
-      context.messaging.subscribe(subscription.topic, async (message) => {
-        const payload = subscription.payload.safeParse(message.payload);
-        if (!payload.success) {
-          return {
-            success: false,
-            error: `Message interface "${this.definition.id}" rejected a malformed "${subscription.topic}" request`,
-          };
-        }
-        try {
-          return {
-            success: true,
-            data: await subscription.handle({
-              payload: payload.data,
-              source: message.source,
-              entities: context.entityService,
-              identity: context.identity,
-              messaging: {
-                send: (message) =>
-                  context.messaging.send({
-                    type: message.type,
-                    payload: message.payload,
-                  }),
-              },
-            }),
-          };
-        } catch (error) {
-          // A handler that cannot answer says so by throwing; the caller sees
-          // a failed response rather than a successful one wrapping a refusal.
-          return { success: false, error: getErrorMessage(error) };
-        }
-      });
-    }
+    registerDeclaredSubscriptions({
+      label: `Message interface "${this.definition.id}"`,
+      subscriptions:
+        this.definition.subscriptions?.({
+          config: this.config,
+          state: this.requireState(),
+        }) ?? [],
+      context,
+    });
 
     if (this.definition.listen) {
       context.daemons.register(

@@ -1,6 +1,6 @@
 id: multi-turn-agent-add-after-save-it-follow-up
 name: Save-It Follow-Up Uses Remembered Agent Without Separate Approval Gate
-description: Verifies that after an exact-domain agent_call cannot verify/contact an unsaved domain, a short save-it follow-up uses the typed candidate to connect that same agent and does not tell the user a separate approval step is still required
+description: Verifies that after an exact-domain a2a_call cannot verify/contact an unsaved domain, a short save-it follow-up uses the typed candidate to connect that same agent and does not tell the user a separate approval step is still required
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -16,7 +16,7 @@ turns:
   - userMessage: "Can you talk to save-it-regression.example for me?"
     successCriteria:
       expectedTools:
-        - toolName: agent_call
+        - toolName: a2a_call
           shouldBeCalled: true
           argsContain:
             agent: "save-it-regression.example"

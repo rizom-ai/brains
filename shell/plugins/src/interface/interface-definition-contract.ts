@@ -24,6 +24,10 @@ import type {
   SurfacePermissionLevel,
 } from "../console-surfaces";
 import type { JobEntityAccess } from "../job/job-context-contract";
+import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
+import type { ResolvedProfileSelection } from "@brains/identity-service";
+import type { ToolInfo } from "@brains/mcp-service";
+import type { PublicSkill } from "../a2a/public-skills";
 import type {
   RuntimeUploadScopeOptions,
   ScopedRuntimeUploadStore,
@@ -98,7 +102,15 @@ export type InterfaceUploads = (
  * declares no entity types, so there is no set a write could be checked
  * against — one that wanted to write would be a service.
  */
-export type InterfaceEntityReader = Pick<JobEntityAccess, "getEntity">;
+/**
+ * Reads only: an interface owns no types. `listEntities` and
+ * `getEntityTypes` joined `getEntity` for a directory of approved peers and
+ * the check that the type it lists exists at all. Named consumer: @brains/a2a.
+ */
+export type InterfaceEntityReader = Pick<
+  JobEntityAccess,
+  "getEntity" | "listEntities" | "getEntityTypes"
+>;
 
 export type InterfaceConfigSchema = z.ZodType<object, object>;
 export type MessageRecipientSchema = z.ZodType<unknown, unknown>;
@@ -254,6 +266,22 @@ export interface InterfaceSetupContext<
    */
   readonly entities: InterfaceEntityReader;
   /**
+   * How the brain presents itself to a peer: who it is, whose it is, what
+   * kind of profile it represents, and what it offers publicly. Reads the
+   * runtime already answers, gathered here because an interface that
+   * publishes an Agent Card has to describe the brain rather than itself.
+   * Named consumer: @brains/a2a.
+   */
+  readonly identity: {
+    get(): BrainCharacter;
+    getProfile(): AnchorProfile;
+  };
+  readonly profileKinds: { getResolved(): ResolvedProfileSelection };
+  readonly tools: {
+    listForPermissionLevel(level: UserPermissionLevel): ToolInfo[];
+  };
+  readonly publicSkills: { list(): Promise<PublicSkill[]> };
+  /**
    * The channels whose traffic the brain records without spending a turn.
    *
    * A space is somebody else's room the brain is in: chat captures what is
@@ -347,6 +375,29 @@ export interface InterfaceDefinitionInput<
           readonly mcpTransport: IMCPTransport;
         },
       ) => TState)
+    | undefined;
+  /**
+   * Requests this interface answers on the message bus.
+   * Message interfaces already declared these; a plain interface can be the
+   * only thing that knows how to do something too — Studio asks the A2A
+   * interface to call a peer. Named consumer: @brains/a2a.
+   */
+  readonly subscriptions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => readonly AnySubscriptionDefinition[])
+    | undefined;
+  /**
+   * How the agent should use what this interface offers. Plain text the
+   * agent reads directly, the same slot a service has. Named consumer:
+   * @brains/a2a, whose call tool needs telling when and how to reach for it.
+   */
+  readonly instructions?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => string)
     | undefined;
   /**
    * Tools this interface offers of its own.

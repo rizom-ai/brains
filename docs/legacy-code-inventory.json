@@ -33,18 +33,6 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
-      "id": "a2a-removed-token-config-errors",
-      "paths": ["interfaces/a2a/src/a2a-interface.ts"],
-      "symbol": "trustedTokens/outboundTokens rejection",
-      "owner": "@brains/a2a",
-      "class": "rejection-only-compatibility",
-      "behavior": "Rejects removed token configuration with an actionable error.",
-      "currentConsumers": "Operators upgrading configurations that predate signed A2A trust.",
-      "removalPrerequisite": "The minimum supported upgrade source no longer documents or accepts either removed field.",
-      "rollbackDependency": "None; the fields are already rejected.",
-      "targetRelease": "0.3.0"
-    },
-    {
       "id": "public-brain-config-migration",
       "paths": ["packages/brain-cli/src/lib/brain-config-migration.ts"],
       "symbol": "brain config migrate",

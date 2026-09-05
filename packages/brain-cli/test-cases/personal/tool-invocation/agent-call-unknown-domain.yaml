@@ -1,6 +1,6 @@
 id: tool-invocation-agent-call-unknown-domain
 name: Verify or Refuse Unknown Agent by Domain
-description: Tests that an unknown exact-domain agent request uses agent_call, does not create/connect a new agent, and reports verification/contact failure when no Agent Card can be verified.
+description: Tests that an unknown exact-domain agent request uses a2a_call, does not create/connect a new agent, and reports verification/contact failure when no Agent Card can be verified.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -16,7 +16,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_call
+    - toolName: a2a_call
       shouldBeCalled: true
       argsContain:
         agent: "unknown-agent.io"

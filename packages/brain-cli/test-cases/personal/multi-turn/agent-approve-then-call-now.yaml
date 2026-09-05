@@ -1,6 +1,6 @@
 id: multi-turn-agent-approve-then-call-now
 name: Approve Then Call Uses Approved Status Immediately
-description: Verifies that approving a discovered agent goes through confirmation, then an immediate follow-up call sees the approved status and proceeds to agent_call.
+description: Verifies that approving a discovered agent goes through confirmation, then an immediate follow-up call sees the approved status and proceeds to a2a_call.
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -40,7 +40,7 @@ turns:
   - userMessage: "Can you talk to old-agent.io now?"
     successCriteria:
       expectedTools:
-        - toolName: agent_call
+        - toolName: a2a_call
           shouldBeCalled: true
           argsContain:
             agent: "old-agent.io"

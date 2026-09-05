@@ -7,17 +7,17 @@ A2A (Agent-to-Agent) interface plugin. Enables brain instances to discover and c
 - Serves an **Agent Card** at `/.well-known/agent-card.json` for discovery
 - Accepts **JSON-RPC 2.0** requests at `/a2a` (message/send, tasks/get, tasks/cancel)
 - Routes tasks through AgentService for AI-powered responses
-- Provides an **agent_call** tool for calling remote A2A agents
+- Provides an **a2a_call** tool for calling remote A2A agents
 
 ## Agent calling semantics
 
-`agent_call` accepts exact domain-like agent targets while preserving directory gates:
+`a2a_call` accepts exact domain-like agent targets while preserving directory gates:
 
 - saved agents are callable only when their saved status is **approved**
 - saved `discovered` or `archived` agents fail closed before network contact
 - unsaved exact domains are verified via `/.well-known/agent-card.json` and may be called one-shot without being saved
-- `agent_call` never auto-saves; save/connect explicitly with `agent_connect`
-- raw URLs and ambiguous display names are not valid `agent_call` targets; connect/save or clarify them first
+- `a2a_call` never auto-saves; save/connect explicitly with `agents_connect`
+- raw URLs and ambiguous display names are not valid `a2a_call` targets; connect/save or clarify them first
 
 ## Configuration
 

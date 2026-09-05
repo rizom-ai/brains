@@ -1,3 +1,8 @@
++ @brains/a2a:a2a|handler|GET|/.well-known/agent-card.json|exact|true
++ @brains/a2a:a2a|handler|GET|/.well-known/agent-directory.json|exact|true
++ @brains/a2a:a2a|handler|GET|/a2a|exact|true
++ @brains/a2a:a2a|handler|OPTIONS|/a2a|exact|true
++ @brains/a2a:a2a|handler|POST|/a2a|exact|true
 + @brains/mcp:mcp|handler|DELETE|/mcp|exact|true
 + @brains/mcp:mcp|handler|GET|/mcp|exact|true
 + @brains/mcp:mcp|handler|GET|/status|exact|true
@@ -21,11 +26,6 @@
 + @brains/web-chat:web-chat|handler|POST|/api/chat|exact|true
 + @brains/web-chat:web-chat|handler|PUT|/api/chat/sessions/archive|exact|true
 + @brains/web-chat:web-chat|handler|PUT|/api/chat/sessions|exact|true
-+ a2a|handler|GET|/.well-known/agent-card.json|exact|true
-+ a2a|handler|GET|/.well-known/agent-directory.json|exact|true
-+ a2a|handler|GET|/a2a|exact|true
-+ a2a|handler|OPTIONS|/a2a|exact|true
-+ a2a|handler|POST|/a2a|exact|true
 + auth-service|handler|GET|/.well-known/jwks.json|exact|true
 + auth-service|handler|GET|/.well-known/oauth-authorization-server|exact|true
 + auth-service|handler|GET|/.well-known/oauth-protected-resource|exact|true

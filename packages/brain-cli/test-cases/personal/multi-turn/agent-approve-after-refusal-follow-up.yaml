@@ -1,6 +1,6 @@
 id: multi-turn-agent-add-after-refusal-no-approval-gate
 name: Add Agent After Refusal Without Separate Approval Gate
-description: Verifies that after an exact-domain agent_call cannot verify/contact an unsaved domain, an explicit add follow-up uses the typed candidate to connect the same agent without telling the user they still need a separate approval step
+description: Verifies that after an exact-domain a2a_call cannot verify/contact an unsaved domain, an explicit add follow-up uses the typed candidate to connect the same agent without telling the user they still need a separate approval step
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -16,7 +16,7 @@ turns:
   - userMessage: "Can you talk to refusal-followup.example for me?"
     successCriteria:
       expectedTools:
-        - toolName: agent_call
+        - toolName: a2a_call
           shouldBeCalled: true
           argsContain:
             agent: "refusal-followup.example"

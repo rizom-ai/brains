@@ -1,20 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import type { ContentVisibility } from "@brains/plugins";
+import type { ContentVisibility, WebRouteDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { A2AInterface } from "../src/a2a-interface";
+import {
+  A2A_PLUGIN_ID,
+  installA2A,
+  installWebserverPlugin as installWebserver,
+  type InstalledA2A,
+} from "./helpers/install";
 
 describe("A2A public agent directory", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   function installWebserverPlugin(): void {
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+    installWebserver(harness);
   }
 
   beforeEach(() => {
@@ -24,7 +23,7 @@ describe("A2A public agent directory", () => {
   });
 
   afterEach(async () => {
-    await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    await harness.getMockShell().getDaemonRegistry().stopPlugin(A2A_PLUGIN_ID);
   });
 
   async function seedAgent(params: {
@@ -52,11 +51,9 @@ describe("A2A public agent directory", () => {
       });
   }
 
-  function directoryRoute(
-    plugin: A2AInterface,
-  ): ReturnType<A2AInterface["getWebRoutes"]>[number] {
-    const route = plugin
-      .getWebRoutes()
+  function directoryRoute(a2a: InstalledA2A): WebRouteDefinition {
+    const route = a2a
+      .routes()
       .find(
         (candidate) =>
           candidate.path === "/.well-known/agent-directory.json" &&
@@ -83,10 +80,9 @@ describe("A2A public agent directory", () => {
     });
 
     installWebserverPlugin();
-    const plugin = new A2AInterface({ port: 0 });
-    await harness.installPlugin(plugin);
+    const a2a = await installA2A(harness, { port: 0 });
 
-    const response = await directoryRoute(plugin).handler(
+    const response = await directoryRoute(a2a).handler(
       new Request("http://brain/.well-known/agent-directory.json"),
     );
 
@@ -102,10 +98,9 @@ describe("A2A public agent directory", () => {
 
   it("serves an empty directory when no agents are saved", async () => {
     installWebserverPlugin();
-    const plugin = new A2AInterface({ port: 0 });
-    await harness.installPlugin(plugin);
+    const a2a = await installA2A(harness, { port: 0 });
 
-    const response = await directoryRoute(plugin).handler(
+    const response = await directoryRoute(a2a).handler(
       new Request("http://brain/.well-known/agent-directory.json"),
     );
 
@@ -115,10 +110,9 @@ describe("A2A public agent directory", () => {
 
   it("registers the directory as a public GET web route", async () => {
     installWebserverPlugin();
-    const plugin = new A2AInterface({ port: 0 });
-    await harness.installPlugin(plugin);
+    const a2a = await installA2A(harness, { port: 0 });
 
-    const route = directoryRoute(plugin);
+    const route = directoryRoute(a2a);
     expect(route.public).toBe(true);
     expect(route.method).toBe("GET");
   });

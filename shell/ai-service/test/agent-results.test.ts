@@ -65,14 +65,14 @@ describe("extractToolResults", () => {
         toolCalls: [
           {
             toolCallId: "tool-1",
-            toolName: "agent_call",
+            toolName: "a2a_call",
             input: { agent: "unknown.example", message: "hello" },
           },
         ],
         toolResults: [
           {
             toolCallId: "tool-1",
-            toolName: "agent_call",
+            toolName: "a2a_call",
             output: {
               success: false,
               error:
@@ -86,7 +86,7 @@ describe("extractToolResults", () => {
 
     expect(results.toolResults).toEqual([
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "unknown.example", message: "hello" },
         error: {
           message:
@@ -155,10 +155,10 @@ describe("extractToolResults", () => {
 });
 
 describe("buildAgentContactCandidates", () => {
-  it("builds typed agent_connect candidates from agent not-saved rejections", () => {
+  it("builds typed agents_connect candidates from agent not-saved rejections", () => {
     const candidates = buildAgentContactCandidates([
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "save-it-regression.example" },
         error: {
           message:
@@ -174,15 +174,15 @@ describe("buildAgentContactCandidates", () => {
 
     const context = buildAgentContactCandidateContext(candidates);
     expect(context).toContain("Internal agent contact candidates");
-    expect(context).toContain("agent_connect candidate args");
+    expect(context).toContain("agents_connect candidate args");
     expect(context).toContain("save-it-regression.example");
     expect(context).not.toContain("If the prior conversation turn");
   });
 
-  it("builds typed agent_connect candidates from failed exact-domain verification", () => {
+  it("builds typed agents_connect candidates from failed exact-domain verification", () => {
     const candidates = buildAgentContactCandidates([
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "verify-failed.example" },
         error: {
           message: "Could not verify an A2A Agent Card",
@@ -196,10 +196,10 @@ describe("buildAgentContactCandidates", () => {
     ]);
   });
 
-  it("builds typed agent_connect candidates from successful one-shot agent calls", () => {
+  it("builds typed agents_connect candidates from successful one-shot agent calls", () => {
     const candidates = buildAgentContactCandidates([
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "one-shot.example" },
         data: {
           state: "completed",
@@ -220,17 +220,17 @@ describe("buildAgentContactCandidates", () => {
   it("does not build candidates for approved, archived, or saved-call results", () => {
     const candidates = buildAgentContactCandidates([
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "old.io" },
         error: { message: "Approve it first", code: "agent_not_approved" },
       },
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "archived.io" },
         error: { message: "Archived", code: "agent_archived" },
       },
       {
-        toolName: "agent_call",
+        toolName: "a2a_call",
         args: { agent: "yeehaa.io" },
         data: { state: "completed", response: "hello" },
       },

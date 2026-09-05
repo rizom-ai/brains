@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { A2AInterface } from "../src/a2a-interface";
+import { A2A_PLUGIN_ID, CALL_TOOL, installA2A } from "./helpers/install";
 
 function mockA2AFetch(): ReturnType<typeof mock> {
   return mock(async (input: string | URL | Request): Promise<Response> => {
@@ -55,11 +55,11 @@ describe("A2A call message handlers", () => {
     fetchFn = mockA2AFetch();
     // The handlers get their fetch from the interface's deps, so the fake goes
     // in there rather than over the global.
-    await harness.installPlugin(new A2AInterface({}, { fetch: fetchFn }));
+    await installA2A(harness, {}, { fetch: fetchFn });
   });
 
   afterEach(async () => {
-    await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+    await harness.getMockShell().getDaemonRegistry().stopPlugin(A2A_PLUGIN_ID);
   });
 
   it("lists only approved directory agents", async () => {
@@ -77,7 +77,7 @@ describe("A2A call message handlers", () => {
     });
   });
 
-  it("answers through the same result shape as agent_call", async () => {
+  it("answers through the same result shape as a2a_call", async () => {
     const response = await harness
       .getMockShell()
       .getMessageBus()
@@ -92,8 +92,8 @@ describe("A2A call message handlers", () => {
       });
     const tool = harness
       .getCapabilities()
-      .tools.find((candidate) => candidate.name === "agent_call");
-    if (!tool) throw new Error("Expected agent_call tool");
+      .tools.find((candidate) => candidate.name === CALL_TOOL);
+    if (!tool) throw new Error("Expected a2a_call tool");
     const toolResult = await tool.handler(
       { agent: "approved.example", message: "Compare shape" },
       {

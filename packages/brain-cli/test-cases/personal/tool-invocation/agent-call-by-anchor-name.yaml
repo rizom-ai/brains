@@ -15,7 +15,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_call
+    - toolName: a2a_call
       shouldBeCalled: true
       argsContain:
         agent: "yeehaa.io"

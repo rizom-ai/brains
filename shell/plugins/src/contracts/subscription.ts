@@ -1,5 +1,9 @@
 import type { z } from "@brains/utils/zod";
-import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  ListOptions,
+} from "@brains/entity-service";
 import type { AnchorProfile, BrainCharacter } from "./identity";
 
 /**
@@ -15,10 +19,21 @@ export interface SubscriptionEntityReader {
     id: string;
     visibilityScope?: ContentVisibility | undefined;
   }): Promise<T | null>;
+  /**
+   * A page, narrowed by what the request asked for. The filter is the
+   * store's own vocabulary, including how wide to read: a directory of
+   * approved peers has to see the ones an operator saved as restricted.
+   * Named consumer: @brains/a2a.
+   */
   listEntities<T extends BaseEntity>(request: {
     entityType: string;
-    options?: { limit?: number } | undefined;
+    options?: Pick<ListOptions, "limit" | "filter"> | undefined;
   }): Promise<T[]>;
+  /**
+   * Which types exist, so a handler can answer "none" for a type nobody
+   * registered instead of asking for it. Named consumer: @brains/a2a.
+   */
+  getEntityTypes(): string[];
 }
 
 export type SubscriptionPayloadSchema = z.ZodType<unknown, unknown>;

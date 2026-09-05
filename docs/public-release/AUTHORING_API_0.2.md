@@ -275,6 +275,7 @@ Definitions and schema vocabulary:
 - `defineSubscription`
 - `protocol`
 - `z`
+- `ANCHOR_EXTENSION_URI`
 
 Account settings types:
 
@@ -475,6 +476,10 @@ Types:
 - `WidgetElementProps`
 - `WidgetFilterOption`
 - `WidgetTabDefinition`
+- `PublicSkill`
+- `ResolvedProfileKind`
+- `ToolInfo`
+- `AnySubscriptionDefinition`
 
 ## Exported but not stable
 

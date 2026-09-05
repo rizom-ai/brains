@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import type { ContentVisibility } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { A2AInterface } from "../src/a2a-interface";
+import { installA2A, installWebserverPlugin } from "./helpers/install";
 
 interface SkillFixture {
   id: string;
@@ -72,13 +72,13 @@ describe("agent card excludes non-public skills", () => {
       });
     }
 
-    const plugin = new A2AInterface({ port: 0 });
-    await harness.installPlugin(plugin);
+    // The card is served from the shared host, built on first request.
+    installWebserverPlugin(harness);
+    const a2a = await installA2A(harness, { port: 0 });
     harness.getMockShell().getProfileKindRegistry().finalize();
-    await plugin.ready();
 
-    const card = plugin.getAgentCard();
-    const cardSkillNames = (card?.skills ?? []).map((skill) => skill.name);
+    const card = await a2a.agentCard();
+    const cardSkillNames = card.skills.map((skill) => skill.name);
     expect(cardSkillNames).toContain("Public Skill");
     expect(cardSkillNames).not.toContain("Shared Skill");
     expect(cardSkillNames).not.toContain("Restricted Skill");

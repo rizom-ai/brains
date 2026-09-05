@@ -1,6 +1,6 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { A2AInterface } from "@brains/a2a";
+import { describeBrain } from "@brains/a2a";
 import {
   AtprotoPlugin,
   canonicalAtprotoLexicons,
@@ -8,7 +8,10 @@ import {
   type AtprotoPdsClientLike,
 } from "@brains/atproto";
 import { resolve } from "@brains/app";
-import { createServicePluginContext } from "@brains/plugins";
+import {
+  createInterfacePluginContext,
+  createServicePluginContext,
+} from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -87,19 +90,15 @@ function skillSnapshot(
 
 async function buildA2ACard(
   shell: ReturnType<typeof createMockShell>,
-): Promise<NonNullable<ReturnType<A2AInterface["getAgentCard"]>>> {
-  const a2a = new A2AInterface();
-  await a2a.register(shell);
-  await a2a.ready();
-  const card = a2a.getAgentCard();
-  if (!card) throw new Error("Expected A2A Agent Card");
-  return card;
+): Promise<Awaited<ReturnType<typeof describeBrain>>> {
+  // The same reads the interface builds its card from, over this shell.
+  return describeBrain(createInterfacePluginContext(shell, "a2a"));
 }
 
 describe("canonical card publication channels", () => {
   it("publishes a valid federation-only card with the same tool skills as A2A", async () => {
     const selected = resolvedPluginIds(["core", "federation"]);
-    expect(selected).toContain("a2a");
+    expect(selected).toContain("@brains/a2a:a2a");
     expect(selected).toContain("atproto");
     expect(selected).not.toContain("webserver");
     expect(selected).not.toContain("site-builder");
@@ -155,7 +154,7 @@ describe("canonical card publication channels", () => {
 
   it("publishes a site URL and the same entity skills when web and site are active", async () => {
     const selected = resolvedPluginIds(["core", "federation", "web", "site"]);
-    expect(selected).toContain("a2a");
+    expect(selected).toContain("@brains/a2a:a2a");
     expect(selected).toContain("atproto");
     expect(selected).toContain("webserver");
     expect(selected).toContain("site-builder");

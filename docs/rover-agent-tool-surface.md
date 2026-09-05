@@ -30,10 +30,10 @@ Maintenance operations `content-pipeline_ensure-assets` and `obsidian-vault_sync
 - Stale assertions: 0
 
 ```text
-agent_call
-agent_connect
-agent_scan_directories
-agent_set_trust_level
+a2a_call
+agents_connect
+agents_scan-directories
+agents_set-trust-level
 auth-service_get_passkey_setup_url
 directory_sync
 playbooks_manage
@@ -57,10 +57,10 @@ system_update
 - Stale assertions: 0
 
 ```text
-agent_call
-agent_connect
-agent_scan_directories
-agent_set_trust_level
+a2a_call
+agents_connect
+agents_scan-directories
+agents_set-trust-level
 auth-service_get_passkey_setup_url
 directory_sync
 playbooks_manage
@@ -85,10 +85,10 @@ system_update
 - Stale assertions: 0
 
 ```text
-agent_call
-agent_connect
-agent_scan_directories
-agent_set_trust_level
+a2a_call
+agents_connect
+agents_scan-directories
+agents_set-trust-level
 auth-service_get_passkey_setup_url
 directory_sync
 playbooks_manage

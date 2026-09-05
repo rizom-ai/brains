@@ -1,6 +1,6 @@
 id: multi-turn-agent-add-after-save-first-follow-up
 name: Save Agent After Bare Save-First Follow-Up
-description: Verifies that after an exact-domain agent_call cannot verify/contact an unsaved domain, a bare affirmative follow-up uses the typed candidate to connect the same agent domain
+description: Verifies that after an exact-domain a2a_call cannot verify/contact an unsaved domain, a bare affirmative follow-up uses the typed candidate to connect the same agent domain
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -16,7 +16,7 @@ turns:
   - userMessage: "Can you talk to save-first-followup.example for me?"
     successCriteria:
       expectedTools:
-        - toolName: agent_call
+        - toolName: a2a_call
           shouldBeCalled: true
           argsContain:
             agent: "save-first-followup.example"

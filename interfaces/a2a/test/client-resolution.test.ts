@@ -3,7 +3,7 @@ import {
   createTestEntity,
 } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
-import { createAgentCallTool } from "../src/client";
+import { callTool } from "./helpers/install";
 import type {
   ICoreEntityService,
   ToolResponse,
@@ -108,9 +108,9 @@ const toolContext = {
 
 describe("agent_call agent resolution", () => {
   it("should describe saved-agent questions as A2A calls", () => {
-    const tool = createAgentCallTool();
+    const tool = callTool();
 
-    expect(tool.name).toBe("agent_call");
+    expect(tool.name).toBe("a2a_call");
     expect(tool.visibility).toBe("trusted");
     expect(tool.sideEffects).toBe("external");
     expect(tool.description).toContain("exact domain-like target");
@@ -134,9 +134,9 @@ describe("agent_call agent resolution", () => {
     );
 
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      entities: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -165,9 +165,9 @@ describe("agent_call agent resolution", () => {
     );
 
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      entities: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -195,9 +195,9 @@ describe("agent_call agent resolution", () => {
     );
 
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      entities: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -224,9 +224,9 @@ describe("agent_call agent resolution", () => {
     );
 
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      entities: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -242,9 +242,9 @@ describe("agent_call agent resolution", () => {
 
   it("should verify and one-shot call an unsaved exact domain", async () => {
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(new Map()),
+      entities: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -274,9 +274,9 @@ describe("agent_call agent resolution", () => {
 
   it("should refuse unsaved ambiguous names before network contact", async () => {
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(new Map()),
+      entities: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -294,9 +294,9 @@ describe("agent_call agent resolution", () => {
 
   it("should normalize an HTTPS URL for an unknown agent to a one-shot hostname call", async () => {
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(new Map()),
+      entities: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -322,9 +322,9 @@ describe("agent_call agent resolution", () => {
 
   it("should reject a one-shot card whose url points at a non-HTTPS endpoint", async () => {
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(new Map()),
+      entities: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -340,9 +340,9 @@ describe("agent_call agent resolution", () => {
 
   it("should reject a one-shot card whose url points at an unrelated host", async () => {
     const fetchFn = createCardFetch("https://attacker.example/a2a");
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(new Map()),
+      entities: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(
@@ -372,9 +372,9 @@ describe("agent_call agent resolution", () => {
     );
 
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      entities: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -404,9 +404,9 @@ describe("agent_call agent resolution", () => {
     );
 
     const fetchFn = createCardFetch("https://attacker.example/a2a");
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      entities: createEntityServiceFrom(entities),
     });
 
     const result = await tool.handler(
@@ -421,9 +421,9 @@ describe("agent_call agent resolution", () => {
 
   it("should reject non-HTTPS agent URLs before network contact", async () => {
     const fetchFn = createMockFetch();
-    const tool = createAgentCallTool({
+    const tool = callTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(new Map()),
+      entities: createEntityServiceFrom(new Map()),
     });
 
     const result = await tool.handler(

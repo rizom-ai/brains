@@ -1,3 +1,8 @@
++ @brains/a2a:a2a|handler|GET|/.well-known/agent-card.json|exact|true
++ @brains/a2a:a2a|handler|GET|/.well-known/agent-directory.json|exact|true
++ @brains/a2a:a2a|handler|GET|/a2a|exact|true
++ @brains/a2a:a2a|handler|OPTIONS|/a2a|exact|true
++ @brains/a2a:a2a|handler|POST|/a2a|exact|true
 + @brains/atproto-registry:atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.card.json|exact|true
 + @brains/atproto-registry:atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.deck.json|exact|true
 + @brains/atproto-registry:atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.link.json|exact|true
@@ -31,11 +36,6 @@
 + @brains/web-chat:web-chat|handler|POST|/api/chat|exact|true
 + @brains/web-chat:web-chat|handler|PUT|/api/chat/sessions/archive|exact|true
 + @brains/web-chat:web-chat|handler|PUT|/api/chat/sessions|exact|true
-+ a2a|handler|GET|/.well-known/agent-card.json|exact|true
-+ a2a|handler|GET|/.well-known/agent-directory.json|exact|true
-+ a2a|handler|GET|/a2a|exact|true
-+ a2a|handler|OPTIONS|/a2a|exact|true
-+ a2a|handler|POST|/a2a|exact|true
 + atproto|handler|GET|/.well-known/did.json|exact|true
 + atproto|handler|GET|/anchor/did.json|exact|true
 + auth-service|handler|GET|/.well-known/jwks.json|exact|true

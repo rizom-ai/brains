@@ -16,7 +16,7 @@ turns:
 
 successCriteria:
   # Product invariant: archived agents must not be contacted over the network.
-  # `agent_call` now enforces this before network contact and returns a structured
+  # `a2a_call` now enforces this before network contact and returns a structured
   # `agent_archived` rejection; unit coverage lives in interfaces/a2a/test/client-resolution.test.ts.
   expectedTools:
     - toolName: agents_connect

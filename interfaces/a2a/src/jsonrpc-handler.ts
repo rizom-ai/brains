@@ -1,5 +1,6 @@
 import { z } from "@brains/utils/zod";
-import type { AgentNamespace, UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import type { AgentNamespace } from "@brains/sdk/plugins";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
 import type { A2ATurnSupervisor } from "./turn-supervisor";

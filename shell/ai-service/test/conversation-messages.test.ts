@@ -55,7 +55,7 @@ describe("toModelMessages", () => {
 
     const serialized = JSON.stringify(messages);
     expect(serialized).toContain("Internal agent contact candidates");
-    expect(serialized).toContain("agent_connect candidate args");
+    expect(serialized).toContain("agents_connect candidate args");
     expect(serialized).toContain("save-it-regression.example");
     expect(serialized).not.toContain("If the prior conversation turn");
   });

@@ -1078,3 +1078,11 @@ export {
   toPublicConversation,
   toPublicMessage,
 } from "./base/public-conversations";
+
+// The declared subscription and what its handler reads, for a helper that
+// builds several. Named consumer: @brains/a2a.
+export type {
+  AnySubscriptionDefinition,
+  SubscriptionDefinition,
+  SubscriptionEntityReader,
+} from "./contracts/subscription";

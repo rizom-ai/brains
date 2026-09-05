@@ -317,7 +317,7 @@ plugins:
 A2A can verify an exact domain for a one-shot call without saving it. To create a durable approved outbound contact, connect the remote brain by domain or URL and complete the returned confirmation:
 
 ```bash
-brain tool agent_connect '{"source":{"kind":"url","url":"remote.example.com"}}'
+brain tool agents_connect '{"source":{"kind":"url","url":"remote.example.com"}}'
 ```
 
 List saved agents:
@@ -329,12 +329,12 @@ brain tool system_list '{"entityType":"agent"}'
 Call an approved contact:
 
 ```bash
-brain tool agent_call '{"agent":"remote.example.com","message":"What can you help with?"}'
+brain tool a2a_call '{"agent":"remote.example.com","message":"What can you help with?"}'
 ```
 
-Inbound trust is separate from outbound contact approval. Grant or revoke it with `agent_set_trust_level`. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
+Inbound trust is separate from outbound contact approval. Grant or revoke it with `agents_set-trust-level`. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
 
-A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agent_scan_directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
+A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agents_scan-directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
 
 Manual smoke test:
 

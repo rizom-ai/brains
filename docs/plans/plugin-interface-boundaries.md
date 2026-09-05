@@ -2,17 +2,17 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **19 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **20 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
 `@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
-`@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`).
+`@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`).
 
-The nine that remain all still extend a base class: `a2a`,
-`webserver`, `atproto`, `content-pipeline`, `dashboard`,
-`directory-sync`, `site-builder`, `site-content`, `studio`. Three that are converted —
+The eight that remain all still extend a base class: `webserver`,
+`atproto`, `content-pipeline`, `dashboard`, `directory-sync`,
+`site-builder`, `site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -608,6 +608,31 @@ verbatim` hands the handler's own `Response` through untouched.
    `email-workflows_triage-list`, named after the service that offers it.
    The dormant reply-draft entity is a `defineEntity` the service does not
    declare, so it stays out of every brain until the drafting flow lands.
+
+   **`a2a` was measured at seven missing symbols and needed the interface
+   contract to grow in four places.** Converted. It is the first plain
+   interface with routes, a tool, subscriptions and instructions all at once,
+   and each of the last two was a slot only services or message interfaces
+   had: a plain interface can be the only thing that knows how to do
+   something (Studio asks it to call a peer), and it can need to tell the
+   agent how to use what it offers. The Agent Card exposed the other gap —
+   an interface that presents the brain to a peer describes the brain, not
+   itself, and the setup context had no way to say who the brain is, what
+   kind of profile it represents, or what it offers publicly. Those four
+   reads (`identity`, `profileKinds`, `tools`, `publicSkills`) joined the
+   setup context; the entity reader gained `listEntities` and
+   `getEntityTypes` for the public directory; the subscription reader gained
+   a filter and `getEntityTypes` for the approved-agents list. The card is
+   built on first request rather than at ready, since a declaration has no
+   ready and every request arrives after boot.
+
+   The tool is `a2a_call`, following the rule agent-discovery's conversion
+   already set (`agents_connect`); the agent-discovery instructions and the
+   shell's follow-up text still named the class-era tools and were fixed in
+   the same commit. Two things a class did are gone rather than carried: a
+   constructor check refusing `trustedTokens`/`outboundTokens`, which the
+   strict config schema refuses anyway, and the cached card's rebuild hook,
+   which nothing called.
 
    **`site-content` is parked behind `site-builder`.** Its generate tool
    decides which sections can generate by asking

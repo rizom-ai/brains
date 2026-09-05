@@ -31,6 +31,7 @@ import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
 import { emptyPluginState } from "../base/empty-state";
 import { effectiveDisplayBaseUrl } from "./display-base-url";
+import { registerDeclaredSubscriptions } from "./declared-subscriptions";
 
 class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
@@ -121,6 +122,10 @@ class DeclarativeInterfacePlugin<
             context.entityService,
             this.definition.id,
           ),
+          identity: context.identity,
+          profileKinds: context.profileKinds,
+          tools: context.tools,
+          publicSkills: context.publicSkills,
           spaces: context.spaces,
           runtimeState: (options) =>
             context.runtimeState.scoped({
@@ -187,6 +192,23 @@ class DeclarativeInterfacePlugin<
       }
       context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
     }
+
+    registerDeclaredSubscriptions({
+      label: `Interface "${this.definition.id}"`,
+      subscriptions:
+        this.definition.subscriptions?.({
+          config: this.config,
+          state: this.requireState(),
+        }) ?? [],
+      context,
+    });
+  }
+
+  protected override async getInstructions(): Promise<string | undefined> {
+    return this.definition.instructions?.({
+      config: this.config,
+      state: this.requireState(),
+    });
   }
 
   protected override async onRegistrationComplete(

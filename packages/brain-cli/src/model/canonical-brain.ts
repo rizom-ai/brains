@@ -11,7 +11,7 @@ import {
   type Plugin,
   type PluginPackageDefinition,
 } from "@brains/plugins";
-import { A2AInterface } from "@brains/a2a";
+import a2aPackage from "@brains/a2a";
 import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
@@ -267,7 +267,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ],
     [
       "a2a",
-      (config): Plugin => new A2AInterface(config),
+      packageFactory("@brains/a2a", a2aPackage),
       (): PluginConfig => ({}),
     ],
   ],

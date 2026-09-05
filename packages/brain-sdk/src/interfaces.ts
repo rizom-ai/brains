@@ -127,6 +127,21 @@ export type { ToolAgent, ToolAgentAnswer, ToolAsk } from "@brains/plugins";
 // All contracts are type-only; the instance arrives through the runtime.
 // Named consumers: @brains/web-chat, @brains/mcp, @brains/chat, @brains/a2a.
 export { isLoopbackIssuer, issuerFromRequest } from "@brains/auth-service";
+
+// What an Agent Card is built from: the brain's character and profile (on the
+// plugins entry), the resolved profile kind, the public tools, and the public
+// skills — plus the extension URI the card carries the anchor profile under.
+// Named consumer: @brains/a2a.
+export { ANCHOR_EXTENSION_URI } from "@brains/plugins";
+export type {
+  PublicSkill,
+  ResolvedProfileKind,
+  ToolInfo,
+} from "@brains/plugins";
+
+// What the `subscriptions` slot returns, for a helper that builds several.
+// Named consumer: @brains/a2a.
+export type { AnySubscriptionDefinition } from "@brains/plugins";
 export type {
   AuthBearerGrant,
   AuthCaller,

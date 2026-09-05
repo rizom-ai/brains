@@ -1,6 +1,6 @@
 id: tool-invocation-agent-call-url-phrasing
 name: Call Agent from HTTPS URL Phrasing
-description: Tests that URL-style HTTPS agent contact requests are canonicalized to the hostname for agent_call without auto-saving.
+description: Tests that URL-style HTTPS agent contact requests are canonicalized to the hostname for a2a_call without auto-saving.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -16,7 +16,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_call
+    - toolName: a2a_call
       shouldBeCalled: true
       argsContain:
         agent: unknown-agent.io

@@ -1,9 +1,9 @@
-import {
-  internalFullScope,
-  type InterfacePluginContext,
-} from "@brains/plugins";
 import { A2A_CHANNELS } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import {
+  defineSubscription,
+  z,
+  type AnySubscriptionDefinition,
+} from "@brains/sdk/interfaces";
 import { executeAgentCall, type A2AClientDeps } from "./client";
 
 const askAgentMessageSchema = z.object({
@@ -18,72 +18,66 @@ export interface A2ADirectoryAgent {
 }
 
 /**
- * Register the in-process A2A surface used by packages that must not depend
- * on this interface directly. Calls use the exact outbound validation,
- * Agent Card verification, signing, and network path as agent_call, but are
- * restricted to saved approved agents.
+ * The in-process A2A surface for packages that must not depend on this
+ * interface directly: Studio asks which approved agents can be reached, and
+ * asks one of them about a selection. Calls use the exact outbound
+ * validation, Agent Card verification, signing, and network path as the
+ * call tool, restricted to saved approved agents.
  */
-export function registerA2ACallMessageHandlers(
-  context: InterfacePluginContext,
+export function a2aSubscriptions(
   deps: A2AClientDeps,
-): void {
-  context.messaging.subscribe(A2A_CHANNELS.callRequest, async (message) => {
-    const parsed = askAgentMessageSchema.safeParse(message.payload);
-    if (!parsed.success) {
-      return { success: false, error: "Invalid A2A call request" };
-    }
-
-    const { agent, instruction, selection } = parsed.data;
-    const result = await executeAgentCall(
-      {
-        agent,
-        message: [
-          "A Studio author is asking about selected markdown.",
-          `Instruction: ${instruction}`,
-          "",
-          "Selected markdown:",
-          selection,
-        ].join("\n"),
+): AnySubscriptionDefinition[] {
+  return [
+    defineSubscription({
+      topic: A2A_CHANNELS.callRequest,
+      payload: askAgentMessageSchema.loose(),
+      handle: async ({ payload }) => {
+        const { agent, instruction, selection } = payload;
+        const result = await executeAgentCall(
+          {
+            agent,
+            message: [
+              "A Studio author is asking about selected markdown.",
+              `Instruction: ${instruction}`,
+              "",
+              "Selected markdown:",
+              selection,
+            ].join("\n"),
+          },
+          deps,
+          { requireSaved: true },
+        );
+        if (!result.success) throw new Error(result.error);
+        return result.data;
       },
-      deps,
-      { requireSaved: true },
-    );
-
-    if ("success" in result && result.success === true) {
-      return { success: true, data: result.data };
-    }
-    return {
-      success: false,
-      error: "error" in result ? result.error : "Agent call failed",
-    };
-  });
-
-  context.messaging.subscribe(A2A_CHANNELS.callAgents, async () => {
-    if (!context.entityService.hasEntityType("agent")) {
-      return { success: true, data: { agents: [] } };
-    }
-
-    const entities = await context.entityService.listEntities({
-      entityType: "agent",
-      options: {
-        filter: {
-          visibilityScope: internalFullScope(
-            "Admin Studio lists approved A2A contacts at any visibility",
-          ),
-        },
+    }),
+    defineSubscription({
+      topic: A2A_CHANNELS.callAgents,
+      payload: z.unknown(),
+      handle: async ({ entities }) => {
+        if (!entities.getEntityTypes().includes("agent")) {
+          return { agents: [] };
+        }
+        const saved = await entities.listEntities({
+          entityType: "agent",
+          options: {
+            // Admin Studio lists approved A2A contacts at any visibility.
+            filter: { visibilityScope: "restricted" },
+          },
+        });
+        const agents: A2ADirectoryAgent[] = saved
+          .filter((entity) => entity.metadata["status"] === "approved")
+          .map((entity) => {
+            const name = entity.metadata["name"];
+            return {
+              id: entity.id,
+              label:
+                typeof name === "string" && name.length > 0 ? name : entity.id,
+            };
+          })
+          .sort((left, right) => left.label.localeCompare(right.label));
+        return { agents };
       },
-    });
-    const agents: A2ADirectoryAgent[] = entities
-      .filter((entity) => entity.metadata["status"] === "approved")
-      .map((entity) => {
-        const name = entity.metadata["name"];
-        return {
-          id: entity.id,
-          label: typeof name === "string" && name.length > 0 ? name : entity.id,
-        };
-      })
-      .sort((left, right) => left.label.localeCompare(right.label));
-
-    return { success: true, data: { agents } };
-  });
+    }),
+  ];
 }
