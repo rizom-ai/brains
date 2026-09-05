@@ -73,6 +73,31 @@ const types = [
     capabilities: editCapabilities,
   },
 ];
+types.push(
+  ...[
+    {
+      entityType: "anchor-profile",
+      label: "Anchor Profiles",
+      isSingleton: true,
+      count: 1,
+    },
+    {
+      entityType: "brain-character",
+      label: "Brain Characters",
+      isSingleton: true,
+      count: 1,
+    },
+    {
+      entityType: "style-guide",
+      label: "Style Guides",
+      isSingleton: true,
+      count: 1,
+    },
+    { entityType: "prompt", label: "Prompts", isSingleton: false, count: 18 },
+    { entityType: "skill", label: "Skills", isSingleton: false, count: 3 },
+    { entityType: "agent", label: "Agents", isSingleton: false, count: 15 },
+  ].map((info) => ({ ...info, hasBody: true, capabilities: editCapabilities })),
+);
 const overviewWorkspaceData = {
   refreshAfterMs: 15_000,
   view: {
@@ -1281,6 +1306,17 @@ const entity = {
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
+const styleGuideEntity = {
+  ...entity,
+  id: "style-guide",
+  entityType: "style-guide",
+  frontmatter: {
+    title: "Rover Collective voice",
+    tone: "Warm, precise and candid. Prefer useful language over performance.",
+    accent: "verdigris + vermilion",
+  },
+  body: "# A working voice\n\nWrite as a capable collaborator: direct enough to act on, generous enough to understand.\n\n> The interface should feel authored, but it should never compete with the work.\n\nUse structure to make complex systems legible. Names should describe stable concepts rather than implementation details.",
+};
 const sessions = [
   {
     id: "responsive",
@@ -2018,13 +2054,74 @@ async function clickText(
 async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   const originalPath = await page.evaluate<string>("location.pathname");
   await clickSelector(page, ".studio-mobile-switcher");
-  await waitForSelector(page, ".studio-mobile-switcher-content");
+  await waitForSelector(page, ".studio-mobile-navigation-sheet");
   const expanded = await page.evaluate<boolean>(
     'document.querySelector(".studio-mobile-switcher")?.getAttribute("aria-expanded") === "true"',
   );
   if (!expanded) throw new Error("Studio phone context picker did not open");
-
-  await clickText(page, '[role="option"]', "Field notes");
+  const browseLayout = await evaluatePage(page, () => {
+    const sheet = document.querySelector(".studio-mobile-navigation-sheet");
+    const header = document.querySelector(".studio-chrome");
+    const dock = document.querySelector(".studio-mobile-navigation-dock");
+    if (
+      !(sheet instanceof HTMLElement) ||
+      !(header instanceof HTMLElement) ||
+      !(dock instanceof HTMLElement)
+    )
+      return false;
+    const bounds = sheet.getBoundingClientRect();
+    return (
+      Math.abs(bounds.top - header.getBoundingClientRect().bottom) <= 1 &&
+      Math.abs(bounds.bottom - window.innerHeight) <= 1 &&
+      dock.getBoundingClientRect().bottom <= window.innerHeight + 1 &&
+      sheet.querySelectorAll("details").length === 3
+    );
+  });
+  if (!browseLayout)
+    throw new Error(
+      "Browse no longer matches B's below-header surface and fixed dock",
+    );
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await waitForPage("Browse focus restoration", () =>
+    page.evaluate<boolean>(
+      'document.activeElement?.classList.contains("studio-mobile-switcher") === true',
+    ),
+  );
+  await clickSelector(page, ".studio-mobile-switcher");
+  await waitForSelector(page, ".studio-mobile-navigation-sheet");
+  await clickText(page, ".studio-mobile-area-link", "Library");
+  await waitForPage("Library dock expands group", () =>
+    page.evaluate<boolean>(
+      'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
+    ),
+  );
+  await clickText(page, ".studio-mobile-navigation-group summary", "Workflows");
+  await waitForPage("independent Browse groups", () =>
+    page.evaluate<boolean>(
+      'document.querySelectorAll("details[open]").length >= 2',
+    ),
+  );
+  await clickText(page, ".studio-mobile-navigation-group summary", "Library");
+  await waitForPage("explicit group folding", () =>
+    page.evaluate<boolean>(
+      'Array.from(document.querySelectorAll("details")).some(group => !group.open && group.querySelector("summary")?.textContent.includes("Library"))',
+    ),
+  );
+  await clickText(page, ".studio-mobile-area-link", "Library");
+  if ((await page.evaluate<string>("location.pathname")) !== originalPath)
+    throw new Error("Browse dock changed the working destination");
+  await clickText(page, ".studio-mobile-navigation-link", "Field notes");
   await waitForPage("Studio phone context navigation", () =>
     page.evaluate<boolean>('location.pathname === "/studio/entities/posts"'),
   );
@@ -2231,6 +2328,7 @@ async function addVisualInitScript(
 function isStudioAppShellSurface(surface: string): boolean {
   return (
     surface === "studio-editor" ||
+    surface === "studio-system" ||
     surface === "studio-delete" ||
     surface === "studio-conflict" ||
     surface === "studio-invalid" ||
@@ -2305,7 +2403,8 @@ async function checkLayout(
         .map((element) => element.className.toString().slice(0, 60)),
     );
     const hasOpenActionSheet =
-      surface === "studio-administration-invitations-form";
+      surface === "studio-administration-invitations-form" ||
+      surface.startsWith("studio-navigation");
     if (hasOpenActionSheet) {
       const dialog = await elementBounds(page, '[role="dialog"]');
       if (!dialog || dialog.y + dialog.height > viewportHeight + 1) {
@@ -2462,7 +2561,7 @@ async function checkLayout(
         composer.y + composer.height > destinationBar.y + 1
       ) {
         throw new Error(
-          `Studio Chat composer overlapped mobile destinations at ${width}px`,
+          `Studio Chat composer overlapped mobile destinations at ${width}px: ${JSON.stringify({ composer, destinationBar })}`,
         );
       }
     }
@@ -2827,6 +2926,26 @@ const server = Bun.serve({
           ],
         },
       });
+    if (
+      url.pathname === "/studio/api/schema" &&
+      url.searchParams.get("type") === "style-guide"
+    )
+      return json({
+        entityType: "style-guide",
+        format: "frontmatter",
+        isSingleton: true,
+        hasBody: true,
+        fields: [
+          { name: "title", label: "Title", widget: "string", required: true },
+          { name: "tone", label: "Tone", widget: "text", required: false },
+          {
+            name: "accent",
+            label: "Accent",
+            widget: "string",
+            required: false,
+          },
+        ],
+      });
     if (url.pathname === "/studio/api/schema")
       return json({
         entityType: "posts",
@@ -2913,6 +3032,15 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
+    if (
+      url.pathname === "/studio/api/entities" &&
+      url.searchParams.get("type") === "style-guide"
+    )
+      return json(
+        url.searchParams.has("id")
+          ? { entity: styleGuideEntity }
+          : { entities: [styleGuideEntity] },
+      );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/studio/api/entities") return json({ entities });
@@ -2967,6 +3095,8 @@ try {
         "chat-empty",
         "chat-drawer",
         "studio-library",
+        "studio-navigation",
+        "studio-navigation-collapsed",
         "studio-overview",
         "studio-chat",
         "studio-chat-sessions",
@@ -2981,6 +3111,7 @@ try {
         "studio-administration-audit",
         "studio-account",
         "studio-editor",
+        "studio-system",
         "studio-delete",
         "studio-conflict",
         "studio-invalid",
@@ -3024,11 +3155,11 @@ try {
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
         await page.cdp("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
         await addVisualInitScript(page, conversationId);
-        const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
-        const studioSaveSelector =
-          viewport.width <= 900
-            ? ".studio-editor-phone-save"
-            : ".studio-editor-head-save";
+        const isStudioEditor =
+          surface === "studio-editor" ||
+          surface === "studio-system" ||
+          isStudioSecondary;
+        const studioSaveSelector = ".studio-editor-head-save";
         const route = isDashboard
           ? "/dashboard"
           : isChat
@@ -3049,9 +3180,11 @@ try {
                           ? "/studio/workspaces/content-pipeline%3Apublishing"
                           : surface.startsWith("studio-administration")
                             ? "/studio/workspaces/admin%3Aadministration"
-                            : isStudioEditor
-                              ? "/studio/entities/posts/field-notes"
-                              : "/studio/entities/posts";
+                            : surface === "studio-system"
+                              ? "/studio/entities/style-guide/style-guide"
+                              : isStudioEditor
+                                ? "/studio/entities/posts/field-notes"
+                                : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
@@ -3066,6 +3199,66 @@ try {
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (
+          surface === "studio-system" &&
+          viewport.width <= 640 &&
+          climate === "instrument"
+        ) {
+          for (const [label, pane] of [
+            ["Source", "write"],
+            ["Preview", "preview"],
+            ["Properties", "details"],
+          ] as const) {
+            await pointerDownSelector(page, ".studio-mobile-tabs button");
+            await waitForSelector(page, '[role="menuitem"]');
+            await clickText(page, '[role="menuitem"]', label);
+            await waitForSelector(page, `.editor[data-mobile-pane="${pane}"]`);
+          }
+        }
+        if (surface.startsWith("studio-navigation")) {
+          if (viewport.width > 900) {
+            await clickSelector(page, ".studio-navigation-collapse");
+            await waitForPage("collapsed shell width", () =>
+              page.evaluate<boolean>(
+                'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 68 && getComputedStyle(document.querySelector(".studio-leaf-rail")).display === "none"',
+              ),
+            );
+            const currentPath =
+              await page.evaluate<string>("location.pathname");
+            await clickText(page, ".studio-area-link", "Work");
+            await waitForText(
+              page,
+              "Conversations, publishing and operations.",
+            );
+            if (
+              (await page.evaluate<string>("location.pathname")) !== currentPath
+            ) {
+              throw new Error(
+                "Browsing Work navigated away from the current document",
+              );
+            }
+            await waitForSelector(
+              page,
+              '.studio-leaf-rail[aria-label="Work destinations"]',
+            );
+            await waitForPage("area click expands shell", () =>
+              page.evaluate<boolean>(
+                'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 344',
+              ),
+            );
+            if (surface.endsWith("-collapsed"))
+              await clickSelector(page, ".studio-navigation-collapse");
+          } else {
+            await clickSelector(page, ".studio-mobile-switcher");
+            await waitForSelector(page, ".studio-mobile-navigation-sheet");
+            if (surface.endsWith("-collapsed"))
+              await clickText(
+                page,
+                ".studio-mobile-navigation-group summary",
+                "Library",
+              );
+          }
+        }
         if (
           surface === "studio-overview" &&
           viewport.width <= 640 &&

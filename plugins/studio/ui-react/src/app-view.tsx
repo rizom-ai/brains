@@ -12,9 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Tabs,
-  TabsList,
-  TabsTrigger,
 } from "@brains/app-ui-react";
 import {
   OperatorActionButton,
@@ -23,6 +20,11 @@ import {
 } from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { styles } from "./app-styles";
+import { useStudioNavigationCollapsed } from "./studio-navigation-state";
+import {
+  editorClassName as editorClass,
+  editorStyles,
+} from "./studio-editor.styles";
 import { STUDIO_OPERATOR_COMPONENTS } from "./app-controls";
 import type {
   AgentTarget,
@@ -41,6 +43,7 @@ import {
   FieldAssistControls,
   isFieldVisible,
   TypeSwitcher,
+  studioArea,
   typeHasPublicationField,
   type FieldAssistState,
   type FieldAssistVariant,
@@ -58,6 +61,10 @@ import {
 import { PublicationActions } from "./publication-actions";
 import responsiveStyles from "./responsive.css" with { type: "text" };
 import { StudioChrome } from "./studio-chrome";
+import {
+  navigationClassName as navClass,
+  navigationStyles as nav,
+} from "./studio-navigation.styles";
 import chromeStyles from "./studio-chrome.css" with { type: "text" };
 import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
 import {
@@ -176,6 +183,7 @@ export function StudioAccountWorkspaceView(props: {
   selectWorkspace: (workspaceId: string) => void;
   children: ReactNode;
 }): ReactElement {
+  const navigationCollapsed = useStudioNavigationCollapsed();
   return (
     <div className="studio" data-view="account">
       <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
@@ -191,8 +199,14 @@ export function StudioAccountWorkspaceView(props: {
           selectWorkspace: props.selectWorkspace,
         }}
       />
-      <div className="studio-body">
-        <aside className="rail">
+      <div
+        className={navClass(
+          "studio-body",
+          nav.shell,
+          navigationCollapsed && nav.shellCollapsed,
+        )}
+      >
+        <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
             renderMode="desktop"
             types={props.types}
@@ -211,6 +225,7 @@ export function StudioAccountWorkspaceView(props: {
 }
 
 export function StudioAppView(props: StudioAppViewProps): ReactElement {
+  const navigationCollapsed = useStudioNavigationCollapsed();
   const {
     activeWorkspaceId,
     types,
@@ -272,12 +287,19 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
   const canAssist = canEdit && activeType?.capabilities.canAssist === true;
   const heading =
     mode.kind === "edit"
-      ? entityTitle(mode.entity)
+      ? activeType?.isSingleton
+        ? singularLabel(activeType.label)
+        : entityTitle(mode.entity)
       : mode.kind === "create"
         ? `New ${activeType?.label ?? entityType}`
         : (activeType?.label ?? entityType);
   const collectionLabel =
-    activeWorkspace?.label ?? activeType?.label ?? entityType ?? "Studio";
+    activeWorkspace?.label ??
+    (activeType?.isSingleton
+      ? singularLabel(activeType.label)
+      : activeType?.label) ??
+    entityType ??
+    "Studio";
   const entryLabel = singularLabel(collectionLabel);
   const syncPending = syncStatus?.git?.hasChanges === true;
   const publicationWorkspace = workspaces.find(
@@ -297,19 +319,22 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     ],
     totals: [],
   };
+  const publicationState =
+    typeHasPublicationField(entitySchema.fields) && mode.kind === "edit"
+      ? entityPublicationState(mode.entity)
+      : null;
   const editorHead: StudioPageHeadModel = {
-    kicker: collectionLabel,
+    kicker: entitySchema.isSingleton
+      ? `${studioArea(entityType, null)} / singleton`
+      : collectionLabel,
     access: studioAccessRequirement("trusted"),
     title: heading ?? "Editor",
-    metadata: [
-      `${entryLabel} · ${
-        mode.kind === "create"
-          ? "new"
-          : mode.kind === "edit"
-            ? entityPublicationState(mode.entity)
-            : "browse"
-      }`,
-    ],
+    metadata:
+      mode.kind === "create"
+        ? [`${entryLabel} · new`]
+        : publicationState
+          ? [`${entryLabel} · ${publicationState}`]
+          : [],
     totals: [],
   };
   const declarativeHead =
@@ -345,8 +370,14 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           selectWorkspace,
         }}
       />
-      <div className="studio-body">
-        <aside className="rail">
+      <div
+        className={navClass(
+          "studio-body",
+          nav.shell,
+          navigationCollapsed && nav.shellCollapsed,
+        )}
+      >
+        <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
             renderMode="desktop"
             types={types}
@@ -457,6 +488,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           >
             <StudioPageHead
               model={editorHead}
+              appearance="document"
               action={
                 <Button
                   type="submit"
@@ -467,46 +499,69 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </Button>
               }
             />
-            <Tabs
-              className="studio-mobile-tabs"
-              value={mobilePane}
-              onValueChange={(value) => {
-                const pane = MOBILE_EDITOR_PANES.find(
-                  (candidate) => candidate === value,
-                );
-                if (!pane) return;
-                setMobilePane(pane);
-                if (pane === "write") setBodyMode("source");
-                if (pane === "preview") setBodyMode("preview");
-              }}
+            <div
+              className={editorClass(
+                "studio-mobile-tabs",
+                editorStyles.mobileModes,
+              )}
             >
-              <TabsList
-                className="studio-mobile-modes"
-                aria-label="Editor view"
-              >
-                {MOBILE_EDITOR_PANES.map((pane) => (
-                  <TabsTrigger
-                    key={pane}
-                    value={pane}
-                    className="studio-mobile-mode"
-                    disabled={pane !== "details" && !entitySchema.hasBody}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Editor view"
+                    className={editorClass("", editorStyles.paneTrigger)}
                   >
-                    {pane}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+                    {mobilePane === "details"
+                      ? "Properties"
+                      : mobilePane === "write"
+                        ? "Source"
+                        : "Preview"}
+                    <span aria-hidden="true">⌄</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {MOBILE_EDITOR_PANES.map((pane) => (
+                    <DropdownMenuItem
+                      key={pane}
+                      disabled={pane !== "details" && !entitySchema.hasBody}
+                      onSelect={() => {
+                        setMobilePane(pane);
+                        if (pane === "write") setBodyMode("source");
+                        if (pane === "preview") setBodyMode("preview");
+                      }}
+                    >
+                      {pane === "details"
+                        ? "Properties"
+                        : pane === "write"
+                          ? "Source"
+                          : "Preview"}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <span className={editorClass("", editorStyles.paneContext)}>
+                {entryLabel}
+              </span>
+            </div>
             <aside className="colophon">
-              <div className="form-title">
-                <h2>
-                  <span className="studio-form-desktop-label">Frontmatter</span>
-                  <span className="studio-form-mobile-label">Colophon</span>
+              <div
+                className={editorClass(
+                  "form-title",
+                  editorStyles.propertiesHead,
+                )}
+              >
+                <h2 className={editorClass("", editorStyles.propertiesLabel)}>
+                  <span className="studio-form-desktop-label">Properties</span>
+                  <span className="studio-form-mobile-label">Properties</span>
                 </h2>
-                <span>
-                  {entryLabel.toLowerCase()} ·{" "}
+                <span className={editorClass("", editorStyles.propertiesLabel)}>
+                  {entryLabel}
                   {mode.kind === "create"
-                    ? "new"
-                    : entityPublicationState(mode.entity)}
+                    ? " · new"
+                    : publicationState
+                      ? ` · ${publicationState}`
+                      : ""}
                 </span>
               </div>
               <fieldset className="capability-fields" disabled={!canEdit}>
@@ -587,14 +642,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </p>
               )}
             </section>
-            <footer className="pipeline">
-              <Button
-                type="submit"
-                className="studio-editor-phone-save"
-                disabled={!canEdit || saveState.kind === "saving"}
-              >
-                {saveState.kind === "saving" ? "Saving…" : "Save"}
-              </Button>
+            <footer className={editorClass("pipeline", editorStyles.pipeline)}>
               {syncStatus?.directorySync && (
                 <PipelineStations
                   view={derivePipeline({

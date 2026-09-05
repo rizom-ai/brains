@@ -218,7 +218,7 @@ export function App(): ReactElement {
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
-  const [bodyMode, setBodyMode] = useState<BodyMode>("split");
+  const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);

@@ -48,6 +48,18 @@ describe("Studio split UI assets", () => {
     );
     expect(stylesheet).toContain("var(--console-accent)");
     expect(stylesheet).not.toContain("insertRule");
+    // The area/leaf composition and Browse breakpoint must ship as CSS,
+    // including styles used by lazy native Chat and Account.
+    expect(stylesheet).toContain("grid-template-columns:124px minmax(0,220px)");
+    expect(stylesheet).toContain("grid-template-columns:344px minmax(0,1fr)");
+    expect(stylesheet).toMatch(/@media\s*\(max-width:\s*900px\)/);
+    for (const [, filePath] of entries.filter(([, file]) =>
+      file.endsWith(".js"),
+    )) {
+      const source = readFileSync(join(uiDirectory, filePath), "utf8");
+      expect(source).not.toContain("stylex.create(");
+      expect(source).not.toContain("@stylexjs/babel-plugin");
+    }
 
     const entrySource = readFileSync(
       join(uiDirectory, manifest.assets["app.js"] ?? ""),

@@ -2,63 +2,14 @@
    this module owns tablet collection switching and phone editing modes. */
 
 .studio-mobile-tabs,
-.studio-mobile-modes,
-.studio-mobile-switcher {
+.studio-mobile-modes {
   display: none;
 }
 
 @media (max-width: 900px) {
   .studio-body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     min-height: 0;
-  }
-  .rail {
-    overflow-x: auto;
-    padding: 9px 12px;
-    border-right: 0;
-    border-bottom: 1px solid var(--console-rule-strong);
-    background: var(--console-card-soft);
-    overscroll-behavior-inline: contain;
-    scroll-padding-inline: 12px;
-    scrollbar-width: none;
-  }
-  .rail::-webkit-scrollbar {
-    display: none;
-  }
-  .rail-title {
-    display: none;
-  }
-  .types {
-    display: flex;
-    width: max-content;
-  }
-  .rail-group {
-    display: contents;
-    padding: 0;
-  }
-  .rail ul {
-    display: flex;
-    gap: 6px;
-    width: max-content;
-  }
-  .rail .type {
-    width: auto;
-    min-height: 40px;
-    padding: 0 12px;
-    border: 1px solid var(--console-rule-strong);
-    border-radius: 999px;
-    white-space: nowrap;
-    /* Desktop rail rows align to baseline; pills must center their label. */
-    align-items: center;
-  }
-  .rail .type.active {
-    border-color: var(--console-rule-accent);
-    background: var(--console-accent-soft);
-  }
-  .rail .count,
-  .rail .singleton-mark {
-    margin-left: 7px;
   }
   .editor {
     grid-template-columns: 260px minmax(0, 1fr);
@@ -99,19 +50,8 @@
 }
 
 @media (min-width: 641px) and (max-width: 900px) {
-  /* The tablet specimen is a colophon beside a reading manuscript, not a
-     squeezed desktop split editor. Source remains available on desktop and
-     in the dedicated phone Write pane. */
-  .body-editor:has(.body-panes.split) .body-toolbar,
-  .body-editor:has(.body-panes.split) .assist-bar {
-    display: none;
-  }
-  .body-panes.split {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .body-panes.split .body-source {
-    display: none;
-  }
+  /* Source and Preview stay explicit choices; a narrow Split stacks its
+     panes via the manuscript's container query instead of hiding editing. */
   .form-title {
     align-items: baseline;
     margin-bottom: 12px;
@@ -201,124 +141,9 @@
     min-height: 0;
     overflow: visible;
   }
-  .rail {
-    display: none;
-  }
-  .types {
-    display: none;
-  }
-  .studio-mobile-switcher {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-height: var(--console-touch);
-    padding: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--console-text);
-    cursor: pointer;
-    text-align: left;
-  }
-  .studio-mobile-switcher:focus-visible {
-    box-shadow: 0 2px 0 var(--console-accent);
-  }
-  .studio-mobile-switcher-label,
-  .studio-mobile-switcher-chevron {
-    pointer-events: none;
-  }
-  .studio-mobile-switcher-label {
-    color: var(--console-text-muted);
-    font-family: var(--console-mono);
-    font-size: 8px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-  .studio-mobile-switcher-value {
-    min-width: 0;
-    overflow: hidden;
-    font-family: var(--console-display);
-    font-size: 16px;
-    font-variation-settings: "SOFT" 55;
-    font-weight: 560;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .studio-mobile-switcher-chevron {
-    color: var(--console-accent);
-    font-family: var(--console-mono);
-    font-size: 12px;
-  }
-  .studio-mobile-switcher-content {
-    z-index: 80;
-    width: var(--radix-select-trigger-width);
-    max-height: min(
-      var(--radix-select-content-available-height),
-      calc(100dvh - 96px)
-    );
-    overflow: hidden;
-    border: 1px solid var(--console-rule-strong);
-    border-radius: 10px;
-    background: var(--console-card);
-    box-shadow: 0 24px 60px -24px
-      color-mix(in srgb, var(--console-text) 60%, transparent);
-  }
-  .studio-mobile-switcher-viewport {
-    padding: 5px;
-  }
-  .studio-mobile-switcher-group + .studio-mobile-switcher-group {
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid var(--console-rule);
-  }
-  .studio-mobile-switcher-group-label {
-    padding: 7px 10px 4px;
-    color: var(--console-text-muted);
-    font-family: var(--console-mono);
-    font-size: 8px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-  .studio-mobile-switcher-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    min-height: var(--console-touch);
-    padding: 8px 10px;
-    border-radius: 7px;
-    outline: 0;
-    color: var(--console-text-dim);
-    cursor: pointer;
-    font-size: 14px;
-  }
-  .studio-mobile-switcher-item[data-highlighted] {
-    background: var(--console-accent-soft);
-    color: var(--console-text);
-  }
-  .studio-mobile-switcher-item[data-state="checked"] {
-    color: var(--console-text);
-    font-weight: 550;
-  }
-  .studio-mobile-switcher-indicator {
-    color: var(--console-accent);
-    font-family: var(--console-mono);
-    font-size: 11px;
-  }
-  .studio-mobile-switcher-scroll {
-    display: grid;
-    place-items: center;
-    min-height: 28px;
-    color: var(--console-accent);
-    font-family: var(--console-mono);
-  }
   .studio[data-view="editor"] .studio-body {
     grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
-  }
-  .studio[data-view="editor"] .rail {
-    display: none;
   }
   .listing {
     min-width: 0;
@@ -529,19 +354,8 @@
     min-height: 56px;
     padding: 6px 12px calc(6px + env(safe-area-inset-bottom));
   }
-  .studio-editor-head-save {
-    display: none;
-  }
-  .studio-editor-phone-save {
-    display: block;
-  }
-  .studio-editor-phone-save,
   .pipeline [data-slot="button"][data-variant="danger"] {
     min-height: var(--console-touch);
-  }
-  .studio-editor-phone-save {
-    padding-inline: 18px;
-    border-radius: 8px;
   }
   .stations-wrap {
     display: none;

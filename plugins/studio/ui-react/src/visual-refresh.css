@@ -8,49 +8,6 @@
 }
 
 /* Library — quiet paper rail and dense editorial index. */
-.studio-body {
-  grid-template-columns: 232px minmax(0, 1fr);
-}
-.rail {
-  padding: 22px 0 26px;
-  background:
-    linear-gradient(
-      to right,
-      transparent 60%,
-      color-mix(in srgb, var(--console-text) 2.5%, transparent)
-    ),
-    var(--console-card-soft);
-}
-.rail-group {
-  padding-bottom: 18px;
-}
-.rail-title {
-  padding: 0 20px 8px;
-  color: var(--console-text-muted);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-}
-.rail .type {
-  min-height: 0;
-  padding: 6px 20px;
-  color: var(--console-text-dim);
-}
-.rail .type:hover {
-  background: var(--console-card);
-}
-.rail .type.active {
-  border-left-color: var(--console-accent);
-  background: var(--console-card);
-  color: var(--console-text);
-}
-.rail .count {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: var(--console-text-muted);
-  font-size: 11px;
-}
-
 .listing {
   width: auto;
   margin: 0;
@@ -132,7 +89,8 @@
 
 /* Manuscript — frontmatter beside the literal source and reading proof. */
 .editor {
-  grid-template-columns: 330px minmax(0, 1fr);
+  min-width: 0;
+  grid-template-columns: clamp(230px, 20vw, 280px) minmax(0, 1fr);
 }
 .colophon {
   padding: 26px 26px 60px;
@@ -298,7 +256,26 @@
 }
 
 .manuscript {
+  container-type: inline-size;
   background: var(--console-card);
+}
+@container (max-width: 720px) {
+  .body-panes.split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(240px, 1fr) minmax(240px, 1fr);
+    overflow-y: auto;
+  }
+  .body-panes.split .body-source {
+    border-right: 0;
+    border-bottom: 1px solid var(--console-rule);
+  }
+  .body-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .doc-meta {
+    font-size: 9px;
+  }
 }
 .body-toolbar {
   min-height: 0;
@@ -349,31 +326,6 @@
   border-top-width: 2px;
 }
 
-/* Optional publishing capability — an operational desk, not an entity list. */
-.rail-group--operations {
-  margin-block: 2px 16px;
-  padding-block: 15px 14px;
-  border-block: 1px solid var(--console-rule);
-}
-.workspace-type::before {
-  content: "⇥";
-  color: var(--console-text-muted);
-  font: 11px var(--console-mono);
-}
-.workspace-type.active::before {
-  color: var(--console-accent);
-}
-.rail .count--attention {
-  display: grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--console-err);
-  color: var(--console-card);
-  font-size: 8px;
-  font-weight: 600;
-}
 /* Contextual publication controls remain visually separate from save state. */
 .publication-actions {
   margin-top: 22px;
@@ -454,8 +406,15 @@
    remaining workspace. System singletons open directly in this editor, so
    dropping the rail here would also drop their only persistent navigation. */
 @media (min-width: 901px) {
+  .studio-body {
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .listing {
+    overflow-y: auto;
+  }
   .editor {
-    grid-template-columns: 330px minmax(0, 1fr);
+    grid-template-columns: clamp(230px, 20vw, 280px) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
   }
   .colophon {
@@ -471,9 +430,17 @@
     overflow: hidden;
   }
   .pipeline {
-    grid-column: 2;
+    grid-column: 1 / -1;
     grid-row: 2;
-    gap: 0;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pipeline .track {
+    width: clamp(16px, 3vw, 40px);
+    margin-inline: 8px;
+  }
+  .pipeline .commit-ref {
+    margin-left: auto;
   }
 }
 

@@ -37,7 +37,13 @@ import {
   type StudioChatStreamState,
 } from "./chat-workspace-model";
 import responsiveStyles from "./responsive.css" with { type: "text" };
+import { TypeSwitcher } from "./entity-fields";
+import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
+import {
+  navigationClassName as navClass,
+  navigationStyles as nav,
+} from "./studio-navigation.styles";
 import chromeStyles from "./studio-chrome.css" with { type: "text" };
 import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
 import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
@@ -85,9 +91,8 @@ export function StudioChatWorkspace(
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [contextOpen, setContextOpen] = useState(
-    () => typeof window !== "undefined" && window.innerWidth > 1080,
-  );
+  const navigationCollapsed = useStudioNavigationCollapsed();
+  const [contextOpen, setContextOpen] = useState(false);
   const [mobileDestination, setMobileDestination] = useState<
     "sessions" | "thread" | "context"
   >("thread");
@@ -354,121 +359,143 @@ export function StudioChatWorkspace(
         }}
       />
       <div
-        className="studio-chat-room"
-        data-context-open={contextOpen ? "true" : "false"}
-        data-mobile-destination={mobileDestination}
+        className={navClass(
+          "studio-chat-shell",
+          nav.shell,
+          navigationCollapsed && nav.shellCollapsed,
+        )}
       >
-        <SessionRail
-          activeSessionId={props.sessionId}
-          loading={sessionsQuery.isPending}
-          sessions={sessions}
-          onNew={() => navigateToSession()}
-          onSelect={navigateToSession}
-        />
-        <section className="studio-chat-thread" aria-label="Conversation">
-          <header className="studio-chat-thread-head">
-            <div className="studio-chat-head-copy">
-              <h2>{currentSession?.title ?? "New conversation"}</h2>
-              <p>
-                {props.sessionId
-                  ? "Durable Studio conversation"
-                  : "Start with a question or attach a source"}
-              </p>
-            </div>
-            {props.sessionId ? (
+        <aside className={navClass("rail studio-chat-studio-rail", nav.rail)}>
+          <TypeSwitcher
+            renderMode="desktop"
+            types={props.types}
+            active={null}
+            onSelect={props.selectEntityType}
+            workspaces={props.workspaces}
+            activeWorkspace={STUDIO_CHAT_WORKSPACE_ID}
+            workspaceBadges={workspaceBadges}
+            onSelectWorkspace={props.selectWorkspace}
+          />
+        </aside>
+        <div
+          className="studio-chat-room"
+          data-context-open={contextOpen ? "true" : "false"}
+          data-mobile-destination={mobileDestination}
+        >
+          <SessionRail
+            activeSessionId={props.sessionId}
+            loading={sessionsQuery.isPending}
+            sessions={sessions}
+            onNew={() => navigateToSession()}
+            onSelect={navigateToSession}
+          />
+          <section className="studio-chat-thread" aria-label="Conversation">
+            <header className="studio-chat-thread-head">
+              <div className="studio-chat-head-copy">
+                <h2>{currentSession?.title ?? "New conversation"}</h2>
+                <p>
+                  {props.sessionId
+                    ? "Durable Studio conversation"
+                    : "Start with a question or attach a source"}
+                </p>
+              </div>
+              {props.sessionId ? (
+                <button
+                  className="studio-chat-header-action"
+                  type="button"
+                  onClick={() => void archiveCurrent()}
+                >
+                  Archive
+                </button>
+              ) : null}
               <button
                 className="studio-chat-header-action"
                 type="button"
-                onClick={() => void archiveCurrent()}
+                aria-expanded={contextOpen || mobileDestination === "context"}
+                onClick={() => {
+                  setContextOpen((open) => !open);
+                  setMobileDestination("context");
+                }}
               >
-                Archive
+                Context
               </button>
-            ) : null}
-            <button
-              className="studio-chat-header-action"
-              type="button"
-              aria-expanded={contextOpen || mobileDestination === "context"}
-              onClick={() => {
-                setContextOpen((open) => !open);
-                setMobileDestination("context");
-              }}
-            >
-              Context
-            </button>
-          </header>
-          <div className="studio-chat-thread-scroll">
-            <div className="studio-chat-manuscript">
-              {messagesQuery.isPending && props.sessionId ? (
-                <p className="studio-chat-empty">Opening conversation…</p>
-              ) : null}
-              {!messagesQuery.isPending && visibleMessages.length === 0 ? (
-                <ChatEmptyState />
-              ) : null}
-              {visibleMessages.map((message) => (
-                <ChatTurn
-                  key={message.id}
-                  message={message}
-                  onAction={runSuggestedAction}
-                  onApproval={respondToApproval}
-                />
-              ))}
-              {stream?.approvals.map((approval) => (
-                <ApprovalCard
-                  key={approval.approvalId}
-                  approval={approval}
-                  disabled={sending}
-                  onDecision={respondToApproval}
-                />
-              ))}
-              {sending ? (
-                <p className="studio-chat-stream-status" role="status">
-                  Working in this conversation
-                </p>
-              ) : null}
-              {error ? (
-                <p className="studio-chat-error" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              <div ref={threadEndRef} />
+            </header>
+            <div className="studio-chat-thread-scroll">
+              <div className="studio-chat-manuscript">
+                {messagesQuery.isPending && props.sessionId ? (
+                  <p className="studio-chat-empty">Opening conversation…</p>
+                ) : null}
+                {!messagesQuery.isPending && visibleMessages.length === 0 ? (
+                  <ChatEmptyState />
+                ) : null}
+                {visibleMessages.map((message) => (
+                  <ChatTurn
+                    key={message.id}
+                    message={message}
+                    onAction={runSuggestedAction}
+                    onApproval={respondToApproval}
+                  />
+                ))}
+                {stream?.approvals.map((approval) => (
+                  <ApprovalCard
+                    key={approval.approvalId}
+                    approval={approval}
+                    disabled={sending}
+                    onDecision={respondToApproval}
+                  />
+                ))}
+                {sending ? (
+                  <p className="studio-chat-stream-status" role="status">
+                    Working in this conversation
+                  </p>
+                ) : null}
+                {error ? (
+                  <p className="studio-chat-error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                <div ref={threadEndRef} />
+              </div>
             </div>
-          </div>
-          <Composer
-            draft={draft}
-            sending={sending}
-            uploading={uploading}
-            uploads={uploads}
-            onDraft={setDraft}
-            onFiles={uploadFiles}
-            onSubmit={submit}
+            <Composer
+              draft={draft}
+              sending={sending}
+              uploading={uploading}
+              uploads={uploads}
+              onDraft={setDraft}
+              onFiles={uploadFiles}
+              onSubmit={submit}
+            />
+          </section>
+          <ContextRail
+            cards={contextCards}
+            messages={visibleMessages}
+            progress={stream?.progress ?? []}
+            session={currentSession}
+            onClose={() => {
+              setContextOpen(false);
+              setMobileDestination("thread");
+            }}
           />
-        </section>
-        <ContextRail
-          cards={contextCards}
-          messages={visibleMessages}
-          progress={stream?.progress ?? []}
-          session={currentSession}
-          onClose={() => {
-            setContextOpen(false);
-            setMobileDestination("thread");
-          }}
-        />
-        <nav
-          className="studio-chat-mobile-destinations"
-          aria-label="Chat destinations"
-        >
-          {(["sessions", "thread", "context"] as const).map((destination) => (
-            <button
-              className="studio-chat-mobile-destination"
-              data-active={mobileDestination === destination ? "true" : "false"}
-              type="button"
-              key={destination}
-              onClick={() => setMobileDestination(destination)}
-            >
-              {destination === "thread" ? "Chat" : destination}
-            </button>
-          ))}
-        </nav>
+          <nav
+            className="studio-chat-mobile-destinations"
+            aria-label="Chat destinations"
+          >
+            {(["sessions", "thread", "context"] as const).map((destination) => (
+              <button
+                className="studio-chat-mobile-destination"
+                data-active={
+                  mobileDestination === destination ? "true" : "false"
+                }
+                type="button"
+                key={destination}
+                onClick={() => setMobileDestination(destination)}
+              >
+                {destination === "thread" ? "Chat" : destination}
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
     </div>
   );

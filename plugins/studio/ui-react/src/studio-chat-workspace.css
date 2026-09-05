@@ -15,9 +15,18 @@
   min-height: var(--console-touch, 44px);
 }
 
-.studio-chat-room {
+.studio-chat-shell {
   display: grid;
-  grid-template-columns: 260px minmax(420px, 1fr) 298px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.studio-chat-room {
+  position: relative;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid var(--console-rule);
@@ -427,13 +436,13 @@
   display: none;
 }
 
-@media (min-width: 1081px) {
-  .studio-chat-room[data-context-open="false"] {
-    grid-template-columns: 260px minmax(420px, 1fr);
+@media (min-width: 1700px) {
+  .studio-chat-room[data-context-open="true"] {
+    grid-template-columns: 230px minmax(0, 1fr) 298px;
   }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1699px) {
   .studio-chat-room {
     grid-template-columns: 230px minmax(0, 1fr);
   }
@@ -449,6 +458,22 @@
     display: grid;
     width: min(360px, 90vw);
     box-shadow: -18px 0 50px rgb(0 0 0 / 0.2);
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1150px) {
+  .studio-chat-room {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+  .studio-chat-manuscript {
+    padding-inline: 16px;
+  }
+  .studio-chat-turn {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .studio-chat-turn-label {
+    text-align: left;
   }
 }
 

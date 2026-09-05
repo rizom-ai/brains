@@ -5,17 +5,9 @@ export const styles = `
   .spacer { flex: 1; }
 
   /* ── frame ── */
-  .studio-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 232px 1fr; align-items: stretch; }
+  .studio-body { flex: 1; min-height: 0; display: grid; align-items: stretch; }
 
   /* ── rail ── */
-  .rail { border-right: 1px solid var(--console-rule-strong); padding: 22px 0 26px; background: linear-gradient(to right, transparent 60%, color-mix(in srgb, var(--console-text) 2.5%, transparent)), var(--console-card-soft); }
-  .rail-title { font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--console-text-muted); padding: 0 20px 8px; }
-  .rail ul { list-style: none; }
-  .rail .type { display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 6px 20px; border: 0; border-left: 2px solid transparent; background: none; text-align: left; color: var(--console-text-dim); font-family: var(--console-ui); font-size: 13.5px; cursor: pointer; transition: background .12s ease; }
-  .rail .type:hover { background: var(--console-rule); color: var(--console-text); }
-  .rail .type.active { color: var(--console-text); font-weight: 500; border-left-color: var(--console-accent); background: var(--console-card); }
-  .rail .count { margin-left: auto; font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
-  .rail .singleton-mark { margin-left: auto; font-family: var(--console-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--console-warn); }
 
   /* ── listing ── */
   .listing { padding: 26px 30px 34px; }
@@ -103,7 +95,6 @@ export const styles = `
 
   /* ── pipeline (action bar) ── */
   .pipeline { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; border-top: 2px solid var(--console-text); background: var(--console-text); color: var(--console-frame); padding: 0 20px; min-height: 58px; }
-  .studio-editor-phone-save { display: none; }
   .pipeline [data-slot="button"][data-variant="danger"] { border-color: color-mix(in srgb, var(--console-bg) 30%, transparent); color: color-mix(in srgb, var(--console-bg) 75%, transparent); }
   .pipeline [data-slot="button"][data-variant="danger"]:hover { background: color-mix(in srgb, var(--console-err) 25%, transparent); color: var(--console-frame); }
   .pipeline .status { font-family: var(--console-mono); font-size: 11.5px; }

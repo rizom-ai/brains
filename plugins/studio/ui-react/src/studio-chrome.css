@@ -226,93 +226,14 @@
   text-transform: uppercase;
 }
 
-.studio-chrome-mobile-navigation {
-  display: none;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .studio-chrome {
-    gap: 16px;
-  }
-
-  .studio-chrome-brain {
-    display: none;
-  }
-
-  .studio-chrome-command {
-    min-width: var(--console-touch);
-    width: var(--console-touch);
-  }
-
-  .studio-chrome-command .command-chip-hint,
-  .studio-chrome-command kbd {
-    display: none;
-  }
-
-  .studio-chrome-command .command-chip-icon {
-    display: inline;
-  }
-}
-
 @media (max-width: 640px) {
   .studio-chrome {
     position: sticky;
     top: 0;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 6px;
-    min-height: calc(56px + env(safe-area-inset-top));
-    padding: max(4px, env(safe-area-inset-top)) 9px 4px 12px;
-  }
-
-  .studio-chrome-brand {
-    min-height: var(--console-touch);
-  }
-
-  .studio-chrome-mark,
-  .studio-chrome-brain,
-  .studio-chrome-slash {
-    display: none;
-  }
-
-  .studio-chrome-brand strong {
-    color: var(--console-accent-dim);
-    font-size: 9px;
-  }
-
-  .studio-chrome-location {
-    display: none;
-  }
-
-  .studio-chrome-mobile-navigation {
-    display: block;
-  }
-
-  .studio-chrome-mobile-navigation .studio-mobile-switcher {
-    display: grid;
-    min-height: var(--console-touch);
-  }
-
-  .studio-chrome-mobile-navigation .types {
-    display: none;
-  }
-
-  .studio-chrome-mobile-navigation .studio-mobile-switcher-label {
-    display: none;
   }
 
   .studio-chrome-tools {
     gap: 2px;
-  }
-
-  .studio-chrome-command,
-  .studio-chrome-climate {
-    border-color: transparent;
-    border-radius: 8px;
-  }
-
-  .studio-chrome-climate {
-    display: none;
   }
 
   .studio-chrome-identity {

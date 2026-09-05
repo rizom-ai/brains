@@ -7,6 +7,10 @@ import type {
 } from "@brains/plugins";
 import type { ReactElement, ReactNode } from "react";
 import type { StudioWorkspaceInfo } from "./api";
+import {
+  editorClassName as editorClass,
+  editorStyles,
+} from "./studio-editor.styles";
 
 type StudioHeadTotal = Extract<
   RuntimeStudioOperatorView["blocks"][number],
@@ -47,10 +51,40 @@ export function studioAccessRequirement(
 export function StudioPageHead(props: {
   readonly model: StudioPageHeadModel;
   readonly action?: ReactNode;
+  readonly appearance?: "document";
 }): ReactElement {
   const metadata = props.model.metadata?.slice(0, 4) ?? [];
   const totals = props.model.totals.slice(0, 4);
 
+  if (props.appearance === "document") {
+    return (
+      <header
+        className={editorClass("studio-page-head", editorStyles.head)}
+        data-studio-page-head="true"
+        data-has-status="false"
+        data-has-totals="false"
+      >
+        <div>
+          <small className={editorClass("", editorStyles.kicker)}>
+            {props.model.kicker}
+          </small>
+          <h2 className={editorClass("", editorStyles.title)}>
+            {props.model.title}
+          </h2>
+        </div>
+        {props.action ? (
+          <div
+            className={editorClass(
+              "studio-page-head-action",
+              editorStyles.action,
+            )}
+          >
+            {props.action}
+          </div>
+        ) : null}
+      </header>
+    );
+  }
   return (
     <header
       className="studio-page-head"
