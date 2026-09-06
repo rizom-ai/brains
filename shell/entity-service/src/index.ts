@@ -236,6 +236,12 @@ export type {
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
 export { applyEntityEdit } from "./apply-entity-edit";
+export { applyEntityDelete } from "./apply-entity-delete";
+export type {
+  EntityDeleteOutcome,
+  EntityDeleteRequest,
+  EntityDeleteServices,
+} from "./apply-entity-delete";
 export type {
   EntityEditAction,
   EntityEditCaller,

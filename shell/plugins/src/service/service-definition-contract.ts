@@ -154,6 +154,7 @@ import type {
   SurfacePermissionLevel,
 } from "../console-surfaces";
 import type { ServicePublishingAccess } from "./publish-delegation-registry";
+import type { OperatorEntityWrites } from "./operator-entities";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -862,6 +863,13 @@ interface ServiceDefinitionCore<
          */
         readonly views: IViewsNamespace;
         readonly templates: ServiceTemplateReads;
+        /**
+         * Editing the brain's records on somebody's behalf, for a console
+         * that edits every type and declares none. Every call takes the
+         * caller and the runtime asks the entity-action policy from it.
+         * Named consumer: @brains/studio.
+         */
+        readonly operatorEntities: OperatorEntityWrites;
         /**
          * The other doors this caller should be shown.
          *

@@ -919,6 +919,9 @@ export { sourceAttachmentKey } from "./entity/source-attachment-key";
 
 export { SerialQueue } from "./service/serial-queue";
 export type { StaticSiteOutput } from "./contracts/http-host";
+export { createOperatorEntities } from "./service/operator-entities";
+export type { OperatorEntityWrites } from "./service/operator-entities";
+export type { InterfaceCaller } from "./interface/route-contract";
 export { getServiceJobHandler } from "./service/service-definition-contract";
 export { SerializedStatusStore } from "./service/serialized-status-store";
 export type { SerializedStatusStoreOptions } from "./service/serialized-status-store";

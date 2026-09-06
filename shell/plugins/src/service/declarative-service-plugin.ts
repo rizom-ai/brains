@@ -25,6 +25,7 @@ import type { AnyAccountSettingsDefinition } from "../operator/account-settings-
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import type { UserPermissionLevel } from "@brains/templates";
+import { createOperatorEntities } from "./operator-entities";
 import type { StaticSiteOutput } from "../contracts/http-host";
 import {
   createServicePublishingAccess,
@@ -563,6 +564,7 @@ class DeclarativeServicePlugin<
             resolve: context.templates.resolve,
             capabilities: (name) => context.templates.getCapabilities(name),
           },
+          operatorEntities: createOperatorEntities(this.requireShell()),
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,
