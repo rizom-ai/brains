@@ -7,7 +7,7 @@ import {
   type ResponseRenderDirective,
   type StructuredChatCard,
   type ToolApprovalCard,
-} from "@brains/sdk/interfaces";
+} from "@brains/plugins";
 
 const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
   completed: "✓",

@@ -46,6 +46,7 @@ function createCardShell(options: {
 }): ReturnType<typeof createMockShell> {
   const shell = createMockShell({
     domain: "brain.example.com",
+    httpConfigured: options.web,
     profileKind: "professional",
   });
   shell.getProfileKindRegistry().register("test", {
@@ -56,13 +57,6 @@ function createCardShell(options: {
   });
   shell.getProfileKindRegistry().finalize();
   shell.listToolsForPermissionLevel = (): typeof publicTools => publicTools;
-  if (options.web) {
-    const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-    shell.getPluginPackageName = (pluginId): string | undefined =>
-      pluginId === "webserver"
-        ? "@brains/webserver"
-        : getPluginPackageName(pluginId);
-  }
   return shell;
 }
 
@@ -175,7 +169,8 @@ describe("canonical card publication channels", () => {
     const selected = resolvedPluginIds(["core", "federation", "web", "site"]);
     expect(selected).toContain("@brains/a2a:a2a");
     expect(selected).toContain("@brains/atproto:atproto");
-    expect(selected).toContain("webserver");
+    expect(selected).not.toContain("webserver");
+    expect(selected).toContain("site-builder");
     expect(selected).toContain("site-builder");
 
     const shell = createCardShell({ web: true });

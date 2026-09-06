@@ -5,9 +5,11 @@
   "description": "Cross-content series — auto-derived from entities with seriesName metadata",
   "dependencies": {
     "@brains/sdk": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",

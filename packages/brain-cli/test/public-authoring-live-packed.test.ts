@@ -419,7 +419,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
     const brainConfig = await readFile(brainConfigPath, "utf8");
     await writeFile(
       brainConfigPath,
-      `${brainConfig.replace("embedding:\n  enabled: false", "embedding:\n  enabled: true")}logLevel: debug\nadmins:\n  - campfire:live-reader\nanchors:\n  - campfire:live-reader\nplugins:\n  webserver:\n    productionPort: ${runtimePort}\n`,
+      `${brainConfig.replace("embedding:\n  enabled: false", "embedding:\n  enabled: true")}logLevel: debug\nadmins:\n  - campfire:live-reader\nanchors:\n  - campfire:live-reader\nport: ${runtimePort}\n`,
     );
 
     const env = liveRuntimeEnv(apiKey, transport);

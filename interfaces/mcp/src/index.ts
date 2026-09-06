@@ -60,30 +60,17 @@ const mcpInterface = defineInterface({
   // context carries `state`.
   setup: ({
     config,
-    plugins,
     endpoints,
     interactions,
     mcpTransport,
     permissions,
     auth,
-    domain,
+    displayBaseUrl,
     logger,
   }): MCPState => {
-    // The shared HTTP host is a fact about the deployment, and an interface
-    // that mounts on it cannot answer requests without it. Standalone HTTP
-    // listeners have been removed.
-    if (config.transport === "http" && !plugins.has("webserver")) {
-      throw new Error(
-        "MCP HTTP transport requires the webserver interface. Standalone HTTP listeners have been removed.",
-      );
-    }
-
+    // Declaring /mcp activates the runtime's host; transport never probes it.
     const url =
-      config.transport === "http"
-        ? domain
-          ? `https://${domain}/mcp`
-          : "http://localhost:8080/mcp"
-        : undefined;
+      config.transport === "http" ? `${displayBaseUrl ?? ""}/mcp` : undefined;
 
     if (config.transport === "http") {
       // Advertise the endpoint so it surfaces in the Endpoints card; stdio
@@ -251,9 +238,7 @@ const mcpInterface = defineInterface({
             state.transport,
           );
           state.servers.http = http;
-          state.logger.debug(
-            "MCP HTTP transport mounted on shared webserver host",
-          );
+          state.logger.debug("MCP HTTP transport mounted on runtime HTTP host");
         }
 
         health.ready();

@@ -9,6 +9,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/operator-view-react": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7",

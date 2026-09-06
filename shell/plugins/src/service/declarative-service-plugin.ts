@@ -528,6 +528,7 @@ class DeclarativeServicePlugin<
           profileKinds: context.profileKinds,
           publicSkills: context.publicSkills,
           plugins: context.plugins,
+          http: context.http,
           siteUrl: context.siteUrl,
           // Stewarded types are read just above, so the owned set is already
           // complete by the time setup asks for it.

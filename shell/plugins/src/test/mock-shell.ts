@@ -135,6 +135,7 @@ export interface MockShellOptions {
   domain?: string;
   /** Local runtime site URL (e.g. "http://localhost:8080") */
   localSiteUrl?: string;
+  httpConfigured?: boolean;
   /** Prefer local runtime URLs over public domain URLs */
   preferLocalUrls?: boolean;
   /** Shared conversation spaces */
@@ -1617,6 +1618,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       }
       return routes;
     },
+    isHttpHostConfigured: (): boolean => options.httpConfigured ?? false,
     getPluginWebRoutes: (): RegisteredWebRoute[] => {
       const routes: RegisteredWebRoute[] = [];
       for (const [pluginId, plugin] of plugins) {

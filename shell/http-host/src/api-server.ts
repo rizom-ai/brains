@@ -39,13 +39,13 @@ export function createApiRouteHandler(
       payload: {
         toolName,
         args,
-        interfaceType: "webserver",
+        interfaceType: "http",
         actor: {
           kind: "external",
-          externalActorId: createExternalActorId("webserver", "anonymous"),
+          externalActorId: createExternalActorId("http", "anonymous"),
         },
       },
-      sender: "webserver",
+      sender: "http",
     });
 
     // The message bus wraps the tool result in { success, data }

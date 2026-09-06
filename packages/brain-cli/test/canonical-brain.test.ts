@@ -47,7 +47,6 @@ const expectedCatalogIds = [
   "unified-inbox",
   "mcp",
   "email",
-  "webserver",
   "web-chat",
   "chat",
   "a2a",

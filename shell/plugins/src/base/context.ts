@@ -1,3 +1,4 @@
+import type { HttpServingInfo } from "../contracts/http-host";
 import type { IShell } from "../interfaces";
 import type { BasePluginContext as PublicBasePluginContext } from "../public/types";
 import { type Logger } from "@brains/utils/logger";
@@ -126,6 +127,7 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /** Runtime dependency readiness and bounded resource signals. */
   readonly readiness: () => Promise<RuntimeReadiness>;
+  readonly http: HttpServingInfo;
 
   // ============================================================================
   // Entity Service (Read-Only)
@@ -291,6 +293,7 @@ export function createBasePluginContext(
 
     appInfo: getAppInfo,
     readiness: () => shell.getRuntimeReadiness(),
+    http: { isConfigured: () => shell.isHttpHostConfigured() },
     operationalHealth: createOperationalHealthNamespace(shell, pluginId),
     judge: (input) => shell.judge(input),
 

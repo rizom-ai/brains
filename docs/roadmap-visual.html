@@ -323,6 +323,14 @@
         </div>
         <div class="card status-partial">
           <div class="card-head">
+            <span class="card-name">the runtime owns its HTTP host</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">runtime-owned hosting replaces the <code>webserver</code> interface: route/site-driven activation, one production port, shared preview, and lifecycle-owned shutdown.</div>
+          <div class="card-file">runtime-http-host.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
             <span class="card-name">Directory-sync DB→git auto-export silent permanent stall</span>
             <span class="badge badge-partial">In progress</span>
           </div>
@@ -352,14 +360,6 @@
           </div>
           <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
           <div class="card-file">http-route-registry-hardening.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">the runtime owns its HTTP host</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">delete the <code>webserver</code> interface and let the shell start its one HTTP listener from runtime config whenever a brain has routes or a site to serve; one production port knob instead of two that agree by default.</div>
-          <div class="card-file">runtime-http-host.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">

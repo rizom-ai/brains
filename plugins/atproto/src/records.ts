@@ -36,7 +36,7 @@ export interface AtprotoBrainSource {
     getResolved(): ResolvedProfileSelection | undefined;
   };
   readonly publicSkills: { list(): Promise<PublicSkill[]> };
-  readonly plugins: { has(pluginId: string): boolean };
+  readonly http: { isConfigured(): boolean };
   readonly siteUrl: string | undefined;
 }
 
@@ -73,7 +73,7 @@ export async function buildBrainCardRecord(
     );
   }
   const appInfo = await context.identity.getAppInfo();
-  const hasWebChannel = context.plugins.has("webserver");
+  const hasWebChannel = context.http.isConfigured();
   const siteUrl = hasWebChannel
     ? normalizePublicUrl(context.siteUrl ?? profile.website)
     : undefined;

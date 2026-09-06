@@ -21,6 +21,7 @@
     "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/http-host": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/mcp-service": "workspace:*",

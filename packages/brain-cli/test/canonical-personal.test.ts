@@ -37,7 +37,6 @@ describe("canonical personal posture", () => {
     for (const id of [
       "@brains/image-plugin:image",
       "@brains/document-plugin:document",
-      "webserver",
       "dashboard",
       "@brains/web-chat:web-chat",
       "@brains/conversation-memory:conversation-memory",

@@ -1162,11 +1162,7 @@ it.skipIf(!RUN_SOAK)(
       await run(["git", "remote", "add", "origin", remoteDir], writerDir);
       await run(["git", "push", "origin", "main"], writerDir);
 
-      const [productionPort, apiPort, previewPort] = await Promise.all([
-        reservePort(),
-        reservePort(),
-        reservePort(),
-      ]);
+      const productionPort = await reservePort();
       await writeFile(
         join(appDir, "brain.yaml"),
         `brain: brain
@@ -1198,10 +1194,7 @@ plugins:
     git:
       gitUrl: file://${remoteDir}
       bootstrapFromSeed: false
-  webserver:
-    productionPort: ${productionPort}
-    apiPort: ${apiPort}
-    previewPort: ${previewPort}
+port: ${productionPort}
 `,
       );
 
@@ -1267,6 +1260,9 @@ plugins:
         () => new Error("Timed out waiting for baseline note import"),
       );
 
+      // First boot can export the default identity before HTTP readiness.
+      // Start the remote writer from that head, not its pre-boot checkout.
+      await run(["git", "pull", "--rebase", "origin", "main"], writerDir);
       monitor = await startHealthMonitor(
         healthBaseUrl,
         supervisor,

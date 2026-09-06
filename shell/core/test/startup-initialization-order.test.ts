@@ -83,7 +83,7 @@ describe("Startup Initialization Order", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
       const earlyWebserverCallIndex = source.indexOf(
-        "this.startEarlyWebserver()",
+        "this.hooks.startHttpHost()",
       );
       const pluginsRegisteredCallIndex = source.indexOf(
         "this.emitPluginsRegistered()",

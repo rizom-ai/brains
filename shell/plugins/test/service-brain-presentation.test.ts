@@ -26,20 +26,20 @@ describe("service brain presentation and announcements", () => {
     await harness.reset();
   });
 
-  it("hands setup the brain's identity, profile kind, skills, plugins and site URL", async () => {
+  it("hands setup the brain's identity, profile kind, skills, HTTP serving intent and site URL", async () => {
     let described: Record<string, unknown> | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
       defineServicePlugin({
         id: "card",
         config: z.object({}),
-        setup: ({ identity, profileKinds, publicSkills, plugins, siteUrl }) => {
+        setup: ({ identity, profileKinds, publicSkills, http, siteUrl }) => {
           described = {
             character: identity.get().name,
             profile: identity.getProfile().name,
             appInfo: identity.getAppInfo(),
             kind: (): unknown => profileKinds.getResolved(),
             skills: publicSkills.list(),
-            hasWebserver: plugins.has("webserver"),
+            hasHttpHost: (): boolean => http.isConfigured(),
             siteUrl,
           };
           return {};
@@ -59,7 +59,12 @@ describe("service brain presentation and announcements", () => {
       model: expect.any(String),
     });
     expect(await described["skills"]).toEqual([]);
-    expect(described["hasWebserver"]).toBe(false);
+    const hasHttpHost = described["hasHttpHost"];
+    if (typeof hasHttpHost !== "function")
+      throw new Error("HTTP reader not captured");
+    expect(hasHttpHost()).toBe(false);
+    harness.getMockShell().isHttpHostConfigured = (): boolean => true;
+    expect(hasHttpHost()).toBe(true);
     harness.getMockShell().getProfileKindRegistry().finalize();
     const kind = described["kind"];
     if (typeof kind !== "function") throw new Error("kind not captured");

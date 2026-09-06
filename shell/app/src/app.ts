@@ -199,6 +199,10 @@ function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
     shellConfig.siteBaseUrl = config.deployment.domain;
   }
 
+  shellConfig.http = {
+    ...config.http,
+    port: config.deployment.ports.production,
+  };
   shellConfig.localSiteUrl = `http://localhost:${config.deployment.ports.production}`;
   shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
 }

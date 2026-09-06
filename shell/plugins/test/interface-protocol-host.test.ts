@@ -13,9 +13,8 @@ import {
  * What `@brains/mcp` needs that the interface surface could not say.
  *
  * An interface that hosts a protocol is not only routes and a daemon. It
- * holds a server it must not build twice, it refuses to start when the host
- * it mounts on is absent, it advertises where it can be reached, and it
- * offers tools of its own.
+ * holds a server it must not build twice, declares routes for the runtime host,
+ * advertises where it can be reached, and offers tools of its own.
  */
 
 function instantiate(
@@ -36,12 +35,7 @@ describe("an interface that hosts a protocol", () => {
     const definition = defineInterface({
       id: "protocol-host",
       config: z.object({ transport: z.enum(["stdio", "http"]) }),
-      setup: ({ config, plugins, endpoints, interactions }) => {
-        // The host is a fact about the deployment, and an interface that
-        // mounts on it cannot answer requests without it.
-        if (config.transport === "http" && !plugins.has("webserver")) {
-          throw new Error("HTTP transport requires the webserver interface");
-        }
+      setup: ({ config, endpoints, interactions }) => {
         if (config.transport === "http") {
           endpoints.register({
             label: "Host",
@@ -135,31 +129,30 @@ describe("an interface that hosts a protocol", () => {
     expect(await response.text()).toBe("event: message\ndata: {}\n\n");
   });
 
-  it("refuses HTTP transport without the host it mounts on", async () => {
+  it("declares HTTP routes without a host plugin", async () => {
     const definition = defineInterface({
       id: "protocol-host",
       config: z.object({ transport: z.enum(["stdio", "http"]) }),
-      setup: ({ config, plugins }) => {
-        if (config.transport === "http" && !plugins.has("webserver")) {
-          throw new Error("HTTP transport requires the webserver interface");
-        }
-        return {};
-      },
+      routes: ({ config }) =>
+        config.transport === "http"
+          ? [
+              defineRoute({
+                method: "GET",
+                path: "/protocol",
+                security: { kind: "public" },
+                response: verbatim,
+                handle: () => new Response("protocol"),
+              }),
+            ]
+          : [],
     });
-
     const harness = createPluginHarness();
-    let refusal: unknown;
-    try {
-      await harness.installPlugin(
-        instantiate(definition, { transport: "http" }),
-      );
-    } catch (error) {
-      refusal = error;
-    }
-
-    if (!(refusal instanceof Error)) {
-      throw new Error("Expected the declaration to refuse with an Error");
-    }
-    expect(refusal.message).toContain("requires the webserver interface");
+    const plugin = instantiate(definition, { transport: "http" });
+    await harness.installPlugin(plugin);
+    expect(harness.getMockShell().hasPlugin("webserver")).toBe(false);
+    expect(plugin.getWebRoutes?.()).toContainEqual(
+      expect.objectContaining({ path: "/protocol" }),
+    );
+    await harness.reset();
   });
 });

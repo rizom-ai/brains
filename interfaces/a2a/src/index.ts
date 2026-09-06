@@ -40,7 +40,6 @@ export interface A2AInterfaceDeps {
 }
 
 interface A2AState {
-  readonly hasWebserver: boolean;
   readonly app: Hono;
   readonly clientDeps: A2AClientDeps;
   readonly turnSupervisor: A2ATurnSupervisor;
@@ -52,8 +51,8 @@ interface A2AState {
  * for discovery, JSON-RPC 2.0 at `/a2a` routed through the agent, a directory
  * of approved peers, and a call tool for reaching other brains.
  *
- * The routes mount on the shared HTTP host; without one the interface runs in
- * tool-only mode and still calls out. Trust in both directions is
+ * Inbound routes opt into the runtime HTTP host; otherwise the interface runs
+ * in tool-only mode and still calls out. Trust in both directions is
  * auth-service's: inbound signatures are checked against recorded peer trust,
  * outbound requests are signed with the brain's federation key.
  */
@@ -66,7 +65,6 @@ export function a2aInterface(
 
     setup: ({
       config,
-      plugins,
       endpoints,
       interactions,
       auth,
@@ -80,8 +78,7 @@ export function a2aInterface(
       domain,
       logger,
     }): A2AState => {
-      const hasWebserver = plugins.has("webserver");
-      if (hasWebserver) {
+      if (config.inbound) {
         endpoints.register({ label: "A2A", url: "/a2a", priority: 25 });
         interactions.register({
           id: "a2a",
@@ -93,7 +90,7 @@ export function a2aInterface(
         });
       }
       logger.info(
-        hasWebserver
+        config.inbound
           ? "A2A interface registered"
           : "A2A interface registered in tool-only mode",
         { domain },
@@ -146,7 +143,6 @@ export function a2aInterface(
 
       const turnSupervisor = new A2ATurnSupervisor();
       return {
-        hasWebserver,
         app: createA2AServer({
           agentCard,
           entities,
@@ -171,8 +167,8 @@ export function a2aInterface(
 
     // The protocol answers for itself: CORS headers, the status codes it
     // specifies, an event stream. None of it survives a JSON envelope.
-    routes: ({ state }): AnyInterfaceRouteDefinition[] =>
-      state.hasWebserver
+    routes: ({ config, state }): AnyInterfaceRouteDefinition[] =>
+      config.inbound
         ? [
             ...(
               [
@@ -200,21 +196,21 @@ export function a2aInterface(
           ]
         : [],
 
-    daemons: ({ state }) => [
+    daemons: ({ config, state }) => [
       defineDaemon({
         id: "server",
         required: false,
         check: () => ({
           status: "healthy",
-          message: state.hasWebserver
-            ? "A2A mounted on shared webserver host"
-            : "A2A running without webserver routes",
+          message: config.inbound
+            ? "A2A mounted on runtime HTTP host"
+            : "A2A running in outbound-only mode",
         }),
         async run({ signal, health }) {
           state.logger.info(
-            state.hasWebserver
-              ? "A2A mounted on shared webserver host"
-              : "A2A running without webserver routes",
+            config.inbound
+              ? "A2A mounted on runtime HTTP host"
+              : "A2A running in outbound-only mode",
           );
           health.ready();
           await new Promise<void>((resolve) => {

@@ -128,13 +128,13 @@ export function atprotoService(
       identity,
       profileKinds,
       publicSkills,
-      plugins,
+      http,
       siteUrl,
       logger,
     }): AtprotoState => {
       const publisher = createAtprotoPublisher({
         config,
-        brain: { identity, profileKinds, publicSkills, plugins, siteUrl },
+        brain: { identity, profileKinds, publicSkills, http, siteUrl },
         entities,
         logger,
         deps,

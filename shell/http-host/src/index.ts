@@ -1,3 +1,4 @@
+export { HttpHost, type HttpHostOptions } from "./http-host";
 export { ServerManager } from "./server-manager";
 export type {
   ServerManagerOptions,

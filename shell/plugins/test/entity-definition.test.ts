@@ -12,8 +12,8 @@ import {
 } from "../src/entity/declarative-entity-plugin";
 import type { PublishMediaData } from "@brains/contracts";
 import type { JobHandler } from "@brains/job-queue";
-import type { EvalHandler } from "@brains/ai-evaluation";
 import type {
+  EvalHandler,
   EntityGenerationJobDeclaration,
   EntityGenerationResult,
   EntityJobDeclaration,

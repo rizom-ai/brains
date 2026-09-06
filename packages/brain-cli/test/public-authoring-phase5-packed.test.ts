@@ -293,10 +293,7 @@ describe("public authoring Phase 5 packed interface contracts", () => {
       const runtimePort = await availablePort();
       const brainConfigPath = join(consumerDirectory, "brain.yaml");
       const brainConfig = await readFile(brainConfigPath, "utf8");
-      await writeFile(
-        brainConfigPath,
-        `${brainConfig}plugins:\n  webserver:\n    productionPort: ${runtimePort}\n`,
-      );
+      await writeFile(brainConfigPath, `${brainConfig}port: ${runtimePort}\n`);
       await invokeTool(
         consumerDirectory,
         "system_create",
