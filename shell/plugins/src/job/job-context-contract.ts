@@ -237,6 +237,41 @@ export interface JobMessagePublisher {
 
 export interface JobTemplateFormatter {
   format<TValue>(name: string, value: TValue): string;
+  /**
+   * What a template the runtime holds can do.
+   *
+   * A page section is filled in from a template the brain composed, not
+   * from one the filling package wrote: whether it can be generated at all
+   * is a fact about the template, and only the registry knows it. Answers
+   * null for a name nobody registered.
+   * Named consumer: @brains/site-content.
+   */
+  capabilities(name: string): TemplateCapabilityReport | null;
+  /**
+   * Generate content from a template the runtime holds, parsed against that
+   * template's own schema.
+   *
+   * The schema comes from the registry rather than the caller for the same
+   * reason the prompt does: the template is the thing that knows what shape
+   * its content takes, and a caller filling in a section it did not design
+   * has no business claiming one.
+   * Named consumer: @brains/site-content.
+   */
+  generate(
+    name: string,
+    context: {
+      readonly prompt?: string | undefined;
+      readonly data?: Record<string, unknown> | undefined;
+    },
+  ): Promise<unknown>;
+}
+
+/** What a registered template supports. */
+export interface TemplateCapabilityReport {
+  readonly canGenerate: boolean;
+  readonly canFetch: boolean;
+  readonly canRender: boolean;
+  readonly isStaticOnly: boolean;
 }
 
 /**

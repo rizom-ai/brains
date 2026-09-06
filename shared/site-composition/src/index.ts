@@ -42,8 +42,10 @@ export type {
 } from "./metadata";
 export {
   createSiteContentTemplate,
+  siteContentSectionParts,
   createSiteContentTemplates,
 } from "./content-definitions";
+export type { SiteContentSectionParts } from "./content-definitions";
 export type {
   SiteContentArrayFieldDefinition,
   SiteContentDefinition,

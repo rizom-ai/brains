@@ -537,7 +537,12 @@
         "ServiceRecentJob",
         "SerializedStatusStore",
         "SerializedStatusStoreOptions",
-        "StaticSiteOutput"
+        "StaticSiteOutput",
+        "ServiceTemplateDefinition",
+        "ServiceViewDefinition",
+        "ServiceTemplateReads",
+        "ServiceSchema",
+        "ServiceViewSchema"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

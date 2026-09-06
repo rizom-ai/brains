@@ -83,6 +83,10 @@ export function createTestJobContext<TInput>(options: {
       format: (name): string => {
         throw new Error(`This test declared no template "${name}"`);
       },
+      capabilities: (): null => null,
+      generate: (name): never => {
+        throw new Error(`This test declared no template "${name}"`);
+      },
     },
     signal: options.signal ?? new AbortController().signal,
     template: options.template,

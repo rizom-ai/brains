@@ -113,6 +113,7 @@ import type {
   JobHandlerContext,
   JobTemplateFormatter,
   RoutedCreate,
+  TemplateCapabilityReport,
 } from "../job/job-context-contract";
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AIGenerationSchema } from "../entity/ai-types";
@@ -190,8 +191,24 @@ export type ServiceEvalHandler = (
   context: EntityEvalContext,
 ) => Promise<unknown>;
 
-export interface ServiceTemplateFormatter {
-  format<TValue>(name: string, value: TValue): string;
+/**
+ * What a service formats and generates with, which is what a job handler
+ * gets: the same reads, reached from a tool or a job alike.
+ */
+export type ServiceTemplateFormatter = JobTemplateFormatter;
+
+/**
+ * What the setup context answers about the templates a brain composed.
+ *
+ * A tool that decides which page sections are worth filling in asks about
+ * templates other packages registered; resolving one is a different act
+ * from asking what it can do. Named consumer: @brains/site-content.
+ */
+export interface ServiceTemplateReads extends Pick<
+  IServiceTemplatesNamespace,
+  "resolve"
+> {
+  capabilities(name: string): TemplateCapabilityReport | null;
 }
 
 /**
@@ -604,7 +621,34 @@ export interface ServicePromptDefinition<TSchema extends ServiceSchema> {
 
 export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
   readonly schema: TSchema;
+  /**
+   * Where this template is named from.
+   *
+   * Defaults to the declaring package, which is right for a template the
+   * package owns. A page section belongs to the site a brain composed
+   * rather than to the package that turned its configuration into
+   * templates, and a route names it by the namespace its author chose.
+   * Named consumer: @brains/site-content.
+   */
+  readonly namespace?: string | undefined;
+  /**
+   * Who may read content stored under this template. Defaults to admin,
+   * which is right for a package's own internal formatting and wrong for a
+   * page section anyone visiting the site can see.
+   * Named consumer: @brains/site-content.
+   */
+  readonly permission?: UserPermissionLevel | undefined;
   format(context: { readonly value: z.output<TSchema> }): string;
+  /**
+   * The value this template's markdown came from.
+   *
+   * A template that only formats is a one-way street: content generated
+   * under it is stored and can never be read back as the value it was
+   * written from. A page section has to round-trip, because rendering it
+   * again means parsing what is on disk.
+   * Named consumer: @brains/site-content.
+   */
+  parse?(content: string): z.output<TSchema>;
 }
 
 /**
@@ -817,7 +861,7 @@ interface ServiceDefinitionCore<
          * @brains/site-builder.
          */
         readonly views: IViewsNamespace;
-        readonly templates: Pick<IServiceTemplatesNamespace, "resolve">;
+        readonly templates: ServiceTemplateReads;
         /**
          * The other doors this caller should be shown.
          *
@@ -1063,19 +1107,37 @@ interface ServiceDefinitionCore<
         readonly state: TState;
       }) => readonly AnyDataSourceDeclaration[])
     | undefined;
+  /**
+   * How this package's own values are written down, and read back.
+   *
+   * Usually a map, because a package knows its own templates. A package
+   * whose purpose is to turn a brain's configuration into page sections
+   * cannot name them in advance, so it may declare a function of config
+   * instead. Named consumer: @brains/site-content.
+   */
   readonly templates?:
     | {
         readonly [K in keyof TTemplateSchemas]: ServiceTemplateDefinition<
           TTemplateSchemas[K]
         >;
       }
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+      }) => Record<string, ServiceTemplateDefinition<ServiceSchema>>)
     | undefined;
+  /**
+   * How this package's own values are rendered. Takes a function of config
+   * for the same reason the templates slot does.
+   */
   readonly views?:
     | {
         readonly [K in keyof TViewSchemas]: ServiceViewDefinition<
           TViewSchemas[K]
         >;
       }
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+      }) => Record<string, ServiceViewDefinition<ServiceViewSchema>>)
     | undefined;
   readonly jobs?:
     | ((context: {

@@ -57,6 +57,19 @@ export interface IServiceTemplatesNamespace {
     options?: ResolutionOptions,
   ) => Promise<unknown>;
 
+  /**
+   * Generate content from a template, parsed against that template's own
+   * schema. The registry supplies the prompt and the schema, because the
+   * template is what knows both. Named consumer: @brains/site-content.
+   */
+  generate: (
+    templateName: string,
+    context?: {
+      prompt?: string | undefined;
+      data?: Record<string, unknown> | undefined;
+    },
+  ) => Promise<unknown>;
+
   /** Get capabilities of a template */
   getCapabilities: (templateName: string) => {
     canGenerate: boolean;
@@ -222,6 +235,25 @@ export function createServicePluginContext(
         options?: ResolutionOptions,
       ): Promise<unknown> =>
         contentService.resolveContent(templateName, options, pluginId),
+      generate: async (
+        templateName: string,
+        generationContext?: {
+          prompt?: string | undefined;
+          data?: Record<string, unknown> | undefined;
+        },
+      ): Promise<unknown> =>
+        contentService.generateContent(
+          templateName,
+          {
+            ...(generationContext?.prompt !== undefined
+              ? { prompt: generationContext.prompt }
+              : {}),
+            ...(generationContext?.data !== undefined
+              ? { data: generationContext.data }
+              : {}),
+          },
+          pluginId,
+        ),
       getCapabilities: (
         templateName: string,
       ): {

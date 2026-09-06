@@ -194,6 +194,17 @@ export type {
 // The directories a package's build writes into, which is what the
 // `staticSite` slot returns. The runtime serves them; naming them is the
 // declaring package's business. Named consumer: @brains/site-builder.
+// What a package writes down and renders, for one whose sections come from
+// the brain it is composed into rather than from its own source.
+// Named consumer: @brains/site-content.
+export type {
+  ServiceSchema,
+  ServiceTemplateDefinition,
+  ServiceTemplateReads,
+  ServiceViewDefinition,
+  ServiceViewSchema,
+} from "@brains/plugins";
+
 export type { StaticSiteOutput } from "@brains/plugins";
 
 // One bounded status document in runtime state, read-modify-written one

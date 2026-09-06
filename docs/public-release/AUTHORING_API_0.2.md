@@ -229,6 +229,11 @@ Definitions and schema vocabulary:
 - `SerializedStatusStore`
 - `SerializedStatusStoreOptions`
 - `StaticSiteOutput`
+- `ServiceTemplateDefinition`
+- `ServiceViewDefinition`
+- `ServiceTemplateReads`
+- `ServiceSchema`
+- `ServiceViewSchema`
 
 Types:
 

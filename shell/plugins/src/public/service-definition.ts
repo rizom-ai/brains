@@ -105,9 +105,11 @@ export type {
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
+  ServiceViewSchema,
   ServiceViewSchemaMap,
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
+  ServiceTemplateReads,
   ServiceToolDefinition,
   ServiceViewDefinition,
 } from "../service/service-definition-contract";

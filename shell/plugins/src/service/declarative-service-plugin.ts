@@ -24,6 +24,7 @@ import type {
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { deriveConsoleSurfaces } from "../console-surfaces";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { StaticSiteOutput } from "../contracts/http-host";
 import {
   createServicePublishingAccess,
@@ -91,7 +92,10 @@ import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 /** A template with its schema type erased and `format` bound to that schema. */
 interface ErasedServiceTemplate {
   readonly schema: ServiceSchema;
+  readonly namespace?: string | undefined;
+  readonly permission?: UserPermissionLevel | undefined;
   format(value: unknown): string;
+  parse?(content: string): unknown;
 }
 
 /**
@@ -555,7 +559,10 @@ class DeclarativeServicePlugin<
           localSiteUrl: context.localSiteUrl,
           preferLocalUrls: context.preferLocalUrls,
           views: context.views,
-          templates: { resolve: context.templates.resolve },
+          templates: {
+            resolve: context.templates.resolve,
+            capabilities: (name) => context.templates.getCapabilities(name),
+          },
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,
@@ -661,7 +668,7 @@ class DeclarativeServicePlugin<
       });
     }
 
-    const templates = this.templateFormatter();
+    const templates = this.templateFormatter(context);
     // Scoped like the entity-side slot, so two packages can each declare a
     // source called "entities" without colliding.
     for (const source of this.definition.dataSources?.({
@@ -679,7 +686,9 @@ class DeclarativeServicePlugin<
       );
     }
 
-    context.templates.register(this.runtimeTemplates(), this.id);
+    for (const [namespace, templates] of this.runtimeTemplatesByNamespace()) {
+      context.templates.register(templates, namespace);
+    }
     this.registerPrompts();
 
     const insights =
@@ -1015,7 +1024,7 @@ class DeclarativeServicePlugin<
         config: this.config,
         state,
         jobs: this.jobs(),
-        templates: this.templateFormatter(),
+        templates: this.templateFormatter(this.getContext()),
       }) ?? [];
     const names = new Set<string>();
     this.tools = definitions.map((definition) => {
@@ -1274,14 +1283,22 @@ class DeclarativeServicePlugin<
     };
   }
 
-  private templateFormatter(): ServiceTemplateFormatter {
+  private templateFormatter(
+    context: ServicePluginContext,
+  ): ServiceTemplateFormatter {
     const formatters = this.erasedTemplates();
     return {
       format(name, value): string {
         const template = formatters.get(name);
-        if (!template) throw new Error(`Template not found: ${name}`);
-        return template.format(value);
+        // A package's own template formats through the declaration it was
+        // written as; a template the brain composed formats through the
+        // registry that holds it.
+        if (template) return template.format(value);
+        return context.templates.format(name, value);
       },
+      capabilities: (name) => context.templates.getCapabilities(name),
+      generate: async (name, generationContext) =>
+        context.templates.generate(name, generationContext),
     };
   }
 
@@ -1293,17 +1310,27 @@ class DeclarativeServicePlugin<
    * rather than being asserted away at the read site.
    */
   private erasedTemplates(): Map<string, ErasedServiceTemplate> {
+    const declared = this.definition.templates;
+    const templates =
+      typeof declared === "function"
+        ? declared({ config: this.config })
+        : (declared ?? {});
     return new Map(
-      Object.entries(this.definition.templates ?? {}).map(
-        ([name, template]) => [
-          name,
-          {
-            schema: template.schema,
-            format: (value: unknown): string =>
-              template.format({ value: template.schema.parse(value) }),
-          },
-        ],
-      ),
+      Object.entries(templates).map(([name, template]) => [
+        name,
+        {
+          schema: template.schema,
+          namespace: template.namespace,
+          permission: template.permission,
+          format: (value: unknown): string =>
+            template.format({ value: template.schema.parse(value) }),
+          ...(template.parse
+            ? {
+                parse: (content: string): unknown => template.parse?.(content),
+              }
+            : {}),
+        },
+      ]),
     );
   }
 
@@ -1325,8 +1352,13 @@ class DeclarativeServicePlugin<
   }
 
   private erasedViews(): Map<string, ErasedServiceView> {
+    const declared = this.definition.views;
+    const views =
+      typeof declared === "function"
+        ? declared({ config: this.config })
+        : (declared ?? {});
     return new Map(
-      Object.entries(this.definition.views ?? {}).map(([name, view]) => [
+      Object.entries(views).map(([name, view]) => [
         name,
         {
           schema: view.schema,
@@ -1336,6 +1368,23 @@ class DeclarativeServicePlugin<
         },
       ]),
     );
+  }
+
+  /**
+   * Every template this package registers, grouped by where it is named
+   * from. Most sit under the package; a configured page section sits under
+   * the namespace its author chose.
+   */
+  private runtimeTemplatesByNamespace(): Map<string, Record<string, Template>> {
+    const templates = this.erasedTemplates();
+    const grouped = new Map<string, Record<string, Template>>();
+    for (const [name, template] of Object.entries(this.runtimeTemplates())) {
+      const namespace = templates.get(name)?.namespace ?? this.id;
+      const existing = grouped.get(namespace) ?? {};
+      existing[name] = template;
+      grouped.set(namespace, existing);
+    }
+    return grouped;
   }
 
   private runtimeTemplates(): Record<string, Template> {
@@ -1354,18 +1403,23 @@ class DeclarativeServicePlugin<
       }
       const schema = template?.schema ?? view?.schema;
       if (!schema) continue;
+      const parse = template?.parse;
       const base = {
         name,
         description: view?.description ?? `${this.publicId} ${name}`,
         schema,
-        requiredPermission: "admin" as const,
+        requiredPermission: template?.permission ?? ("admin" as const),
         ...(template
           ? {
               formatter: {
                 format: (value: unknown): string => template.format(value),
-                parse: (): never => {
-                  throw new Error(`Template "${name}" is format-only`);
-                },
+                // A template that only formats is a one-way street; saying so
+                // where it is read beats returning something made up.
+                parse: parse
+                  ? (content: string): unknown => parse(content)
+                  : (): never => {
+                      throw new Error(`Template "${name}" is format-only`);
+                    },
               },
             }
           : {}),

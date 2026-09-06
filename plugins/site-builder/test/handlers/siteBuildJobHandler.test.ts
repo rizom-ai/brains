@@ -92,7 +92,13 @@ describe("the site build job", () => {
         identity: runtime.identity,
         template: (localName: string) =>
           `@brains/site-builder-plugin:site-builder:${localName}`,
-        templates: { format: (_name, value) => String(value) },
+        templates: {
+          format: (_name, value): string => String(value),
+          capabilities: (): null => null,
+          generate: (name): never => {
+            throw new Error(`A site build generates no template "${name}"`);
+          },
+        },
       });
       return siteBuildJobResultSchema.parse(
         await runServiceJob(binding, context),
