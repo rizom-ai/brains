@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { PipelineRuntime } from "../runtime";
 import type { SchedulerMessagePublisher } from "../types/scheduler";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
@@ -11,7 +11,7 @@ import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
 
 export interface CreateSchedulerDeps {
-  context: ServicePluginContext;
+  context: PipelineRuntime;
   config: ContentPipelineConfig;
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
@@ -67,7 +67,7 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     publishExecutor,
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(
-        context.entityService,
+        context.entities,
         logger,
         entityType,
         conditions,
@@ -81,7 +81,7 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
  * it would have to stub as no-ops.
  */
 function createMessageBusAdapter(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
 ): SchedulerMessagePublisher {
   const send: SchedulerMessagePublisher["send"] = async (request) => {
     return context.messaging.send({

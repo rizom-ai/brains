@@ -1,63 +1,52 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  type DashboardWidgetProviderContext,
-  type RuntimeDashboardWidgetData,
-  type UserPermissionLevel,
-} from "@brains/plugins";
-import {
   baseEntitySchema,
   createMockShell,
-  createServicePluginContext,
-  type MockShell,
-  type ServicePluginContext,
   createTestEntityAdapter,
+  type MockShell,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  registerDashboardWidget,
-  type RegisterDashboardWidgetDeps,
+  loadPipelineWidget,
+  publicationPipelineWidget,
+  type PipelineWidgetDeps,
 } from "../src/lib/dashboard-widget";
 import { ProviderRegistry } from "../src/provider-registry";
 import { QueueManager } from "../src/queue-manager";
 import { RetryTracker } from "../src/retry-tracker";
+import type { PublicationPipelineSnapshot } from "../src/pipeline-snapshot";
+import type { PipelineRuntime } from "../src/runtime";
+import type { OperatorView } from "@brains/plugins";
+import { PIPELINE_PLUGIN_ID, runtimeFor } from "./helpers/install";
 
-interface DashboardWidgetPayload {
-  id: string;
-  pluginId: string;
-  title: string;
-  group: string;
-  section: string;
-  priority: number;
-  rendererName: string;
-  visibility: UserPermissionLevel;
-  dataProvider: (
-    context: DashboardWidgetProviderContext,
-  ) => Promise<RuntimeDashboardWidgetData>;
-  digestProvider: (data: unknown) => {
-    digest?: Array<{ label: string; value: string; tone?: string }> | undefined;
-    needsAttention?: number | undefined;
-  };
+/** What the declaration says it renders; the contract types both as optional. */
+function declared<T>(value: T | undefined, what: string): T {
+  if (value === undefined) throw new Error(`Widget declares no ${what}`);
+  return value;
 }
 
-const dashboardProviderContext: DashboardWidgetProviderContext = {
-  caller: {
-    actor: { id: "user:admin" },
-    permission: "admin",
-    isAnchor: true,
-  },
-  signal: new AbortController().signal,
-};
-
-describe("dashboard widget registration", () => {
-  let context: ServicePluginContext;
+/**
+ * The widget is a declaration: an id, how it reads, and what it loads. The
+ * runtime registers it and normalizes what it returns — covered where the
+ * runtime is tested. What belongs here is what the pipeline actually says.
+ */
+describe("publication pipeline widget", () => {
+  let runtime: PipelineRuntime;
   let mockShell: MockShell;
-  let widgetPayload: DashboardWidgetPayload | undefined;
-  let deps: RegisterDashboardWidgetDeps;
+  let deps: PipelineWidgetDeps;
+
+  /** The widget's own reading of a snapshot, which it always declares. */
+  const digestOf = (data: PublicationPipelineSnapshot): unknown =>
+    declared(publicationPipelineWidget.digest, "digest")({ data });
+  const viewOf = (data: PublicationPipelineSnapshot): OperatorView =>
+    declared(publicationPipelineWidget.view, "view")({ data });
+
+  const load = (): Promise<PublicationPipelineSnapshot> =>
+    loadPipelineWidget(runtime, deps)({ signal: new AbortController().signal });
 
   beforeEach(() => {
     mockShell = createMockShell({ logger: createSilentLogger() });
-    context = createServicePluginContext(mockShell, "content-pipeline");
+    runtime = runtimeFor(mockShell);
     for (const entityType of ["social-post", "workflow-card"]) {
       mockShell
         .getEntityRegistry()
@@ -78,76 +67,55 @@ describe("dashboard widget registration", () => {
       queueManager: QueueManager.createFresh(),
       retryTracker: RetryTracker.createFresh(),
     };
-
-    context.messaging.subscribe<DashboardWidgetPayload, { success: boolean }>(
-      "dashboard:register-widget",
-      async (message) => {
-        widgetPayload = message.payload;
-        return { success: true };
-      },
-    );
   });
 
-  it("registers the primary read-only publication widget", async () => {
-    await registerDashboardWidget(context, deps);
-
-    expect(widgetPayload).toMatchObject({
+  it("declares the primary read-only publication widget", () => {
+    expect(publicationPipelineWidget).toMatchObject({
       id: "publication-pipeline",
-      pluginId: "content-pipeline",
       title: "Publication Pipeline",
       group: "publishing",
-      section: "primary",
+      placement: "primary",
       priority: 100,
-      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-      visibility: "admin",
+      permission: "admin",
     });
-    expect(widgetPayload?.dataProvider).toBeFunction();
-    expect(widgetPayload?.digestProvider).toBeFunction();
   });
 
   it("uses the canonical provider-bounded pipeline snapshot", async () => {
-    await context.entityService.createEntity({
-      entity: {
+    for (const entity of [
+      {
         id: "draft-post",
         entityType: "social-post",
         content: "draft",
         metadata: { status: "draft", title: "Draft Post" },
       },
-    });
-    await context.entityService.createEntity({
-      entity: {
+      {
         id: "queued-post",
         entityType: "social-post",
         content: "queued",
         metadata: { status: "queued" },
       },
-    });
-    await context.entityService.createEntity({
-      entity: {
+      {
         id: "unrelated-draft",
         entityType: "workflow-card",
         content: "not publication content",
         metadata: { status: "draft" },
       },
-    });
+    ]) {
+      await mockShell.getEntityService().createEntity({ entity });
+    }
     await deps.queueManager.add("social-post", "queued-post");
 
-    await registerDashboardWidget(context, deps);
-    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
+    const data = await load();
 
-    expect(data?.digest).toEqual({
+    expect(digestOf(data)).toEqual({
       items: [
         { label: "Pipeline", value: "1 queued · 0 generating", tone: "warn" },
-        {
-          label: "Awaiting review",
-          value: "1 drafts",
-          tone: "warn",
-        },
+        { label: "Awaiting review", value: "1 drafts", tone: "warn" },
         { label: "Published", value: "0", tone: "good" },
       ],
       attention: 1,
     });
-    expect(data?.view.blocks[0]).toMatchObject({
+    expect(viewOf(data).blocks[0]).toMatchObject({
       type: "stats",
       items: [
         { label: "Queued", value: 1 },
@@ -158,105 +126,60 @@ describe("dashboard widget registration", () => {
     });
   });
 
-  it("derives the host digest from normalized widget data", async () => {
-    await registerDashboardWidget(context, deps);
-    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
-    const derived = widgetPayload?.digestProvider(data);
+  it("reads as idle when nothing is in flight", async () => {
+    const data = await load();
 
-    expect(derived?.digest).toEqual([
-      { label: "Pipeline", value: "idle", tone: "plain" },
-      { label: "Awaiting review", value: "0 drafts", tone: "plain" },
-      { label: "Published", value: "0", tone: "good" },
-    ]);
-    expect(derived?.needsAttention).toBe(0);
+    expect(digestOf(data)).toEqual({
+      items: [
+        { label: "Pipeline", value: "idle" },
+        { label: "Awaiting review", value: "0 drafts" },
+        { label: "Published", value: "0", tone: "good" },
+      ],
+      attention: 0,
+    });
   });
 
   it("uses a host launch instead of carrying a Studio management URL", async () => {
-    await registerDashboardWidget(context, deps);
-    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
+    const data = await load();
+    const view = viewOf(data);
 
-    expect(data?.view.blocks[2]).toEqual({
+    expect(view.blocks[2]).toEqual({
       type: "links",
       items: [
         {
           label: "Open in Studio",
-          target: {
-            kind: "launch",
-            launch: { target: "publishing" },
-          },
+          target: { launch: { target: "publishing" } },
         },
       ],
     });
-    expect(JSON.stringify(data)).not.toContain("managementUrl");
+    expect(JSON.stringify(view)).not.toContain("managementUrl");
   });
 
-  it("surfaces active content-pipeline jobs as generating items", async () => {
-    type ActiveJobs = Awaited<
-      ReturnType<ServicePluginContext["jobs"]["getActiveJobs"]>
-    >;
-    context.jobs.getActiveJobs = async (): Promise<ActiveJobs> => [
-      {
-        id: "job-8412",
-        type: "image:image-render-source",
-        data: JSON.stringify({
-          sourceEntityType: "social-post",
-          sourceEntityId: "domain-as-identity",
-          attachmentType: "og-image",
-        }),
-        status: "processing" as const,
-        source: "content-pipeline",
-        priority: 0,
-        retryCount: 0,
-        maxRetries: 3,
-        lastError: null,
-        createdAt: 0,
-        scheduledFor: 0,
-        startedAt: null,
-        completedAt: null,
-        attemptId: "attempt-8412",
-        workerSlotId: "worker-a",
-        workerSessionId: "session-a",
-        leaseExpiresAt: 30_000,
-        attemptHeartbeatAt: 0,
-        runtimeUpdatedAt: 0,
-        progress: null,
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "job-root",
-        },
+  it("counts this package's own queued work as generating", async () => {
+    await mockShell.getJobQueueService().enqueue({
+      type: "image:image-render-source",
+      data: {
+        sourceEntityType: "social-post",
+        sourceEntityId: "domain-as-identity",
+        attachmentType: "og-image",
       },
-      {
-        id: "job-other",
-        type: "site:build",
-        data: "{}",
-        status: "processing" as const,
+      options: {
+        source: PIPELINE_PLUGIN_ID,
+        metadata: { operationType: "content_operations" },
+      },
+    });
+    await mockShell.getJobQueueService().enqueue({
+      type: "site:build",
+      data: {},
+      options: {
         source: "site-builder",
-        priority: 0,
-        retryCount: 0,
-        maxRetries: 3,
-        lastError: null,
-        createdAt: 0,
-        scheduledFor: 0,
-        startedAt: null,
-        completedAt: null,
-        attemptId: "attempt-other",
-        workerSlotId: "worker-a",
-        workerSessionId: "session-a",
-        leaseExpiresAt: 30_000,
-        attemptHeartbeatAt: 0,
-        runtimeUpdatedAt: 0,
-        progress: null,
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "job-root",
-        },
+        metadata: { operationType: "content_operations" },
       },
-    ];
+    });
 
-    await registerDashboardWidget(context, deps);
-    const data = await widgetPayload?.dataProvider(dashboardProviderContext);
+    const data = await load();
+    const stats = viewOf(data).blocks[0];
 
-    const stats = data?.view.blocks[0];
     expect(stats?.type).toBe("stats");
     if (stats?.type !== "stats") throw new Error("Expected pipeline stats");
     expect(stats.items[1]).toEqual({ label: "Generating", value: 1 });

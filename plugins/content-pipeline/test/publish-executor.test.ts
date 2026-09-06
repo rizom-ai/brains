@@ -1,9 +1,9 @@
+import { runtimeFor } from "./helpers/install";
 import { describe, expect, it, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
   baseEntitySchema,
   createMockShell,
-  createServicePluginContext,
   createTestEntityAdapter,
 } from "@brains/plugins/test";
 import { ProviderRegistry } from "../src/provider-registry";
@@ -19,7 +19,7 @@ describe("PublishExecutor", () => {
         baseEntitySchema.partial().passthrough(),
         createTestEntityAdapter("social-post"),
       );
-    const context = createServicePluginContext(shell, "content-pipeline");
+    const context = runtimeFor(shell);
     const providerRegistry = ProviderRegistry.createFresh();
     providerRegistry.register(
       "social-post",
@@ -29,7 +29,7 @@ describe("PublishExecutor", () => {
       },
       { publishResultIdField: "platformPostId" },
     );
-    await context.entityService.createEntity({
+    await shell.getEntityService().createEntity({
       entity: {
         id: "post-1",
         entityType: "social-post",
@@ -43,7 +43,10 @@ Body`,
         metadata: { status: "draft", platform: "linkedin" },
       },
     });
-    const executor = new PublishExecutor({ context, providerRegistry });
+    const executor = new PublishExecutor({
+      runtime: context,
+      providerRegistry,
+    });
 
     const result = await executor.publish({
       entityType: "social-post",
@@ -51,7 +54,7 @@ Body`,
     });
 
     expect("error" in result).toBe(false);
-    const updated = await context.entityService.getEntity({
+    const updated = await context.entities.getEntity({
       entityType: "social-post",
       id: "post-1",
     });
@@ -65,13 +68,13 @@ Body`,
     shell
       .getEntityRegistry()
       .registerEntityType("post", z.any(), createTestEntityAdapter("post"));
-    const context = createServicePluginContext(shell, "content-pipeline");
+    const context = runtimeFor(shell);
     const providerRegistry = ProviderRegistry.createFresh();
     providerRegistry.register("post", {
       name: "internal",
       publish: mock(async () => ({ id: "post-1" })),
     });
-    await context.entityService.createEntity({
+    await shell.getEntityService().createEntity({
       entity: {
         id: "post-1",
         entityType: "post",
@@ -89,12 +92,15 @@ Body`,
         },
       },
     });
-    const executor = new PublishExecutor({ context, providerRegistry });
+    const executor = new PublishExecutor({
+      runtime: context,
+      providerRegistry,
+    });
 
     const result = await executor.publish({ entityType: "post", id: "post-1" });
 
     expect("error" in result).toBe(false);
-    const updated = await context.entityService.getEntity({
+    const updated = await context.entities.getEntity({
       entityType: "post",
       id: "post-1",
     });
@@ -113,13 +119,13 @@ Body`,
         baseEntitySchema.partial().passthrough(),
         createTestEntityAdapter("post"),
       );
-    const context = createServicePluginContext(shell, "content-pipeline");
+    const context = runtimeFor(shell);
     const providerRegistry = ProviderRegistry.createFresh();
     providerRegistry.register("post", {
       name: "internal",
       publish: mock(async () => ({ id: "post-1" })),
     });
-    await context.entityService.createEntity({
+    await shell.getEntityService().createEntity({
       entity: {
         id: "post-1",
         entityType: "post",
@@ -134,7 +140,7 @@ Body`,
     });
     const ensureForEntity = mock(async () => undefined);
     const executor = new PublishExecutor({
-      context,
+      runtime: context,
       providerRegistry,
       publishAssetPreflight: { ensureForEntity },
     });

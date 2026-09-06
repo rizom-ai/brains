@@ -2,564 +2,277 @@ import { describe, expect, it } from "bun:test";
 import {
   baseEntitySchema,
   createMockShell,
-  createServicePluginContext,
+  type MockShell,
 } from "@brains/plugins/test";
-import {
-  BaseEntityAdapter,
-  type BaseEntity,
-  type StudioWorkspaceActor,
-  type StudioWorkspaceRegistration,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import type { OperatorCaller } from "@brains/plugins";
+import { PublicationQueueService } from "../src/publication-queue-service";
 import { ProviderRegistry } from "../src/provider-registry";
+import { PublishExecutor } from "../src/publish-executor";
 import { QueueManager } from "../src/queue-manager";
 import { RetryTracker } from "../src/retry-tracker";
-import { PublicationQueueService } from "../src/publication-queue-service";
-import { PublishExecutor } from "../src/publish-executor";
-import { registerStudioWorkspace } from "../src/lib/studio-workspace";
+import {
+  publishingWorkspace,
+  publishingWorkspaceHandlers,
+  type PublishingWorkspaceHandlers,
+} from "../src/lib/studio-workspace";
+import { FixtureAdapter } from "./helpers/fixture-adapter";
+import { runtimeFor } from "./helpers/install";
 
-const fixtureFrontmatterSchema = z.object({});
-
-class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
-  constructor() {
-    super({
-      entityType: "social-post",
-      purpose: "Studio workspace fixture",
-      schema: baseEntitySchema,
-      frontmatterSchema: fixtureFrontmatterSchema,
-    });
-  }
-
-  public fromMarkdown(markdown: string): Partial<BaseEntity> {
-    return { entityType: this.entityType, content: markdown };
-  }
-}
-
-const trustedActor: StudioWorkspaceActor = {
-  interfaceType: "studio",
-  userId: "editor",
-  actor: { kind: "user", userId: "editor" },
-  userPermissionLevel: "trusted",
-  visibilityScope: "shared",
+const adminCaller: OperatorCaller = {
+  actor: { id: "user:admin" },
+  permission: "admin",
+  isAnchor: true,
+};
+const trustedCaller: OperatorCaller = {
+  actor: { id: "user:trusted" },
+  permission: "trusted",
   isAnchor: false,
 };
 
-const adminActor: StudioWorkspaceActor = {
-  interfaceType: "studio",
-  userId: "operator",
-  actor: { kind: "user", userId: "operator" },
-  userPermissionLevel: "admin",
-  visibilityScope: "restricted",
-  isAnchor: true,
-};
+interface Desk {
+  readonly handlers: PublishingWorkspaceHandlers;
+  readonly shell: MockShell;
+  readonly queue: QueueManager;
+  readonly queueService: PublicationQueueService;
+}
 
-const preparedConfirmationSchema = z.object({
-  kind: z.literal("prepared-confirmation"),
-  token: z.string().uuid(),
-  summary: z.string(),
-  expiresAt: z.string().datetime(),
-});
-const successResultSchema = z.object({ success: z.literal(true) });
-
-describe("content-pipeline Studio workspace registration", () => {
-  it("is a no-op when the Studio is absent", async () => {
-    const context = createServicePluginContext(
-      createMockShell(),
-      "content-pipeline",
-    );
-
-    const queueManager = QueueManager.createFresh();
-    const providerRegistry = ProviderRegistry.createFresh();
-    const href = await registerStudioWorkspace(context, {
-      providerRegistry,
-      queueManager,
-      publicationQueueService: new PublicationQueueService(
-        context,
-        queueManager,
-      ),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({ context, providerRegistry }),
-    });
-
-    expect(href).toBeUndefined();
-  });
-
-  it("registers the declarative Publishing workspace backed by the canonical snapshot", async () => {
-    const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register(
-      "social-post",
-      baseEntitySchema,
-      new FixtureAdapter(),
-    );
-    await context.entityService.createEntity({
+/**
+ * The Publishing desk over one brain's records.
+ *
+ * The runtime registers the workspace and runs its confirmation flow; what
+ * belongs here is what the desk shows and what its buttons do.
+ */
+async function desk(
+  entities: ReadonlyArray<{
+    id: string;
+    status: string;
+    visibility?: "public" | "shared" | "restricted";
+  }>,
+  options: {
+    queued?: readonly string[];
+    narrowPermissions?: (shell: MockShell) => void;
+  } = {},
+): Promise<Desk> {
+  const shell = createMockShell();
+  options.narrowPermissions?.(shell);
+  const runtime = runtimeFor(shell, { delegated: ["social-post"] });
+  shell
+    .getEntityRegistry()
+    .registerEntityType("social-post", baseEntitySchema, new FixtureAdapter());
+  for (const entity of entities) {
+    await shell.getEntityService().createEntity({
       entity: {
-        id: "queued-post",
+        id: entity.id,
         entityType: "social-post",
-        content: "Queued post",
-        metadata: { status: "queued", title: "Queued post" },
-        visibility: "public",
+        content: entity.id,
+        visibility: entity.visibility ?? "public",
+        metadata: { status: entity.status, title: entity.id },
       },
     });
+  }
 
-    const providers = ProviderRegistry.createFresh();
-    providers.register("social-post", {
-      name: "linkedin",
-      publish: async () => ({ id: "remote-post" }),
-    });
-    const queue = QueueManager.createFresh();
-    await queue.add("social-post", "queued-post");
-    let registration: StudioWorkspaceRegistration | undefined;
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      { workspaceUrl: string }
-    >("studio:register-workspace", async (message) => {
-      registration = message.payload;
-      return {
-        success: true,
-        data: { workspaceUrl: "/studio/workspaces/publishing" },
-      };
-    });
-
-    const href = await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: new PublicationQueueService(context, queue),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
-        providerRegistry: providers,
-      }),
-    });
-
-    expect(href).toBe("/studio/workspaces/publishing");
-    expect(registration).toMatchObject({
-      id: "content-pipeline:publishing",
-      pluginId: "content-pipeline",
-      label: "Publishing",
-      rendererName: "DeclarativeOperatorWorkspace",
-      priority: 40,
-    });
-    if (!registration) throw new Error("Workspace was not registered");
-    // Entity types resolve against the caller so descriptors never disclose
-    // types the actor cannot act on.
-    expect(
-      typeof registration.entityTypes === "function"
-        ? await registration.entityTypes(adminActor)
-        : registration.entityTypes,
-    ).toEqual(["social-post"]);
-    expect(await registration.accessHandler(adminActor)).toBe(true);
-    const workspace = await registration.dataProvider(adminActor);
-    expect(workspace).toMatchObject({
-      view: { title: "Publishing desk" },
-    });
-    expect(JSON.stringify(workspace)).toContain('"title":"Queued post"');
-    expect(JSON.stringify(workspace)).toContain('"entityType":"social-post"');
+  const providerRegistry = ProviderRegistry.createFresh();
+  providerRegistry.register("social-post", {
+    name: "linkedin",
+    publish: async () => ({ id: "remote-post" }),
   });
+  const queue = QueueManager.createFresh();
+  for (const id of options.queued ?? []) await queue.add("social-post", id);
+  const queueService = new PublicationQueueService(runtime, queue);
 
-  it("owns validated queue, reorder, remove, and retry actions", async () => {
-    const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register(
-      "social-post",
-      baseEntitySchema,
-      new FixtureAdapter(),
-    );
-    const fixtureEntities: Array<readonly [string, "draft" | "failed"]> = [
-      ["first", "draft"],
-      ["second", "draft"],
-      ["failed", "failed"],
-      ["failed-for-queue", "failed"],
-    ];
-    for (const [id, status] of fixtureEntities) {
-      await context.entityService.createEntity({
-        entity: {
-          id,
-          entityType: "social-post",
-          content: id,
-          visibility: "public",
-          metadata: { status, title: id },
-        },
-      });
-    }
-
-    const providers = ProviderRegistry.createFresh();
-    providers.register("social-post", {
-      name: "linkedin",
-      publish: async () => ({ id: "remote-post" }),
-    });
-    const queue = QueueManager.createFresh();
-    const queueService = new PublicationQueueService(context, queue);
-    let registration: StudioWorkspaceRegistration | undefined;
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      { workspaceUrl: string }
-    >("studio:register-workspace", async (message) => {
-      registration = message.payload;
-      return {
-        success: true,
-        data: { workspaceUrl: "/studio/workspaces/publishing" },
-      };
-    });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
+  return {
+    shell,
+    queue,
+    queueService,
+    handlers: publishingWorkspaceHandlers(runtime, {
+      providerRegistry,
       queueManager: queue,
       publicationQueueService: queueService,
       retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
-        providerRegistry: providers,
-      }),
-    });
-    const act = registration?.actionHandler;
-    expect(act).toBeFunction();
-    const actor = adminActor;
+      publishExecutor: new PublishExecutor({ runtime, providerRegistry }),
+    }),
+  };
+}
 
-    await act?.(
-      {
-        actionId: "queue",
-        input: { entityType: "social-post", entityId: "first" },
-      },
-      actor,
-    );
-    await act?.(
-      {
-        actionId: "queue",
-        input: { entityType: "social-post", entityId: "second" },
-      },
-      actor,
-    );
-    await act?.(
-      {
-        actionId: "reorder",
-        input: {
-          entityType: "social-post",
-          entityId: "second",
-          position: 1,
-        },
-      },
-      actor,
-    );
+function statusOf(shell: MockShell, id: string): Promise<unknown> {
+  return shell
+    .getEntityService()
+    .getEntity({ entityType: "social-post", id })
+    .then((entity) => entity?.metadata["status"]);
+}
+
+describe("content-pipeline Studio workspace", () => {
+  it("declares the Publishing desk and its actions", () => {
+    expect(publishingWorkspace).toMatchObject({
+      id: "publishing",
+      label: "Publishing",
+      priority: 40,
+      permission: "trusted",
+    });
+    expect(publishingWorkspace.actions.map((action) => action.name)).toEqual([
+      "queue",
+      "remove",
+      "retry",
+      "reorder",
+      "publish",
+    ]);
+  });
+
+  it("opens on the canonical snapshot, scoped to what the caller may act on", async () => {
+    const { handlers } = await desk([{ id: "queued-post", status: "queued" }], {
+      queued: ["queued-post"],
+    });
+
+    expect(handlers.authorize({ caller: adminCaller })).toBe(true);
+    expect(handlers.authorize({ caller: null })).toBe(false);
+    expect(handlers.listEntityTypes({ caller: adminCaller })).toEqual([
+      "social-post",
+    ]);
+
+    const data = await handlers.load({ caller: adminCaller });
+    const view = publishingWorkspace.view({ data });
+    expect(view).toMatchObject({ title: "Publishing desk" });
+    const serialized = JSON.stringify(view);
+    expect(serialized).toContain("queued-post");
+  });
+
+  it("owns validated queue, reorder, remove, and retry actions", async () => {
+    const { handlers, shell, queue, queueService } = await desk([
+      { id: "first", status: "draft" },
+      { id: "second", status: "draft" },
+      { id: "failed", status: "failed" },
+      { id: "failed-for-queue", status: "failed" },
+    ]);
+    const target = (
+      entityId: string,
+    ): { entityType: string; entityId: string } => ({
+      entityType: "social-post",
+      entityId,
+    });
+
+    await handlers.queue({ caller: adminCaller, input: target("first") });
+    await handlers.queue({ caller: adminCaller, input: target("second") });
+    await handlers.reorder({
+      caller: adminCaller,
+      input: { ...target("second"), position: 1 },
+    });
     expect(
       (await queue.list("social-post")).map((item) => item.entityId),
     ).toEqual(["second", "first"]);
 
-    await act?.(
-      {
-        actionId: "remove",
-        input: { entityType: "social-post", entityId: "first" },
-      },
-      actor,
-    );
-    expect(
-      (
-        await context.entityService.getEntity({
-          entityType: "social-post",
-          id: "first",
-        })
-      )?.metadata["status"],
-    ).toBe("draft");
+    await handlers.remove({ caller: adminCaller, input: target("first") });
+    expect(await statusOf(shell, "first")).toBe("draft");
 
-    let invalidTransitionError: unknown;
-    try {
-      await act?.(
-        {
-          actionId: "queue",
-          input: {
-            entityType: "social-post",
-            entityId: "failed-for-queue",
-          },
-        },
-        actor,
-      );
-    } catch (error) {
-      invalidTransitionError = error;
-    }
-    if (!(invalidTransitionError instanceof Error)) {
-      throw new Error("Expected invalid transition to fail");
-    }
-    expect(invalidTransitionError.message).toContain('action "queue" failed');
-
-    await act?.(
-      {
-        actionId: "retry",
-        input: { entityType: "social-post", entityId: "failed" },
-      },
-      actor,
-    );
     expect(
-      (
-        await context.entityService.getEntity({
-          entityType: "social-post",
-          id: "failed",
-        })
-      )?.metadata["status"],
-    ).toBe("queued");
+      handlers.queue({
+        caller: adminCaller,
+        input: target("failed-for-queue"),
+      }),
+    ).rejects.toThrow("Only draft entities can be queued");
+
+    await handlers.retry({ caller: adminCaller, input: target("failed") });
+    expect(await statusOf(shell, "failed")).toBe("queued");
     expect(await queueService.listStored("social-post")).toHaveLength(2);
-
-    let invalidActionError: unknown;
-    try {
-      await act?.({ actionId: "launch", input: {} }, actor);
-    } catch (error) {
-      invalidActionError = error;
-    }
-    if (!(invalidActionError instanceof Error)) {
-      throw new Error("Expected invalid action to fail");
-    }
-    expect(invalidActionError.message).toContain(
-      'does not declare action "launch"',
-    );
   });
 
   it("scopes Trusted workspace data and separates arrange from publish", async () => {
-    const shell = createMockShell();
-    const permissionService = shell.getPermissionService();
-    const originalAssert =
-      permissionService.assertEntityActionAllowed.bind(permissionService);
-    permissionService.assertEntityActionAllowed = (
-      entityType,
-      action,
-      userPermissionLevel,
-    ): void => {
-      if (entityType === "social-post" && userPermissionLevel === "trusted") {
-        if (action === "update") return;
-        if (action === "publish") {
-          throw new Error("publish social-post requires admin permission");
-        }
-      }
-      originalAssert(entityType, action, userPermissionLevel);
-    };
-    shell.getPermissionService = (): typeof permissionService =>
-      permissionService;
-    const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register(
-      "social-post",
-      baseEntitySchema,
-      new FixtureAdapter(),
+    const { handlers, queue } = await desk(
+      [
+        { id: "shared-queued", status: "queued", visibility: "shared" },
+        { id: "restricted-queued", status: "queued", visibility: "restricted" },
+        { id: "shared-draft", status: "draft", visibility: "shared" },
+      ],
+      {
+        queued: ["restricted-queued", "shared-queued"],
+        // Arranging the queue is an update; sending it out is a publish, and
+        // only an admin may do the second.
+        narrowPermissions: (mockShell) => {
+          const permissions = mockShell.getPermissionService();
+          const original =
+            permissions.assertEntityActionAllowed.bind(permissions);
+          permissions.assertEntityActionAllowed = (
+            entityType,
+            action,
+            level,
+          ): void => {
+            if (entityType === "social-post" && level === "trusted") {
+              if (action === "update") return;
+              if (action === "publish") {
+                throw new Error(
+                  "publish social-post requires admin permission",
+                );
+              }
+            }
+            original(entityType, action, level);
+          };
+          // getPermissionService builds a fresh object per call, so the
+          // narrowed one only survives if the instance is pinned.
+          mockShell.getPermissionService = (): typeof permissions =>
+            permissions;
+        },
+      },
     );
-    const scopedEntities: Array<{
-      id: string;
-      visibility: "shared" | "restricted";
-      status: "draft" | "queued";
-    }> = [
-      {
-        id: "shared-queued",
-        visibility: "shared",
-        status: "queued",
-      },
-      {
-        id: "restricted-queued",
-        visibility: "restricted",
-        status: "queued",
-      },
-      { id: "shared-draft", visibility: "shared", status: "draft" },
-    ];
-    for (const entity of scopedEntities) {
-      await context.entityService.createEntity({
-        entity: {
-          id: entity.id,
+
+    expect(handlers.authorize({ caller: trustedCaller })).toBe(true);
+    const data = await handlers.load({ caller: trustedCaller });
+    const serialized = JSON.stringify(publishingWorkspace.view({ data }));
+    expect(serialized).toContain("shared-queued");
+    expect(serialized).not.toContain("restricted-queued");
+
+    expect(
+      await handlers.reorder({
+        caller: trustedCaller,
+        input: {
           entityType: "social-post",
-          content: entity.id,
-          visibility: entity.visibility,
-          metadata: { status: entity.status, title: entity.id },
+          entityId: "shared-queued",
+          position: 1,
         },
-      });
-    }
-
-    const providers = ProviderRegistry.createFresh();
-    providers.register("social-post", {
-      name: "linkedin",
-      publish: async () => ({ id: "remote-post" }),
-    });
-    const queue = QueueManager.createFresh();
-    await queue.add("social-post", "restricted-queued");
-    await queue.add("social-post", "shared-queued");
-    let registration: StudioWorkspaceRegistration | undefined;
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      { workspaceUrl: string }
-    >("studio:register-workspace", async (message) => {
-      registration = message.payload;
-      return {
-        success: true,
-        data: { workspaceUrl: "/studio/workspaces/publishing" },
-      };
-    });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: new PublicationQueueService(context, queue),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
-        providerRegistry: providers,
       }),
-    });
-    if (!registration?.actionHandler) {
-      throw new Error("Workspace was not registered");
-    }
-
-    expect(
-      await Promise.resolve(registration.accessHandler(trustedActor)),
-    ).toBe(true);
-    const trustedWorkspace = await registration.dataProvider(trustedActor);
-    expect(trustedWorkspace).toMatchObject({
-      view: { title: "Publishing desk" },
-    });
-    const trustedSerialized = JSON.stringify(trustedWorkspace);
-    expect(trustedSerialized).toContain("shared-queued");
-    expect(trustedSerialized).not.toContain("restricted-queued");
-    expect(
-      await registration.actionHandler(
-        {
-          actionId: "reorder",
-          input: {
-            entityType: "social-post",
-            entityId: "shared-queued",
-            position: 1,
-          },
-        },
-        trustedActor,
-      ),
     ).toEqual({ success: true });
     // View position 1 is the caller's own (and only) slot — the hidden
     // restricted entry must keep absolute priority.
     expect(
       (await queue.list("social-post")).map((entry) => entry.entityId),
     ).toEqual(["restricted-queued", "shared-queued"]);
+
     expect(
-      registration.actionHandler(
-        {
-          actionId: "queue",
-          input: {
-            entityType: "social-post",
-            entityId: "shared-draft",
-          },
-        },
-        trustedActor,
-      ),
-    ).rejects.toThrow('action "queue" failed');
+      handlers.queue({
+        caller: trustedCaller,
+        input: { entityType: "social-post", entityId: "shared-draft" },
+      }),
+    ).rejects.toThrow("requires admin permission");
   });
 
-  it("reuses confirmed publishing with content-hash protection", async () => {
-    const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    context.entities.register(
-      "social-post",
-      baseEntitySchema,
-      new FixtureAdapter(),
-    );
-    await context.entityService.createEntity({
-      entity: {
-        id: "draft-post",
-        entityType: "social-post",
-        content: "Original content",
-        visibility: "public",
-        metadata: { status: "draft", title: "Draft post" },
-      },
-    });
+  it("prepares a publish against the content it read, and publishes once", async () => {
+    const { handlers, shell } = await desk([
+      { id: "draft-post", status: "draft" },
+    ]);
+    const input = { entityType: "social-post", entityId: "draft-post" };
 
-    let publishCalls = 0;
-    const providers = ProviderRegistry.createFresh();
-    providers.register("social-post", {
-      name: "linkedin",
-      publish: async () => {
-        publishCalls += 1;
-        return { id: "remote-post" };
-      },
+    const prepared = await handlers.preparePublish({
+      caller: adminCaller,
+      input,
     });
-    const queue = QueueManager.createFresh();
-    const queueService = new PublicationQueueService(context, queue);
-    let registration: StudioWorkspaceRegistration | undefined;
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      { workspaceUrl: string }
-    >("studio:register-workspace", async (message) => {
-      registration = message.payload;
-      return {
-        success: true,
-        data: { workspaceUrl: "/studio/workspaces/publishing" },
-      };
-    });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: queueService,
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
-        providerRegistry: providers,
-      }),
-    });
-    const actor = adminActor;
-    const publishInput = {
-      entityType: "social-post",
-      entityId: "draft-post",
-    };
-    const first = preparedConfirmationSchema.parse(
-      await registration?.actionHandler?.(
-        { actionId: "publish", input: publishInput, mode: "prepare" },
-        actor,
-      ),
-    );
-    expect(first.summary).toContain("Draft post");
+    expect(prepared.summary).toContain("draft-post");
 
-    const entity = await context.entityService.getEntity({
-      entityType: "social-post",
-      id: "draft-post",
-    });
+    // The revision is the content hash the runtime compares a confirmation
+    // against: changing the entity must change it, or a stale approval would
+    // publish something nobody read.
+    const entity = await shell
+      .getEntityService()
+      .getEntity({ entityType: "social-post", id: "draft-post" });
     if (!entity) throw new Error("Expected entity");
-    await context.entityService.updateEntity({
+    await shell.getEntityService().updateEntity({
       entity: { ...entity, content: "Changed after confirmation" },
     });
-    expect(
-      registration?.actionHandler?.(
-        {
-          actionId: "publish",
-          input: publishInput,
-          confirmationToken: first.token,
-        },
-        actor,
-      ),
-    ).rejects.toThrow("invalid or stale");
-    expect(publishCalls).toBe(0);
+    const second = await handlers.preparePublish({
+      caller: adminCaller,
+      input,
+    });
+    expect(second.revision).not.toBe(prepared.revision);
 
-    const fresh = preparedConfirmationSchema.parse(
-      await registration?.actionHandler?.(
-        { actionId: "publish", input: publishInput, mode: "prepare" },
-        actor,
-      ),
-    );
-    const published = successResultSchema.parse(
-      await registration?.actionHandler?.(
-        {
-          actionId: "publish",
-          input: publishInput,
-          confirmationToken: fresh.token,
-        },
-        actor,
-      ),
-    );
-    expect(published.success).toBe(true);
-    expect(publishCalls).toBe(1);
-    expect(
-      registration?.actionHandler?.(
-        {
-          actionId: "publish",
-          input: publishInput,
-          confirmationToken: fresh.token,
-        },
-        actor,
-      ),
-    ).rejects.toThrow("invalid or stale");
-    expect(publishCalls).toBe(1);
-    expect(
-      (
-        await context.entityService.getEntity({
-          entityType: "social-post",
-          id: "draft-post",
-        })
-      )?.metadata["status"],
-    ).toBe("published");
+    const published = await handlers.publish({ caller: adminCaller, input });
+    expect(published).toMatchObject({ success: true });
+    expect(await statusOf(shell, "draft-post")).toBe("published");
   });
 });

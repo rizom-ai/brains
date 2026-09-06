@@ -3,13 +3,14 @@ import {
   defineEntityCatalog,
   defineWorkspaceAction,
   permissionToVisibilityScope,
-  registerBuiltInStudioWorkspace,
   type OperatorCaller,
   type OperatorRegionBlock,
+  type StudioWorkspaceDefinition,
+  type WorkspaceActionDefinition,
   type OperatorViewBlock,
-  type ServicePluginContext,
   type ToolContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type { PipelineRuntime } from "../runtime";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
 import type { QueueManager } from "../queue-manager";
@@ -20,6 +21,7 @@ import {
   getPublicationPipelineSnapshot,
   hasPublicationStatus,
   publicationPipelineSnapshotSchema,
+  type PublicationPipelineSnapshot,
 } from "../pipeline-snapshot";
 import { publishOutputSchema } from "../tools/publish";
 
@@ -59,37 +61,58 @@ const reorderInputSchema: ReturnType<
 > = publishingTargetSchema.extend({
   position: z.number().int().positive(),
 });
-const successSchema = z.object({ success: z.literal(true) });
+type SuccessSchema = z.ZodObject<{ success: z.ZodLiteral<true> }>;
+const successSchema: SuccessSchema = z.object({ success: z.literal(true) });
 
-const queueAction = defineWorkspaceAction({
+export const queueAction: WorkspaceActionDefinition<
+  "queue",
+  PublishingTargetSchema,
+  SuccessSchema
+> = defineWorkspaceAction({
   name: "queue",
   label: "Add to queue",
   permission: "trusted",
   input: publishingTargetSchema,
   output: successSchema,
 });
-const removeAction = defineWorkspaceAction({
+export const removeAction: WorkspaceActionDefinition<
+  "remove",
+  PublishingTargetSchema,
+  SuccessSchema
+> = defineWorkspaceAction({
   name: "remove",
   label: "Remove from queue",
   permission: "trusted",
   input: publishingTargetSchema,
   output: successSchema,
 });
-const retryAction = defineWorkspaceAction({
+export const retryAction: WorkspaceActionDefinition<
+  "retry",
+  PublishingTargetSchema,
+  SuccessSchema
+> = defineWorkspaceAction({
   name: "retry",
   label: "Retry publication",
   permission: "trusted",
   input: publishingTargetSchema,
   output: successSchema,
 });
-const reorderAction = defineWorkspaceAction({
+export const reorderAction: WorkspaceActionDefinition<
+  "reorder",
+  typeof reorderInputSchema,
+  SuccessSchema
+> = defineWorkspaceAction({
   name: "reorder",
   label: "Reorder",
   permission: "trusted",
   input: reorderInputSchema,
   output: successSchema,
 });
-const publishAction = defineWorkspaceAction({
+export const publishAction: WorkspaceActionDefinition<
+  "publish",
+  PublishingTargetSchema,
+  typeof publishOutputSchema
+> = defineWorkspaceAction({
   name: "publish",
   label: "Publish now",
   permission: "trusted",
@@ -140,7 +163,7 @@ export type StudioPublishingAction = z.output<
   typeof studioPublishingActionSchema
 >;
 
-export interface RegisterStudioWorkspaceDeps {
+export interface PipelineWorkspaceDeps {
   providerRegistry: ProviderRegistry;
   queueManager: QueueManager;
   publicationQueueService: PublicationQueueService;
@@ -157,7 +180,7 @@ function toToolContext(caller: OperatorCaller): ToolContext {
 }
 
 function getWorkspaceEntityTypes(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   providerRegistry: ProviderRegistry,
   caller: OperatorCaller,
 ): string[] {
@@ -181,15 +204,15 @@ function getWorkspaceEntityTypes(
 }
 
 async function requirePublicationEntity(
-  context: ServicePluginContext,
-  deps: RegisterStudioWorkspaceDeps,
+  context: PipelineRuntime,
+  deps: PipelineWorkspaceDeps,
   input: StudioPublishingTarget,
   caller: OperatorCaller,
 ): Promise<{ metadata: Record<string, unknown> }> {
   if (!deps.providerRegistry.has(input.entityType)) {
     throw new Error(`No publish provider registered for ${input.entityType}`);
   }
-  const entity = await context.entityService.getEntity({
+  const entity = await context.entities.getEntity({
     entityType: input.entityType,
     id: input.entityId,
     visibilityScope: permissionToVisibilityScope(caller.permission),
@@ -201,8 +224,8 @@ async function requirePublicationEntity(
 }
 
 async function mutateQueue(
-  context: ServicePluginContext,
-  deps: RegisterStudioWorkspaceDeps,
+  context: PipelineRuntime,
+  deps: PipelineWorkspaceDeps,
   action: "queue" | "remove" | "retry" | "reorder",
   input: StudioPublishingTarget & { position?: number | undefined },
   caller: OperatorCaller,
@@ -263,8 +286,8 @@ async function mutateQueue(
 }
 
 async function preparePublish(
-  context: ServicePluginContext,
-  deps: RegisterStudioWorkspaceDeps,
+  context: PipelineRuntime,
+  deps: PipelineWorkspaceDeps,
   input: StudioPublishingTarget,
   caller: OperatorCaller,
 ): Promise<{ summary: string; revision: string }> {
@@ -290,8 +313,8 @@ async function preparePublish(
 }
 
 async function publishNow(
-  context: ServicePluginContext,
-  deps: RegisterStudioWorkspaceDeps,
+  context: PipelineRuntime,
+  deps: PipelineWorkspaceDeps,
   input: StudioPublishingTarget,
   caller: OperatorCaller,
 ): Promise<z.output<typeof publishOutputSchema>> {
@@ -328,7 +351,17 @@ function targetLink(
   return { catalog: publishableEntities, entityType, id: entityId };
 }
 
-const publishingWorkspace = defineStudioWorkspace({
+export const publishingWorkspace: StudioWorkspaceDefinition<
+  "publishing",
+  typeof publicationPipelineSnapshotSchema,
+  readonly [
+    typeof queueAction,
+    typeof removeAction,
+    typeof retryAction,
+    typeof reorderAction,
+    typeof publishAction,
+  ]
+> = defineStudioWorkspace({
   id: "publishing",
   label: "Publishing",
   priority: 40,
@@ -581,80 +614,105 @@ const publishingWorkspace = defineStudioWorkspace({
   },
 });
 
-/** Register Publishing when Studio is present; absence is intentionally a no-op. */
-export async function registerStudioWorkspace(
-  context: ServicePluginContext,
-  deps: RegisterStudioWorkspaceDeps,
-): Promise<string | undefined> {
-  const result = await registerBuiltInStudioWorkspace({
-    context,
-    definition: publishingWorkspace,
-    bind: (bindingContext) =>
-      publishingWorkspace.bind(bindingContext, {
-        authorize: ({ caller }) =>
-          caller !== null &&
-          getWorkspaceEntityTypes(context, deps.providerRegistry, caller)
-            .length > 0,
-        listEntityTypes: ({ caller }) =>
-          caller
-            ? getWorkspaceEntityTypes(context, deps.providerRegistry, caller)
-            : [],
-        load: ({ caller }) => {
-          if (!caller) throw new Error("Publishing requires authentication");
-          return getPublicationPipelineSnapshot(
+/** Where a caller stands when they open the desk or press one of its buttons. */
+interface WorkspaceRequest<TInput = never> {
+  readonly caller: OperatorCaller | null;
+  readonly input: TInput;
+}
+
+export interface PublishingWorkspaceHandlers {
+  authorize(request: { caller: OperatorCaller | null }): boolean;
+  listEntityTypes(request: { caller: OperatorCaller | null }): string[];
+  load(request: {
+    caller: OperatorCaller | null;
+  }): Promise<PublicationPipelineSnapshot>;
+  queue(request: WorkspaceRequest<StudioPublishingTarget>): Promise<{
+    success: true;
+  }>;
+  remove(request: WorkspaceRequest<StudioPublishingTarget>): Promise<{
+    success: true;
+  }>;
+  retry(request: WorkspaceRequest<StudioPublishingTarget>): Promise<{
+    success: true;
+  }>;
+  reorder(
+    request: WorkspaceRequest<z.output<typeof reorderInputSchema>>,
+  ): Promise<{ success: true }>;
+  publish(
+    request: WorkspaceRequest<StudioPublishingTarget>,
+  ): Promise<z.output<typeof publishOutputSchema>>;
+  preparePublish(
+    request: WorkspaceRequest<StudioPublishingTarget>,
+  ): Promise<{ summary: string; revision: string }>;
+}
+
+/** What the Publishing desk shows and what its buttons do. */
+export function publishingWorkspaceHandlers(
+  context: PipelineRuntime,
+  deps: PipelineWorkspaceDeps,
+): PublishingWorkspaceHandlers {
+  return {
+    authorize: ({ caller }) =>
+      caller !== null &&
+      getWorkspaceEntityTypes(context, deps.providerRegistry, caller).length >
+        0,
+    listEntityTypes: ({ caller }) =>
+      caller
+        ? getWorkspaceEntityTypes(context, deps.providerRegistry, caller)
+        : [],
+    load: ({ caller }): Promise<PublicationPipelineSnapshot> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return getPublicationPipelineSnapshot(
+        context,
+        deps.providerRegistry,
+        deps.queueManager,
+        deps.retryTracker,
+        {
+          visibilityScope: permissionToVisibilityScope(caller.permission),
+          entityTypes: getWorkspaceEntityTypes(
             context,
             deps.providerRegistry,
-            deps.queueManager,
-            deps.retryTracker,
-            {
-              visibilityScope: permissionToVisibilityScope(caller.permission),
-              entityTypes: getWorkspaceEntityTypes(
-                context,
-                deps.providerRegistry,
-                caller,
-              ),
-            },
-          );
-        },
-        actions: [
-          queueAction.bind(bindingContext, ({ input, caller }) => {
-            if (!caller) throw new Error("Publishing requires authentication");
-            return mutateQueue(context, deps, "queue", input, caller);
-          }),
-          removeAction.bind(bindingContext, ({ input, caller }) => {
-            if (!caller) throw new Error("Publishing requires authentication");
-            return mutateQueue(context, deps, "remove", input, caller);
-          }),
-          retryAction.bind(bindingContext, ({ input, caller }) => {
-            if (!caller) throw new Error("Publishing requires authentication");
-            return mutateQueue(context, deps, "retry", input, caller);
-          }),
-          reorderAction.bind(bindingContext, ({ input, caller }) => {
-            if (!caller) throw new Error("Publishing requires authentication");
-            return mutateQueue(context, deps, "reorder", input, caller);
-          }),
-          publishAction.bind(
-            bindingContext,
-            ({ input, caller }) => {
-              if (!caller)
-                throw new Error("Publishing requires authentication");
-              return publishNow(context, deps, input, caller);
-            },
-            ({ input, caller }) => {
-              if (!caller)
-                throw new Error("Publishing requires authentication");
-              return preparePublish(context, deps, input, caller);
-            },
+            caller,
           ),
-        ],
-      }),
-  });
-  return result === false ? undefined : result.workspaceUrl;
+        },
+      );
+    },
+    queue: ({ input, caller }): Promise<{ success: true }> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return mutateQueue(context, deps, "queue", input, caller);
+    },
+    remove: ({ input, caller }): Promise<{ success: true }> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return mutateQueue(context, deps, "remove", input, caller);
+    },
+    retry: ({ input, caller }): Promise<{ success: true }> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return mutateQueue(context, deps, "retry", input, caller);
+    },
+    reorder: ({ input, caller }): Promise<{ success: true }> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return mutateQueue(context, deps, "reorder", input, caller);
+    },
+    publish: ({
+      input,
+      caller,
+    }): Promise<z.output<typeof publishOutputSchema>> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return publishNow(context, deps, input, caller);
+    },
+    preparePublish: ({
+      input,
+      caller,
+    }): Promise<{ summary: string; revision: string }> => {
+      if (!caller) throw new Error("Publishing requires authentication");
+      return preparePublish(context, deps, input, caller);
+    },
+  };
 }
 
 /** Map a caller-visible queue slot back to the provider's absolute slot. */
 async function toAbsoluteQueuePosition(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   queueManager: QueueManager,
   entityType: string,
   caller: OperatorCaller,
@@ -662,7 +720,7 @@ async function toAbsoluteQueuePosition(
 ): Promise<number> {
   const viewEntries = [];
   for (const entry of await queueManager.list(entityType)) {
-    const entity = await context.entityService.getEntity({
+    const entity = await context.entities.getEntity({
       entityType,
       id: entry.entityId,
       visibilityScope: permissionToVisibilityScope(caller.permission),

@@ -1,11 +1,8 @@
+import type { MockShell } from "@brains/plugins/test";
+import { PIPELINE_PLUGIN_ID, runtimeFor } from "./helpers/install";
 import { describe, expect, it } from "bun:test";
 import { BaseEntityAdapter, type BaseEntity } from "@brains/plugins";
-import {
-  baseEntitySchema,
-  createMockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
-} from "@brains/plugins/test";
+import { baseEntitySchema, createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { ProviderRegistry } from "../src/provider-registry";
 import { QueueManager } from "../src/queue-manager";
@@ -27,16 +24,37 @@ class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
   }
 }
 
-function registerType(context: ServicePluginContext, entityType: string): void {
-  context.entities.register(
-    entityType,
-    baseEntitySchema,
-    new FixtureAdapter(entityType),
-  );
+/** An asset generation job this package queued, as the runtime records it. */
+async function queueAssetJob(
+  shell: MockShell,
+  input: { sourceEntityId: string },
+): Promise<string> {
+  return shell.getJobQueueService().enqueue({
+    type: "image:image-render-source",
+    data: {
+      sourceEntityType: "social-post",
+      sourceEntityId: input.sourceEntityId,
+      attachmentType: "og-image",
+    },
+    options: {
+      source: PIPELINE_PLUGIN_ID,
+      metadata: { operationType: "content_operations" },
+    },
+  });
+}
+
+function registerType(shell: MockShell, entityType: string): void {
+  shell
+    .getEntityRegistry()
+    .registerEntityType(
+      entityType,
+      baseEntitySchema,
+      new FixtureAdapter(entityType),
+    );
 }
 
 async function addEntity(
-  context: ServicePluginContext,
+  shell: MockShell,
   input: {
     entityType: string;
     id: string;
@@ -47,7 +65,7 @@ async function addEntity(
     visibility?: "public" | "shared" | "restricted";
   },
 ): Promise<void> {
-  await context.entityService.createEntity({
+  await shell.getEntityService().createEntity({
     entity: {
       id: input.id,
       entityType: input.entityType,
@@ -66,38 +84,38 @@ async function addEntity(
 describe("publication pipeline snapshot", () => {
   it("joins registered provider entities, the queue, failures, and active jobs", async () => {
     const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    registerType(context, "social-post");
-    registerType(context, "workflow-card");
+    const context = runtimeFor(shell);
+    registerType(shell, "social-post");
+    registerType(shell, "workflow-card");
 
-    await addEntity(context, {
+    await addEntity(shell, {
       entityType: "social-post",
       id: "queued-post",
       status: "queued",
       title: "Queued post",
       scheduledFor: "2026-07-20T09:00:00.000Z",
     });
-    await addEntity(context, {
+    await addEntity(shell, {
       entityType: "social-post",
       id: "draft-post",
       status: "draft",
       title: "Draft post",
     });
-    await addEntity(context, {
+    await addEntity(shell, {
       entityType: "social-post",
       id: "failed-post",
       status: "failed",
       title: "Failed post",
       error: "Provider rejected sender",
     });
-    await addEntity(context, {
+    await addEntity(shell, {
       entityType: "social-post",
       id: "published-post",
       status: "published",
       title: "Published post",
     });
     // This status-bearing type is not registered with the content pipeline.
-    await addEntity(context, {
+    await addEntity(shell, {
       entityType: "workflow-card",
       id: "unrelated-draft",
       status: "draft",
@@ -113,41 +131,9 @@ describe("publication pipeline snapshot", () => {
     await queue.add("social-post", "queued-post");
     const retries = RetryTracker.createFresh();
     retries.recordFailure("failed-post", "Transient provider error");
-    type ActiveJobs = Awaited<
-      ReturnType<ServicePluginContext["jobs"]["getActiveJobs"]>
-    >;
-    context.jobs.getActiveJobs = async (): Promise<ActiveJobs> => [
-      {
-        id: "job-1",
-        type: "image:image-render-source",
-        data: JSON.stringify({
-          sourceEntityType: "social-post",
-          sourceEntityId: "queued-post",
-          attachmentType: "og-image",
-        }),
-        status: "processing",
-        source: "content-pipeline",
-        priority: 0,
-        retryCount: 0,
-        maxRetries: 3,
-        lastError: null,
-        createdAt: 0,
-        scheduledFor: 0,
-        startedAt: null,
-        completedAt: null,
-        attemptId: "attempt-1",
-        workerSlotId: "worker-a",
-        workerSessionId: "session-a",
-        leaseExpiresAt: 30_000,
-        attemptHeartbeatAt: 0,
-        runtimeUpdatedAt: 0,
-        progress: null,
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "job-1",
-        },
-      },
-    ];
+    const generatingJobId = await queueAssetJob(shell, {
+      sourceEntityId: "queued-post",
+    });
 
     const snapshot = await getPublicationPipelineSnapshot(
       context,
@@ -177,10 +163,10 @@ describe("publication pipeline snapshot", () => {
     ]);
     expect(snapshot.generating).toEqual([
       {
-        id: "job-1",
+        id: generatingJobId,
         label: "og-image",
         target: "social-post/queued-post",
-        status: "processing",
+        status: "pending",
       },
     ]);
     expect(snapshot.failures).toEqual([
@@ -196,9 +182,9 @@ describe("publication pipeline snapshot", () => {
 
   it("keeps each destination contiguous in its executable order", async () => {
     const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    registerType(context, "newsletter");
-    registerType(context, "post");
+    const context = runtimeFor(shell);
+    registerType(shell, "newsletter");
+    registerType(shell, "post");
     for (const input of [
       { entityType: "post", id: "post-one", title: "Post one" },
       { entityType: "post", id: "post-two", title: "Post two" },
@@ -208,7 +194,7 @@ describe("publication pipeline snapshot", () => {
         title: "Newsletter one",
       },
     ]) {
-      await addEntity(context, { ...input, status: "queued" });
+      await addEntity(shell, { ...input, status: "queued" });
     }
 
     const providers = ProviderRegistry.createFresh();
@@ -265,16 +251,16 @@ describe("publication pipeline snapshot", () => {
 
   it("renumbers scoped queue positions so hidden entries leave no gap", async () => {
     const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    registerType(context, "social-post");
-    await addEntity(context, {
+    const context = runtimeFor(shell);
+    registerType(shell, "social-post");
+    await addEntity(shell, {
       entityType: "social-post",
       id: "restricted-first",
       status: "queued",
       title: "Restricted first",
       visibility: "restricted",
     });
-    await addEntity(context, {
+    await addEntity(shell, {
       entityType: "social-post",
       id: "shared-second",
       status: "queued",
@@ -308,50 +294,18 @@ describe("publication pipeline snapshot", () => {
 
   it("keeps orphaned generation jobs visible at full restricted scope", async () => {
     const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    registerType(context, "social-post");
+    const context = runtimeFor(shell);
+    registerType(shell, "social-post");
 
     const providers = ProviderRegistry.createFresh();
     providers.register("social-post", {
       name: "linkedin",
       publish: async () => ({ id: "remote-post" }),
     });
-    type ActiveJobs = Awaited<
-      ReturnType<ServicePluginContext["jobs"]["getActiveJobs"]>
-    >;
     // The job's source entity does not exist (deleted mid-generation).
-    context.jobs.getActiveJobs = async (): Promise<ActiveJobs> => [
-      {
-        id: "job-orphan",
-        type: "image:image-render-source",
-        data: JSON.stringify({
-          sourceEntityType: "social-post",
-          sourceEntityId: "deleted-post",
-          attachmentType: "og-image",
-        }),
-        status: "processing",
-        source: "content-pipeline",
-        priority: 0,
-        retryCount: 0,
-        maxRetries: 3,
-        lastError: null,
-        createdAt: 0,
-        scheduledFor: 0,
-        startedAt: null,
-        completedAt: null,
-        attemptId: "attempt-orphan",
-        workerSlotId: "worker-a",
-        workerSessionId: "session-a",
-        leaseExpiresAt: 30_000,
-        attemptHeartbeatAt: 0,
-        runtimeUpdatedAt: 0,
-        progress: null,
-        metadata: {
-          operationType: "content_operations",
-          rootJobId: "job-orphan",
-        },
-      },
-    ];
+    const orphanJobId = await queueAssetJob(shell, {
+      sourceEntityId: "deleted-post",
+    });
 
     const adminSnapshot = await getPublicationPipelineSnapshot(
       context,
@@ -363,7 +317,7 @@ describe("publication pipeline snapshot", () => {
     // Restricted scope reads everything — still-running work must not vanish
     // from the operator view just because its source entity is gone.
     expect(adminSnapshot.generating.map((job) => job.id)).toEqual([
-      "job-orphan",
+      orphanJobId,
     ]);
     expect(adminSnapshot.summary.generating).toBe(1);
 
@@ -380,9 +334,9 @@ describe("publication pipeline snapshot", () => {
 
   it("returns an idle snapshot when no publish provider is registered", async () => {
     const shell = createMockShell();
-    const context = createServicePluginContext(shell, "content-pipeline");
-    registerType(context, "workflow-card");
-    await addEntity(context, {
+    const context = runtimeFor(shell);
+    registerType(shell, "workflow-card");
+    await addEntity(shell, {
       entityType: "workflow-card",
       id: "draft",
       status: "draft",

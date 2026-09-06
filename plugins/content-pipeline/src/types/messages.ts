@@ -1,5 +1,5 @@
 import type { PublishProvider } from "@brains/contracts";
-import type { ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/sdk/services";
 import type { PublishConfigInput } from "./config";
 import type { PublishAssetDefinition } from "../publish-assets";
 

@@ -2,18 +2,18 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **21 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **22 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
 `@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
 `@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`,
-`@brains/atproto`).
+`@brains/atproto`,
+`@brains/content-pipeline`).
 
-The seven that remain all still extend a base class: `webserver`,
-`content-pipeline`, `dashboard`, `directory-sync`, `site-builder`,
-`site-content`, `studio`. Three that are converted —
+The six that remain all still extend a base class: `webserver`,
+`dashboard`, `directory-sync`, `site-builder`, `site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -661,6 +661,33 @@ verbatim` hands the handler's own `Response` through untouched.
    own access. The real-bootloader publishing test moved from shell/core to
    brain-cli, since a core dev-dependency on a package that depends on the
    SDK is a cycle; brain-cli already composes both.
+
+   **`content-pipeline` writes on other packages' entities, and that was
+   the whole question.** Converted. Fourteen bus handlers became declared
+   subscriptions with payload schemas, the widget and the Publishing desk
+   became declarations bound in their slots, and `publishing_manage` became
+   `defineTool`. The two per-tool factories it also exported were dead: only
+   the manage tool was ever registered.
+
+   The package owns no entity types, yet it sets `status`, the publish
+   timestamp and the provider's id on entities belonging to blog, newsletter,
+   social-media and the rest, and it queues an image job belonging to
+   `@brains/image`. A declaration cannot be handed either. The answer is the
+   one `createRouted` already established for cross-type creates: the runtime
+   mediates, and the target's own declaration decides. A package that declares
+   `publish` delegates the act, so the runtime records that delegation — bound
+   to the declaring package's entity access — and the pipeline's `publishing`
+   handle writes through it. `publishAssets` works the same way: the
+   declaration names the job, and the pipeline may queue that one and no
+   other. A type nobody declared publishable is now refused rather than
+   silently queued and never published.
+
+   Four more setup reads, each with content-pipeline as the named consumer:
+   `messaging`, because a scheduler firing on a timer has no caller to answer;
+   `permissions`, because it applies the check on a caller's behalf over types
+   it does not own; `attachments`, because what it sends includes media another
+   package resolves; and `jobs`, whose new `active()` is scoped to this
+   package's own queued work, which is what an operator page shows.
 
    **`site-content` is parked behind `site-builder`.** Its generate tool
    decides which sections can generate by asking

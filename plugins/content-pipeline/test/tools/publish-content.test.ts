@@ -1,11 +1,11 @@
+import { runtimeFor } from "../helpers/install";
+import type { PipelineRuntime } from "../../src/runtime";
 import { describe, it, expect, beforeEach } from "bun:test";
 import {
   baseEntitySchema,
   createMockShell,
-  createServicePluginContext,
   type EntityAdapter,
   type MockShell,
-  type ServicePluginContext,
 } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
@@ -48,12 +48,12 @@ function createPublishableEntity(
 }
 
 describe("preparePublishContent", () => {
-  let context: ServicePluginContext;
+  let context: PipelineRuntime;
   let mockShell: MockShell;
 
   beforeEach(() => {
     mockShell = createMockShell({ logger: createSilentLogger() });
-    context = createServicePluginContext(mockShell, "content-pipeline");
+    context = runtimeFor(mockShell);
     mockShell
       .getEntityRegistry()
       .registerEntityType(
@@ -105,7 +105,7 @@ This is the body.`;
   });
 
   it("should fetch image data when coverImageId is present", async () => {
-    await context.entityService.createEntity({
+    await mockShell.getEntityService().createEntity({
       entity: {
         id: "cover-image",
         entityType: "image",
@@ -130,7 +130,7 @@ Post with image.`;
   });
 
   it("should fetch structured document attachment data", async () => {
-    await context.entityService.createEntity({
+    await mockShell.getEntityService().createEntity({
       entity: {
         id: "carousel-pdf",
         entityType: "document",
@@ -162,7 +162,7 @@ Post with PDF carousel.`;
 
   it("should resolve source-derived carousel attachments when no explicit documents are set", async () => {
     context.attachments.register("deck", "carousel", {
-      resolve: (request) => {
+      resolve: (request: { sourceEntityId: string }) => {
         expect(request.sourceEntityId).toBe("deck-1");
         return {
           type: "document",
@@ -205,7 +205,7 @@ Post with generated carousel.`;
         };
       },
     });
-    await context.entityService.createEntity({
+    await mockShell.getEntityService().createEntity({
       entity: {
         id: "frozen-pdf",
         entityType: "document",
@@ -304,7 +304,7 @@ Post with unresolvable document refs.`;
   });
 
   it("should ignore missing or invalid image data", async () => {
-    await context.entityService.createEntity({
+    await mockShell.getEntityService().createEntity({
       entity: {
         id: "invalid-image",
         entityType: "image",

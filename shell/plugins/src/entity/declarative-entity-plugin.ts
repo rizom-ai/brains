@@ -37,6 +37,7 @@ import {
   AtprotoProjectionRegistry,
   type AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
+import { PublishDelegationRegistry } from "../service/publish-delegation-registry";
 import { registerBuiltInDashboardWidget } from "../operator/dashboard-widget-runtime";
 import { FeedRegistry } from "@brains/site-composition";
 import { slugify } from "@brains/utils/string-utils";
@@ -919,6 +920,22 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     const publishAssets = this.publishAssets ?? [];
     if (publishAssets.length > 0) {
+      // The generation job each auto-generated asset named, so the pipeline
+      // may queue that job and no other.
+      const jobTypes = new Map<string, string>();
+      for (const asset of publishAssets) {
+        if (asset.autoGenerate === true && asset.jobType) {
+          jobTypes.set(asset.attachmentType, asset.jobType);
+        }
+      }
+      if (jobTypes.size > 0) {
+        this.releaseOnShutdown.push(
+          PublishDelegationRegistry.getInstance().registerAssets(
+            this.entityType,
+            jobTypes,
+          ),
+        );
+      }
       // Same deferral as publish: the pipeline has to be listening before
       // anything announces to it.
       context.messaging.subscribe(
@@ -937,6 +954,18 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
     const publish = this.publish;
     if (publish) {
+      // Delegating publishing includes recording the outcome, so the write
+      // is registered here bound to this package's own access — the service
+      // that publishes owns no types and cannot write anyone's.
+      this.releaseOnShutdown.push(
+        PublishDelegationRegistry.getInstance().register({
+          entityType: this.entityType,
+          update: async (entity) => {
+            const result = await this.entityAccess(context).update(entity);
+            return { entityId: result.entityId, jobId: result.jobId };
+          },
+        }),
+      );
       // Deferred so the publish pipeline has subscribed before we announce;
       // packages used to hand-roll this ordering one at a time.
       context.messaging.subscribe(

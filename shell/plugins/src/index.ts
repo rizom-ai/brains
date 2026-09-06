@@ -412,10 +412,13 @@ export {
   type ServiceEvalHandler,
   type ServiceJobDefinition,
   type ServiceJobReference,
+  type ServiceJobs,
   type ServiceJobStatus,
   type ServicePackageDefinition,
   type ServiceToolDefinition,
   type ServicePublishDeclaration,
+  type ServiceActiveJob,
+  type ServicePublisher,
   type ToolAgent,
   type ToolAgentAnswer,
   type ToolAsk,
@@ -1086,3 +1089,14 @@ export type {
   SubscriptionDefinition,
   SubscriptionEntityReader,
 } from "./contracts/subscription";
+
+// What a package delegated when it declared `publish`, and the access a
+// service that publishes on its behalf is given. See the registry's own docs.
+export {
+  PublishDelegationRegistry,
+  createServicePublishingAccess,
+} from "./service/publish-delegation-registry";
+export type {
+  PublishDelegation,
+  ServicePublishingAccess,
+} from "./service/publish-delegation-registry";

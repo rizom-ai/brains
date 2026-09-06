@@ -1,9 +1,7 @@
 import { actorRefSchema } from "@brains/contracts";
-import type {
-  BaseEntity,
-  IRuntimeStateStore,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
+import type { IRuntimeStateStore } from "@brains/sdk/services";
+import type { PipelineRuntime } from "./runtime";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
 import type { QueueEntry, QueueManager } from "./queue-manager";
@@ -72,15 +70,15 @@ export type PublicationQueueRecord = z.output<
  * Entity status owns membership; runtimeState owns rank and enqueue metadata.
  */
 export class PublicationQueueService {
-  private readonly context: ServicePluginContext;
+  private readonly context: PipelineRuntime;
   private readonly queueManager: QueueManager;
   private readonly store: IRuntimeStateStore<PublicationQueueRecord>;
   private mutationTail: Promise<void> = Promise.resolve();
 
-  constructor(context: ServicePluginContext, queueManager: QueueManager) {
+  constructor(context: PipelineRuntime, queueManager: QueueManager) {
     this.context = context;
     this.queueManager = queueManager;
-    this.store = context.runtimeState.scoped({
+    this.store = context.state({
       namespace: QUEUE_STATE_NAMESPACE,
       schema: publicationQueueRecordSchema,
     });
@@ -165,7 +163,7 @@ export class PublicationQueueService {
     error: string,
   ): Promise<void> {
     await this.runExclusive(async () => {
-      const entity = await this.context.entityService.getEntity({
+      const entity = await this.context.entities.getEntity({
         entityType,
         id: entityId,
       });
@@ -181,7 +179,7 @@ export class PublicationQueueService {
     await this.runExclusive(async () => {
       const queuedEntities = new Map<string, BaseEntity>();
       for (const entityType of entityTypes) {
-        const entities = await this.context.entityService.listEntities({
+        const entities = await this.context.entities.listEntities({
           entityType,
           options: { filter: { metadata: { status: "queued" } } },
         });
@@ -300,16 +298,14 @@ export class PublicationQueueService {
     const content = FRONTMATTER_BLOCK.test(entity.content)
       ? updateFrontmatterField(entity.content, "status", status)
       : entity.content;
-    await this.context.entityService.updateEntity({
-      entity: { ...entity, metadata, content },
-    });
+    await this.context.publishing.update({ ...entity, metadata, content });
   }
 
   private async requireEntity(
     entityType: string,
     entityId: string,
   ): Promise<BaseEntity> {
-    const entity = await this.context.entityService.getEntity({
+    const entity = await this.context.entities.getEntity({
       entityType,
       id: entityId,
     });

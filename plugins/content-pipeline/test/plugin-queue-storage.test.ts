@@ -3,19 +3,21 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { ContentPipelinePlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
+import type { QueueManager } from "../src/queue-manager";
+import { installPipeline, storedQueueFor } from "./helpers/install";
 
-describe("ContentPipelinePlugin queue storage integration", () => {
-  let harness: PluginTestHarness<ContentPipelinePlugin>;
-  let plugin: ContentPipelinePlugin;
+describe("content pipeline queue storage integration", () => {
+  let harness: PluginTestHarness<Plugin>;
+  let plugin: Plugin;
+  let queueManager: QueueManager;
 
   beforeEach(async () => {
     harness = createPluginHarness({
       dataDir: "/tmp/content-pipeline-queue-storage-test",
     });
-    plugin = new ContentPipelinePlugin({});
-    await harness.installPlugin(plugin);
+    ({ plugin, queueManager } = await installPipeline(harness));
     harness.addEntities([
       {
         id: "post-1",
@@ -58,14 +60,12 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     });
 
     expect(
-      (await plugin.getQueueManager().list("social-post")).map(
-        (entry) => entry.entityId,
-      ),
+      (await queueManager.list("social-post")).map((entry) => entry.entityId),
     ).toEqual(["post-2", "post-1"]);
     expect(
-      (await plugin.getPublicationQueueService().listStored("social-post")).map(
-        (entry) => entry.entityId,
-      ),
+      (
+        await storedQueueFor(harness, queueManager).listStored("social-post")
+      ).map((entry) => entry.entityId),
     ).toEqual(["post-2", "post-1"]);
     expect(
       (
@@ -82,9 +82,9 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     });
 
     expect(
-      (await plugin.getPublicationQueueService().listStored("social-post")).map(
-        (entry) => entry.entityId,
-      ),
+      (
+        await storedQueueFor(harness, queueManager).listStored("social-post")
+      ).map((entry) => entry.entityId),
     ).toEqual(["post-2"]);
     expect(
       (
@@ -111,7 +111,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     });
 
     expect(
-      await plugin.getPublicationQueueService().listStored("social-post"),
+      await storedQueueFor(harness, queueManager).listStored("social-post"),
     ).toEqual([]);
     expect(
       (
@@ -140,7 +140,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
 
     expect("success" in result && result.success).toBe(true);
     expect(
-      await plugin.getPublicationQueueService().listStored("social-post"),
+      await storedQueueFor(harness, queueManager).listStored("social-post"),
     ).toEqual([
       expect.objectContaining({
         entityId: "post-1",

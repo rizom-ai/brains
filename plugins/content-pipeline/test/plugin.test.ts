@@ -9,13 +9,16 @@ import {
   spyOn,
   type Mock,
 } from "bun:test";
-import { ContentPipelinePlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import type { ProviderRegistry } from "../src/provider-registry";
+import type { PublishAssetRegistry } from "../src/publish-assets";
+import type { QueueManager } from "../src/queue-manager";
+import { installPipeline, PIPELINE_PLUGIN_ID } from "./helpers/install";
 import {
   PUBLISH_ASSET_MESSAGES,
   PUBLISH_MESSAGES,
 } from "../src/types/messages";
 import type { PublishProvider } from "@brains/contracts";
-import type { DashboardWidgetProviderContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 import {
   createPluginHarness,
@@ -29,7 +32,7 @@ import {
 type TestJobQueueService = ReturnType<MockShell["getJobQueueService"]>;
 
 function addDraftQueueEntities(
-  harness: PluginTestHarness<ContentPipelinePlugin>,
+  harness: PluginTestHarness<Plugin>,
   entityType: string,
   ids: string[],
 ): void {
@@ -60,14 +63,17 @@ function jobQueueWithSpiedEnqueue(): {
   return { service, enqueue };
 }
 
-describe("ContentPipelinePlugin", () => {
-  let harness: PluginTestHarness<ContentPipelinePlugin>;
-  let plugin: ContentPipelinePlugin;
+describe("content pipeline service", () => {
+  let harness: PluginTestHarness<Plugin>;
+  let plugin: Plugin;
+  let queueManager: QueueManager;
+  let providerRegistry: ProviderRegistry;
+  let publishAssetRegistry: PublishAssetRegistry;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-    plugin = new ContentPipelinePlugin({});
-    await harness.installPlugin(plugin);
+    ({ plugin, queueManager, providerRegistry, publishAssetRegistry } =
+      await installPipeline(harness));
   });
 
   afterEach(async () => {
@@ -75,25 +81,8 @@ describe("ContentPipelinePlugin", () => {
   });
 
   describe("initialization", () => {
-    it("should have correct plugin id", () => {
-      expect(plugin.id).toBe("content-pipeline");
-    });
-
-    it("should initialize components", () => {
-      const components = [
-        plugin.getQueueManager(),
-        plugin.getProviderRegistry(),
-        plugin.getRetryTracker(),
-        plugin.getScheduler(),
-      ];
-
-      // Four separate components, each held rather than rebuilt per call.
-      // Asserting only that each is defined would pass for two getters
-      // returning the same object, or for a getter constructing a new one
-      // every time — the scheduler in particular must be the same instance.
-      expect(new Set(components).size).toBe(4);
-      expect(plugin.getScheduler()).toBe(plugin.getScheduler());
-      expect(plugin.getQueueManager()).toBe(plugin.getQueueManager());
+    it("is one declared service under its package", () => {
+      expect(plugin.id).toBe(PIPELINE_PLUGIN_ID);
     });
 
     it("registers only the canonical publishing management tool", () => {
@@ -105,65 +94,6 @@ describe("ContentPipelinePlugin", () => {
       expect(toolNames).not.toContain("content-pipeline_publish");
       expect(toolNames).not.toContain("content-pipeline_ensure-assets");
     });
-
-    it("should start scheduler during ready lifecycle", async () => {
-      expect(plugin.getScheduler().isRunning()).toBe(false);
-
-      await plugin.ready();
-
-      expect(plugin.getScheduler().isRunning()).toBe(true);
-    });
-
-    it("keeps the dashboard launch independent from the Studio registration URL", async () => {
-      let dashboardDataProvider:
-        | ((context: DashboardWidgetProviderContext) => Promise<unknown>)
-        | undefined;
-      harness.subscribe("studio:register-workspace", async () => ({
-        success: true,
-        data: { workspaceUrl: "/studio/workspaces/publishing" },
-      }));
-      harness.subscribe<{
-        dataProvider: (
-          context: DashboardWidgetProviderContext,
-        ) => Promise<unknown>;
-      }>("dashboard:register-widget", async (message) => {
-        dashboardDataProvider = message.payload.dataProvider;
-        return { success: true };
-      });
-
-      await plugin.ready();
-
-      const data = await dashboardDataProvider?.({
-        caller: {
-          actor: { id: "user:admin" },
-          permission: "admin",
-          isAnchor: true,
-        },
-        signal: new AbortController().signal,
-      });
-      expect(data).toMatchObject({
-        view: {
-          blocks: [
-            {},
-            {},
-            {
-              type: "links",
-              items: [
-                {
-                  target: {
-                    kind: "launch",
-                    launch: { target: "publishing" },
-                  },
-                },
-              ],
-            },
-          ],
-        },
-      });
-      expect(JSON.stringify(data)).not.toContain(
-        "/studio/workspaces/publishing",
-      );
-    });
   });
 
   describe("queue operations via message bus", () => {
@@ -174,7 +104,7 @@ describe("ContentPipelinePlugin", () => {
         entityId: "post-1",
       });
 
-      const queue = await plugin.getQueueManager().list("blog-post");
+      const queue = await queueManager.list("blog-post");
       expect(queue.length).toBe(1);
       expect(queue[0]?.entityId).toBe("post-1");
     });
@@ -188,8 +118,8 @@ describe("ContentPipelinePlugin", () => {
           entityActions: { "social-post": { publish: "admin" } },
         }),
       );
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
+      const local = await installPipeline(localHarness);
+      const localPlugin = local.plugin;
 
       await localHarness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
         entityType: "social-post",
@@ -202,7 +132,7 @@ describe("ContentPipelinePlugin", () => {
         },
       });
 
-      const queue = await localPlugin.getQueueManager().list("social-post");
+      const queue = await local.queueManager.list("social-post");
       expect(queue.length).toBe(0);
       await localPlugin.shutdown?.();
     });
@@ -220,7 +150,7 @@ describe("ContentPipelinePlugin", () => {
         },
       });
 
-      const queue = await plugin.getQueueManager().list("social-post");
+      const queue = await queueManager.list("social-post");
       expect(queue[0]?.authContext).toEqual({
         interfaceType: "test",
         actor: { kind: "user", userId: "admin-user" },
@@ -241,7 +171,7 @@ describe("ContentPipelinePlugin", () => {
         entityId: "post-1",
       });
 
-      const queue = await plugin.getQueueManager().list("blog-post");
+      const queue = await queueManager.list("blog-post");
       expect(queue.length).toBe(0);
     });
 
@@ -262,7 +192,7 @@ describe("ContentPipelinePlugin", () => {
         position: 1,
       });
 
-      const queue = await plugin.getQueueManager().list("blog-post");
+      const queue = await queueManager.list("blog-post");
       expect(queue[0]?.entityId).toBe("post-2");
     });
 
@@ -384,8 +314,8 @@ Post body`,
       const { service: jobQueue, enqueue } = jobQueueWithSpiedEnqueue();
       localHarness.getMockShell().getJobQueueService =
         (): TestJobQueueService => jobQueue;
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
+      const local = await installPipeline(localHarness);
+      const localPlugin = local.plugin;
       localHarness
         .getMockShell()
         .getAttachmentRegistry()
@@ -452,8 +382,8 @@ Post body`,
           entityActions: { "social-post": { publish: "admin" } },
         }),
       );
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
+      const local = await installPipeline(localHarness);
+      const localPlugin = local.plugin;
       const executePayloads: unknown[] = [];
       localHarness.subscribe("publish:execute", async (msg) => {
         executePayloads.push(msg.payload);
@@ -506,9 +436,9 @@ Post body`,
         },
       });
 
-      await plugin.ready();
+      await plugin.ready?.();
 
-      const queue = await plugin.getQueueManager().list("social-post");
+      const queue = await queueManager.list("social-post");
       expect(queue.length).toBe(2);
       const queuedIds = queue.map((e) => e.entityId);
       expect(queuedIds).toContain("post-1");
@@ -538,14 +468,10 @@ Post body`,
         },
       });
 
-      await plugin.ready();
+      await plugin.ready?.();
 
-      expect(await plugin.getQueueManager().list("social-post")).toHaveLength(
-        1,
-      );
-      expect(await plugin.getQueueManager().list("workflow-card")).toHaveLength(
-        0,
-      );
+      expect(await queueManager.list("social-post")).toHaveLength(1);
+      expect(await queueManager.list("workflow-card")).toHaveLength(0);
     });
 
     it("should not add non-queued entities to queue", async () => {
@@ -558,16 +484,16 @@ Post body`,
         },
       ]);
 
-      await plugin.ready();
+      await plugin.ready?.();
 
-      const queue = await plugin.getQueueManager().list("social-post");
+      const queue = await queueManager.list("social-post");
       expect(queue.length).toBe(0);
     });
 
     it("should handle no queued entities gracefully", async () => {
-      await plugin.ready();
+      await plugin.ready?.();
 
-      const queue = await plugin.getQueueManager().list("social-post");
+      const queue = await queueManager.list("social-post");
       expect(queue.length).toBe(0);
     });
   });
@@ -584,9 +510,7 @@ Post body`,
         jobType: "image:image-render-source",
       });
 
-      expect(
-        plugin.getPublishAssetRegistry().get("post", "og-image"),
-      ).toMatchObject({
+      expect(publishAssetRegistry.get("post", "og-image")).toMatchObject({
         entityType: "post",
         attachmentType: "og-image",
         mediaEntityType: "image",
@@ -600,8 +524,8 @@ Post body`,
       const { service: jobQueue, enqueue } = jobQueueWithSpiedEnqueue();
       localHarness.getMockShell().getJobQueueService =
         (): TestJobQueueService => jobQueue;
-      const localPlugin = new ContentPipelinePlugin({});
-      await localHarness.installPlugin(localPlugin);
+      const local = await installPipeline(localHarness);
+      const localPlugin = local.plugin;
       localHarness
         .getMockShell()
         .getAttachmentRegistry()
@@ -658,7 +582,7 @@ Body`,
         provider,
       });
 
-      expect(plugin.getProviderRegistry().has("blog-post")).toBe(true);
+      expect(providerRegistry.has("blog-post")).toBe(true);
     });
 
     it("rejects invalid provider config", async () => {
@@ -673,7 +597,7 @@ Body`,
         config: { executionMode: "invalid" },
       });
 
-      expect(plugin.getProviderRegistry().has("blog-post")).toBe(false);
+      expect(providerRegistry.has("blog-post")).toBe(false);
     });
 
     it("should not let internal fallback registration override an explicit provider", async () => {
@@ -695,7 +619,7 @@ Body`,
         provider: internalProvider,
       });
 
-      expect(plugin.getProviderRegistry().get("post")).toBe(explicitProvider);
+      expect(providerRegistry.get("post")).toBe(explicitProvider);
     });
   });
 });

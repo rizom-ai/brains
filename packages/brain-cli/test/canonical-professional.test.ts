@@ -110,7 +110,9 @@ describe("canonical professional posture", () => {
       routes: expect.any(Array),
       themeCSS: expect.any(String),
     });
-    expect(pluginConfig(resolved, "content-pipeline")).toMatchObject({
+    expect(
+      pluginConfig(resolved, "@brains/content-pipeline:publishing"),
+    ).toMatchObject({
       generationSchedules: {
         newsletter: "0 9 * * 1",
         "social-post": "0 10 * * *",

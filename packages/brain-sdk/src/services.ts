@@ -33,6 +33,7 @@ export type {
   OperatorEntityReader,
   OperatorQueryReader,
   OperatorView,
+  OperatorRegionBlock,
   OperatorViewBlock,
   EntityEvalContext,
   ServiceEvalHandler,
@@ -67,6 +68,11 @@ export type {
 // Seeding an identity derived from imported content cannot run before the
 // import has landed, and the name of that moment is the runtime's to give.
 // Named consumer: @brains/profile.
+// What a caller at a given permission level may see, for an operator surface
+// that reads other packages' entities on their behalf.
+// Named consumer: @brains/content-pipeline.
+export { permissionToVisibilityScope } from "@brains/plugins";
+
 export { SYSTEM_CHANNELS } from "@brains/plugins";
 export type { SystemChannelName } from "@brains/plugins";
 
@@ -139,6 +145,20 @@ export type {
 // What the brain offers publicly, as the setup context lists it, for a
 // service that puts those skills on a card. Named consumer: @brains/atproto.
 export type { PublicSkill } from "@brains/plugins";
+
+// What a package delegated by declaring `publish`, the permission check a
+// service applies on a caller's behalf, the media another package resolves
+// from an entity, and the work this package queued. A service that publishes
+// what other packages declared holds all four.
+// Named consumer: @brains/content-pipeline.
+export type {
+  IAttachmentsNamespace,
+  IPermissionsNamespace,
+  ServiceActiveJob,
+  ServiceJobs,
+  ServicePublisher,
+  ServicePublishingAccess,
+} from "@brains/plugins";
 
 // What the `routes` and `subscriptions` slots return, for a package that
 // builds either in a helper and has to annotate its return.

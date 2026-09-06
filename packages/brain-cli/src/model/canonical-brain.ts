@@ -22,7 +22,7 @@ import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
 import chatPackage, { chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
-import { contentPipelinePlugin } from "@brains/content-pipeline";
+import contentPipelinePackage from "@brains/content-pipeline";
 import conversationMemoryPackage from "@brains/conversation-memory";
 import { dashboardPlugin } from "@brains/dashboard";
 import decksPackage from "@brains/decks";
@@ -195,7 +195,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("blog", "@brains/blog", blogPackage),
     packageCapability("series", "@brains/series", seriesPackage),
     packageCapability("portfolio", "@brains/portfolio", portfolioPackage),
-    ["content-pipeline", contentPipelinePlugin, undefined],
+    packageCapability(
+      "content-pipeline",
+      "@brains/content-pipeline",
+      contentPipelinePackage,
+    ),
     packageCapability(
       "social-media",
       "@brains/social-media",

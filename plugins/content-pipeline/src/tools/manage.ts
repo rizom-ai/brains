@@ -1,9 +1,5 @@
-import type {
-  Tool,
-  ToolContext,
-  ToolResponse,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { PipelineRuntime } from "../runtime";
+import type { ToolContext, ToolResponse } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublicationQueueService } from "../publication-queue-service";
@@ -167,52 +163,48 @@ export interface PublishingManageServices {
   publishExecutor?: PublishEntityExecutor | undefined;
 }
 
-export function createPublishingManageTool(
-  context: ServicePluginContext,
-  services: PublishingManageServices,
-): Tool<ToolResponse> {
+/** One publishing request, from the agent or from a person. */
+export async function handlePublishingManage(request: {
+  runtime: PipelineRuntime;
+  services: PublishingManageServices;
+  input: unknown;
+  caller: ToolContext;
+}): Promise<ToolResponse> {
+  const { runtime, services, caller } = request;
   const queueMutations: QueueMutationService =
     services.publicationQueueService ?? services.queueManager;
   const publishExecutor =
     services.publishExecutor ??
     new PublishExecutor({
-      context,
+      runtime,
       providerRegistry: services.providerRegistry,
     });
 
-  return {
-    name: "publishing_manage",
-    description:
-      "Manage publishing with an action discriminator. Use action=queue-list to inspect the publish queue; action=queue-add to queue an entity for publication; action=queue-remove to remove a queued entity; action=queue-reorder to change queue order; action=publish to publish one entity directly. Direct publish requests confirmation inside this tool; call action=publish without confirmed first, then retry with the returned confirmation args.",
-    inputSchema: publishingManageInputSchema.shape,
-    outputSchema: publishingManageOutputSchema,
-    visibility: "admin",
-    sideEffects: "external",
-    handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = publishingManageActionSchema.safeParse(rawInput);
-      if (!parsed.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parsed.error.issues
-            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-            .join(", ")}`,
-        };
-      }
+  // The declaration validates against the wide input schema the agent sees;
+  // this narrows it to the action actually asked for, which the wide schema
+  // cannot express without making every field conditional.
+  const parsed = publishingManageActionSchema.safeParse(request.input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: `Invalid input: ${parsed.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join(", ")}`,
+    };
+  }
 
-      return handlePublishingManageAction({
-        context,
-        queueManager: services.queueManager,
-        queueMutations,
-        publishExecutor,
-        input: parsed.data,
-        toolContext,
-      });
-    },
-  };
+  return handlePublishingManageAction({
+    context: runtime,
+    queueManager: services.queueManager,
+    queueMutations,
+    publishExecutor,
+    input: parsed.data,
+    toolContext: caller,
+  });
 }
 
 async function handlePublishingManageAction(input: {
-  context: ServicePluginContext;
+  context: PipelineRuntime;
   queueManager: QueueManager;
   queueMutations: QueueMutationService;
   publishExecutor: PublishEntityExecutor;
@@ -259,7 +251,7 @@ async function handlePublishingManageAction(input: {
 
 function handleQueue(
   input: {
-    context: ServicePluginContext;
+    context: PipelineRuntime;
     queueManager: QueueManager;
     queueMutations: QueueMutationService;
     toolContext: ToolContext;

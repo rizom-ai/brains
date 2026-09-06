@@ -23,6 +23,11 @@ import type {
 } from "../interfaces";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
+import {
+  createServicePublishingAccess,
+  PublishDelegationRegistry,
+  type ServicePublishingAccess,
+} from "./publish-delegation-registry";
 import { createDeclarativeStudioWorkspaceRegistration } from "../operator/studio-workspace-runtime";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
 import type {
@@ -58,6 +63,7 @@ import type {
   ServiceJobBinding,
   ServiceJobReference,
   ServiceJobStatus,
+  ServiceActiveJob,
   ServiceJobs,
   ServiceResourceDefinition,
   ServiceSchema,
@@ -529,6 +535,24 @@ class DeclarativeServicePlugin<
           publicSkills: context.publicSkills,
           plugins: context.plugins,
           siteUrl: context.siteUrl,
+          messaging: {
+            send: (message) =>
+              context.messaging.send({
+                type: message.type,
+                payload: message.payload,
+              }),
+            publish: async (message): Promise<void> => {
+              await context.messaging.send({
+                type: message.topic,
+                payload: message.data,
+                broadcast: true,
+              });
+            },
+          },
+          permissions: context.permissions,
+          attachments: context.attachments,
+          jobs: this.jobs(),
+          publishing: this.publishingAccess(context),
           // Stewarded types are read just above, so the owned set is already
           // complete by the time setup asks for it.
           entities: createJobEntityAccess(
@@ -764,6 +788,23 @@ class DeclarativeServicePlugin<
         logger: this.logger,
       }) ?? [];
     if (declarations.length === 0) return;
+
+    // A service declaring publish for a type delegates the same thing an
+    // entity does: whoever publishes it records the outcome. The write is
+    // scoped to that one type, whichever package the declaration came from.
+    for (const declaration of declarations) {
+      this.cleanups.push(
+        PublishDelegationRegistry.getInstance().register({
+          entityType: declaration.entityType,
+          update: async (entity) =>
+            createJobEntityAccess(
+              context.entityService,
+              new Set([declaration.entityType]),
+              this.id,
+            ).update(entity),
+        }),
+      );
+    }
 
     context.messaging.subscribe(
       SYSTEM_CHANNELS.pluginsRegistered,
@@ -1090,9 +1131,48 @@ class DeclarativeServicePlugin<
     return this.state;
   }
 
+  /**
+   * Writes another package delegated, and the asset jobs it named.
+   *
+   * The registry holds both, each recorded when its declaration registered;
+   * this service supplies only who is asking, for the refusal message.
+   */
+  private publishingAccess(
+    context: ServicePluginContext,
+  ): ServicePublishingAccess {
+    return createServicePublishingAccess({
+      registry: PublishDelegationRegistry.getInstance(),
+      serviceLabel: this.id,
+      enqueue: ({ type, data, deduplicationKey }) =>
+        context.jobs.enqueue({
+          type,
+          data,
+          options: {
+            source: this.id,
+            metadata: { operationType: "content_operations" },
+            deduplication: "skip",
+            deduplicationKey,
+          },
+        }),
+    });
+  }
+
   private jobs(): ServiceJobs {
     const context = this.getContext();
     return {
+      active: async (): Promise<readonly ServiceActiveJob[]> =>
+        (await context.jobs.getActiveJobs())
+          .filter(
+            (job) =>
+              job.source === this.id &&
+              (job.status === "pending" || job.status === "processing"),
+          )
+          .map((job) => ({
+            id: job.id,
+            type: job.type,
+            status: job.status === "processing" ? "processing" : "pending",
+            data: parseJobData(job.data),
+          })),
       enqueue: async <TDefinition extends AnyServiceJobDefinition>(
         definition: TDefinition,
         input: z.input<TDefinition["input"]>,
@@ -1378,4 +1458,19 @@ export function createDeclarativeServicePlugin<
   TAccountSettings
 > {
   return new DeclarativeServicePlugin(definition, config, metadata, id, scope);
+}
+
+/**
+ * A queued job's payload, as the queue stored it.
+ *
+ * The queue keeps data as JSON text; a declaration reads a value. An
+ * unreadable payload reads as undefined rather than throwing, because the
+ * caller is listing work in flight, not executing it.
+ */
+function parseJobData(data: string): unknown {
+  try {
+    return JSON.parse(data);
+  } catch {
+    return undefined;
+  }
 }

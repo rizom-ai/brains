@@ -1,8 +1,8 @@
 import {
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type DashboardWidgetDefinition,
+} from "@brains/sdk/services";
+import type { PipelineRuntime } from "../runtime";
 import {
   getPublicationPipelineSnapshot,
   publicationPipelineSnapshotSchema,
@@ -14,13 +14,16 @@ import type { RetryTracker } from "../retry-tracker";
 
 export type PipelineWidgetData = PublicationPipelineSnapshot;
 
-export interface RegisterDashboardWidgetDeps {
+export interface PipelineWidgetDeps {
   providerRegistry: ProviderRegistry;
   queueManager: QueueManager;
   retryTracker: RetryTracker;
 }
 
-const publicationPipelineWidget = defineDashboardWidget({
+export const publicationPipelineWidget: DashboardWidgetDefinition<
+  "publication-pipeline",
+  typeof publicationPipelineSnapshotSchema
+> = defineDashboardWidget({
   id: "publication-pipeline",
   title: "Publication Pipeline",
   group: "publishing",
@@ -103,21 +106,18 @@ const publicationPipelineWidget = defineDashboardWidget({
   }),
 });
 
-export async function registerDashboardWidget(
-  context: ServicePluginContext,
-  deps: RegisterDashboardWidgetDeps,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
-    definition: publicationPipelineWidget,
-    load: ({ signal }) => {
-      signal.throwIfAborted();
-      return getPublicationPipelineSnapshot(
-        context,
-        deps.providerRegistry,
-        deps.queueManager,
-        deps.retryTracker,
-      );
-    },
-  });
+/** What the widget shows: the same snapshot the workspace opens with. */
+export function loadPipelineWidget(
+  context: PipelineRuntime,
+  deps: PipelineWidgetDeps,
+): ({ signal }: { signal: AbortSignal }) => Promise<PipelineWidgetData> {
+  return ({ signal }) => {
+    signal.throwIfAborted();
+    return getPublicationPipelineSnapshot(
+      context,
+      deps.providerRegistry,
+      deps.queueManager,
+      deps.retryTracker,
+    );
+  };
 }

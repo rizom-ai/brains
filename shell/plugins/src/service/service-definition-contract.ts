@@ -141,7 +141,12 @@ import { assertIdentifier } from "../package-definition";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { AppInfo } from "../contracts/app-info";
 import type { PublicSkill } from "../a2a/public-skills";
-import type { IPluginsNamespace } from "../base/context-types";
+import type {
+  IPermissionsNamespace,
+  IPluginsNamespace,
+} from "../base/context-types";
+import type { IAttachmentsNamespace } from "./attachment-registry";
+import type { ServicePublishingAccess } from "./publish-delegation-registry";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -320,7 +325,24 @@ export interface ServiceJobReference<
   status(): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null>;
 }
 
+/** One piece of work this package queued that has not finished. */
+export interface ServiceActiveJob {
+  readonly id: string;
+  readonly type: string;
+  readonly status: "pending" | "processing";
+  /** The payload as it was enqueued. */
+  readonly data: unknown;
+}
+
 export interface ServiceJobs {
+  /**
+   * Work this package queued that is still pending or running.
+   *
+   * Scoped to this package's own jobs: an operator page shows what its own
+   * pipeline has in flight, not the brain's whole queue.
+   * Named consumer: @brains/content-pipeline.
+   */
+  active(): Promise<readonly ServiceActiveJob[]>;
   enqueue<TDefinition extends AnyServiceJobDefinition>(
     definition: TDefinition,
     input: z.input<TDefinition["input"]>,
@@ -700,6 +722,38 @@ interface ServiceDefinitionCore<
         readonly publicSkills: { list(): Promise<PublicSkill[]> };
         readonly plugins: Pick<IPluginsNamespace, "has">;
         readonly siteUrl: string | undefined;
+        /**
+         * Announcing, for a service whose engine runs on its own schedule.
+         * A timer has no caller to answer, and the subscription contexts
+         * that do are not where a scheduler is built.
+         * Named consumer: @brains/content-pipeline.
+         */
+        readonly messaging: ServicePublisher;
+        /**
+         * The permission check, for a service that acts on a caller's
+         * behalf over types it does not own. A publish queue accepts a
+         * request from a person; whether that person may publish that type
+         * is the runtime's answer, not the queue's.
+         * Named consumer: @brains/content-pipeline.
+         */
+        readonly permissions: IPermissionsNamespace;
+        /**
+         * Media another package resolves from an entity, for a service that
+         * sends it onward. Named consumer: @brains/content-pipeline.
+         */
+        readonly attachments: IAttachmentsNamespace;
+        /**
+         * The declared jobs handle, held rather than passed per call: a
+         * scheduler queues work on its own schedule, and an operator page
+         * reads back what is in flight.
+         * Named consumer: @brains/content-pipeline.
+         */
+        readonly jobs: ServiceJobs;
+        /**
+         * Publish state on entities other packages declared publishable.
+         * See `ServicePublishingAccess`.
+         */
+        readonly publishing: ServicePublishingAccess;
         readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
     | undefined;

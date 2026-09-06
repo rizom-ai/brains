@@ -1,4 +1,5 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { PipelineRuntime } from "./runtime";
+import type { BaseEntity } from "@brains/sdk/entities";
 import type { PublishResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ProviderRegistry } from "./provider-registry";
@@ -42,7 +43,7 @@ export interface PublishEntityExecutor {
 }
 
 export interface PublishExecutorDeps {
-  context: ServicePluginContext;
+  runtime: PipelineRuntime;
   providerRegistry: ProviderRegistry;
   publishAssetPreflight?:
     | {
@@ -108,7 +109,7 @@ export class PublishExecutor implements PublishEntityExecutor {
     const { entityType } = input;
     const provider = this.deps.providerRegistry.get(entityType);
     const { bodyContent, imageData, documentData } =
-      await preparePublishContent(this.deps.context, entity);
+      await preparePublishContent(this.deps.runtime, entity);
 
     const result = await provider.publish(
       bodyContent,
@@ -121,7 +122,7 @@ export class PublishExecutor implements PublishEntityExecutor {
     const publishTimestampField =
       this.deps.providerRegistry.getPublishTimestampField(entityType);
     const updated = await markEntityPublished(
-      this.deps.context,
+      this.deps.runtime,
       entity,
       result,
       {
@@ -144,7 +145,7 @@ export class PublishExecutor implements PublishEntityExecutor {
     try {
       await this.deps.publishAssetPreflight.ensureForEntity(entity);
     } catch (error) {
-      this.deps.context.logger.warn("Publish asset preflight failed", {
+      this.deps.runtime.logger.warn("Publish asset preflight failed", {
         entityType: entity.entityType,
         entityId: entity.id,
         error: getErrorMessage(error),
@@ -158,7 +159,7 @@ export class PublishExecutor implements PublishEntityExecutor {
     slug?: string,
   ): Promise<PublishableEntity | null> {
     if (id) {
-      return this.deps.context.entityService.getEntity(
+      return this.deps.runtime.entities.getEntity(
         { entityType, id },
         publishableEntitySchema,
       );
@@ -166,7 +167,7 @@ export class PublishExecutor implements PublishEntityExecutor {
 
     if (!slug) return null;
 
-    const entities = await this.deps.context.entityService.listEntities(
+    const entities = await this.deps.runtime.entities.listEntities(
       {
         entityType,
         options: {
