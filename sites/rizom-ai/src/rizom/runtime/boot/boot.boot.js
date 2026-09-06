@@ -58,6 +58,57 @@
       });
     }
 
+    // Only this route owns the lantern and its responsive roadmap.
+    var livingMemory = document.querySelector(".living-memory-page");
+    if (livingMemory) {
+      var card = livingMemory.querySelector(".lantern .card");
+      if (card) {
+        var tabs = Array.from(card.querySelectorAll('[role="tab"]'));
+        var panels = Array.from(card.querySelectorAll('[role="tabpanel"]'));
+        var current = card.querySelector(".meta-current");
+        var select = function (index) {
+          card.dataset.active = String(index);
+          if (current) current.textContent = String(index + 1).padStart(2, "0");
+          tabs.forEach(function (tab, i) {
+            tab.setAttribute("aria-selected", String(i === index));
+            tab.tabIndex = i === index ? 0 : -1;
+            panels[i].setAttribute("aria-hidden", String(i !== index));
+            panels[i].tabIndex = i === index ? 0 : -1;
+          });
+        };
+        tabs.forEach(function (tab, index) {
+          tab.addEventListener("click", function () {
+            select(index);
+          });
+          tab.addEventListener("keydown", function (event) {
+            var next = {
+              ArrowRight: (index + 1) % tabs.length,
+              ArrowLeft: (index + tabs.length - 1) % tabs.length,
+              Home: 0,
+              End: tabs.length - 1,
+            }[event.key];
+            if (next === undefined) return;
+            event.preventDefault();
+            select(next);
+            tabs[next].focus();
+          });
+        });
+      }
+      var mobile = window.matchMedia("(max-width: 800px)");
+      var setRoadmapMode = function () {
+        livingMemory
+          .querySelectorAll(".roadmap-detail")
+          .forEach(function (detail) {
+            detail.open = !mobile.matches;
+          });
+      };
+      mobile.addEventListener("change", setRoadmapMode);
+      setRoadmapMode();
+      // Slice only the empty SVG frame; retain the live map's horizontal scale.
+      var map = livingMemory.querySelector(".proximity-field > svg");
+      if (map) map.setAttribute("preserveAspectRatio", "xMidYMid slice");
+    }
+
     // Theme toggle — delegate actual flip to window.toggleTheme (injected
     // by site-builder), we just keep the button label in sync.
     var toggle = document.getElementById("themeToggle");

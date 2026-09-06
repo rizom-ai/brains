@@ -14,6 +14,7 @@ test("proximity map owns its site styles", () => {
 });
 
 const data: ProximityMapData = {
+  headingLevel: null,
   kicker: null,
   headingLead: null,
   headingAccent: null,

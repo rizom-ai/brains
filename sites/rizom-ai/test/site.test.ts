@@ -6,6 +6,7 @@ describe("@rizom/site-rizom-ai", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
       "home",
+      "living-memory",
       "brain",
       "writing",
       "network",
@@ -21,6 +22,7 @@ describe("@rizom/site-rizom-ai", () => {
         : [];
     expect(sections.map((group) => group.namespace)).toEqual([
       "home",
+      "living-memory",
       "brain",
       "work",
       "foundation",

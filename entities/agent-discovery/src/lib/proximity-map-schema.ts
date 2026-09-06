@@ -71,6 +71,7 @@ export type ProximityMapDistanceRange = z.output<
 >;
 
 type ProximityMapCopySchema = z.ZodObject<{
+  headingLevel: z.ZodDefault<z.ZodNullable<z.ZodEnum<{ h1: "h1"; h2: "h2" }>>>;
   kicker: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   headingLead: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   headingAccent: z.ZodDefault<z.ZodNullable<z.ZodString>>;
@@ -88,6 +89,8 @@ type ProximityMapCopySchema = z.ZodObject<{
  * copy is edited as a normal markdown section while map data stays live.
  */
 export const proximityMapCopySchema: ProximityMapCopySchema = z.object({
+  /** A page-opening map may own the document heading; section maps remain h2. */
+  headingLevel: z.enum(["h1", "h2"]).nullable().default(null),
   /** Eyebrow above the heading. */
   kicker: z.string().nullable().default(null),
   /** Heading, plain lead-in before the accented tail. */
