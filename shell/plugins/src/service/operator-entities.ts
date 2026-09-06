@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils/error";
 import {
   applyEntityCreate,
   applyEntityDelete,
@@ -12,6 +13,33 @@ import {
 } from "@brains/entity-service";
 import type { IShell } from "../interfaces";
 import type { InterfaceCaller } from "../interface/route-contract";
+
+/** A file somebody sent, as the console received it. */
+export interface OperatorUploadRequest {
+  readonly filename: string;
+  readonly mediaType: string;
+  readonly content: Buffer;
+}
+
+/** What became of an upload. */
+export type OperatorUploadOutcome =
+  | {
+      readonly kind: "created";
+      readonly entityType: string;
+      readonly entityId: string | undefined;
+      readonly jobId: string | undefined;
+    }
+  | {
+      /** The owning type's handler took the file and said no. */
+      readonly kind: "refused";
+      readonly entityType: string;
+      readonly message: string;
+    }
+  | {
+      readonly kind: "denied";
+      readonly reason: "unsupported-media-type" | "entity-action-policy";
+      readonly message: string;
+    };
 
 /**
  * Editing the brain's records on somebody's behalf.
@@ -64,12 +92,36 @@ export interface OperatorEntityWrites {
     request: EntityDeleteRequest,
     caller: InterfaceCaller,
   ): Promise<EntityDeleteOutcome>;
+  /**
+   * Turn a file into an entity of whichever type declared it takes that
+   * kind of file. The console never decides what the file becomes: the
+   * bytes are staged and handed to the type's own upload handler, as the
+   * person who sent them. `createRouted`'s shape, for uploads.
+   */
+  upload(
+    request: OperatorUploadRequest,
+    caller: InterfaceCaller,
+  ): Promise<OperatorUploadOutcome>;
 }
 
-export function createOperatorEntities(shell: IShell): OperatorEntityWrites {
+export function createOperatorEntities(
+  shell: IShell,
+  options: {
+    /** The declaring package, which is what an upload says it came through. */
+    readonly interfaceType: string;
+  },
+): OperatorEntityWrites {
   const entityService = shell.getEntityService();
   const registry = shell.getEntityRegistry();
   const permissions = shell.getPermissionService();
+  // Staged only for the moment between arriving and being promoted; the
+  // record is never served back, so the path a served one would resolve
+  // under is not a real one.
+  const staging = shell.getRuntimeUploadRegistry().scoped({
+    namespace: `${options.interfaceType}-upload`,
+    refKind: "upload",
+    routePath: "/",
+  });
 
   const assertAllowed = (
     entityType: string,
@@ -107,6 +159,56 @@ export function createOperatorEntities(shell: IShell): OperatorEntityWrites {
         request,
         { permission: caller.permission },
       ),
+    upload: async (request, caller): Promise<OperatorUploadOutcome> => {
+      const registration = registry.getUploadSaveHandler(request.mediaType);
+      if (!registration) {
+        return {
+          kind: "denied",
+          reason: "unsupported-media-type",
+          message: `No entity type accepts uploads of type ${request.mediaType}`,
+        };
+      }
+      try {
+        assertAllowed(registration.entityType, "create", caller.permission);
+      } catch (error) {
+        return {
+          kind: "denied",
+          reason: "entity-action-policy",
+          message: getErrorMessage(error, "create is not allowed"),
+        };
+      }
+      const record = await staging.save({
+        filename: request.filename,
+        mediaType: request.mediaType,
+        content: request.content,
+      });
+      const result = await registration.handler(
+        { upload: { kind: "upload", id: record.id } },
+        {
+          interfaceType: options.interfaceType,
+          actor: {
+            kind: "user",
+            userId: caller.actor.id,
+            ...(caller.actor.canonicalId !== undefined
+              ? { canonicalId: caller.actor.canonicalId }
+              : {}),
+          },
+        },
+      );
+      if (!result.success) {
+        return {
+          kind: "refused",
+          entityType: registration.entityType,
+          message: result.error,
+        };
+      }
+      return {
+        kind: "created",
+        entityType: registration.entityType,
+        entityId: result.data.entityId,
+        jobId: result.data.jobId,
+      };
+    },
     delete: (request, caller) =>
       applyEntityDelete(
         {

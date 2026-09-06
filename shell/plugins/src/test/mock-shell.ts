@@ -885,6 +885,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
     getCreateInterceptor: (type) => createInterceptors.get(type),
     registerUploadSaveHandler: (registration): void => {
+      const kept = uploadSaveHandlers.filter(
+        (existing) => existing.entityType !== registration.entityType,
+      );
+      uploadSaveHandlers.splice(0, uploadSaveHandlers.length, ...kept);
       uploadSaveHandlers.push(registration);
     },
     getUploadSaveHandler: (mediaType) =>

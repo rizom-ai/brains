@@ -557,7 +557,9 @@ class DeclarativeServicePlugin<
             resolve: context.templates.resolve,
             capabilities: (name) => context.templates.getCapabilities(name),
           },
-          operatorEntities: createOperatorEntities(this.requireShell()),
+          operatorEntities: createOperatorEntities(this.requireShell(), {
+            interfaceType: this.definition.id,
+          }),
           entityShapes: entityShapesOf(context),
           themeCSS: context.themeCSS,
           readiness: () => context.readiness(),

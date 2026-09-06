@@ -921,7 +921,11 @@ export { sourceAttachmentKey } from "./entity/source-attachment-key";
 export { SerialQueue } from "./service/serial-queue";
 export type { StaticSiteOutput } from "./contracts/http-host";
 export { createOperatorEntities } from "./service/operator-entities";
-export type { OperatorEntityWrites } from "./service/operator-entities";
+export type {
+  OperatorEntityWrites,
+  OperatorUploadOutcome,
+  OperatorUploadRequest,
+} from "./service/operator-entities";
 export type {
   InterfaceCaller,
   RouteSecurity,
