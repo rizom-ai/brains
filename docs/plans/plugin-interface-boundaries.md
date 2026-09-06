@@ -1066,16 +1066,27 @@ against studio's shell rather than guessed:
 - **The endpoint registration goes.** Studio registers an endpoint and an
   interaction for the same URL, and the console's own panel dedupes by path,
   so only the interaction is declared. The same duplication `admin` had.
-- **The open question is route security.** Studio's editor routes resolve
-  their own principal with `auth.getCaller()?.resolveSession(request)` and
-  carry a `StudioRequestAccess` — principal, actor, permission level,
-  visibility scope, anchor flag. A declared route with
-  `security: { kind: "protocol" }` receives an `InterfaceCaller`, which
-  carries the actor, the permission and the anchor flag but not the
-  visibility scope. Whether the scope is derived from the permission at the
-  boundary (it is `permissionToVisibilityScope` everywhere else) or whether
-  the declared caller should carry it is the one thing to settle before the
-  routes are rewritten.
+- **Route security, settled — and not where it looked.** The visibility
+  scope turned out to be no gap at all: studio already computes it as
+  `permissionToVisibilityScope(principal.permissionLevel)`, so it is derived
+  at the boundary like everywhere else. Nor is `role`, which is the same
+  value as `permissionLevel` — `principal-service` sets one from the other.
+
+  The real gap was **where a declared route's permission comes from**. It
+  called `determineUserLevel(declarationId, actorId)`, which resolves a
+  per-interface grant and defaults to public. That is right for a channel
+  interface, which knows an id on its own transport and nothing about what
+  it is worth here. It is wrong for a console that has already verified a
+  first-party session and read the person's role out of the brain's own user
+  store: routing that through channel grants answers "public" about the
+  brain's own operator.
+
+  So an authenticator now says what it knows. `authenticate` may return a
+  permission and an anchor flag alongside the actor, and the runtime asks
+  the grant machinery only about what it was not told. Every existing
+  channel interface answers with an id alone and is unaffected. The actor
+  also gained `canonicalId`, so a write made in a console attributes to the
+  same person as one made in chat.
 
 ## Validation
 

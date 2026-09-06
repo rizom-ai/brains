@@ -81,15 +81,23 @@ async function resolveCaller(
   },
 ): Promise<InterfaceCaller | null> {
   if (definition.security.kind === "public") return null;
-  const actor = await definition.security.authenticate({ request });
-  if (!actor?.id.trim()) return null;
-  const permission: UserPermissionLevel = options.permissions.getUserLevel(
-    options.declarationId,
-    actor.id,
-  );
+  const authenticated = await definition.security.authenticate({ request });
+  if (!authenticated?.id.trim()) return null;
+  // What the authenticator verified stands; what it left unsaid is the
+  // runtime's to answer from the grants this declaration holds.
+  const {
+    permission: verified,
+    isAnchor: verifiedAnchor,
+    ...actor
+  } = authenticated;
+  const permission: UserPermissionLevel =
+    verified ??
+    options.permissions.getUserLevel(options.declarationId, actor.id);
   return Object.freeze({
     actor: Object.freeze({ ...actor }),
     permission,
-    isAnchor: options.permissions.isAnchor(options.declarationId, actor.id),
+    isAnchor:
+      verifiedAnchor ??
+      options.permissions.isAnchor(options.declarationId, actor.id),
   });
 }

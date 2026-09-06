@@ -23,6 +23,15 @@ export type InterfaceSchema = z.ZodType<unknown, unknown>;
 export interface InterfaceActor {
   readonly id: string;
   readonly displayName?: string | undefined;
+  /**
+   * The person behind this identity, when the authenticator knows it.
+   *
+   * One human reaches the brain over several identities — a passkey
+   * session, a chat account, an email address. A write made in a console is
+   * the same person as one made in chat, and attribution only says so if
+   * the caller carries the link. Named consumer: @brains/studio.
+   */
+  readonly canonicalId?: string | undefined;
 }
 
 /**
@@ -43,11 +52,28 @@ export interface InterfaceCaller {
   readonly isAnchor: boolean;
 }
 
+/**
+ * Who the authenticator recognised, and what it already knows about them.
+ *
+ * A channel interface knows an id on its own transport and nothing more, so
+ * it answers with an id and lets the runtime decide what that id is worth
+ * here. An authenticator that verified a first-party session is the other
+ * case: it has already read the person's role out of the brain's own user
+ * store, and being told to re-derive it from channel grants would answer
+ * "public" about the brain's own operator. Say what you know; the runtime
+ * asks only about what you did not say.
+ * Named consumer: @brains/studio.
+ */
+export interface AuthenticatedActor extends InterfaceActor {
+  readonly permission?: UserPermissionLevel | undefined;
+  readonly isAnchor?: boolean | undefined;
+}
+
 export interface ProtocolSecurityDefinition {
   readonly kind: "protocol";
   authenticate(context: {
     readonly request: Request;
-  }): InterfaceActor | null | Promise<InterfaceActor | null>;
+  }): AuthenticatedActor | null | Promise<AuthenticatedActor | null>;
 }
 
 export interface PublicSecurityDefinition {
