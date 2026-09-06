@@ -1,4 +1,6 @@
 import { z } from "@brains/utils/zod";
+import { prepareAsset } from "@brains/assets";
+import { imageAdapter, imageSchema, resolveImageBytes } from "@brains/image";
 import { afterEach, describe, expect, it } from "bun:test";
 import defaultSite from "@brains/site-default";
 import {
@@ -492,5 +494,59 @@ describe("canonical durable job execution boundary", () => {
         visibilityScope: "restricted",
       }),
     ).toBeNull();
+
+    // The worker must persist and read image bytes through the owner endpoint.
+    const bytes = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const asset = prepareAsset(bytes);
+    const image = imageAdapter.createImageEntity({
+      assetRef: asset.ref,
+      bytes,
+      title: "Remote image",
+    });
+    await workerEntities.createEntity({
+      entity: { ...image, id: "remote-image" },
+      preparedAsset: asset,
+      options: { persistenceOrigin: "directory-sync" },
+    });
+    const persistedImage = imageSchema.parse(
+      await workerEntities.getEntityRaw({
+        entityType: "image",
+        id: "remote-image",
+        visibilityScope: "restricted",
+      }),
+    );
+    expect(persistedImage.content).toBe(asset.ref);
+    expect(Buffer.from(await workerEntities.readAsset(asset.ref))).toEqual(
+      bytes,
+    );
+    expect(Buffer.from(await ownerEntities.readAsset(asset.ref))).toEqual(
+      bytes,
+    );
+    expect(await workerEntities.statAsset(asset.ref)).toEqual({
+      ref: asset.ref,
+      sizeBytes: bytes.byteLength,
+    });
+    expect(await workerEntities.verifyAsset(asset.ref)).toMatchObject({
+      expectedDigest: asset.digest,
+      actualDigest: asset.digest,
+      valid: true,
+    });
+    expect(
+      Buffer.from(
+        (await resolveImageBytes(persistedImage, workerEntities)).bytes,
+      ),
+    ).toEqual(bytes);
+    const missingAsset = prepareAsset(Buffer.from("missing")).ref;
+    expect(await workerEntities.statAsset(missingAsset)).toBeNull();
+    let missingAssetError: unknown;
+    try {
+      await workerEntities.readAsset(missingAsset);
+    } catch (error) {
+      missingAssetError = error;
+    }
+    expect(missingAssetError).toBeInstanceOf(Error);
   });
 });

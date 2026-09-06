@@ -8,6 +8,7 @@ import type {
   AtprotoProjectionBuildInput,
   AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
+import { resolveImageBytes } from "@brains/image";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 
@@ -18,21 +19,6 @@ interface BlobUploader {
     data: Buffer;
     mimeType: string;
   }): Promise<{ blob: AtprotoBlobRef }>;
-}
-
-function dataUrlToUploadInput(dataUrl: string): {
-  data: Buffer;
-  mimeType: string;
-} {
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
-  if (!match?.[1] || !match[2]) {
-    throw new Error("Cover image must be a base64 data URL");
-  }
-
-  return {
-    data: Buffer.from(match[2], "base64"),
-    mimeType: match[1],
-  };
 }
 
 async function uploadCoverImage(
@@ -61,7 +47,11 @@ async function uploadCoverImage(
     throw new Error(`Cannot publish non-public cover image: ${image.id}`);
   }
 
-  const uploadInput = dataUrlToUploadInput(image.content);
+  const resolved = await resolveImageBytes(image, context.entityService);
+  const uploadInput = {
+    data: Buffer.from(resolved.bytes),
+    mimeType: resolved.mediaType,
+  };
   const blob = dryRun
     ? {
         $type: "blob" as const,

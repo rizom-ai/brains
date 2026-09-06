@@ -1,4 +1,11 @@
-import { preparedAssetSchema } from "@brains/assets";
+import {
+  preparedAssetSchema,
+  assetRefSchema,
+  SHA256_DIGEST_PATTERN,
+  type AssetRef,
+  type AssetStat,
+  type AssetVerification,
+} from "@brains/assets";
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
@@ -70,6 +77,9 @@ export type EntityRpcRequest =
     }
   | { operation: "getEntity"; request: GetEntityRequest }
   | { operation: "getEntityRaw"; request: GetEntityRawRequest }
+  | { operation: "readAsset"; ref: AssetRef }
+  | { operation: "statAsset"; ref: AssetRef }
+  | { operation: "verifyAsset"; ref: AssetRef }
   | { operation: "listEntities"; request: ListEntitiesRequest }
   | { operation: "countEntities"; request: CountEntitiesRequest }
   | {
@@ -375,6 +385,12 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
       operation: z.literal("getEntityRaw"),
       request: getEntityRequestSchema,
     }),
+    z.strictObject({ operation: z.literal("readAsset"), ref: assetRefSchema }),
+    z.strictObject({ operation: z.literal("statAsset"), ref: assetRefSchema }),
+    z.strictObject({
+      operation: z.literal("verifyAsset"),
+      ref: assetRefSchema,
+    }),
     z.strictObject({
       operation: z.literal("listEntities"),
       request: entityRpcListRequestSchema,
@@ -541,6 +557,15 @@ export function parseEntityRpcCall(input: unknown): EntityRpcCall {
   };
 }
 
+const assetStatSchema = z.strictObject({
+  ref: assetRefSchema,
+  sizeBytes: z.number().int().nonnegative(),
+});
+const assetVerificationSchema = assetStatSchema.extend({
+  expectedDigest: z.string().regex(SHA256_DIGEST_PATTERN),
+  actualDigest: z.string().regex(SHA256_DIGEST_PATTERN),
+  valid: z.boolean(),
+});
 const nullableEntitySchema = entitySchema.nullable();
 const entityListSchema = z.array(entitySchema);
 const booleanResultSchema = z.boolean();
@@ -584,6 +609,9 @@ export interface EntityRpcResults {
   awaitIndexReady: IndexReadinessStatus;
   getEntity: BaseEntity | null;
   getEntityRaw: BaseEntity | null;
+  readAsset: Uint8Array;
+  statAsset: AssetStat | null;
+  verifyAsset: AssetVerification;
   listEntities: BaseEntity[];
   countEntities: number;
   countEmbeddings: number;
@@ -623,6 +651,9 @@ const resultSchemas: RpcResultSchemas<EntityRpcResults> = {
   awaitIndexReady: readinessSchema,
   getEntity: nullableEntitySchema,
   getEntityRaw: nullableEntitySchema,
+  readAsset: z.instanceof(Uint8Array),
+  statAsset: assetStatSchema.nullable(),
+  verifyAsset: assetVerificationSchema,
   listEntities: entityListSchema,
   countEntities: nonNegativeIntSchema,
   countEmbeddings: nonNegativeIntSchema,
@@ -683,6 +714,12 @@ export function handleEntityRpcRequest(
       return service.getEntity(request.request);
     case "getEntityRaw":
       return service.getEntityRaw(request.request);
+    case "readAsset":
+      return service.readAsset(request.ref);
+    case "statAsset":
+      return service.statAsset(request.ref);
+    case "verifyAsset":
+      return service.verifyAsset(request.ref);
     case "listEntities":
       return service.listEntities(request.request);
     case "countEntities":

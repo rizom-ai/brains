@@ -1,3 +1,4 @@
+import { parseAssetRef } from "@brains/assets";
 import { rm } from "node:fs/promises";
 import { createTempDir } from "@brains/test-utils";
 import { join } from "node:path";
@@ -187,9 +188,10 @@ describe("ImagePlugin", () => {
       id: "robot",
       visibilityScope: "shared",
     });
-    expect(entity?.content).toBe(
-      `data:image/png;base64,${pngBytes.toString("base64")}`,
-    );
+    const assetRef = parseAssetRef(entity?.content);
+    expect(
+      Buffer.from(await harness.getEntityService().readAsset(assetRef)),
+    ).toEqual(pngBytes);
     expect(entity?.metadata).toMatchObject({
       title: "Robot",
       alt: "Robot",

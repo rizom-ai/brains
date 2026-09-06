@@ -1,3 +1,4 @@
+import { prepareAsset } from "@brains/assets";
 import { describe, it, expect, beforeEach } from "bun:test";
 import {
   ImageGenerationJobHandler,
@@ -18,6 +19,7 @@ import {
 const VALID_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const VALID_PNG_DATA_URL = `data:image/png;base64,${VALID_PNG_BASE64}`;
+const VALID_PNG_ASSET = prepareAsset(Buffer.from(VALID_PNG_BASE64, "base64"));
 
 describe("ImageGenerationJobHandler", () => {
   let handler: ImageGenerationJobHandler;
@@ -137,10 +139,12 @@ describe("ImageGenerationJobHandler", () => {
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           entityType: "image",
+          content: VALID_PNG_ASSET.ref,
           metadata: expect.objectContaining({
             title: expect.any(String),
           }),
         }),
+        preparedAsset: VALID_PNG_ASSET,
       });
     });
 
@@ -182,11 +186,12 @@ describe("ImageGenerationJobHandler", () => {
         entity: expect.objectContaining({
           id: "sunset-image",
           entityType: "image",
-          content: VALID_PNG_DATA_URL,
+          content: VALID_PNG_ASSET.ref,
           metadata: expect.objectContaining({
             title: "Sunset Image",
           }),
         }),
+        preparedAsset: VALID_PNG_ASSET,
       });
     });
 
@@ -243,12 +248,13 @@ describe("ImageGenerationJobHandler", () => {
       expect(pendingContext.entityService.updateEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "sunset-image",
-          content: VALID_PNG_DATA_URL,
+          content: VALID_PNG_ASSET.ref,
           metadata: expect.objectContaining({
             title: "Sunset Image",
             status: "draft",
           }),
         }),
+        preparedAsset: VALID_PNG_ASSET,
       });
       expect(pendingContext.entityService.createEntity).not.toHaveBeenCalled();
       expect(pendingContext.entityService.deleteEntity).not.toHaveBeenCalled();
@@ -300,9 +306,10 @@ describe("ImageGenerationJobHandler", () => {
       expect(regenContext.entityService.updateEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "sunset-image",
-          content: VALID_PNG_DATA_URL,
+          content: VALID_PNG_ASSET.ref,
           metadata: expect.objectContaining({ status: "draft" }),
         }),
+        preparedAsset: VALID_PNG_ASSET,
       });
       expect(regenContext.entityService.deleteEntity).not.toHaveBeenCalled();
       expect(regenContext.entityService.createEntity).not.toHaveBeenCalled();

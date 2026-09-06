@@ -5,6 +5,7 @@ import {
   type CreateEntityOptions,
   type EntityInput,
   type EntityMutationResult,
+  type PreparedAsset,
   type UpdateEntityOptions,
 } from "@brains/entity-service";
 
@@ -24,10 +25,12 @@ export interface PendingEntityService {
   }): Promise<BaseEntity | null>;
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
+    preparedAsset?: PreparedAsset | undefined;
     options?: CreateEntityOptions | undefined;
   }): Promise<EntityMutationResult>;
   updateEntity(request: {
     entity: BaseEntity;
+    preparedAsset?: PreparedAsset | undefined;
     options?: UpdateEntityOptions | undefined;
   }): Promise<EntityMutationResult>;
 }
@@ -91,6 +94,7 @@ export async function createPendingEntity({
 export interface SaveProcessedEntityRequest {
   entityService: PendingEntityService;
   entity: EntityInputWithId;
+  preparedAsset?: PreparedAsset | undefined;
   expectedContentHash?: string | undefined;
 }
 
@@ -128,6 +132,7 @@ export type FailPendingEntityResult =
 export async function saveProcessedEntity({
   entityService,
   entity,
+  preparedAsset,
   expectedContentHash,
 }: SaveProcessedEntityRequest): Promise<SaveProcessedEntityResult> {
   const previousEntity = await entityService.getEntity({
@@ -145,6 +150,7 @@ export async function saveProcessedEntity({
     };
     const mutation = await entityService.updateEntity({
       entity: updatedEntity,
+      ...(preparedAsset ? { preparedAsset } : {}),
       ...(expectedContentHash !== undefined
         ? { options: { expectedContentHash } }
         : {}),
@@ -170,7 +176,10 @@ export async function saveProcessedEntity({
     };
   }
 
-  const mutation = await entityService.createEntity({ entity });
+  const mutation = await entityService.createEntity({
+    entity,
+    ...(preparedAsset ? { preparedAsset } : {}),
+  });
   return {
     entityId: mutation.entityId,
     updated: false,

@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { prepareAsset } from "@brains/assets";
 import {
   describe,
   it,
@@ -25,6 +26,10 @@ import {
   type ProgressReporter,
 } from "@brains/utils/progress";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
+
+const VALID_PNG_ASSET = prepareAsset(
+  Buffer.from(VALID_PNG_DATA_URL.split(",")[1] ?? "", "base64"),
+);
 
 describe("CoverImageConversionJobHandler", () => {
   let handler: CoverImageConversionJobHandler;
@@ -235,13 +240,15 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       // Verify createEntity was called with custom alt
-      expect(context.entityService.createEntity).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          metadata: expect.objectContaining({
-            alt: "My custom alt text",
+      expect(context.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: expect.objectContaining({
+            metadata: expect.objectContaining({
+              alt: "My custom alt text",
+            }),
           }),
         }),
-      });
+      );
     });
 
     it("should use title-based alt when customAlt not provided", async () => {
@@ -252,13 +259,15 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       // Verify createEntity was called with title-based alt
-      expect(context.entityService.createEntity).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          metadata: expect.objectContaining({
-            alt: "Cover image for Test Post",
+      expect(context.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: expect.objectContaining({
+            metadata: expect.objectContaining({
+              alt: "Cover image for Test Post",
+            }),
           }),
         }),
-      });
+      );
     });
 
     it("should skip if file already has coverImageId", async () => {
@@ -350,16 +359,19 @@ Some content here.
         entity: expect.objectContaining({
           id: "test-post-cover",
           entityType: "image",
-          content: VALID_PNG_DATA_URL,
+          content: VALID_PNG_ASSET.ref,
           metadata: expect.objectContaining({
             title: "Cover image for Test Post",
             alt: "Cover image for Test Post",
             format: "png",
+            mediaType: "image/png",
+            sizeBytes: VALID_PNG_ASSET.sizeBytes,
             width: 1,
             height: 1,
             sourceUrl: "https://example.com/image.jpg",
           }),
         }),
+        preparedAsset: VALID_PNG_ASSET,
       });
     });
 

@@ -12,6 +12,7 @@ import {
   handleProjectionStoreRpcRequest,
   parseEntityRpcCall,
   parseEntityRpcRequest,
+  parseEntityRpcResult,
   type EntityRpcCall,
   type EntityRpcTransport,
   type ProjectionStoreRpcRequest,
@@ -206,6 +207,28 @@ describe("entity owner RPC", () => {
     expect(
       await owner.getEntity({ entityType: "note", id: "remote-note" }),
     ).toBeNull();
+  });
+
+  it("validates asset references and typed binary responses at the RPC boundary", () => {
+    const asset = prepareAsset(new Uint8Array([0, 128, 255]));
+    for (const operation of [
+      "readAsset",
+      "statAsset",
+      "verifyAsset",
+    ] as const) {
+      expect(parseEntityRpcRequest({ operation, ref: asset.ref })).toEqual({
+        operation,
+        ref: asset.ref,
+      });
+      expect(() =>
+        parseEntityRpcRequest({ operation, ref: "file:/data/brain.db" }),
+      ).toThrow();
+    }
+    const request = { operation: "readAsset", ref: asset.ref } as const;
+    expect(parseEntityRpcResult(request, asset.bytes)).toEqual(asset.bytes);
+    expect(() =>
+      parseEntityRpcResult(request, Array.from(asset.bytes)),
+    ).toThrow();
   });
 
   it("proxies the narrow async projection store", async () => {

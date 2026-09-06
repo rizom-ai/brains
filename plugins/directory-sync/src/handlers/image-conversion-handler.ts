@@ -3,16 +3,12 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { fetchImageAsBase64 } from "@brains/image";
+import { prepareAsset } from "@brains/assets";
+import { fetchImageAsBase64, imageAdapter, parseDataUrl } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
 import { coverImageConversionJobSchema } from "../types";
 import type { CoverImageConversionJobData } from "../types";
 
@@ -182,36 +178,28 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           message: "Creating image entity",
         });
 
-        // Extract format and dimensions
-        const { base64 } = parseDataUrl(dataUrl);
-        const format = detectImageFormat(base64);
-        const dimensions = detectImageDimensions(base64);
-
-        if (!format || !dimensions) {
-          const errorMessage = "Could not detect image format or dimensions";
-          this.logger.error(errorMessage, { sourceUrl });
-          return JobResult.failure(new Error(errorMessage));
-        }
+        const parsedImage = parseDataUrl(dataUrl);
+        const preparedAsset = prepareAsset(parsedImage.bytes);
 
         // Step 5: Create image entity
         imageId = `${postSlug}-cover`;
         const imageTitle = `Cover image for ${postTitle}`;
         const imageAlt = customAlt ?? imageTitle;
+        const imageData = imageAdapter.createImageEntity({
+          assetRef: preparedAsset.ref,
+          bytes: parsedImage.bytes,
+          declaredMediaType: parsedImage.mediaType,
+          title: imageTitle,
+          alt: imageAlt,
+          sourceUrl,
+        });
 
         await this.context.entityService.createEntity({
           entity: {
             id: imageId,
-            entityType: "image",
-            content: dataUrl,
-            metadata: {
-              title: imageTitle,
-              alt: imageAlt,
-              format,
-              width: dimensions.width,
-              height: dimensions.height,
-              sourceUrl,
-            },
+            ...imageData,
           },
+          preparedAsset,
         });
 
         this.logger.debug("Created image entity", { imageId, sourceUrl });

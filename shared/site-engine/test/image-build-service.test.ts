@@ -71,6 +71,43 @@ describe("ImageBuildService", () => {
     expect(resolved.height).toBe(480);
   });
 
+  test("should resolve SQLite-backed image bytes", async () => {
+    const bytes = await createTestPng(100, 100);
+    const mockEntityService = createMockEntityService({
+      returns: {
+        getEntity: {
+          id: "asset-icon",
+          entityType: "image",
+          content: `asset://sha256/${"a".repeat(64)}`,
+          visibility: "public",
+          metadata: {
+            format: "png",
+            mediaType: "image/png",
+            sizeBytes: bytes.byteLength,
+            width: 100,
+            height: 100,
+          },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          contentHash: "asset-icon-hash",
+        },
+        readAsset: bytes,
+      },
+    });
+
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    await service.resolveAll(["asset-icon"], new AbortController().signal);
+
+    expect(service.get("asset-icon")).toMatchObject({
+      src: "/images/asset-icon.png",
+      width: 100,
+      height: 100,
+    });
+    expect([...(await fs.readFile(join(imagesDir, "asset-icon.png")))]).toEqual(
+      [...bytes],
+    );
+  });
+
   test("rejects an already cancelled image batch before entity reads", async () => {
     const mockEntityService = createMockEntityService();
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);

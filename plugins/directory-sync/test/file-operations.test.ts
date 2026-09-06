@@ -1,3 +1,4 @@
+import { prepareAsset } from "@brains/assets";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
 import {
@@ -22,6 +23,11 @@ import {
   TINY_PNG_DATA_URL,
 } from "./fixtures";
 
+const TINY_JPEG_BYTES = Buffer.from(
+  "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEQACEQADBAB//9k=",
+  "base64",
+);
+
 describe("FileOperations", () => {
   let fileOps: FileOperations;
   let testDir: string;
@@ -35,6 +41,9 @@ describe("FileOperations", () => {
       serializeEntity: (entity: BaseEntity): string =>
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
+      readAsset: async (): Promise<Uint8Array> => {
+        throw new Error("asset read not configured");
+      },
     };
 
     fileOps = new FileOperations(testDir, mockEntityService);
@@ -303,6 +312,9 @@ describe("FileOperations", () => {
         const selectiveService: FileOperationsEntityService = {
           serializeEntity: () => "",
           hasEntityType: (type: string) => ["post", "link"].includes(type),
+          readAsset: async () => {
+            throw new Error("asset read not configured");
+          },
         };
         const selectiveFileOps = new FileOperations(testDir, selectiveService);
 
@@ -326,7 +338,7 @@ describe("FileOperations", () => {
   });
 
   describe("Image File Support", () => {
-    it("should read image files from image/ directory as base64 data URLs", async () => {
+    it("should prepare image files as asset references", async () => {
       // Create image file in image/ directory
       mkdirSync(join(testDir, "image"), { recursive: true });
       const imagePath = join(testDir, "image", "test-photo.png");
@@ -334,9 +346,18 @@ describe("FileOperations", () => {
 
       const entity = await fileOps.readEntity("image/test-photo.png");
 
+      const expected = prepareAsset(TINY_PNG_BYTES);
       expect(entity.entityType).toBe("image");
       expect(entity.id).toBe("test-photo");
-      expect(entity.content).toBe(TINY_PNG_DATA_URL);
+      expect(entity.content).toBe(expected.ref);
+      expect(entity.preparedAsset).toEqual(expected);
+      expect(entity.metadata).toEqual({
+        format: "png",
+        mediaType: "image/png",
+        sizeBytes: TINY_PNG_BYTES.byteLength,
+        width: 1,
+        height: 1,
+      });
     });
 
     it("should write image entities as binary files in image/ directory", async () => {
@@ -354,6 +375,57 @@ describe("FileOperations", () => {
       // Verify binary content
       const writtenBytes = readFileSync(expectedPath);
       expect(writtenBytes.equals(TINY_PNG_BYTES)).toBe(true);
+    });
+
+    it("should explicitly read asset-backed image bytes for export", async () => {
+      const prepared = prepareAsset(TINY_PNG_BYTES);
+      mockEntityService.readAsset = async (ref): Promise<Uint8Array> => {
+        expect(ref).toBe(prepared.ref);
+        return prepared.bytes;
+      };
+      const entity = createTestEntity("image", {
+        id: "asset-image",
+        content: prepared.ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: prepared.sizeBytes,
+          width: 1,
+          height: 1,
+        },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      expect(
+        readFileSync(join(testDir, "image", "asset-image.png")).equals(
+          TINY_PNG_BYTES,
+        ),
+      ).toBe(true);
+    });
+
+    it("preserves the existing export when a replacement asset is missing", async () => {
+      const imageDir = join(testDir, "image");
+      const existingPath = join(imageDir, "guarded.jpg");
+      mkdirSync(imageDir, { recursive: true });
+      writeFileSync(existingPath, TINY_JPEG_BYTES);
+      const entity = createTestEntity("image", {
+        id: "guarded",
+        content: `asset://sha256/${"a".repeat(64)}`,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: TINY_PNG_BYTES.byteLength,
+          width: 1,
+          height: 1,
+        },
+      });
+
+      expect(fileOps.writeEntity(entity)).rejects.toThrow(
+        "asset read not configured",
+      );
+      expect(readFileSync(existingPath).equals(TINY_JPEG_BYTES)).toBe(true);
+      expect(existsSync(join(imageDir, "guarded.png"))).toBe(false);
     });
 
     it("should include image files from image/ directory in getAllSyncFiles", async () => {
@@ -385,20 +457,13 @@ describe("FileOperations", () => {
       expect(files).not.toContain("topic/photo.png"); // Should be ignored
     });
 
-    it("should handle different image formats in image/ directory", async () => {
+    it("should reject image bytes that do not match the file extension", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "mismatched.jpg"), TINY_PNG_BYTES);
 
-      // Test various image extensions
-      const extensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
-
-      for (const ext of extensions) {
-        const fileName = `test${ext}`;
-        writeFileSync(join(testDir, "image", fileName), TINY_PNG_BYTES);
-
-        const entity = await fileOps.readEntity(`image/${fileName}`);
-        expect(entity.entityType).toBe("image");
-        expect(entity.id).toBe("test");
-      }
+      expect(fileOps.readEntity("image/mismatched.jpg")).rejects.toThrow(
+        "does not match image/png signature",
+      );
     });
 
     it("should converge an image to one path when its content format changes", async () => {
@@ -412,8 +477,8 @@ describe("FileOperations", () => {
 
       const jpgEntity = createTestEntity("image", {
         id: "photo",
-        content: "data:image/jpeg;base64," + TINY_PNG_BYTES.toString("base64"),
-        metadata: { format: "jpg" },
+        content: "data:image/jpeg;base64," + TINY_JPEG_BYTES.toString("base64"),
+        metadata: { format: "jpeg" },
       });
 
       await fileOps.writeEntity(jpgEntity);
@@ -437,7 +502,21 @@ describe("FileOperations", () => {
 
       expect(readEntity.id).toBe("roundtrip-test");
       expect(readEntity.entityType).toBe("image");
-      expect(readEntity.content).toBe(TINY_PNG_DATA_URL);
+      expect(readEntity.content).toBe(prepareAsset(TINY_PNG_BYTES).ref);
+      expect(readEntity.preparedAsset?.bytes).toEqual(TINY_PNG_BYTES);
+    });
+
+    it("does not implicitly migrate an unchanged inline image during ordinary sync", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(join(testDir, "image", "legacy.png"), TINY_PNG_BYTES);
+      const raw = await fileOps.readEntity("image/legacy.png");
+      const existing = createTestEntity("image", {
+        id: "legacy",
+        content: TINY_PNG_DATA_URL,
+        metadata: { format: "png", width: 1, height: 1 },
+      });
+
+      expect(fileOps.shouldUpdateEntity(existing, raw)).toBe(false);
     });
   });
 

@@ -1,11 +1,26 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-08-28
+Last updated: 2026-09-06
 
 ## Status
 
-SQLite backend accepted for foundation implementation; production migration remains
-blocked.
+The SQLite asset foundation merged in PR #187; production image migration remains
+blocked. The current image-cutover phase stores newly completed images as SQLite assets,
+retains read compatibility for existing inline image entities, and deliberately performs
+no bulk conversion. Existing payloads will move only through the separately rehearsed,
+verifiable migration phase.
+
+The image cutover is now integrated into the 0.3 Turso branch. A canonical
+owner/worker boundary test checks atomic image creation and explicit asset
+read/stat/verify over authenticated private RPC; workers do not open databases.
+The local Docker fixture also checks image references, metadata, and exact PNG
+bytes across offline backup, restore, and restart. These checks are not a
+production cutover or a browser/site/publishing acceptance rehearsal.
+
+The existing 16 MiB RPC frame limit still applies, including encoded bytes and
+request/response metadata. The 100 MiB asset-store ceiling is not an end-to-end
+worker payload guarantee. Bounded large-asset transport and acceptance remain a
+0.3 release gate; do not raise the global frame limit to claim that coverage.
 
 PR #125 implemented a filesystem-backed content-addressed asset store under
 `data/assets`. That backend is no longer the target architecture. Do not merge or deploy

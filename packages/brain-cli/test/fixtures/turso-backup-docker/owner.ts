@@ -14,6 +14,8 @@ import {
 } from "@brains/db";
 import { AuthAccountSettingsStore } from "../../../../../shell/auth-service/src/account-settings-store";
 import { z } from "@brains/utils/zod";
+import { prepareAsset } from "@brains/assets";
+import { imageAdapter } from "@brains/image";
 import type { AccountSettingsStorageIdentity } from "@brains/plugins";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
@@ -66,6 +68,16 @@ const settingsIdentity = (actorId: string): AccountSettingsStorageIdentity => ({
   definitionId: "mailbox",
 });
 
+const imageBytes = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+const imageAsset = prepareAsset(imageBytes);
+const image = imageAdapter.createImageEntity({
+  assetRef: imageAsset.ref,
+  bytes: imageBytes,
+  title: "Recovered image",
+});
 const evidencePath = "/config/rehearsal.json";
 if (!(await Bun.file(evidencePath).exists())) {
   await mkdir("/config", { recursive: true });
@@ -92,6 +104,16 @@ if (!(await Bun.file(evidencePath).exists())) {
     sql: "INSERT INTO embeddings (entity_id, entity_type, embedding, content_hash) VALUES ('note', 'note', ?, 'fixture-hash')",
     args: [new Float32Array(1536).buffer],
   });
+  await entity.batch([
+    {
+      sql: "INSERT INTO assets (digest, bytes, size_bytes, created) VALUES (?, ?, ?, 1)",
+      args: [imageAsset.digest, imageAsset.bytes, imageAsset.sizeBytes],
+    },
+    {
+      sql: "INSERT INTO entities (id, entityType, content, contentHash, metadata, created, updated) VALUES ('rehearsal-image', 'image', ?, ?, ?, 1, 1)",
+      args: [image.content, imageAsset.digest, JSON.stringify(image.metadata)],
+    },
+  ]);
   await conversations.executeMultiple(
     "INSERT INTO conversations (id, session_id, interface_type, started, last_active, created, updated, channel_id) VALUES ('conversation', 'session', 'chat', '2026-01-01', '2026-01-01', '2026-01-01', '2026-01-01', 'channel'); INSERT INTO messages (id, conversation_id, role, content, timestamp) VALUES ('message', 'conversation', 'user', 'Preserve this conversation', '2026-01-01');",
   );
@@ -145,8 +167,17 @@ async function proof(): Promise<Record<string, unknown>> {
     privateKey,
     message,
   );
+  const storedImage = (
+    await entity.execute(
+      "SELECT e.metadata, hex(a.bytes) AS bytes, a.size_bytes FROM entities e JOIN assets a ON e.content = 'asset://sha256/' || a.digest WHERE e.id = 'rehearsal-image' AND e.entityType = 'image'",
+    )
+  ).rows[0];
   return {
     scope: "docker-protocol-fixture",
+    imagePreserved:
+      storedImage?.["bytes"] === imageBytes.toString("hex").toUpperCase() &&
+      storedImage["size_bytes"] === imageBytes.byteLength &&
+      storedImage["metadata"] === JSON.stringify(image.metadata),
     sessionValid: session?.subject === evidence.actorId,
     settingsDecrypt: saved?.values["password"] === "fixture-account-secret",
     signingKeyId: publicJwk.kid,

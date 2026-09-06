@@ -1,7 +1,7 @@
 import {
   canReceiveNativeArtifactFile,
   getArtifactEntityFilename,
-  parseArtifactDataUrl,
+  resolveArtifactEntityData,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
   type InterfacePluginContext,
@@ -109,7 +109,12 @@ export class ArtifactDeliveryResolver {
     if (typeof entity.content !== "string") return {};
     if (!canReceiveNativeArtifactFile(userLevel)) return {};
 
-    const parsed = parseArtifactDataUrl(entityRef.entityType, entity.content);
+    const parsed = await resolveArtifactEntityData(
+      entityRef.entityType,
+      entity.content,
+      entity.metadata,
+      context.entityService,
+    );
     if (!parsed) return {};
     if (parsed.data.byteLength > CHAT_NATIVE_ARTIFACT_MAX_BYTES) {
       this.deps.logger.debug("Skipping oversized chat artifact upload", {

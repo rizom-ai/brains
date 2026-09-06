@@ -87,6 +87,7 @@
       "dependencies": {
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/media-page-composer": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
@@ -192,6 +193,7 @@
       "name": "@brains/image-plugin",
       "version": "0.2.0-alpha.352",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/image": "workspace:*",
@@ -330,8 +332,10 @@
       "name": "@brains/social-media",
       "version": "0.2.0-alpha.352",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -510,6 +514,7 @@
         "@brains/auth-service": "workspace:*",
         "@brains/console-theme": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "@streamdown/cjk": "^1.0.3",
@@ -590,6 +595,7 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/assessment": "workspace:*",
+        "@brains/assets": "workspace:*",
         "@brains/atproto": "workspace:*",
         "@brains/atproto-registry": "workspace:*",
         "@brains/auth-service": "workspace:*",
@@ -610,6 +616,7 @@
         "@brains/email": "workspace:*",
         "@brains/email-workflows": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -829,6 +836,7 @@
       "version": "0.2.0-alpha.352",
       "dependencies": {
         "@brains/contracts": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/scheduler": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -872,6 +880,7 @@
       "name": "@brains/directory-sync",
       "version": "0.2.0-alpha.352",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/image": "workspace:*",
@@ -1074,6 +1083,7 @@
       "name": "@brains/stock-photo",
       "version": "0.2.0-alpha.352",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1319,6 +1329,7 @@
       "name": "@brains/image",
       "version": "0.2.0-alpha.352",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "remark": "^15.0.1",
@@ -1338,6 +1349,7 @@
       "version": "0.2.0-alpha.352",
       "dependencies": {
         "@brains/contracts": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/media-renderer": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-engine": "workspace:*",

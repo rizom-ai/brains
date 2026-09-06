@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { SHELL_CHANNELS } from "@brains/contracts";
+import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import type { IJobQueueService } from "@brains/job-queue";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
@@ -319,6 +320,18 @@ export class RemoteEntityService implements EntityService {
     }
 
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
+  }
+
+  public readAsset(ref: AssetRef): Promise<Uint8Array> {
+    return this.requestRemote({ operation: "readAsset", ref });
+  }
+
+  public statAsset(ref: AssetRef): Promise<AssetStat | null> {
+    return this.requestRemote({ operation: "statAsset", ref });
+  }
+
+  public verifyAsset(ref: AssetRef): Promise<AssetVerification> {
+    return this.requestRemote({ operation: "verifyAsset", ref });
   }
 
   public countEntities(request: CountEntitiesRequest): Promise<number> {

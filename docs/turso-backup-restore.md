@@ -7,8 +7,9 @@ automatic failover. The recovery point is the last successful snapshot.
 
 Implementation tests and an isolated local Docker protocol rehearsal pass. The
 Docker fixture uses the real migration chain and auth stores: restored sessions,
-signing keys/signatures, encrypted settings, passkey counters, and a controlled
-job transition survive recovery and restart. It is not a canonical brain boot,
+signing keys/signatures, encrypted settings, passkey counters, asset-backed PNG
+bytes/references/metadata, and a controlled job transition survive recovery and
+restart. It is not a canonical brain boot,
 browser passkey login, or real plugin job replay. Rover and real-instance checks
 still gate release. The remote command requires a
 **0.3 source version**. It must not run against 0.2: use the retained 0.2 tooling
@@ -35,7 +36,8 @@ noncanonical mounts require a dedicated backup configuration rather than guesses
 5. Copy all five database files and any committed Turso WALs. Open only copies
    with native Turso, check integrity/foreign keys, checkpoint, and close. Verify
    that fresh restored copies reopen with identical database hashes. Consolidated
-   embeddings are included in `brain.db`; `embeddings.db` is not required.
+   embeddings and image asset BLOBs are included in `brain.db`; `embeddings.db`
+   is not required.
 6. Capture Git refs/history, staged and unstaged binary patches, untracked and
    ignored files, executable bits, and symlinks. Capture `brain.yaml`, `/config`,
    and the exact JSON environment, including the account-settings encryption key.
@@ -129,7 +131,7 @@ files with libSQL.
 From `packages/brain-cli`, run `bun run test:backup-docker`. This opt-in harness
 uses only the local Docker socket and fresh, privately scoped fixture directories
 and containers. It builds a synthetic owner image, runs the actual backup/restore
-Docker protocol, checks restored auth data and a controlled job transition, and
+Docker protocol, checks restored auth and image data and a controlled job transition, and
 injects a capture failure to verify restart cleanup. It deletes its own containers,
 image tag and data, leaving a private JSON report in `/tmp`. It never contacts a
 fleet host or relabels a canonical runtime as 0.3.

@@ -50,8 +50,12 @@ import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
 import { defaultQueryResponseSchema } from "@brains/contracts";
 import {
+  computeAssetDigest,
+  getAssetDigest,
   getVisibleContentVisibilities,
   normalizeContentVisibility,
+  type AssetStat,
+  type AssetVerification,
   type IEntityService,
   type IEntityRegistry,
   type BaseEntity,
@@ -261,6 +265,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
+  const assets = new Map<string, Uint8Array>();
   const entityExportIntents = new Map<string, EntityExportIntent>();
   let entityExportRevision = 0;
   const exportKey = (entityType: string, entityId: string): string =>
@@ -295,6 +300,16 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     type: string,
   ): NonNullable<Parameters<IEntityRegistry["registerEntityType"]>[3]> =>
     entityTypeConfigs.get(type) ?? {};
+  const storePreparedAsset = (
+    content: string,
+    prepared: CreateEntityRequest<BaseEntity>["preparedAsset"],
+  ): void => {
+    if (!prepared) return;
+    if (content !== prepared.ref) {
+      throw new Error("Prepared asset does not match entity content");
+    }
+    assets.set(prepared.ref, Uint8Array.from(prepared.bytes));
+  };
 
   // Serialize an entity the way the real EntityService would: adapter
   // rebuilds markdown from entity fields, adapter extracts canonical
@@ -540,6 +555,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       };
       entityTypes.add(entity.entityType);
       const { content, metadata } = serializeViaAdapter(entity);
+      storePreparedAsset(content, request.preparedAsset);
       entities.set(id, {
         ...entity,
         content,
@@ -613,6 +629,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         );
         return { entityId: entity.id, jobId: "", skipped: true };
       }
+      storePreparedAsset(content, request.preparedAsset);
       entities.set(entity.id, {
         ...entity,
         content,
@@ -658,6 +675,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       const id = entity.id || `entity-${Date.now()}`;
       const exists = entities.has(id);
       const { content, metadata } = serializeViaAdapter({ ...entity, id });
+      storePreparedAsset(content, request.preparedAsset);
       entities.set(id, {
         ...entity,
         id,
@@ -714,6 +732,29 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         entityType,
         count,
       }));
+    },
+
+    readAsset: async (ref): Promise<Uint8Array> => {
+      const bytes = assets.get(ref);
+      if (!bytes) throw new Error(`Asset not found: ${ref}`);
+      return Uint8Array.from(bytes);
+    },
+    statAsset: async (ref): Promise<AssetStat | null> => {
+      const bytes = assets.get(ref);
+      return bytes ? { ref, sizeBytes: bytes.byteLength } : null;
+    },
+    verifyAsset: async (ref): Promise<AssetVerification> => {
+      const bytes = assets.get(ref);
+      if (!bytes) throw new Error(`Asset not found: ${ref}`);
+      const expectedDigest = getAssetDigest(ref);
+      const actualDigest = computeAssetDigest(bytes);
+      return {
+        ref,
+        sizeBytes: bytes.byteLength,
+        expectedDigest,
+        actualDigest,
+        valid: actualDigest === expectedDigest,
+      };
     },
 
     // The fake stores serialized entities directly, so there is no separate

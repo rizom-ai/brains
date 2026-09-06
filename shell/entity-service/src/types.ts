@@ -1,4 +1,9 @@
-import type { PreparedAsset } from "@brains/assets";
+import type {
+  AssetRef,
+  AssetStat,
+  AssetVerification,
+  PreparedAsset,
+} from "@brains/assets";
 import type { ActorRef } from "@brains/contracts";
 import type { IProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
@@ -792,6 +797,11 @@ export interface ICoreEntityService {
     request: GetEntityRawRequest,
     schema: EntitySchema<T>,
   ): Promise<T | null>;
+
+  /** Explicitly load durable bytes after authorizing through their entity. */
+  readAsset(ref: AssetRef): Promise<Uint8Array>;
+  statAsset(ref: AssetRef): Promise<AssetStat | null>;
+  verifyAsset(ref: AssetRef): Promise<AssetVerification>;
 
   listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
   listEntities<T extends BaseEntity>(
