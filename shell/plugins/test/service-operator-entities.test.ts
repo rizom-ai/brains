@@ -181,6 +181,38 @@ describe("editing entities on an operator's behalf", () => {
     expect(after?.content).toBe("The original body");
   });
 
+  it("stores an entity the operator assembled", async () => {
+    const entities = await install();
+
+    const outcome = await entities.create(
+      {
+        entityType: "note",
+        entity: {
+          entityType: "note",
+          content: "A note the operator wrote",
+          metadata: { title: "Written in the console" },
+        },
+      },
+      operator,
+    );
+
+    expect(outcome.kind).toBe("created");
+  });
+
+  it("refuses to store a type nobody registered", async () => {
+    const entities = await install();
+
+    const outcome = await entities.create(
+      {
+        entityType: "ghost",
+        entity: { entityType: "ghost", content: "", metadata: {} },
+      },
+      operator,
+    );
+
+    expect(outcome).toMatchObject({ kind: "denied", reason: "unknown-type" });
+  });
+
   it("removes an entity the operator may delete", async () => {
     const entities = await install();
     await seedNote();

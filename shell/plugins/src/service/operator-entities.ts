@@ -1,6 +1,9 @@
 import {
+  applyEntityCreate,
   applyEntityDelete,
   applyEntityEdit,
+  type EntityCreateOutcome,
+  type EntityCreateRequest,
   type EntityDeleteOutcome,
   type EntityDeleteRequest,
   type EntityEditAction,
@@ -40,6 +43,15 @@ export interface OperatorEntityWrites {
     caller: InterfaceCaller,
   ): boolean;
   /**
+   * Store an entity the caller assembled. Narrower than the agent's create,
+   * which chooses a source to derive from and runs a type's interceptor; a
+   * console has a form and already has the entity.
+   */
+  create(
+    request: EntityCreateRequest,
+    caller: InterfaceCaller,
+  ): Promise<EntityCreateOutcome>;
+  /**
    * Write the entity as it should now be. What became of it comes back
    * described rather than thrown, because a console answers a conflict with
    * the current version and a refusal with the reason.
@@ -61,7 +73,7 @@ export function createOperatorEntities(shell: IShell): OperatorEntityWrites {
 
   const assertAllowed = (
     entityType: string,
-    action: EntityEditAction | "delete",
+    action: EntityEditAction | "create" | "delete",
     permission: InterfaceCaller["permission"] | undefined,
   ): void => {
     permissions.assertEntityActionAllowed(entityType, action, permission);
@@ -70,6 +82,18 @@ export function createOperatorEntities(shell: IShell): OperatorEntityWrites {
   return {
     allows: (entityType, action, caller): boolean =>
       permissions.canPerformEntityAction(caller.permission, entityType, action),
+    create: (request, caller) =>
+      applyEntityCreate(
+        {
+          entities: entityService,
+          registry: {
+            isRegistered: (entityType) => registry.hasEntityType(entityType),
+          },
+          assertAllowed,
+        },
+        request,
+        { permission: caller.permission },
+      ),
     update: (request, caller) =>
       applyEntityEdit(
         {
