@@ -4,6 +4,7 @@ import type {
   Client,
   InArgs,
   InStatement,
+  InValue,
   ResultSet,
   Row,
   Transaction,
@@ -74,12 +75,30 @@ const EMPTY_RESULT: Omit<Parameters<typeof buildResultSet>[0], "rowsAffected"> =
     lastInsertRowid: undefined,
   };
 
+function normalizeArguments(args: InArgs | undefined): InArgs | undefined {
+  if (args === undefined) return undefined;
+  const value = (input: InValue): InValue => {
+    // The native SDK binds Uint8Array as a blob, but stringifies ArrayBuffer.
+    // Normalize the public client contract before crossing that boundary.
+    if (input instanceof ArrayBuffer) return new Uint8Array(input);
+    if (input instanceof Date) return input.valueOf();
+    if (typeof input === "boolean") return Number(input);
+    return input;
+  };
+  return Array.isArray(args)
+    ? args.map(value)
+    : Object.fromEntries(
+        Object.entries(args).map(([key, input]) => [key, value(input)]),
+      );
+}
+
 function normalizeStatement(
   stmt: InStatement | string,
   args?: InArgs,
 ): NormalizedStatement {
-  if (typeof stmt === "string") return { sql: stmt, args };
-  return { sql: stmt.sql, args: stmt.args };
+  if (typeof stmt === "string")
+    return { sql: stmt, args: normalizeArguments(args) };
+  return { sql: stmt.sql, args: normalizeArguments(stmt.args) };
 }
 
 const BEGIN_BY_MODE: Record<TransactionMode, string> = {

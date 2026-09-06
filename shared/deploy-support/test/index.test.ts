@@ -113,9 +113,9 @@ describe("deploy templates", () => {
     );
 
     for (const marker of [
-      "VACUUM INTO",
-      "database.serialize()",
-      "PRAGMA quick_check",
+      "captureTursoDatabases",
+      "restoreContents",
+      "docker stop -t -1",
       "sha256sum --check",
       ".incomplete",
       "DEFAULT_PREDEPLOY_BACKUP_RETENTION_COUNT = 5",
@@ -123,7 +123,12 @@ describe("deploy templates", () => {
       expect(snapshotCommand).toContain(marker);
     }
     expect(snapshotCommand).toMatch(/"bundle",\s*"verify"/);
-    expect(snapshotCommand).not.toContain(".Config.Env");
+    expect(snapshotCommand).toContain(
+      "'{{json .Config.Env}}' > \"$incomplete/runtime-environment.json\"",
+    );
+    expect(deployScriptNames).toContain("turso-backup.ts");
+    expect(snapshotCommand).not.toContain("bun:sqlite");
+    expect(snapshotCommand).not.toContain("@libsql/client");
     expect(snapshotCommand).not.toMatch(/cp\\s+[^\\n]*\\.db/);
 
     const workflow = renderDeployWorkflow({

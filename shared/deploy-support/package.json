@@ -9,6 +9,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@tursodatabase/database": "^0.7.2",
     "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
   },

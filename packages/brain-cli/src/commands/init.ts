@@ -481,6 +481,7 @@ function writeDeployWorkflow(dir: string, regen = false): void {
 
 const SHARED_DEPLOY_SCRIPTS: readonly DeployScriptName[] = [
   "create-predeploy-backup.ts",
+  "turso-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
@@ -488,6 +489,8 @@ const SHARED_DEPLOY_SCRIPTS: readonly DeployScriptName[] = [
 ];
 
 const DEPLOY_HELPERS_SHIM = `export {
+  parseTursoBackupManifest,
+  parseBackupRuntimeEnvironment,
   readJsonResponse,
   parseEnvFile,
   parseEnvSchema,

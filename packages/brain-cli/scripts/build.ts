@@ -38,6 +38,7 @@ const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
 
 copyDeployScripts(join(packageDir, "templates", "deploy", "scripts"), [
   "create-predeploy-backup.ts",
+  "turso-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",

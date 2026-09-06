@@ -1,4 +1,6 @@
 export {
+  parseTursoBackupManifest,
+  parseBackupRuntimeEnvironment,
   readJsonResponse,
   parseEnvFile,
   parseEnvSchema,

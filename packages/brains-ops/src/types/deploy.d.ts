@@ -1,3 +1,11 @@
+export function parseTursoBackupManifest(value: unknown): {
+  git: { head: string; branch: string };
+  databases: Array<{ name: string; sha256: string }>;
+  artifacts: Array<{ name: string; sha256: string }>;
+};
+
+export function parseBackupRuntimeEnvironment(value: unknown): string[];
+
 export interface EnvSchemaEntry {
   key: string;
   required: boolean;

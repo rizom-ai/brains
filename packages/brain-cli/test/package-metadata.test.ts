@@ -94,6 +94,7 @@ describe("@rizom/brain package metadata", () => {
     // scripts/build.ts (copyDeployScripts); this guards against hand-edits.
     const scripts = [
       "create-predeploy-backup.ts",
+      "turso-backup.ts",
       "install-health-watchdog.ts",
       "provision-server.ts",
       "update-dns.ts",

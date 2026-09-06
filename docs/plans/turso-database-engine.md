@@ -910,8 +910,8 @@ runtime no longer installs `@libsql/client`; development-only types, historical
 benchmarks, and legacy fixtures may still use it. Auth shutdown awaits admitted
 writes and durable close. The runtime refuses legacy FTS5 entity files instead
 of rewriting them with libSQL. CI and pre-commit now run one Turso runtime gate.
-The separate database importer now exists; complete operational migration and
-replacement backup/restore remain open.
+The separate database importer and offline Turso backup/restore implementation
+now exist; full operational migration and production recovery rehearsals remain open.
 
 **Offline importer implementation:** [`@rizom/db-migration`](../../packages/db-migration/README.md)
 imports the five runtime databases from a checksum-verified 0.2 snapshot into a
@@ -928,6 +928,26 @@ importer build/test when those source migration files change.
 This is a database-only importer, not deployment-ready output: restoring Git,
 configuration and encryption secrets, validating queued-job execution and login,
 and production-snapshot interruption/rollback rehearsal still gate release.
+
+**Offline backup/restore implementation:** [runbook](../turso-backup-restore.md).
+The 0.3 deploy gate stops workers and the owner under backup/watchdog locks, then
+uses the original image with read-only source mounts and networking disabled.
+Only private copies are opened by Turso. All five databases, consolidated vectors,
+Git refs and dirty files, runtime configuration, and private environment values
+are captured and restored into isolation before publication. Checks cover WAL
+recovery, database hashes, Git restoration (including local branches/stashes),
+configuration and encryption-key preservation. Original containers restart on
+success and ordinary failure; Docker health events drive readiness without polling.
+An uncatchable interruption leaves a durable maintenance marker for operator
+recovery. Restore never overwrites existing state or automatically starts jobs.
+Shared Zod validation stays behind the public deploy helper boundary, and the
+packed consumer can bundle the copied scripts without workspace dependencies.
+The remote path rejects 0.2 sources and noncanonical mounts rather than guessing.
+A local real-Docker fixture now passes capture, restore, source restart, failure
+cleanup, and restored auth-store/session/signature/decryption checks. It exposed
+and fixed ArrayBuffer argument coercion and previous-generation health events.
+This is not a canonical brain boot or browser passkey/plugin-job acceptance test;
+rover and real-instance authentication/job recovery rehearsal remain required.
 
 - Remove engine selection, remote-libSQL runtime paths, and libSQL runtime
   dependencies, including the auth database and its optional replica path.

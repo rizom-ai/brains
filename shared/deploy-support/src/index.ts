@@ -4,6 +4,11 @@ import { fileURLToPath } from "url";
 import dockerfileTemplate from "./Dockerfile" with { type: "text" };
 import kamalDeployTemplate from "./kamal-deploy.yml" with { type: "text" };
 export {
+  parseTursoBackupManifest,
+  parseBackupRuntimeEnvironment,
+} from "./backup-schema";
+export type { TursoBackupRestoreManifest } from "./backup-schema";
+export {
   renderDeployWorkflow,
   renderExtractBrainConfigScript,
   renderPreDeployHook,
@@ -88,7 +93,9 @@ export function backendBootstrapEnvSchema(backend: string): string {
 /**
  * Canonical deploy scripts live in src/deploy-scripts/. They are copied
  * verbatim into scaffolded user projects (where workspace imports cannot
- * resolve), so they must stay self-contained apart from "./helpers".
+ * resolve), so they must use only local helpers and platform imports. Shared
+ * validation is exposed through the public deploy entrypoint's helpers shim. The backup
+ * capture bundle loads native Turso only inside the stopped source's image.
  *
  * brain-cli (templates/deploy/scripts) and brains-ops
  * (templates/rover-pilot/deploy/scripts) commit generated copies that their
@@ -98,6 +105,7 @@ export function backendBootstrapEnvSchema(backend: string): string {
  */
 export const deployScriptNames = [
   "create-predeploy-backup.ts",
+  "turso-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
   "update-dns.ts",
@@ -130,7 +138,8 @@ export function copyDeployScripts(
  * owner-customized and left alone.
  */
 const deployScriptFingerprints: Record<DeployScriptName, string> = {
-  "create-predeploy-backup.ts": "brains-predeploy-backup-v1",
+  "create-predeploy-backup.ts": "brains-predeploy-backup-v",
+  "turso-backup.ts": "brains-turso-backup-v1",
   "install-health-watchdog.ts": "/usr/local/sbin/brains-health-watchdog",
   "provision-server.ts": 'requireEnv("HCLOUD_TOKEN")',
   "update-dns.ts": 'requireEnv("CF_API_TOKEN")',

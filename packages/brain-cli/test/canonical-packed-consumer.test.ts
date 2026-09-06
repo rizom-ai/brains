@@ -58,6 +58,28 @@ describe("canonical packed consumer", () => {
         ),
       ).toBe(false);
       await runCommand(["bun", "run", "import-smoke.ts"], consumerDirectory);
+      const backupBundle = await runCommand(
+        [
+          "bun",
+          "-e",
+          `
+        import { cp, mkdir, writeFile } from "node:fs/promises";
+        import { parseBackupRuntimeEnvironment } from "@rizom/brain/deploy";
+        if (parseBackupRuntimeEnvironment(["CHECK=value"])[0] !== "CHECK=value") throw new Error("Missing public backup validation");
+        await mkdir("backup-scripts");
+        for (const file of ["create-predeploy-backup.ts", "turso-backup.ts"]) {
+          await cp("node_modules/@rizom/brain/templates/deploy/scripts/" + file, "backup-scripts/" + file);
+        }
+        await writeFile("backup-scripts/helpers.ts", 'export { parseTursoBackupManifest, parseBackupRuntimeEnvironment } from "@rizom/brain/deploy";');
+        const built = await Bun.build({ entrypoints: ["backup-scripts/create-predeploy-backup.ts"], target: "bun", external: ["@tursodatabase/database"] });
+        if (!built.success || !built.outputs[0]) throw new Error("Backup capture bundle failed outside the monorepo");
+        await Bun.write("backup-scripts/restore.js", built.outputs[0]);
+        console.log("backup bundle verified");
+      `,
+        ],
+        consumerDirectory,
+      );
+      expect(combinedOutput(backupBundle)).toContain("backup bundle verified");
       const runtimeEnv = { ...process.env };
       delete runtimeEnv["BRAINS_DB_ENGINE"];
       runtimeEnv["AI_API_KEY"] = "packed-startup-check";

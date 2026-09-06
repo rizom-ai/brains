@@ -48,6 +48,51 @@ describe("createTursoClient execute", () => {
     }
   });
 
+  it("binds ArrayBuffer, byte views, dates and booleans without string coercion", async () => {
+    const client = createTursoClient({ url: "file::memory:" });
+    try {
+      await client.execute(
+        "CREATE TABLE bindings (id INTEGER PRIMARY KEY, payload BLOB, timestamp INTEGER, enabled INTEGER)",
+      );
+      const backing = new Uint8Array([99, 0, 128, 255, 88]);
+      const payload = backing.subarray(1, 4);
+      await client.execute("INSERT INTO bindings VALUES (1, ?, ?, ?)", [
+        payload.slice().buffer,
+        new Date(1234),
+        true,
+      ]);
+      await client.batch([
+        {
+          sql: "INSERT INTO bindings VALUES (2, $payload, $timestamp, $enabled)",
+          args: { payload, timestamp: new Date(5678), enabled: false },
+        },
+      ]);
+      const tx = await client.transaction("write");
+      await tx.execute({
+        sql: "INSERT INTO bindings VALUES (3, ?, ?, ?)",
+        args: [payload.slice().buffer, new Date(9012), true],
+      });
+      await tx.commit();
+      const rows = await client.execute(
+        "SELECT typeof(payload) AS kind, hex(payload) AS bytes, timestamp, enabled FROM bindings ORDER BY id",
+      );
+      expect(
+        rows.rows.map((row) => [
+          row["kind"],
+          row["bytes"],
+          row["timestamp"],
+          row["enabled"],
+        ]),
+      ).toEqual([
+        ["blob", "0080FF", 1234, 1],
+        ["blob", "0080FF", 5678, 0],
+        ["blob", "0080FF", 9012, 1],
+      ]);
+    } finally {
+      await closeSqliteClient(client);
+    }
+  });
+
   it("returns hybrid rows with named and positional access", async () => {
     const client = await createSeededClient();
     try {
