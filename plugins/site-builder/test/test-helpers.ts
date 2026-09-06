@@ -225,6 +225,13 @@ export function createSiteBuilderServices(
   return {
     entityService: context.entityService,
     sendMessage: context.messaging.send,
+    publishMessage: async (message): Promise<void> => {
+      await context.messaging.send({
+        type: message.topic,
+        payload: message.data,
+        broadcast: true,
+      });
+    },
     resolveTemplateContent: (templateName, options) =>
       context.templates.resolve(templateName, options),
     getViewTemplate: (name) => context.views.get(name),

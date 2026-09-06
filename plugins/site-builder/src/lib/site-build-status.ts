@@ -1,10 +1,33 @@
-import { SerializedStatusStore } from "@brains/plugins";
+import { SerializedStatusStore } from "@brains/sdk/services";
 import type {
-  IRuntimeStateNamespace,
-  JobInfo,
-  ServicePluginContext,
-} from "@brains/plugins";
+  IRuntimeStateStore,
+  RuntimeStateScopeOptions,
+  ServiceRecentJob,
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
+
+/**
+ * Where this projection is filed: the scoped store the runtime hands out.
+ */
+export interface SiteStateNamespace {
+  scoped<TValue>(
+    options: RuntimeStateScopeOptions<TValue>,
+  ): IRuntimeStateStore<TValue>;
+}
+
+/**
+ * What this projection asks of the queue.
+ *
+ * Both reads are scoped to the site builder's own work: one build by the id
+ * a restart left behind, and the last few whatever became of them.
+ */
+export interface SiteBuildJobReads {
+  find(jobId: string): Promise<ServiceRecentJob | null>;
+  recent(options?: {
+    readonly types?: readonly string[] | undefined;
+    readonly limit?: number | undefined;
+  }): Promise<readonly ServiceRecentJob[]>;
+}
 
 export const siteBuildEnvironmentSchema: z.ZodEnum<{
   preview: "preview";
@@ -161,7 +184,7 @@ const EMPTY_STATUS: StoredSiteBuildStatus = {
 
 const STATUS_KEY = "current";
 const STATUS_NAMESPACE = "site-builder.build-status";
-const SITE_BUILD_JOB_TYPES = ["site-builder:site-build"];
+const SITE_BUILD_JOB_TYPES = ["site-build"];
 const RECENT_JOB_SCAN_LIMIT = 10;
 
 const jobEnvironmentSchema = z.object({
@@ -174,15 +197,9 @@ const jobEnvironmentSchema = z.object({
  */
 export class SiteBuildStatusService {
   private readonly store: SerializedStatusStore<StoredSiteBuildStatus>;
-  private readonly jobs: Pick<
-    ServicePluginContext["jobs"],
-    "getStatus" | "getRecentJobs"
-  >;
+  private readonly jobs: SiteBuildJobReads;
 
-  constructor(
-    runtimeState: IRuntimeStateNamespace,
-    jobs: Pick<ServicePluginContext["jobs"], "getStatus" | "getRecentJobs">,
-  ) {
+  constructor(runtimeState: SiteStateNamespace, jobs: SiteBuildJobReads) {
     this.store = new SerializedStatusStore({
       runtimeState,
       namespace: STATUS_NAMESPACE,
@@ -215,7 +232,7 @@ export class SiteBuildStatusService {
         continue;
       }
 
-      const job = await this.jobs.getStatus(active.jobId);
+      const job = await this.jobs.find(active.jobId);
       if (!job) {
         // The queue no longer knows this job; keeping the entry would freeze
         // the UI on a phantom build until the next restart.
@@ -252,10 +269,10 @@ export class SiteBuildStatusService {
   private async reconcileFromQueue(
     state: StoredSiteBuildStatus,
   ): Promise<void> {
-    const recent = await this.jobs.getRecentJobs(
-      SITE_BUILD_JOB_TYPES,
-      RECENT_JOB_SCAN_LIMIT,
-    );
+    const recent = await this.jobs.recent({
+      types: SITE_BUILD_JOB_TYPES,
+      limit: RECENT_JOB_SCAN_LIMIT,
+    });
     const environments: SiteBuildEnvironment[] = ["preview", "production"];
     for (const environment of environments) {
       const latest = recent.find(
@@ -287,15 +304,13 @@ export class SiteBuildStatusService {
     }
   }
 
-  private jobEnvironment(job: JobInfo): SiteBuildEnvironment | undefined {
+  private jobEnvironment(
+    job: ServiceRecentJob,
+  ): SiteBuildEnvironment | undefined {
     const fromResult = jobEnvironmentSchema.safeParse(job.result);
     if (fromResult.success) return fromResult.data.environment;
-    try {
-      const fromData = jobEnvironmentSchema.safeParse(JSON.parse(job.data));
-      return fromData.success ? fromData.data.environment : undefined;
-    } catch {
-      return undefined;
-    }
+    const fromData = jobEnvironmentSchema.safeParse(job.data);
+    return fromData.success ? fromData.data.environment : undefined;
   }
 
   private hasNewerRecordedOutcome(
@@ -315,7 +330,7 @@ export class SiteBuildStatusService {
   private applyTerminalJob(
     state: StoredSiteBuildStatus,
     environment: SiteBuildEnvironment,
-    job: JobInfo,
+    job: ServiceRecentJob,
   ): void {
     const completedAt = new Date(
       job.completedAt ?? job.startedAt ?? job.createdAt,
@@ -326,7 +341,7 @@ export class SiteBuildStatusService {
         environment,
         job.id,
         completedAt,
-        job.lastError ?? "Site build failed",
+        job.error ?? "Site build failed",
       );
       return;
     }

@@ -185,10 +185,24 @@ export type {
   IAttachmentsNamespace,
   IPermissionsNamespace,
   ServiceActiveJob,
+  ServiceRecentJob,
   ServiceJobs,
   ServicePublisher,
   ServicePublishingAccess,
 } from "@brains/plugins";
+
+// The directories a package's build writes into, which is what the
+// `staticSite` slot returns. The runtime serves them; naming them is the
+// declaring package's business. Named consumer: @brains/site-builder.
+export type { StaticSiteOutput } from "@brains/plugins";
+
+// One bounded status document in runtime state, read-modify-written one
+// mutation at a time. A package that keeps a projection of its own work —
+// what is running, what the last few runs did — needs exactly this engine,
+// and writing it per package is how two of them drift apart.
+// Named consumers: @brains/site-builder, @brains/directory-sync.
+export { SerializedStatusStore } from "@brains/plugins";
+export type { SerializedStatusStoreOptions } from "@brains/plugins";
 
 // What the `routes` and `subscriptions` slots return, for a package that
 // builds either in a helper and has to annotate its return.

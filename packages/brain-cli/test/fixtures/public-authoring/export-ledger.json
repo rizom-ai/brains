@@ -533,7 +533,11 @@
         "SurfacePermissionLevel",
         "AppInfo",
         "defineDataSource",
-        "AnyDataSourceDeclaration"
+        "AnyDataSourceDeclaration",
+        "ServiceRecentJob",
+        "SerializedStatusStore",
+        "SerializedStatusStoreOptions",
+        "StaticSiteOutput"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

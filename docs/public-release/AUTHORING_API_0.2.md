@@ -225,6 +225,10 @@ Definitions and schema vocabulary:
 - `UserPermissionLevelSchema`
 - `safeParseRuntimeDashboardWidgetData`
 - `defineDataSource`
+- `ServiceRecentJob`
+- `SerializedStatusStore`
+- `SerializedStatusStoreOptions`
+- `StaticSiteOutput`
 
 Types:
 

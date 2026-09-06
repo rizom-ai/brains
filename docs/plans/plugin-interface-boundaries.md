@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **23 of 27 packages converted**
+Phases 1 through 5 done, phase 6 underway; **24 of 27 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
@@ -11,10 +11,11 @@ Phases 1 through 5 done, phase 6 underway; **23 of 27 packages converted**
 `@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`,
 `@brains/atproto`,
 `@brains/content-pipeline`,
-`@brains/dashboard`).
+`@brains/dashboard`,
+`@brains/site-builder`).
 
-The four that remain all still extend a base class: `directory-sync`,
-`site-builder`, `site-content`, `studio`. Three that are converted —
+The three that remain all still extend a base class: `directory-sync`,
+`site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 

@@ -3,9 +3,27 @@ import type {
   IEntityAINamespace,
   JobEntityAccess,
   JobHandlerContext,
+  JobTemplateFormatter,
+  ServiceJobBinding,
+  ServiceJobHandlerContext,
 } from "../index";
+import { getServiceJobHandler } from "../index";
 import type { LoggerContract } from "@brains/utils/logger";
+import type { ProgressContract } from "@brains/utils/progress";
 import { createMockProgressReporter } from "@brains/test-utils";
+
+/**
+ * Run a declared job's handler, the way the runtime would.
+ *
+ * `defineJob().handle()` returns a binding rather than the function, so a
+ * test driving one directly needs the runtime's own way of reaching it.
+ */
+export function runServiceJob<TInput>(
+  binding: ServiceJobBinding,
+  context: ServiceJobHandlerContext<TInput>,
+): Promise<unknown> {
+  return getServiceJobHandler(binding)(context);
+}
 
 /**
  * What a job handler is handed, for a test driving one directly.
@@ -26,13 +44,20 @@ export function createTestJobContext<TInput>(options: {
   readonly domain?: string | undefined;
   readonly profileKinds?: JobHandlerContext<TInput>["profileKinds"] | undefined;
   readonly signal?: AbortSignal | undefined;
+  /** The id the work was queued under; a stand-in unless the test names one. */
+  readonly jobId?: string | undefined;
+  /** Where progress goes; discarded unless the test watches it. */
+  readonly progress?: ProgressContract | undefined;
+  /** Rendering a declared template, for a job that formats something. */
+  readonly templates?: JobTemplateFormatter | undefined;
   /** A create through another type's route; refused unless the test supplies one. */
   readonly createRouted?: JobHandlerContext<TInput>["createRouted"] | undefined;
   /** Operator-editable prompts; the fallback answers unless the test supplies one. */
   readonly prompts?: JobHandlerContext<TInput>["prompts"] | undefined;
-}): JobHandlerContext<TInput> {
+}): ServiceJobHandlerContext<TInput> {
   return {
     input: options.input,
+    jobId: options.jobId ?? "test-job",
     ai: options.ai,
     logger: options.logger,
     entities: options.entities,
@@ -53,7 +78,12 @@ export function createTestJobContext<TInput>(options: {
     prompts: options.prompts ?? {
       resolve: async (_target, fallback): Promise<string> => fallback,
     },
-    progress: createMockProgressReporter(),
+    progress: options.progress ?? createMockProgressReporter(),
+    templates: options.templates ?? {
+      format: (name): string => {
+        throw new Error(`This test declared no template "${name}"`);
+      },
+    },
     signal: options.signal ?? new AbortController().signal,
     template: options.template,
     // Declared but unused by generation: these handlers generate, they do

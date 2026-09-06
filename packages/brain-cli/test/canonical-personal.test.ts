@@ -44,7 +44,7 @@ describe("canonical personal posture", () => {
       expect(ids).toContain(id);
     }
     for (const id of [
-      "site-builder",
+      "@brains/site-builder-plugin:site-builder",
       "blog",
       "onboarding",
       "@brains/atproto:atproto",

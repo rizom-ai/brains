@@ -2,19 +2,22 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
-import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
+import type { Plugin } from "@brains/plugins";
+import { RouteRegistry } from "@brains/site-engine";
+import { SiteBuilder } from "../../src/lib/site-builder";
+import { registerConfigRoutes } from "../../src/lib/route-helpers";
+import { instantiate, SITE_BUILDER_PLUGIN_ID } from "../helpers/install";
+import { createSiteBuilderServices } from "../test-helpers";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  createTemplate,
   safeParseRuntimeDashboardWidgetData,
   type AnchorProfile,
   type DashboardWidgetProviderContext,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
 import { createTestConfig } from "../test-helpers";
 import { mkdtemp, readFile, rm } from "fs/promises";
@@ -73,13 +76,13 @@ function findTableById(value: unknown, id: string): unknown {
   return undefined;
 }
 
-describe("SiteBuilderPlugin", () => {
-  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
-  let plugin: SiteBuilderPlugin;
+describe("the site builder", () => {
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createPluginHarness<SiteBuilderPlugin>();
+    harness = createPluginHarness<Plugin>();
   });
 
   afterEach(async () => {
@@ -87,7 +90,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should initialize with valid config", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -96,11 +99,11 @@ describe("SiteBuilderPlugin", () => {
     );
 
     capabilities = await harness.installPlugin(plugin);
-    expect(plugin.id).toBe("site-builder");
+    expect(plugin.id).toBe(SITE_BUILDER_PLUGIN_ID);
   });
 
   it("should register successfully and provide capabilities", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -127,7 +130,7 @@ describe("SiteBuilderPlugin", () => {
     });
 
     try {
-      plugin = new SiteBuilderPlugin(
+      plugin = instantiate(
         createTestConfig({
           previewOutputDir: outputDir,
           productionOutputDir: outputDir,
@@ -149,9 +152,28 @@ describe("SiteBuilderPlugin", () => {
       );
 
       await harness.installPlugin(plugin);
-      const builder = plugin.getSiteBuilder();
-      expect(builder).toBeDefined();
-      if (!builder) throw new Error("Site builder was not initialized");
+      const context = harness.getServiceContext(SITE_BUILDER_PLUGIN_ID);
+      const routes = new RouteRegistry(context.logger);
+      registerConfigRoutes(
+        [
+          {
+            id: "profile",
+            path: "/",
+            title: "Profile",
+            description: "Profile route",
+            layout: "profile",
+            sections: [],
+          },
+        ],
+        "site-builder",
+        routes,
+      );
+      const builder = SiteBuilder.createFresh(
+        context.logger,
+        createSiteBuilderServices(context),
+        routes,
+        { getProfile: () => context.identity.getProfile() },
+      );
 
       const result = await builder.build({
         environment: "preview",
@@ -179,43 +201,6 @@ describe("SiteBuilderPlugin", () => {
     }
   });
 
-  it("should register templates when provided", async () => {
-    const testTemplate = createTemplate<{ title: string }>({
-      name: "test-template",
-      description: "Test template",
-      schema: z.object({ title: z.string() }),
-      basePrompt: "Generate a test",
-      requiredPermission: "public",
-      formatter: {
-        format: (data) =>
-          `Title: ${z.object({ title: z.string() }).parse(data).title}`,
-        parse: (content: string) => ({ title: content.replace("Title: ", "") }),
-      },
-      layout: {
-        component: ({ title }: { title: string }) => h("div", {}, title),
-      },
-    });
-
-    plugin = new SiteBuilderPlugin(
-      createTestConfig({
-        previewOutputDir: "/tmp/test-output",
-        productionOutputDir: "/tmp/test-output-production",
-        templates: {
-          "test-template": testTemplate,
-        },
-      }),
-    );
-
-    capabilities = await harness.installPlugin(plugin);
-
-    // Plugin should register content and view templates
-    expect(capabilities.tools.length).toBeGreaterThan(0);
-
-    // Check that template was registered
-    const templates = harness.getTemplates();
-    expect(templates.has("site-builder:test-template")).toBe(true);
-  });
-
   it("should not register the legacy carousel generation job handler", async () => {
     const registeredJobTypes: string[] = [];
     const shell = harness.getMockShell();
@@ -230,7 +215,7 @@ describe("SiteBuilderPlugin", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -239,9 +224,11 @@ describe("SiteBuilderPlugin", () => {
 
     await harness.installPlugin(plugin);
 
-    expect(registeredJobTypes).toContain("site-builder:site-build");
+    expect(registeredJobTypes).toContain(
+      `${SITE_BUILDER_PLUGIN_ID}:site-build`,
+    );
     expect(registeredJobTypes).not.toContain(
-      "site-builder:media-carousel-generate",
+      `${SITE_BUILDER_PLUGIN_ID}:media-carousel-generate`,
     );
   });
 
@@ -266,7 +253,7 @@ describe("SiteBuilderPlugin", () => {
       },
     );
 
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         routes: [
           {
@@ -281,11 +268,12 @@ describe("SiteBuilderPlugin", () => {
       }),
     );
     await harness.installPlugin(plugin);
-    await plugin.ready();
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
 
     expect(registration).toMatchObject({
-      id: "site-builder:site",
-      pluginId: "site-builder",
+      id: `${SITE_BUILDER_PLUGIN_ID}:site`,
+      pluginId: SITE_BUILDER_PLUGIN_ID,
       label: "Site",
       rendererName: "DeclarativeOperatorWorkspace",
       priority: 50,
@@ -450,7 +438,7 @@ describe("SiteBuilderPlugin", () => {
     harness.getMockShell().getPermissionService =
       (): typeof permissionService => permissionService;
 
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         routes: [
           {
@@ -465,7 +453,8 @@ describe("SiteBuilderPlugin", () => {
       }),
     );
     await harness.installPlugin(plugin);
-    await plugin.ready();
+    await harness.finalizeRegistration();
+    await plugin.ready?.();
     if (!registration?.actionHandler) {
       throw new Error("Expected Studio workspace actions");
     }
@@ -500,7 +489,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should provide site builder tools", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -518,7 +507,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should set environment on routes", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = instantiate(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -557,7 +546,7 @@ describe("SiteBuilderPlugin", () => {
       studio: {},
     };
 
-    plugin = new SiteBuilderPlugin(config);
+    plugin = instantiate(config);
     await harness.installPlugin(plugin);
 
     const result = await harness.sendMessage<
@@ -583,7 +572,7 @@ describe("SiteBuilderPlugin", () => {
       data: { repo: "owner/repo", branch: "main" },
     }));
 
-    plugin = new SiteBuilderPlugin(config);
+    plugin = instantiate(config);
     await harness.installPlugin(plugin);
 
     await harness.sendMessage("site:build:completed", {

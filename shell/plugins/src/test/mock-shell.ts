@@ -923,6 +923,19 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   let enqueuedJobCount = 0;
 
   function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
+    // The real queue skips an enqueue whose key already has a job waiting, and
+    // hands back the waiting job's id. A fake that queued both would let a
+    // declaration pass here and stack duplicate work against a real brain.
+    const dedupeKey = request.options?.deduplicationKey;
+    if (request.options?.deduplication === "skip" && dedupeKey !== undefined) {
+      const waiting = [...enqueuedJobs.values()].find(
+        (job) =>
+          job.status === "pending" &&
+          job.type === request.type &&
+          job.metadata["deduplicationKey"] === dedupeKey,
+      );
+      if (waiting) return waiting.id;
+    }
     const id = `job-${++enqueuedJobCount}`;
     const now = Date.now();
     enqueuedJobs.set(id, {
@@ -951,6 +964,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       metadata: {
         rootJobId: id,
         operationType: "data_processing",
+        ...(dedupeKey !== undefined ? { deduplicationKey: dedupeKey } : {}),
         // The real queue keeps the metadata the enqueue arrived with — which
         // by this point carries the enqueuing tool's caller, so a job can say
         // who it works for. A fake that dropped it would let a handler pass

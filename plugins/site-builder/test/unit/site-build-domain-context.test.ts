@@ -1,49 +1,67 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import {
-  SiteBuildJobHandler,
+  createMockShell,
+  createServicePluginContext,
+  createTestEntityAccess,
+  createTestJobContext,
+  runServiceJob,
+} from "@brains/plugins/test";
+import {
+  handleSiteBuild,
   type SiteBuildJobHandlerConfig,
 } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
-import type { ProgressReporter } from "@brains/utils/progress";
-import {
-  createSilentLogger,
-  createMockProgressReporter,
-  createMockMessageSender,
-} from "@brains/test-utils";
+import type { SiteBuildJobData } from "../../src/types/job-types";
 
-type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
+/** The address a finished build tells the rest of the brain it rendered against. */
+const completionSchema = z.looseObject({
+  siteConfig: z.looseObject({ url: z.string().optional() }),
+});
+
+/** What the build announced, so a test can read the URL it published. */
+interface Announcement {
+  readonly topic: string;
+  readonly data: object;
+}
 
 /**
- * Tests that SiteBuildJobHandler resolves canonical, preview, and local URLs
- * from the runtime context passed through its config.
+ * Which URL a build writes into its pages, and tells the rest of the brain
+ * about, is decided from the addresses the runtime reports rather than from
+ * the domain: preview and live differ, and a locally served brain differs
+ * from both.
  */
-describe("SiteBuildJobHandler - Domain URLs", () => {
-  let mockSiteBuilder: ISiteBuilder;
-  let mockProgressReporter: ProgressReporter;
+describe("the addresses a site build renders against", () => {
+  let siteBuilder: ISiteBuilder;
+  let announced: Announcement[];
 
   beforeEach(() => {
-    mockSiteBuilder = {
-      build: mock(() =>
-        Promise.resolve({
-          success: true,
-          outputDir: "/tmp/output",
-          filesGenerated: 5,
-          routesBuilt: 5,
-          errors: [],
-          warnings: [],
-        }),
-      ),
+    announced = [];
+    siteBuilder = {
+      build: mock(async () => ({
+        success: true,
+        outputDir: "/tmp/output",
+        filesGenerated: 5,
+        routesBuilt: 5,
+        errors: [],
+        warnings: [],
+      })),
     };
-    mockProgressReporter = createMockProgressReporter();
   });
 
-  function createHandler(overrides: SiteBuildJobHandlerConfigOverrides = {}): {
-    handler: SiteBuildJobHandler;
-    sendMessage: ReturnType<typeof mock>;
-  } {
-    const { sendMessage } = createMockMessageSender();
-    const handler = new SiteBuildJobHandler(createSilentLogger(), sendMessage, {
-      siteBuilder: mockSiteBuilder,
+  function build(
+    overrides: Partial<SiteBuildJobHandlerConfig> = {},
+  ): (input: SiteBuildJobData) => Promise<unknown> {
+    const binding = handleSiteBuild({
+      siteBuilder,
+      messaging: {
+        send: async () => ({ success: false, error: "no provider" }),
+        publish: async (message) => {
+          announced.push({ topic: message.topic, data: message.data });
+        },
+      },
+      logger: createSilentLogger("site-build-addresses-test"),
       layouts: {},
       defaultSiteConfig: {
         represents: "anchor",
@@ -53,144 +71,101 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       sharedImagesDir: "./dist/images",
       ...overrides,
     });
-    return { handler, sendMessage };
+    const shell = createMockShell();
+    const runtime = createServicePluginContext(shell, "site-builder");
+    return (input) =>
+      runServiceJob(
+        binding,
+        createTestJobContext<SiteBuildJobData>({
+          input,
+          jobId: "test-job-id",
+          ai: runtime.ai,
+          logger: createSilentLogger("site-build-addresses-test"),
+          entities: createTestEntityAccess({
+            entityService: shell.getEntityService(),
+            refuseWrites: "a site build writes files, never entities",
+          }),
+          conversations: runtime.conversations,
+          identity: runtime.identity,
+          template: (localName: string) =>
+            `@brains/site-builder-plugin:site-builder:${localName}`,
+        }),
+      );
   }
 
-  const buildData = {
+  const buildRequest = {
     outputDir: "/tmp/output",
     workingDir: "/tmp/work",
     enableContentGeneration: false,
   };
 
-  test("should use siteUrl for production builds", async () => {
-    const { handler, sendMessage } = createHandler({
+  /** The completion announcement, which every one of these builds makes. */
+  function completedUrl(): string | undefined {
+    const completion = announced.find(
+      (message) => message.topic === "site:build:completed",
+    );
+    if (!completion) throw new Error("The build announced no completion");
+    return completionSchema.parse(completion.data).siteConfig.url;
+  }
+
+  test("a production build renders against the live URL", async () => {
+    await build({
       siteUrl: "https://yeehaa.io",
       previewUrl: "https://preview.yeehaa.io",
-    });
+    })({ ...buildRequest, environment: "production" });
 
-    await handler.process(
-      { ...buildData, environment: "production" },
-      "test-job-id",
-      mockProgressReporter,
-    );
-
-    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+    expect(siteBuilder.build).toHaveBeenCalledWith(
       expect.objectContaining({ siteUrl: "https://yeehaa.io" }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        environment: "production",
-        siteConfig: expect.objectContaining({
-          url: "https://yeehaa.io",
-        }),
-      }),
-      broadcast: true,
-    });
+    expect(completedUrl()).toBe("https://yeehaa.io");
   });
 
-  test("should use previewUrl for preview builds", async () => {
-    const { handler, sendMessage } = createHandler({
+  test("a preview build renders against the preview URL", async () => {
+    await build({
       siteUrl: "https://yeehaa.io",
       previewUrl: "https://preview.yeehaa.io",
-    });
+    })({ ...buildRequest, environment: "preview" });
 
-    await handler.process(
-      { ...buildData, environment: "preview" },
-      "test-job-id",
-      mockProgressReporter,
-    );
-
-    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+    expect(siteBuilder.build).toHaveBeenCalledWith(
       expect.objectContaining({ siteUrl: "https://preview.yeehaa.io" }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        environment: "preview",
-        siteConfig: expect.objectContaining({
-          url: "https://preview.yeehaa.io",
-        }),
-      }),
-      broadcast: true,
-    });
+    expect(completedUrl()).toBe("https://preview.yeehaa.io");
   });
 
-  test("should fall back to siteUrl for preview when previewUrl is not set", async () => {
-    const { handler, sendMessage } = createHandler({
-      siteUrl: "https://yeehaa.io",
+  test("a preview with no preview URL falls back to the live one", async () => {
+    await build({ siteUrl: "https://yeehaa.io" })({
+      ...buildRequest,
+      environment: "preview",
     });
 
-    await handler.process(
-      { ...buildData, environment: "preview" },
-      "test-job-id",
-      mockProgressReporter,
-    );
-
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        siteConfig: expect.objectContaining({
-          url: "https://yeehaa.io",
-        }),
-      }),
-      broadcast: true,
-    });
+    expect(completedUrl()).toBe("https://yeehaa.io");
   });
 
-  test("should use the local runtime URL for local production builds", async () => {
-    const { handler, sendMessage } = createHandler({
+  test("a locally served brain renders against its local URL", async () => {
+    await build({
       localSiteUrl: "http://localhost:8080",
       preferLocalUrls: true,
-    });
+    })({ ...buildRequest, environment: "production" });
 
-    await handler.process(
-      { ...buildData, environment: "production" },
-      "test-job-id",
-      mockProgressReporter,
-    );
-
-    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+    expect(siteBuilder.build).toHaveBeenCalledWith(
       expect.objectContaining({ siteUrl: "http://localhost:8080" }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        siteConfig: expect.objectContaining({
-          url: "http://localhost:8080",
-        }),
-      }),
-      broadcast: true,
-    });
+    expect(completedUrl()).toBe("http://localhost:8080");
   });
 
-  test("should not use the local runtime URL in deployed production", async () => {
-    const { handler, sendMessage } = createHandler({
+  test("a deployed production build ignores the local URL", async () => {
+    await build({
       localSiteUrl: "http://localhost:8080",
       preferLocalUrls: false,
-    });
+    })({ ...buildRequest, environment: "production" });
 
-    await handler.process(
-      { ...buildData, environment: "production" },
-      "test-job-id",
-      mockProgressReporter,
-    );
-
-    expect(mockSiteBuilder.build).toHaveBeenCalledWith(
+    expect(siteBuilder.build).toHaveBeenCalledWith(
       expect.objectContaining({ siteUrl: undefined }),
       expect.anything(),
     );
-    expect(sendMessage).toHaveBeenCalledWith({
-      type: "site:build:completed",
-      payload: expect.objectContaining({
-        siteConfig: expect.objectContaining({
-          url: undefined,
-        }),
-      }),
-      broadcast: true,
-    });
+    expect(completedUrl()).toBeUndefined();
   });
 });

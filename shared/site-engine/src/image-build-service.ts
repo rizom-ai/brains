@@ -5,7 +5,7 @@ import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
 import { tryParseDataUrl } from "@brains/image";
-import type { IEntityService } from "@brains/entity-service";
+import type { BaseEntity } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
 import { getErrorMessage } from "@brains/utils/error";
@@ -22,15 +22,28 @@ export type BuildImageMap = SiteImageMap;
  *   await imageService.resolveAll(imageIds, signal);
  *   const img = imageService.get("my-cover-image");
  */
+/**
+ * Reading one image entity, which is all resolving a picture needs.
+ *
+ * Narrower than the entity service on purpose: a build reads records and
+ * writes files, so nothing here could change an entity.
+ */
+export interface ImageEntityReads {
+  getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+}
+
 export class ImageBuildService {
-  private entityService: Pick<IEntityService, "getEntity">;
+  private entityService: ImageEntityReads;
   private logger: Logger;
   private imageMap: BuildImageMap = {};
   private imagesDir: string;
   private optimizer: ImageOptimizer;
 
   constructor(
-    entityService: Pick<IEntityService, "getEntity">,
+    entityService: ImageEntityReads,
     logger: Logger,
     imagesDir: string,
   ) {

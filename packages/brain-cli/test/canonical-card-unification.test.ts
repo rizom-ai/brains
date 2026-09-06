@@ -115,7 +115,7 @@ describe("canonical card publication channels", () => {
     expect(selected).toContain("@brains/a2a:a2a");
     expect(selected).toContain("@brains/atproto:atproto");
     expect(selected).not.toContain("webserver");
-    expect(selected).not.toContain("site-builder");
+    expect(selected).not.toContain("@brains/site-builder-plugin:site-builder");
 
     const shell = createCardShell({ web: false });
     const a2aCard = await buildA2ACard(shell);
@@ -170,8 +170,8 @@ describe("canonical card publication channels", () => {
     expect(selected).toContain("@brains/a2a:a2a");
     expect(selected).toContain("@brains/atproto:atproto");
     expect(selected).not.toContain("webserver");
-    expect(selected).toContain("site-builder");
-    expect(selected).toContain("site-builder");
+    expect(selected).toContain("@brains/site-builder-plugin:site-builder");
+    expect(selected).toContain("@brains/site-builder-plugin:site-builder");
 
     const shell = createCardShell({ web: true });
     shell.addEntities([

@@ -1,13 +1,12 @@
 import {
   defineDashboardWidget,
-  registerBuiltInDashboardWidget,
   type DashboardOperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type DashboardWidgetDefinition,
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactNode } from "react";
 import { sitePublicationStatusSchema } from "./site-publication-status";
-import type { SiteWorkspaceProvider } from "./site-workspace";
+import { siteSnapshot, type SiteWorkspaceReads } from "./site-workspace";
 
 const environmentSchema: z.ZodObject<{
   environment: z.ZodEnum<{ preview: "preview"; production: "production" }>;
@@ -191,7 +190,10 @@ export function siteHealthDigest(data: SiteHealthWidgetData): {
   };
 }
 
-const siteHealthWidget = defineDashboardWidget({
+export const siteHealthWidget: DashboardWidgetDefinition<
+  "site-health",
+  typeof siteHealthWidgetDataSchema
+> = defineDashboardWidget({
   id: "site-health",
   title: "Site health",
   description: "Preview and live build status",
@@ -441,18 +443,17 @@ export function SiteHealthWidget(props: SiteHealthWidgetProps): ReactNode {
   ]);
 }
 
-export async function registerSiteHealthWidget(
-  context: ServicePluginContext,
-  provider: SiteWorkspaceProvider,
-): Promise<void> {
-  await registerBuiltInDashboardWidget({
-    context,
-    definition: siteHealthWidget,
-    load: async ({ signal }): Promise<SiteHealthWidgetData> => {
-      signal.throwIfAborted();
-      const snapshot = await provider.getSnapshot();
-      signal.throwIfAborted();
-      return snapshot;
-    },
-  });
+/**
+ * What the site health widget shows: the same snapshot the workspace reads,
+ * because "is the site current" is one question however it is asked.
+ */
+export function loadSiteHealthWidget(
+  reads: SiteWorkspaceReads,
+): (context: { signal: AbortSignal }) => Promise<SiteHealthWidgetData> {
+  return async ({ signal }) => {
+    signal.throwIfAborted();
+    const snapshot = await siteSnapshot(reads);
+    signal.throwIfAborted();
+    return snapshot;
+  };
 }

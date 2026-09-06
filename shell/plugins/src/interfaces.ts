@@ -449,5 +449,5 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   requiresDaemonStartup?(): boolean;
   getApiRoutes?(): ApiRouteDefinition[];
   getWebRoutes?(): WebRouteDefinition[];
-  getStaticSiteOutput?(): StaticSiteOutput;
+  getStaticSiteOutput?(): StaticSiteOutput | undefined;
 };

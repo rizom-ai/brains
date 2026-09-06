@@ -1689,6 +1689,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   ): JobHandlerContext<unknown> {
     return {
       input,
+      jobId,
       progress,
       signal,
       ai: context.ai,

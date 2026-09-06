@@ -1,14 +1,23 @@
 import {
   defineStudioWorkspace,
-  defineEntity,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
+  type OperatorCaller,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type StudioWorkspaceDefinition,
+  type WorkspaceActionDefinition,
+} from "@brains/sdk/services";
+import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import type { RouteRegistry } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
+import type { SiteMetadataSender } from "./site-metadata";
+
+/** One registered view template, as the site resource reports it. */
+export interface SiteViewSummary {
+  readonly name: string;
+  readonly description: string | undefined;
+  readonly hasWebRenderer: boolean;
+}
 import type { SiteBuilderConfig } from "../config";
 import {
   recentSiteBuildSchema,
@@ -86,18 +95,34 @@ const siteWorkspaceDataSchema: z.ZodObject<{
 
 export type SiteWorkspaceSnapshot = z.output<typeof siteWorkspaceDataSchema>;
 
-const actionOutputSchema = z.object({
+type ActionOutputSchema = z.ZodObject<{
+  accepted: z.ZodLiteral<true>;
+  environment: z.ZodEnum<{ preview: "preview"; production: "production" }>;
+}>;
+type NoInputSchema = z.ZodObject<Record<string, never>>;
+const actionOutputSchema: ActionOutputSchema = z.object({
   accepted: z.literal(true),
   environment: z.enum(["preview", "production"]),
 });
-const buildPreviewAction = defineWorkspaceAction({
+const noInputSchema: NoInputSchema = z.object({});
+
+export const buildPreviewAction: WorkspaceActionDefinition<
+  "build-preview",
+  NoInputSchema,
+  ActionOutputSchema
+> = defineWorkspaceAction({
   name: "build-preview",
   label: "Build preview",
   permission: "trusted",
-  input: z.object({}),
+  input: noInputSchema,
   output: actionOutputSchema,
 });
-const buildProductionAction = defineWorkspaceAction({
+
+export const buildProductionAction: WorkspaceActionDefinition<
+  "build-production",
+  NoInputSchema,
+  ActionOutputSchema
+> = defineWorkspaceAction({
   name: "build-production",
   label: "Build production",
   permission: "admin",
@@ -105,7 +130,7 @@ const buildProductionAction = defineWorkspaceAction({
     kind: "static",
     message: "Build and publish the production site now?",
   },
-  input: z.object({}),
+  input: noInputSchema,
   output: actionOutputSchema,
 });
 type SiteActionDefinition =
@@ -116,11 +141,17 @@ type SiteCardBlock = Extract<SiteRegionBlock, { type: "card" }>;
 /** How many routes the workspace shows before summarising the remainder. */
 const ROUTE_PREVIEW_COUNT = 8;
 
-const siteInfoEntity = defineEntity({
-  type: "site-info",
-  purpose: "Site identity and navigation settings",
-  metadata: z.object({}),
-});
+type SiteInfoMetadataSchema = z.ZodObject<Record<string, never>>;
+const siteInfoMetadataSchema: SiteInfoMetadataSchema = z.object({});
+
+/** The record the site's identity lives in, named so an action can ask
+ * whether the caller may change it. */
+const siteInfoEntity: EntityDefinition<"site-info", SiteInfoMetadataSchema> =
+  defineEntity({
+    type: "site-info",
+    purpose: "Site identity and navigation settings",
+    metadata: siteInfoMetadataSchema,
+  });
 
 function environmentStatus(
   environment: SiteWorkspaceSnapshot["environments"][number],
@@ -221,7 +252,11 @@ function environmentCard(
   };
 }
 
-const siteWorkspace = defineStudioWorkspace({
+export const siteWorkspace: StudioWorkspaceDefinition<
+  "site",
+  typeof siteWorkspaceDataSchema,
+  readonly [typeof buildPreviewAction, typeof buildProductionAction]
+> = defineStudioWorkspace({
   id: "site",
   label: "Site",
   permission: "trusted",
@@ -425,94 +460,102 @@ const siteWorkspace = defineStudioWorkspace({
   },
 });
 
-export interface SiteWorkspaceProviderOptions {
-  context: ServicePluginContext;
-  config: SiteBuilderConfig;
-  routeRegistry: RouteRegistry;
-  statusService: SiteBuildStatusService;
-  requestBuild: (environment: SiteBuildEnvironment) => void;
+/**
+ * What the site's operator surfaces read.
+ *
+ * A workspace and a widget answer the same question — what is this site
+ * doing — so they take the same reads and the same way to ask for a build.
+ */
+export interface SiteWorkspaceReads {
+  readonly config: SiteBuilderConfig;
+  readonly routes: RouteRegistry;
+  readonly status: SiteBuildStatusService;
+  readonly send: SiteMetadataSender;
+  /** The view templates registered across the brain, as a reader sees them. */
+  views(): readonly SiteViewSummary[];
+  readonly domain: string | undefined;
+  readonly previewUrl: string | undefined;
+  readonly siteUrl: string | undefined;
+  requestBuild(environment: SiteBuildEnvironment): void;
 }
 
-export class SiteWorkspaceProvider {
-  private readonly options: SiteWorkspaceProviderOptions;
-  private registered = false;
+/** Everything the site's operator surfaces show, as one read. */
+export async function siteSnapshot(
+  reads: SiteWorkspaceReads,
+): Promise<SiteWorkspaceSnapshot> {
+  const { config, routes, status, send } = reads;
+  const [metadata, snapshot, previewPublication, productionPublication] =
+    await Promise.all([
+      resolveSiteMetadata(send, config.siteInfo),
+      status.getSnapshot(),
+      readSitePublicationStatus(config.previewOutputDir, "preview"),
+      readSitePublicationStatus(config.productionOutputDir, "production"),
+    ]);
+  return siteWorkspaceDataSchema.parse({
+    site: {
+      title: metadata.title,
+      ...(reads.previewUrl ? { previewUrl: reads.previewUrl } : {}),
+      ...(reads.siteUrl ? { liveUrl: reads.siteUrl } : {}),
+    },
+    automation: {
+      autoRebuild: config.autoRebuild,
+      debounceMs: config.rebuildDebounce,
+      defaultEnvironment: config.previewOutputDir ? "preview" : "production",
+    },
+    environments: snapshot.environments.map((environment) => ({
+      ...environment,
+      publication:
+        environment.environment === "preview"
+          ? previewPublication
+          : productionPublication,
+    })),
+    recentBuilds: snapshot.recentBuilds,
+    routes: routes.list().map((route) => ({
+      id: route.id,
+      path: route.path,
+      title: route.title,
+    })),
+  });
+}
 
-  constructor(options: SiteWorkspaceProviderOptions) {
-    this.options = options;
-  }
+/** What the site workspace declaration binds to. */
+/** Whether the caller may see or change the site, as the workspace asks. */
+interface SiteWorkspaceAuthority {
+  readonly caller: OperatorCaller | null;
+  readonly permissions: {
+    allows(entity: typeof siteInfoEntity, action: "update"): boolean;
+  };
+}
 
-  async getSnapshot(): Promise<SiteWorkspaceSnapshot> {
-    const { context, config, routeRegistry, statusService } = this.options;
-    const [metadata, status, previewPublication, productionPublication] =
-      await Promise.all([
-        resolveSiteMetadata(context.messaging.send, config.siteInfo),
-        statusService.getSnapshot(),
-        readSitePublicationStatus(config.previewOutputDir, "preview"),
-        readSitePublicationStatus(config.productionOutputDir, "production"),
-      ]);
-    return siteWorkspaceDataSchema.parse({
-      site: {
-        title: metadata.title,
-        ...(context.previewUrl ? { previewUrl: context.previewUrl } : {}),
-        ...(context.siteUrl ? { liveUrl: context.siteUrl } : {}),
-      },
-      automation: {
-        autoRebuild: config.autoRebuild,
-        debounceMs: config.rebuildDebounce,
-        defaultEnvironment: config.previewOutputDir ? "preview" : "production",
-      },
-      environments: status.environments.map((environment) => ({
-        ...environment,
-        publication:
-          environment.environment === "preview"
-            ? previewPublication
-            : productionPublication,
-      })),
-      recentBuilds: status.recentBuilds,
-      routes: routeRegistry.list().map((route) => ({
-        id: route.id,
-        path: route.path,
-        title: route.title,
-      })),
-    });
-  }
+export interface SiteWorkspaceHandlers {
+  authorize(context: SiteWorkspaceAuthority): boolean;
+  load(): Promise<SiteWorkspaceSnapshot>;
+  buildPreview(context: {
+    readonly permissions: SiteWorkspaceAuthority["permissions"];
+  }): { accepted: true; environment: "preview" };
+  buildProduction(): { accepted: true; environment: "production" };
+}
 
-  async registerStudioWorkspace(): Promise<string | undefined> {
-    const result = await registerBuiltInStudioWorkspace({
-      context: this.options.context,
-      definition: siteWorkspace,
-      bind: (context) =>
-        siteWorkspace.bind(context, {
-          authorize: ({ caller, permissions }) =>
-            caller?.permission === "admin" ||
-            permissions.allows(siteInfoEntity, "update"),
-          load: () => this.getSnapshot(),
-          actions: [
-            buildPreviewAction.bind(context, ({ permissions }) => {
-              if (!permissions.allows(siteInfoEntity, "update")) {
-                throw new Error(
-                  "Preview site build requires update permission",
-                );
-              }
-              this.options.requestBuild("preview");
-              return { accepted: true, environment: "preview" };
-            }),
-            buildProductionAction.bind(context, () => {
-              this.options.requestBuild("production");
-              return { accepted: true, environment: "production" };
-            }),
-          ],
-        }),
-    });
-    this.registered = result !== false;
-    return result === false ? undefined : result.workspaceUrl;
-  }
-
-  async unregisterStudioWorkspace(): Promise<void> {
-    if (!this.registered) return;
-    await this.options.context.studio.unregisterWorkspace(
-      `${this.options.context.pluginId}:site`,
-    );
-    this.registered = false;
-  }
+export function siteWorkspaceHandlers(
+  reads: SiteWorkspaceReads,
+): SiteWorkspaceHandlers {
+  return {
+    authorize: ({ caller, permissions }) =>
+      caller?.permission === "admin" ||
+      permissions.allows(siteInfoEntity, "update"),
+    load: () => siteSnapshot(reads),
+    buildPreview: ({
+      permissions,
+    }): { accepted: true; environment: "preview" } => {
+      if (!permissions.allows(siteInfoEntity, "update")) {
+        throw new Error("Preview site build requires update permission");
+      }
+      reads.requestBuild("preview");
+      return { accepted: true, environment: "preview" };
+    },
+    buildProduction: (): { accepted: true; environment: "production" } => {
+      reads.requestBuild("production");
+      return { accepted: true, environment: "production" };
+    },
+  };
 }

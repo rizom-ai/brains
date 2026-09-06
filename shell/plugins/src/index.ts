@@ -410,7 +410,9 @@ export {
   type ServiceEntityExtension,
   type ServiceInteractionDeclaration,
   type ServiceEvalHandler,
+  type ServiceJobBinding,
   type ServiceJobDefinition,
+  type ServiceJobHandlerContext,
   type ServiceJobReference,
   type ServiceJobs,
   type ServiceJobStatus,
@@ -418,6 +420,7 @@ export {
   type ServiceToolDefinition,
   type ServicePublishDeclaration,
   type ServiceActiveJob,
+  type ServiceRecentJob,
   type ServicePublisher,
   type ToolAgent,
   type ToolAgentAnswer,
@@ -910,6 +913,8 @@ export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 export { sourceAttachmentKey } from "./entity/source-attachment-key";
 
 export { SerialQueue } from "./service/serial-queue";
+export type { StaticSiteOutput } from "./contracts/http-host";
+export { getServiceJobHandler } from "./service/service-definition-contract";
 export { SerializedStatusStore } from "./service/serialized-status-store";
 export type { SerializedStatusStoreOptions } from "./service/serialized-status-store";
 

@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach } from "bun:test";
-import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Resource } from "@brains/plugins";
+import { installSiteBuilder } from "../helpers/install";
 
 describe("Site Builder brain://site resource", () => {
   let resources: Resource[];
@@ -13,9 +13,8 @@ describe("Site Builder brain://site resource", () => {
       domain: "yeehaa.io",
     });
 
-    const plugin = new SiteBuilderPlugin({});
-    const capabilities = await harness.installPlugin(plugin);
-    resources = capabilities.resources;
+    const installed = await installSiteBuilder(harness);
+    resources = installed.capabilities.resources;
   });
 
   it("should register brain://site resource", () => {

@@ -141,6 +141,8 @@ export function runtimeFor(
       },
     },
     jobs: {
+      recent: async () => [],
+      find: async () => null,
       active: async () =>
         (await context.jobs.getActiveJobs())
           .filter(
@@ -312,6 +314,8 @@ export function mockRuntimeFor(
       },
       jobs: {
         active: async (): Promise<never[]> => [],
+        recent: async (): Promise<never[]> => [],
+        find: async (): Promise<null> => null,
         enqueue: (): never => {
           throw new Error("This test does not declare jobs");
         },

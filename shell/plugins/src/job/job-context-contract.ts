@@ -269,6 +269,15 @@ export type RoutedCreate = (input: CreateInput) => Promise<CreateResult>;
 
 export interface JobHandlerContext<TInput> {
   readonly input: TInput;
+  /**
+   * The id this piece of work was queued under.
+   *
+   * A handler that keeps a projection of its own runs records each outcome
+   * against the id the requester is holding; without it the two records
+   * cannot be joined, and an operator page cannot say which build failed.
+   * Named consumer: @brains/site-builder.
+   */
+  readonly jobId: string;
   readonly entities: JobEntityAccess;
   readonly createRouted: RoutedCreate;
   readonly ai: IEntityAINamespace;

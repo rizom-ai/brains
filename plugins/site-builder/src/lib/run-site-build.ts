@@ -168,7 +168,7 @@ export async function runSiteBuild(
       layouts: parsedOptions.layouts,
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      sendMessage: options.pipelineContext.services.sendMessage,
+      publishMessage: options.pipelineContext.services.publishMessage,
     });
     const currentManifest = await outputLifecycle.getCurrentManifest?.(
       parsedOptions.outputDir,
@@ -240,10 +240,9 @@ export async function runSiteBuild(
         stagingFailures.push(detail);
       },
     };
-    await options.pipelineContext.services.sendMessage({
-      type: SITE_CHANNELS.buildStaging,
-      payload: stagingPayload,
-      broadcast: true,
+    await options.pipelineContext.services.publishMessage({
+      topic: SITE_CHANNELS.buildStaging,
+      data: stagingPayload,
     });
     options.signal.throwIfAborted();
     if (stagingFailures.length > 0) {

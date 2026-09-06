@@ -1,24 +1,20 @@
-import { BaseJobHandler } from "@brains/plugins";
 import { SITE_CHANNELS } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
-import type { ISiteBuilder } from "../types/site-builder-types";
-import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
-import type { SiteBuilderConfig } from "../config";
-import {
-  siteBuildJobSchema,
-  type SiteBuildJobData,
-  type SiteBuildJobResult,
-} from "../types/job-types";
+import type { LoggerContract, ServicePublisher } from "@brains/sdk/services";
+import { CallbackProgressReporter } from "@brains/utils/progress";
+import { getErrorMessage } from "@brains/utils/error";
 import { EntityUrlGenerator } from "@brains/site-composition";
+import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
+import type { ISiteBuilder } from "../types/site-builder-types";
+import type { SiteBuilderConfig } from "../config";
+import { siteBuildJob } from "../lib/site-build-job";
+import type { SiteBuildJobResult } from "../types/job-types";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type { SiteBuildStatusService } from "../lib/site-build-status";
 
 /**
- * The four transitions this handler records. The service does more; asking for
- * all of it meant a test could not record a subset without asserting it was
- * the whole service.
+ * The five transitions this handler records. The service does more; asking
+ * for all of it meant a test could not record a subset without asserting it
+ * was the whole service.
  */
 export type BuildStatusRecorder = Pick<
   SiteBuildStatusService,
@@ -28,10 +24,11 @@ export type BuildStatusRecorder = Pick<
   | "markCancelled"
   | "markFailure"
 >;
-import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
+  messaging: ServicePublisher;
+  logger: LoggerContract;
   layouts: Record<string, LayoutComponent>;
   defaultSiteConfig: SiteBuilderConfig["siteInfo"];
   sharedImagesDir: string;
@@ -64,147 +61,85 @@ export interface SiteBuildJobHandlerConfig {
 }
 
 /**
- * Job handler for site building operations
+ * Render the site, and record what became of the attempt.
+ *
+ * The build itself is the site builder's; this owns the bookkeeping around
+ * it — which environment was rendered, whether it succeeded, and telling
+ * whoever waits on a finished site that one exists.
  */
-export class SiteBuildJobHandler extends BaseJobHandler<
-  "site-build",
-  SiteBuildJobData,
-  SiteBuildJobResult
-> {
-  private sendMessage: ServicePluginContext["messaging"]["send"];
-  private cfg: SiteBuildJobHandlerConfig;
-  constructor(
-    logger: Logger,
-    sendMessage: ServicePluginContext["messaging"]["send"],
-    cfg: SiteBuildJobHandlerConfig,
-  ) {
-    super(logger, {
-      schema: siteBuildJobSchema,
-      jobTypeName: "site-build",
-    });
-    this.sendMessage = sendMessage;
-    this.cfg = cfg;
-  }
+export function handleSiteBuild(
+  cfg: SiteBuildJobHandlerConfig,
+): ReturnType<typeof siteBuildJob.handle> {
+  return siteBuildJob.handle(async ({ input, jobId, progress }) => {
+    const environment = input.environment ?? "preview";
+    const enableContentGeneration = input.enableContentGeneration ?? false;
+    const inputGeneration = input.inputGeneration ?? 0;
 
-  async process(
-    data: SiteBuildJobData,
-    jobId: string,
-    progressReporter: ProgressReporter,
-  ): Promise<SiteBuildJobResult> {
-    // Apply defaults for optional fields
-    const environment = data.environment ?? "preview";
-    const enableContentGeneration = data.enableContentGeneration ?? false;
-    const inputGeneration = data.inputGeneration ?? 0;
-
-    await this.recordStatus(
-      () => this.cfg.statusService?.markBuilding(environment, jobId),
+    await recordStatus(
+      cfg,
+      () => cfg.statusService?.markBuilding(environment, jobId),
       "building",
     );
-    await this.recordLifecycle(
+    await recordLifecycle(
+      cfg,
       () =>
-        this.cfg.onBuildStarted?.(environment, jobId, inputGeneration) ??
+        cfg.onBuildStarted?.(environment, jobId, inputGeneration) ??
         Promise.resolve(),
       "started",
     );
 
     try {
-      this.logger.debug("Starting site build job", {
+      cfg.logger.debug("Starting site build job", {
         jobId,
         environment,
-        outputDir: data.outputDir,
+        outputDir: input.outputDir,
       });
 
-      // Report initial progress
-      await progressReporter.report({
+      await progress.report({
         progress: 0,
         total: 100,
         message: `Starting site build for ${environment} environment`,
       });
 
-      // Create a sub-reporter that maps build progress to job progress
-      const buildProgressReporter = progressReporter.createSub({
-        scale: { start: 10, end: 90 },
-      });
+      // The build reports its own 0-100; map it onto the middle of the job.
+      const buildProgress = CallbackProgressReporter.from(
+        async (notification) => progress.report(notification),
+      )?.createSub({ scale: { start: 10, end: 90 } });
 
       const siteConfig = await resolveSiteMetadata(
-        this.sendMessage,
-        data.siteConfig ?? this.cfg.defaultSiteConfig,
+        cfg.messaging.send,
+        input.siteConfig ?? cfg.defaultSiteConfig,
       );
       const configuredSiteUrl =
         environment === "preview"
-          ? (this.cfg.previewUrl ?? this.cfg.siteUrl)
-          : this.cfg.siteUrl;
-      const siteUrl = this.cfg.preferLocalUrls
-        ? (this.cfg.localSiteUrl ?? configuredSiteUrl)
+          ? (cfg.previewUrl ?? cfg.siteUrl)
+          : cfg.siteUrl;
+      const siteUrl = cfg.preferLocalUrls
+        ? (cfg.localSiteUrl ?? configuredSiteUrl)
         : configuredSiteUrl;
 
-      // Perform the build
-      const result = await this.cfg.siteBuilder.build(
+      const result = await cfg.siteBuilder.build(
         {
-          outputDir: data.outputDir,
-          workingDir: data.workingDir,
-          sharedImagesDir: this.cfg.sharedImagesDir,
+          outputDir: input.outputDir,
+          workingDir: input.workingDir,
+          sharedImagesDir: cfg.sharedImagesDir,
           enableContentGeneration,
           environment,
           cleanBeforeBuild: true,
           siteConfig,
           siteUrl,
-          layouts: this.cfg.layouts,
-          themeCSS: this.cfg.themeCSS,
-          slots: this.cfg.slots,
-          headScripts: this.cfg.getHeadScripts?.(),
-          ...(this.cfg.staticAssets && {
-            staticAssets: this.cfg.staticAssets,
-          }),
+          layouts: cfg.layouts,
+          themeCSS: cfg.themeCSS,
+          slots: cfg.slots,
+          headScripts: cfg.getHeadScripts?.(),
+          ...(cfg.staticAssets && { staticAssets: cfg.staticAssets }),
         },
-        buildProgressReporter.toCallback(),
+        buildProgress?.toCallback(),
       );
 
-      if (result.success && result.skipped) {
-        await this.recordStatus(
-          () =>
-            this.cfg.statusService?.markSkipped(
-              environment,
-              jobId,
-              result.routesBuilt,
-            ),
-          "skipped",
-        );
-      } else if (result.success) {
-        await this.recordStatus(
-          () =>
-            this.cfg.statusService?.markSuccess(
-              environment,
-              jobId,
-              result.routesBuilt,
-              result.warnings ?? [],
-            ),
-          "success",
-        );
-      } else if (result.cancelled) {
-        await this.recordStatus(
-          () =>
-            this.cfg.statusService?.markCancelled(
-              environment,
-              jobId,
-              result.errors?.join("; ") ?? "Site build cancelled",
-            ),
-          "cancelled",
-        );
-      } else {
-        await this.recordStatus(
-          () =>
-            this.cfg.statusService?.markFailure(
-              environment,
-              jobId,
-              result.errors?.join("; ") ?? "Site build failed",
-            ),
-          "failure",
-        );
-      }
+      await recordOutcome(cfg, environment, jobId, result);
 
-      // Report completion
-      await progressReporter.report({
+      await progress.report({
         progress: 100,
         total: 100,
         message: result.cancelled
@@ -212,7 +147,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           : `Site build completed: ${result.routesBuilt} routes built`,
       });
 
-      this.logger.debug("Site build job completed", {
+      cfg.logger.debug("Site build job completed", {
         jobId,
         environment,
         routesBuilt: result.routesBuilt,
@@ -222,24 +157,19 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 
       // A skipped build publishes nothing, so completion hooks must not run.
       if (result.success && !result.skipped) {
-        this.logger.info(
+        cfg.logger.info(
           `Emitting site:build:completed event for ${environment} environment`,
         );
-
-        await this.sendMessage({
-          type: SITE_CHANNELS.buildCompleted,
-          payload: {
-            outputDir: data.outputDir,
+        await cfg.messaging.publish({
+          topic: SITE_CHANNELS.buildCompleted,
+          data: {
+            outputDir: input.outputDir,
             environment,
             routesBuilt: result.routesBuilt,
-            siteConfig: {
-              ...siteConfig,
-              url: siteUrl,
-            },
-            generateEntityUrl: (entityType: string, slug: string) =>
+            siteConfig: { ...siteConfig, url: siteUrl },
+            generateEntityUrl: (entityType: string, slug: string): string =>
               EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
           },
-          broadcast: true,
         });
       }
 
@@ -248,70 +178,121 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         ...(result.cancelled && { cancelled: true }),
         ...(result.skipped && { skipped: true }),
         routesBuilt: result.routesBuilt,
-        outputDir: data.outputDir,
+        outputDir: input.outputDir,
         environment,
         ...(result.errors && { errors: result.errors }),
         ...(result.warnings && { warnings: result.warnings }),
         ...(result.diagnostics && { diagnostics: result.diagnostics }),
       };
     } catch (error) {
-      await this.recordStatus(
+      await recordStatus(
+        cfg,
         () =>
-          this.cfg.statusService?.markFailure(
+          cfg.statusService?.markFailure(
             environment,
             jobId,
             getErrorMessage(error, "Site build failed"),
           ),
         "failure",
       );
-      this.logger.error("Site build job failed", error);
+      cfg.logger.error("Site build job failed", error);
       throw error;
     } finally {
-      await this.recordLifecycle(
+      await recordLifecycle(
+        cfg,
         () =>
-          this.cfg.onBuildFinished?.(environment, jobId, inputGeneration) ??
+          cfg.onBuildFinished?.(environment, jobId, inputGeneration) ??
           Promise.resolve(),
         "finished",
       );
     }
-  }
+  });
+}
 
-  private async recordLifecycle(
-    update: () => void | Promise<void>,
-    state: string,
-  ): Promise<void> {
-    try {
-      await update();
-    } catch (error) {
-      // The projection heals on the next read via queue reconciliation, so the
-      // job must not fail here — but the lost write is an operational error.
-      this.logger.error(`Failed to record site build ${state} lifecycle`, {
-        error,
-      });
-    }
+/** Which of the four terminal states this build reached. */
+async function recordOutcome(
+  cfg: SiteBuildJobHandlerConfig,
+  environment: "preview" | "production",
+  jobId: string,
+  result: Pick<
+    SiteBuildJobResult,
+    "success" | "skipped" | "cancelled" | "routesBuilt" | "errors" | "warnings"
+  >,
+): Promise<void> {
+  if (result.success && result.skipped) {
+    await recordStatus(
+      cfg,
+      () =>
+        cfg.statusService?.markSkipped(environment, jobId, result.routesBuilt),
+      "skipped",
+    );
+    return;
   }
-
-  private async recordStatus(
-    update: () => Promise<void> | undefined,
-    state: string,
-  ): Promise<void> {
-    try {
-      await update();
-    } catch (error) {
-      // Same contract as recordLifecycle: reconciliation recovers the state,
-      // the build outcome stands, and the failure is loud in the logs.
-      this.logger.error(`Failed to record site build ${state} state`, {
-        error,
-      });
-    }
+  if (result.success) {
+    await recordStatus(
+      cfg,
+      () =>
+        cfg.statusService?.markSuccess(
+          environment,
+          jobId,
+          result.routesBuilt,
+          result.warnings ?? [],
+        ),
+      "success",
+    );
+    return;
   }
+  if (result.cancelled) {
+    await recordStatus(
+      cfg,
+      () =>
+        cfg.statusService?.markCancelled(
+          environment,
+          jobId,
+          result.errors?.join("; ") ?? "Site build cancelled",
+        ),
+      "cancelled",
+    );
+    return;
+  }
+  await recordStatus(
+    cfg,
+    () =>
+      cfg.statusService?.markFailure(
+        environment,
+        jobId,
+        result.errors?.join("; ") ?? "Site build failed",
+      ),
+    "failure",
+  );
+}
 
-  protected override summarizeDataForLog(
-    data: SiteBuildJobData,
-  ): Record<string, unknown> {
-    return {
-      environment: data.environment,
-      outputDir: data.outputDir,
-    };
+async function recordLifecycle(
+  cfg: SiteBuildJobHandlerConfig,
+  update: () => void | Promise<void>,
+  state: string,
+): Promise<void> {
+  try {
+    await update();
+  } catch (error) {
+    // The projection heals on the next read via queue reconciliation, so the
+    // job must not fail here — but the lost write is an operational error.
+    cfg.logger.error(`Failed to record site build ${state} lifecycle`, {
+      error,
+    });
+  }
+}
+
+async function recordStatus(
+  cfg: SiteBuildJobHandlerConfig,
+  update: () => Promise<void> | undefined,
+  state: string,
+): Promise<void> {
+  try {
+    await update();
+  } catch (error) {
+    // Same contract as recordLifecycle: reconciliation recovers the state,
+    // the build outcome stands, and the failure is loud in the logs.
+    cfg.logger.error(`Failed to record site build ${state} state`, { error });
   }
 }

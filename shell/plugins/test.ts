@@ -73,7 +73,7 @@ export {
   createTestPrincipal,
   type StubAuthOptions,
 } from "./src/test/stub-auth";
-export { createTestJobContext } from "./src/test/job-context";
+export { createTestJobContext, runServiceJob } from "./src/test/job-context";
 export {
   fetchable,
   type FetchableDataSource,

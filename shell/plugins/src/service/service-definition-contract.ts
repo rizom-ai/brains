@@ -146,6 +146,8 @@ import type {
   IPluginsNamespace,
 } from "../base/context-types";
 import type { IAttachmentsNamespace } from "./attachment-registry";
+import type { StaticSiteOutput } from "../contracts/http-host";
+import type { IServiceTemplatesNamespace, IViewsNamespace } from "./context";
 import type {
   ConsoleSurface,
   SurfacePermissionLevel,
@@ -228,6 +230,19 @@ export interface ServiceJobDefinition<
   readonly output: TOutputSchema;
   readonly retry?: { readonly attempts: number } | undefined;
   readonly deadline?: ServiceDeadline | undefined;
+  /**
+   * At most one of these waiting at a time, per key.
+   *
+   * Work that renders whatever the brain says when it runs gains nothing
+   * from being queued twice: the job already waiting will see the same
+   * changes. Return the key that means "the same work" — a job already
+   * pending under that key makes this request a no-op, and the waiting
+   * job's id comes back instead. Work already running does not block a new
+   * request, because that one will not see what changed since it started.
+   * Named consumer: @brains/site-builder.
+   */
+  readonly oncePending?:
+    ((input: z.output<TInputSchema>) => string) | undefined;
   handle(
     handler: ServiceJobHandler<z.output<TInputSchema>, z.input<TOutputSchema>>,
   ): ServiceJobBinding<
@@ -251,6 +266,19 @@ export function defineJob<
   readonly output: TOutputSchema;
   readonly retry?: { readonly attempts: number } | undefined;
   readonly deadline?: ServiceDeadline | undefined;
+  /**
+   * At most one of these waiting at a time, per key.
+   *
+   * Work that renders whatever the brain says when it runs gains nothing
+   * from being queued twice: the job already waiting will see the same
+   * changes. Return the key that means "the same work" — a job already
+   * pending under that key makes this request a no-op, and the waiting
+   * job's id comes back instead. Work already running does not block a new
+   * request, because that one will not see what changed since it started.
+   * Named consumer: @brains/site-builder.
+   */
+  readonly oncePending?:
+    ((input: z.output<TInputSchema>) => string) | undefined;
 }): ServiceJobDefinition<TName, TInputSchema, TOutputSchema> {
   assertIdentifier(definition.name, "Job name");
   if (
@@ -338,6 +366,20 @@ export interface ServiceActiveJob {
   readonly data: unknown;
 }
 
+/** One piece of work this package queued, whatever became of it. */
+export interface ServiceRecentJob extends Omit<ServiceActiveJob, "status"> {
+  readonly status: "pending" | "processing" | "completed" | "failed";
+  /** When it was queued. */
+  readonly createdAt: number;
+  /** When a worker picked it up, if one has. */
+  readonly startedAt?: number | undefined;
+  /** When it stopped, however it stopped. */
+  readonly completedAt?: number | undefined;
+  /** What the handler returned, for a job that finished. */
+  readonly result?: unknown;
+  readonly error?: string | undefined;
+}
+
 export interface ServiceJobs {
   /**
    * Work this package queued that is still pending or running.
@@ -347,6 +389,29 @@ export interface ServiceJobs {
    * Named consumer: @brains/content-pipeline.
    */
   active(): Promise<readonly ServiceActiveJob[]>;
+  /**
+   * Work this package queued lately, newest first, finished or not.
+   *
+   * Types are this package's own job names, as it declared them.
+   *
+   * An operator page shows what a package has been doing and not only what
+   * it is doing now — the last build that succeeded, the one before it that
+   * failed. Scoped to this package's own jobs, like `active`.
+   * Named consumer: @brains/site-builder.
+   */
+  recent(options?: {
+    readonly types?: readonly string[] | undefined;
+    readonly limit?: number | undefined;
+  }): Promise<readonly ServiceRecentJob[]>;
+  /**
+   * One piece of this package's queued work, by the id it was given.
+   *
+   * A projection that survives a restart holds ids, not definitions: it
+   * recorded that a build was running and has to ask what became of it.
+   * Answers null for a job this package did not queue.
+   * Named consumer: @brains/site-builder.
+   */
+  find(jobId: string): Promise<ServiceRecentJob | null>;
   enqueue<TDefinition extends AnyServiceJobDefinition>(
     definition: TDefinition,
     input: z.input<TDefinition["input"]>,
@@ -728,6 +793,32 @@ interface ServiceDefinitionCore<
         readonly http: { isConfigured(): boolean };
         readonly siteUrl: string | undefined;
         /**
+         * Where the brain's own pages are addressed, for a package that
+         * renders them.
+         *
+         * `domain` is what the brain is called; the rest are the addresses
+         * that follow from it — the preview host derived from the domain,
+         * the local address a development runtime prefers, and whether it is
+         * currently preferring it. A build writes absolute links, so it has
+         * to agree with whatever else resolves one rather than re-deriving
+         * them from three fields. Named consumer: @brains/site-builder.
+         */
+        readonly domain: string | undefined;
+        readonly previewUrl: string | undefined;
+        readonly localSiteUrl: string | undefined;
+        readonly preferLocalUrls: boolean;
+        /**
+         * The view templates registered across the brain, and resolution of
+         * a template's own content.
+         *
+         * A site build renders types it does not own: the package that owns
+         * one registers how it looks, and the build asks what exists rather
+         * than holding a list of its own. Named consumer:
+         * @brains/site-builder.
+         */
+        readonly views: IViewsNamespace;
+        readonly templates: Pick<IServiceTemplatesNamespace, "resolve">;
+        /**
          * The other doors this caller should be shown.
          *
          * A console renders a strip of links to the rest of the brain. The
@@ -953,6 +1044,19 @@ interface ServiceDefinitionCore<
    * Named consumers: @brains/knowledge-map, @brains/dashboard,
    * @brains/site-builder, @brains/unified-inbox.
    */
+  /**
+   * Where this package's static build writes, for the runtime that serves it.
+   *
+   * A function of config alone, like `routes`: the host collects these once
+   * after registration to know what it can serve, and the answer cannot
+   * depend on state that does not exist yet. Named consumer:
+   * @brains/site-builder.
+   */
+  readonly staticSite?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+      }) => StaticSiteOutput)
+    | undefined;
   readonly dataSources?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;

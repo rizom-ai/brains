@@ -24,6 +24,7 @@ import type {
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import { deriveConsoleSurfaces } from "../console-surfaces";
+import type { StaticSiteOutput } from "../contracts/http-host";
 import {
   createServicePublishingAccess,
   PublishDelegationRegistry,
@@ -65,6 +66,7 @@ import type {
   ServiceJobReference,
   ServiceJobStatus,
   ServiceActiveJob,
+  ServiceRecentJob,
   ServiceJobs,
   ServiceResourceDefinition,
   ServiceSchema,
@@ -154,6 +156,7 @@ function runtimeJobHandler(
     ): Promise<unknown> {
       const output = await handler({
         input,
+        jobId,
         signal,
         progress,
         templates,
@@ -312,6 +315,16 @@ class DeclarativeServicePlugin<
   }
 
   private routePermissions: RoutePermissions | undefined;
+
+  /**
+   * Where this package's build writes, when it declared one.
+   *
+   * Config alone, so the host can ask before the plugin is installed — the
+   * same reason `getWebRoutes` reads only config.
+   */
+  public getStaticSiteOutput(): StaticSiteOutput | undefined {
+    return this.definition.staticSite?.({ config: this.config });
+  }
 
   public override getWebRoutes(): WebRouteDefinition[] {
     // Routes are a function of config alone, so composition tooling can
@@ -537,6 +550,12 @@ class DeclarativeServicePlugin<
           plugins: context.plugins,
           http: context.http,
           siteUrl: context.siteUrl,
+          domain: context.domain,
+          previewUrl: context.previewUrl,
+          localSiteUrl: context.localSiteUrl,
+          preferLocalUrls: context.preferLocalUrls,
+          views: context.views,
+          templates: { resolve: context.templates.resolve },
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,
@@ -1184,10 +1203,25 @@ class DeclarativeServicePlugin<
           )
           .map((job) => ({
             id: job.id,
-            type: job.type,
+            type: this.declaredJobType(job.type),
             status: job.status === "processing" ? "processing" : "pending",
             data: parseJobData(job.data),
           })),
+      find: async (jobId): Promise<ServiceRecentJob | null> => {
+        const job = await context.jobs.getStatus(jobId);
+        return job?.source === this.id
+          ? toRecentJob(job, (type) => this.declaredJobType(type))
+          : null;
+      },
+      recent: async (options): Promise<readonly ServiceRecentJob[]> =>
+        (
+          await context.jobs.getRecentJobs(
+            options?.types?.map((type) => this.scopedJobType(type)),
+            options?.limit,
+          )
+        )
+          .filter((job) => job.source === this.id)
+          .map((job) => toRecentJob(job, (type) => this.declaredJobType(type))),
       enqueue: async <TDefinition extends AnyServiceJobDefinition>(
         definition: TDefinition,
         input: z.input<TDefinition["input"]>,
@@ -1202,6 +1236,7 @@ class DeclarativeServicePlugin<
         const maxRetries = definition.retry
           ? definition.retry.attempts - 1
           : undefined;
+        const pendingKey = definition.oncePending?.(data);
         const id = await context.jobs.enqueue({
           type: definition.name,
           data,
@@ -1213,6 +1248,12 @@ class DeclarativeServicePlugin<
               pluginId: this.id,
             },
             ...(maxRetries !== undefined ? { maxRetries } : {}),
+            ...(pendingKey !== undefined
+              ? {
+                  deduplication: "skip" as const,
+                  deduplicationKey: pendingKey,
+                }
+              : {}),
           },
         });
         return Object.freeze({
@@ -1264,6 +1305,23 @@ class DeclarativeServicePlugin<
         ],
       ),
     );
+  }
+
+  /**
+   * The name the queue files one of this package's jobs under.
+   *
+   * The runtime scopes a service's job types by its id, so a package asking
+   * about its own work has to ask under the scoped name — and read the plain
+   * one back.
+   */
+  private scopedJobType(name: string): string {
+    return name.includes(":") ? name : `${this.id}:${name}`;
+  }
+
+  /** The name this package declared, given the name the queue filed. */
+  private declaredJobType(type: string): string {
+    const prefix = `${this.id}:`;
+    return type.startsWith(prefix) ? type.slice(prefix.length) : type;
   }
 
   private erasedViews(): Map<string, ErasedServiceView> {
@@ -1488,4 +1546,34 @@ function parseJobData(data: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+/** One queued job, as a declaration reads it. */
+function toRecentJob(
+  job: {
+    id: string;
+    type: string;
+    status: "pending" | "processing" | "completed" | "failed";
+    createdAt: number;
+    startedAt: number | null;
+    completedAt: number | null;
+    data: string;
+    result?: unknown;
+    lastError: string | null;
+  },
+  declaredType: (type: string) => string,
+): ServiceRecentJob {
+  return {
+    id: job.id,
+    // A package names its own work by the name it declared, not the scoped
+    // one the queue files it under.
+    type: declaredType(job.type),
+    status: job.status,
+    createdAt: job.createdAt,
+    data: parseJobData(job.data),
+    result: job.result,
+    ...(job.startedAt !== null ? { startedAt: job.startedAt } : {}),
+    ...(job.completedAt !== null ? { completedAt: job.completedAt } : {}),
+    ...(job.lastError !== null ? { error: job.lastError } : {}),
+  };
 }

@@ -1,79 +1,35 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { NavigationSlots } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
 
-// Schema for navigation query parameters
 const navigationQuerySchema = z.object({
   slot: z.enum(NavigationSlots).optional().default("primary"),
   limit: z.number().optional(),
 });
 
-type NavigationQuery = z.output<typeof navigationQuerySchema>;
+/** One entry in a site menu. */
+export interface NavigationItem {
+  readonly label: string;
+  readonly href: string;
+}
 
 /**
- * DataSource that provides navigation data from the RouteRegistry
- * Supports querying specific navigation slots
+ * The menu for one navigation slot, read off the registered routes.
+ *
+ * Templates ask for a slot and get what is registered into it. Whoever
+ * registered the route decided it belonged in the menu; this only reads.
  */
-export class NavigationDataSource implements DataSource {
-  private readonly routeRegistry: RouteRegistry;
-  private readonly logger: Logger;
-  public readonly id = "site:navigation";
-  public readonly name = "Site Navigation DataSource";
-  public readonly description = "Provides navigation items for site menus";
-
-  constructor(routeRegistry: RouteRegistry, logger: Logger) {
-    this.routeRegistry = routeRegistry;
-    this.logger = logger;
-    this.logger.debug("NavigationDataSource initialized");
-  }
-
-  /**
-   * Fetch navigation data based on query parameters
-   * @param query - Query parameters for filtering navigation items
-   * @param outputSchema - Schema for validating output format
-   * @param context - Optional context (environment, etc.)
-   */
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    _context?: BaseDataSourceContext,
-  ): Promise<T> {
-    // Parse and validate query parameters
-    const params: NavigationQuery = navigationQuerySchema.parse(query ?? {});
-
-    this.logger.debug("NavigationDataSource fetch called", { params });
-
-    // Get navigation items for the specified slot
-    const items = this.routeRegistry.getNavigationItems(params.slot);
-
-    // Apply limit if specified
-    const limitedItems = params.limit ? items.slice(0, params.limit) : items;
-
-    // Return navigation items array
-    const navigationItems = limitedItems.map((item) => ({
+export function navigationFor(
+  routes: RouteRegistry,
+  query: unknown,
+): { navigation: NavigationItem[] } {
+  const params = navigationQuerySchema.parse(query ?? {});
+  const items = routes.getNavigationItems(params.slot);
+  const limited = params.limit ? items.slice(0, params.limit) : items;
+  return {
+    navigation: limited.map((item) => ({
       label: item.label,
       href: item.href,
-    }));
-
-    this.logger.debug("NavigationDataSource returning", {
-      slot: params.slot,
-      itemCount: limitedItems.length,
-      items: navigationItems,
-    });
-
-    // The output schema will determine the final shape
-    // For footer template, it expects { navigation: [...], copyright?: string }
-    // We only provide the navigation part
-    const result = {
-      navigation: navigationItems,
-    };
-
-    return outputSchema.parse(result);
-  }
+    })),
+  };
 }

@@ -118,7 +118,7 @@ describe("canonical team bundle", () => {
     for (const id of [
       "@brains/conversation-memory:conversation-memory",
       "@brains/doc:doc",
-      "site-builder",
+      "@brains/site-builder-plugin:site-builder",
       "@brains/mcp:mcp",
     ]) {
       expect(ids).toContain(id);

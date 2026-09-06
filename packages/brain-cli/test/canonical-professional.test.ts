@@ -108,7 +108,9 @@ describe("canonical professional posture", () => {
         routePath: "/dashboard",
       },
     );
-    expect(pluginConfig(resolved, "site-builder")).toMatchObject({
+    expect(
+      pluginConfig(resolved, "@brains/site-builder-plugin:site-builder"),
+    ).toMatchObject({
       routes: expect.any(Array),
       themeCSS: expect.any(String),
     });
@@ -156,7 +158,10 @@ describe("canonical professional posture", () => {
     });
 
     const resolved = resolve(canonicalBrain, {}, overrides);
-    const routes = pluginConfig(resolved, "site-builder")?.["routes"];
+    const routes = pluginConfig(
+      resolved,
+      "@brains/site-builder-plugin:site-builder",
+    )?.["routes"];
     const resolvedHome = Array.isArray(routes)
       ? routes.find((route) => isRecord(route) && route["id"] === "home")
       : undefined;
@@ -175,7 +180,9 @@ describe("canonical professional posture", () => {
       {},
       canonicalOverrides({ bundles: ["core", "media", "web", "site"] }),
     );
-    expect(pluginIds(siteOnly)).toContain("site-builder");
+    expect(pluginIds(siteOnly)).toContain(
+      "@brains/site-builder-plugin:site-builder",
+    );
     expect(pluginIds(siteOnly)).not.toContain("@brains/blog:post");
 
     const publishingOnly = resolve(
@@ -184,7 +191,9 @@ describe("canonical professional posture", () => {
       canonicalOverrides({ bundles: ["core", "media", "publishing"] }),
     );
     expect(pluginIds(publishingOnly)).toContain("@brains/blog:post");
-    expect(pluginIds(publishingOnly)).not.toContain("site-builder");
+    expect(pluginIds(publishingOnly)).not.toContain(
+      "@brains/site-builder-plugin:site-builder",
+    );
     expect(pluginIds(publishingOnly)).not.toContain("@brains/atproto:atproto");
 
     const federationOnly = resolve(
@@ -193,7 +202,9 @@ describe("canonical professional posture", () => {
       canonicalOverrides({ bundles: ["core", "federation"] }),
     );
     expect(pluginIds(federationOnly)).toContain("@brains/atproto:atproto");
-    expect(pluginIds(federationOnly)).not.toContain("site-builder");
+    expect(pluginIds(federationOnly)).not.toContain(
+      "@brains/site-builder-plugin:site-builder",
+    );
   });
 
   test("keeps publishing instructions definition-owned and neutral", () => {
