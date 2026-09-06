@@ -503,7 +503,12 @@
         "WorkspaceActionResultFieldMap",
         "WorkspacePreparedConfirmation",
         "z",
-        "verbatim"
+        "verbatim",
+        "IRuntimeStateStore",
+        "RuntimeStateScopeOptions",
+        "AnyInterfaceRouteDefinition",
+        "AnySubscriptionDefinition",
+        "PublicSkill"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

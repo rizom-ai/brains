@@ -16,7 +16,7 @@ import adminPackage from "@brains/admin";
 import { agentDiscovery } from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
 import assessmentPackage from "@brains/assessment";
-import { atprotoPlugin } from "@brains/atproto";
+import atprotoPackage from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
@@ -205,7 +205,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("stock-photo", "@brains/stock-photo", stockPhotoPackage),
     [
       "atproto",
-      atprotoPlugin,
+      packageFactory("@brains/atproto", atprotoPackage),
       (env): PluginConfig => ({
         ...(env["ATPROTO_APP_PASSWORD"]
           ? { appPassword: env["ATPROTO_APP_PASSWORD"] }

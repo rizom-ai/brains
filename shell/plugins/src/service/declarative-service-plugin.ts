@@ -212,6 +212,7 @@ function runtimeJobHandler(
             await context.messaging.send({
               type: message.topic,
               payload: message.data,
+              broadcast: true,
             });
           },
         },
@@ -402,6 +403,13 @@ class DeclarativeServicePlugin<
               type: message.type,
               payload: message.payload,
             }),
+          publish: async (message): Promise<void> => {
+            await context.messaging.send({
+              type: message.topic,
+              payload: message.data,
+              broadcast: true,
+            });
+          },
         },
         logger: this.logger,
         dataDir: context.dataDir,
@@ -516,6 +524,11 @@ class DeclarativeServicePlugin<
           judge: async (input) => ({
             verdict: (await context.judge(input)).verdict,
           }),
+          identity: context.identity,
+          profileKinds: context.profileKinds,
+          publicSkills: context.publicSkills,
+          plugins: context.plugins,
+          siteUrl: context.siteUrl,
           // Stewarded types are read just above, so the owned set is already
           // complete by the time setup asks for it.
           entities: createJobEntityAccess(
@@ -572,6 +585,13 @@ class DeclarativeServicePlugin<
                     type: message.type,
                     payload: message.payload,
                   }),
+                publish: async (message): Promise<void> => {
+                  await context.messaging.send({
+                    type: message.topic,
+                    payload: message.data,
+                    broadcast: true,
+                  });
+                },
               },
             }),
           };

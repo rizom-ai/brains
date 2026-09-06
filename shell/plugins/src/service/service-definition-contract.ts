@@ -74,10 +74,20 @@ export interface ServiceEntityShapes {
 
 /** The narrow publish surface a service gets, not the whole bus. */
 export interface ServicePublisher {
+  /** Ask, and read the answer: the first subscriber that answers does. */
   send(message: {
     readonly type: string;
     readonly payload: unknown;
   }): Promise<unknown>;
+  /**
+   * Announce, to everyone listening. A discovery or a failure is not a
+   * question for one subscriber; every package that cares hears it.
+   * Named consumer: @brains/atproto.
+   */
+  publish(message: {
+    readonly topic: string;
+    readonly data: object;
+  }): Promise<void>;
 }
 
 export interface ServiceChannelReader {
@@ -128,6 +138,10 @@ import type {
 } from "../operator/operator-definition-contract";
 import type { OperatorBindingContext } from "../operator/operator-context-contract";
 import { assertIdentifier } from "../package-definition";
+import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
+import type { AppInfo } from "../contracts/app-info";
+import type { PublicSkill } from "../a2a/public-skills";
+import type { IPluginsNamespace } from "../base/context-types";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -670,6 +684,22 @@ interface ServiceDefinitionCore<
          * package then has to parse. Named consumer: @brains/playbooks.
          */
         readonly judge: ServiceJudge;
+        /**
+         * How the brain presents itself to a network: who it is, whose it
+         * is, what kind of profile it represents, what it offers publicly,
+         * and whether it has a web channel to be reached on. Reads the
+         * runtime already answers; a service that publishes the brain card
+         * describes the brain, not itself. Named consumer: @brains/atproto.
+         */
+        readonly identity: {
+          get(): BrainCharacter;
+          getProfile(): AnchorProfile;
+          getAppInfo(): Promise<AppInfo>;
+        };
+        readonly profileKinds: { getResolved(): ResolvedProfileSelection };
+        readonly publicSkills: { list(): Promise<PublicSkill[]> };
+        readonly plugins: Pick<IPluginsNamespace, "has">;
+        readonly siteUrl: string | undefined;
         readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
     | undefined;

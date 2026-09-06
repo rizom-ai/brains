@@ -16,7 +16,6 @@
   },
   "devDependencies": {
     "@brains/ai-service": "workspace:*",
-    "@brains/atproto": "workspace:*",
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",

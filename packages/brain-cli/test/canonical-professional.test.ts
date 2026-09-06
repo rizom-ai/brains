@@ -121,7 +121,7 @@ describe("canonical professional posture", () => {
     ).toMatchObject({
       doubleOptIn: true,
     });
-    expect(pluginIds(resolved)).toContain("atproto");
+    expect(pluginIds(resolved)).toContain("@brains/atproto:atproto");
     expect(pluginIds(resolved)).toContain(
       "@brains/atproto-registry:atproto-registry",
     );
@@ -181,14 +181,14 @@ describe("canonical professional posture", () => {
     );
     expect(pluginIds(publishingOnly)).toContain("@brains/blog:post");
     expect(pluginIds(publishingOnly)).not.toContain("site-builder");
-    expect(pluginIds(publishingOnly)).not.toContain("atproto");
+    expect(pluginIds(publishingOnly)).not.toContain("@brains/atproto:atproto");
 
     const federationOnly = resolve(
       canonicalBrain,
       {},
       canonicalOverrides({ bundles: ["core", "federation"] }),
     );
-    expect(pluginIds(federationOnly)).toContain("atproto");
+    expect(pluginIds(federationOnly)).toContain("@brains/atproto:atproto");
     expect(pluginIds(federationOnly)).not.toContain("site-builder");
   });
 

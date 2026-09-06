@@ -58,10 +58,14 @@ export interface AtprotoPdsClientLike {
  */
 export interface AtprotoProjectionContext {
   entityService: {
-    getEntity<T extends BaseEntity>(request: {
+    /**
+     * A read of any entity, widened: a projection reads what it references
+     * (a cover image, its own source) and proves the shape itself.
+     */
+    getEntity(request: {
       entityType: string;
       id: string;
-    }): Promise<T | null>;
+    }): Promise<BaseEntity | null>;
     updateEntity<T extends BaseEntity>(request: {
       entity: T;
     }): Promise<{ entityId: string; jobId: string }>;

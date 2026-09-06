@@ -44,7 +44,12 @@ describe("canonical personal posture", () => {
     ]) {
       expect(ids).toContain(id);
     }
-    for (const id of ["site-builder", "blog", "onboarding", "atproto"]) {
+    for (const id of [
+      "site-builder",
+      "blog",
+      "onboarding",
+      "@brains/atproto:atproto",
+    ]) {
       expect(ids).not.toContain(id);
     }
     expect(pluginConfig(resolved, "@brains/mcp:mcp")).toMatchObject({

@@ -51,6 +51,13 @@ export function registerDeclaredSubscriptions(input: {
                   type: outbound.type,
                   payload: outbound.payload,
                 }),
+              publish: async (outbound): Promise<void> => {
+                await context.messaging.send({
+                  type: outbound.topic,
+                  payload: outbound.data,
+                  broadcast: true,
+                });
+              },
             },
           }),
         };

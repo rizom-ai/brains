@@ -1,4 +1,9 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type {
+  AnchorProfile,
+  BrainCharacter,
+  PublicSkill,
+  ResolvedProfileSelection,
+} from "@brains/sdk/services";
 import type {
   AtprotoBrainCardRecord,
   AtprotoBrainCardSkill,
@@ -14,6 +19,26 @@ import {
 export type BrainCardRecord = AtprotoBrainCardRecord & {
   $type: "ai.rizom.brain.card";
 };
+
+/**
+ * How the brain presents itself, read from the runtime: who it is, whose it
+ * is, what kind of profile it represents, what it offers publicly, and
+ * whether it has a web channel to be reached on. The service's setup context
+ * carries exactly these; so does a service plugin context, structurally.
+ */
+export interface AtprotoBrainSource {
+  readonly identity: {
+    get(): BrainCharacter;
+    getProfile(): AnchorProfile;
+    getAppInfo(): Promise<{ model: string; version: string }>;
+  };
+  readonly profileKinds: {
+    getResolved(): ResolvedProfileSelection | undefined;
+  };
+  readonly publicSkills: { list(): Promise<PublicSkill[]> };
+  readonly plugins: { has(pluginId: string): boolean };
+  readonly siteUrl: string | undefined;
+}
 
 function normalizePublicUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -34,7 +59,7 @@ function configuredFederationDid(
 }
 
 export async function buildBrainCardRecord(
-  context: ServicePluginContext,
+  context: AtprotoBrainSource,
   config: AtprotoConfig,
   runtimeRepoDid?: string,
   now: Date = new Date(),

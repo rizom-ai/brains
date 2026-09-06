@@ -4,7 +4,7 @@
  * Exercises the genuinely new Phase 4 code against a real PDS:
  *   1. createSession (credential validation + network)
  *   2. seed a valid nested-schema card into the test repo
- *   3. AtprotoPlugin.discoverBrainCards → read + validate + dedupe + emit
+ *   3. the publisher's discoverBrainCards → read + validate + dedupe + announce
  *   4. negative case: a stale old-shape card is rejected by the schema
  *   5. re-seed the valid card so the repo is left in a good state
  *
@@ -21,9 +21,15 @@ import {
   validateAtprotoRecord,
   type AtprotoBrainCardRecord,
 } from "@brains/atproto-contracts";
-import type { ServicePluginContext } from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
+import { atprotoConfigSchema } from "../src/config";
 import { AtprotoPdsClient } from "../src/pds-client";
-import { atprotoPlugin } from "../src/plugin";
+import {
+  createAtprotoPublisher,
+  type AtprotoAnnouncer,
+  type AtprotoEntityReads,
+} from "../src/publisher";
+import type { AtprotoBrainSource } from "../src/records";
 
 const PDS_ENDPOINT =
   process.env["ATPROTO_PDS_ENDPOINT"] ?? "https://bsky.social";
@@ -124,22 +130,45 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // capture discovery events emitted on the message bus
+  // capture what discovery announces
   const events: Array<{ type: string; payload: unknown }> = [];
-  const context = {
-    messaging: {
-      send: async (message: { type: string; payload: unknown }) => {
-        events.push({ type: message.type, payload: message.payload });
-        return { success: true };
-      },
+  const announce: AtprotoAnnouncer = {
+    publish: async ({ topic, data }): Promise<void> => {
+      events.push({ type: topic, payload: data });
     },
-  } as unknown as ServicePluginContext;
+  };
+  // Discovery reads the brain's known agents to admit a candidate; this
+  // smoke has none, and it never builds a card, so the brain source is unused.
+  const entities: AtprotoEntityReads = {
+    getEntity: async () => null,
+    listEntities: async () => [],
+  };
+  const brain: AtprotoBrainSource = {
+    identity: {
+      get: () => {
+        throw new Error("smoke does not build a card");
+      },
+      getProfile: () => {
+        throw new Error("smoke does not build a card");
+      },
+      getAppInfo: async () => ({ model: "smoke", version: "0" }),
+    },
+    profileKinds: { getResolved: () => undefined },
+    publicSkills: { list: async () => [] },
+    plugins: { has: () => false },
+    siteUrl: undefined,
+  };
 
-  const plugin = atprotoPlugin({
-    enabled: true,
-    pdsEndpoint: PDS_ENDPOINT,
-    identifier: IDENTIFIER,
-    appPassword: APP_PASSWORD,
+  const publisher = createAtprotoPublisher({
+    config: atprotoConfigSchema.parse({
+      enabled: true,
+      pdsEndpoint: PDS_ENDPOINT,
+      identifier: IDENTIFIER,
+      appPassword: APP_PASSWORD,
+    }),
+    brain,
+    entities,
+    logger: createSilentLogger("smoke-discovery"),
   });
 
   // 2. seed a valid nested-schema card
@@ -161,7 +190,7 @@ async function main(): Promise<void> {
   // 3. happy-path discovery
   events.length = 0;
   try {
-    const result = await plugin.discoverBrainCards(context, {
+    const result = await publisher.discoverBrainCards(announce, {
       repos: [IDENTIFIER],
     });
     const event = events[0]?.payload as
@@ -194,7 +223,7 @@ async function main(): Promise<void> {
   }
   events.length = 0;
   try {
-    const result = await plugin.discoverBrainCards(context, {
+    const result = await publisher.discoverBrainCards(announce, {
       repos: [IDENTIFIER],
     });
     const skippedReason = result.results[0]?.error ?? "";

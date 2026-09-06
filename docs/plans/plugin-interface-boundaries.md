@@ -2,17 +2,18 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **20 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **21 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
 `@brains/admin`, `@brains/unified-inbox`, `@brains/playbooks`,
 `@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
-`@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`).
+`@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`,
+`@brains/atproto`).
 
-The eight that remain all still extend a base class: `webserver`,
-`atproto`, `content-pipeline`, `dashboard`, `directory-sync`,
-`site-builder`, `site-content`, `studio`. Three that are converted —
+The seven that remain all still extend a base class: `webserver`,
+`content-pipeline`, `dashboard`, `directory-sync`, `site-builder`,
+`site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -633,6 +634,33 @@ verbatim` hands the handler's own `Response` through untouched.
    constructor check refusing `trustedTokens`/`outboundTokens`, which the
    strict config schema refuses anyway, and the cached card's rebuild hook,
    which nothing called.
+
+   **`atproto` owns no entity types, and that shaped the whole conversion.**
+   Converted. It is one service with four subscriptions, the `did:web` and
+   handle-verification routes, and ready-time work — the brain card, the
+   canonical lexicon schemas, the Jetstream consumer — that is scheduled, not
+   awaited, and drained by the lifecycle cleanup. Everything it does against
+   a PDS is one publisher object built at setup from the runtime's reads and
+   exported, so the compositions and the boot test drive publishing without
+   a class. Two runtime gaps: the brain card describes the brain, so the
+   service setup context gained the same presentation reads the interface
+   context got for a2a (`identity`, `profileKinds`, `publicSkills`,
+   `plugins`, `siteUrl`); and what discovery finds is news for every
+   package that keeps records, so `publish` joined the service publisher
+   and the subscription handler's messaging, and broadcasts everywhere it is
+   offered.
+
+   The sharper problem was the projection registry. An entity's AT Protocol
+   projection writes the record's address back onto its own entity, and it
+   did that through whatever context the caller passed — which was the
+   atproto plugin's full service context. A declaration cannot hand over a
+   write it does not have. The runtime now binds a declared projection's
+   callbacks to the declaring package's entity access when it registers the
+   projection and ignores the caller's context; the service passes reads and
+   a refusal. Blog still writes `atprotoUri` onto its own posts, through its
+   own access. The real-bootloader publishing test moved from shell/core to
+   brain-cli, since a core dev-dependency on a package that depends on the
+   SDK is a cycle; brain-cli already composes both.
 
    **`site-content` is parked behind `site-builder`.** Its generate tool
    decides which sections can generate by asking

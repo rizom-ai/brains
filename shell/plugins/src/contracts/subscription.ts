@@ -84,6 +84,15 @@ export interface SubscriptionDefinition<
         readonly type: string;
         readonly payload: unknown;
       }): Promise<unknown>;
+      /**
+       * Announce to everyone listening, for a handler whose answer is also
+       * news — a discovered peer, a failed publish. Named consumer:
+       * @brains/atproto.
+       */
+      publish(message: {
+        readonly topic: string;
+        readonly data: object;
+      }): Promise<void>;
     };
     /**
      * Which plugin sent this.

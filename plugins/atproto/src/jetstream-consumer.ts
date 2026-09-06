@@ -1,4 +1,8 @@
-import type { IRuntimeStateStore, ServicePluginContext } from "@brains/plugins";
+import type {
+  IRuntimeStateStore,
+  LoggerContract,
+  RuntimeStateScopeOptions,
+} from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { AtprotoJetstreamConfig } from "./config";
@@ -79,8 +83,21 @@ export interface JetstreamConsumerCallbacks {
   }): Promise<void>;
 }
 
+/**
+ * What the consumer needs of the runtime: a log, and a store for the cursor
+ * it checkpoints. Durable review state remains in agent entities; this is
+ * only the operational cursor, and it belongs to the runtime's bookkeeping
+ * rather than to anyone's records.
+ */
+export interface JetstreamRuntime {
+  readonly logger: LoggerContract;
+  state<TValue>(
+    options: RuntimeStateScopeOptions<TValue>,
+  ): IRuntimeStateStore<TValue>;
+}
+
 export interface JetstreamConsumerOptions {
-  context: ServicePluginContext;
+  runtime: JetstreamRuntime;
   config: AtprotoJetstreamConfig;
   callbacks: JetstreamConsumerCallbacks;
   createSocket?: CreateJetstreamSocket | undefined;
@@ -165,7 +182,7 @@ function createDefaultSocket(url: string): JetstreamSocket {
  * remains in agent entities; this class owns only operational cursor state.
  */
 export class JetstreamConsumer {
-  private readonly context: ServicePluginContext;
+  private readonly logger: LoggerContract;
   private readonly config: AtprotoJetstreamConfig;
   private readonly callbacks: JetstreamConsumerCallbacks;
   private readonly createSocket: CreateJetstreamSocket;
@@ -189,13 +206,13 @@ export class JetstreamConsumer {
   private persistTail: Promise<void> = Promise.resolve();
 
   constructor(options: JetstreamConsumerOptions) {
-    this.context = options.context;
+    this.logger = options.runtime.logger;
     this.config = options.config;
     this.callbacks = options.callbacks;
     this.createSocket = options.createSocket ?? createDefaultSocket;
     this.now = options.now ?? Date.now;
     this.random = options.random ?? Math.random;
-    this.store = options.context.runtimeState.scoped({
+    this.store = options.runtime.state({
       namespace: "atproto.jetstream",
       schema: jetstreamStateSchema,
     });
@@ -216,7 +233,7 @@ export class JetstreamConsumer {
       const previousCursorTimeUs = this.state.cursorTimeUs;
       this.state.cursorTimeUs = earliestRetained;
       await this.store.set(STATE_KEY, this.state);
-      this.context.logger.warn(
+      this.logger.warn(
         "ATProto Jetstream cursor predates retained history; clamping",
         { previousCursorTimeUs, clampedCursorTimeUs: earliestRetained },
       );
@@ -266,7 +283,7 @@ export class JetstreamConsumer {
     try {
       decoded = await decodeMessageData(data);
     } catch (error) {
-      this.context.logger.warn("Ignoring unreadable Jetstream message", {
+      this.logger.warn("Ignoring unreadable Jetstream message", {
         error: getErrorMessage(error),
       });
       return;
@@ -276,12 +293,12 @@ export class JetstreamConsumer {
     try {
       value = JSON.parse(decoded);
     } catch {
-      this.context.logger.warn("Ignoring malformed Jetstream JSON");
+      this.logger.warn("Ignoring malformed Jetstream JSON");
       return;
     }
     const parsed = jetstreamCommitEventSchema.safeParse(value);
     if (!parsed.success) {
-      this.context.logger.warn("Ignoring invalid Jetstream event");
+      this.logger.warn("Ignoring invalid Jetstream event");
       return;
     }
 
@@ -322,7 +339,7 @@ export class JetstreamConsumer {
     if (queued) {
       queued.latest = event;
       queued.events.push(sequenced);
-      this.context.logger.debug("Coalesced Jetstream candidate", {
+      this.logger.debug("Coalesced Jetstream candidate", {
         repoDid: event.did,
         operation: event.operation,
       });
@@ -330,10 +347,10 @@ export class JetstreamConsumer {
     }
 
     if (this.queue.length >= this.config.queueLimit) {
-      this.context.logger.warn(
-        "Jetstream candidate queue is full; dropping event",
-        { repoDid: event.did, queueLimit: this.config.queueLimit },
-      );
+      this.logger.warn("Jetstream candidate queue is full; dropping event", {
+        repoDid: event.did,
+        queueLimit: this.config.queueLimit,
+      });
       await this.markTerminal([sequenced]);
       return;
     }
@@ -345,7 +362,7 @@ export class JetstreamConsumer {
     };
     this.queue.push(candidate);
     this.queuedByDid.set(event.did, candidate);
-    this.context.logger.debug("Queued Jetstream candidate", {
+    this.logger.debug("Queued Jetstream candidate", {
       repoDid: event.did,
       queueDepth: this.queue.length,
       activeCount: this.activeCount,
@@ -361,20 +378,20 @@ export class JetstreamConsumer {
       this.socket = socket;
       socket.onOpen(() => {
         this.reconnectAttempt = 0;
-        this.context.logger.info("ATProto Jetstream connected", { url });
+        this.logger.info("ATProto Jetstream connected", { url });
       });
       socket.onMessage((event) => {
         void this.handleRawMessage(event.data);
       });
       socket.onError(() => {
-        this.context.logger.warn("ATProto Jetstream websocket error");
+        this.logger.warn("ATProto Jetstream websocket error");
       });
       socket.onClose(() => {
         if (this.socket === socket) this.socket = undefined;
         if (!this.stopping) this.scheduleReconnect();
       });
     } catch (error) {
-      this.context.logger.warn("ATProto Jetstream connection failed", {
+      this.logger.warn("ATProto Jetstream connection failed", {
         error: getErrorMessage(error),
       });
       this.scheduleReconnect();
@@ -401,7 +418,7 @@ export class JetstreamConsumer {
       const task = this.callbacks
         .publishHeartbeat()
         .catch((error) => {
-          this.context.logger.warn("ATProto brain-card heartbeat failed", {
+          this.logger.warn("ATProto brain-card heartbeat failed", {
             error: getErrorMessage(error),
           });
         })
@@ -422,7 +439,7 @@ export class JetstreamConsumer {
       this.activeCount += 1;
       const task = this.processCandidate(candidate)
         .catch((error) => {
-          this.context.logger.error("Jetstream candidate processing failed", {
+          this.logger.error("Jetstream candidate processing failed", {
             repoDid: candidate.did,
             error: getErrorMessage(error),
           });
@@ -450,7 +467,7 @@ export class JetstreamConsumer {
       (this.state.didCooldowns[event.did] ?? 0) +
       this.config.perDidCooldownSeconds * 1000;
     if (this.now() < cooldownUntil) {
-      this.context.logger.debug("Jetstream candidate skipped by DID cooldown", {
+      this.logger.debug("Jetstream candidate skipped by DID cooldown", {
         repoDid: event.did,
       });
       await this.markTerminal(candidate.events);
@@ -474,10 +491,9 @@ export class JetstreamConsumer {
       this.state.didCooldowns[event.did] = this.now();
       const allowNewCandidate = this.canCreateCandidate();
       if (!allowNewCandidate) {
-        this.context.logger.warn(
-          "Jetstream new-agent creation budget exhausted",
-          { repoDid: event.did },
-        );
+        this.logger.warn("Jetstream new-agent creation budget exhausted", {
+          repoDid: event.did,
+        });
       }
       outcome = await this.callbacks.discover(event.did, {
         allowNewCandidate,
@@ -489,7 +505,7 @@ export class JetstreamConsumer {
     }
 
     if (outcome.created) this.state.creationTimestamps.push(this.now());
-    this.context.logger.debug("Jetstream candidate reached terminal outcome", {
+    this.logger.debug("Jetstream candidate reached terminal outcome", {
       repoDid: event.did,
       status: outcome.status,
       created: outcome.created ?? false,
@@ -498,7 +514,7 @@ export class JetstreamConsumer {
       activeCount: this.activeCount,
     });
     if (outcome.status === "skipped") {
-      this.context.logger.warn("Jetstream brain-card candidate skipped", {
+      this.logger.warn("Jetstream brain-card candidate skipped", {
         repoDid: event.did,
         error: outcome.error ?? "unknown error",
       });

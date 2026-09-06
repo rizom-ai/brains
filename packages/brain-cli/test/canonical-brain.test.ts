@@ -158,7 +158,7 @@ describe("canonical brain core", () => {
     expect(resolvedIds).toContain("@brains/unified-inbox:unified-inbox");
     expect(resolvedIds).not.toContain("webserver");
     expect(resolvedIds).not.toContain("notifications");
-    expect(resolvedIds).not.toContain("atproto");
+    expect(resolvedIds).not.toContain("@brains/atproto:atproto");
     expect(resolvedIds).not.toContain("site-builder");
     expect(resolvedIds).not.toContain("email-workflows");
   });

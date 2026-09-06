@@ -64,9 +64,12 @@ export function createReactionContext(input: {
         readonly topic: string;
         readonly data: object;
       }): Promise<void> => {
+        // An announcement, so everyone listening hears it — not only the
+        // first subscriber that answers.
         await context.messaging.send({
           type: message.topic,
           payload: message.data,
+          broadcast: true,
         });
       },
       request: (message: {

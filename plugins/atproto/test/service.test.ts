@@ -1,21 +1,26 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { createServicePluginContext } from "@brains/plugins";
-
 import { z } from "@brains/utils/zod";
 import {
   ATPROTO_BRAIN_CARD_DISCOVERED,
   type AtprotoBrainCardRecord,
 } from "@brains/atproto-contracts";
 import {
-  AtprotoPlugin,
-  atprotoPlugin,
-  plugin,
+  atprotoConfigSchema,
+  atprotoService,
   type AtprotoPdsClientLike,
 } from "../src";
+import atprotoPackage from "../src";
+import {
+  ATPROTO_PLUGIN_ID,
+  announcerFor,
+  instantiate,
+  publisherFor,
+  routesFor,
+} from "./helpers/install";
 
 /**
- * What the plugin's own did.json routes must put on the wire. Parsing rather
+ * What the service's own did.json routes must put on the wire. Parsing rather
  * than asserting means a document that stops carrying a service entry fails
  * here, instead of the endpoint assertion reading back `undefined`.
  */
@@ -91,21 +96,32 @@ function createTestBrainCardRecord(): AtprotoBrainCardRecord {
   };
 }
 
-describe("atproto plugin", () => {
-  it("exports a conventional external plugin factory", () => {
-    expect(plugin).toBe(atprotoPlugin);
+function unusedSession(): AtprotoPdsClientLike["createSession"] {
+  return mock(async () => ({
+    did: "did:plc:unused",
+    handle: "unused.example.com",
+    accessJwt: "access-token",
+    refreshJwt: "refresh-token",
+  }));
+}
+
+describe("atproto service", () => {
+  it("is one declared service with the package's default collaborators", () => {
+    expect(atprotoPackage.id).toBe("atproto");
+    expect(atprotoService().id).toBe("atproto");
+    expect(instantiate().id).toBe(ATPROTO_PLUGIN_ID);
   });
 
   it("validates configuration", () => {
-    expect(() => atprotoPlugin({ pdsEndpoint: "not-a-url" })).toThrowError();
+    expect(() =>
+      atprotoConfigSchema.parse({ pdsEndpoint: "not-a-url" }),
+    ).toThrowError();
+    expect(() => instantiate({ pdsEndpoint: "not-a-url" })).toThrowError();
   });
 
   it("exposes conventional did:web routes when enabled", () => {
-    const plugin = atprotoPlugin();
-
     expect(
-      plugin
-        .getWebRoutes()
+      routesFor()
         .map((route) => route.path)
         .sort(),
     ).toEqual(["/.well-known/did.json", "/anchor/did.json"]);
@@ -116,13 +132,9 @@ describe("atproto plugin", () => {
     // atproto-integration.md): the brain self-verifies its owner atproto
     // handle by serving the account DID at /.well-known/atproto-did — the
     // HTTP verification method, no per-user DNS records.
-    const plugin = atprotoPlugin({
+    const route = routesFor({
       accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
-    });
-
-    const route = plugin
-      .getWebRoutes()
-      .find((entry) => entry.path === "/.well-known/atproto-did");
+    }).find((entry) => entry.path === "/.well-known/atproto-did");
     expect(route?.method).toBe("GET");
     expect(route?.public).toBe(true);
 
@@ -135,21 +147,16 @@ describe("atproto plugin", () => {
   });
 
   it("does not serve atproto-did without an account DID", () => {
-    const plugin = atprotoPlugin();
     expect(
-      plugin
-        .getWebRoutes()
-        .some((entry) => entry.path === "/.well-known/atproto-did"),
+      routesFor().some((entry) => entry.path === "/.well-known/atproto-did"),
     ).toBe(false);
   });
 
   it("serves conventional did:web document routes when DIDs are omitted", async () => {
-    const plugin = atprotoPlugin({
+    const routes = routesFor({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
     });
-
-    const routes = plugin.getWebRoutes();
     expect(routes.map((route) => route.path).sort()).toEqual([
       "/.well-known/did.json",
       "/anchor/did.json",
@@ -186,14 +193,12 @@ describe("atproto plugin", () => {
   });
 
   it("serves did:web document routes when configured", async () => {
-    const plugin = atprotoPlugin({
+    const routes = routesFor({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
       anchorDid: "did:web:brain.example.com:anchor",
     });
-
-    const routes = plugin.getWebRoutes();
     expect(routes.map((route) => route.path).sort()).toEqual([
       "/.well-known/did.json",
       "/anchor/did.json",
@@ -234,16 +239,13 @@ describe("atproto plugin", () => {
   });
 
   it("hides routes when disabled", () => {
-    const plugin = atprotoPlugin({
-      enabled: false,
-      brainDid: "did:web:brain.example.com",
-    });
-
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(
+      routesFor({ enabled: false, brainDid: "did:web:brain.example.com" }),
+    ).toEqual([]);
   });
 
   it("does not expose AT Protocol operations as agent tools or instructions", async () => {
-    const plugin = atprotoPlugin({
+    const plugin = instantiate({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
@@ -255,8 +257,37 @@ describe("atproto plugin", () => {
     expect(capabilities.instructions).toBeUndefined();
   });
 
+  it("listens to nothing when disabled", async () => {
+    const shell = createMockShell();
+    const createPdsClient = mock((): AtprotoPdsClientLike => ({
+      createSession: unusedSession(),
+      createRecord: mock(async () => ({ uri: "at://repo/record", cid: "cid" })),
+    }));
+    const plugin = instantiate(
+      {
+        enabled: false,
+        identifier: "brain.example.com",
+        appPassword: "secret",
+        repoDid: "did:plc:repo",
+      },
+      { createPdsClient },
+    );
+
+    await plugin.register(shell);
+    await shell.getMessageBus().send({
+      type: "publish:completed",
+      payload: { entityType: "note", entityId: "note-1" },
+      sender: "publish-service",
+      broadcast: true,
+    });
+    await plugin.shutdown?.();
+
+    expect(createPdsClient).not.toHaveBeenCalled();
+  });
+
   it("reports invalid credentials without throwing", async () => {
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createMockShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -275,12 +306,39 @@ describe("atproto plugin", () => {
       },
     );
 
-    await plugin.register(createMockShell());
-
-    expect(await plugin.validatePdsCredentials()).toBe(false);
+    expect(await publisher.validatePdsCredentials()).toBe(false);
   });
 
-  it("discovers a valid brain card and emits a discovery event", async () => {
+  it("validates credentials by opening one session", async () => {
+    const createSession = mock(async () => ({
+      did: "did:plc:repo",
+      handle: "brain.example.com",
+      accessJwt: "access-token",
+      refreshJwt: "refresh-token",
+    }));
+    const publisher = publisherFor(
+      createMockShell(),
+      {
+        pdsEndpoint: "https://pds.example.com",
+        identifier: "brain.example.com",
+        appPassword: "secret",
+      },
+      {
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession,
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+        }),
+      },
+    );
+
+    expect(await publisher.validatePdsCredentials()).toBe(true);
+    expect(createSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("discovers a valid brain card and announces it to every listener", async () => {
     const cardRecord = createTestBrainCardRecord();
     const getRecord = mock(async () => ({
       uri: "at://did:plc:test/ai.rizom.brain.card/self",
@@ -288,22 +346,26 @@ describe("atproto plugin", () => {
       value: cardRecord,
     }));
     const pdsEndpoints: string[] = [];
-    const plugin = new AtprotoPlugin(
-      {
-        pdsEndpoint: "https://pds.example.com",
-      },
+    const shell = createMockShell();
+    const events: unknown[] = [];
+    for (const listener of ["first", "second"]) {
+      shell
+        .getMessageBus()
+        .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
+          events.push({ listener, payload: message.payload });
+          return { success: true };
+        });
+    }
+    const publisher = publisherFor(
+      shell,
+      { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
         resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: ({ pdsEndpoint }): AtprotoPdsClientLike => {
           pdsEndpoints.push(pdsEndpoint);
           return {
-            createSession: mock(async () => ({
-              did: "did:plc:unused",
-              handle: "unused.example.com",
-              accessJwt: "access-token",
-              refreshJwt: "refresh-token",
-            })),
+            createSession: unusedSession(),
             createRecord: mock(async () => ({
               uri: "at://repo/record",
               cid: "cid",
@@ -313,20 +375,10 @@ describe("atproto plugin", () => {
         },
       },
     );
-    const shell = createMockShell();
-    const events: unknown[] = [];
-    shell
-      .getMessageBus()
-      .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
-        events.push(message.payload);
-        return { success: true };
-      });
 
-    await plugin.register(shell);
-    const response = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: ["test.example.com"] },
-    );
+    const response = await publisher.discoverBrainCards(announcerFor(shell), {
+      repos: ["test.example.com"],
+    });
 
     expect(response).toMatchObject({
       discovered: 1,
@@ -340,13 +392,15 @@ describe("atproto plugin", () => {
         },
       ],
     });
+    const payload = {
+      repoDid: "did:plc:test",
+      uri: "at://did:plc:test/ai.rizom.brain.card/self",
+      cid: "bafytestcard",
+      record: cardRecord,
+    };
     expect(events).toEqual([
-      {
-        repoDid: "did:plc:test",
-        uri: "at://did:plc:test/ai.rizom.brain.card/self",
-        cid: "bafytestcard",
-        record: cardRecord,
-      },
+      { listener: "first", payload },
+      { listener: "second", payload },
     ]);
     expect(pdsEndpoints).toEqual(["https://resolved-pds.example.com"]);
     expect(getRecord).toHaveBeenCalledWith({
@@ -365,18 +419,22 @@ describe("atproto plugin", () => {
         kind: "organization",
       },
     };
-    const plugin = new AtprotoPlugin(
+    const shell = createMockShell();
+    const events: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
+        events.push(message.payload);
+        return { success: true };
+      });
+    const publisher = publisherFor(
+      shell,
       { pdsEndpoint: "https://pds.example.com" },
       {
         fetch: createResolverFetch(),
         resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
         createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:unused",
-            handle: "unused.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
+          createSession: unusedSession(),
           createRecord: mock(async () => ({
             uri: "at://repo/record",
             cid: "cid",
@@ -389,27 +447,17 @@ describe("atproto plugin", () => {
         }),
       },
     );
-    const shell = createMockShell();
-    const events: unknown[] = [];
-    shell
-      .getMessageBus()
-      .subscribe(ATPROTO_BRAIN_CARD_DISCOVERED, (message) => {
-        events.push(message.payload);
-        return { success: true };
-      });
 
-    await plugin.register(shell);
-    const response = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: ["test.example.com"] },
-    );
+    const response = await publisher.discoverBrainCards(announcerFor(shell), {
+      repos: ["test.example.com"],
+    });
 
     expect(response.discovered).toBe(0);
     expect(response.skipped).toBe(1);
     expect(events).toEqual([]);
   });
 
-  it("skips invalid brain cards without emitting discovery events", async () => {
+  it("skips invalid brain cards without announcing them", async () => {
     const getRecord = mock(async () => ({
       uri: "at://did:plc:test/ai.rizom.brain.card/self",
       cid: "bafytestcard",
@@ -418,26 +466,6 @@ describe("atproto plugin", () => {
         description: "missing required name and createdAt",
       },
     }));
-    const plugin = new AtprotoPlugin(
-      { pdsEndpoint: "https://pds.example.com" },
-      {
-        fetch: createResolverFetch(),
-        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
-        createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession: mock(async () => ({
-            did: "did:plc:unused",
-            handle: "unused.example.com",
-            accessJwt: "access-token",
-            refreshJwt: "refresh-token",
-          })),
-          createRecord: mock(async () => ({
-            uri: "at://repo/record",
-            cid: "cid",
-          })),
-          getRecord,
-        }),
-      },
-    );
     const shell = createMockShell();
     const events: unknown[] = [];
     shell
@@ -446,12 +474,26 @@ describe("atproto plugin", () => {
         events.push(message.payload);
         return { success: true };
       });
-
-    await plugin.register(shell);
-    const response = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: ["test.example.com"] },
+    const publisher = publisherFor(
+      shell,
+      { pdsEndpoint: "https://pds.example.com" },
+      {
+        fetch: createResolverFetch(),
+        resolveHostname: async (): Promise<string[]> => ["93.184.216.34"],
+        createPdsClient: (): AtprotoPdsClientLike => ({
+          createSession: unusedSession(),
+          createRecord: mock(async () => ({
+            uri: "at://repo/record",
+            cid: "cid",
+          })),
+          getRecord,
+        }),
+      },
     );
+
+    const response = await publisher.discoverBrainCards(announcerFor(shell), {
+      repos: ["test.example.com"],
+    });
 
     expect(response).toMatchObject({
       discovered: 0,
@@ -468,19 +510,16 @@ describe("atproto plugin", () => {
       value: createTestBrainCardRecord(),
     }));
     const createPdsClient = mock((): AtprotoPdsClientLike => ({
-      createSession: mock(async () => ({
-        did: "did:plc:unused",
-        handle: "unused.example.com",
-        accessJwt: "access-token",
-        refreshJwt: "refresh-token",
-      })),
+      createSession: unusedSession(),
       createRecord: mock(async () => ({
         uri: "at://repo/record",
         cid: "cid",
       })),
       getRecord,
     }));
-    const plugin = new AtprotoPlugin(
+    const shell = createMockShell();
+    const publisher = publisherFor(
+      shell,
       { pdsEndpoint: "https://fallback-pds.example.com" },
       {
         fetch: mock(async () => jsonResponse({ message: "Not found" }, 404)),
@@ -488,13 +527,10 @@ describe("atproto plugin", () => {
         createPdsClient,
       },
     );
-    const shell = createMockShell();
-    await plugin.register(shell);
 
-    const response = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: ["did:plc:missing"] },
-    );
+    const response = await publisher.discoverBrainCards(announcerFor(shell), {
+      repos: ["did:plc:missing"],
+    });
 
     expect(response).toMatchObject({
       discovered: 0,
@@ -509,36 +545,5 @@ describe("atproto plugin", () => {
     });
     expect(createPdsClient).not.toHaveBeenCalled();
     expect(getRecord).not.toHaveBeenCalled();
-  });
-
-  it("does not expose credential validation as an agent tool", async () => {
-    const createSession = mock(async () => ({
-      did: "did:plc:repo",
-      handle: "brain.example.com",
-      accessJwt: "access-token",
-      refreshJwt: "refresh-token",
-    }));
-    const plugin = new AtprotoPlugin(
-      {
-        pdsEndpoint: "https://pds.example.com",
-        identifier: "brain.example.com",
-        appPassword: "secret",
-      },
-      {
-        createPdsClient: (): AtprotoPdsClientLike => ({
-          createSession,
-          createRecord: mock(async () => ({
-            uri: "at://repo/record",
-            cid: "cid",
-          })),
-        }),
-      },
-    );
-
-    const capabilities = await plugin.register(createMockShell());
-
-    expect(capabilities.tools).toEqual([]);
-    expect(await plugin.validatePdsCredentials()).toBe(true);
-    expect(createSession).toHaveBeenCalledTimes(1);
   });
 });

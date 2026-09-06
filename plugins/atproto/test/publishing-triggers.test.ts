@@ -1,16 +1,16 @@
 import { createMockShell as createBaseMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type BaseEntity, type Plugin } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,
-  AtprotoPlugin,
   AtprotoProjectionRegistry,
   listCanonicalAtprotoLexicons,
   type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
+import { armFullBoot, instantiate } from "./helpers/install";
 
 function createMockShell(
   options: Parameters<typeof createBaseMockShell>[0] = {},
@@ -139,8 +139,8 @@ function createConfiguredPlugin(
   registry: AtprotoProjectionRegistry,
   client: AtprotoPdsClientLike,
   config: { lexiconAuthority?: boolean } = {},
-): AtprotoPlugin {
-  return new AtprotoPlugin(
+): Plugin {
+  return instantiate(
     {
       identifier: "brain.example.com",
       appPassword: "secret",
@@ -152,19 +152,6 @@ function createConfiguredPlugin(
       createPdsClient: () => client,
     },
   );
-}
-
-// Real boots broadcast pluginsRegistered before ready; startup-check boots
-// never do. Tests that expect boot publishing must arm the full-boot signal.
-async function armFullBoot(
-  shell: ReturnType<typeof createMockShell>,
-): Promise<void> {
-  await shell.getMessageBus().send({
-    type: SYSTEM_CHANNELS.pluginsRegistered,
-    payload: {},
-    sender: "test",
-    broadcast: true,
-  });
 }
 
 describe("AT Protocol ambient publishing triggers", () => {
@@ -202,7 +189,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
 
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
     await plugin.shutdown?.();
 
     expect(client.putRecord).toHaveBeenCalledTimes(1);
@@ -240,7 +227,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
 
     for (const entityType of ["brain-character", "anchor-profile", "skill"]) {
       await shell.getMessageBus().send({
@@ -268,7 +255,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
     await plugin.shutdown?.();
 
     const lexicons = listCanonicalAtprotoLexicons();
@@ -297,7 +284,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
     await armFullBoot(shell);
     for (let index = 0; index < 2; index += 1) {
-      await plugin.ready();
+      await plugin.ready?.();
     }
     await plugin.shutdown?.();
 
@@ -339,7 +326,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
     await plugin.shutdown?.();
 
     expect(putRecord).toHaveBeenCalledTimes(
@@ -364,7 +351,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
   it("skips the ready trigger when publishing credentials are absent", async () => {
     const createPdsClient = mock(() => createClientMocks().client);
-    const plugin = new AtprotoPlugin(
+    const plugin = instantiate(
       { lexiconAuthority: true },
       { projectionRegistry: createRegistry(), createPdsClient },
     );
@@ -372,7 +359,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
     await plugin.shutdown?.();
 
     expect(createPdsClient).not.toHaveBeenCalled();
@@ -382,7 +369,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     // The credentials gate lives on the trigger path, not just at the PDS
     // client. Without it an unconfigured brain would attempt every ambient
     // publish, fail, and broadcast a publish-failed event for each one.
-    const plugin = new AtprotoPlugin(
+    const plugin = instantiate(
       { lexiconAuthority: true },
       { projectionRegistry: createRegistry() },
     );
@@ -395,7 +382,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await plugin.register(shell);
 
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
     await settleTicks();
     await plugin.shutdown?.();
 
@@ -412,7 +399,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     await plugin.register(shell);
 
-    await plugin.ready();
+    await plugin.ready?.();
     await plugin.shutdown?.();
 
     expect(client.createSession).not.toHaveBeenCalled();
@@ -449,7 +436,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     await armFullBoot(shell);
     // Boot must not block on the PDS: ready() schedules the publish and
     // returns; a hung ready() here fails the test by timeout.
-    await plugin.ready();
+    await plugin.ready?.();
 
     releasePut();
     await plugin.shutdown?.();

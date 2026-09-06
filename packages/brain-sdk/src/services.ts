@@ -126,6 +126,27 @@ export type { LoggerContract } from "@brains/utils/logger";
 // What a package tells brain.yaml it reads from the environment. Consumers
 // today: social-media, directory-sync, stock-photo, newsletter, analytics.
 export type { EnvVarDecl } from "@brains/utils/env-schema";
+
+// Bookkeeping that is not an entity, for a service whose setup hands a
+// long-running consumer the store it checkpoints into. The setup context
+// gives out scoped stores; these name what one holds and how it is asked
+// for. Named consumer: @brains/atproto, whose Jetstream cursor lives here.
+export type {
+  IRuntimeStateStore,
+  RuntimeStateScopeOptions,
+} from "@brains/plugins";
+
+// What the brain offers publicly, as the setup context lists it, for a
+// service that puts those skills on a card. Named consumer: @brains/atproto.
+export type { PublicSkill } from "@brains/plugins";
+
+// What the `routes` and `subscriptions` slots return, for a package that
+// builds either in a helper and has to annotate its return.
+// Named consumer: @brains/atproto.
+export type {
+  AnyInterfaceRouteDefinition,
+  AnySubscriptionDefinition,
+} from "@brains/plugins";
 export type { FetchLike } from "@brains/utils/fetch-like";
 
 // Administering this brain's users: the People, Invitations, Audit and

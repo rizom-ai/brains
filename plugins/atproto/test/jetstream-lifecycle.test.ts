@@ -1,12 +1,10 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
-
-import { AtprotoPlugin } from "../src/plugin";
 import type {
   JetstreamSocket,
   JetstreamSocketMessageEvent,
 } from "../src/jetstream-consumer";
+import { armFullBoot, instantiate } from "./helpers/install";
 
 class LifecycleSocket implements JetstreamSocket {
   closed = false;
@@ -24,21 +22,10 @@ class LifecycleSocket implements JetstreamSocket {
   }
 }
 
-async function armFullBoot(
-  shell: ReturnType<typeof createMockShell>,
-): Promise<void> {
-  await shell.getMessageBus().send({
-    type: SYSTEM_CHANNELS.pluginsRegistered,
-    payload: {},
-    sender: "test",
-    broadcast: true,
-  });
-}
-
 describe("ATProto Jetstream lifecycle", () => {
   it("does not open a socket when Jetstream is disabled", async () => {
     const sockets: LifecycleSocket[] = [];
-    const plugin = new AtprotoPlugin(
+    const plugin = instantiate(
       {},
       {
         createJetstreamSocket: (): LifecycleSocket => {
@@ -51,7 +38,7 @@ describe("ATProto Jetstream lifecycle", () => {
     const shell = createMockShell();
     await plugin.register(shell);
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
 
     expect(sockets).toHaveLength(0);
     await plugin.shutdown?.();
@@ -60,7 +47,7 @@ describe("ATProto Jetstream lifecycle", () => {
   it("opens one opted-in socket only on a full boot and closes it on shutdown", async () => {
     const sockets: LifecycleSocket[] = [];
     const urls: string[] = [];
-    const plugin = new AtprotoPlugin(
+    const plugin = instantiate(
       { jetstream: { enabled: true } },
       {
         createJetstreamSocket: (url): LifecycleSocket => {
@@ -74,11 +61,11 @@ describe("ATProto Jetstream lifecycle", () => {
     const shell = createMockShell();
     await plugin.register(shell);
 
-    await plugin.ready();
+    await plugin.ready?.();
     expect(sockets).toHaveLength(0);
 
     await armFullBoot(shell);
-    await plugin.ready();
+    await plugin.ready?.();
     expect(sockets).toHaveLength(1);
     expect(urls[0]).toContain("wantedCollections=ai.rizom.brain.card");
 

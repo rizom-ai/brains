@@ -33,7 +33,10 @@ import { defineProjectionRule, type ProjectionRule } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressContract } from "@brains/utils/progress";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import {
+  AtprotoProjectionRegistry,
+  type AtprotoProjectionContext,
+} from "@brains/atproto-contracts";
 import { registerBuiltInDashboardWidget } from "../operator/dashboard-widget-runtime";
 import { FeedRegistry } from "@brains/site-composition";
 import { slugify } from "@brains/utils/string-utils";
@@ -975,8 +978,38 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     }
 
     if (this.atproto) {
+      // Bound to this package's own access: the projection writes the record's
+      // address back onto the entity it declared, and the service that calls
+      // it owns no types. Whatever context the caller supplies is ignored.
+      const projection = this.atproto;
+      const onPublished = projection.onPublished;
+      const bound = (): AtprotoProjectionContext => {
+        const access = this.entityAccess(context);
+        return {
+          entityService: {
+            getEntity: (request): Promise<BaseEntity | null> =>
+              access.getEntity(request),
+            updateEntity: async ({
+              entity,
+            }): Promise<{ entityId: string; jobId: string }> => {
+              const result = await access.update(entity);
+              return { entityId: result.entityId, jobId: result.jobId };
+            },
+          },
+        };
+      };
       this.releaseOnShutdown.push(
-        AtprotoProjectionRegistry.getInstance().register(this.atproto),
+        AtprotoProjectionRegistry.getInstance().register({
+          ...projection,
+          buildRecord: (input): ReturnType<typeof projection.buildRecord> =>
+            projection.buildRecord({ ...input, context: bound() }),
+          ...(onPublished
+            ? {
+                onPublished: (input): ReturnType<typeof onPublished> =>
+                  onPublished({ ...input, context: bound() }),
+              }
+            : {}),
+        }),
       );
     }
 
@@ -1664,6 +1697,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           await context.messaging.send({
             type: message.topic,
             payload: message.data,
+            broadcast: true,
           });
         },
       },
@@ -1706,6 +1740,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           await context.messaging.send({
             type: message.topic,
             payload: message.data,
+            broadcast: true,
           });
         },
         request: (message): Promise<unknown> =>

@@ -4,7 +4,7 @@ AT Protocol integration for Rizom brains.
 
 This package currently covers AT Protocol identity, outbound publishing, and the first discovery slice:
 
-- `ServicePlugin` package skeleton
+- one declared service (`defineServicePlugin`) that owns no entity types: it reads the brain's presentation and other packages' projected entities, writes only to the PDS, and announces what it learns on the bus
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record reads/writes/deletes, and blob upload tests
@@ -14,10 +14,10 @@ This package currently covers AT Protocol identity, outbound publishing, and the
 
 ## Configuration
 
-In the canonical member configuration or an instance plugin override:
+The canonical brain composes the service with its production collaborators (`atprotoPackage`, the package's default export). A composition that needs a fake PDS client or fetch builds one with `atprotoService(deps)`. Configuration, in the canonical member configuration or an instance plugin override:
 
 ```ts
-atprotoPlugin({
+const atprotoConfig: AtprotoConfigInput = {
   pdsEndpoint: "https://bsky.social",
   identifier: "example.com",
   repoDid: "did:plc:...",
@@ -33,7 +33,7 @@ atprotoPlugin({
     concurrency: 2,
   },
   appPassword: "${ATPROTO_APP_PASSWORD}",
-});
+};
 ```
 
 In an instance `brain.yaml`, non-secret values belong under the plugin id:
@@ -127,7 +127,7 @@ AtprotoProjectionRegistry.getInstance().register({
 });
 ```
 
-The registry rejects collection/lexicon mismatches. Before dry-run results or PDS writes are returned, the ATProto plugin validates projected records against the registered canonical lexicon locally. PDS writes may still use `validate: false` for custom `ai.rizom.brain.*` records because public PDS instances do not necessarily know Rizom lexicons. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same mapper ownership pattern.
+The registry rejects collection/lexicon mismatches. Before dry-run results or PDS writes are returned, the service validates projected records against the registered canonical lexicon locally. PDS writes may still use `validate: false` for custom `ai.rizom.brain.*` records because public PDS instances do not necessarily know Rizom lexicons. The blog `post` projection is registered by `@brains/blog`; other entity packages should follow the same mapper ownership pattern.
 
 ## Manual smoke checklist
 
