@@ -978,6 +978,81 @@ door from every other console's strip the moment it converted.
 The pattern holds: each conversion has found gaps in the API it converts to,
 and the second finding each time is worth more than the conversion.
 
+### The studio slice: editing a type nobody declared
+
+Studio is the operator's editor for every entity type. A declared package's
+writes are scoped to the types it declares, and studio declares none, so on
+this surface it would be able to write nothing. That reads like a missing
+capability and is not one: the runtime already has a generic, policy-gated
+cross-type editor in `shell/core/src/system/entity-{create,update,delete}-tool.ts`,
+and studio's `editor-entities.ts` is a second implementation of the same
+thing written straight against `entityService`. Both resolve the entity at
+the caller's visibility scope, both compute the publish boundary from the old
+and new status to decide whether the action is `update` or `publish`, both
+assert the entity-action policy, both check `canWriteVisibility`, and both
+write with a mutation event context. The algorithm is the same twice.
+
+So the work is an extraction, not an invention. `applyEntityEdit` in
+`@brains/entity-service` takes the resolved entity as it should now be plus
+the caller's level, and owns the five steps both callers share. It takes the
+policy assertion as a callback, so it depends on no permission package. The
+system tool and the studio capability both sit on it.
+
+The capability is then thin, and it takes the caller:
+
+```ts
+interface OperatorEntityWrites {
+  create(request, caller: InterfaceCaller): Promise<EntityMutationResult>;
+  update(request, caller: InterfaceCaller): Promise<EntityMutationResult>;
+  delete(request, caller: InterfaceCaller): Promise<boolean>;
+  allows(entityType, action, caller: InterfaceCaller): boolean;
+}
+```
+
+The line this tranche draws is not "may a package touch types it does not
+own" but **on whose authority**. A job's entity access has no caller, so an
+unscoped write there is a package acting on its own behalf on somebody else's
+material. A console has a caller by construction, and the route contract
+already makes that a type fact: a route declared `security: { kind: "protocol" }`
+receives `caller: InterfaceCaller`, and a public one receives `null`. Typing
+the capability to require a caller means a public route cannot call it and a
+background job has nothing to pass, so the constraint is checked rather than
+remembered. Same shape as `createRouted` and `ServicePublishingAccess`.
+
+Three decisions the extraction depends on, settled here because guessing any
+of them wrong means redoing the signature:
+
+1. **The core takes a whole entity, not a patch.** Studio saves the whole
+   document; the agent patches one field mid-conversation. Field
+   normalisation, the cover/og image field mapping, and the four
+   fields-versus-content validators stay in the tool, where the agent's
+   affordance lives. Studio never meets them.
+2. **Confirmation stays above the core.** The gate, its token, and the
+   tolerance for models mangling the agent-approval replay are the tool's.
+   The core receives an intent already authorised and already confirmed, and
+   a console confirms in its own UI.
+3. **Concurrency belongs to the core.** A `baseContentHash` mismatch is a
+   conflict the core reports and each caller renders its own way — 409 with
+   the current hash for studio, an error string for the tool. Studio's guard
+   is the better behaviour and the agent should have it too, rather than
+   silently clobbering a concurrent git import.
+
+Decision 1 also settles a live contradiction in the tool. `normalizeUpdateInput`
+returns `{ fields }` and discards content whenever fields are present, which
+makes the `"Provide either 'content' or 'fields', not both"` guard below it
+unreachable in that direction: a caller sending both silently loses the body.
+The normalisation says fields win and the validation says never both. With
+the whole-entity core underneath, that stays a tool-local question about what
+the agent may send, and it is settled where it is asked rather than inherited
+by every caller.
+
+What studio deletes: `resolveStudioVisibility`, `withStudioVisibility`,
+`stripStudioPolicyMetadata`, and the direct `entityService` calls, because
+visibility against the publish boundary is what the shared core resolves.
+`requireEntityAction` and `canPerformEntityAction` become `allows`, which is
+what feeds the capability flags the editor renders. The audit stays: it is
+studio's own record of what an operator asked for and what came back.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so

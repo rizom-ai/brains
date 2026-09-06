@@ -235,4 +235,12 @@ export type {
   PaginateResult,
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
+export { applyEntityEdit } from "./apply-entity-edit";
+export type {
+  EntityEditAction,
+  EntityEditCaller,
+  EntityEditOutcome,
+  EntityEditRequest,
+  EntityEditServices,
+} from "./apply-entity-edit";
 export type { ResolvedEntity } from "./find-entity";

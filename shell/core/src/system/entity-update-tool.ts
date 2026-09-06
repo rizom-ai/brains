@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import {
-  canWriteVisibility,
+  applyEntityEdit,
   contentVisibilitySchema,
   extractVisibilityFromMarkdown,
   getPublishBoundaryState,
@@ -465,6 +465,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       );
       const requiredAction =
         publishBoundary === "non-publish" ? "update" : "publish";
+      // Asked before offering a confirmation, so a caller is not invited to
+      // approve something that will be refused. It also stays the stricter
+      // classifier on the content branch: `getUpdatedStatus` reads the status
+      // out of the replacement frontmatter, while the shared core classifies
+      // from the entity it is handed, whose metadata this path leaves as
+      // stored. The core can therefore say "update" where this says
+      // "publish", never the reverse.
       const policyError = assertEntityActionAllowed(
         services,
         input.entityType,
@@ -481,53 +488,71 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           );
           if (gateError) return gateError;
         }
-        if (input.contentHash && entity.contentHash !== input.contentHash) {
-          return {
-            success: false,
-            error:
-              "Entity was modified since you reviewed the changes. Please try again.",
-          };
-        }
-
-        const updated =
+        // What the agent sends is a patch or a replacement; what is written
+        // is the whole entity. Replacement content that declares no
+        // visibility is not a demotion request — export omits the key for
+        // public entities, so regenerated or hand-edited content routinely
+        // arrives without it — so the stored tier stands unless the file
+        // says otherwise.
+        const next =
           normalizedInput.content !== undefined
             ? {
                 ...entity,
                 content: normalizedInput.content,
-                // Replacement content that declares no visibility is not a
-                // demotion request: export omits the key for public entities,
-                // so regenerated or hand-edited content routinely arrives
-                // without it. Keep the stored tier unless the file says
-                // otherwise.
                 visibility:
                   extractVisibilityFromMarkdown(normalizedInput.content) ??
                   entity.visibility,
               }
             : applyFieldUpdates(entity, normalizedInput.fields ?? {});
 
-        if (
-          updated.visibility !== entity.visibility &&
-          !canWriteVisibility(context.userPermissionLevel, updated.visibility)
-        ) {
-          return {
-            success: false,
-            error: `Cannot set entity visibility to "${updated.visibility}" — caller permission "${context.userPermissionLevel ?? "public"}" is not allowed to write at that level.`,
-          };
-        }
-
+        const eventContext = buildEntityMutationEventContext(context);
+        let outcome;
         try {
-          const eventContext = buildEntityMutationEventContext(context);
-          await entityService.updateEntity({
-            entity: updated,
-            ...(eventContext ? { options: { eventContext } } : {}),
-          });
+          outcome = await applyEntityEdit(
+            {
+              entities: entityService,
+              registry: entityRegistry,
+              assertAllowed: (entityType, action, permission) =>
+                services.permissionService.assertEntityActionAllowed(
+                  entityType,
+                  action,
+                  permission,
+                ),
+            },
+            {
+              entityType: entity.entityType,
+              id: entity.id,
+              next,
+              ...(input.contentHash !== undefined
+                ? { baseContentHash: input.contentHash }
+                : {}),
+              ...(eventContext ? { eventContext } : {}),
+            },
+            { permission: context.userPermissionLevel },
+          );
         } catch (error) {
           return {
             success: false,
             error: getErrorMessage(error, "Failed to update entity"),
           };
         }
-        return { success: true, data: { updated: entity.id } };
+        switch (outcome.kind) {
+          case "updated":
+            return { success: true, data: { updated: entity.id } };
+          case "not-found":
+            return {
+              success: false,
+              error: `Entity not found: ${entity.entityType}/${entity.id}`,
+            };
+          case "conflict":
+            return {
+              success: false,
+              error:
+                "Entity was modified since you reviewed the changes. Please try again.",
+            };
+          case "denied":
+            return { success: false, error: outcome.message };
+        }
       }
 
       const label = getEntityDisplayLabel(entity);
