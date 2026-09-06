@@ -3,6 +3,11 @@
 + @brains/a2a:a2a|handler|GET|/a2a|exact|true
 + @brains/a2a:a2a|handler|OPTIONS|/a2a|exact|true
 + @brains/a2a:a2a|handler|POST|/a2a|exact|true
++ @brains/dashboard:dashboard|handler|GET|/api/console/jump|exact|true
++ @brains/dashboard:dashboard|handler|GET|/assets/dashboard.[content-hash].css|exact|true
++ @brains/dashboard:dashboard|handler|GET|/assets/dashboard.[content-hash].js|exact|true
++ @brains/dashboard:dashboard|handler|GET|/assets/theme.[content-hash].css|exact|true
++ @brains/dashboard:dashboard|handler|GET|/|exact|true
 + @brains/mcp:mcp|handler|DELETE|/mcp|exact|true
 + @brains/mcp:mcp|handler|GET|/mcp|exact|true
 + @brains/mcp:mcp|handler|GET|/status|exact|true
@@ -59,11 +64,6 @@
 + auth-service|handler|POST|/webauthn/auth/verify|exact|true
 + auth-service|handler|POST|/webauthn/register/options|exact|true
 + auth-service|handler|POST|/webauthn/register/verify|exact|true
-+ dashboard|handler|GET|/api/console/jump|exact|true
-+ dashboard|handler|GET|/assets/dashboard.[content-hash].css|exact|true
-+ dashboard|handler|GET|/assets/dashboard.[content-hash].js|exact|true
-+ dashboard|handler|GET|/assets/theme.[content-hash].css|exact|true
-+ dashboard|handler|GET|/|exact|true
 + studio|handler|DELETE|/studio/api/entities|exact|true
 + studio|handler|GET|/account|prefix|true
 + studio|handler|GET|/admin|prefix|true

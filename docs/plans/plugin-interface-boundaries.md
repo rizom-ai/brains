@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **22 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **23 of 28 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
@@ -10,10 +10,11 @@ Phases 1 through 5 done, phase 6 underway; **22 of 28 packages converted**
 `@brains/chat-repl`, `@brains/mcp`, `@brains/web-chat`, `@brains/stock-photo`,
 `@brains/chat`, `@brains/newsletter`, `@brains/email-workflows`, `@brains/a2a`,
 `@brains/atproto`,
-`@brains/content-pipeline`).
+`@brains/content-pipeline`,
+`@brains/dashboard`).
 
-The six that remain all still extend a base class: `webserver`,
-`dashboard`, `directory-sync`, `site-builder`, `site-content`, `studio`. Three that are converted —
+The five that remain all still extend a base class: `webserver`,
+`directory-sync`, `site-builder`, `site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -688,6 +689,29 @@ verbatim` hands the handler's own `Response` through untouched.
    it does not own; `attachments`, because what it sends includes media another
    package resolves; and `jobs`, whose new `active()` is scoped to this
    package's own queued work, which is what an operator page shows.
+
+   **`dashboard` hosts what other packages declare, and it converted like
+   any consumer.** Converted. The two widget-registration handlers are
+   declared subscriptions with payload schemas, the page, the console-jump
+   API and every asset file are `defineRoute`, the aggregate other surfaces
+   read is a declared data source, and the way in is a declared interaction.
+   It is the third host in this tranche after the publish pipeline, and the
+   same reading applies: the contract broadcasts a declaration, it does not
+   name a recipient, so a package that listens is a consumer.
+
+   The one capability it needed was already written for the interfaces. A
+   console renders a strip of links to the brain's other consoles, and the
+   class built that by scanning every mounted route and matching plugin ids
+   — one package knowing another's routes, which is the thing this plan
+   removes. `surfaces` joins the service setup context, so the runtime
+   answers which consoles are mounted and what each requires and the console
+   says only who is asking. Session resolution moved from a module-level
+   global to `auth` on the setup context.
+
+   One duplication fell out. The class registered an endpoint _and_ an
+   interaction for the same URL, and the page's own panel injects its door
+   first and dedupes by path — so the endpoint never rendered. Only the
+   interaction is declared, and nothing the page shows changed.
 
    **`site-content` is parked behind `site-builder`.** Its generate tool
    decides which sections can generate by asking

@@ -1,12 +1,12 @@
-import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createMockLogger } from "@brains/test-utils";
 import { DashboardWidgetRegistry } from "../src/widget-registry";
 import { DashboardDataSource } from "../src/dashboard-datasource";
 import type { RegisteredWidget } from "../src/widget-registry";
-import { dashboardDataSchema, type DashboardData } from "../src/widget-schema";
-import type { BaseDataSourceContext } from "@brains/plugins";
+import { dashboardDataSchema } from "../src/widget-schema";
+import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
+import { installDashboard } from "./helpers/install";
 
 const widgetDataSchema = z.object({
   summary: z.object({ draft: z.number(), queued: z.number() }),
@@ -16,21 +16,17 @@ describe("DashboardDataSource", () => {
   let registry: DashboardWidgetRegistry;
   let datasource: DashboardDataSource;
   let mockLogger: ReturnType<typeof createMockLogger>;
-  let mockContext: BaseDataSourceContext;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     registry = new DashboardWidgetRegistry(mockLogger);
     datasource = new DashboardDataSource(registry, mockLogger);
-    mockContext = { entityService: createMockEntityService() };
   });
 
   describe("fetch", () => {
     it("should return empty widgets when registry is empty", async () => {
-      const result = await datasource.fetch<DashboardData>(
-        {},
-        dashboardDataSchema,
-        mockContext,
+      const result = dashboardDataSchema.parse(
+        await datasource.getDashboardData(),
       );
 
       expect(result.widgets).toEqual({});
@@ -62,10 +58,8 @@ describe("DashboardDataSource", () => {
       registry.register(widget1);
       registry.register(widget2);
 
-      const result = await datasource.fetch<DashboardData>(
-        {},
-        dashboardDataSchema,
-        mockContext,
+      const result = dashboardDataSchema.parse(
+        await datasource.getDashboardData(),
       );
 
       expect(Object.keys(result.widgets)).toHaveLength(2);
@@ -111,10 +105,8 @@ describe("DashboardDataSource", () => {
       registry.register(goodWidget);
       registry.register(badWidget);
 
-      const result = await datasource.fetch<DashboardData>(
-        {},
-        dashboardDataSchema,
-        mockContext,
+      const result = dashboardDataSchema.parse(
+        await datasource.getDashboardData(),
       );
 
       // Good widget should be in results
@@ -198,10 +190,8 @@ describe("DashboardDataSource", () => {
 
       registry.register(widget);
 
-      const result = await datasource.fetch<DashboardData>(
-        {},
-        dashboardDataSchema,
-        mockContext,
+      const result = dashboardDataSchema.parse(
+        await datasource.getDashboardData(),
       );
       const widgetData = result.widgets["test:test-widget"];
 
@@ -287,12 +277,14 @@ describe("DashboardDataSource", () => {
   });
 
   describe("metadata", () => {
-    it("should have correct id, name, and description", () => {
-      expect(datasource.id).toBe("dashboard:dashboard");
-      expect(datasource.name).toBe("Dashboard DataSource");
-      expect(datasource.description).toBe(
-        "Aggregates dashboard widgets from all plugins",
+    it("registers under the declaring package's scoped id", async () => {
+      const harness = createPluginHarness({ dataDir: "/tmp/dashboard-source" });
+      await installDashboard(harness);
+
+      expect(harness.getMockShell().getDataSourceRegistry().getIds()).toContain(
+        "@brains/dashboard:dashboard",
       );
+      await harness.reset();
     });
   });
 });

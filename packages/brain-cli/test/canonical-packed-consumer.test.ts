@@ -52,7 +52,7 @@ describe("canonical packed consumer", () => {
         },
       );
 
-      expect(combinedOutput(startup)).toContain("Dashboard plugin registered");
+      expect(combinedOutput(startup)).toContain("Dashboard registered");
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

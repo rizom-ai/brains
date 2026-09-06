@@ -29,12 +29,12 @@ describe("DashboardAssetRegistry", () => {
     const registry = new DashboardAssetRegistry("/dashboard");
     const urls = registry.createRenderUrls({});
     const route = registry
-      .getRoutes()
+      .createRoutes({})
       .find((candidate) => candidate.path === urls.dashboardScript);
 
     expect(route).toBeDefined();
     if (!route) throw new Error("Expected dashboard client asset route");
-    const response = await route.handler(
+    const response = route.serve(
       new Request(`http://brain${urls.dashboardScript}`),
     );
     const script = await response.text();
@@ -53,11 +53,11 @@ describe("DashboardAssetRegistry", () => {
     const path = urls.themeStyles;
     if (!path) throw new Error("Expected theme stylesheet URL");
     const route = registry
-      .getRoutes()
+      .createRoutes({})
       .find((candidate) => candidate.path === path);
 
     expect(route).toBeDefined();
-    const response = await route?.handler(new Request(`http://brain${path}`));
+    const response = route?.serve(new Request(`http://brain${path}`));
     expect(response?.status).toBe(200);
     expect(response?.headers.get("Content-Type")).toBe(
       "text/css; charset=utf-8",
@@ -69,7 +69,7 @@ describe("DashboardAssetRegistry", () => {
     expect(await response?.text()).toBe(".dashboard { color: red; }");
 
     const etag = response?.headers.get("ETag") ?? "";
-    const notModified = await route?.handler(
+    const notModified = route?.serve(
       new Request(`http://brain${path}`, {
         headers: { "If-None-Match": etag },
       }),

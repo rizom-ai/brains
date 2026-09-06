@@ -146,6 +146,10 @@ import type {
   IPluginsNamespace,
 } from "../base/context-types";
 import type { IAttachmentsNamespace } from "./attachment-registry";
+import type {
+  ConsoleSurface,
+  SurfacePermissionLevel,
+} from "../console-surfaces";
 import type { ServicePublishingAccess } from "./publish-delegation-registry";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
@@ -722,6 +726,20 @@ interface ServiceDefinitionCore<
         readonly publicSkills: { list(): Promise<PublicSkill[]> };
         readonly plugins: Pick<IPluginsNamespace, "has">;
         readonly siteUrl: string | undefined;
+        /**
+         * The other doors this caller should be shown.
+         *
+         * A console renders a strip of links to the rest of the brain. The
+         * runtime knows which surfaces are mounted and what each requires;
+         * the console says who is asking and where its own door is. The
+         * interface families already ask this way, and a console served by a
+         * service asks the same. Named consumer: @brains/dashboard.
+         */
+        readonly surfaces: (options: {
+          readonly permissionLevel?: SurfacePermissionLevel | undefined;
+          readonly hasActiveSession?: boolean | undefined;
+          readonly selfHref?: string | undefined;
+        }) => readonly ConsoleSurface[];
         /**
          * Announcing, for a service whose engine runs on its own schedule.
          * A timer has no caller to answer, and the subscription contexts

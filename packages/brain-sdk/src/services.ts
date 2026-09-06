@@ -73,6 +73,36 @@ export type {
 // Named consumer: @brains/content-pipeline.
 export { permissionToVisibilityScope } from "@brains/plugins";
 
+// Hosting declared widgets and operator views. The dashboard is where a
+// `dashboardWidgets` declaration ends up: it validates what the runtime sent,
+// decides who may see each widget, and renders the blocks the declaration
+// returned. Every shape here is one the runtime already defines for those
+// declarations. Named consumer: @brains/dashboard.
+export {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  PermissionService,
+  UserPermissionLevelSchema,
+  defineDataSource,
+  safeParseRuntimeDashboardWidgetData,
+} from "@brains/plugins";
+export type { AnyDataSourceDeclaration } from "@brains/plugins";
+export type {
+  ConsoleSurface,
+  DashboardDigestLine,
+  DashboardWidgetProviderContext,
+  EntityCount,
+  InteractionInfo,
+  RuntimeDashboardOperatorPanelBlock,
+  RuntimeOperatorActionControl,
+  RuntimeOperatorLaunchIntent,
+  RuntimeOperatorLinkTarget,
+  RuntimeStudioWorkspaceData,
+  SurfacePermissionLevel,
+} from "@brains/plugins";
+
+// What the brain reports about itself, for the console that shows it.
+export type { AppInfo } from "@brains/plugins/contracts/app-info";
+
 export { SYSTEM_CHANNELS } from "@brains/plugins";
 export type { SystemChannelName } from "@brains/plugins";
 

@@ -1,4 +1,3 @@
-import type { WebRouteDefinition } from "@brains/plugins";
 import {
   CONSOLE_PALETTE_SCRIPT,
   resolveConsoleThemeCSS,
@@ -14,6 +13,12 @@ const DASHBOARD_CLIENT_SCRIPT = [
   CONSOLE_PALETTE_SCRIPT,
   DASHBOARD_UI_SCRIPT,
 ].join("\n\n");
+
+/** One served file: where it lives and how it answers. */
+export interface DashboardAssetRoute {
+  readonly path: string;
+  serve(request: Request): Response;
+}
 
 interface DashboardAsset {
   path: string;
@@ -64,12 +69,20 @@ export class DashboardAssetRegistry {
     };
   }
 
-  getRoutes(): WebRouteDefinition[] {
+  /**
+   * The files this dashboard serves, each answering with its own etag.
+   *
+   * Named rather than mounted here: how a file becomes a route is the
+   * declaration's business, and the same list is used to build the URLs the
+   * page references.
+   */
+  createRoutes(options: {
+    themeCSS?: string | undefined;
+  }): DashboardAssetRoute[] {
+    this.createRenderUrls(options);
     return Array.from(this.assets.values()).map((asset) => ({
       path: asset.path,
-      method: "GET",
-      public: true,
-      handler: (request: Request): Response => {
+      serve: (request: Request): Response => {
         const headers = {
           "Cache-Control": IMMUTABLE_CACHE_CONTROL,
           "Content-Type": asset.contentType,

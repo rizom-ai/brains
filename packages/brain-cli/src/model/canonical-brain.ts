@@ -24,7 +24,7 @@ import chatPackage, { chatConfigFromEnv } from "@brains/chat";
 import { studioPlugin } from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
 import conversationMemoryPackage from "@brains/conversation-memory";
-import { dashboardPlugin } from "@brains/dashboard";
+import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import { directorySync } from "@brains/directory-sync";
 import docPackage from "@brains/doc";
@@ -184,7 +184,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("playbooks", "@brains/playbooks", playbooksPackage),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage),
     ["studio", studioPlugin, undefined],
-    ["dashboard", dashboardPlugin, undefined],
+    packageCapability("dashboard", "@brains/dashboard", dashboardPackage),
     packageCapability("admin", "@brains/admin", adminPackage),
 
     packageCapability("site-info", "@brains/site-info", siteInfoPackage),

@@ -23,6 +23,7 @@ import type {
 } from "../interfaces";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
+import { deriveConsoleSurfaces } from "../console-surfaces";
 import {
   createServicePublishingAccess,
   PublishDelegationRegistry,
@@ -535,6 +536,19 @@ class DeclarativeServicePlugin<
           publicSkills: context.publicSkills,
           plugins: context.plugins,
           siteUrl: context.siteUrl,
+          surfaces: (options) =>
+            deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
+              activeId: this.definition.id,
+              ...(options.permissionLevel !== undefined
+                ? { permissionLevel: options.permissionLevel }
+                : {}),
+              ...(options.hasActiveSession !== undefined
+                ? { hasActiveSession: options.hasActiveSession }
+                : {}),
+              ...(options.selfHref !== undefined
+                ? { self: { id: this.definition.id, href: options.selfHref } }
+                : {}),
+            }),
           messaging: {
             send: (message) =>
               context.messaging.send({

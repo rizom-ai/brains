@@ -188,7 +188,7 @@ describe("canonical HTTP route manifests", () => {
       ])
     ).flat();
     expect(entries).toContain(
-      "dashboard|handler|GET|/assets/dashboard.[content-hash].css|exact|true",
+      "@brains/dashboard:dashboard|handler|GET|/assets/dashboard.[content-hash].css|exact|true",
     );
     expect(
       entries.some((entry) => /\.[a-f0-9]{64}\.(?:css|js)\|/u.test(entry)),

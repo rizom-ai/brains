@@ -103,9 +103,11 @@ describe("canonical professional posture", () => {
     expect(pluginConfig(resolved, "@brains/mcp:mcp")).toMatchObject({
       transport: "http",
     });
-    expect(pluginConfig(resolved, "dashboard")).toMatchObject({
-      routePath: "/dashboard",
-    });
+    expect(pluginConfig(resolved, "@brains/dashboard:dashboard")).toMatchObject(
+      {
+        routePath: "/dashboard",
+      },
+    );
     expect(pluginConfig(resolved, "site-builder")).toMatchObject({
       routes: expect.any(Array),
       themeCSS: expect.any(String),

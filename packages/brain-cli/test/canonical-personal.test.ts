@@ -38,7 +38,7 @@ describe("canonical personal posture", () => {
       "@brains/image-plugin:image",
       "@brains/document-plugin:document",
       "webserver",
-      "dashboard",
+      "@brains/dashboard:dashboard",
       "@brains/web-chat:web-chat",
       "@brains/conversation-memory:conversation-memory",
     ]) {
@@ -55,8 +55,10 @@ describe("canonical personal posture", () => {
     expect(pluginConfig(resolved, "@brains/mcp:mcp")).toMatchObject({
       transport: "http",
     });
-    expect(pluginConfig(resolved, "dashboard")).toMatchObject({
-      routePath: "/",
-    });
+    expect(pluginConfig(resolved, "@brains/dashboard:dashboard")).toMatchObject(
+      {
+        routePath: "/",
+      },
+    );
   });
 });
