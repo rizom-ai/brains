@@ -13,5 +13,4 @@ export {
   type WebserverConfigInput,
 } from "./config";
 
-export { ServerManager } from "./server-manager";
-export type { ServerManagerOptions } from "./server-manager";
+export { ServerManager, type ServerManagerOptions } from "@brains/http-host";

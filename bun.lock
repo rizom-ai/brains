@@ -540,11 +540,9 @@
       "name": "@brains/webserver",
       "version": "0.2.0-alpha.355",
       "dependencies": {
-        "@brains/contracts": "workspace:*",
+        "@brains/http-host": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
-        "@hono/bun-compress": "^0.1.1",
-        "hono": "^4.12.25",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1808,7 +1806,6 @@
       },
       "devDependencies": {
         "@brains/ai-service": "workspace:*",
-        "@brains/atproto": "workspace:*",
         "@brains/atproto-contracts": "workspace:*",
         "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
@@ -1845,6 +1842,26 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "drizzle-kit": "^0.31.10",
+        "typescript": "^7.0.2",
+      },
+    },
+    "shell/http-host": {
+      "name": "@brains/http-host",
+      "version": "0.2.0-alpha.355",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@hono/bun-compress": "^0.1.1",
+        "hono": "^4.12.25",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/node": "^24.13.3",
+        "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
@@ -2296,6 +2313,8 @@
     "@brains/entity-service": ["@brains/entity-service@workspace:shell/entity-service"],
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:shared/eslint-config"],
+
+    "@brains/http-host": ["@brains/http-host@workspace:shell/http-host"],
 
     "@brains/http-signatures": ["@brains/http-signatures@workspace:shared/http-signatures"],
 
