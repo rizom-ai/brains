@@ -1053,6 +1053,30 @@ visibility against the publish boundary is what the shared core resolves.
 what feeds the capability flags the editor renders. The audit stays: it is
 studio's own record of what an operator asked for and what came back.
 
+The capability is in. What the conversion itself still needs, measured
+against studio's shell rather than guessed:
+
+- **Four bus subscriptions** become declarations: registering and
+  unregistering an overview contribution, and registering and unregistering
+  a Studio workspace. All four already answer with a success/error envelope,
+  which is what a declared subscription returns.
+- **Two inbox follow-up kinds** — "capture as note" and "open source
+  entity" — need nothing new: `inboxFollowUps` is already on the setup
+  context, so they are registered from `setup` like any other holding.
+- **The endpoint registration goes.** Studio registers an endpoint and an
+  interaction for the same URL, and the console's own panel dedupes by path,
+  so only the interaction is declared. The same duplication `admin` had.
+- **The open question is route security.** Studio's editor routes resolve
+  their own principal with `auth.getCaller()?.resolveSession(request)` and
+  carry a `StudioRequestAccess` — principal, actor, permission level,
+  visibility scope, anchor flag. A declared route with
+  `security: { kind: "protocol" }` receives an `InterfaceCaller`, which
+  carries the actor, the permission and the anchor flag but not the
+  visibility scope. Whether the scope is derived from the permission at the
+  boundary (it is `permissionToVisibilityScope` everywhere else) or whether
+  the declared caller should carry it is the one thing to settle before the
+  routes are rewritten.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so
