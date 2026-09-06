@@ -559,6 +559,8 @@ class DeclarativeServicePlugin<
           },
           operatorEntities: createOperatorEntities(this.requireShell()),
           entityShapes: entityShapesOf(context),
+          themeCSS: context.themeCSS,
+          readiness: () => context.readiness(),
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,

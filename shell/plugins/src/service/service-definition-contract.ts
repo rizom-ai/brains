@@ -168,6 +168,7 @@ import type {
 } from "../console-surfaces";
 import type { ServicePublishingAccess } from "./publish-delegation-registry";
 import type { OperatorEntityWrites } from "./operator-entities";
+import type { RuntimeReadiness } from "../contracts/runtime-health";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -889,6 +890,16 @@ interface ServiceDefinitionCore<
          * Named consumer: @brains/studio.
          */
         readonly entityShapes: ServiceEntityShapes;
+        /**
+         * The theme the brain is dressed in, for a console that inlines it
+         * into the page it serves. Named consumer: @brains/studio.
+         */
+        readonly themeCSS: string;
+        /**
+         * Whether the runtime's dependencies are up, for a console that
+         * reports on the brain it runs in. Named consumer: @brains/studio.
+         */
+        readonly readiness: () => Promise<RuntimeReadiness>;
         /**
          * The other doors this caller should be shown.
          *
