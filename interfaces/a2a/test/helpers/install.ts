@@ -58,17 +58,6 @@ export function instantiate(
   return plugin;
 }
 
-/** A stand-in for the shared HTTP host, which the routes mount on. */
-export function installWebserverPlugin(harness: PluginTestHarness): void {
-  harness.getMockShell().addPlugin({
-    id: "webserver",
-    version: "1.0.0",
-    type: "interface",
-    packageName: "@brains/webserver",
-    register: async () => ({ tools: [], resources: [] }),
-  });
-}
-
 export interface InstalledA2A {
   readonly plugin: Plugin;
   readonly capabilities: PluginCapabilities;

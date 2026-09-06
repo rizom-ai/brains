@@ -31,6 +31,7 @@ import { createSiteBuilderTools } from "./tools/index";
 import { SiteBuildStatusService } from "./lib/site-build-status";
 import { SiteWorkspaceProvider } from "./lib/site-workspace";
 import { registerSiteHealthWidget } from "./lib/dashboard-widget";
+import type { StaticSiteOutput } from "@brains/plugins/contracts/http-host";
 import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
@@ -77,6 +78,14 @@ export class SiteBuilderPlugin extends ServicePlugin<
     for (const [index, script] of this.config.headScripts.entries()) {
       this.headScripts.set(`site-package:${index}`, script);
     }
+  }
+
+  public getStaticSiteOutput(): StaticSiteOutput {
+    return {
+      productionOutputDir: this.config.productionOutputDir,
+      previewOutputDir: this.config.previewOutputDir,
+      sharedImagesDir: this.config.sharedImagesDir,
+    };
   }
 
   protected override async onRegister(

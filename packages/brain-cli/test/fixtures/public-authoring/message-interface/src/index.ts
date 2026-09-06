@@ -13,6 +13,22 @@ export default defineMessageInterface({
     token: z.string().optional(),
   }),
 
+  // Infer state before slots that consume it, as required by the interface contract.
+  async setup({ config, runtimeState }) {
+    // Where the last read got to, so a restart resumes rather than replays.
+    const cursor = runtimeState({
+      namespace: "cursor",
+      schema: z.strictObject({ lastMessageId: z.string() }),
+    });
+    const client = new CampfireClient(
+      config.baseUrl,
+      config.workspace,
+      config.token ?? "",
+    );
+    await cursor.get("room");
+    return Object.assign(client, { cursor });
+  },
+
   // The channel declaration owns display metadata and recipient validation.
   channel: {
     type: "campfire",
@@ -37,21 +53,6 @@ export default defineMessageInterface({
       handle: ({ payload }) => client.read(payload.messageId),
     }),
   ],
-
-  async setup({ config, runtimeState }) {
-    // Where the last read got to, so a restart resumes rather than replays.
-    const cursor = runtimeState({
-      namespace: "cursor",
-      schema: z.strictObject({ lastMessageId: z.string() }),
-    });
-    const client = new CampfireClient(
-      config.baseUrl,
-      config.workspace,
-      config.token ?? "",
-    );
-    await cursor.get("room");
-    return Object.assign(client, { cursor });
-  },
 
   async listen({ state: client, signal, health, messages }) {
     await client.listen({

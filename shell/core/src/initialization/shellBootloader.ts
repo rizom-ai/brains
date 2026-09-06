@@ -59,6 +59,7 @@ export interface ShellBootloaderOptions {
 export interface ShellBootloaderHooks {
   registerCoreDataSources(): void;
   finalizeHttpRoutes(): void;
+  startHttpHost(): Promise<void>;
   registerSystemJobHandlers(): void;
   registerSystemCapabilities(options: { resumeBackfill: boolean }): void;
   createProjectionInputContext(): ProjectionInputContext;
@@ -274,7 +275,7 @@ export class ShellBootloader {
     }
 
     if (options?.mode !== "startup-check") {
-      await this.startEarlyWebserver();
+      await this.hooks.startHttpHost();
 
       // Run initial sync (driven by pluginsRegistered subscribers) before
       // materializing ready-state defaults. Singleton defaults must not be
@@ -303,14 +304,6 @@ export class ShellBootloader {
     await this.startIndexReadinessMonitor();
 
     this.services.logger.debug("Shell boot complete");
-  }
-
-  private async startEarlyWebserver(): Promise<void> {
-    const webserverDaemonName = "webserver:webserver";
-    if (!this.services.daemonRegistry.has(webserverDaemonName)) return;
-
-    await this.services.daemonRegistry.start(webserverDaemonName);
-    this.services.logger.debug("Started webserver before initial sync");
   }
 
   private async emitPluginsRegistered(): Promise<void> {

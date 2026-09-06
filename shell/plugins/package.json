@@ -48,6 +48,8 @@
     "./message-interface/upload-selection": "./src/message-interface/upload-selection.ts",
     "./contracts/api-routes": "./src/types/api-routes.ts",
     "./contracts/web-routes": "./src/types/web-routes.ts",
+    "./contracts/http-host": "./src/contracts/http-host.ts",
+    "./internal/app-info": "./src/base/public-app-info.ts",
     "./internal/http-routes": "./src/types/http-routes.ts",
     "./internal/http-route-snapshot": "./src/internal/http-route-snapshot.ts",
     "./internal/same-origin-path": "./src/internal/same-origin-path.ts",

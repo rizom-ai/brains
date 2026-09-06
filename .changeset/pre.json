@@ -689,8 +689,6 @@
     "web-chat-tool-styling-fix",
     "web-chat-upload-vision-fix",
     "webchat-first-onboarding",
-    "webserver-no-immutable-css-js",
-    "webserver-streaming-idle-timeout",
     "wordmark-slot-and-generic-suffix"
   ]
 }

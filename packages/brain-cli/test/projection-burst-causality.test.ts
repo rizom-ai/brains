@@ -173,7 +173,6 @@ describe("projection burst causal evidence", () => {
             "dashboard",
             "admin",
             "mcp",
-            "webserver",
             "web-chat",
             "chat",
             "a2a",

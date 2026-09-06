@@ -1,3 +1,4 @@
+import { httpHostConfigSchema } from "@brains/plugins/contracts/http-host";
 import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
@@ -107,6 +108,8 @@ export const shellConfigSchema: z.ZodObject<{
   gitBrokerSocket: z.ZodOptional<z.ZodString>;
   gitBrokerCheckout: z.ZodOptional<z.ZodString>;
   spaces: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  http: z.ZodPrefault<typeof httpHostConfigSchema>;
+  executionMode: z.ZodOptional<z.ZodLiteral<"eval">>;
   siteBaseUrl: z.ZodOptional<z.ZodString>;
   localSiteUrl: z.ZodOptional<z.ZodString>;
   preferLocalUrls: z.ZodDefault<z.ZodBoolean>;
@@ -167,6 +170,8 @@ export const shellConfigSchema: z.ZodObject<{
   /** Absolute checkout path assigned with the broker socket. */
   gitBrokerCheckout: z.string().min(1).optional(),
   spaces: z.array(z.string()).default([]),
+  http: httpHostConfigSchema.prefault({}),
+  executionMode: z.literal("eval").optional(),
   siteBaseUrl: z.string().optional(),
   localSiteUrl: z.string().optional(),
   preferLocalUrls: z.boolean().default(false),
@@ -193,8 +198,9 @@ export type ShellConfig = Omit<
 export type ShellConfigInput = Partial<
   Omit<
     ShellConfig,
-    "ai" | "logging" | "database" | "embedding" | "jobQueue"
+    "ai" | "logging" | "database" | "embedding" | "jobQueue" | "http"
   > & {
+    http?: z.input<typeof httpHostConfigSchema>;
     ai?: Partial<ShellConfig["ai"]>;
     logging?: Partial<ShellConfig["logging"]>;
     database?: Partial<ShellConfig["database"]>;
@@ -248,6 +254,8 @@ export function createShellConfig(
     plugins: overrides.plugins ?? [],
     permissions: overrides.permissions ?? {},
     spaces: overrides.spaces ?? [],
+    http: overrides.http ?? {},
+    ...(overrides.executionMode && { executionMode: overrides.executionMode }),
     preferLocalUrls: overrides.preferLocalUrls ?? false,
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
     ...(overrides.gitBrokerSocket && {

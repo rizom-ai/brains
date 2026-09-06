@@ -2,7 +2,6 @@
 "@brains/core": patch
 "@brains/job-queue": patch
 "@brains/plugins": patch
-"@brains/webserver": patch
 "@rizom/brain": patch
 ---
 

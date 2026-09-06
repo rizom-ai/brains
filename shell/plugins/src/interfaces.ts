@@ -365,7 +365,11 @@ export interface IShell {
 
   // Web routes from plugins
   getPluginWebRoutes(): RegisteredWebRoute[];
+  /** Read finalized HTTP serving intent, independently from listener health. */
+  isHttpHostConfigured(): boolean;
 }
+
+import type { StaticSiteOutput } from "./contracts/http-host";
 
 // Re-export response schemas for backward compatibility
 export {
@@ -445,4 +449,5 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   requiresDaemonStartup?(): boolean;
   getApiRoutes?(): ApiRouteDefinition[];
   getWebRoutes?(): WebRouteDefinition[];
+  getStaticSiteOutput?(): StaticSiteOutput;
 };

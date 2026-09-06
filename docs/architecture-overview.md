@@ -116,25 +116,26 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 
 ### Shell packages
 
-| Package                                                 | Purpose                                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
-| `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
-| `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
-| `shell/content-service`                                 | Template-based content generation support                                |
-| `shell/conversation-service`                            | Conversation state and message history                                   |
-| `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                |
-| `shell/identity-service`                                | Brain identity, anchor profile, URL derivation                           |
-| `shell/job-queue`                                       | Background jobs, progress events, handler registration                   |
-| `shell/mcp-service`                                     | MCP tool/resource/prompt/template registration                           |
-| `shell/messaging-service`                               | Typed event bus used across plugins                                      |
-| `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)  |
-| `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                |
-| `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries    |
-| `shell/plugins`                                         | Base plugin classes, contexts, harnesses, and app-scoped registries      |
-| `shell/templates`                                       | Template registry and resolution                                         |
-| `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                               |
-| [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit |
+| Package                                                 | Purpose                                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap       |
+| `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts        |
+| `shell/http-host`                                       | Runtime-owned Hono/Bun listener, static serving and dynamic route dispatch |
+| `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                           |
+| `shell/content-service`                                 | Template-based content generation support                                  |
+| `shell/conversation-service`                            | Conversation state and message history                                     |
+| `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                  |
+| `shell/identity-service`                                | Brain identity, anchor profile, URL derivation                             |
+| `shell/job-queue`                                       | Background jobs, progress events, handler registration                     |
+| `shell/mcp-service`                                     | MCP tool/resource/prompt/template registration                             |
+| `shell/messaging-service`                               | Typed event bus used across plugins                                        |
+| `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)    |
+| `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                  |
+| `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries      |
+| `shell/plugins`                                         | Base plugin classes, contexts, harnesses, and app-scoped registries        |
+| `shell/templates`                                       | Template registry and resolution                                           |
+| `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                                 |
+| [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit   |
 
 ### Entity packages
 
@@ -186,15 +187,14 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                            |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                                |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                              |
-| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads           |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                           |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                               |
-| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/Studio routes, API routes, and split health endpoints |
+| Package                | Purpose                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                  |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                      |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                    |
+| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                 |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                     |
 
 ### Sites, themes, and the canonical definition
 
@@ -284,7 +284,7 @@ Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
-- browsers connect through `interfaces/webserver` for public pages, dashboard/Studio routes, and browser-facing APIs
+- browsers connect through the runtime-owned `shell/http-host` for public pages, dashboard/Studio routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Operator browser state
@@ -379,7 +379,9 @@ Current deployment paths:
 
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
 
-The shared webserver separates dependency-free liveness (`/health/live`) from
+The shell owns `shell/http-host`, one listener activated by finalized dynamic routes or static-site output. `port` is the production listener port; preview shares it by hostname. Site-builder declares its resolved output paths, and conflicting HTTP overrides fail before listening. Worker, eval, register-only and startup-check executions never open the host. Shutdown closes HTTP admission and drains/cancels active requests before releasing handler dependencies.
+
+The shared HTTP host separates dependency-free liveness (`/health/live`) from
 web routing readiness (`/health/ready`) and full operational health
 (`/health/operate`). Routing readiness covers web-critical database access.
 Operational health additionally covers durable worker sessions, stale attempt

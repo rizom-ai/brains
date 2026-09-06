@@ -57,31 +57,23 @@ describe("Shell initialization order", () => {
     await testDir.cleanup();
   });
 
-  it("should start webserver before plugins-registered initial sync handlers complete", async () => {
+  it("serves HTTP before plugins-registered initial sync handlers complete", async () => {
     const order: string[] = [];
     const finishInitialSync = deferred();
 
-    const webserverPlugin: Plugin = {
-      id: "webserver-plugin",
+    const routePlugin: Plugin = {
+      id: "route-plugin",
       version: "1.0.0",
       type: "service",
-      description: "Registers the shared webserver daemon",
-      packageName: "@test/webserver-plugin",
-      register: async (shellInstance) => {
-        shellInstance.registerDaemon(
-          "webserver:webserver",
-          {
-            start: async () => {
-              order.push("webserver-started");
-            },
-            stop: async () => {
-              order.push("webserver-stopped");
-            },
-          },
-          "webserver",
-        );
-        return { tools: [], resources: [] };
-      },
+      packageName: "@test/route-plugin",
+      register: async () => ({ tools: [], resources: [] }),
+      getWebRoutes: () => [
+        {
+          path: "/test",
+          public: true,
+          handler: () => new Response("available during sync"),
+        },
+      ],
     };
 
     const directorySyncLikePlugin: Plugin = {
@@ -103,8 +95,10 @@ describe("Shell initialization order", () => {
       },
     };
 
-    const config = createTestShellConfig(testDir.dir);
-    config.plugins = [webserverPlugin, directorySyncLikePlugin];
+    const config = createTestShellConfig(testDir.dir, {
+      http: { port: 0, productionDistDir: `${testDir.dir}/production` },
+    });
+    config.plugins = [routePlugin, directorySyncLikePlugin];
     shell = Shell.createFresh(config, deps);
     // Held open rather than made slow with a 50ms sleep. The claim in the name
     // is that the webserver is up *before the sync handler completes*, and
@@ -117,14 +111,20 @@ describe("Shell initialization order", () => {
       "the initial sync handler to start",
     );
 
-    expect(order).toContain("webserver-started");
-    expect(order).not.toContain("initial-sync-completed");
-
-    finishInitialSync.resolve();
-    await initializing;
+    try {
+      const url = shell.getHttpHostStatus()?.productionUrl;
+      expect(url).toBeDefined();
+      expect(await (await fetch(`${url}/test`)).text()).toBe(
+        "available during sync",
+      );
+      expect(order).not.toContain("initial-sync-completed");
+    } finally {
+      finishInitialSync.resolve();
+      await initializing;
+    }
 
     expect(order).toContain("initial-sync-completed");
-    expect(order).not.toContain("webserver-stopped");
+    expect(shell.getHttpHostStatus()?.running).toBe(true);
   });
 
   it("should complete plugins-registered handlers before job processing can start", async () => {

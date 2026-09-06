@@ -5,14 +5,17 @@ import { EventEmitter } from "node:events";
 import {
   access,
   mkdtemp,
+  mkdir,
   readFile,
   readdir,
   rm,
   unlink,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   BrokerConnection,
   GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
@@ -25,11 +28,19 @@ import { superviseRuntimeChildren } from "../src/lib/process-supervisor";
 import type { SupervisedChildRole } from "../src/lib/process-supervisor";
 import type { SignalProcess, SpawnImpl } from "../src/lib/spawn-bun-runner";
 import type { CommandResult } from "../src/lib/command-result";
+import packageJson from "../package.json";
 
 const LINUX = process.platform === "linux";
 const RUN_PACKAGED = process.env["RUN_GIT_BROKER_PACKAGED_RECOVERY"] === "1";
 const ENTRY = join(import.meta.dir, "..", "dist", "brain.js");
 const BROKER_ENTRY = join(import.meta.dir, "..", "dist", "git-broker.js");
+const WORKER_FIXTURE_DIR = join(
+  import.meta.dir,
+  "..",
+  "node_modules",
+  "@fixture",
+  "worker-mutation",
+);
 
 interface SpawnRecord {
   role: SupervisedChildRole;
@@ -169,6 +180,8 @@ function runtimeProcess(
       env: {
         ...process.env,
         AI_API_KEY: "packaged-recovery-test-key",
+        // This supervisor explicitly selects ENTRY; retain its child IPC.
+        BRAIN_SKIP_LOCAL_REEXEC: "1",
         ...(withholdPullCompletion
           ? { [GIT_BROKER_TEST_WITHHOLD_COMPLETION_ENV]: "pull" }
           : {}),
@@ -284,12 +297,13 @@ async function createApp(options: { includeWishlist?: boolean } = {}): Promise<{
   await run(["git", "remote", "add", "origin", remote], writer);
   await run(["git", "push", "origin", "main"], writer);
 
+  // The declarative wishlist no longer has a wish:create queue handler. Give
+  // this worker/export proof its own explicit job instead of reviving that API.
+  if (options.includeWishlist) await installWorkerMutationFixture(root);
   const productionPort = reservePort();
-  const apiPort = reservePort();
-  const previewPort = reservePort();
   await writeFile(
     join(root, "brain.yaml"),
-    `brain: brain
+    `brain: ${JSON.stringify(options.includeWishlist ? "@fixture/worker-mutation" : "brain")}
 bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
@@ -303,7 +317,7 @@ remove:
   - mcp
   - onboarding
   - web-chat
-${options.includeWishlist ? "add:\n  - wishlist\n" : ""}plugins:
+${options.includeWishlist ? "add:\n  - wishlist\n  - worker-mutation\n" : ""}plugins:
   topics:
     enableAutoExtraction: false
   directory-sync:
@@ -315,10 +329,7 @@ ${options.includeWishlist ? "add:\n  - wishlist\n" : ""}plugins:
     git:
       gitUrl: file://${remote}
       bootstrapFromSeed: false
-  webserver:
-    productionPort: ${productionPort}
-    apiPort: ${apiPort}
-    previewPort: ${previewPort}
+port: ${productionPort}
 `,
   );
 
@@ -475,6 +486,71 @@ interface DurableJobState {
   completedAt: number | null;
 }
 
+async function installWorkerMutationFixture(root: string): Promise<void> {
+  // The built CLI resolves scoped definitions from its installed package.
+  const directory = WORKER_FIXTURE_DIR;
+  await mkdir(directory, { recursive: true });
+  await mkdir(join(root, "node_modules", "@fixture"), { recursive: true });
+  await symlink(
+    directory,
+    join(root, "node_modules", "@fixture", "worker-mutation"),
+    "dir",
+  );
+  await mkdir(join(root, "node_modules", "@rizom"), { recursive: true });
+  await symlink(
+    join(import.meta.dir, ".."),
+    join(root, "node_modules", "@rizom", "brain"),
+    "dir",
+  );
+  await writeFile(
+    join(directory, "package.json"),
+    JSON.stringify({
+      name: "@fixture/worker-mutation",
+      version: "1.0.0",
+      type: "module",
+      exports: "./index.js",
+      peerDependencies: { "@rizom/brain": packageJson.version },
+    }),
+  );
+  // Only the built runtime crosses into this fixture: no workspace-source
+  // imports and no alternate execution path in the packaged worker.
+  const model = pathToFileURL(
+    join(import.meta.dir, "..", "dist", "model.js"),
+  ).href;
+  const services = pathToFileURL(
+    join(import.meta.dir, "..", "dist", "services.js"),
+  ).href;
+  await writeFile(
+    join(directory, "index.js"),
+    `
+import canonical from ${JSON.stringify(model)};
+import { z } from ${JSON.stringify(services)};
+const input = z.object({ title: z.string(), content: z.string() });
+export default {
+  ...canonical,
+  capabilities: [...canonical.capabilities, ["worker-mutation", () => ({
+    id: "worker-mutation", packageName: "@fixture/worker-mutation", type: "service", version: "1.0.0",
+    async register(shell) {
+      shell.getJobQueueService().registerHandler("worker-mutation:create", {
+        validateAndParse(value) { const parsed = input.safeParse(value); return parsed.success ? parsed.data : null; },
+        async process(data) {
+          const id = "worker-created-export-regression";
+          await shell.getEntityService().createEntity({ entity: {
+            id, entityType: "wish", visibility: "public",
+            content: "---\\ntitle: " + JSON.stringify(data.title) + "\\nstatus: new\\npriority: medium\\nrequested: 1\\n---\\n\\n" + data.content,
+            metadata: { title: data.title, slug: id, status: "new", priority: "medium", requested: 1 },
+          } });
+          return { id };
+        },
+      }, "worker-mutation");
+      return { tools: [], resources: [] };
+    },
+  }), {}]],
+};
+`,
+  );
+}
+
 function enqueueWorkerWish(root: string): string {
   const database = new Database(join(root, "data", "brain-jobs.db"));
   const id = "worker-created-export-regression";
@@ -486,7 +562,7 @@ function enqueueWorkerWish(root: string): string {
            id, type, data, source, metadata, status, priority,
            retryCount, maxRetries, createdAt, scheduledFor
          ) VALUES (
-           $id, 'wish:create', $data, 'packaged-regression', $metadata,
+           $id, 'worker-mutation:create', $data, 'packaged-regression', $metadata,
            'pending', 10, 0, 3, $now, $now
          )`,
       )
@@ -565,7 +641,9 @@ function recurringDigestCounts(root: string): {
       .get(
         "completed",
         "failed",
-        JSON.stringify({ checkId: "unified-inbox:daily-digest" }),
+        JSON.stringify({
+          checkId: "@brains/unified-inbox:unified-inbox:daily-digest",
+        }),
       );
     return {
       completed: row?.completed ?? 0,
@@ -579,6 +657,7 @@ function recurringDigestCounts(root: string): {
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
+  await rm(WORKER_FIXTURE_DIR, { recursive: true, force: true });
 });
 
 it("exposes the packaged recovery proof as a named repository gate", async () => {

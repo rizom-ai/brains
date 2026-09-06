@@ -155,7 +155,7 @@ async function main(): Promise<void> {
     },
     profileKinds: { getResolved: () => undefined },
     publicSkills: { list: async () => [] },
-    plugins: { has: () => false },
+    http: { isConfigured: () => false },
     siteUrl: undefined,
   };
 

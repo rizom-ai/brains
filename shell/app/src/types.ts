@@ -75,11 +75,13 @@ type DeploymentConfigSchema = z.ZodObject<{
     }>
   >;
   ports: z.ZodPrefault<
-    z.ZodObject<{
-      default: z.ZodDefault<z.ZodNumber>;
-      preview: z.ZodDefault<z.ZodNumber>;
-      production: z.ZodDefault<z.ZodNumber>;
-    }>
+    z.ZodObject<
+      {
+        default: z.ZodDefault<z.ZodNumber>;
+        production: z.ZodDefault<z.ZodNumber>;
+      },
+      z.core.$strict
+    >
   >;
   cdn: ProviderToggleSchema;
   dns: ProviderToggleSchema;
@@ -110,12 +112,11 @@ export const deploymentConfigSchema: DeploymentConfigSchema = z.object({
     })
     .prefault({}),
 
-  // Port configuration (also used by WebserverInterface)
+  // Runtime production listener and deployment metadata
   ports: z
-    .object({
+    .strictObject({
       default: z.number().default(3333),
-      preview: z.number().default(4321),
-      production: z.number().default(8080),
+      production: z.number().int().min(0).max(65535).default(8080),
     })
     .prefault({}),
 
@@ -147,7 +148,10 @@ export const deploymentConfigSchema: DeploymentConfigSchema = z.object({
 export type DeploymentConfig = z.output<typeof deploymentConfigSchema>;
 export type DeploymentConfigInput = z.input<typeof deploymentConfigSchema>;
 
+import { httpConfigSchema } from "@brains/plugins/contracts/http-host";
+
 type AppConfigSchema = z.ZodObject<{
+  http: z.ZodOptional<typeof httpConfigSchema>;
   name: z.ZodDefault<z.ZodString>;
   version: z.ZodDefault<z.ZodString>;
   database: z.ZodOptional<z.ZodString>;
@@ -167,6 +171,7 @@ type AppConfigSchema = z.ZodObject<{
 
 // App config focuses on app-level concerns, plugins come from Shell
 export const appConfigSchema: AppConfigSchema = z.object({
+  http: httpConfigSchema.optional(),
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names

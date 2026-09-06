@@ -91,6 +91,11 @@ function createFederationApp(
   const app = App.create({
     ...config,
     plugins: [...others, atproto],
+    deployment: {
+      ...config.deployment,
+      ports: { ...config.deployment.ports, production: 0 },
+    },
+    http: { productionDistDir: `${dataDir}/production` },
     shellConfig: {
       ...config.shellConfig,
       database: { url: `file:${dataDir}/entities.db` },

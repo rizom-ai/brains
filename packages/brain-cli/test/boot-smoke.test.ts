@@ -87,7 +87,6 @@ describe("built binary boot smoke", () => {
   it("boots the canonical model and serves HTTP", async () => {
     const instanceDir = mkdtempSync(join(tmpdir(), "brain-boot-smoke-"));
     const productionPort = freePort();
-    const apiPort = freePort();
     writeFileSync(
       join(instanceDir, "brain.yaml"),
       [
@@ -105,10 +104,9 @@ describe("built binary boot smoke", () => {
         "plugins:",
         "  onboarding:",
         "    enabled: false",
-        "  webserver:",
-        "    enablePreview: false",
-        `    productionPort: ${productionPort}`,
-        `    apiPort: ${apiPort}`,
+        `port: ${productionPort}`,
+        "http:",
+        "  preview: false",
         "",
       ].join("\n"),
     );

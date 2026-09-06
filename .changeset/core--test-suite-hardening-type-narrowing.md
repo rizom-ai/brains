@@ -2,7 +2,6 @@
 "@brains/plugins": patch
 "@brains/chat": patch
 "@brains/web-chat": patch
-"@brains/webserver": patch
 "@brains/mcp": patch
 "@brains/core": patch
 "@brains/job-queue": patch

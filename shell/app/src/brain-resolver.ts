@@ -17,8 +17,6 @@ import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import {
-  hasActiveCapability,
-  hasActiveInterface,
   isActive,
   resolveBrainSelection,
   type PluginOverrides,
@@ -56,40 +54,13 @@ export { isScopedPackageRef };
 function applyPluginDefaults(
   pluginOverrides: PluginOverrides,
   options: {
-    webserverEnabled: boolean;
-    siteBuilderEnabled: boolean;
     site: SitePackage | undefined;
     theme: string | undefined;
     anchor: NonNullable<BrainDefinition["anchor"]>;
     accountSettingsEncryptionKey: string | undefined;
   },
 ): void {
-  const {
-    webserverEnabled,
-    siteBuilderEnabled,
-    site,
-    theme,
-    anchor,
-    accountSettingsEncryptionKey,
-  } = options;
-
-  if (webserverEnabled) {
-    const webserverExplicit = pluginOverrides["webserver"] ?? {};
-    const webserverDefaults: Record<string, unknown> = {
-      enablePreview: siteBuilderEnabled,
-    };
-
-    pluginOverrides["webserver"] = deepMerge(
-      webserverDefaults,
-      webserverExplicit,
-    );
-  }
-
-  const mcpExplicit = pluginOverrides["mcp"] ?? {};
-  pluginOverrides["mcp"] = deepMerge(
-    { transport: webserverEnabled ? "http" : "stdio" },
-    mcpExplicit,
-  );
+  const { site, theme, anchor, accountSettingsEncryptionKey } = options;
 
   if (site || theme !== undefined) {
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
@@ -226,7 +197,7 @@ function buildDeployment(
   if (overrides?.domain) {
     deployment.domain = overrides.domain;
   }
-  if (overrides?.port) {
+  if (overrides?.port !== undefined) {
     deployment.ports = {
       ...(deployment.ports ?? {}),
       production: overrides.port,
@@ -341,6 +312,11 @@ function resolveRuntimeDefinition(
   logger?: Logger,
 ): AppConfig {
   assertBundleContract(definition, overrides);
+  if (overrides?.plugins && "webserver" in overrides.plugins) {
+    throw new Error(
+      "plugins.webserver was removed. Use port for the production listener and http for serving settings; preview shares the production port.",
+    );
+  }
   const selection = resolveBrainSelection(definition, overrides);
   const activeIds = selection.activeIds;
   const bundlePermissions = resolveBundlePermissionConfig(
@@ -355,17 +331,6 @@ function resolveRuntimeDefinition(
     overrides?.reasoningEffort ?? definition.reasoningEffort;
   const effectiveAnchor = overrides?.anchor ?? definition.anchor ?? "person";
   const effectiveProfileKind = overrides?.kind ?? definition.kind;
-  const webserverEnabled = hasActiveInterface(
-    definition,
-    activeIds,
-    "webserver",
-  );
-  const siteBuilderEnabled = hasActiveCapability(
-    definition,
-    activeIds,
-    "site-builder",
-  );
-
   const site: SitePackage | undefined = resolveSitePackage(
     definition,
     overrides,
@@ -373,8 +338,6 @@ function resolveRuntimeDefinition(
   const theme = resolveTheme(definition, overrides, site);
 
   applyPluginDefaults(pluginOverrides, {
-    webserverEnabled,
-    siteBuilderEnabled,
     site,
     theme,
     anchor: effectiveAnchor,
@@ -440,6 +403,7 @@ function resolveRuntimeDefinition(
     ),
     ...(overrides?.spaces ? { spaces: overrides.spaces } : {}),
     deployment,
+    ...(overrides?.http && { http: overrides.http }),
     ...buildRuntimeOverrides(env, overrides),
   };
 
@@ -448,6 +412,9 @@ function resolveRuntimeDefinition(
   applyEmbeddingConfig(appConfig, overrides?.embedding);
   applySharedTheme(appConfig, theme);
   applySiteEntityDisplay(appConfig, site);
+  if (overrides?.mode === "eval") {
+    appConfig.shellConfig = { ...appConfig.shellConfig, executionMode: "eval" };
+  }
 
   return defineConfig(appConfig);
 }

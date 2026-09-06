@@ -117,6 +117,9 @@ import {
   HttpRouteRegistry,
 } from "./http-route-registry";
 import { registerShellRuntimeFinalizers } from "./shell-shutdown";
+import { toPublicAppInfo } from "@brains/plugins/internal/app-info";
+import { createShellHttpHost, HTTP_HOST_OWNER } from "./shell-http-host";
+import type { HttpHost } from "@brains/http-host";
 import {
   registerShellSystemCapabilities,
   registerShellSystemJobHandlers,
@@ -146,6 +149,8 @@ export class Shell implements IShell {
   private readonly endpointRegistry = new EndpointRegistry();
   private readonly interactionRegistry = new InteractionRegistry();
   private readonly httpRouteRegistry = HttpRouteRegistry.createFresh();
+  private httpHost: HttpHost | undefined;
+  private readonly httpHostEligible: boolean;
 
   public readonly jobs: IJobsNamespace;
 
@@ -163,6 +168,9 @@ export class Shell implements IShell {
     runtimeOptions?: ShellRuntimeOptions,
   ) {
     this.config = config;
+    this.httpHostEligible =
+      runtimeOptions?.processRole !== "worker" &&
+      config.executionMode !== "eval";
     this.lifecycle = new ShellLifecycle();
     bindHttpRouteSnapshot(this, () => this.httpRouteRegistry.getSnapshot());
     const constructionLogger =
@@ -195,9 +203,21 @@ export class Shell implements IShell {
           registerCoreDataSources: (): void =>
             registerCoreDataSources(this.services, this.config),
           finalizeHttpRoutes: (): void => {
-            this.httpRouteRegistry.finalize(
+            const routes = this.httpRouteRegistry.finalize(
               collectHttpRouteContributors(this.services.pluginManager),
             );
+            this.httpHost = createShellHttpHost({
+              config: this.config,
+              services: this.services,
+              routes,
+              endpoints: this.endpointRegistry,
+              interactions: this.interactionRegistry,
+              appInfo: async () => toPublicAppInfo(await this.getAppInfo()),
+              readiness: () => this.getRuntimeReadiness(),
+            });
+          },
+          startHttpHost: async (): Promise<void> => {
+            if (this.httpHostEligible) await this.httpHost?.start();
           },
           registerSystemJobHandlers: (): void =>
             registerShellSystemJobHandlers(this.services, this.jobs),
@@ -222,6 +242,13 @@ export class Shell implements IShell {
 
       shellInitializer.wireShell(this.services, this);
       registerShellRuntimeFinalizers(this.lifecycle, this.services);
+      // Last registered, first released: admitted HTTP work must finish before
+      // handler dependencies (plugins, agent service and databases) are closed.
+      this.lifecycle.addFinalizer(async () => {
+        await this.httpHost?.stop();
+        this.endpointRegistry.unregister(HTTP_HOST_OWNER);
+        this.interactionRegistry.unregister(HTTP_HOST_OWNER);
+      });
     } catch (error) {
       try {
         this.lifecycle.closeSync(Exit.fail(error));
@@ -625,6 +652,16 @@ export class Shell implements IShell {
     return this.httpRouteRegistry.getApiRoutes();
   }
 
+  public isHttpHostConfigured(): boolean {
+    if (!this.httpHost)
+      throw new Error("HTTP serving composition has not been finalized");
+    return this.httpHost.configured;
+  }
+
+  public getHttpHostStatus(): ReturnType<HttpHost["getStatus"]> | undefined {
+    return this.httpHost?.getStatus();
+  }
+
   public getPluginWebRoutes(): RegisteredWebRoute[] {
     return this.httpRouteRegistry.getWebRoutes();
   }
@@ -842,6 +879,18 @@ export class Shell implements IShell {
   }
 
   public getRuntimeReadiness(): Promise<RuntimeReadiness> {
-    return getRuntimeReadiness(this.services);
+    return getRuntimeReadiness({
+      ...this.services,
+      httpHostCheck: () =>
+        this.httpHostEligible && this.bootMode === undefined
+          ? (this.httpHost?.health() ?? {
+              status: "healthy",
+              message: "HTTP host not started",
+            })
+          : {
+              status: "healthy",
+              message: "HTTP host excluded from this execution mode",
+            },
+    });
   }
 }

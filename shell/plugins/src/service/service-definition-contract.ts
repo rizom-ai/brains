@@ -725,6 +725,7 @@ interface ServiceDefinitionCore<
         readonly profileKinds: { getResolved(): ResolvedProfileSelection };
         readonly publicSkills: { list(): Promise<PublicSkill[]> };
         readonly plugins: Pick<IPluginsNamespace, "has">;
+        readonly http: { isConfigured(): boolean };
         readonly siteUrl: string | undefined;
         /**
          * The other doors this caller should be shown.

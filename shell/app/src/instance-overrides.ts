@@ -1,3 +1,4 @@
+import { httpConfigSchema } from "@brains/plugins/contracts/http-host";
 import { interpolateEnv } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
 import {
@@ -80,6 +81,7 @@ type InstanceOverridesSchema = z.ZodObject<
     logLevel: z.ZodOptional<typeof overrideLogLevelSchema>;
     logFile: z.ZodOptional<z.ZodString>;
     port: z.ZodOptional<z.ZodNumber>;
+    http: z.ZodOptional<typeof httpConfigSchema>;
     domain: z.ZodOptional<z.ZodString>;
     database: z.ZodOptional<z.ZodString>;
     embedding: z.ZodOptional<
@@ -168,7 +170,8 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
   logFile: z.string().optional(),
 
   /** Production server port */
-  port: z.number().optional(),
+  port: z.number().int().min(0).max(65535).optional(),
+  http: httpConfigSchema.optional(),
 
   /** Production domain */
   domain: z.string().optional(),
@@ -223,7 +226,18 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
    *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
    *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
    */
-  plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
+  plugins: z
+    .record(z.string(), pluginOverrideEntrySchema)
+    .superRefine((plugins, context) => {
+      if ("webserver" in plugins)
+        context.addIssue({
+          code: "custom",
+          path: ["webserver"],
+          message:
+            "plugins.webserver was removed. Use port for the production listener and http for serving settings; preview shares the production port.",
+        });
+    })
+    .optional(),
 
   /** Permission rules */
   permissions: z

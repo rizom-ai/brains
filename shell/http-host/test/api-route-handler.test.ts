@@ -5,7 +5,7 @@ import type { RegisteredApiRoute } from "@brains/plugins";
 import { createApiRouteHandler } from "../src/api-server";
 import { createMockMessageBus, type IMessageBus } from "@brains/plugins/test";
 
-describe("webserver exports", () => {
+describe("HTTP host exports", () => {
   it("does not export a standalone API server", async () => {
     const exports = await import("../src");
     expect(Object.keys(exports)).not.toContain("ApiServer");
@@ -63,7 +63,7 @@ describe("createApiRouteHandler", () => {
         payload: expect.objectContaining({
           args: { email: "test@example.com" },
         }),
-        sender: "webserver",
+        sender: "http",
       });
     });
 
@@ -88,7 +88,7 @@ describe("createApiRouteHandler", () => {
         payload: expect.objectContaining({
           args: { email: "test@example.com" },
         }),
-        sender: "webserver",
+        sender: "http",
       });
     });
   });
@@ -112,7 +112,7 @@ describe("createApiRouteHandler", () => {
         payload: expect.objectContaining({
           toolName: "newsletter_subscribers",
         }),
-        sender: "webserver",
+        sender: "http",
       });
     });
 
@@ -133,13 +133,13 @@ describe("createApiRouteHandler", () => {
         type: "plugin:newsletter:tool:execute",
         payload: expect.objectContaining({
           toolName: "newsletter_subscribe",
-          interfaceType: "webserver",
+          interfaceType: "http",
           actor: {
             kind: "external",
-            externalActorId: createExternalActorId("webserver", "anonymous"),
+            externalActorId: createExternalActorId("http", "anonymous"),
           },
         }),
-        sender: "webserver",
+        sender: "http",
       });
     });
   });

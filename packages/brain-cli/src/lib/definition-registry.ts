@@ -8,42 +8,6 @@ import type { BrainDefinition as DeclarativeBrainDefinition } from "@brains/app/
 
 type LoadableBrainDefinition = BrainDefinition | DeclarativeBrainDefinition;
 
-function withRuntimeOwnedInterfaceHost(
-  definition: DeclarativeBrainDefinition,
-): BrainDefinition {
-  const normalized = normalizeDeclarativeBrainDefinition(definition);
-  if (
-    !definition.plugins.some(
-      ({ definition: plugin }) => plugin.family === "interface",
-    )
-  ) {
-    return normalized;
-  }
-  const alreadyHostsRoutes =
-    normalized.interfaces.some(([id]) => id === "webserver") ||
-    normalized.capabilities.some(([id]) => id === "webserver");
-  if (alreadyHostsRoutes) return normalized;
-
-  const webserver = getCanonicalDefinition().interfaces.find(
-    ([id]) => id === "webserver",
-  );
-  if (!webserver) {
-    throw new Error("Canonical runtime has no webserver interface host");
-  }
-  return {
-    ...normalized,
-    interfaces: [...normalized.interfaces, webserver],
-    ...(normalized.bundles
-      ? {
-          bundles: normalized.bundles.map((bundle) => ({
-            ...bundle,
-            members: [...bundle.members, "webserver"],
-          })),
-        }
-      : {}),
-  };
-}
-
 let canonicalDefinition: BrainDefinition | undefined;
 
 /** Install the one bundled canonical definition during package startup. */
@@ -90,7 +54,7 @@ export async function loadDefinition(
   }
   await registerBrainDefinitionPackages(name, definition, process.cwd());
   return isDeclarativeBrainDefinition(definition)
-    ? withRuntimeOwnedInterfaceHost(definition)
+    ? normalizeDeclarativeBrainDefinition(definition)
     : definition;
 }
 

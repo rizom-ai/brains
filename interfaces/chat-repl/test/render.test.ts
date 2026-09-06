@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { ResponseRenderDirective } from "@brains/sdk/interfaces";
+import type { ResponseRenderDirective } from "@brains/plugins";
 import {
   formatApprovalResultText,
   renderTerminalAnswer,

@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **23 of 28 packages converted**
+Phases 1 through 5 done, phase 6 underway; **23 of 27 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
@@ -13,14 +13,14 @@ Phases 1 through 5 done, phase 6 underway; **23 of 28 packages converted**
 `@brains/content-pipeline`,
 `@brains/dashboard`).
 
-The five that remain all still extend a base class: `webserver`,
-`directory-sync`, `site-builder`, `site-content`, `studio`. Three that are converted —
+The four that remain all still extend a base class: `directory-sync`,
+`site-builder`, `site-content`, `studio`. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
 The count has been wrong three times, each time because it was taken from
-directories on disk. It is **28 tracked `package.json` files** under
-`plugins/` (21) and `interfaces/` (7) — `git ls-files 'plugins/*/package.json'
+directories on disk. It is now **27 tracked `package.json` files** under
+`plugins/` (21) and `interfaces/` (6); `webserver` moved to `shell/http-host` rather than converting. Inventory command — `git ls-files 'plugins/*/package.json'
 'interfaces/*/package.json'`. The earlier 29 and 30 counted `plugins/cms`,
 which holds nothing but a stale `dist/`, and `plugins/email-triage`, an empty
 directory; both are untracked leftovers of main's CMS-to-Studio rename, with

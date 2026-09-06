@@ -1,4 +1,5 @@
-import { defineMessageInterface, z } from "@brains/sdk/interfaces";
+import { defineMessageInterface } from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";

@@ -111,6 +111,7 @@ export function createProfiledShell(
   const shell = createMockShell({
     ...(options.domain && { domain: options.domain }),
     profileKind: kind,
+    httpConfigured: options.web ?? false,
   });
   shell.getProfileKindRegistry().register("test", {
     kind,
@@ -119,13 +120,6 @@ export function createProfiledShell(
     labels: { singular: kind, plural: `${kind}s` },
   });
   shell.getProfileKindRegistry().finalize();
-  if (options.web) {
-    const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-    shell.getPluginPackageName = (pluginId): string | undefined =>
-      pluginId === "webserver"
-        ? "@brains/webserver"
-        : getPluginPackageName(pluginId);
-  }
   return shell;
 }
 

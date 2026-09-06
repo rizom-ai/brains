@@ -37,6 +37,8 @@ export interface ServerManagerOptions {
    * Bun.serve idle timeout in seconds. Defaults to {@link WEBSERVER_IDLE_TIMEOUT_SECONDS}.
    */
   idleTimeout?: number;
+  /** Grace period before cancelling requests and closing remaining sockets. */
+  shutdownGracePeriodMs?: number;
   /** Override for `Bun.serve`, for tests. Defaults to `Bun.serve`. */
   serve?: ServeFn;
 }
@@ -92,7 +94,7 @@ interface AppOptions {
  */
 export interface RunningServer {
   readonly port: number | undefined;
-  stop(): Promise<void> | void;
+  stop(closeActiveConnections?: boolean): Promise<void> | void;
 }
 
 /** The options this manager passes, and the server it expects back. */
@@ -107,6 +109,10 @@ export class ServerManager {
   private options: ServerManagerOptions;
   private routes: readonly RegisteredHttpRoute[] = Object.freeze([]);
   private productionServer: RunningServer | null = null;
+  private closing = false;
+  private stopPromise: Promise<void> | undefined;
+  private shutdownController = new AbortController();
+  private readonly requests = new Set<Promise<Response>>();
 
   private isPreviewHost(host: string | null): boolean {
     if (!host) {
@@ -135,6 +141,9 @@ export class ServerManager {
       return;
     }
 
+    this.closing = false;
+    this.stopPromise = undefined;
+    this.shutdownController = new AbortController();
     this.routes = Object.freeze([...resolveConfiguredRoutes(this.options)]);
 
     const productionApp = this.createApp({
@@ -160,21 +169,25 @@ export class ServerManager {
       this.productionServer = serve({
         port: this.options.productionPort,
         idleTimeout: this.options.idleTimeout ?? WEBSERVER_IDLE_TIMEOUT_SECONDS,
-        fetch: async (req) => {
-          const fastResponse = await this.serveImageFastPath(req);
-          if (fastResponse) return fastResponse;
+        fetch: (request) =>
+          this.admitRequest(request, async (req) => {
+            const fastResponse = await this.serveImageFastPath(req);
+            if (fastResponse) return fastResponse;
 
-          const requestPath = new URL(req.url).pathname;
-          if (requestPath === "/health" || requestPath.startsWith("/health/")) {
+            const requestPath = new URL(req.url).pathname;
+            if (
+              requestPath === "/health" ||
+              requestPath.startsWith("/health/")
+            ) {
+              return productionApp.fetch(req);
+            }
+
+            if (previewApp && this.isPreviewHost(req.headers.get("host"))) {
+              return previewApp.fetch(req);
+            }
+
             return productionApp.fetch(req);
-          }
-
-          if (previewApp && this.isPreviewHost(req.headers.get("host"))) {
-            return previewApp.fetch(req);
-          }
-
-          return productionApp.fetch(req);
-        },
+          }),
       });
     } catch (error) {
       const msg = String(error);
@@ -195,12 +208,55 @@ export class ServerManager {
     );
   }
 
-  async stop(): Promise<void> {
-    if (this.productionServer) {
-      await this.productionServer.stop();
+  stop(): Promise<void> {
+    this.stopPromise ??= this.stopServer();
+    return this.stopPromise;
+  }
+
+  private async stopServer(): Promise<void> {
+    this.closing = true;
+    const server = this.productionServer;
+    if (!server) return;
+    const reason = new Error("HTTP host shutting down");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const graceful = Promise.resolve(server.stop());
+      const forced = new Promise<void>((resolveStop, reject) => {
+        timer = setTimeout(() => {
+          this.shutdownController.abort(reason);
+          Promise.resolve()
+            .then(() => server.stop(true))
+            .then(resolveStop, reject);
+        }, this.options.shutdownGracePeriodMs ?? 5_000);
+      });
+      await Promise.race([graceful, forced]);
+    } finally {
+      if (timer) clearTimeout(timer);
+      this.shutdownController.abort(reason);
+      // Socket closure does not imply handler completion. Cancellation-aware
+      // handlers settle before the shell releases their services.
+      await Promise.allSettled([...this.requests]);
       this.productionServer = null;
+      this.logger.debug("HTTP host stopped");
     }
-    this.logger.debug("Webserver stopped");
+  }
+
+  private async admitRequest(
+    request: Request,
+    handle: (request: Request) => Promise<Response>,
+  ): Promise<Response> {
+    if (this.closing)
+      return new Response("HTTP host shutting down", { status: 503 });
+    const admitted = new Request(request, {
+      signal: AbortSignal.any([request.signal, this.shutdownController.signal]),
+    });
+    const task = handle(admitted);
+    this.requests.add(task);
+    try {
+      return await task;
+    } finally {
+      this.requests.delete(task);
+    }
   }
 
   getStatus(): {

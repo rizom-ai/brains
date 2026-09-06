@@ -298,9 +298,11 @@
       "version": "0.2.0-alpha.355",
       "dependencies": {
         "@brains/sdk": "workspace:*",
+        "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
       },
       "devDependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -382,6 +384,7 @@
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/bun": "^1.4.0",
@@ -416,6 +419,7 @@
       "name": "@brains/chat",
       "version": "0.2.0-alpha.355",
       "dependencies": {
+        "@brains/auth-service": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -487,6 +491,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/mcp-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -505,6 +510,7 @@
         "@brains/console-theme": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "@streamdown/cjk": "^1.0.3",
         "@streamdown/code": "^1.1.1",
@@ -533,26 +539,6 @@
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.0.3",
         "happy-dom": "^20.10.6",
-        "typescript": "^7.0.2",
-      },
-    },
-    "interfaces/webserver": {
-      "name": "@brains/webserver",
-      "version": "0.2.0-alpha.355",
-      "dependencies": {
-        "@brains/contracts": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "@hono/bun-compress": "^0.1.1",
-        "hono": "^4.12.25",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.4.0",
-        "@types/node": "^24.13.3",
-        "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
@@ -586,6 +572,7 @@
         "@brains/app": "workspace:*",
         "@brains/assessment": "workspace:*",
         "@brains/atproto": "workspace:*",
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/atproto-registry": "workspace:*",
         "@brains/auth-service": "workspace:*",
         "@brains/blog": "workspace:*",
@@ -643,7 +630,6 @@
         "@brains/unified-inbox": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/web-chat": "workspace:*",
-        "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
         "@rizom/theme-default": "workspace:*",
         "@types/bun": "^1.4.0",
@@ -672,6 +658,7 @@
         "@brains/deploy-support": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/runtime-state": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -886,7 +873,6 @@
       "name": "@brains/dashboard",
       "version": "0.2.0-alpha.355",
       "dependencies": {
-        "@brains/auth-service": "workspace:*",
         "@brains/console-theme": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/operator-view-react": "workspace:*",
@@ -897,6 +883,7 @@
         "react-dom": "^19.2.7",
       },
       "devDependencies": {
+        "@brains/auth-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/plugins": "workspace:*",
@@ -945,6 +932,7 @@
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/job-queue": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -963,6 +951,7 @@
       "dependencies": {
         "@brains/content-formatters": "workspace:*",
         "@brains/sdk": "workspace:*",
+        "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
       },
@@ -1064,6 +1053,7 @@
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/runtime-state": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "xstate": "^5.32.1",
       },
@@ -1231,6 +1221,7 @@
       "version": "0.2.0-alpha.355",
       "dependencies": {
         "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "@rizom/brain-ui": "workspace:*",
         "react": "^19.2.7",
@@ -1815,6 +1806,7 @@
         "@brains/conversation-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/http-host": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/mcp-service": "workspace:*",
@@ -1846,6 +1838,26 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "drizzle-kit": "^0.31.10",
+        "typescript": "^7.0.2",
+      },
+    },
+    "shell/http-host": {
+      "name": "@brains/http-host",
+      "version": "0.2.0-alpha.355",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@hono/bun-compress": "^0.1.1",
+        "hono": "^4.12.25",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/node": "^24.13.3",
+        "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
@@ -2298,6 +2310,8 @@
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:shared/eslint-config"],
 
+    "@brains/http-host": ["@brains/http-host@workspace:shell/http-host"],
+
     "@brains/http-signatures": ["@brains/http-signatures@workspace:shared/http-signatures"],
 
     "@brains/identity-service": ["@brains/identity-service@workspace:shell/identity-service"],
@@ -2397,8 +2411,6 @@
     "@brains/utils": ["@brains/utils@workspace:shared/utils"],
 
     "@brains/web-chat": ["@brains/web-chat@workspace:interfaces/web-chat"],
-
-    "@brains/webserver": ["@brains/webserver@workspace:interfaces/webserver"],
 
     "@brains/wishlist": ["@brains/wishlist@workspace:entities/wishlist"],
 

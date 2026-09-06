@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/sdk": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "@rizom/brain-ui": "workspace:*"
   },

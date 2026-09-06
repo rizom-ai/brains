@@ -8,6 +8,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "xstate": "^5.32.1"
   },

@@ -184,7 +184,6 @@ function exportDeployConfig(io: CliIo, config: AppConfig): void {
     // Ports
     ports: {
       default: deployment.ports.default,
-      preview: deployment.ports.preview,
       production: deployment.ports.production,
     },
     // CDN
@@ -323,7 +322,7 @@ async function runCliCommand(io: CliIo, config: AppConfig): Promise<void> {
  * Headless mode: boot brain without daemons, invoke a tool, print result, exit.
  *
  * Used by `brain list`, `brain get`, `brain sync`, etc.
- * Skips all interface plugins (MCP, Discord, webserver) — only loads
+ * Skips all interface plugins (MCP, Discord) — only loads
  * entity plugins and service plugins.
  */
 async function runTool(io: CliIo, config: AppConfig): Promise<void> {

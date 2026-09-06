@@ -535,6 +535,7 @@ class DeclarativeServicePlugin<
           profileKinds: context.profileKinds,
           publicSkills: context.publicSkills,
           plugins: context.plugins,
+          http: context.http,
           siteUrl: context.siteUrl,
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {

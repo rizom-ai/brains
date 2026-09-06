@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import type { ContentVisibility } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { installA2A, installWebserverPlugin } from "./helpers/install";
+import { installA2A } from "./helpers/install";
 
 interface SkillFixture {
   id: string;
@@ -73,8 +73,7 @@ describe("agent card excludes non-public skills", () => {
     }
 
     // The card is served from the shared host, built on first request.
-    installWebserverPlugin(harness);
-    const a2a = await installA2A(harness, { port: 0 });
+    const a2a = await installA2A(harness, { inbound: true });
     harness.getMockShell().getProfileKindRegistry().finalize();
 
     const card = await a2a.agentCard();

@@ -1,5 +1,5 @@
 {
-  "name": "@brains/webserver",
+  "name": "@brains/http-host",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.355",
   "dependencies": {
