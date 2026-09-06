@@ -68,6 +68,7 @@ import type {
   ServiceJobReference,
   ServiceJobStatus,
   ServiceActiveJob,
+  ServiceEntityShapes,
   ServiceRecentJob,
   ServiceJobs,
   ServiceResourceDefinition,
@@ -441,16 +442,7 @@ class DeclarativeServicePlugin<
         dataDir: context.dataDir,
         jobs: this.jobs(),
         auth: this.requireShell().getAuthRegistry(),
-        // Read-only shape questions; the registry's registering half stays
-        // the runtime's.
-        entityShapes: {
-          frontmatterSchema: (entityType) =>
-            context.entities.getEffectiveFrontmatterSchema(entityType),
-          isSingleton: (entityType) =>
-            context.entities.getAdapter(entityType)?.isSingleton === true,
-          bodyTemplate: (entityType) =>
-            context.entities.getAdapter(entityType)?.getBodyTemplate() ?? "",
-        },
+        entityShapes: entityShapesOf(context),
       });
     }
   }
@@ -566,6 +558,7 @@ class DeclarativeServicePlugin<
             capabilities: (name) => context.templates.getCapabilities(name),
           },
           operatorEntities: createOperatorEntities(this.requireShell()),
+          entityShapes: entityShapesOf(context),
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,
@@ -1603,6 +1596,26 @@ function parseJobData(data: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Read-only shape questions about entity types; the registry's registering
+ * half stays the runtime's.
+ */
+function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
+  return {
+    frontmatterSchema: (entityType) =>
+      context.entities.getEffectiveFrontmatterSchema(entityType),
+    isSingleton: (entityType) =>
+      context.entities.getAdapter(entityType)?.isSingleton === true,
+    bodyTemplate: (entityType) =>
+      context.entities.getAdapter(entityType)?.getBodyTemplate() ?? "",
+    // Absent means a body, which is what most types have.
+    hasBody: (entityType) =>
+      context.entities.getAdapter(entityType)?.hasBody !== false,
+    parse: (entityType, markdown) =>
+      context.entities.getAdapter(entityType)?.fromMarkdown(markdown),
+  };
 }
 
 /** One queued job, as a declaration reads it. */

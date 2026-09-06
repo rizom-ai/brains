@@ -408,6 +408,7 @@ export {
   type ServiceCorpusSearch,
   type ServiceJudge,
   type ServiceEntityExtension,
+  type ServiceEntityShapes,
   type ServiceInteractionDeclaration,
   type ServiceEvalHandler,
   type ServiceJobBinding,

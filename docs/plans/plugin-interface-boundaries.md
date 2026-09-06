@@ -1093,6 +1093,35 @@ against studio's shell rather than guessed:
   actor and never a level. The actor gained `canonicalId`, so a write made
   in a console attributes to the same person as one made in chat.
 
+With the caller settled, the rest of the conversion was measured the same
+way: every read studio makes of its plugin context, tallied, against what
+the declared setup context offers. Most is already there — entity reads,
+messaging, permissions, identity, `plugins.has`, channels, the inbox, the
+follow-up registry, `surfaces` for the two places it walked `webRoutes`
+looking for web-chat's and the dashboard's paths, and `judge` for the three
+places assist calls `ai.generateObject`, which is judge's shape exactly. What
+is not there is five things, each small and each with studio as the named
+consumer:
+
+1. **Entity shapes at setup, and two more reads on them.** `entityShapes`
+   is offered to `ready` only; the editor needs it in route handlers, so
+   it goes on setup. It also needs two reads `ServiceEntityShapes` does not
+   have: `parse(entityType, markdown)`, because a type's own adapter is what
+   says what its markdown means and the editor assembles an entity from a
+   form; and `hasBody(entityType)`, because a body sent for a bodyless type
+   is refused rather than stored.
+2. **An operator upload, through the owning type.** The editor accepts a
+   file, asks which type's save handler takes that media type, stages the
+   bytes, and hands the staged upload to that handler as the caller. That is
+   `createRouted`'s shape for uploads: a type declares how an upload becomes
+   one of it, and the console goes through the declaration. It belongs on
+   `operatorEntities` as `upload`, taking the caller like the rest.
+3. **`themeCSS`**, which the editor shell inlines. A string read.
+4. **`readiness`**, which the overview shows. A read the base context
+   already answers and the setup context does not.
+5. **Eight subscriptions become declarations**: the four registrations and
+   four entity-and-job activity listeners the overview keeps.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so

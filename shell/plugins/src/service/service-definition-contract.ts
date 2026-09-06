@@ -70,6 +70,19 @@ export interface ServiceEntityShapes {
   frontmatterSchema(entityType: string): z.ZodObject<z.ZodRawShape> | undefined;
   isSingleton(entityType: string): boolean;
   bodyTemplate(entityType: string): string;
+  /**
+   * Whether a type carries a body beneath its frontmatter. An editor
+   * refuses a body sent for a type that has none, rather than storing it.
+   * Named consumer: @brains/studio.
+   */
+  hasBody(entityType: string): boolean;
+  /**
+   * What a type's markdown means, as its own adapter says. An editor
+   * assembles an entity from a form and writes markdown; the adapter is what
+   * turns that back into the entity's parts. Nothing for a type nobody
+   * registered. Named consumer: @brains/studio.
+   */
+  parse(entityType: string, markdown: string): Partial<BaseEntity> | undefined;
 }
 
 /** The narrow publish surface a service gets, not the whole bus. */
@@ -870,6 +883,12 @@ interface ServiceDefinitionCore<
          * Named consumer: @brains/studio.
          */
         readonly operatorEntities: OperatorEntityWrites;
+        /**
+         * What shape each entity type takes. Offered here as well as to
+         * `ready`, because an editor reads shapes inside route handlers.
+         * Named consumer: @brains/studio.
+         */
+        readonly entityShapes: ServiceEntityShapes;
         /**
          * The other doors this caller should be shown.
          *

@@ -103,6 +103,7 @@ export type {
   ServicePromptDefinition,
   ServicePublishDeclaration,
   ServiceResourceDefinition,
+  ServiceEntityShapes,
   ServiceSchema,
   ServiceSchemaMap,
   ServiceViewSchema,
