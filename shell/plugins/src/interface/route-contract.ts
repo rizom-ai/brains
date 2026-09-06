@@ -53,27 +53,33 @@ export interface InterfaceCaller {
 }
 
 /**
- * Who the authenticator recognised, and what it already knows about them.
+ * A route somebody else's protocol reaches.
  *
- * A channel interface knows an id on its own transport and nothing more, so
- * it answers with an id and lets the runtime decide what that id is worth
- * here. An authenticator that verified a first-party session is the other
- * case: it has already read the person's role out of the brain's own user
- * store, and being told to re-derive it from channel grants would answer
- * "public" about the brain's own operator. Say what you know; the runtime
- * asks only about what you did not say.
- * Named consumer: @brains/studio.
+ * The package knows an id on its own transport and nothing about what that
+ * id is worth here, so it answers with the id and the runtime decides the
+ * rest from the grants this declaration holds. What a package's code never
+ * decides is a permission level: that is the runtime's, or it is nobody's.
  */
-export interface AuthenticatedActor extends InterfaceActor {
-  readonly permission?: UserPermissionLevel | undefined;
-  readonly isAnchor?: boolean | undefined;
-}
-
 export interface ProtocolSecurityDefinition {
   readonly kind: "protocol";
   authenticate(context: {
     readonly request: Request;
-  }): AuthenticatedActor | null | Promise<AuthenticatedActor | null>;
+  }): InterfaceActor | null | Promise<InterfaceActor | null>;
+}
+
+/**
+ * A route a signed-in person reaches.
+ *
+ * The package declares only that a first-party session is required. The
+ * runtime resolves the session against the brain's own auth service and
+ * reads the person's role, anchor flag and canonical identity from there —
+ * the authority that applies to a browser session, which the per-interface
+ * grants a channel identity resolves through are not. Nothing the package
+ * wrote is consulted about who the caller is or what they may do.
+ * Named consumer: @brains/studio.
+ */
+export interface SessionSecurityDefinition {
+  readonly kind: "session";
 }
 
 export interface PublicSecurityDefinition {
@@ -81,9 +87,11 @@ export interface PublicSecurityDefinition {
 }
 
 export type RouteSecurity =
-  PublicSecurityDefinition | ProtocolSecurityDefinition;
+  | PublicSecurityDefinition
+  | ProtocolSecurityDefinition
+  | SessionSecurityDefinition;
 export type RouteCaller<TSecurity extends RouteSecurity> =
-  TSecurity extends ProtocolSecurityDefinition ? InterfaceCaller : null;
+  TSecurity extends PublicSecurityDefinition ? null : InterfaceCaller;
 export type RouteBody<TSchema extends InterfaceSchema | undefined> =
   TSchema extends InterfaceSchema ? z.output<TSchema> : undefined;
 

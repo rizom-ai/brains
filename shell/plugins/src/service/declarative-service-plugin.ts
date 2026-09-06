@@ -348,6 +348,7 @@ class DeclarativeServicePlugin<
           isAnchor: (declarationId, userId) =>
             this.requireRoutePermissions().isAnchor(declarationId, userId),
         },
+        auth: () => this.getContext().auth,
       }),
     );
   }

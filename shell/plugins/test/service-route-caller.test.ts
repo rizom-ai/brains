@@ -1,12 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
+import { createStubAuth, createTestPrincipal } from "../src/test/stub-auth";
 import {
   defineRoute,
   defineServicePlugin,
   instantiatePluginPackageDefinition,
   verbatim,
-  type InterfaceCaller,
+  type RouteSecurity,
 } from "../src";
 
 /** What the route saw, so a test can read the caller off the answer. */
@@ -18,18 +19,12 @@ const seenSchema = z.object({
 });
 
 /**
- * A route that reports its caller, secured by an authenticator the test
- * supplies — which is what a console does: it verifies its own session and
- * knows who it verified.
+ * A route that reports its caller, under whichever security the test
+ * declares, on a brain whose auth service knows whoever the test signs in.
  */
 async function callerSeenBy(
-  authenticate: () => {
-    id: string;
-    displayName?: string;
-    canonicalId?: string;
-    permission?: InterfaceCaller["permission"];
-    isAnchor?: boolean;
-  } | null,
+  security: RouteSecurity,
+  signedIn?: ReturnType<typeof createTestPrincipal>,
 ): Promise<z.output<typeof seenSchema> | number> {
   const definition = defineServicePlugin({
     id: "studio",
@@ -38,22 +33,30 @@ async function callerSeenBy(
       defineRoute({
         method: "GET",
         path: "/studio/api/me",
-        security: { kind: "protocol", authenticate },
+        security,
         response: verbatim,
         handle: ({ caller }) =>
-          Response.json({
-            actorId: caller.actor.id,
-            permission: caller.permission,
-            isAnchor: caller.isAnchor,
-            ...(caller.actor.canonicalId !== undefined
-              ? { canonicalId: caller.actor.canonicalId }
-              : {}),
-          }),
+          Response.json(
+            caller
+              ? {
+                  actorId: caller.actor.id,
+                  permission: caller.permission,
+                  isAnchor: caller.isAnchor,
+                  ...(caller.actor.canonicalId !== undefined
+                    ? { canonicalId: caller.actor.canonicalId }
+                    : {}),
+                }
+              : null,
+          ),
       }),
     ],
   });
 
   const harness = createPluginHarness();
+  harness
+    .getMockShell()
+    .getAuthRegistry()
+    .register(createStubAuth({ principal: signedIn }));
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},
@@ -73,34 +76,60 @@ async function callerSeenBy(
 }
 
 /**
- * Who a route is talking to.
+ * Who a route is talking to, and who decides.
  *
  * A channel interface knows an id on its own transport and asks the runtime
- * what that id is worth here. A console is the other case: it verified a
- * first-party session and already knows the person's role, so being told to
- * re-derive it from channel grants would answer "public" about the brain's
- * own operator. The authenticator says what it knows; the runtime asks only
- * about what it was not told.
+ * what that id is worth here. A console is the other case: the person is
+ * signed in to the brain itself, and the brain's own auth service is the
+ * authority on their role. In neither case does the package's code decide a
+ * permission level — the route says how the caller authenticates, and the
+ * runtime says what they are worth.
  * Named consumer: @brains/studio.
  */
 describe("the caller a declared route is given", () => {
-  it("refuses a request its authenticator does not recognise", async () => {
-    expect(await callerSeenBy(() => null)).toBe(401);
+  it("refuses a protocol request its authenticator does not recognise", async () => {
+    expect(
+      await callerSeenBy({ kind: "protocol", authenticate: () => null }),
+    ).toBe(401);
   });
 
-  it("asks the runtime what an id is worth when the authenticator does not say", async () => {
-    const seen = await callerSeenBy(() => ({ id: "someone" }));
+  it("asks the runtime what a protocol id is worth here", async () => {
+    const seen = await callerSeenBy({
+      kind: "protocol",
+      authenticate: () => ({ id: "someone" }),
+    });
 
     // Nobody granted this id anything on this declaration, so it is public.
     expect(seen).toMatchObject({ actorId: "someone", permission: "public" });
   });
 
-  it("takes the permission the authenticator verified", async () => {
-    const seen = await callerSeenBy(() => ({
-      id: "operator",
-      permission: "admin",
-      isAnchor: true,
-    }));
+  it("refuses a session route when nobody is signed in", async () => {
+    expect(await callerSeenBy({ kind: "session" })).toBe(401);
+  });
+
+  it("refuses a session that is not active", async () => {
+    expect(
+      await callerSeenBy(
+        { kind: "session" },
+        createTestPrincipal({ status: "suspended" }),
+      ),
+    ).toBe(401);
+  });
+
+  /**
+   * The brain's own operator, signed in with a passkey. Their role lives in
+   * the brain's user store, not in per-interface grants — which would have
+   * answered "public" about the person who owns the brain.
+   */
+  it("gives a session route the person the brain signed in", async () => {
+    const seen = await callerSeenBy(
+      { kind: "session" },
+      createTestPrincipal({
+        userId: "operator",
+        permissionLevel: "admin",
+        isAnchor: true,
+      }),
+    );
 
     expect(seen).toMatchObject({
       actorId: "operator",
@@ -114,12 +143,11 @@ describe("the caller a declared route is given", () => {
    * the console is the same person as one made in chat, and attribution
    * only says so if the caller carries the link.
    */
-  it("carries the canonical identity the authenticator resolved", async () => {
-    const seen = await callerSeenBy(() => ({
-      id: "operator",
-      canonicalId: "person-1",
-      permission: "admin",
-    }));
+  it("carries the person behind the session", async () => {
+    const seen = await callerSeenBy(
+      { kind: "session" },
+      createTestPrincipal({ userId: "operator", canonicalId: "person-1" }),
+    );
 
     expect(seen).toMatchObject({ canonicalId: "person-1" });
   });

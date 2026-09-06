@@ -321,6 +321,7 @@ class DeclarativeInterfacePlugin<
     return createRuntimeRoute(definition, {
       declarationId: this.definition.id,
       permissions: context.permissions,
+      auth: () => context.auth,
     });
   }
 }

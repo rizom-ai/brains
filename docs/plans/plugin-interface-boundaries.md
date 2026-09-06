@@ -1081,12 +1081,17 @@ against studio's shell rather than guessed:
   store: routing that through channel grants answers "public" about the
   brain's own operator.
 
-  So an authenticator now says what it knows. `authenticate` may return a
-  permission and an anchor flag alongside the actor, and the runtime asks
-  the grant machinery only about what it was not told. Every existing
-  channel interface answers with an id alone and is unaffected. The actor
-  also gained `canonicalId`, so a write made in a console attributes to the
-  same person as one made in chat.
+  The first cut let an authenticator return a permission alongside the
+  actor, and the runtime deferred to it. That was the wrong direction: it
+  made any package's code an authority on what a caller is worth, which is
+  the hole this tranche exists to close, moved to the route boundary. The
+  fix is decided as low as it can be. A route declares
+  `security: { kind: "session" }` and nothing else; the runtime resolves
+  the session against the brain's own auth service and reads the person's
+  role, anchor flag and canonical identity from there. `protocol` keeps
+  doing what it does for channel identities, and `authenticate` returns an
+  actor and never a level. The actor gained `canonicalId`, so a write made
+  in a console attributes to the same person as one made in chat.
 
 ## Validation
 

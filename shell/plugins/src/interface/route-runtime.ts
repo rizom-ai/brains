@@ -1,4 +1,5 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import type { IAuthRegistry } from "../contracts/auth-registry";
 import {
   isVerbatimResponse,
   type AnyInterfaceRouteDefinition,
@@ -28,6 +29,12 @@ export function createRuntimeRoute(
     /** The declaration id permissions are scoped to. */
     readonly declarationId: string;
     readonly permissions: RoutePermissions;
+    /**
+     * Where a first-party session is resolved, for a `session` route. Read
+     * lazily: a plugin can say what it serves before it is registered, and
+     * only serves it after.
+     */
+    readonly auth: () => IAuthRegistry;
   },
 ): WebRouteDefinition {
   return {
@@ -36,7 +43,7 @@ export function createRuntimeRoute(
     public: true,
     handler: async (request): Promise<Response> => {
       const caller = await resolveCaller(definition, request, options);
-      if (definition.security.kind === "protocol" && !caller) {
+      if (definition.security.kind !== "public" && !caller) {
         return jsonError("Unauthorized", 401);
       }
 
@@ -78,26 +85,50 @@ async function resolveCaller(
   options: {
     readonly declarationId: string;
     readonly permissions: RoutePermissions;
+    readonly auth: () => IAuthRegistry;
   },
 ): Promise<InterfaceCaller | null> {
-  if (definition.security.kind === "public") return null;
-  const authenticated = await definition.security.authenticate({ request });
-  if (!authenticated?.id.trim()) return null;
-  // What the authenticator verified stands; what it left unsaid is the
-  // runtime's to answer from the grants this declaration holds.
-  const {
-    permission: verified,
-    isAnchor: verifiedAnchor,
-    ...actor
-  } = authenticated;
-  const permission: UserPermissionLevel =
-    verified ??
-    options.permissions.getUserLevel(options.declarationId, actor.id);
+  switch (definition.security.kind) {
+    case "public":
+      return null;
+    case "session":
+      return resolveSessionCaller(request, options.auth());
+    case "protocol": {
+      const actor = await definition.security.authenticate({ request });
+      if (!actor?.id.trim()) return null;
+      const permission: UserPermissionLevel = options.permissions.getUserLevel(
+        options.declarationId,
+        actor.id,
+      );
+      return Object.freeze({
+        actor: Object.freeze({ ...actor }),
+        permission,
+        isAnchor: options.permissions.isAnchor(options.declarationId, actor.id),
+      });
+    }
+  }
+}
+
+/**
+ * The person a first-party session belongs to, as the brain's own auth
+ * service knows them. A session that is not active — invited, suspended —
+ * is nobody, the same as no session at all.
+ */
+async function resolveSessionCaller(
+  request: Request,
+  auth: IAuthRegistry,
+): Promise<InterfaceCaller | null> {
+  const principal = await auth.getCaller()?.resolveSession(request);
+  if (principal?.status !== "active") return null;
   return Object.freeze({
-    actor: Object.freeze({ ...actor }),
-    permission,
-    isAnchor:
-      verifiedAnchor ??
-      options.permissions.isAnchor(options.declarationId, actor.id),
+    actor: Object.freeze({
+      id: principal.userId,
+      displayName: principal.displayName,
+      ...(principal.canonicalId !== undefined
+        ? { canonicalId: principal.canonicalId }
+        : {}),
+    }),
+    permission: principal.permissionLevel,
+    isAnchor: principal.isAnchor,
   });
 }

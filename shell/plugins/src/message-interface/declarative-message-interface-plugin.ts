@@ -367,6 +367,7 @@ class DeclarativeMessageInterfacePlugin<
       createRuntimeRoute(route, {
         declarationId: this.definition.id,
         permissions: context.permissions,
+        auth: () => context.auth,
       }),
     );
 
