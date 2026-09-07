@@ -273,6 +273,8 @@ Definitions and schema vocabulary:
 - `ServiceBatchStatus`
 - `ServiceGitBroker`
 - `ServiceRole`
+- `EntityMirror`
+- `EntityMirrorClient`
 
 Types:
 

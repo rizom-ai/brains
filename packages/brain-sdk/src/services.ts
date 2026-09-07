@@ -193,6 +193,8 @@ export type {
   ServiceBatchStatus,
   ServiceGitBroker,
   ServiceRole,
+  EntityMirror,
+  EntityMirrorClient,
   ServicePublisher,
   ServicePublishingAccess,
 } from "@brains/plugins";

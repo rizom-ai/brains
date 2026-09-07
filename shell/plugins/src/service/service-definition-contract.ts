@@ -18,6 +18,7 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { OperationalHealthProvider } from "../operational-health-registry";
+import type { EntityMirror } from "./entity-mirror";
 import type { ToolAgent, ToolAsk } from "./tool-agent";
 
 /**
@@ -863,6 +864,14 @@ interface ServiceDefinitionCore<
          * the broker reads them here. Named consumer: @brains/directory-sync.
          */
         readonly gitBroker: ServiceGitBroker;
+        /**
+         * The brain's records as a mirror keeps them: every type, read and
+         * written as the file says, with the export ledger and the bulk
+         * coordination a sweep runs under. The third admitted cross-type
+         * write path, after `createRouted` and `operatorEntities`; here
+         * the file is the record. Named consumer: @brains/directory-sync.
+         */
+        readonly entityMirror: EntityMirror;
         /**
          * Finding the transport that serves a channel type.
          *

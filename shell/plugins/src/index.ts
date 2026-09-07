@@ -423,6 +423,13 @@ export {
   type ServiceBatchStatus,
   type ServiceGitBroker,
   type ServiceRole,
+} from "./public/service-definition";
+export {
+  createEntityMirror,
+  type EntityMirror,
+  type EntityMirrorClient,
+} from "./service/entity-mirror";
+export {
   type ServiceTemplateDefinition,
   type ServiceSchema,
   type ServiceViewSchema,

@@ -581,7 +581,9 @@
         "ServiceBatchReference",
         "ServiceBatchStatus",
         "ServiceGitBroker",
-        "ServiceRole"
+        "ServiceRole",
+        "EntityMirror",
+        "EntityMirrorClient"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

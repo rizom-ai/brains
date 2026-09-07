@@ -101,6 +101,12 @@ export type {
   ServiceBatchStatus,
   ServiceGitBroker,
   ServiceRole,
+} from "../service/service-definition-contract";
+export type {
+  EntityMirror,
+  EntityMirrorClient,
+} from "../service/entity-mirror";
+export type {
   ServiceJobStatus,
   ServiceLifecycle,
   ServiceMessagePublisher,

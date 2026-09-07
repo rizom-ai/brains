@@ -26,6 +26,7 @@ import type { AccountSettingsRegistration } from "../operator/account-settings-r
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createOperatorEntities } from "./operator-entities";
+import { createEntityMirror } from "./entity-mirror";
 import type { StaticSiteOutput } from "../contracts/http-host";
 import {
   createServicePublishingAccess,
@@ -573,6 +574,9 @@ class DeclarativeServicePlugin<
             socket: context.gitBrokerSocket,
             checkout: context.gitBrokerCheckout,
           },
+          entityMirror: createEntityMirror(this.requireShell(), {
+            pluginId: this.id,
+          }),
           readiness: () => context.readiness(),
           entityDisplay: context.entityDisplay,
           surfaces: (options) =>
