@@ -631,6 +631,7 @@
     "site--react-authoring-runtime",
     "site--relicense-agpl-apache-split",
     "site--rizom-btn-shared-defaults",
+    "site--rizom-homepage-rail",
     "site--zod-4-2-minimum",
     "site-build-preflight-diagnostics",
     "site-build-prepared-snapshots",

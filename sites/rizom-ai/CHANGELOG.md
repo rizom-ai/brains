@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.248
+
+### Patch Changes
+
+- [#234](https://github.com/rizom-ai/brains/pull/234) [`38386e9`](https://github.com/rizom-ai/brains/commit/38386e9cb20ba080f599f4e920ccb8044f727cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore the shared desktop mycelium rail and its gutter on the homepage while retaining the approved composition and theme surfaces. The rail remains hidden below the existing xl breakpoint.
+
 ## 0.2.0-alpha.247
 
 ### Patch Changes
