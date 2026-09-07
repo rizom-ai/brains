@@ -275,6 +275,9 @@ Definitions and schema vocabulary:
 - `ServiceRole`
 - `EntityMirror`
 - `EntityMirrorClient`
+- `ServiceJobHooks`
+- `ServiceJobSettledContext`
+- `ServiceJobSettledHandler`
 
 Types:
 

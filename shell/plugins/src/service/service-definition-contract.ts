@@ -251,6 +251,35 @@ export type ServiceJobHandler<TInput, TOutput> = (
   context: ServiceJobHandlerContext<TInput>,
 ) => Promise<TOutput>;
 
+/**
+ * What a job is told once the queue has settled it: the input it ran with,
+ * and whether it completed or, after every retry, failed.
+ */
+export interface ServiceJobSettledContext<TInput> {
+  readonly input: TInput;
+  readonly jobId: string;
+  readonly outcome: "completed" | "failed";
+  /** The failure the queue recorded; absent when the job completed. */
+  readonly error?: Error | undefined;
+}
+
+export type ServiceJobSettledHandler<TInput> = (
+  context: ServiceJobSettledContext<TInput>,
+) => Promise<void>;
+
+/**
+ * Hooks around a job's run that the queue drives rather than the handler.
+ *
+ * `settled` runs once, after the queue has durably recorded the terminal
+ * state — after retries, which is why it is not folded into the handler: a
+ * throwing run may still be retried, and a child of a bulk mutation is only
+ * accounted for once the queue has given up or succeeded.
+ * Named consumer: @brains/directory-sync.
+ */
+export interface ServiceJobHooks<TInput> {
+  readonly settled?: ServiceJobSettledHandler<TInput> | undefined;
+}
+
 export interface ServiceJobBinding<
   TDefinition extends ServiceJobDefinition = ServiceJobDefinition,
 > {
@@ -261,6 +290,10 @@ export interface ServiceJobBinding<
 const jobHandlers = new WeakMap<
   ServiceJobBinding,
   ServiceJobHandler<unknown, unknown>
+>();
+const jobSettledHandlers = new WeakMap<
+  ServiceJobBinding,
+  ServiceJobSettledHandler<unknown>
 >();
 
 export interface ServiceJobDefinition<
@@ -289,6 +322,7 @@ export interface ServiceJobDefinition<
     ((input: z.output<TInputSchema>) => string) | undefined;
   handle(
     handler: ServiceJobHandler<z.output<TInputSchema>, z.input<TOutputSchema>>,
+    hooks?: ServiceJobHooks<z.output<TInputSchema>>,
   ): ServiceJobBinding<
     ServiceJobDefinition<TName, TInputSchema, TOutputSchema>
   >;
@@ -339,13 +373,22 @@ export function defineJob<
   const job: ServiceJobDefinition<TName, TInputSchema, TOutputSchema> = {
     kind: "rizom-service-job",
     ...definition,
-    handle(handler) {
+    handle(handler, hooks) {
       const binding: ServiceJobBinding<
         ServiceJobDefinition<TName, TInputSchema, TOutputSchema>
       > = Object.freeze({
         kind: "rizom-service-job-binding",
         definition: job,
       });
+      const settled = hooks?.settled;
+      if (settled) {
+        jobSettledHandlers.set(binding, async (context) =>
+          settled({
+            ...context,
+            input: parseWithSchema<TInputSchema>(job.input, context.input),
+          }),
+        );
+      }
       // Erase here, where TInputSchema is known. A handler taking
       // Context<TInput> is not assignable to one taking Context<unknown> —
       // that is contravariance, and asserting it away would let an unvalidated
@@ -373,6 +416,13 @@ export function getServiceJobHandler(
     );
   }
   return handler;
+}
+
+/** The settle hook a binding declared, if it declared one. */
+export function getServiceJobSettledHandler(
+  binding: ServiceJobBinding,
+): ServiceJobSettledHandler<unknown> | undefined {
+  return jobSettledHandlers.get(binding);
 }
 
 export function parseServiceDeadline(deadline: ServiceDeadline): number {

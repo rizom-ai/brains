@@ -82,6 +82,7 @@ import type {
 } from "./service-definition-contract";
 import {
   getServiceJobHandler,
+  getServiceJobSettledHandler,
   parseServiceDeadline,
 } from "./service-definition-contract";
 import {
@@ -149,9 +150,23 @@ function runtimeJobHandler(
 ): JobHandler<string, unknown, unknown> {
   const definition = binding.definition;
   const handler = getServiceJobHandler(binding);
+  const settled = getServiceJobSettledHandler(binding);
   return {
     ...(definition.deadline
       ? { executionTimeoutMs: parseServiceDeadline(definition.deadline) }
+      : {}),
+    // The queue drives these once the terminal state is durable — after
+    // retries — which is the only moment a child of a bulk mutation can be
+    // accounted for.
+    ...(settled
+      ? {
+          onTerminalSuccess: async (input, jobId): Promise<void> => {
+            await settled({ input, jobId, outcome: "completed" });
+          },
+          onTerminalError: async (error, input, jobId): Promise<void> => {
+            await settled({ input, jobId, outcome: "failed", error });
+          },
+        }
       : {}),
     validateAndParse(data): unknown | null {
       const parsed = definition.input.safeParse(data);

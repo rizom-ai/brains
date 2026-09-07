@@ -583,7 +583,10 @@
         "ServiceGitBroker",
         "ServiceRole",
         "EntityMirror",
-        "EntityMirrorClient"
+        "EntityMirrorClient",
+        "ServiceJobHooks",
+        "ServiceJobSettledContext",
+        "ServiceJobSettledHandler"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",
