@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   parseMarkdownWithFrontmatter,
   z,
   type AnyEntityDataSourceDefinition,
@@ -66,52 +66,51 @@ function parseAgentData(entity: AgentEntity): AgentWithData {
  * The status filter is contributed to the query rather than applied to a
  * fetched page, so a filtered directory pages over the filtered set.
  */
-export const agentDataSource: AnyEntityDataSourceDefinition =
-  defineEntityDataSource({
-    id: AGENT_DATASOURCE_ID,
-    name: "Agent Directory DataSource",
-    description: "Fetches and transforms agent entities for rendering",
-    entityType: AGENT_ENTITY_TYPE,
-    entitySchema: agentEntitySchema,
-    defaultSort: [{ field: "discoveredAt", direction: "desc" }],
-    defaultLimit: 50,
-    // Agents are addressed by slug in routes; two records of one agent
-    // resolve to one page.
-    lookupField: "slug",
-    enableNavigation: true,
-    filter: (query) => {
-      const status = agentStatusQuerySchema.safeParse(query["status"]);
-      return status.success
-        ? { filter: { metadata: { status: status.data } } }
-        : undefined;
-    },
-    transform: (entity: AgentEntity): AgentWithData => parseAgentData(entity),
-    // Return type inferred: the runtime needs a plain JSON object, and an
-    // interface gets no implicit index signature. `agentViewSchema` is what
-    // checks the shape, at render time.
-    list: (
-      items: unknown[],
-      pagination: PaginationInfo | null,
-      query: BaseQuery,
-    ) => {
-      const status = agentStatusQuerySchema.safeParse(query["status"]);
-      return {
-        agents: items.map((item) => agentViewSchema.parse(item)),
-        pagination,
-        baseUrl: query.baseUrl ?? null,
-        selectedStatus: status.success ? status.data : ("all" as const),
-      };
-    },
-    // Parsed rather than asserted, the way `list` above already does it: the
-    // transform is erased by the definition's published type, so the schema is
-    // what proves each neighbour is an agent.
-    detail: ({ item, navigation }): AgentDetailData => ({
-      agent: agentWithDataSchema.parse(item),
-      prevAgent: navigation?.prev
-        ? agentWithDataSchema.parse(navigation.prev)
-        : null,
-      nextAgent: navigation?.next
-        ? agentWithDataSchema.parse(navigation.next)
-        : null,
-    }),
-  });
+export const agentDataSource: AnyEntityDataSourceDefinition = defineDataSource({
+  id: AGENT_DATASOURCE_ID,
+  name: "Agent Directory DataSource",
+  description: "Fetches and transforms agent entities for rendering",
+  entityType: AGENT_ENTITY_TYPE,
+  entitySchema: agentEntitySchema,
+  defaultSort: [{ field: "discoveredAt", direction: "desc" }],
+  defaultLimit: 50,
+  // Agents are addressed by slug in routes; two records of one agent
+  // resolve to one page.
+  lookupField: "slug",
+  enableNavigation: true,
+  filter: (query) => {
+    const status = agentStatusQuerySchema.safeParse(query["status"]);
+    return status.success
+      ? { filter: { metadata: { status: status.data } } }
+      : undefined;
+  },
+  transform: (entity: AgentEntity): AgentWithData => parseAgentData(entity),
+  // Return type inferred: the runtime needs a plain JSON object, and an
+  // interface gets no implicit index signature. `agentViewSchema` is what
+  // checks the shape, at render time.
+  list: (
+    items: unknown[],
+    pagination: PaginationInfo | null,
+    query: BaseQuery,
+  ) => {
+    const status = agentStatusQuerySchema.safeParse(query["status"]);
+    return {
+      agents: items.map((item) => agentViewSchema.parse(item)),
+      pagination,
+      baseUrl: query.baseUrl ?? null,
+      selectedStatus: status.success ? status.data : ("all" as const),
+    };
+  },
+  // Parsed rather than asserted, the way `list` above already does it: the
+  // transform is erased by the definition's published type, so the schema is
+  // what proves each neighbour is an agent.
+  detail: ({ item, navigation }): AgentDetailData => ({
+    agent: agentWithDataSchema.parse(item),
+    prevAgent: navigation?.prev
+      ? agentWithDataSchema.parse(navigation.prev)
+      : null,
+    nextAgent: navigation?.next
+      ? agentWithDataSchema.parse(navigation.next)
+      : null,
+  }),
+});

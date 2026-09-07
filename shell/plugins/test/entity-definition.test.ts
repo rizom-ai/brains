@@ -44,7 +44,6 @@ import {
   createTemplate,
   defineDataSource,
   defineEntity,
-  defineEntityDataSource,
   defineEntityDashboardWidget,
   defineEntityPackage,
   defineDashboardWidget,
@@ -307,7 +306,7 @@ describe("entity package definitions", () => {
       purpose: "A guide backed by a data source.",
       metadata: z.object({ title: z.string() }),
       dataSources: [
-        defineEntityDataSource({
+        defineDataSource({
           id: "entities",
           name: "Guide entities",
           description: "Lists guides for templates",
