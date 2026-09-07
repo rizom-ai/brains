@@ -623,6 +623,7 @@
     "site--fold-rizom-ui-into-site",
     "site--json-native-section-content",
     "site--living-memory-background",
+    "site--living-memory-homepage",
     "site--living-memory-page",
     "site--living-memory-topbar-background",
     "site--production-react-bundle-contract",

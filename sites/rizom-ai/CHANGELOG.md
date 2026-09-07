@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.247
+
+### Patch Changes
+
+- [#233](https://github.com/rizom-ai/brains/pull/233) [`b0d505a`](https://github.com/rizom-ai/brains/commit/b0d505ae95a878826f2f17fa61196e2b7b4541f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the approved living-memory composition the sole homepage at `/`. Remove the `/living-memory` route without a redirect, retain existing authored content identities, and apply its navigation and styles at the root URL.
+
 ## 0.2.0-alpha.246
 
 ### Patch Changes
