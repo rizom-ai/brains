@@ -67,36 +67,28 @@ function buttondownProvider(client: ButtondownClient): PublishProvider {
 export function newsletterService(
   dependencies: NewsletterDependencies = {},
 ): ServicePackageDefinition<typeof newsletterConfigSchema> {
-  // Routes exist as a function of config alone, so composition tooling can
-  // list them before anything is registered; the client they answer with is
-  // built at setup, so the route closes over the state setup produces.
-  let state: NewsletterState | undefined;
-
   return defineServicePlugin(
     {
       id: "buttondown",
       config: newsletterConfigSchema,
       entities: [newsletterEntity],
 
-      setup: ({ config, logger }): NewsletterState => {
-        state = {
-          client: config.apiKey
-            ? new ButtondownClient(
-                { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
-                logger,
-                { fetch: dependencies.fetch },
-              )
-            : undefined,
-          logger,
-        };
-        return state;
-      },
+      setup: ({ config, logger }): NewsletterState => ({
+        client: config.apiKey
+          ? new ButtondownClient(
+              { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
+              logger,
+              { fetch: dependencies.fetch },
+            )
+          : undefined,
+        logger,
+      }),
     },
     {
       tools: ({ state }) =>
         state.client ? [subscribersTool(state.client)] : [],
 
-      routes: ({ config }) =>
+      routes: ({ config, state }) =>
         config.apiKey
           ? [
               defineRoute({
@@ -104,8 +96,7 @@ export function newsletterService(
                 path: SUBSCRIBE_PATH,
                 security: { kind: "public" },
                 response: verbatim,
-                handle: ({ request }) =>
-                  handleSubscribe(request, state?.client),
+                handle: ({ request }) => handleSubscribe(request, state.client),
               }),
             ]
           : [],

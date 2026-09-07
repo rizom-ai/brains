@@ -38,11 +38,15 @@ function normalizeRoutePath(path: string): string {
 }
 
 /**
- * A declared interface knows its routes once it is registered, not when it is
+ * A declared package knows its routes once it is registered, not when it is
  * constructed: the slot that returns them reads the state `setup` built, and
  * there is no state before the runtime hands it a context. Registering here
  * keeps this manifest measuring the whole HTTP surface rather than quietly
  * shrinking to whatever is still written as a class.
+ *
+ * Services register too. Registration is not where a service does its work —
+ * bring-up runs from `lifecycle.onRegistered`, which only `finalizeRegistration`
+ * triggers, and this never calls it — so nothing here starts a sync or a build.
  */
 async function registered(plugins: readonly Plugin[]): Promise<Plugin[]> {
   const shell = createMockShell({ logger: createSilentLogger("routes") });
@@ -50,11 +54,7 @@ async function registered(plugins: readonly Plugin[]): Promise<Plugin[]> {
   // that mounts on the shared HTTP host asks whether the host is present, and
   // the answer must not depend on registration order.
   for (const plugin of plugins) shell.addPlugin(plugin);
-  // Interfaces only. They are the family whose routes are built from the state
-  // `setup` returned, so they report nothing until registered — and registering
-  // a service here would run real work this manifest has no business starting:
-  // directory-sync would begin a filesystem sync, site-builder a build.
-  for (const plugin of plugins.filter(({ type }) => type === "interface")) {
+  for (const plugin of plugins) {
     try {
       await plugin.register(shell);
     } catch {
@@ -248,13 +248,15 @@ describe("canonical HTTP route manifests", () => {
     );
   });
 
-  test("records the configured newsletter subscribe route without making it a public fixture", () => {
+  test("records the configured newsletter subscribe route without making it a public fixture", async () => {
     expect(
       routeManifest(
-        instantiatePluginPackageDefinition(
-          newsletterPackage,
-          { apiKey: "fixture-api-key" },
-          { name: "@brains/newsletter", version: "0.0.0-test" },
+        await registered(
+          instantiatePluginPackageDefinition(
+            newsletterPackage,
+            { apiKey: "fixture-api-key" },
+            { name: "@brains/newsletter", version: "0.0.0-test" },
+          ),
         ),
       ),
     ).toEqual(readExpected("newsletter"));
