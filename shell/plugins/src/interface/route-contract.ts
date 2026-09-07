@@ -123,8 +123,28 @@ export function isVerbatimResponse(value: unknown): value is VerbatimResponse {
 
 export type RouteResponse = InterfaceSchema | VerbatimResponse;
 
+/**
+ * What a handler answers with: a written response, or the data its declared
+ * schema accepts.
+ *
+ * The runtime parses the return value with that schema before sending it, so
+ * the static type is the schema's input side — a schema that transforms takes
+ * what goes in, not what comes out.
+ *
+ * A response declaring a literal or an enum is the one case that asks
+ * something of the author: this type stays unresolved while the schema is
+ * still being inferred, so an object literal in the handler widens `"ok"` to
+ * `string` and the check fails. Write `{ status: "ok" as const }`, or annotate
+ * the handler's return. The alternatives that avoid it — a bare type parameter
+ * for the answer, or overloads on the schema's input — both accept a wrong
+ * shape, which is the defect this type exists to catch.
+ */
 export type RouteOutput<TResponse extends RouteResponse> =
-  TResponse extends VerbatimResponse ? Response : unknown;
+  TResponse extends VerbatimResponse
+    ? Response
+    : TResponse extends InterfaceSchema
+      ? z.input<TResponse>
+      : never;
 
 export interface InterfaceRouteInput<
   TMethod extends RouteMethod = RouteMethod,
