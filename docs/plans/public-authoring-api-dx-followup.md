@@ -73,26 +73,30 @@ Primary implementation locations on the branch:
   worker isolation, and shutdown. A smaller API must not weaken these rules.
 - Prefer existing helpers and package boundaries. No generic service locator,
   universal context, new builder DSL, or speculative capability framework.
-- Audit what has actually been published before removing or reclassifying a
-  contract. Ask for an explicit compatibility decision per affected public
-  contract; do not silently remove guarantees or add compatibility shims.
+- Stable `0.2.0` has not been released. Make the intended breaking API cleanup
+  now; existing alpha APIs are not a compatibility constraint. Remove superseded
+  exports and signatures rather than retaining legacy aliases, overloads, shims,
+  or dual authoring paths. Update built-ins, fixtures, and documentation together.
+  This does not authorize destructive changes to persisted user data.
 - Do not chase a target symbol count. Measure eliminated author bookkeeping,
   consistent semantics, and understandable examples instead.
 
 ## Phase 1 — Establish the contract and repair its evidence
 
 1. Inventory the actual family exports and built declarations against the
-   ledger. Record each capability's intended audience, consumers, stability,
-   first published version where known, and transitive runtime dependencies.
+   ledger. Record each capability's intended audience, consumers, proposed
+   stability, and transitive runtime dependencies. Prior alpha publication does
+   not require retaining a capability in the final `0.2.0` API.
 2. Add a reverse ledger check: every stable and advanced public symbol must
    exist, with the correct type/value export. Keep intentional removals in
    their own category; do not weaken checks to accommodate missing symbols.
 3. Add a generated external compile consumer importing every promised type
    and value from the packed entry points, not private workspace sources.
    Exercise runtime imports for value exports as well.
-4. Resolve the 13 missing names by restoring the intended exports or obtaining
-   an explicit contract-change decision. Reconcile the ledger and release
-   documentation in the same change.
+4. Resolve the 13 missing names against the intended final surface: export the
+   names we intend to keep and remove unwanted names from the candidate ledger.
+   Do not restore an unwanted API solely to preserve an alpha promise. Reconcile
+   the ledger, consumer fixtures, and release documentation in the same change.
 
 **Exit:** the ledger describes what an external consumer can actually import,
 not merely the source files the workspace can resolve.
@@ -470,7 +474,8 @@ shim or a promised one-line type fix.
 2. Unify service routes with the existing instance-bound lifecycle; add the
    Newsletter two-instance regression and typed route-response checks.
 3. Combine service templates/views and the two data-source helper names, one
-   contract change at a time, with explicit compatibility decisions.
+   contract change at a time. Migrate consumers and remove superseded alpha forms;
+   do not retain compatibility aliases or parallel APIs.
 4. Consolidate entity readers, request responses, and resource/state vocabulary
    through their existing machinery. Establish the shared coded-error contract
    alongside request-failure semantics. No new top-level helper by default.
@@ -480,9 +485,9 @@ shim or a promised one-line type fix.
    guide/golden examples with the resulting API.
 
 No abstractions from this investigation require a new general public framework.
-Unresolved decisions are API compatibility, third-party host support, and the
-final setup typing shape; none blocks the two concrete runtime/type regressions
-from receiving focused tests.
+Unresolved design decisions are third-party host support and the final setup
+typing shape; neither blocks the two concrete runtime/type regressions from
+receiving focused tests. Preserving legacy alpha APIs is not a requirement.
 
 ## Phase 3 — Curate the public boundary
 
@@ -537,14 +542,18 @@ same model.
 Align the external authoring guide, migration guidance, and release ledger with
 the existing stable-nomination policy:
 
-- The frozen promise starts with stable `0.2.0`; current alpha evidence does not
-  establish a stable baseline or authorize silent changes to published contracts.
-- Stable `0.2.x` patches preserve documented signatures and observable semantics,
+- **Before stable `0.2.0`:** breaking authoring changes are allowed and belong in
+  this cleanup. No legacy alpha compatibility is required. Replace old forms,
+  migrate consumers, and update examples; do not defer simplifications to `0.3.0`
+  or add compatibility shims.
+- **Starting with stable `0.2.0`:** freeze the resulting documented contract.
+  Subsequent `0.2.x` patches preserve signatures and observable semantics,
   including error-code meanings. Compatible additions are allowed; message text
   may change because it is not a machine-readable contract.
-- Breaking authoring changes may land in `0.3.0`, with migration guidance, rather
-  than ordinary `0.2.x` patches. Any security exception follows the existing release
-  policy rather than becoming a general escape hatch.
+- **After that freeze:** breaking authoring changes belong in `0.3.0` or a later
+  minor release, with migration guidance, rather than ordinary `0.2.x` patches.
+  Any security exception follows the existing release policy rather than becoming
+  a general escape hatch.
 - Explain which contracts are stable versus advanced alpha integrations. Do not
   imply that every exported symbol has the same stability guarantee.
 
@@ -587,9 +596,12 @@ posture script and rebuild preview through the running app before inspecting
 - [ ] Golden examples compile unchanged outside the monorepo and exercise live paths.
 - [ ] Public SDK failures have stable codes; consumers do not match message text,
       and supported cross-boundary mappings preserve codes without leaking internals.
-- [ ] Compatibility decisions and any advanced-contract additions are explicit.
-- [ ] Public documentation states the stable `0.2.x` patch promise, the alpha
-      baseline distinction, and the minor-version breaking-change policy.
+- [ ] Superseded alpha APIs are removed, consumers are migrated, and no legacy
+      aliases, compatibility shims, or dual authoring paths remain from this cleanup.
+- [ ] Any advanced-contract additions are explicit.
+- [ ] Public documentation allows breaking cleanup before stable `0.2.0` and
+      states that the `0.2.x` patch promise and later-minor breaking-change policy
+      apply only after the stable freeze.
 - [ ] The API is reviewed from the external examples, not signed off solely because
       built-in conversions and repository tests pass.
 
