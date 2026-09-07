@@ -2,7 +2,21 @@
 
 ## Status and scope
 
-**Investigation complete; decisions made; API implementation not started.**
+**Investigation complete; decisions made; slice 1 landed except the packed
+consumer.**
+
+Landed on `work/plugin-api-boundaries`: `RouteOutput` types a handler's answer
+from the response schema (7d5c88334a); the services entry stopped publishing
+the console registration shapes and the entity-service client the mirror was
+picked from, which was failing `surface:check` (2c569219d5); the ledger gained
+its reverse check, the 13 input types are exported, and 13 further names the
+ledger promised but no entry point ever exported are delisted.
+
+Two findings from that work, both worth carrying: the branch was failing
+`surface:check` before any of this, because the pre-commit hook does not run
+it; and removing an export did not hide the mirror, because setup returns it,
+so `EntityMirrorClient` is now written out instead of picked from the internal
+service. Taking the mirror off every setup context is still E's work.
 Follow-up to the public API/DX review
 of `work/plugin-api-boundaries` at
 [`ad97dc8e3`](https://github.com/rizom-ai/brains/tree/ad97dc8e352cc0fd41685f6248f6d15e6e6197cc).
@@ -101,7 +115,9 @@ Primary implementation locations on the branch:
    their own category; do not weaken checks to accommodate missing symbols.
 3. Add a generated external compile consumer importing every promised type
    and value from the packed entry points, not private workspace sources.
-   Exercise runtime imports for value exports as well.
+   Exercise runtime imports for value exports as well. **Still open**: the
+   reverse check reads the entry sources, which catches a promise nobody can
+   import but not a name the build fails to emit.
 4. Export the 13 missing names from the family entry points in this slice.
    They are not undecided: every one is an input type of a stable helper.
    `EntityDefinitionConfig`, `EntitySeedDefinition`, and `EntitySeedTrigger`
@@ -636,9 +652,9 @@ needs are small.
 
 ### Recommended implementation order
 
-1. Land the ledger check machinery: reverse built-declaration checks, the
-   packed-consumer fixture, and the 13 missing re-exports. Fix `RouteOutput`
-   as a standalone commit in this slice.
+1. ~~Land the ledger check machinery: reverse built-declaration checks and
+   the 13 missing re-exports. Fix `RouteOutput` as a standalone commit in this
+   slice.~~ Done, except the packed-consumer fixture (step 3 above).
 2. Implement the two-stage setup pattern across families, with compile
    fixtures covering both property orders for services, generic interfaces,
    and message interfaces. Every later slice expresses its contracts in that
