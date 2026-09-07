@@ -92,10 +92,6 @@ export interface DashboardDeps {
 export function dashboardService(
   deps: DashboardDeps = {},
 ): ServicePackageDefinition<typeof dashboardConfigSchema> {
-  // Routes are declared from config alone, so the page handler reaches its
-  // state through this rather than through an argument it is not given.
-  let held: DashboardState | undefined;
-
   return defineServicePlugin(
     {
       id: "dashboard",
@@ -129,7 +125,6 @@ export function dashboardService(
           },
         };
         logger.info("Dashboard registered", { routePath: config.routePath });
-        held = state;
         return state;
       },
     },
@@ -181,20 +176,20 @@ export function dashboardService(
         },
       ],
 
-      routes: ({ config }) => [
+      routes: ({ config, state }) => [
         defineRoute({
           method: "GET",
           path: config.routePath,
           security: { kind: "public" },
           response: verbatim,
-          handle: ({ request }) => renderDashboard(held, config, request),
+          handle: ({ request }) => renderDashboard(state, config, request),
         }),
         defineRoute({
           method: "GET",
           path: "/api/console/jump",
           security: { kind: "public" },
           response: verbatim,
-          handle: ({ request }) => answerConsoleJump(held, config, request),
+          handle: ({ request }) => answerConsoleJump(state, config, request),
         }),
         ...assetRoutes(config),
       ],
@@ -222,17 +217,10 @@ function assetRoutes(
 }
 
 async function renderDashboard(
-  state: DashboardState | undefined,
+  state: DashboardState,
   config: z.output<typeof dashboardConfigSchema>,
   request: Request,
 ): Promise<Response> {
-  if (!state) {
-    return new Response("Dashboard unavailable", {
-      status: 503,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
-  }
-
   const { reads } = state;
   const principal = await reads.auth.getCaller()?.resolveSession(request);
   const requestUrl = new URL(request.url);
@@ -334,12 +322,10 @@ async function renderDashboard(
 }
 
 async function answerConsoleJump(
-  state: DashboardState | undefined,
+  state: DashboardState,
   config: z.output<typeof dashboardConfigSchema>,
   request: Request,
 ): Promise<Response> {
-  if (!state) return Response.json({ groups: [] });
-
   const { reads } = state;
   const principal = await reads.auth.getCaller()?.resolveSession(request);
   if (!principal) {
