@@ -57,25 +57,14 @@ describe("templates and views a package's configuration declares", () => {
                   ...(section.namespace
                     ? { namespace: section.namespace }
                     : {}),
+                  description: section.title,
                   format: ({ value }: { value: { heading: string } }): string =>
                     `# ${value.heading}`,
                   parse: (content: string): { heading: string } => ({
                     heading: content.replace(/^# /u, ""),
                   }),
-                },
-              ]),
-            ),
-          views: ({ config }) =>
-            Object.fromEntries(
-              config.sections.map((section) => [
-                section.name,
-                {
-                  schema: sectionSchema,
-                  description: section.title,
-                  renderers: {
-                    web: ({ heading }: { heading: string }): ReactElement =>
-                      h("h1", {}, heading),
-                  },
+                  render: ({ heading }: { heading: string }): ReactElement =>
+                    h("h1", {}, heading),
                 },
               ]),
             ),

@@ -13,7 +13,7 @@ import {
 } from "./fill-section";
 import { GenerateOptionsSchema } from "./schemas/generate-options";
 import { siteContentPluginConfigSchema } from "./schemas/config";
-import { sectionTemplates, sectionViews } from "./sections";
+import { sectionTemplates } from "./sections";
 
 /** What a route tells this package about the sections it carries. */
 const routeSectionSchema = z.looseObject({
@@ -69,7 +69,6 @@ export function siteContentService(): ServicePackageDefinition<
       // The sections a brain configured, named from the namespace its author
       // chose because that is how a route names them.
       templates: ({ config }) => sectionTemplates(config.definitions),
-      views: ({ config }) => sectionViews(config.definitions),
 
       jobs: () => [handleFillSection()],
 

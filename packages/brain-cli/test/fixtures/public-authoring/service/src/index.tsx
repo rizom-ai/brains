@@ -86,29 +86,20 @@ export default defineServicePlugin(
       },
     },
 
-    // Templates validate render data before producing text.
+    // One declaration per template: how it reads as text, how it draws in a
+    // browser, or both. The schema is written once and validates either way.
     templates: {
       digest: {
         schema: digestResult,
+        description: "A compact reading-digest result.",
         format: ({ value }) =>
           `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
-      },
-    },
-
-    // A same-name view reuses the exact schema object and adds web rendering.
-    // Views are React components, the same authoring dialect as site sections.
-    views: {
-      digest: {
-        schema: digestResult,
-        description: "A compact reading-digest result.",
-        renderers: {
-          web: ({ summary, wordCount }) => (
-            <article>
-              <strong>{summary}</strong>
-              <small>{wordCount} words</small>
-            </article>
-          ),
-        },
+        render: ({ summary, wordCount }) => (
+          <article>
+            <strong>{summary}</strong>
+            <small>{wordCount} words</small>
+          </article>
+        ),
       },
     },
 

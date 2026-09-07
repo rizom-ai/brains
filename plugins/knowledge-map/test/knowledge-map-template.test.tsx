@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { KnowledgeMapTemplate } from "../src/knowledge-map-template";
 import type { KnowledgeMapTemplateData } from "../src/knowledge-map-template";
-import { getKnowledgeMapTemplate } from "../src/knowledge-map-template";
+import { knowledgeMapTemplate } from "../src/knowledge-map-template";
 
 /* The knowledge-map site template. The proof
    section — authored copy on the left, the live map on the right, honest
@@ -81,11 +81,11 @@ describe("KnowledgeMapTemplate", () => {
 
 describe("knowledge-map template registration", () => {
   test("registers with the datasource and a round-tripping overlay formatter", () => {
-    const template = getKnowledgeMapTemplate();
+    const template = knowledgeMapTemplate;
     // Local; the runtime scopes it to "@brains/knowledge-map:map", which
     // is the id a site route names.
     expect(template.dataSourceId).toBe("map");
-    expect(template.requiredPermission).toBe("public");
+    expect(template.permission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
 
     const copy = {

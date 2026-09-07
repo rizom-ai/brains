@@ -472,12 +472,13 @@ describe("public authoring 0.2 golden packages", () => {
       "resources:",
       "prompts:",
       "templates:",
-      "views:",
       "jobs:",
       "tools:",
     ]) {
       expect(service).toContain(capability);
     }
+    // One template declaration carries both halves: text and a renderer.
+    expect(service).toContain("render:");
     expect(service).toContain("entities.get(bookmark");
     expect(service).toContain("jobs.enqueue(compileReadingDigest, input)");
 

@@ -437,10 +437,9 @@ export {
 } from "./service/entity-mirror";
 export {
   type ServiceTemplateDefinition,
+  type ServiceRenderSchema,
   type ServiceSchema,
-  type ServiceViewSchema,
   type ServiceTemplateReads,
-  type ServiceViewDefinition,
   type ServiceJobStatus,
   type ServicePackageDefinition,
   type ServiceToolDefinition,

@@ -9,7 +9,7 @@ export {
   sectionEntityId,
   type FillSectionInput,
 } from "./fill-section";
-export { sectionTemplates, sectionViews } from "./sections";
+export { sectionTemplates } from "./sections";
 export { createSiteContentTemplates } from "./lib/site-content-definitions";
 export type { SiteContent, SiteContentMetadata } from "./schemas/site-content";
 export {

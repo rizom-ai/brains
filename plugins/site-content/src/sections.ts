@@ -3,11 +3,10 @@ import {
   type SiteContentDefinition,
 } from "@brains/site-composition";
 import type {
-  ServiceSchema,
   ServiceTemplateDefinition,
-  ServiceViewDefinition,
-  ServiceViewSchema,
+  ServiceRenderSchema,
 } from "@brains/sdk/services";
+import type { JsonObject } from "@brains/contracts";
 import { ensureArray } from "@brains/utils/array";
 
 /**
@@ -49,10 +48,10 @@ export function configuredDefinitions(
  */
 export function sectionTemplates(
   definitions: SiteContentDefinition | SiteContentDefinition[] | undefined,
-): Record<string, ServiceTemplateDefinition<ServiceSchema>> {
+): Record<string, ServiceTemplateDefinition<ServiceRenderSchema>> {
   const templates: Record<
     string,
-    ServiceTemplateDefinition<ServiceSchema>
+    ServiceTemplateDefinition<ServiceRenderSchema>
   > = {};
   for (const definition of configuredDefinitions(definitions)) {
     for (const [name, section] of Object.entries(definition.sections)) {
@@ -61,31 +60,16 @@ export function sectionTemplates(
         schema: parts.schema,
         namespace: definition.namespace,
         permission: parts.requiredPermission,
+        description: parts.description,
         // The runtime parses through the schema before formatting, so what
         // arrives here is this section shape whatever the slot type erased.
         format: ({ value }): string =>
           parts.formatter.format(parts.schema.parse(value)),
-        parse: (content): unknown => parts.formatter.parse(content),
+        parse: (content): JsonObject =>
+          parts.schema.parse(parts.formatter.parse(content)),
+        render: parts.component,
       };
     }
   }
   return templates;
-}
-
-/** The same sections, as the components that render them. */
-export function sectionViews(
-  definitions: SiteContentDefinition | SiteContentDefinition[] | undefined,
-): Record<string, ServiceViewDefinition<ServiceViewSchema>> {
-  const views: Record<string, ServiceViewDefinition<ServiceViewSchema>> = {};
-  for (const definition of configuredDefinitions(definitions)) {
-    for (const [name, section] of Object.entries(definition.sections)) {
-      const parts = sectionParts(section);
-      views[name] = {
-        schema: parts.schema,
-        description: parts.description,
-        renderers: { web: parts.component },
-      };
-    }
-  }
-  return views;
 }

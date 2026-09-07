@@ -231,10 +231,9 @@ export type {
 // Named consumer: @brains/site-content.
 export type {
   ServiceSchema,
+  ServiceRenderSchema,
   ServiceTemplateDefinition,
   ServiceTemplateReads,
-  ServiceViewDefinition,
-  ServiceViewSchema,
 } from "@brains/plugins";
 
 export type { StaticSiteOutput } from "@brains/plugins";

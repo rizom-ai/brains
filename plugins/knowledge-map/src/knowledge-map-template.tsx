@@ -1,11 +1,10 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 import { KnowledgeMap, knowledgeMapStyles } from "./knowledge-map";
 import { knowledgeMapDataSchema } from "./knowledge-map-data";
+import type { ServiceTemplateDefinition } from "@brains/sdk/services";
 import { KNOWLEDGE_MAP_LOCAL_ID } from "./constants";
 
 /**
@@ -317,17 +316,22 @@ const knowledgeMapCopyFormatter = new StructuredContentFormatter(
   },
 );
 
-export function getKnowledgeMapTemplate(): Template {
-  return createTemplate({
-    name: "knowledge-map",
-    description:
-      "The brain's corpus in semantic space — topic territories, published lights, honest counts",
-    schema: knowledgeMapTemplateSchema,
-    dataSourceId: KNOWLEDGE_MAP_LOCAL_ID,
-    overlayFormatter: knowledgeMapCopyFormatter,
-    requiredPermission: "public",
-    layout: {
-      component: KnowledgeMapTemplate,
-    },
-  });
-}
+/**
+ * The map, as the package declares it.
+ *
+ * Drawn from the corpus rather than authored, so it names the data source the
+ * runtime fills it from; an editor's words are laid over that through the
+ * overlay formatter. A site route names it as
+ * `@brains/knowledge-map:map`.
+ */
+export const knowledgeMapTemplate: ServiceTemplateDefinition<
+  typeof knowledgeMapTemplateSchema
+> = {
+  schema: knowledgeMapTemplateSchema,
+  description:
+    "The brain's corpus in semantic space — topic territories, published lights, honest counts",
+  permission: "public",
+  dataSourceId: KNOWLEDGE_MAP_LOCAL_ID,
+  overlayFormatter: knowledgeMapCopyFormatter,
+  render: KnowledgeMapTemplate,
+};
