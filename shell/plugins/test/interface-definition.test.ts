@@ -74,7 +74,7 @@ describe("declarative generic interfaces", () => {
           path: "/health",
           security: { kind: "public" },
           response: z.object({ status: z.literal("ok") }),
-          handle: () => ({ status: "ok" }),
+          handle: () => ({ status: "ok" as const }),
         }),
         defineRoute({
           method: "POST",
