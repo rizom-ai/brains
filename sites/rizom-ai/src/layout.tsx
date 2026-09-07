@@ -320,7 +320,7 @@ function MyceliumRail(): JSX.Element {
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none absolute top-0 -left-[18px] hidden h-full w-[210px] xl:block"
+      className="mycelium-rail pointer-events-none absolute top-0 -left-[18px] hidden h-full w-[210px] xl:block"
       viewBox="0 0 210 2400"
       preserveAspectRatio="xMidYMin slice"
     >
@@ -378,10 +378,13 @@ function RizomAiChrome({
       <div
         data-room={face}
         className={
-          livingMemory ? "living-memory-page relative" : "relative xl:pl-[68px]"
+          livingMemory
+            ? "living-memory-page relative xl:pl-[68px]"
+            : "relative xl:pl-[68px]"
         }
       >
-        {livingMemory ? <LivingMemoryStyles /> : <MyceliumRail />}
+        {livingMemory && <LivingMemoryStyles />}
+        <MyceliumRail />
         <header className="site-header sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip path={path} />
           <FaceNav face={face} umbrella={umbrella} />
