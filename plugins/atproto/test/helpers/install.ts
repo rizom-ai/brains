@@ -44,11 +44,20 @@ export function instantiate(
   return plugin;
 }
 
-/** The routes one configuration serves, as the shared HTTP host mounts them. */
-export function routesFor(
+/**
+ * The routes one configuration serves, as the shared HTTP host mounts them.
+ *
+ * Registered first: a route is built from what setup returned, so a plugin
+ * that has not registered has no state to answer from — which is also how
+ * the production collector reads routes, from registered plugins.
+ */
+export async function routesFor(
   config: AtprotoConfigInput = {},
-): WebRouteDefinition[] {
-  return instantiate(config).getWebRoutes?.() ?? [];
+  deps: AtprotoServiceDeps = {},
+): Promise<WebRouteDefinition[]> {
+  const plugin = instantiate(config, deps);
+  await plugin.register(createMockShell());
+  return plugin.getWebRoutes?.() ?? [];
 }
 
 /**
