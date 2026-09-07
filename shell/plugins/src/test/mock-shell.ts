@@ -928,6 +928,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // fake queue that forgets its own enqueues makes reconciliation code treat
   // every fresh job as pruned.
   const enqueuedJobs = new Map<string, JobInfo>();
+  let enqueuedBatchCount = 0;
   let enqueuedJobCount = 0;
 
   function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
@@ -993,16 +994,55 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Jobs namespace ---
   const jobs: IJobsNamespace = {
-    enqueueBatch: async () => `batch-${Date.now()}`,
+    // A batch is its operations filed under one root, as the real queue
+    // files them; the plugin-side helper has already scoped their types.
+    enqueueBatch: async (operations, options) => {
+      const batchId = options.rootJobId ?? `batch-${++enqueuedBatchCount}`;
+      for (const operation of operations) {
+        recordEnqueuedJob({
+          type: operation.type,
+          data: operation.data,
+          options: {
+            source: options.source,
+            ...(options.priority !== undefined
+              ? { priority: options.priority }
+              : {}),
+            metadata: {
+              ...options.metadata,
+              rootJobId: batchId,
+            },
+          },
+        });
+      }
+      return batchId;
+    },
     getActiveBatches: async () => [],
-    getBatchStatus: async (batchId: string) => ({
-      batchId,
-      totalOperations: 0,
-      completedOperations: 0,
-      failedOperations: 0,
-      errors: [],
-      status: "completed" as const,
-    }),
+    getBatchStatus: async (batchId: string) => {
+      const children = [...enqueuedJobs.values()].filter(
+        (job) => job.metadata["rootJobId"] === batchId,
+      );
+      const completed = children.filter(
+        (job) => job.status === "completed",
+      ).length;
+      const failed = children.filter((job) => job.status === "failed").length;
+      const settled = completed + failed === children.length;
+      return {
+        batchId,
+        totalOperations: children.length,
+        completedOperations: completed,
+        failedOperations: failed,
+        errors: children.flatMap((job) =>
+          job.lastError ? [job.lastError] : [],
+        ),
+        status: settled
+          ? failed > 0
+            ? ("failed" as const)
+            : ("completed" as const)
+          : children.some((job) => job.status === "processing")
+            ? ("processing" as const)
+            : ("pending" as const),
+      };
+    },
     getActiveJobs: async (types) =>
       listQueuedJobs(types).filter(
         (job) => job.status === "pending" || job.status === "processing",

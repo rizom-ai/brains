@@ -17,6 +17,7 @@ import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
 } from "../channel-registry";
+import type { OperationalHealthProvider } from "../operational-health-registry";
 import type { ToolAgent, ToolAsk } from "./tool-agent";
 
 /**
@@ -422,6 +423,44 @@ export interface ServiceRecentJob extends Omit<ServiceActiveJob, "status"> {
   readonly error?: string | undefined;
 }
 
+/** One job in a batch: a declaration this package registered, and its input. */
+export interface ServiceBatchOperation<
+  TDefinition extends AnyServiceJobDefinition = AnyServiceJobDefinition,
+> {
+  readonly definition: TDefinition;
+  readonly input: z.input<TDefinition["input"]>;
+}
+
+export interface ServiceBatchOptions {
+  /** Lower runs sooner; the queue's default when omitted. */
+  readonly priority?: number | undefined;
+  /**
+   * The root the children are filed under. Named when coordination of the
+   * work began elsewhere and the batch has to join it; otherwise the runtime
+   * mints one.
+   */
+  readonly rootJobId?: string | undefined;
+  /** A token the caller correlates progress events by. */
+  readonly progressToken?: string | number | undefined;
+  /** What the batch is working on, for progress reporting. */
+  readonly operationTarget?: string | undefined;
+}
+
+export interface ServiceBatchStatus {
+  readonly id: string;
+  readonly status: "pending" | "processing" | "completed" | "failed";
+  readonly total: number;
+  readonly completed: number;
+  readonly failed: number;
+  readonly errors: readonly string[];
+  readonly currentOperation?: string | undefined;
+}
+
+export interface ServiceBatchReference {
+  readonly id: string;
+  status(): Promise<ServiceBatchStatus | null>;
+}
+
 export interface ServiceJobs {
   /**
    * Work this package queued that is still pending or running.
@@ -462,6 +501,17 @@ export interface ServiceJobs {
     definition: TDefinition,
     id: string,
   ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null>;
+  /**
+   * Several jobs enqueued as one batch, so a sweep reports as one piece of
+   * work rather than as each file. Every operation names a job this package
+   * declared. Named consumer: @brains/directory-sync.
+   */
+  enqueueBatch(
+    operations: readonly ServiceBatchOperation[],
+    options?: ServiceBatchOptions,
+  ): Promise<ServiceBatchReference>;
+  /** How far a batch this package enqueued has got; null for one it did not. */
+  batchStatus(batchId: string): Promise<ServiceBatchStatus | null>;
 }
 
 export interface ServiceToolDefinition<
@@ -585,6 +635,22 @@ export interface ServiceCheckDeclaration {
 
 export interface ServiceLifecycle {
   onCleanup(cleanup: () => void | Promise<void>): void;
+}
+
+/**
+ * Which process a declared service is set up in. The scheduler is the one
+ * brain process that owns background work; a worker runs jobs and nothing
+ * else.
+ */
+export type ServiceRole = "scheduler" | "worker";
+
+/**
+ * Where the broker that owns this brain's git checkout listens, and where
+ * the checkout is. Both undefined when the brain has no owner.
+ */
+export interface ServiceGitBroker {
+  readonly socket: string | undefined;
+  readonly checkout: string | undefined;
 }
 
 /**
@@ -783,6 +849,20 @@ interface ServiceDefinitionCore<
     | ((context: {
         readonly config: z.output<TConfigSchema>;
         readonly lifecycle: ServiceLifecycle;
+        /**
+         * Which process this is. The runtime already withholds operator
+         * bindings from a worker; a package whose own duties differ by
+         * role — one that reconciles a checkout only where the scheduler
+         * runs, and must never open admission from a worker — reads which
+         * one it is in. Named consumer: @brains/directory-sync.
+         */
+        readonly role: ServiceRole;
+        /**
+         * The git broker's whereabouts, when the brain has one. Facts about
+         * the process the runtime already holds; the package that talks to
+         * the broker reads them here. Named consumer: @brains/directory-sync.
+         */
+        readonly gitBroker: ServiceGitBroker;
         /**
          * Finding the transport that serves a channel type.
          *
@@ -1276,6 +1356,19 @@ interface ServiceDefinitionCore<
         /** Providers reach the outside world, so they report what happens. */
         readonly logger: LoggerContract;
       }) => readonly ServicePublishDeclaration[])
+    | undefined;
+  /**
+   * Health checks this package reports, by name. A function of config and
+   * state, because whether a check exists at all can depend on what was
+   * configured. The runtime registers them once registration completes in
+   * the scheduling role and releases them on shutdown; a worker reports
+   * nothing. Named consumer: @brains/directory-sync.
+   */
+  readonly health?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => Readonly<Record<string, OperationalHealthProvider>>)
     | undefined;
   readonly dashboardWidgets?:
     | ((

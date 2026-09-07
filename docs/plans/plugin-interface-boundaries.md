@@ -1142,6 +1142,62 @@ once setup had run, so a composed brain listed three redirects and no
 editor. Routes are declared from configuration alone, and a handler reaches
 what setup built through a getter at the moment a request arrives.
 
+### The directory-sync slice: the filesystem is the other write path
+
+Directory-sync keeps the brain's records on disk and, when configured, in a
+git checkout the broker owns. It declares no entity type and writes every
+one: an import parses a file through the type's own adapter and stores the
+result; an export serialises whatever changed. It also holds the durable
+export ledger, runs bulk mutations under coordination, reports two health
+checks, and does different work in the scheduling role than in a worker.
+
+Measured against the declared setup context, half of what it reads is there
+already — config, runtime state, messaging, the status template, job
+handlers as \`defineJob\`, the logger, \`dataDir\`, the studio workspace. Six
+things are not, each with directory-sync as the named consumer:
+
+1. **A mirror's entity access — \`entityMirror\`.** Cross-type list, get,
+   types and has; create, upsert and delete attributed to the mirror;
+   serialise and deserialise through the type's adapter; \`runBulkMutation\`;
+   the export ledger (pending, list, acknowledge, async job status); and
+   durable bulk coordination (begin, run child, settle child). One
+   capability, one consumer. It is the third admitted cross-type write path
+   after \`createRouted\` (a type's own route) and \`operatorEntities\` (a
+   person, policy-checked): here the file is the record and the check is the
+   content hash, not a permission.
+2. **Role — \`role: "scheduler" | "worker"\`.** Ten branches in the class are
+   on \`executionOnly\`, and they are real: only a scheduling role reconciles
+   inherited git work and opens admission, watches files, dispatches
+   exports, or reports health; a worker connects to the broker to run jobs
+   and must never open admission. The runtime already skips operator
+   bindings for workers; a package whose duties differ by role reads which
+   one it is.
+3. **The broker's whereabouts — \`gitBroker: { socket, checkout }\`**, both
+   undefined when the brain has no owner. Facts about the process the
+   runtime already holds.
+4. **Health as a declaration — \`health\`**, a function of config and state
+   answering named providers, registered by the runtime in the scheduling
+   role and released on shutdown. Directory-sync declares \`git-progress\`
+   always and \`git-broker\` when git is configured and a socket is present.
+5. **Batches on the jobs handle — \`enqueueBatch\` and \`batchStatus\`.**
+   Exports are enqueued as one batch per sweep so progress reports as one
+   thing; the declared handle enqueues one job at a time.
+6. **Cleanup.** \`lifecycle.onCleanup\` exists; shutdown and generation
+   replacement (\`configure\`) hang off it.
+
+Job types scope to the runtime id, so \`directory-sync:directory-import\`
+becomes \`@brains/directory-sync:directory-sync:directory-import\`; the ops
+stress reader is the one place outside the package that names it. Message
+handlers become subscriptions, the studio workspace a \`studioWorkspaces\`
+declaration, tools a \`tools\` slot, the status template a \`templates\` entry.
+The broker host entry points — \`startGitBrokerHost\`, \`GitBrokerServer\`,
+\`resolveCheckoutPath\` — stay exported: the supervisor uses them without
+booting a brain.
+
+Order: the four reads first (role, broker, health, batches), each with its
+test; then \`entityMirror\` with its test; then the conversion, with the
+package's tests moved onto an install helper last.
+
 ## Validation
 
 - A check that fails on `as I*Service` casts anywhere outside `shell/`, so

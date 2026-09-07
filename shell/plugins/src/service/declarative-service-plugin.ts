@@ -13,7 +13,7 @@ import {
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
 import { getErrorMessage } from "@brains/utils/error";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import { emptyPluginState } from "../base/empty-state";
 import type {
@@ -70,6 +70,8 @@ import type {
   ServiceActiveJob,
   ServiceEntityShapes,
   ServiceRecentJob,
+  ServiceBatchReference,
+  ServiceBatchStatus,
   ServiceJobs,
   ServiceResourceDefinition,
   ServiceSchema,
@@ -237,6 +239,9 @@ function runtimeJobHandler(
     },
   };
 }
+
+/** What the queue files for one operation in a batch. */
+const batchOperationData = z.record(z.string(), z.unknown());
 
 class DeclarativeServicePlugin<
   TConfigSchema extends z.ZodType<object, object>,
@@ -563,6 +568,11 @@ class DeclarativeServicePlugin<
           }),
           entityShapes: entityShapesOf(context),
           themeCSS: context.themeCSS,
+          role: context.executionOnly ? "worker" : "scheduler",
+          gitBroker: {
+            socket: context.gitBrokerSocket,
+            checkout: context.gitBrokerCheckout,
+          },
           readiness: () => context.readiness(),
           entityDisplay: context.entityDisplay,
           surfaces: (options) =>
@@ -922,6 +932,15 @@ class DeclarativeServicePlugin<
     if (context.executionOnly) return;
     this.bindOperatorDefinitions(context);
 
+    for (const [name, provider] of Object.entries(
+      this.definition.health?.({
+        config: this.config,
+        state: this.requireState(),
+      }) ?? {},
+    )) {
+      this.cleanups.push(context.operationalHealth.register(name, provider));
+    }
+
     const acquiredStudio: string[] = [];
     const acquiredDashboard: string[] = [];
     try {
@@ -1204,6 +1223,23 @@ class DeclarativeServicePlugin<
 
   private jobs(): ServiceJobs {
     const context = this.getContext();
+    const batchStatus = async (
+      id: string,
+    ): Promise<ServiceBatchStatus | null> => {
+      const batch = await context.jobs.getBatchStatus(id);
+      if (!batch) return null;
+      return {
+        id: batch.batchId,
+        status: batch.status,
+        total: batch.totalOperations,
+        completed: batch.completedOperations,
+        failed: batch.failedOperations,
+        errors: batch.errors,
+        ...(batch.currentOperation !== undefined
+          ? { currentOperation: batch.currentOperation }
+          : {}),
+      };
+    };
     return {
       active: async (): Promise<readonly ServiceActiveJob[]> =>
         (await context.jobs.getActiveJobs())
@@ -1282,6 +1318,51 @@ class DeclarativeServicePlugin<
         const job = await context.jobs.getStatus(id);
         return job ? statusFor(definition, job) : null;
       },
+      enqueueBatch: async (
+        operations,
+        options,
+      ): Promise<ServiceBatchReference> => {
+        for (const operation of operations) {
+          if (!this.registeredJobs.has(operation.definition)) {
+            throw new Error(
+              `Service "${this.publicId}" cannot enqueue unregistered job "${operation.definition.name}"`,
+            );
+          }
+        }
+        const id = await context.jobs.enqueueBatch(
+          operations.map((operation) => ({
+            type: operation.definition.name,
+            // The queue files a record, and a declared input is one.
+            data: batchOperationData.parse(
+              operation.definition.input.parse(operation.input),
+            ),
+          })),
+          {
+            source: this.id,
+            ...(options?.priority !== undefined
+              ? { priority: options.priority }
+              : {}),
+            ...(options?.rootJobId !== undefined
+              ? { rootJobId: options.rootJobId }
+              : {}),
+            metadata: {
+              operationType: "batch_processing",
+              pluginId: this.id,
+              ...(options?.progressToken !== undefined
+                ? { progressToken: options.progressToken }
+                : {}),
+              ...(options?.operationTarget !== undefined
+                ? { operationTarget: options.operationTarget }
+                : {}),
+            },
+          },
+        );
+        return Object.freeze({
+          id,
+          status: (): Promise<ServiceBatchStatus | null> => batchStatus(id),
+        });
+      },
+      batchStatus,
     };
   }
 

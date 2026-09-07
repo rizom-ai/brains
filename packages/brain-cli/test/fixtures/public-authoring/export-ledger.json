@@ -575,7 +575,13 @@
         "RuntimeReadiness",
         "ServiceChannelReader",
         "ServiceEntityShapes",
-        "UserPermissionLevel"
+        "UserPermissionLevel",
+        "ServiceBatchOperation",
+        "ServiceBatchOptions",
+        "ServiceBatchReference",
+        "ServiceBatchStatus",
+        "ServiceGitBroker",
+        "ServiceRole"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

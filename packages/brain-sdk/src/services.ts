@@ -187,6 +187,12 @@ export type {
   ServiceActiveJob,
   ServiceRecentJob,
   ServiceJobs,
+  ServiceBatchOperation,
+  ServiceBatchOptions,
+  ServiceBatchReference,
+  ServiceBatchStatus,
+  ServiceGitBroker,
+  ServiceRole,
   ServicePublisher,
   ServicePublishingAccess,
 } from "@brains/plugins";

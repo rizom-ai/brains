@@ -160,6 +160,10 @@ export function runtimeFor(
         throw new Error("This test does not declare jobs");
       },
       status: async (): Promise<null> => null,
+      enqueueBatch: (): never => {
+        throw new Error("This test does not declare jobs");
+      },
+      batchStatus: async (): Promise<null> => null,
     },
     // The runtime files a scope under the declaring package, so a reader
     // built here has to look in the same place.
@@ -320,6 +324,10 @@ export function mockRuntimeFor(
           throw new Error("This test does not declare jobs");
         },
         status: async (): Promise<null> => null,
+        enqueueBatch: (): never => {
+          throw new Error("This test does not declare jobs");
+        },
+        batchStatus: async (): Promise<null> => null,
       },
       state: (scope) => context.runtimeState.scoped(scope),
       logger: context.logger,

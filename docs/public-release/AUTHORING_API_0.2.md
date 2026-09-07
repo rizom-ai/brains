@@ -267,6 +267,12 @@ Definitions and schema vocabulary:
 - `ServiceChannelReader`
 - `ServiceEntityShapes`
 - `UserPermissionLevel`
+- `ServiceBatchOperation`
+- `ServiceBatchOptions`
+- `ServiceBatchReference`
+- `ServiceBatchStatus`
+- `ServiceGitBroker`
+- `ServiceRole`
 
 Types:
 
