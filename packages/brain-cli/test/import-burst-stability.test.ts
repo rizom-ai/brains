@@ -311,6 +311,50 @@ async function run(command: string[], cwd: string): Promise<string> {
   return stdout;
 }
 
+/** The running Brain also pushes startup exports and normalized entities. */
+async function pushWriterChanges(checkoutDir: string): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await run(["git", "push", "origin", "main"], checkoutDir);
+      return;
+    } catch (error) {
+      // Retry only a competing writer, never authentication, hook, or other
+      // failures. Rebase preserves both histories and surfaces real conflicts.
+      if (
+        attempt === 2 ||
+        !(error instanceof Error) ||
+        (!/\[rejected\].*\((?:fetch first|non-fast-forward)\)/.test(
+          error.message,
+        ) &&
+          !(
+            /\[remote rejected\].*\(failed to update ref\)/.test(
+              error.message,
+            ) &&
+            /cannot lock ref 'refs\/heads\/main': is at [0-9a-f]+ but expected [0-9a-f]+/.test(
+              error.message,
+            )
+          ))
+      ) {
+        throw error;
+      }
+      await run(
+        [
+          "git",
+          "-c",
+          "user.name=Import Burst Soak",
+          "-c",
+          "user.email=import-burst@example.com",
+          "pull",
+          "--rebase",
+          "origin",
+          "main",
+        ],
+        checkoutDir,
+      );
+    }
+  }
+}
+
 async function reservePort(): Promise<number> {
   const server = Bun.serve({ port: 0, fetch: () => new Response("reserved") });
   const port = server.port;
@@ -778,7 +822,7 @@ async function commitBurst(
     ],
     checkoutDir,
   );
-  await run(["git", "push", "origin", "main"], checkoutDir);
+  await pushWriterChanges(checkoutDir);
 }
 
 async function commitProbeCleanup(checkoutDir: string): Promise<void> {
@@ -807,7 +851,7 @@ async function commitProbeCleanup(checkoutDir: string): Promise<void> {
     ],
     checkoutDir,
   );
-  await run(["git", "push", "origin", "main"], checkoutDir);
+  await pushWriterChanges(checkoutDir);
 }
 
 interface JobBarrierSnapshot {
@@ -1405,6 +1449,104 @@ plugins:
   },
   360_000,
 );
+
+it("rebases simultaneous soak writers without discarding either push", async () => {
+  const root = await mkdtemp(join(tmpdir(), "soak-writer-race-"));
+  const remote = join(root, "remote.git");
+  const writer = join(root, "writer");
+  const broker = join(root, "broker");
+  const hook = join(remote, "hooks", "pre-receive");
+  const commit = async (cwd: string, name: string): Promise<void> => {
+    await writeFile(join(cwd, name), `${name}\n`);
+    await run(["git", "add", "-A"], cwd);
+    await run(
+      [
+        "git",
+        "-c",
+        "user.name=Soak Test",
+        "-c",
+        "user.email=soak@example.com",
+        "commit",
+        "-m",
+        name,
+      ],
+      cwd,
+    );
+  };
+  try {
+    await run(["git", "init", "--bare", "--initial-branch=main", remote], root);
+    await run(["git", "clone", remote, writer], root);
+    await commit(writer, "keep.md");
+    await pushWriterChanges(writer);
+    await run(["git", "clone", remote, broker], root);
+    await commit(writer, "probe.md");
+    await commit(broker, "anchor-profile.md");
+
+    // Hold both receive-pack processes until they advertised the same old ref.
+    // One push must then report "remote rejected (failed to update ref)".
+    await writeFile(
+      hook,
+      [
+        "#!/bin/sh",
+        'barrier="$PWD/hooks/push-race-barrier"',
+        'if mkdir "$barrier" 2>/dev/null; then',
+        "  attempts=0",
+        '  while [ ! -e "$barrier/release" ]; do',
+        "    attempts=$((attempts + 1))",
+        '    if [ "$attempts" -ge 200 ]; then exit 1; fi',
+        "    sleep 0.01",
+        "  done",
+        "else",
+        '  : > "$barrier/release"',
+        "fi",
+        "",
+      ].join("\n"),
+      { mode: 0o755 },
+    );
+    await Promise.all([pushWriterChanges(writer), pushWriterChanges(broker)]);
+
+    expect(await run(["git", "show", "main:probe.md"], remote)).toBe(
+      "probe.md\n",
+    );
+    expect(await run(["git", "show", "main:anchor-profile.md"], remote)).toBe(
+      "anchor-profile.md\n",
+    );
+    const subjects = await run(["git", "log", "--format=%s", "main"], remote);
+    expect(subjects.split("\n")).toEqual(
+      expect.arrayContaining(["probe.md", "anchor-profile.md"]),
+    );
+
+    // Also cover a writer already stale before push starts.
+    await rm(hook);
+    await run(["git", "pull", "--rebase", "origin", "main"], writer);
+    await run(["git", "pull", "--rebase", "origin", "main"], broker);
+    await commit(broker, "later-export.md");
+    await pushWriterChanges(broker);
+    await commit(writer, "later-probe.md");
+    await pushWriterChanges(writer);
+    expect(await run(["git", "show", "main:later-export.md"], remote)).toBe(
+      "later-export.md\n",
+    );
+    expect(await run(["git", "show", "main:later-probe.md"], remote)).toBe(
+      "later-probe.md\n",
+    );
+
+    // Hook failures are not competing-writer rejections and must surface.
+    await writeFile(
+      hook,
+      "#!/bin/sh\necho 'soak hook rejection' >&2\nexit 1\n",
+      { mode: 0o755 },
+    );
+    await commit(writer, "rejected.md");
+    const rejection: unknown = await pushWriterChanges(writer).catch(
+      (error: unknown) => error,
+    );
+    expect(rejection).toBeInstanceOf(Error);
+    expect(String(rejection)).toContain("soak hook rejection");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 it("tracks sustained CPU saturation separately from a transient spike", () => {
   const tracker = new ResourceUsageTracker({
