@@ -1,4 +1,4 @@
-import type { EntityMirrorClient } from "@brains/sdk/services";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import type { FileOperations } from "./file-operations";
 
 export interface ImportPathFilterDeps {

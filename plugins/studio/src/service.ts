@@ -10,9 +10,11 @@ import {
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   z,
   type ServicePackageDefinition,
-  type StudioOverviewContributionRegistration,
-  type StudioWorkspaceRegistration,
 } from "@brains/sdk/services";
+import type {
+  StudioOverviewContributionRegistration,
+  StudioWorkspaceRegistration,
+} from "@brains/sdk/plugins";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   studioConfigSchema,

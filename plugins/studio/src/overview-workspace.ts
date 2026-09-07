@@ -4,7 +4,6 @@ import {
   PermissionService,
   safeParseRuntimeDashboardWidgetData,
   type DashboardWidgetProviderContext,
-  type DashboardWidgetRegistration,
   type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
   type RuntimeOperatorLinkTarget,
@@ -12,12 +11,15 @@ import {
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorView,
   type RuntimeStudioWorkspaceData,
-  type StudioOverviewContributionRegistration,
   type StudioOverviewContributionUnregistration,
   type StudioWorkspaceActor,
-  type StudioWorkspaceRegistration,
   type UserPermissionLevel,
 } from "@brains/sdk/services";
+import type {
+  DashboardWidgetRegistration,
+  StudioOverviewContributionRegistration,
+  StudioWorkspaceRegistration,
+} from "@brains/sdk/plugins";
 import type { StudioRuntime } from "./runtime";
 import { z } from "@brains/utils/zod";
 import {
