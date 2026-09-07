@@ -35,6 +35,37 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
+    // The Living Memory position, told with the site's own chrome and its two
+    // live maps. The hero is the proximity map — the network as it actually
+    // stands, not a drawing of one — carrying this page's copy through the
+    // content overlay. After the system and its brain → practice → network
+    // sequence, the knowledge map provides working proof from this brain's
+    // live memory. Copy for every section belongs to the separate content repo
+    // under site-content/living-memory/. Other routes keep their own rendering.
+    id: "living-memory",
+    path: "/living-memory",
+    title: "Living memory",
+    description:
+      "Living memory for hybrid human–AI teams — memory that works, from one team to an economy",
+    layout: "default",
+    navigation: { show: false },
+    sections: [
+      {
+        id: "hero",
+        template: "agent-discovery:proximity-map",
+        dataQuery: {},
+      },
+      { id: "problem", template: "living-memory:problem" },
+      { id: "science", template: "living-memory:science" },
+      { id: "turn", template: "living-memory:turn" },
+      { id: "system", template: "living-memory:system" },
+      { id: "growth", template: "living-memory:growth" },
+      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
+      { id: "arc", template: "living-memory:arc" },
+      { id: "doors", template: "living-memory:doors" },
+    ],
+  },
+  {
     // The product's own room: the brain's life with its owner in four
     // chapters — capture, ask, see it run, connect — each illustrated by a
     // real interface screen, then the data principles and the quickstart.

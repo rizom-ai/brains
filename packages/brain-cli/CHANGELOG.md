@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- [#228](https://github.com/rizom-ai/brains/pull/228) [`2942793`](https://github.com/rizom-ai/brains/commit/294279346c136b884af281392e4743b91464517f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Support a content-authored h1 or h2 in proximity-map headings so the living-memory hero can provide the page heading. Existing section maps retain their default h2 heading.
+
 ## 0.2.0-alpha.355
 
 ### Patch Changes

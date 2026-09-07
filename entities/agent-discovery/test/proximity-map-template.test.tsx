@@ -6,6 +6,7 @@ import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
 
 const data: ProximityMapData = {
+  headingLevel: null,
   kicker: null,
   headingLead: null,
   headingAccent: null,
@@ -64,6 +65,22 @@ const data: ProximityMapData = {
 };
 
 describe("AgentProximityMapTemplate", () => {
+  test("a page-opening map can own h1 without changing section defaults", () => {
+    expect(render(<AgentProximityMapTemplate {...data} />)).toContain(
+      '<h2 class="agent-proximity-site__heading">',
+    );
+    expect(
+      render(<AgentProximityMapTemplate {...data} headingLevel="h1" />),
+    ).toContain('<h1 class="agent-proximity-site__heading">');
+    const formatter = getTemplates()["proximity-map"]?.overlayFormatter;
+    if (!formatter) throw new Error("Missing proximity overlay formatter");
+    expect(
+      formatter.parse("# Network\n\n## Heading Level\nh1\n"),
+    ).toMatchObject({ headingLevel: "h1" });
+    expect(() =>
+      formatter.parse("# Network\n\n## Heading Level\nscript\n"),
+    ).toThrow();
+  });
   test("renders the shared map in its paper site climate", () => {
     const html = render(<AgentProximityMapTemplate {...data} />);
 
