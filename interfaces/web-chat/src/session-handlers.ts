@@ -2,6 +2,7 @@ import {
   archiveChatSessionResponseSchema,
   chatContextHandoffRequestSchema,
   chatSessionsResponseSchema,
+  chatSessionListQuerySchema,
   deleteChatSessionResponseSchema,
   renameChatSessionRequestSchema,
   renameChatSessionResponseSchema,
@@ -14,7 +15,6 @@ import {
   type WebChatConversationAccess,
 } from "./conversation-access";
 
-const webChatSessionLimit = 25;
 const webChatTitleMessageLimit = 6;
 const webChatTitleMaxLength = 48;
 
@@ -39,18 +39,33 @@ export async function handleSessionsRequest(
     return new Response("Forbidden", { status: 403 });
   }
 
+  const params = new URL(request.url).searchParams;
+  const archived = params.get("archived");
+  const parsed = chatSessionListQuerySchema.safeParse({
+    query: params.get("q") ?? undefined,
+    archived:
+      archived === null
+        ? undefined
+        : archived === "true"
+          ? true
+          : archived === "false"
+            ? false
+            : archived,
+    offset: params.has("offset") ? Number(params.get("offset")) : undefined,
+    limit: params.has("limit") ? Number(params.get("limit")) : undefined,
+  });
+  if (!parsed.success)
+    return new Response("Invalid session query", { status: 400 });
+  const query = parsed.data;
   const conversations = await deps.conversations.list({
     interfaceType: deps.interfaceType,
-    limit: webChatSessionLimit,
+    ...query,
     ...(access.permissionLevel === "trusted"
       ? { personId: access.personId }
       : {}),
   });
-  const activeConversations = conversations.filter(
-    (conversation) => !isArchivedMetadata(conversation.metadata),
-  );
   const sessions = await Promise.all(
-    activeConversations.map(async (conversation) => {
+    conversations.map(async (conversation) => {
       const contextHandoff = chatContextHandoffRequestSchema.safeParse(
         coerceConversationMetadata(conversation.metadata)["contextHandoff"],
       );
@@ -58,6 +73,7 @@ export async function handleSessionsRequest(
         id: conversation.id,
         title: await getConversationTitle(conversation, deps.conversations),
         lastActiveAt: conversation.lastActiveAt,
+        ...(query.archived ? { archived: true } : {}),
         ...(contextHandoff.success
           ? { contextHandoff: contextHandoff.data }
           : {}),
@@ -175,10 +191,6 @@ async function getConversationTitle(
   const firstLine = firstUserMessage.content.trim().split(/\r?\n/, 1)[0] ?? "";
   if (firstLine.length <= webChatTitleMaxLength) return firstLine;
   return `${firstLine.slice(0, webChatTitleMaxLength - 1).trimEnd()}…`;
-}
-
-function isArchivedMetadata(metadata: unknown): boolean {
-  return typeof coerceConversationMetadata(metadata)["archivedAt"] === "string";
 }
 
 function getMetadataTitle(metadata: unknown): string | undefined {

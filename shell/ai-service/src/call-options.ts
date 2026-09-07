@@ -8,6 +8,7 @@ import type { BrainCallOptions } from "./brain-agent";
  */
 export function buildBrainCallOptions(params: {
   hasAccessibleUploads: boolean;
+  guestExecution?: ChatContext["guestExecution"];
   userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
   isAnchor?: boolean;
   conversationId: string;
@@ -25,6 +26,7 @@ export function buildBrainCallOptions(params: {
     ...(params.channelId ? { channelId: params.channelId } : {}),
     channelName: params.channelName,
     interfaceType: params.interfaceType,
+    ...(params.guestExecution ? { guestExecution: params.guestExecution } : {}),
     ...(params.actor
       ? {
           actor: params.actor.identity,

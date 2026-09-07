@@ -1,5 +1,405 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/job-queue@0.2.0-alpha.396
+  - @brains/runtime-state@0.2.0-alpha.396
+  - @brains/scheduler@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/job-queue@0.2.0-alpha.395
+  - @brains/runtime-state@0.2.0-alpha.395
+  - @brains/scheduler@0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/job-queue@0.2.0-alpha.394
+  - @brains/runtime-state@0.2.0-alpha.394
+  - @brains/scheduler@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/job-queue@0.2.0-alpha.393
+  - @brains/runtime-state@0.2.0-alpha.393
+  - @brains/scheduler@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/job-queue@0.2.0-alpha.392
+  - @brains/runtime-state@0.2.0-alpha.392
+  - @brains/scheduler@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/job-queue@0.2.0-alpha.391
+  - @brains/runtime-state@0.2.0-alpha.391
+  - @brains/scheduler@0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.390
+  - @brains/job-queue@0.2.0-alpha.390
+  - @brains/runtime-state@0.2.0-alpha.390
+  - @brains/scheduler@0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.389
+  - @brains/job-queue@0.2.0-alpha.389
+  - @brains/runtime-state@0.2.0-alpha.389
+  - @brains/scheduler@0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/job-queue@0.2.0-alpha.388
+  - @brains/runtime-state@0.2.0-alpha.388
+  - @brains/scheduler@0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/job-queue@0.2.0-alpha.387
+  - @brains/runtime-state@0.2.0-alpha.387
+  - @brains/scheduler@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/job-queue@0.2.0-alpha.386
+  - @brains/runtime-state@0.2.0-alpha.386
+  - @brains/scheduler@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/job-queue@0.2.0-alpha.385
+  - @brains/runtime-state@0.2.0-alpha.385
+  - @brains/scheduler@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/job-queue@0.2.0-alpha.384
+  - @brains/runtime-state@0.2.0-alpha.384
+  - @brains/scheduler@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/job-queue@0.2.0-alpha.383
+  - @brains/runtime-state@0.2.0-alpha.383
+  - @brains/scheduler@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/job-queue@0.2.0-alpha.382
+  - @brains/runtime-state@0.2.0-alpha.382
+  - @brains/scheduler@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/job-queue@0.2.0-alpha.381
+  - @brains/runtime-state@0.2.0-alpha.381
+  - @brains/scheduler@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/job-queue@0.2.0-alpha.380
+  - @brains/runtime-state@0.2.0-alpha.380
+  - @brains/scheduler@0.2.0-alpha.380
+
+## 0.2.0-alpha.379
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.379
+  - @brains/job-queue@0.2.0-alpha.379
+  - @brains/runtime-state@0.2.0-alpha.379
+  - @brains/scheduler@0.2.0-alpha.379
+
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.378
+  - @brains/job-queue@0.2.0-alpha.378
+  - @brains/runtime-state@0.2.0-alpha.378
+  - @brains/scheduler@0.2.0-alpha.378
+
+## 0.2.0-alpha.377
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.377
+  - @brains/job-queue@0.2.0-alpha.377
+  - @brains/runtime-state@0.2.0-alpha.377
+  - @brains/scheduler@0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.376
+  - @brains/job-queue@0.2.0-alpha.376
+  - @brains/runtime-state@0.2.0-alpha.376
+  - @brains/scheduler@0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.375
+  - @brains/job-queue@0.2.0-alpha.375
+  - @brains/runtime-state@0.2.0-alpha.375
+  - @brains/scheduler@0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.374
+  - @brains/job-queue@0.2.0-alpha.374
+  - @brains/runtime-state@0.2.0-alpha.374
+  - @brains/scheduler@0.2.0-alpha.374
+
+## 0.2.0-alpha.373
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.373
+  - @brains/job-queue@0.2.0-alpha.373
+  - @brains/runtime-state@0.2.0-alpha.373
+  - @brains/scheduler@0.2.0-alpha.373
+
+## 0.2.0-alpha.372
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.372
+  - @brains/job-queue@0.2.0-alpha.372
+  - @brains/runtime-state@0.2.0-alpha.372
+  - @brains/scheduler@0.2.0-alpha.372
+
+## 0.2.0-alpha.371
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.371
+  - @brains/job-queue@0.2.0-alpha.371
+  - @brains/runtime-state@0.2.0-alpha.371
+  - @brains/scheduler@0.2.0-alpha.371
+
+## 0.2.0-alpha.370
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.370
+  - @brains/job-queue@0.2.0-alpha.370
+  - @brains/runtime-state@0.2.0-alpha.370
+  - @brains/scheduler@0.2.0-alpha.370
+
+## 0.2.0-alpha.369
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.369
+  - @brains/job-queue@0.2.0-alpha.369
+  - @brains/runtime-state@0.2.0-alpha.369
+  - @brains/scheduler@0.2.0-alpha.369
+
+## 0.2.0-alpha.368
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.368
+  - @brains/job-queue@0.2.0-alpha.368
+  - @brains/runtime-state@0.2.0-alpha.368
+  - @brains/scheduler@0.2.0-alpha.368
+
+## 0.2.0-alpha.367
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.367
+  - @brains/job-queue@0.2.0-alpha.367
+  - @brains/runtime-state@0.2.0-alpha.367
+  - @brains/scheduler@0.2.0-alpha.367
+
+## 0.2.0-alpha.366
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.366
+  - @brains/job-queue@0.2.0-alpha.366
+  - @brains/runtime-state@0.2.0-alpha.366
+  - @brains/scheduler@0.2.0-alpha.366
+
+## 0.2.0-alpha.365
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.365
+  - @brains/job-queue@0.2.0-alpha.365
+  - @brains/runtime-state@0.2.0-alpha.365
+  - @brains/scheduler@0.2.0-alpha.365
+
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/job-queue@0.2.0-alpha.364
+  - @brains/runtime-state@0.2.0-alpha.364
+  - @brains/scheduler@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/job-queue@0.2.0-alpha.363
+  - @brains/runtime-state@0.2.0-alpha.363
+  - @brains/scheduler@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/job-queue@0.2.0-alpha.362
+  - @brains/runtime-state@0.2.0-alpha.362
+  - @brains/scheduler@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/job-queue@0.2.0-alpha.361
+  - @brains/runtime-state@0.2.0-alpha.361
+  - @brains/scheduler@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/job-queue@0.2.0-alpha.360
+  - @brains/runtime-state@0.2.0-alpha.360
+  - @brains/scheduler@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/job-queue@0.2.0-alpha.359
+  - @brains/runtime-state@0.2.0-alpha.359
+  - @brains/scheduler@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/job-queue@0.2.0-alpha.358
+  - @brains/runtime-state@0.2.0-alpha.358
+  - @brains/scheduler@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/job-queue@0.2.0-alpha.357
+  - @brains/runtime-state@0.2.0-alpha.357
+  - @brains/scheduler@0.2.0-alpha.357
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

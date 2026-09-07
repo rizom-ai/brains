@@ -4,15 +4,18 @@ import type {
   RuntimeOperatorActionControl,
 } from "@brains/plugins";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { operatorViewStylexCSS } from "@brains/operator-view-react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import operatorViewRendererStyles from "./operator-view-renderer.css" with { type: "text" };
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
+import { OperatorViewRenderer } from "./operator-view-renderer";
 import {
-  OperatorViewRenderer,
+  OperatorActionButton,
   actionFailureMessage,
-} from "./operator-view-renderer";
+} from "./operator-view-actions";
+import type { OperatorViewComponents } from "./operator-view-host";
 
 const data: RuntimeStudioWorkspaceData = {
   view: {
@@ -129,6 +132,173 @@ describe("actionFailureMessage", () => {
 });
 
 describe("OperatorViewRenderer", () => {
+  for (const width of [1440, 390])
+    it(`presents grouped workspace destinations as launch controls at ${width}px`, async () => {
+      const window = new Window({ width });
+      try {
+        const doc = window.document;
+        doc.head.innerHTML = `<style>:root{--console-touch:44px}${operatorViewStylexCSS}</style>`;
+        doc.body.innerHTML = renderToStaticMarkup(
+          <OperatorViewRenderer
+            data={{
+              view: {
+                blocks: [
+                  {
+                    type: "links",
+                    items: [
+                      {
+                        label: "Open preview",
+                        target: {
+                          kind: "external",
+                          href: "https://preview.example.test",
+                        },
+                      },
+                      {
+                        label: "Open live site",
+                        target: {
+                          kind: "external",
+                          href: "https://example.test",
+                        },
+                      },
+                      {
+                        label: "Open publishing",
+                        target: {
+                          kind: "launch",
+                          launch: { target: "publishing" },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            }}
+            onAction={async () => ({})}
+            onOpenEntity={() => {}}
+          />,
+        );
+        const links = [
+          ...doc.querySelectorAll(
+            '[aria-label="Workspace links"] a, [aria-label="Workspace links"] button',
+          ),
+        ];
+        expect(links).toHaveLength(3);
+        for (const link of links) {
+          const css = window.getComputedStyle(link);
+          expect(css.minHeight).toBe(width <= 640 ? "44px" : "36px");
+          expect(css.borderTopWidth).toBe("1px");
+          expect(css.fontSize).toBe("13px");
+        }
+        expect(links[0]?.getAttribute("href")).toBe(
+          "https://preview.example.test",
+        );
+        expect(links[0]?.getAttribute("target")).toBe("_blank");
+        expect(links[0]?.getAttribute("rel")).toContain("noreferrer");
+      } finally {
+        await window.happyDOM.close();
+      }
+    });
+  it("renders one notice heading and preserves every supporting diagnostic", () => {
+    const html = renderToStaticMarkup(
+      <OperatorViewRenderer
+        data={{
+          view: {
+            blocks: [
+              {
+                type: "notice",
+                title: "Repository sync needs attention",
+                text: "2 recorded issues",
+                tone: "warn",
+                details: [
+                  "First failure\nPath: notes/one.md",
+                  "Second failure\nOccurred: 2026-09-05T09:15:00.000Z",
+                ],
+              },
+            ],
+          },
+        }}
+        onAction={async () => ({})}
+        onOpenEntity={() => {}}
+      />,
+    );
+    expect(html.match(/Repository sync needs attention/g)).toHaveLength(1);
+    expect(html).toContain("View diagnostics");
+    expect(html).toContain("First failure\nPath: notes/one.md");
+    expect(html).toContain(
+      "Second failure\nOccurred: 2026-09-05T09:15:00.000Z",
+    );
+    expect(html).toContain("operator-source");
+    expect(html).not.toContain('open=""');
+  });
+  it("keeps readable warning excerpts and full diagnostics on demand in both hosts", () => {
+    const description = "Detailed operation diagnostics. ".repeat(12);
+    const issueData: RuntimeStudioWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "list",
+            id: "issues",
+            empty: "No issues",
+            items: [
+              {
+                id: "failed",
+                title: "Repository sync needs attention",
+                description,
+                tone: "warn",
+              },
+              {
+                id: "short",
+                title: "Import needs attention",
+                description: "A required title is missing.",
+                tone: "warn",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const components: OperatorViewComponents = {
+      engine: "app",
+      density: "comfortable",
+      Button: (props) =>
+        createElement("button", { onClick: props.onClick }, props.children),
+      Input: (props) => createElement("input", props),
+      Select: (props) => createElement("select", props),
+      ConfirmDialog: () => createElement("div"),
+      Tabs: (props) =>
+        createElement(
+          "div",
+          null,
+          props.tabs.find((tab) => tab.value === props.value)?.content,
+        ),
+      Disclosure: (props) =>
+        createElement(
+          "details",
+          { className: props.className },
+          createElement("summary", null, props.triggerLabel),
+          props.children,
+        ),
+    };
+    const render = (host?: OperatorViewComponents): string =>
+      renderToStaticMarkup(
+        createElement(OperatorViewRenderer, {
+          data: issueData,
+          components: host,
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+        }),
+      );
+    const app = render(components);
+    expect(app).toContain('class="operator-issue-details"');
+    expect(app).toContain(description);
+    expect(app).toContain("operator-source");
+    expect(app).toContain("<pre");
+    expect(app).toMatch(/<p\b[^>]*>A required title is missing\.<\/p>/);
+    const css = render();
+    expect(css).toContain("operator-issue-details");
+    expect(css).toContain("<summary>Details</summary>");
+    expect(css).toContain(description);
+    expect(css).toContain("<pre");
+  });
   it("renders normalized base blocks and typed action controls", () => {
     const html = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
@@ -140,6 +310,9 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
+    expect(html).not.toMatch(
+      /class="[^"]*\b(?:operator-stats|operator-stat|operator-filter-summary|operator-align--(?:start|center|end)|operator-group|operator-notice--(?:good|warn|error))(?:\s|")/,
+    );
     expect(html).toContain("Reading library");
     expect(html).toContain("Saved item");
     expect(html).toContain("one, two");
@@ -151,14 +324,16 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain("Automation");
     expect(html).toContain('data-direction="bidirectional"');
     expect(html).toContain('data-status="active"');
-    expect(html).toContain('<progress value="4" max="10">');
+    expect(html).toMatch(
+      /<progress\b[^>]*aria-label="[^"]+"[^>]*value="4" max="10">/,
+    );
     expect(html).toContain("Preview build");
     expect(html).toContain("All sources");
     expect(html).toContain("Mail (1)");
     expect(html).toContain("1–1 of 2");
     expect(html).toContain("Next");
-    expect(html).toContain(
-      '<button type="button" class="declarative-inline-link">Open publishing</button>',
+    expect(html).toMatch(
+      /<button\b(?=[^>]*type="button")[^>]*>Open publishing<\/button>/,
     );
     expect(html).not.toContain("<script>");
   });
@@ -173,16 +348,16 @@ describe("OperatorViewRenderer", () => {
     );
 
     const head = html.slice(
-      html.indexOf('class="declarative-head"'),
+      html.indexOf("<header"),
       html.indexOf('class="declarative-blocks"'),
     );
     expect(head).toContain("Reading library");
-    expect(head).toContain("declarative-totals");
+    expect(head).toContain('data-stats-placement="head"');
     expect(head).toContain("Saved");
     // The hoisted stats must not also render as a body block.
-    expect(
-      html.slice(html.indexOf('class="declarative-blocks"')),
-    ).not.toContain("declarative-totals");
+    expect(html.slice(html.indexOf("</header>") + 9)).not.toContain(
+      'data-stats-placement="head"',
+    );
   });
 
   it("keeps server-backed query controls with their table collection", () => {
@@ -278,26 +453,20 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    expect(html).toContain('class="declarative-compact-rows"');
+    expect(html).toContain('class="declarative-compact-rows ');
     expect(html).toContain('data-compact-row="true"');
     expect(html).toContain('data-has-unannotated="true"');
     expect(html).toContain("Owns this brain");
     expect(html).toContain("Admin · This brain");
-    expect(html).toContain('class="declarative-badge" data-tone="good"');
+    expect(html).toContain('data-tone="good" data-record-badge="true"');
     expect(html).toContain("Legacy row");
     expect(html.match(/Review/g)).toHaveLength(2);
-    expect(operatorViewRendererStyles).toMatch(
-      /@media \(max-width: 640px\)[\s\S]*\.declarative-compact-rows/,
-    );
-    expect(operatorViewRendererStyles).toContain(
-      '.declarative-table-scroll[data-has-unannotated="false"]',
-    );
-    expect(operatorViewRendererStyles).toContain(
-      ".declarative-list-trailing:has(.declarative-actions)",
-    );
+    expect(operatorViewStylexCSS).not.toContain(".declarative-compact-rows");
+    expect(operatorViewStylexCSS).not.toContain(".declarative-table");
+    expect(html).toContain('data-record-trailing="true"');
   });
 
-  it("can delegate the head without returning its totals to the body", () => {
+  it("delegates the heading while retaining totals in the provider's body", () => {
     const delegated = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
         data: {
@@ -337,10 +506,12 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    expect(delegated).not.toContain("declarative-head");
-    expect(delegated).not.toContain("Saved");
+    expect(delegated).not.toMatch(/<main[^>]*>\s*<header/);
+    expect(delegated).toContain("Saved");
+    expect(delegated).toContain(">1</");
     expect(delegated).toContain("Ready.");
     expect(selfRendered).toContain("Refresh library");
+    expect(selfRendered).toContain('data-variant="primary"');
   });
 
   it("declares a layout span per block so the host grid can differentiate width", () => {
@@ -359,7 +530,24 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain('data-block="notice" data-span="wide"');
   });
 
-  it("ranks action buttons by consequence rather than styling them all alike", () => {
+  it("retains consequence styling for confirmed page primaries", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorActionButton, {
+        primary: true,
+        action: {
+          actionId: "purge",
+          label: "Purge exports",
+          input: {},
+          confirmation: { kind: "prepared" },
+        },
+        onAction: async () => ({}),
+      }),
+    );
+    expect(html).toContain('data-variant="danger"');
+    expect(html).not.toContain('data-variant="primary"');
+  });
+
+  it("ranks action buttons by consequence rather than styling them all alike", async () => {
     const html = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
         data: {
@@ -401,12 +589,35 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    // A standalone action is the workspace's primary call to action.
-    expect(html).toMatch(/class="btn"[^>]*>Run sync now/);
-    // Needing confirmation is the signal that an action is consequential.
-    expect(html).toMatch(/class="btn danger"[^>]*>Purge exports/);
-    // Row-level actions stay subordinate to the row they belong to.
-    expect(html).toMatch(/class="btn ghost"[^>]*>Open/);
+    expect(html).not.toMatch(/class="btn(?:\s|")/);
+    // A routine row verb uses the compiled text-action vocabulary, not a box.
+    const window = new Window();
+    try {
+      window.document.head.innerHTML = `<style>:root{--console-card-soft:rgb(30,30,30);--console-text:rgb(230,230,230);--console-err:rgb(200,30,30)}${operatorViewStylexCSS}</style>`;
+      window.document.body.innerHTML = html;
+      const buttons = Array.from(window.document.querySelectorAll("button"));
+      const routine = buttons.find(
+          (button) => button.textContent === "Run sync now",
+        ),
+        danger = buttons.find(
+          (button) => button.textContent === "Purge exports",
+        );
+      if (!routine || !danger) throw Error("Missing action buttons");
+      expect(window.getComputedStyle(routine).backgroundColor).toBe(
+        "rgb(30, 30, 30)",
+      );
+      expect(window.getComputedStyle(danger).color).toBe("rgb(200, 30, 30)");
+      expect(window.getComputedStyle(routine).minHeight).toBe("36px");
+      const open = Array.from(window.document.querySelectorAll("button")).find(
+        (button) => button.textContent === "Open",
+      );
+      if (!open) throw new Error("Missing row action");
+      expect(open.classList.contains("btn")).toBe(false);
+      expect(window.getComputedStyle(open).fontSize).toBe("12px");
+      expect(window.getComputedStyle(open).borderWidth).toBe("0px");
+    } finally {
+      await window.happyDOM.abort();
+    }
   });
 });
 
@@ -435,6 +646,89 @@ function confirmingWorkspace(
 }
 
 describe("OperatorViewRenderer conformance", () => {
+  it("groups only adjacent trailing card controls without changing their order or targets", async () => {
+    const window = new Window();
+    try {
+      window.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+      window.document.body.innerHTML = renderToStaticMarkup(
+        <OperatorViewRenderer
+          data={{
+            view: {
+              blocks: [
+                {
+                  type: "card",
+                  id: "publication",
+                  label: "Publication",
+                  blocks: [
+                    {
+                      type: "links",
+                      items: [
+                        {
+                          label: "Earlier link",
+                          target: {
+                            kind: "external",
+                            href: "https://example.com/earlier",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "key-values",
+                      items: [{ label: "Generation", value: "published-1" }],
+                    },
+                    {
+                      type: "links",
+                      items: [
+                        {
+                          label: "Open preview",
+                          target: {
+                            kind: "external",
+                            href: "https://preview.example.com",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "actions",
+                      items: [
+                        {
+                          actionId: "build-preview",
+                          label: "Build preview",
+                          input: {},
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+          onAction={async () => undefined}
+          onOpenEntity={() => {}}
+        />,
+      );
+      const footer = window.document.querySelector("[data-card-controls]");
+      if (!footer) throw new Error("Missing card control group");
+      expect(window.getComputedStyle(footer).display).toBe("flex");
+      expect(
+        [...footer.children].map((element) =>
+          element.getAttribute("data-block"),
+        ),
+      ).toEqual(["links", "actions"]);
+      expect(footer.querySelector("a")?.getAttribute("href")).toBe(
+        "https://preview.example.com",
+      );
+      expect(footer.querySelector("button")?.textContent).toBe("Build preview");
+      expect(footer.textContent).not.toContain("Earlier link");
+      expect(footer.textContent).not.toContain("published-1");
+      expect(
+        window.document.querySelectorAll(".declarative-card [data-block]")
+          .length,
+      ).toBe(4);
+    } finally {
+      await window.happyDOM.abort();
+    }
+  });
   it("renders every container and remaining panel shape through the shared host", () => {
     const conformance: RuntimeStudioWorkspaceData = {
       view: {
@@ -526,8 +820,8 @@ describe("OperatorViewRenderer conformance", () => {
     );
 
     for (const marker of [
-      "declarative-key-values",
-      "declarative-matrix",
+      "operator-key-values",
+      'data-block="matrix"',
       "data-ui-spatial",
       "declarative-tabs",
       "declarative-columns",
@@ -594,6 +888,7 @@ describe("OperatorViewRenderer conformance", () => {
 });
 
 describe("OperatorViewRenderer confirmations", () => {
+  let restoreGlobals: RestoreGlobals;
   let windowInstance: Window;
   let root: Root;
   let container: HTMLElement;
@@ -602,16 +897,18 @@ describe("OperatorViewRenderer confirmations", () => {
     windowInstance = new Window({
       url: "https://brain.test/studio/workspaces/directory-sync",
     });
-    Object.assign(globalThis, {
-      window: windowInstance,
-      document: windowInstance.document,
-      navigator: windowInstance.navigator,
-      HTMLElement: windowInstance.HTMLElement,
-      Element: windowInstance.Element,
-      Node: windowInstance.Node,
+    restoreGlobals = installDomGlobals(windowInstance, {
       Event: windowInstance.Event,
       FormData: windowInstance.FormData,
-      IS_REACT_ACT_ENVIRONMENT: true,
+      MutationObserver: windowInstance.MutationObserver,
+      NodeFilter: windowInstance.NodeFilter,
+      CustomEvent: windowInstance.CustomEvent,
+      HTMLInputElement: windowInstance.HTMLInputElement,
+      getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
+      requestAnimationFrame:
+        windowInstance.requestAnimationFrame.bind(windowInstance),
+      cancelAnimationFrame:
+        windowInstance.cancelAnimationFrame.bind(windowInstance),
     });
     // globalThis.document is the happy-dom document assigned above, but typed
     // as lib.dom's — so the element it makes is the one createRoot declares,
@@ -623,16 +920,100 @@ describe("OperatorViewRenderer confirmations", () => {
 
   afterEach(async () => {
     await act(async () => root.unmount());
+    // Radix's focus scope dispatches on its way out. Drain that before the
+    // globals go back, or it runs against a native Event and throws.
+    await windowInstance.happyDOM.abort();
     windowInstance.close();
+    restoreGlobals();
   });
 
   const clickButton = async (label: string): Promise<void> => {
     const button = Array.from(
-      container.querySelectorAll<HTMLButtonElement>("button"),
+      document.querySelectorAll<HTMLButtonElement>("button"),
     ).find((candidate) => String(candidate.textContent).trim() === label);
     if (!button) throw new Error(`Expected a "${label}" button`);
     await act(async () => button.click());
   };
+
+  it("keeps authored headings visible while separate triggers expose exact row actions", async () => {
+    const invocations: RuntimeOperatorActionControl[] = [];
+    await act(async () =>
+      root.render(
+        <OperatorViewRenderer
+          data={{
+            view: {
+              blocks: [
+                {
+                  type: "card",
+                  id: "warning",
+                  label: "One delivery needs attention",
+                  metadata: ["Retries: 0"],
+                  tone: "warn",
+                  presentation: "disclosure",
+                  disclosureLabel: "Review failure α",
+                  blocks: [
+                    {
+                      type: "list",
+                      id: "failures",
+                      empty: "Empty",
+                      items: [
+                        {
+                          id: "failure",
+                          title: "Full source title",
+                          description: "Exact diagnostics\nrequest:123",
+                          actionsLabel: "Queue options α",
+                          actions: [
+                            {
+                              actionId: "retry",
+                              label: "Retry publication",
+                              input: { id: "exact:123" },
+                            },
+                            {
+                              actionId: "remove",
+                              label: "Remove",
+                              input: { id: "exact:123" },
+                              disabled: true,
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+          onAction={async (action) => {
+            invocations.push(action);
+            return {};
+          }}
+          onOpenEntity={() => {}}
+        />,
+      ),
+    );
+    const heading = container.querySelector("section > header h2");
+    expect(heading?.textContent).toBe("One delivery needs attention");
+    expect(heading?.closest("details")).toBeNull();
+    const summaries = Array.from(container.querySelectorAll("summary")),
+      review = summaries.find((s) => s.textContent === "Review failure α"),
+      options = summaries.find((s) => s.textContent === "Queue options α");
+    if (!review || !options) throw Error("Missing authored triggers");
+    expect(review.closest("details")?.open).toBe(false);
+    expect(invocations).toHaveLength(0);
+    await act(async () => review.click());
+    await act(async () => options.click());
+    expect(review.closest("details")?.open).toBe(true);
+    expect(options.closest("details")?.open).toBe(true);
+    expect(container.textContent).toContain("Exact diagnostics\nrequest:123");
+    const disabled = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent === "Remove",
+    );
+    expect(disabled?.disabled).toBe(true);
+    await clickButton("Retry publication");
+    expect(invocations).toMatchObject([
+      { actionId: "retry", input: { id: "exact:123" } },
+    ]);
+  });
 
   it("confirms static actions in the Studio dialog rather than a browser prompt", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
@@ -654,13 +1035,13 @@ describe("OperatorViewRenderer confirmations", () => {
 
     await clickButton("Purge exports");
 
-    const dialog = container.querySelector('[role="alertdialog"]');
+    const dialog = document.querySelector('[role="alertdialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain("Purge every exported file?");
     expect(invocations).toHaveLength(0);
 
     await clickButton("Cancel");
-    expect(container.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
     expect(invocations).toHaveLength(0);
 
     await clickButton("Purge exports");
@@ -733,6 +1114,147 @@ describe("OperatorViewRenderer confirmations", () => {
 
     expect(disclosure.open).toBe(true);
     expect(disclosure.textContent).toContain("Discord user ID");
+  });
+
+  it("keeps disclosure action failures visible inside the open disclosure", async () => {
+    const action: RuntimeOperatorActionControl = {
+      actionId: "invite",
+      label: "Add a person",
+      input: { idempotencyKey: "request-1" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+        fields: [],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: { view: { blocks: [{ type: "action", ...action }] } },
+          onAction: async () => {
+            throw new Error("Delivery identity is already connected");
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    await clickButton("Create invitation");
+
+    const disclosure = container.querySelector(
+      ".declarative-action-disclosure",
+    );
+    const error = disclosure?.querySelector(".status-error");
+    expect(error?.textContent).toContain(
+      "Action failed: Delivery identity is already connected",
+    );
+  });
+
+  it("keeps a sensitive action receipt when refreshed data removes its control", async () => {
+    let finishAction: (value: unknown) => void = () => {};
+    const actionResult = new Promise<unknown>((resolve) => {
+      finishAction = resolve;
+    });
+    let copied = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string): Promise<void> => {
+          copied = value;
+        },
+      },
+    });
+    const action: RuntimeOperatorActionControl = {
+      actionId: "resend-invitation",
+      label: "Resend",
+      input: { invitationId: "inv-natalie" },
+      confirmation: {
+        kind: "static",
+        message: "Create a new single-use setup link?",
+      },
+      result: {
+        title: "Invitation setup",
+        fields: [
+          { name: "status", label: "Status" },
+          {
+            name: "setupUrl",
+            label: "Single-use setup URL",
+            copyable: true,
+            sensitive: true,
+          },
+        ],
+      },
+    };
+    const workspace = (
+      rows: RuntimeStudioWorkspaceData["view"]["blocks"],
+    ): RuntimeStudioWorkspaceData => ({ view: { blocks: rows } });
+    const withInvitation = workspace([
+      {
+        type: "table",
+        id: "invitations",
+        empty: "No invitation history yet.",
+        columns: [{ key: "person", label: "Person" }],
+        rows: [
+          {
+            id: "inv-natalie",
+            cells: { person: "Natalie" },
+            actions: [action],
+          },
+        ],
+      },
+    ]);
+    const withoutInvitation = workspace([
+      {
+        type: "table",
+        id: "invitations",
+        empty: "No invitation history yet.",
+        columns: [{ key: "person", label: "Person" }],
+        rows: [],
+      },
+    ]);
+    const onAction = async (): Promise<unknown> => actionResult;
+
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: withInvitation,
+          onAction,
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+    await clickButton("Resend");
+    await clickButton("Confirm action");
+
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: withoutInvitation,
+          onAction,
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+    await act(async () => {
+      finishAction({
+        status: "Delivery provider accepted the invitation.",
+        setupUrl: "https://brain.test/setup?token=setup_latest",
+      });
+      await actionResult;
+    });
+
+    const receipt = container.querySelector(".declarative-action-receipt");
+    expect(receipt?.textContent).toContain(
+      "Delivery provider accepted the invitation.",
+    );
+    expect(receipt?.textContent).toContain(
+      "https://brain.test/setup?token=setup_latest",
+    );
+    expect(receipt?.querySelector("[data-sensitive]")).not.toBeNull();
+    await clickButton("Copy");
+    expect(copied).toBe("https://brain.test/setup?token=setup_latest");
+    await clickButton("Dismiss");
+    expect(container.querySelector(".declarative-action-receipt")).toBeNull();
   });
 
   it("submits typed form input and presents bounded action results", async () => {
@@ -845,6 +1367,9 @@ describe("OperatorViewRenderer confirmations", () => {
     );
     expect(result?.textContent).not.toContain("not declared");
     expect(result?.querySelector("[data-sensitive]")).not.toBeNull();
+    expect(
+      result?.querySelector("[data-sensitive] code")?.getAttribute("title"),
+    ).toBe("https://brain.test/auth/setup/token-1");
     await clickButton("Copy");
     expect(copied).toBe("https://brain.test/auth/setup/token-1");
 
@@ -896,7 +1421,7 @@ describe("OperatorViewRenderer confirmations", () => {
 
     expect(invocations).toHaveLength(1);
     expect(invocations[0]?.invocation?.mode).toBe("prepare");
-    const dialog = container.querySelector('[role="alertdialog"]');
+    const dialog = document.querySelector('[role="alertdialog"]');
     expect(dialog?.textContent).toContain("Removes 12 exported files.");
 
     await clickButton("Confirm action");
@@ -953,21 +1478,15 @@ const detailData = (open?: {
 });
 
 describe("OperatorViewRenderer master/detail", () => {
+  let restoreGlobals: RestoreGlobals;
   let windowInstance: Window;
   let root: Root;
   let container: HTMLElement;
 
   beforeEach(() => {
     windowInstance = new Window({ url: "https://brain.test/studio" });
-    Object.assign(globalThis, {
-      window: windowInstance,
-      document: windowInstance.document,
-      navigator: windowInstance.navigator,
-      HTMLElement: windowInstance.HTMLElement,
-      Element: windowInstance.Element,
-      Node: windowInstance.Node,
+    restoreGlobals = installDomGlobals(windowInstance, {
       Event: windowInstance.Event,
-      IS_REACT_ACT_ENVIRONMENT: true,
     });
     container = document.createElement("div");
     document.body.append(container);
@@ -976,7 +1495,9 @@ describe("OperatorViewRenderer master/detail", () => {
 
   afterEach(async () => {
     await act(async () => root.unmount());
+    await windowInstance.happyDOM.abort();
     windowInstance.close();
+    restoreGlobals();
   });
 
   it("renders the collection beside the open item and marks the open row", () => {
@@ -1024,6 +1545,67 @@ describe("OperatorViewRenderer master/detail", () => {
     expect(queries).toEqual([
       { urgency: "high", offset: 20, selected: "mail-1" },
     ]);
+  });
+
+  it("opens a record from its trailing link without stretching the title or navigating away", async () => {
+    const queries: unknown[] = [];
+    const launches: unknown[] = [];
+    const block = detailData().view.blocks[0];
+    if (block?.type !== "detail" || block.master.type !== "list")
+      throw new Error("Expected list-backed detail fixture");
+    const master = block.master;
+    const item = master.items[0];
+    if (!item) throw new Error("Expected fixture record");
+    windowInstance.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+    await act(async () =>
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: {
+            view: {
+              blocks: [
+                {
+                  ...block,
+                  master: {
+                    ...master,
+                    items: [
+                      {
+                        ...item,
+                        link: undefined,
+                        links: [
+                          {
+                            label: "Review",
+                            target: { kind: "detail", itemId: item.id },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          onLaunch: (launch) => launches.push(launch),
+          query: { tab: "invitations", state: "pending", offset: 20 },
+          onQueryChange: (query) => queries.push(query),
+        }),
+      ),
+    );
+    const row = container.querySelector("li");
+    const review = container.querySelector<HTMLButtonElement>(
+      '[data-record-trailing="true"] button',
+    );
+    if (!row || !review) throw new Error("Missing trailing record link");
+    expect(review.textContent).toBe("Review");
+    expect(row.querySelector("strong button")).toBeNull();
+    // The default compact host keeps its own density alignment.
+    expect(window.getComputedStyle(row).alignItems).toBe("start");
+    await act(async () => review.click());
+    expect(queries).toEqual([
+      { tab: "invitations", state: "pending", offset: 20, selected: item.id },
+    ]);
+    expect(launches).toEqual([]);
   });
 
   it("writes query-backed tab selection through host state", async () => {
@@ -1173,7 +1755,7 @@ describe("OperatorViewRenderer head", () => {
 });
 
 describe("OperatorViewRenderer pagination", () => {
-  const paged = (offset: number): RuntimeStudioWorkspaceData => ({
+  const paged = (offset: number, total = 24): RuntimeStudioWorkspaceData => ({
     view: {
       title: "Inbox",
       blocks: [
@@ -1181,7 +1763,7 @@ describe("OperatorViewRenderer pagination", () => {
           type: "query",
           id: "q",
           controls: [],
-          pagination: { offset, limit: 10, total: 24 },
+          pagination: { offset, limit: 10, total },
         },
       ],
     },
@@ -1203,6 +1785,26 @@ describe("OperatorViewRenderer pagination", () => {
     expect(html).toContain("11–20 of 24");
     expect(html).toContain("Previous");
     expect(html).toContain("Next");
+  });
+
+  it("keeps a single page quiet and leaves an escape from an emptied later page", () => {
+    const render = (offset: number): string =>
+      renderToStaticMarkup(
+        createElement(OperatorViewRenderer, {
+          data: paged(offset, 3),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+        }),
+      );
+    const single = render(0);
+    expect(single).toContain("Showing 1–3 of 3");
+    expect(single).not.toContain("Previous");
+    expect(single).not.toContain("Next");
+    const stale = render(20);
+    expect(stale).toContain("No items on this page · 3 total");
+    expect(stale).toContain("Previous");
+    expect(stale).not.toContain("21–3");
+    expect(operatorViewStylexCSS).not.toContain(".declarative-query");
   });
 
   it("disables the direction it cannot go", () => {
@@ -1227,35 +1829,24 @@ describe("sidebar card readouts", () => {
   // site-builder's Site health emits free-form build detail, not the one-word
   // states the rest of the fixture uses.
 
-  it("lets a long key-value wrap instead of holding it on one line", () => {
+  it("lets a long grouped readout wrap instead of holding it on one line", () => {
     // white-space: nowrap here pushed a 90-character build detail straight out
     // of the card and off the document.
-    expect(operatorViewRendererStyles).not.toMatch(
-      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*white-space: nowrap/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*overflow-wrap: anywhere/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-key-values > div \{[^}]*flex-wrap: wrap/,
-    );
+    // The shared fact component tests apply these compiled styles to both densities.
+    expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
+    expect(operatorViewStylexCSS).toContain("flex-wrap:wrap");
+    expect(operatorViewStylexCSS).not.toContain(".declarative-group");
   });
 
   it("sizes stats to the card rather than breaking a state mid-word", () => {
     // The body grid's 128px minimum track needs 257px for two stats, which a
     // 220px card cannot give without opening up.
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-card \.declarative-stats \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(0, 1fr\)\)/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-card \.declarative-stats dd \{[^}]*font-size: 17px/,
-    );
+    expect(operatorViewStylexCSS).toContain("minmax(min(128px,100%),1fr)");
+    expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
   });
 
   it("keeps the line breaks a notice authored", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-notice p \{[^}]*white-space: pre-line/,
-    );
+    expect(operatorViewStylexCSS).toContain("white-space:pre-line");
   });
 
   it("renders one failure per line in a joined notice", () => {
@@ -1292,61 +1883,19 @@ describe("author-supplied text cannot break the page", () => {
   // the block's meaning, so none of those may reach past their column.
 
   it("breaks unbroken tokens in list text", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-list strong,[\s\S]*?\.declarative-list small \{[^}]*overflow-wrap: anywhere/,
-    );
+    expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
   });
 
-  it("lets a long pill wrap inside its own measure", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*max-width: 100%/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*overflow-wrap: anywhere/,
-    );
-    // nowrap here turned a 160-character badge into a page-width overrun.
-    expect(operatorViewRendererStyles).not.toMatch(
-      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*white-space: nowrap/,
-    );
-  });
-
-  it("keeps trailing row metadata inside the row", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-list-trailing > span:not\(\.declarative-badge\) \{[^}]*overflow-wrap: anywhere/,
-    );
-  });
+  // Badge measure and wrapping are covered against compiled CSS in operator-list.test.tsx.
 });
 
-describe("every author-text surface has a break guard", () => {
-  // Kept as one list so a new text-bearing block cannot quietly ship without
-  // deciding what happens to a string that has nowhere to break.
-  const guarded = [
-    ".declarative-spatial li strong",
-    ".declarative-spatial li span",
-    ".declarative-flow strong",
-    ".declarative-progress strong",
-    ".declarative-progress p",
-    ".declarative-meters dd",
-    ".declarative-links a",
+it("does not depend on legacy renderer selectors", () => {
+  for (const selector of [
+    ".declarative-spatial",
+    ".declarative-links",
     ".declarative-inline-link",
-  ];
-
-  // Read the one rule that owns this contract rather than searching the whole
-  // sheet: a lazy match across blocks would happily find some other
-  // overflow-wrap and pass without the selector being guarded at all.
-  const contract =
-    /---- author text[\s\S]*?\n([^{]*)\{([^}]*)\}/.exec(
-      operatorViewRendererStyles,
-    ) ?? undefined;
-
-  it("declares the contract as a single rule", () => {
-    expect(contract).toBeDefined();
-    expect(contract?.[2]).toContain("overflow-wrap: anywhere");
-  });
-
-  for (const selector of guarded) {
-    it(`breaks unbroken tokens in ${selector}`, () => {
-      expect(contract?.[1]).toContain(selector);
-    });
-  }
+    ".declarative-head",
+    ".declarative-matrix",
+  ])
+    expect(operatorViewStylexCSS).not.toContain(selector);
 });

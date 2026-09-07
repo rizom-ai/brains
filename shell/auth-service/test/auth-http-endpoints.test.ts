@@ -133,7 +133,7 @@ describe("AuthService routing", () => {
 });
 
 describe("login page", () => {
-  it("renders the passkey login page with a relative return_to", async () => {
+  it("explains passkey-only login and account recovery", async () => {
     const service = await makeService();
 
     const response = await service.handleRequest(
@@ -143,7 +143,9 @@ describe("login page", () => {
     expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain("Passkey login");
-    expect(html).toContain("Choose account");
+    expect(html).toContain("uses passkeys, not passwords");
+    expect(html).toContain("Choose passkey");
+    expect(html).toContain("replacement setup link");
     expect(html).toContain(JSON.stringify("/dashboard"));
   });
 
@@ -932,7 +934,7 @@ describe("webauthn endpoints", () => {
 });
 
 describe("setup page", () => {
-  it("returns 404 once setup is complete", async () => {
+  it("explains sign-in and recovery when a setup link is no longer active", async () => {
     const storageDir = await tempStorageDir();
     await seedPasskeyCredential(storageDir);
     const service = new AuthService({ storageDir, issuer: ISSUER });
@@ -942,6 +944,13 @@ describe("setup page", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(await response.text()).toBe("Setup already completed");
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8",
+    );
+    const html = await response.text();
+    expect(html).toContain("This setup link is no longer active");
+    expect(html).toContain("uses passkeys, not passwords");
+    expect(html).toContain("replacement setup link");
+    expect(html).toContain('href="/login"');
   });
 });

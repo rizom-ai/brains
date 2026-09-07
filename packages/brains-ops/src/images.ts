@@ -1,3 +1,6 @@
+import { verifyRuntimeImage } from "./image-inventory";
+import type { RequiredImage } from "./image-types";
+export type { RequiredImage } from "./image-types";
 import { loadPilotRegistry, type ResolvedSiteOverride } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
@@ -11,7 +14,7 @@ export function runtimeImageTag(brainVersion: string): string {
 }
 
 /**
- * The npm packages a site override contributes to its version's shared image.
+ * The npm packages a site override contributes to every new fleet image.
  * A @rizom-scoped theme is independently published and installs at its own
  * explicit version; @brains/* themes are bundled inside @rizom/brain and must
  * not be npm-installed.
@@ -40,42 +43,36 @@ export interface ImageRequirementSource {
   siteOverride?: ResolvedSiteOverride | undefined;
 }
 
-export interface RequiredImage {
-  tag: string;
-  brainVersion: string;
-  /** Sorted, deduped package specs installed into this runtime image. */
-  sitePackages: string[];
-}
-
 /**
  * Derive one immutable image per effective Brain version. Each image contains
- * the union of exact site/theme package pins required by every instance on
- * that version.
+ * the union of exact site/theme package pins across the entire fleet, including
+ * instances still on older Brain versions. Promotion must not change an image.
  */
 export function requiredImages(
   users: ImageRequirementSource[],
 ): RequiredImage[] {
+  const sitePackages = fleetSitePackages(users);
   const byVersion = new Map<string, RequiredImage>();
   for (const user of users) {
-    const image = byVersion.get(user.brainVersion) ?? {
+    byVersion.set(user.brainVersion, {
       tag: runtimeImageTag(user.brainVersion),
       brainVersion: user.brainVersion,
-      sitePackages: [],
-    };
-    image.sitePackages = mergeExactPackagePins(
-      user.brainVersion,
-      image.sitePackages,
-      sitePackagesFor(user.siteOverride),
-    );
-    byVersion.set(user.brainVersion, image);
+      sitePackages: [...sitePackages],
+    });
   }
   return [...byVersion.values()].sort((left, right) =>
     left.tag.localeCompare(right.tag),
   );
 }
 
+function fleetSitePackages(users: ImageRequirementSource[]): string[] {
+  return mergeExactPackagePins(
+    [],
+    users.flatMap((user) => sitePackagesFor(user.siteOverride)),
+  );
+}
+
 function mergeExactPackagePins(
-  brainVersion: string,
   current: string[],
   additions: string[],
 ): string[] {
@@ -86,7 +83,7 @@ function mergeExactPackagePins(
     const existing = byPackage.get(packageName);
     if (existing && existing !== spec) {
       throw new Error(
-        `Brain ${brainVersion} shared image has conflicting pins for ` +
+        "Fleet shared images have conflicting pins for " +
           `${packageName}: ${existing} and ${spec}`,
       );
     }
@@ -99,7 +96,7 @@ export interface ResolveImageBuildsOptions {
   users: ImageRequirementSource[];
   /**
    * Explicit dispatch override — the manual/backfill path. When set, exactly
-   * this one image is built, skipping the registry-derived resolve. Published
+   * this one version is built with the fleet union plus explicit extra pins. Published
    * tags stay immutable: a same-tag rebuild from a newer Dockerfile can
    * strand the tag boot-broken, so rebuilding needs allowTagOverwrite.
    */
@@ -107,6 +104,8 @@ export interface ResolveImageBuildsOptions {
   sitePackagesInput?: string | undefined;
   allowTagOverwrite?: boolean | undefined;
   imageExists: (tag: string) => Promise<boolean>;
+  /** Fail closed if a published image cannot serve its assigned instances. */
+  verifyImage: (image: RequiredImage) => Promise<void>;
 }
 
 /**
@@ -119,9 +118,10 @@ export async function resolveImageBuilds(
 ): Promise<RequiredImage[]> {
   const versionInput = options.brainVersionInput?.trim() ?? "";
   if (versionInput) {
-    const sitePackages = (options.sitePackagesInput ?? "")
-      .split(/\s+/)
-      .filter(Boolean);
+    const sitePackages = mergeExactPackagePins(
+      fleetSitePackages(options.users),
+      (options.sitePackagesInput ?? "").split(/\s+/).filter(Boolean),
+    );
     const tag = runtimeImageTag(versionInput);
     if (!options.allowTagOverwrite && (await options.imageExists(tag))) {
       throw new Error(
@@ -143,6 +143,17 @@ export async function resolveImageBuilds(
   for (const image of requiredImages(options.users)) {
     if (!(await options.imageExists(image.tag))) {
       missing.push(image);
+    } else {
+      // Older images need only serve their current adopters. New images are
+      // fleet-complete; promotion expands this check before reuse is allowed.
+      await options.verifyImage({
+        ...image,
+        sitePackages: fleetSitePackages(
+          options.users.filter(
+            (user) => user.brainVersion === image.brainVersion,
+          ),
+        ),
+      });
     }
   }
   return missing;
@@ -207,10 +218,7 @@ export async function runResolveMissingImages(
   const sitePackagesInput = env["SITE_PACKAGES_INPUT"]?.trim() ?? "";
   const allowTagOverwrite = env["ALLOW_TAG_OVERWRITE"]?.trim() === "true";
 
-  const registry = brainVersionInput
-    ? undefined
-    : await loadPilotRegistry(options.rootDir);
-  const users = registry?.users ?? [];
+  const { users } = await loadPilotRegistry(options.rootDir);
 
   const builds = await resolveImageBuilds({
     users,
@@ -218,6 +226,8 @@ export async function runResolveMissingImages(
     sitePackagesInput,
     allowTagOverwrite,
     imageExists: (tag) => imageTagExists(run, options.imageRepository, tag),
+    verifyImage: (image) =>
+      verifyRuntimeImage(options.imageRepository, image, run),
   });
 
   for (const image of builds) {

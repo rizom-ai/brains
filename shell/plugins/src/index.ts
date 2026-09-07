@@ -53,6 +53,7 @@ export type {
 export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
+  readPromptOverride,
   resetPromptCache,
   materializePrompts,
 } from "./entity/prompt-resolver";
@@ -234,10 +235,15 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
+export {
+  createScheduledMaintenanceDaemon,
+  type ScheduledMaintenanceOptions,
+} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
   RuntimeStateRecordValue,
+  RuntimeStateListOptions,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 export type {
@@ -413,6 +419,15 @@ export {
   type ServiceInteractionDeclaration,
   type ServiceEvalHandler,
   type ServiceJobBinding,
+  type ServiceContentGeneration,
+  type ServiceContentGenerationContext,
+  type ServiceContentGenerationItem,
+  type ServiceContentGenerationResult,
+  contentGenerationResultSchema,
+  type ServiceContentGenerationSkipReason,
+  type ServiceContentGenerationTarget,
+  type ServiceContentGenerationTargetInput,
+  type ServiceEntityIdPath,
   type ServiceJobDefinition,
   type ServiceJobHandlerContext,
   type ServiceJobReference,
@@ -449,6 +464,7 @@ export {
   type ToolAgent,
   type ToolAgentAnswer,
   type ToolAsk,
+  type ServiceTemplateGenerationDefinition,
   type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,
   type WorkspacePreparedConfirmation,
@@ -572,6 +588,8 @@ export type {
   GetEntityRequest,
   UpdateEntityRequest,
   ListEntitiesRequest,
+  EntityIdPath,
+  EntityIdPathInput,
   BaseEntityFrontmatterSchema,
   EntityMutationResult,
   EntityTypeConfig,
@@ -601,6 +619,8 @@ export {
   BaseEntityAdapter,
   baseEntityParserSchema,
   baseEntitySchema,
+  entityIdPathSchema,
+  EntityWriteConflictError,
   canWriteVisibility,
   contentVisibilitySchema,
   emptyFrontmatterSchema,
@@ -973,10 +993,11 @@ export type {
   RegisteredWebRoute,
   WebRouteMethod,
   WebRouteHandler,
+  WebRouteTransportContext,
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";
-export { jsonResponse, jsonError } from "./types/web-routes";
+export { jsonResponse, jsonError, SitePageResponse } from "./types/web-routes";
 export {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,

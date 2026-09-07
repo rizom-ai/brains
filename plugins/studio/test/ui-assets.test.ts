@@ -1,12 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 
-const manifestSchema = z.object({
-  version: z.literal(1),
-  assets: z.record(z.string(), z.string()),
-});
+import { studioAssetManifestSchema as manifestSchema } from "../src/ui-assets";
 const uiDirectory = join(import.meta.dir, "..", "dist", "ui");
 
 function readManifest(): z.output<typeof manifestSchema> {
@@ -22,15 +19,19 @@ describe("Studio split UI assets", () => {
     const manifest = readManifest();
     const entries = Object.entries(manifest.assets);
 
-    expect(manifest.assets["app.js"]).toBe("studio-app.js");
-    expect(manifest.assets["app.css"]).toBe("studio-app.css");
+    expect(manifest.entrypoints.script).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.js$/,
+    );
+    expect(manifest.entrypoints.stylesheet).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.css$/,
+    );
     expect(
       entries.every(
         ([publicPath, filePath]) =>
-          /^(?:app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          /^(?:studio-app-[a-zA-Z0-9]+\.(?:js|css|js\.map)|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
             publicPath,
           ) &&
-          /^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          /^(?:studio-app-[a-zA-Z0-9]+\.(?:js|css|js\.map)|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
             filePath,
           ),
       ),
@@ -43,14 +44,55 @@ describe("Studio split UI assets", () => {
     if (!accountEntry) throw new Error("Missing lazy Account asset");
 
     const stylesheet = readFileSync(
-      join(uiDirectory, manifest.assets["app.css"] ?? ""),
+      join(uiDirectory, manifest.entrypoints.stylesheet),
       "utf8",
     );
+    const operatorCSS = readFileSync(
+      join(
+        import.meta.dir,
+        "../../../shared/operator-view-react/dist/stylex.css",
+      ),
+      "utf8",
+    ).trim();
+    expect(operatorCSS.length).toBeGreaterThan(50);
+    expect(stylesheet).toContain(operatorCSS);
     expect(stylesheet).toContain("var(--console-accent)");
     expect(stylesheet).not.toContain("insertRule");
+    expect(stylesheet).toContain('[data-editor="codemirror6"] .cm-scroller');
+    expect(stylesheet).toContain('[data-editor="codemirror6"] .cm-content');
+    expect(stylesheet).not.toContain(".body-source .cm-");
+    expect(stylesheet).not.toContain(".body-panes.split");
+    // The area/leaf composition and Browse breakpoint must ship as CSS,
+    // including styles used by lazy native Chat and Account.
+    expect(stylesheet).toContain("grid-template-columns:124px minmax(0,220px)");
+    expect(stylesheet).toContain("grid-template-columns:344px minmax(0,1fr)");
+    expect(stylesheet).toContain(
+      "grid-template-columns:36px minmax(0,1fr) auto",
+    );
+    expect(stylesheet).toContain(
+      "grid-template-columns:24px minmax(0,1fr) auto",
+    );
+    expect(stylesheet).toMatch(/@media\s*\(max-width:\s*900px\)/);
+    expect(stylesheet).toContain("grid-template-columns:minmax(0,1fr)");
+    expect(stylesheet).not.toContain(
+      "grid-template-columns:180px minmax(0,1fr)",
+    );
+    expect(stylesheet).not.toContain("--studio-chat-columns");
+    expect(stylesheet).toContain("--operator-section-family:var(--console-ui)");
+    expect(stylesheet).not.toContain("--operator-row-title-family:");
+    for (const [, filePath] of entries.filter(([, file]) =>
+      file.endsWith(".js"),
+    )) {
+      const source = readFileSync(join(uiDirectory, filePath), "utf8");
+      expect(source).not.toContain("stylex.create(");
+      expect(source).not.toContain("@stylexjs/babel-plugin");
+      expect(source).not.toContain(".pipeline .conflict");
+      expect(source).not.toContain(".body-preview pre");
+      expect(source).not.toContain(".body-source .cm-");
+    }
 
     const entrySource = readFileSync(
-      join(uiDirectory, manifest.assets["app.js"] ?? ""),
+      join(uiDirectory, manifest.entrypoints.script),
       "utf8",
     );
     const accountSource = readFileSync(
@@ -73,7 +115,12 @@ describe("Studio split UI assets", () => {
     expect(entrySource).toContain(chatEntry[0]);
     expect(entrySource).not.toContain("/api/chat");
     expect(chatSource).toContain("/api/chat");
-    expect(chatSource).toContain("Working room");
+    expect(chatSource).toContain(
+      "No messages yet. Your draft stays in the composer until you send it.",
+    );
+    expect(chatSource).not.toContain("Working room");
+    expect(chatSource).not.toContain("Working set");
+    expect(chatSource).toContain("Conversation details and options");
     expect(chatSource).not.toContain("data-web-chat-root");
     expect(chatSource).not.toContain("<iframe");
   });

@@ -1,6 +1,23 @@
 /** @jsxImportSource react */
+import { OperatorCard } from "@brains/operator-view-react";
+import { headStyles } from "../studio-page-head.styles";
+import { typographyStyles } from "../studio-typography.styles";
 
-import { Button, ConfirmDialog, Input, Switch } from "@brains/app-ui-react";
+import {
+  Button,
+  ConfirmDialog,
+  Input,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@brains/app-ui-react";
+import { studioWorkspacePath } from "../../../src/studio-paths";
+import {
+  accountClass,
+  accountStyles as accountLayout,
+} from "../studio-account.styles";
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
   type AuthAccountMutation,
@@ -21,11 +38,8 @@ import {
   AccountDetailSection,
 } from "./account-primitives";
 import { studioEntityHref, initials, roleLabel } from "./account-format";
-import detailStyles from "./account-detail.css" with { type: "text" };
 import { AccountClient } from "./account-api";
 import { useStudioApi } from "../studio-api-context";
-import accountStyles from "./account-view.css" with { type: "text" };
-import pageHeadStyles from "../studio-page-head.css" with { type: "text" };
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
 
 export interface AccountBootstrap {
@@ -49,12 +63,8 @@ interface AccountConfirmation {
   action: () => void;
 }
 
-function formatDate(value: number, milliseconds = false): string {
-  const date = new Date(milliseconds ? value : value * 1000);
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+function accountTimestamp(value: number, milliseconds = false): string {
+  return new Date(milliseconds ? value : value * 1000).toISOString();
 }
 
 function messageOf(error: unknown): string {
@@ -78,6 +88,7 @@ export function AccountApp({
   const [status, setStatus] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [section, setSection] = useState("profile");
   const [confirmation, setConfirmation] = useState<AccountConfirmation | null>(
     null,
   );
@@ -224,25 +235,31 @@ export function AccountApp({
 
   return (
     <>
-      <style>
-        {detailStyles}
-        {accountStyles}
-        {pageHeadStyles}
-      </style>
-      <div className="account-shell">
+      <div
+        className={accountClass(
+          "account-shell",
+          accountLayout.shell,
+          headStyles.inset,
+        )}
+      >
         <StudioPageHead
           model={{
-            kicker: "Your identity",
             access: studioAccessRequirement("public"),
-            title: "Account",
-            metadata: [`${title} · ${roleLabel(role)}`],
-            description:
-              "Manage identity, passkeys, connected channels, and signed-in sessions.",
+            title: "Your account",
             totals: [],
           }}
         />
+        <p className={accountClass("account-scope", accountLayout.description)}>
+          Your account on this brain. Manage your profile, sign-in security,
+          linked identities, and personal settings here—not shared services or
+          other people’s access.
+        </p>
         <p
-          className={`account-status${error ? " is-error" : ""}`}
+          className={accountClass(
+            `account-status${error ? " is-error" : ""}`,
+            accountLayout.feedback,
+            error && accountLayout.feedbackError,
+          )}
           role="status"
           aria-live="polite"
         >
@@ -250,72 +267,133 @@ export function AccountApp({
         </p>
 
         {!current ? (
-          <p className="account-loading">Reading your account…</p>
+          <p className={accountClass("account-loading", accountLayout.loading)}>
+            Reading your account…
+          </p>
         ) : (
-          <section className="card people-detail" aria-live="polite">
-            <div className="people-detail-identity">
-              <div className="people-detail-person">
-                <span className="people-avatar people-avatar--large">
-                  {initials(title)}
-                </span>
-                <span>
-                  <span className="people-detail-name">{title}</span>
-                  <span className="people-detail-id">
-                    your account · self-service
-                  </span>
-                </span>
-              </div>
-              <div className="people-facets" aria-label="Account facets">
-                <div className="people-facet">
-                  <span>Role</span>
-                  <strong
-                    className={`people-facet-role people-facet-role--${role}`}
+          <Tabs
+            className="account-details"
+            value={section}
+            onValueChange={setSection}
+          >
+            <TabsList
+              aria-label="Account sections"
+              className={accountClass("account-tabs", accountLayout.tabs)}
+            >
+              <TabsTrigger value="profile" disabled={busy}>
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="security" disabled={busy}>
+                Sign-in &amp; sessions
+              </TabsTrigger>
+              <TabsTrigger value="identities" disabled={busy}>
+                Linked identities
+              </TabsTrigger>
+              {current.pluginSettings.length > 0 && (
+                <TabsTrigger value="settings" disabled={busy}>
+                  Personal settings
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <TabsContent
+              value="profile"
+              forceMount
+              hidden={section !== "profile"}
+              className={accountClass(
+                "account-detail-sections",
+                accountLayout.tabPanel,
+              )}
+            >
+              <AccountDetailSection title="Profile">
+                <div
+                  className={accountClass(
+                    "account-identity",
+                    accountLayout.identity,
+                  )}
+                >
+                  <div
+                    className={accountClass(
+                      "people-detail-person",
+                      accountLayout.person,
+                    )}
                   >
-                    {roleLabel(role)}
-                  </strong>
+                    <span
+                      className={accountClass(
+                        "people-avatar people-avatar--large",
+                        accountLayout.avatar,
+                      )}
+                    >
+                      {initials(title)}
+                    </span>
+                    <span
+                      className={accountClass("", accountLayout.personCopy)}
+                    >
+                      <span
+                        className={accountClass(
+                          "people-detail-name",
+                          accountLayout.name,
+                          typographyStyles.secondaryDisplay,
+                        )}
+                      >
+                        {title}
+                      </span>
+                      <span
+                        data-account-role={role}
+                        className={accountClass(
+                          "account-role",
+                          accountLayout.role,
+                        )}
+                      >
+                        {roleLabel(role)}
+                      </span>
+                    </span>
+                  </div>
                 </div>
-                <div className="people-facet">
-                  <span>Passkeys</span>
-                  <strong>{current.passkeys.length}</strong>
-                </div>
-              </div>
-            </div>
 
-            <div className="people-detail-sections">
-              {current.profileEntityId ? (
-                <AccountDetailSection
-                  title="Display name"
-                  description="Managed by the Anchor profile — your account name follows the published profile."
-                >
-                  <AccountAccessItem
-                    kind="Anchor profile"
-                    value={title}
-                    action={
-                      studioEntityHref(
-                        bootstrap.studioPath,
-                        current.profileEntityId,
-                      ) ? (
-                        <Button asChild variant="link">
-                          <a
-                            href={studioEntityHref(
-                              bootstrap.studioPath,
-                              current.profileEntityId,
-                            )}
-                          >
-                            Edit in Studio →
-                          </a>
-                        </Button>
-                      ) : undefined
-                    }
-                  />
-                </AccountDetailSection>
-              ) : (
-                <AccountDetailSection
-                  title="Display name"
-                  description="Your local name for conversations and attribution. It does not alter an external profile."
-                >
-                  <form className="name-form" onSubmit={saveName}>
-                    <label htmlFor="display-name">Local account name</label>
+                {current.profileEntityId ? (
+                  <>
+                    <p
+                      className={accountClass(
+                        "account-profile-note",
+                        accountLayout.description,
+                      )}
+                    >
+                      Managed by the Anchor profile — your account name follows
+                      the published profile.
+                    </p>
+                    <AccountAccessItem
+                      kind="Anchor profile"
+                      description={title}
+                      action={
+                        studioEntityHref(
+                          bootstrap.studioPath,
+                          current.profileEntityId,
+                        ) ? (
+                          <Button asChild variant="link">
+                            <a
+                              href={studioEntityHref(
+                                bootstrap.studioPath,
+                                current.profileEntityId,
+                              )}
+                            >
+                              Edit in Studio →
+                            </a>
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  </>
+                ) : (
+                  <form
+                    className={accountClass("name-form", accountLayout.form)}
+                    onSubmit={saveName}
+                  >
+                    <label
+                      className={accountClass("", accountLayout.formLabel)}
+                      htmlFor="display-name"
+                    >
+                      Display name
+                    </label>
                     <Input
                       id="display-name"
                       maxLength={200}
@@ -324,249 +402,338 @@ export function AccountApp({
                       value={displayName}
                       onChange={(event) => setDisplayName(event.target.value)}
                     />
-                    <AccountButton type="submit" tone="primary" disabled={busy}>
+                    <AccountButton type="submit" disabled={busy}>
                       Save name
                     </AccountButton>
                   </form>
-                </AccountDetailSection>
-              )}
+                )}
+              </AccountDetailSection>
 
+              <p className={accountClass("", accountLayout.description)}>
+                Your role controls access to this brain. An administrator
+                manages access in Administration.
+              </p>
+              {role === "admin" && (
+                <Button asChild variant="outline">
+                  <a
+                    href={studioWorkspacePath(
+                      bootstrap.studioPath,
+                      "admin:administration",
+                    )}
+                  >
+                    Manage people in Administration →
+                  </a>
+                </Button>
+              )}
+            </TabsContent>
+            <TabsContent
+              value="identities"
+              forceMount
+              hidden={section !== "identities"}
+              className={accountClass("", accountLayout.tabPanel)}
+            >
               <AccountDetailSection
-                title="Connected channels"
-                description="Verified contact details connected to your account."
+                title="Linked identities"
+                description="How this brain recognises messages from you. These are your identities, not services configured for the whole brain."
               >
                 {current.connectedChannels.length === 0 ? (
-                  <p className="people-empty">No connected channels.</p>
+                  <p
+                    className={accountClass(
+                      "people-empty",
+                      accountLayout.empty,
+                    )}
+                  >
+                    No linked identities.
+                  </p>
                 ) : (
                   current.connectedChannels.map((channel) => (
                     <AccountAccessItem
                       key={`${channel.type}:${channel.label}`}
                       kind={channel.type}
-                      value={`${channel.label} · verified ${formatDate(channel.verifiedAt, true)}`}
+                      description={channel.label}
+                      metadata={[
+                        `Verified: ${accountTimestamp(channel.verifiedAt, true)}`,
+                      ]}
                     />
                   ))
                 )}
               </AccountDetailSection>
-
-              {current.pluginSettings.map((settings) => (
-                <AccountDetailSection
-                  key={settings.id}
-                  title={settings.title}
-                  description={
-                    settings.description ?? "Private settings for this account."
-                  }
-                >
-                  <form
-                    key={`${settings.id}:${settings.revision ?? "unset"}`}
-                    className="name-form"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const formData = new FormData(event.currentTarget);
-                      const values: Record<string, unknown> =
-                        Object.fromEntries(formData.entries());
-                      for (const field of settings.fields) {
-                        if (field.control === "checkbox") {
-                          values[field.name] = formData.has(field.name);
-                        } else if (
-                          field.control === "number" &&
-                          typeof values[field.name] === "string" &&
-                          values[field.name] !== ""
-                        ) {
-                          values[field.name] = Number(values[field.name]);
-                        }
-                      }
-                      void run(
-                        `Saving ${settings.title}…`,
-                        `${settings.title} updated.`,
-                        () =>
-                          client.mutatePluginSettings({
-                            action: "save",
-                            definitionId: settings.id,
-                            values,
-                          }),
-                      );
-                    }}
+            </TabsContent>
+            {current.pluginSettings.length > 0 && (
+              <TabsContent
+                value="settings"
+                forceMount
+                hidden={section !== "settings"}
+                className={accountClass("", accountLayout.tabPanel)}
+              >
+                <p className={accountClass("", accountLayout.description)}>
+                  Settings for your account only. These do not configure shared
+                  services for the brain.
+                </p>
+                {current.pluginSettings.map((settings) => (
+                  <OperatorCard
+                    key={settings.id}
+                    label={settings.title}
+                    density="comfortable"
+                    presentation="disclosure"
                   >
-                    {settings.fields.map((field) => (
-                      <label
-                        key={field.name}
-                        htmlFor={`setting-${settings.id}-${field.name}`}
-                      >
-                        {field.label}
-                        {field.control === "checkbox" ? (
-                          <Switch
-                            id={`setting-${settings.id}-${field.name}`}
-                            name={field.name}
-                            defaultChecked={field.value === true}
-                          />
-                        ) : (
-                          <Input
-                            id={`setting-${settings.id}-${field.name}`}
-                            name={field.name}
-                            type={
-                              field.secret
-                                ? "password"
-                                : field.control === "url"
-                                  ? "url"
-                                  : field.control === "number"
-                                    ? "number"
-                                    : "text"
-                            }
-                            required={
-                              field.required &&
-                              (!settings.configured || field.secret) &&
-                              !field.set
-                            }
-                            defaultValue={
-                              field.secret
-                                ? ""
-                                : typeof field.value === "string" ||
-                                    typeof field.value === "number"
-                                  ? field.value
-                                  : ""
-                            }
-                            placeholder={
-                              field.secret && field.set
-                                ? "Stored — leave blank to keep"
-                                : undefined
-                            }
-                            autoComplete="off"
-                          />
-                        )}
-                      </label>
-                    ))}
-                    <div className="people-inline-actions">
-                      <AccountButton
-                        type="submit"
-                        tone="primary"
-                        disabled={busy}
-                      >
-                        Save settings
-                      </AccountButton>
-                      {settings.configured ? (
-                        <Button
-                          variant="danger"
-                          disabled={busy}
-                          type="button"
-                          onClick={() =>
-                            setConfirmation({
-                              title: `Remove ${settings.title}?`,
-                              message:
-                                "The stored settings for this integration will be removed.",
-                              confirmLabel: "Remove settings",
-                              action: () => {
-                                void run(
-                                  `Removing ${settings.title}…`,
-                                  `${settings.title} removed.`,
-                                  () =>
-                                    client.mutatePluginSettings({
-                                      action: "delete",
-                                      definitionId: settings.id,
-                                    }),
-                                );
-                              },
-                            })
+                    <p
+                      className={accountClass(
+                        "account-settings-description",
+                        accountLayout.description,
+                      )}
+                    >
+                      {settings.description ??
+                        "Private settings for this account."}
+                    </p>
+                    <form
+                      key={`${settings.id}:${settings.revision ?? "unset"}`}
+                      className={accountClass("name-form", accountLayout.form)}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const formData = new FormData(event.currentTarget);
+                        const values: Record<string, unknown> =
+                          Object.fromEntries(formData.entries());
+                        for (const field of settings.fields) {
+                          if (field.control === "checkbox") {
+                            values[field.name] = formData.has(field.name);
+                          } else if (
+                            field.control === "number" &&
+                            typeof values[field.name] === "string" &&
+                            values[field.name] !== ""
+                          ) {
+                            values[field.name] = Number(values[field.name]);
                           }
+                        }
+                        void run(
+                          `Saving ${settings.title}…`,
+                          `${settings.title} updated.`,
+                          () =>
+                            client.mutatePluginSettings({
+                              action: "save",
+                              definitionId: settings.id,
+                              values,
+                            }),
+                        );
+                      }}
+                    >
+                      {settings.fields.map((field) => (
+                        <label
+                          key={field.name}
+                          htmlFor={`setting-${settings.id}-${field.name}`}
+                          className={accountClass("", accountLayout.field)}
                         >
-                          Remove
-                        </Button>
-                      ) : null}
-                    </div>
-                  </form>
-                </AccountDetailSection>
-              ))}
-
-              <AccountDetailSection
-                title="Sign-in"
-                description="Passkeys used to access this account. Your final passkey is protected from revocation."
-              >
-                {current.passkeys.map((passkey) => (
-                  <AccountAccessItem
-                    key={passkey.id}
-                    kind="Passkey"
-                    value={`${passkey.credentialBackedUp ? "Synced credential" : "Device credential"} · added ${formatDate(passkey.createdAt, true)}`}
-                    action={
-                      current.passkeys.length > 1 ? (
-                        <Button
-                          variant="danger"
+                          <span
+                            className={accountClass(
+                              "",
+                              accountLayout.formLabel,
+                            )}
+                          >
+                            {field.label}
+                          </span>
+                          {field.control === "checkbox" ? (
+                            <Switch
+                              id={`setting-${settings.id}-${field.name}`}
+                              name={field.name}
+                              defaultChecked={field.value === true}
+                            />
+                          ) : (
+                            <Input
+                              id={`setting-${settings.id}-${field.name}`}
+                              name={field.name}
+                              type={
+                                field.secret
+                                  ? "password"
+                                  : field.control === "url"
+                                    ? "url"
+                                    : field.control === "number"
+                                      ? "number"
+                                      : "text"
+                              }
+                              required={
+                                field.required &&
+                                (!settings.configured || field.secret) &&
+                                !field.set
+                              }
+                              defaultValue={
+                                field.secret
+                                  ? ""
+                                  : typeof field.value === "string" ||
+                                      typeof field.value === "number"
+                                    ? field.value
+                                    : ""
+                              }
+                              placeholder={
+                                field.secret && field.set
+                                  ? "Stored — leave blank to keep"
+                                  : undefined
+                              }
+                              autoComplete="off"
+                            />
+                          )}
+                        </label>
+                      ))}
+                      <div
+                        className={accountClass(
+                          "people-inline-actions",
+                          accountLayout.inlineActions,
+                        )}
+                      >
+                        <AccountButton
+                          type="submit"
+                          tone="primary"
                           disabled={busy}
-                          type="button"
-                          onClick={() => revokePasskey(passkey.id)}
                         >
-                          Revoke
-                        </Button>
-                      ) : undefined
-                    }
-                  />
+                          Save settings
+                        </AccountButton>
+                        {settings.configured ? (
+                          <Button
+                            variant="danger"
+                            disabled={busy}
+                            type="button"
+                            onClick={() =>
+                              setConfirmation({
+                                title: `Remove ${settings.title}?`,
+                                message:
+                                  "The stored settings for this integration will be removed from your account only.",
+                                confirmLabel: "Remove settings",
+                                action: () => {
+                                  void run(
+                                    `Removing ${settings.title}…`,
+                                    `${settings.title} removed.`,
+                                    () =>
+                                      client.mutatePluginSettings({
+                                        action: "delete",
+                                        definitionId: settings.id,
+                                      }),
+                                  );
+                                },
+                              })
+                            }
+                          >
+                            Remove
+                          </Button>
+                        ) : null}
+                      </div>
+                    </form>
+                  </OperatorCard>
                 ))}
-                <div className="people-inline-actions">
-                  <Button
-                    variant="link"
-                    disabled={busy}
-                    type="button"
-                    onClick={() =>
-                      void run(
-                        "Waiting for your authenticator…",
-                        "Passkey added.",
-                        client.registerPasskey,
-                      )
-                    }
+              </TabsContent>
+            )}
+            <TabsContent
+              value="security"
+              forceMount
+              hidden={section !== "security"}
+              className={accountClass("", accountLayout.tabPanel)}
+            >
+              <div className={accountClass("", accountLayout.column)}>
+                <AccountDetailSection
+                  title="Sign-in"
+                  description="Passkeys used to access this account. Your final passkey is protected from revocation."
+                >
+                  {current.passkeys.map((passkey) => (
+                    <AccountAccessItem
+                      key={passkey.id}
+                      kind={
+                        passkey.credentialBackedUp
+                          ? "Synced passkey"
+                          : "Device passkey"
+                      }
+                      metadata={[
+                        `Added: ${accountTimestamp(passkey.createdAt, true)}`,
+                      ]}
+                      action={
+                        current.passkeys.length > 1 ? (
+                          <Button
+                            variant="danger"
+                            disabled={busy}
+                            type="button"
+                            onClick={() => revokePasskey(passkey.id)}
+                          >
+                            Revoke
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                  <div
+                    className={accountClass(
+                      "people-inline-actions",
+                      accountLayout.inlineActions,
+                    )}
                   >
-                    Add passkey
-                  </Button>
-                </div>
-              </AccountDetailSection>
+                    <Button
+                      variant="outline"
+                      disabled={busy}
+                      type="button"
+                      onClick={() =>
+                        void run(
+                          "Waiting for your authenticator…",
+                          "Passkey added.",
+                          () => client.registerPasskey(),
+                        )
+                      }
+                    >
+                      Add passkey
+                    </Button>
+                  </div>
+                </AccountDetailSection>
 
-              <AccountDetailSection
-                title="Signed-in sessions"
-                description="Browser sessions signed in to this account."
-              >
-                {current.sessions.map((session) => (
-                  <AccountAccessItem
-                    key={session.id}
-                    kind={session.current ? "This session" : "Browser session"}
-                    value={`Started ${formatDate(session.createdAt)}`}
-                    action={
-                      !session.current ? (
-                        <Button
-                          variant="danger"
-                          disabled={busy}
-                          type="button"
-                          onClick={() => revokeSession(session.id)}
-                        >
-                          End
-                        </Button>
-                      ) : undefined
-                    }
-                  />
-                ))}
-              </AccountDetailSection>
-            </div>
-
-            <footer className="people-detail-footer">
-              <small>
-                Your role, account status, channel ownership, and brain access
-                grants can only be changed by an Admin.
-              </small>
-              <div className="people-detail-footer-actions">
-                <AccountButton
-                  disabled={
-                    busy || current.sessions.every((session) => session.current)
-                  }
-                  onClick={revokeOtherSessions}
+                <AccountDetailSection title="Signed-in sessions">
+                  {current.sessions.map((session) => (
+                    <AccountAccessItem
+                      key={session.id}
+                      kind={
+                        session.current ? "This session" : "Browser session"
+                      }
+                      metadata={[
+                        `Started: ${accountTimestamp(session.createdAt)}`,
+                        ...(session.current ? ["Current browser"] : []),
+                      ]}
+                      action={
+                        !session.current ? (
+                          <Button
+                            variant="danger"
+                            disabled={busy}
+                            type="button"
+                            onClick={() => revokeSession(session.id)}
+                          >
+                            End
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                </AccountDetailSection>
+                <footer
+                  className={accountClass(
+                    "account-session-actions",
+                    accountLayout.footer,
+                  )}
                 >
-                  End other sessions
-                </AccountButton>
-                <AccountButton
-                  tone="danger"
-                  disabled={busy}
-                  onClick={revokeAllSessions}
-                >
-                  Sign out everywhere
-                </AccountButton>
+                  <small>Access changes require an Admin.</small>
+                  <div className={accountClass("", accountLayout.actions)}>
+                    <AccountButton
+                      disabled={
+                        busy ||
+                        current.sessions.every((session) => session.current)
+                      }
+                      onClick={revokeOtherSessions}
+                    >
+                      End other sessions
+                    </AccountButton>
+                    <AccountButton
+                      tone="danger"
+                      disabled={busy}
+                      onClick={revokeAllSessions}
+                    >
+                      Sign out everywhere
+                    </AccountButton>
+                  </div>
+                </footer>
               </div>
-            </footer>
-          </section>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
       {confirmation && (

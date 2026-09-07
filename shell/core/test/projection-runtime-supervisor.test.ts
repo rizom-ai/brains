@@ -58,6 +58,9 @@ function createMemoryRuntimeState(): IRuntimeStateNamespace {
         });
         return true;
       },
+      compareAndSet: async (): Promise<boolean> => {
+        throw new Error("Unexpected compare-and-set in projection fixture");
+      },
       delete: async (key): Promise<boolean> => values.delete(key),
       list: async (): Promise<RuntimeStateRecordValue<T>[]> =>
         Array.from(values, ([key, record]) => ({

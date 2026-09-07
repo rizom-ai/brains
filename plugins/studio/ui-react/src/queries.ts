@@ -3,17 +3,28 @@ import {
   type QueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
+import {
+  studioCollectionQuerySchema,
+  type StudioCollectionQuery,
+} from "../../src/collection-query";
 import type {
   StudioApi,
   AgentTarget,
   StudioNavigation,
   StudioWorkspaceData,
   EntityDetail,
-  EntitySummary,
+  DestinationInput,
+  DestinationPreview,
+  EntityPage,
   SyncStatus,
   TypeSchema,
 } from "./api";
 
+export type DestinationQueryKey = readonly [
+  "studio",
+  "destination",
+  DestinationInput | null,
+];
 export type NavigationQueryKey = readonly ["studio", "navigation"];
 export type StudioWorkspaceQuery = Readonly<
   Record<string, string | number | undefined>
@@ -32,7 +43,13 @@ export type AgentTargetsQueryKey = readonly [
 ];
 export type SyncStatusQueryKey = readonly ["studio", "sync-status"];
 export type EntitySchemaQueryKey = readonly ["studio", "schema", string];
-export type EntityListQueryKey = readonly ["studio", "entities", string];
+export type EntityListScopeKey = readonly ["studio", "entities", string];
+export type EntityListQueryKey = readonly [
+  "studio",
+  "entities",
+  string,
+  StudioCollectionQuery,
+];
 export type EntityDetailQueryKey = readonly [
   "studio",
   "entity",
@@ -43,6 +60,11 @@ export type EntityDetailQueryKey = readonly [
 export const studioKeys = {
   all: (): readonly ["studio"] => ["studio"],
   navigation: (): NavigationQueryKey => ["studio", "navigation"],
+  destination: (input: DestinationInput | null): DestinationQueryKey => [
+    "studio",
+    "destination",
+    input,
+  ],
   workspaceScope: (
     workspaceId: string,
   ): readonly ["studio", "workspace", string] => [
@@ -64,11 +86,15 @@ export const studioKeys = {
     "schema",
     entityType,
   ],
-  entities: (entityType: string): EntityListQueryKey => [
+  entities: (entityType: string): EntityListScopeKey => [
     "studio",
     "entities",
     entityType,
   ],
+  entityPage: (
+    entityType: string,
+    query: StudioCollectionQuery,
+  ): EntityListQueryKey => ["studio", "entities", entityType, query],
   entity: (entityType: string, entityId: string): EntityDetailQueryKey => [
     "studio",
     "entity",
@@ -76,6 +102,26 @@ export const studioKeys = {
     entityId,
   ],
 };
+
+export function destinationQueryOptions(
+  api: StudioApi,
+  input: DestinationInput | null,
+): UseQueryOptions<
+  DestinationPreview,
+  Error,
+  DestinationPreview,
+  DestinationQueryKey
+> {
+  return {
+    queryKey: studioKeys.destination(input),
+    queryFn: ({ signal }): Promise<DestinationPreview> => {
+      if (!input) throw new Error("No creation destination selected");
+      return api.previewDestination(input, signal);
+    },
+    enabled: input !== null,
+    retry: false,
+  };
+}
 
 export function navigationQueryOptions(
   api: StudioApi,
@@ -173,15 +219,12 @@ export function entitySchemaQueryOptions(
 export function entityListQueryOptions(
   api: StudioApi,
   entityType: string,
-): UseQueryOptions<
-  EntitySummary[],
-  Error,
-  EntitySummary[],
-  EntityListQueryKey
-> {
+  query: StudioCollectionQuery = studioCollectionQuerySchema.parse({}),
+): UseQueryOptions<EntityPage, Error, EntityPage, EntityListQueryKey> {
+  const normalized = studioCollectionQuerySchema.parse(query);
   return {
-    queryKey: studioKeys.entities(entityType),
-    queryFn: () => api.fetchEntities(entityType),
+    queryKey: studioKeys.entityPage(entityType, normalized),
+    queryFn: () => api.fetchEntities(entityType, normalized),
   };
 }
 

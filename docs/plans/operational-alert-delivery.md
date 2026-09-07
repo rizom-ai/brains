@@ -2,7 +2,7 @@
 
 ## Status
 
-**Not started.** Opened 2026-08-13, directly after the background-work recovery foundation shipped in
+**Proposed; implementation has not started.** Opened 2026-08-13, directly after the background-work recovery foundation shipped in
 `@rizom/brain@0.2.0-alpha.284`. That work made background-work failure _observable_ — durable
 diagnostics, `job-worker` and `job-queue-progress` checks, `/health/operate` enforcement in deploy.
 It deliberately stopped short of notification, stating that "external monitoring/deploy owns

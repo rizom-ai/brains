@@ -1,6 +1,19 @@
 import { z, type ZodType } from "@brains/utils/zod";
 import type { ContentFormatter } from "@brains/content-formatters";
-import type { ContentVisibility } from "@brains/entity-service";
+import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
+import type { GenerationContext } from "./generation-context";
+export {
+  generationContextSchema,
+  type GenerationContext,
+} from "./generation-context";
+import type {
+  ContentGenerationPlan,
+  ContentGenerationRequestInput,
+  ContentGenerationJobData,
+  ContentGenerationBatchResult,
+} from "./generation-contracts";
+import type { GenerationQueueBinding } from "./generation-submission";
+import type { GenerationAccess } from "./generation-authorization";
 
 export type ContentTemplateDataSchema<T> = ZodType<T, unknown>;
 /** @deprecated Use ContentTemplateDataSchema<T>. */
@@ -60,37 +73,6 @@ export interface ContentTemplate<T = unknown> extends Omit<
 }
 
 /**
- * Context for content generation - simplified for template-based approach
- */
-export const generationContextSchema: z.ZodObject<{
-  prompt: z.ZodOptional<z.ZodString>;
-  conversationHistory: z.ZodOptional<z.ZodString>;
-  data: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
-  representedIdentity: z.ZodOptional<
-    z.ZodEnum<{ brain: "brain"; anchor: "anchor"; none: "none" }>
-  >;
-  styleGuide: z.ZodOptional<
-    z.ZodObject<{
-      voice: z.ZodOptional<z.ZodString>;
-      visual: z.ZodOptional<z.ZodString>;
-    }>
-  >;
-}> = z.object({
-  prompt: z.string().optional(),
-  conversationHistory: z.string().optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
-  representedIdentity: z.enum(["brain", "anchor", "none"]).optional(),
-  styleGuide: z
-    .object({
-      voice: z.string().optional(),
-      visual: z.string().optional(),
-    })
-    .optional(),
-});
-
-export type GenerationContext = z.output<typeof generationContextSchema>;
-
-/**
  * Options for content resolution with multiple strategies
  */
 export interface ResolutionOptions {
@@ -122,7 +104,36 @@ export interface ResolutionOptions {
  * Public interface for ContentService
  * Used by plugins and for testing
  */
+/** Runtime-only generation settings; never author input. */
+export interface GenerateContentOptions {
+  pluginId?: string | undefined;
+  signal?: AbortSignal | undefined;
+  /** Fixes every read to the authorized output visibility (durable jobs). */
+  visibilityScope?: ContentVisibility | undefined;
+}
+
 export interface ContentService {
+  /**
+   * Authorize a durable generation job: the full policy when it starts, and
+   * current authority over the final fields when `persisted` is supplied.
+   */
+  authorizeGenerationWrite(
+    data: ContentGenerationJobData,
+    persisted?: Readonly<BaseEntity>,
+  ): Promise<GenerationAccess>;
+
+  submitGeneration(
+    request: ContentGenerationRequestInput,
+    binding: GenerationQueueBinding,
+    signal?: AbortSignal,
+  ): Promise<ContentGenerationBatchResult>;
+
+  /** Plan validated, template-backed generation without enqueueing work. */
+  planGeneration(
+    request: ContentGenerationRequestInput,
+    signal?: AbortSignal,
+  ): Promise<ContentGenerationPlan>;
+
   /**
    * Get a registered template
    */
@@ -156,7 +167,7 @@ export interface ContentService {
   generateContent(
     templateName: string,
     context?: GenerationContext,
-    pluginId?: string,
+    options?: GenerateContentOptions,
   ): Promise<unknown>;
 
   /**

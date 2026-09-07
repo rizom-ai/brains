@@ -104,5 +104,21 @@ describe("FileOperations.parseEntityFromPath", () => {
       const reconstructed = fileOps.getFilePath(parsed.id, parsed.entityType);
       expect(reconstructed).toBe(originalPath);
     });
+
+    it("should round-trip a deeply nested book section", () => {
+      const originalPath = join(
+        testDir,
+        "book-section/book-1/part-1/chapter-2.md",
+      );
+      const parsed = fileOps.parseEntityFromPath(originalPath);
+
+      expect(parsed).toEqual({
+        entityType: "book-section",
+        id: "book-1:part-1:chapter-2",
+      });
+      expect(fileOps.getFilePath(parsed.id, parsed.entityType)).toBe(
+        originalPath,
+      );
+    });
   });
 });

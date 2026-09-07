@@ -79,14 +79,12 @@ describe("setupInitialSync with git", () => {
     };
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(
-        host,
-        () => ds,
-        baseConfig,
-        createSilentLogger(),
-        gs,
-        reconciliation,
-      ),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => ds,
+config: baseConfig,
+logger: createSilentLogger(),
+gitSync: gs,
+reconciliation: reconciliation}),
     ]);
 
     await shell.getMessageBus().send({
@@ -143,16 +141,14 @@ describe("setupInitialSync with git", () => {
     };
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(
-        host,
-        () => ds,
-        baseConfig,
-        createSilentLogger(),
-        gs,
-        reconciliation,
-        undefined,
-        operationStatus,
-      ),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => ds,
+config: baseConfig,
+logger: createSilentLogger(),
+gitSync: gs,
+reconciliation: reconciliation,
+recovery: undefined,
+operationStatus: operationStatus}),
     ]);
 
     await shell.getMessageBus().send({
@@ -184,14 +180,12 @@ describe("setupInitialSync with git", () => {
     };
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(
-        host,
-        () => createMockDirectorySync(),
-        baseConfig,
-        createSilentLogger(),
-        gs,
-        reconciliation,
-      ),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => createMockDirectorySync(),
+config: baseConfig,
+logger: createSilentLogger(),
+gitSync: gs,
+reconciliation: reconciliation}),
     ]);
 
     await shell.getMessageBus().send({
@@ -220,19 +214,17 @@ describe("setupInitialSync with git", () => {
     });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(
-        host,
-        () => createMockDirectorySync(),
-        baseConfig,
-        createSilentLogger(),
-        gs,
-        undefined,
-        {
+      initialSyncSubscription({context: host,
+getDirectorySync: () => createMockDirectorySync(),
+config: baseConfig,
+logger: createSilentLogger(),
+gitSync: gs,
+reconciliation: undefined,
+recovery: {
           onGitProgress,
           onGitRecoverySucceeded,
           onGitRecoveryFailed,
-        },
-      ),
+        }}),
     ]);
 
     await shell.getMessageBus().send({
@@ -256,7 +248,10 @@ describe("setupInitialSync with git", () => {
     const ds = createMockDirectorySync({ sync: syncMock });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(host, () => ds, baseConfig, createSilentLogger()),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => ds,
+config: baseConfig,
+logger: createSilentLogger()}),
     ]);
 
     await shell.getMessageBus().send({
@@ -274,13 +269,11 @@ describe("setupInitialSync with git", () => {
     const gs = createMockGitSync();
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(
-        host,
-        () => ds,
-        baseConfig,
-        createSilentLogger(),
-        gs,
-      ),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => ds,
+config: baseConfig,
+logger: createSilentLogger(),
+gitSync: gs}),
     ]);
 
     await shell.getMessageBus().send({
@@ -302,13 +295,11 @@ describe("setupInitialSync with git", () => {
     });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(
-        host,
-        () => ds,
-        baseConfig,
-        createSilentLogger(),
-        gs,
-      ),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => ds,
+config: baseConfig,
+logger: createSilentLogger(),
+gitSync: gs}),
     ]);
 
     await shell.getMessageBus().send({
@@ -335,7 +326,10 @@ describe("setupInitialSync with git", () => {
     });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription(host, () => ds, baseConfig, createSilentLogger()),
+      initialSyncSubscription({context: host,
+getDirectorySync: () => ds,
+config: baseConfig,
+logger: createSilentLogger()}),
     ]);
 
     await shell.getMessageBus().send({

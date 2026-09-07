@@ -89,29 +89,32 @@ describe("Administration Audit tab", () => {
       },
     });
     expect(data).not.toHaveProperty("view.primaryAction");
-    expect(findById(data, "audit-query")).toBeUndefined();
+    expect(findById(data, "audit-filters")).toMatchObject({
+      type: "query",
+      controls: [{ key: "actorUserId" }, { key: "action" }],
+    });
+    expect(findById(data, "audit-filters")).not.toHaveProperty("pagination");
     expect(findById(data, "audit-detail")).toMatchObject({
       type: "detail",
       open: {
         forId: event.id,
-        title: "Changed an account role",
+        title: "Role changed",
       },
       master: {
-        type: "table",
-        query: { pagination: { total: 1 } },
-        rows: [
+        type: "list",
+        presentation: "standard",
+        items: [
           {
             id: event.id,
-            cells: {
-              actor: "Ada Admin",
-              action: "Changed an account role",
-              target: "Tess Trusted",
-            },
-            compact: {
-              title: "Changed an account role",
-              metadata: ["Ada Admin", "Tess Trusted"],
-              badges: [{ label: expect.any(String) }],
-            },
+            title: "Role changed",
+            description: "Ada Admin → Tess Trusted",
+            metadata: [new Date(event.createdAt).toISOString()],
+            links: [
+              {
+                label: "Details",
+                target: { kind: "detail", itemId: event.id },
+              },
+            ],
           },
         ],
       },
@@ -123,9 +126,30 @@ describe("Administration Audit tab", () => {
       selected: event.id,
       offset: "100",
     });
+    expect(findById(deepLink, "audit-filters")).toMatchObject({
+      pagination: { offset: 100, total: 1 },
+    });
     expect(findById(deepLink, "audit-detail")).toMatchObject({
       open: { forId: event.id },
-      master: { rows: [] },
+      master: { items: [] },
     });
+    const identity = await service.recordAuditEvent({
+      actorUserId: admin.userId,
+      action: "auth.identity.attached",
+      targetType: "identity",
+      targetId: "identity-test",
+      metadata: { userId: trusted.userId, secret: "must-not-render" },
+    });
+    const identityView = await workspace.dataProvider(actor, {
+      action: identity.action,
+      selected: identity.id,
+    });
+    expect(findById(identityView, "audit-detail")).toMatchObject({
+      master: { items: [{ description: "Ada Admin → Tess Trusted" }] },
+    });
+    const inspection = JSON.stringify(identityView);
+    expect(inspection).toContain("identity-test");
+    expect(inspection).toContain("auth.identity.attached");
+    expect(inspection).not.toContain("must-not-render");
   });
 });

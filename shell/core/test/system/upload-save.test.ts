@@ -49,6 +49,7 @@ function conversationWithUpload(): IConversationService {
     getConversationChangeHead: async () => null,
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
+    deleteExpiredGuestConversations: async () => 0,
     searchConversations: async () => [],
     close: () => undefined,
   };

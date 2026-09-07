@@ -1,4 +1,5 @@
-import { generateText, generateObject } from "ai";
+import { generateText, generateObject, NoObjectGeneratedError } from "ai";
+import { AIOutputValidationError } from "./errors";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -145,6 +146,9 @@ export class AIService implements IAIService {
     } catch (error) {
       signal?.throwIfAborted();
       this.logger.error("Failed to generate object", error);
+      if (NoObjectGeneratedError.isInstance(error)) {
+        throw new AIOutputValidationError(error);
+      }
       throw new Error("AI object generation failed", { cause: error });
     }
   }

@@ -69,8 +69,8 @@
   <body>
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
-      <p>One brain, composed from capability bundles. What used to be three models (rover, relay, ranger) is a single brain whose posture — from personal publishing to shared team memory — is selected by bundles at deploy time. The bet: one brain that scales from a single person to a collective without switching products.</p>
-      <div class="updated">Last updated: 2026-08-30 · generated from docs/roadmap.md</div>
+      <p>One brain, composed from capability bundles. Posture—from private personal use to public professional publishing or shared team memory—is configuration, not a separate product.</p>
+      <div class="updated">Last updated: 2026-09-13 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -88,31 +88,15 @@
             <span class="card-name">Agent tool surface consolidation</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">separate agent/protocol/CLI exposure, remove maintenance and MCP adapters from model context, and consolidate playbook, directory-sync, and publishing lifecycle tools behind typed canonical surfaces.</div>
+          <div class="card-desc">keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.</div>
           <div class="card-file">agent-tool-surface-consolidation.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Brain Model Unification — One Brain, Capability Bundles</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">**the headline structural work**: collapse rover/relay/ranger into one brain, introduce capability bundles, retire presets in favor of bundles + <code>brain init</code> recipes. Supersedes the three-reference-model framing.</div>
-          <div class="card-file">brain-model-unification.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Identity &amp; trust architecture</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">shared identity and trust architecture across humans, external clients, peer brains, and platform users.</div>
-          <div class="card-file">identity-and-trust.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Web search as an explicit tool capability</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">provider-neutral <code>web_search</code> capability (Tavily first), permission-gated and audited; Phase 0 removes the verified-dead <code>webSearch</code> config flag.</div>
+          <div class="card-desc">provider-neutral, permission-gated, audited web search.</div>
           <div class="card-file">web-search-tool.md</div>
         </div>
         <div class="card status-proposed">
@@ -120,62 +104,62 @@
             <span class="card-name">System analytics tool</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">rename/reframe <code>system_insights</code> as an extensible typed analytics/reporting surface, folding plugin reports such as Cloudflare traffic into one LLM-facing tool.</div>
+          <div class="card-desc">one extensible typed analytics/reporting surface.</div>
           <div class="card-file">system-analytics-tool.md</div>
         </div>
         </div>
       </details>
       <details class="group" open>
-        <summary class="group-title"><span class="group-num">§2</span>The collective posture (active POC)</summary>
+        <summary class="group-title"><span class="group-num">§2</span>The collective posture</summary>
         <div class="cards">
         <div class="card status-parked">
           <div class="card-head">
             <span class="card-name">Team-Posture Capabilities</span>
             <span class="badge badge-parked">Parked</span>
           </div>
-          <div class="card-desc">the prioritized roadmap of team-native capabilities that make the collective posture distinctive (parked, demand-gated).</div>
+          <div class="card-desc">parked, demand-gated team-native capabilities such as meeting notes, decision records, team Q&amp;A, and digest.</div>
           <div class="card-file">team-posture-capabilities.md</div>
         </div>
         </div>
       </details>
       <details class="group" open>
-        <summary class="group-title"><span class="group-num">§3</span>Trust &amp; identity — the frontier</summary>
+        <summary class="group-title"><span class="group-num">§3</span>Trust and identity</summary>
         <div class="cards">
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Connected channels (extensible channel identity)</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">finish registry-driven attach/detach and prove Slack end to end without schema or console changes.</div>
+          <div class="card-file">connected-channels.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Identity &amp; trust architecture</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">the positioning doc for this section: three subject kinds (humans, brains, external clients), the channels they arrive on, and the settled cross-cutting decisions (domain-as-brain-identity, key custody, agent-directory trust establishment) the plans below execute against.</div>
+          <div class="card-desc">the shared subject, channel, provenance, and trust model.</div>
           <div class="card-file">identity-and-trust.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Connected channels (extensible channel identity)</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">registry-driven, person-centered channel identity attachment without channel enums in auth schema or console code.</div>
-          <div class="card-file">connected-channels.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Operator runtime database</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">broader private runtime-state boundary.</div>
+          <div class="card-desc">the broader private durable operator/security tier beyond shipped auth state.</div>
           <div class="card-file">operator-runtime-db.md</div>
         </div>
         </div>
       </details>
       <details class="group" open>
-        <summary class="group-title"><span class="group-num">§4</span>Hosting &amp; operations</summary>
+        <summary class="group-title"><span class="group-num">§4</span>Hosting and operations</summary>
         <div class="cards">
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">explicit user offboarding workflow for rover-pilot</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">explicit rover-pilot offboarding workflow.</div>
+          <div class="card-desc">explicit, recoverable hosted-user offboarding.</div>
           <div class="card-file">user-offboarding-plan.md</div>
         </div>
         <div class="card status-proposed">
@@ -183,8 +167,16 @@
             <span class="card-name">Discord opt-in plan for rover-pilot ops</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">make Discord opt-in in <code>@rizom/ops</code> rover-pilot scaffolding, so new pilot users start with Discord disabled unless the operator requests it.</div>
+          <div class="card-desc">make Discord an explicit pilot choice rather than a default.</div>
           <div class="card-file">discord-opt-in-plan.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Operational alerts reach a human</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">deliver sustained operational degradation to a human over a path that survives a dead worker.</div>
+          <div class="card-file">operational-alert-delivery.md</div>
         </div>
         </div>
       </details>
@@ -193,26 +185,34 @@
         <div class="cards">
         <div class="card status-partial">
           <div class="card-head">
-            <span class="card-name">Studio Chat integration</span>
+            <span class="card-name">Public <code>/ask</code> and the Brain landing-page chat</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">move the authenticated browser Chat presentation into a conditional fixed Studio workspace while Web Chat retains API, streaming, session, upload, and conversation authority.</div>
-          <div class="card-file">studio-chat-integration.md</div>
+          <div class="card-desc">complete live visitor acceptance and obtain separate production policy/publication approval.</div>
+          <div class="card-file">public-ask.md</div>
         </div>
-        <div class="card status-proposed">
+        <div class="card status-partial">
           <div class="card-head">
-            <span class="card-name">Astryx adoption pilot</span>
-            <span class="badge badge-proposed">Proposed</span>
+            <span class="card-name">Studio UX follow-through</span>
+            <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">exploratory, demand-gated Astryx pilot for the React web-chat console, with explicit Preact boundaries and a go/no-go gate before any Studio or shared adoption.</div>
-          <div class="card-file">astryx-adoption.md</div>
+          <div class="card-desc">the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.</div>
+          <div class="card-file">studio-ux-improvements.md</div>
+        </div>
+        <div class="card status-partial">
+          <div class="card-head">
+            <span class="card-name">Studio Hierarchical Entity Navigation</span>
+            <span class="badge badge-partial">In progress</span>
+          </div>
+          <div class="card-desc">implemented on the feature branch, pending review: virtual folders, scoped search, and folder-aware creation over structured entity paths.</div>
+          <div class="card-file">studio-hierarchical-entity-navigation.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Installable operator-console PWA</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">add an optional installable, network-first PWA shell for Dashboard/Studio/web-chat with conservative caching, explicit service-worker scope, standalone safe-area behavior, and no offline-authoring claim.</div>
+          <div class="card-desc">optional network-first installable shell without an offline-authoring claim.</div>
           <div class="card-file">operator-console-pwa.md</div>
         </div>
         <div class="card status-parked">
@@ -220,7 +220,7 @@
             <span class="card-name">Brain web Chat SDK adapter strategy</span>
             <span class="badge badge-parked">Parked</span>
           </div>
-          <div class="card-desc">parked strategy; how browser web-chat can share Chat SDK semantics with Discord/Slack/etc. without losing Brain-specific web-chat features.</div>
+          <div class="card-desc">parked strategy for deeper Chat SDK semantic alignment.</div>
           <div class="card-file">brain-web-chat-sdk-adapter.md</div>
         </div>
         <div class="card status-parked">
@@ -228,7 +228,7 @@
             <span class="card-name">Chat interface structured forms and modals</span>
             <span class="badge badge-parked">Parked</span>
           </div>
-          <div class="card-desc">parked; transport-neutral structured forms that render as platform-native UI (Discord modals, Slack/Teams forms, web-chat dialogs) once adapter support exists.</div>
+          <div class="card-desc">parked transport-neutral structured forms.</div>
           <div class="card-file">chat-interface-forms-modals.md</div>
         </div>
         <div class="card status-parked">
@@ -236,24 +236,8 @@
             <span class="card-name">Message feedback events</span>
             <span class="badge badge-parked">Parked</span>
           </div>
-          <div class="card-desc">parked; transport-neutral thumbs-up/down feedback capture from chat interfaces, pending a real feedback sink/use case.</div>
+          <div class="card-desc">parked transport-neutral response feedback pending a real sink.</div>
           <div class="card-file">message-feedback.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">One control vocabulary for the app</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">one control vocabulary for the app: split sites from app so each gets the styling engine its customisation contract allows (Tailwind and <code>@brains/ui-library</code> for sites and Dashboard, StyleX plus Radix for Studio and Chat), share brand identity as a token contract rather than components, and let each brain's console follow its own theme so the palette stops being declared twice.</div>
-          <div class="card-file">studio-control-vocabulary.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Research: Studio UX coherence</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">one host-owned page head, collection query line, source-declared compact-row reflow, explicit primary-action placement, two-bar phone chrome, and fixed-workspace frame across library, editor, Account, Overview, and declarative workspaces;</div>
-          <div class="card-file">studio-ux-research.md</div>
         </div>
         </div>
       </details>
@@ -262,42 +246,50 @@
         <div class="cards">
         <div class="card status-active">
           <div class="card-head">
-            <span class="card-name">Independent site and theme package versioning</span>
+            <span class="card-name">Public authoring API compatibility for <code>v0.2.0</code></span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">give deployable site and theme packages independent npm releases, published brain-compatibility metadata, and reviewed exact hosted pins that remain valid when packages move to external repositories.</div>
-          <div class="card-file">site-package-independent-versioning.md</div>
+          <div class="card-desc">**P0 release gate**, including integration of the completed declarative-boundary/DX branch, final-alpha evidence, release authorization, stable publication, and baseline freezing.</div>
+          <div class="card-file">public-authoring-api-0.2.md</div>
         </div>
         <div class="card status-active">
           <div class="card-head">
             <span class="card-name">Opportunity Priority Engine</span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">**in progress on <code>feat/opportunity-priority-engine</code>**: capture, deterministic ranking, focus/state suggestions, and the first dashboard slice exist in the worktree. Composition and eval hardening remain; stale-opportunity alerts should now register with the shared recurring-check infrastructure.</div>
+          <div class="card-desc">in-flight opportunity capture, ranking, focus, and state suggestions.</div>
           <div class="card-file">bd-priority-engine.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Public authoring API compatibility for <code>v0.2.0</code></span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">**P0 stable-release gate**: implementation, eight-package alpha evidence, and tested site-first stable orchestration are complete; final-alpha/live evidence, authorization, and stable baseline freezing remain.</div>
-          <div class="card-file">public-authoring-api-0.2.md</div>
         </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">AT Protocol Integration</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">active prototype for distribution/discovery; outbound publishing, registry contracts/routes, and the first bounded discovery slice are implemented. Remaining work is OAuth hardening, configurable discovery/Jetstream, and later ingestion/feed work.</div>
+          <div class="card-desc">finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.</div>
           <div class="card-file">atproto-integration.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">NPM Package Boundary Plan</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">narrow official package dependencies and prove an official package through public-only imports.</div>
+          <div class="card-file">npm-package-boundaries.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">TrustFlow federation integration</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">proposed asset-catalogue federation, gated on a real external catalogue endpoint.</div>
+          <div class="card-file">trustflow-federation-integration.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Lead management — inbound qualification on the opportunity lifecycle</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">**email triage has shipped; now gated on the shared <code>opportunity</code> entity**: turn configured mail categories into restricted leads, use bounded AI resolution to consolidate multiple mail items per opportunity, and provide reversible merge/split/reassignment before optional promotion into <code>@brains/business-development</code>.</div>
+          <div class="card-desc">inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.</div>
           <div class="card-file">lead-management.md</div>
         </div>
         </div>
@@ -307,90 +299,58 @@
         <div class="cards">
         <div class="card status-active">
           <div class="card-head">
-            <span class="card-name">Packed compatibility test tiering</span>
+            <span class="card-name">Turso-only database runtime for <code>0.3</code></span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">keep focused tests and one packed canary in normal PR feedback, move the full external-authoring matrix to nightly/release evidence, reuse one packed artifact per run, and freeze the <code>0.2.0</code> fixtures for later patch-candidate compatibility.</div>
-          <div class="card-file">packed-compatibility-test-tiering.md</div>
+          <div class="card-desc">active <code>0.3</code> Turso-only runtime/migration work; off-thread integration, production recovery, and fleet soak remain open while <code>0.2</code> stays on libSQL.</div>
+          <div class="card-file">turso-database-engine.md</div>
         </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Durable Binary Asset Storage Plan</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">move durable image bytes from base64 entity rows into a content-addressed asset store, validate the cutover on <code>yeehaa.io</code>, then migrate PDF documents as an independent follow-up phase.</div>
+          <div class="card-desc">move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.</div>
           <div class="card-file">durable-binary-assets.md</div>
         </div>
         <div class="card status-partial">
           <div class="card-head">
-            <span class="card-name">the runtime owns its HTTP host</span>
+            <span class="card-name">HTTP route registry hardening</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">runtime-owned hosting replaces the <code>webserver</code> interface: route/site-driven activation, one production port, shared preview, and lifecycle-owned shutdown.</div>
-          <div class="card-file">runtime-http-host.md</div>
+          <div class="card-desc">continue security, matching, advertising, and cleanup beyond the shipped normalized registry.</div>
+          <div class="card-file">http-route-registry-hardening.md</div>
         </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">Directory-sync DB→git auto-export silent permanent stall</span>
             <span class="badge badge-partial">In progress</span>
           </div>
-          <div class="card-desc">root-cause class confirmed: an unresolved Bun Git completion can wedge auto-export; merged checkpoint/health recovery remains paired with fresh, approval-gated incident attribution.</div>
+          <div class="card-desc">retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.</div>
           <div class="card-file">directory-sync-export-stall.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Consolidate SSR rendering on React</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">**implemented on <code>work/react-renderer-consolidation</code>, awaiting merge and prerelease publication**: React 19 now owns static SSR and client JSX, the renderer flip is guarded by semantic output fixtures, public site peers and docs use React, the Dashboard and Studio share one operator-view host, and the old containment tsconfig split is gone. This must merge and publish before <code>changeset pre exit</code>; afterward the same authoring-contract change requires <code>0.3.0</code>.</div>
-          <div class="card-file">preact-to-react-consolidation.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Parallel Multi-Model Eval</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">parallelize multi-model eval runs.</div>
+          <div class="card-desc">parallelize multi-model eval subprocesses.</div>
           <div class="card-file">parallel-eval-workers.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">HTTP route registry hardening</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">normalize the shared HTTP route table, reject collisions, centralize operator authorization, and move toward lifecycle-owned registration without breaking existing plugins.</div>
-          <div class="card-file">http-route-registry-hardening.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Topic extraction cost and reconciliation</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
-          <div class="card-desc">make topic extraction incremental (waves currently re-extract the whole corpus), feed the extraction prompt embedding-retrieved nearest topics instead of a flat 40-title list, wire the semantic merge sweep into the production wave path (today it only runs in evals), and surface a zero-LLM topic-coverage insight from the knowledge-map geometry.</div>
+          <div class="card-desc">incremental extraction, retrieval-assisted canonicalization, production merge, and coverage insight.</div>
           <div class="card-file">topic-extraction-and-reconciliation.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Plugin and Interface Boundaries</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">the second boundaries tranche: 29 packages under <code>plugins/</code> and <code>interfaces/</code>, none clean, 28 of them extending plugin base classes rather than declaring. Take directory-sync's five typechecking boundary casts from the turso branch, prove <code>defineInterface</code> with a real consumer for the first time, grant auth-service as one capability its seven readers share, and decide which shared libraries belong beside the SDK rather than being routed around.</div>
-          <div class="card-file">plugin-interface-boundaries.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Turso Database engine evaluation</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">exploratory: whether the SQLite-from-scratch Rust rewrite unlocks a DB-level/browser sync model that libSQL can't.</div>
-          <div class="card-file">turso-database-engine.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">
             <span class="card-name">Alternative Site Renderer Spike</span>
             <span class="badge badge-parked">Parked</span>
           </div>
-          <div class="card-desc">whether any renderer other than Preact earns its place now that builds are prepared into a serializable snapshot.</div>
+          <div class="card-desc">whether a renderer other than React earns its place at the prepared-build boundary.</div>
           <div class="card-file">alternative-site-renderer-spike.md</div>
         </div>
         <div class="card status-parked">
@@ -400,22 +360,6 @@
           </div>
           <div class="card-desc">local AI runtime sidecar direction.</div>
           <div class="card-file">embedding-service.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Operational alerts reach a human</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">follow the released background-recovery foundation with sustained operational-degradation delivery over a web-process path that survives a dead worker, with deduplicated episodes that resolve, then land client-side error capture on the same spine.</div>
-          <div class="card-file">operational-alert-delivery.md</div>
-        </div>
-        <div class="card status-done">
-          <div class="card-head">
-            <span class="card-name">Contract drift fixes</span>
-            <span class="badge badge-done">Done</span>
-          </div>
-          <div class="card-desc">from a full-repo duplication audit: collapse the duplicated site-metadata schema that silently dropped <code>represents</code>, derive ATProto record strictness from the lexicons instead of one hardcoded field list, and guard the published-SDK type copies that no test currently pins.</div>
-          <div class="card-file">contract-drift-fixes.md</div>
         </div>
         </div>
       </details>

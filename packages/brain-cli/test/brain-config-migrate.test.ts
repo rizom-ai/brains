@@ -365,7 +365,7 @@ describe("brain config migration preview", () => {
       expect(
         members.filter((member) => !legacyMembers.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} additions`,
-      ).toEqual(migrationCase.added);
+      ).toEqual(["ask-content", ...migrationCase.added].sort());
       expect(
         legacyMembers.filter((member) => !members.includes(member)).sort(),
         `${migrationCase.model}/${migrationCase.preset} removals`,

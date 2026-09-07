@@ -4,7 +4,11 @@ Operator CLI package for managing pilot brain fleet registry repos.
 
 ## Runtime images
 
-The fleet builds one immutable `brain-${brainVersion}` image per effective Brain version. Each image contains the union of exact site and theme package pins used on that version, and conflicting package pins fail before build. Package-set changes require a fresh Brain version.
+The fleet builds one immutable `brain-${brainVersion}` image per effective Brain version. Every new image includes the union of exact site and theme package pins across the entire fleet, including users still running older Brain versions. Smoke-to-fleet promotion therefore reuses the same image without changing package pins or publishing another Brain release. Conflicting pins fail before build, even across cohorts on different Brain versions.
+
+Before reusing an existing image, Build verifies its actual installed Brain and package versions against its current adopters. Deploy independently verifies the selected instance's requirements before provisioning or replacing containers, including manual deploys. Verification runs only a manifest-reading command in a read-only, network-disabled container on the CI runner; it never starts the Brain or mounts fleet data. Missing packages, mismatched versions, and verification failures stop the workflow. Existing images are not required to serve cohorts that have not adopted them yet.
+
+Explicit builds also load the fleet registry and include its complete package union; `site_packages` adds extra exact pins rather than replacing the union. Package-set changes after an image was published may make that immutable image unsuitable: the gates reject reuse rather than silently rebuilding it. Recovery of an already deployed incomplete image requires a separately reviewed artifact recovery plan.
 
 ## Commands
 
@@ -30,6 +34,20 @@ The fleet builds one immutable `brain-${brainVersion}` image per effective Brain
 - `brains-ops reconcile-all <repo> --dry-run` — reconciles an isolated copy twice with external content-repository access blocked, lists both passes' changed files, and requires second-pass zero drift
 
 `render` owns the observational `views/users.md` projection. Onboard and reconcile commands own generated per-user config and never rewrite live observed status in that view.
+
+### Per-user plugin configuration
+
+Use canonical plugin configuration in `users/<handle>.yaml`, not edits to generated `brain.yaml`:
+
+```yaml
+plugins:
+  dashboard:
+    ask: true
+```
+
+The generator composes an object before serializing once. Explicit per-user fields override generated defaults; nested maps merge, arrays replace, and `false` is preserved. Null deletion markers remain in the generated document until the app resolves runtime defaults. Both stages use the same shared merger. The operator validates the configuration map shape; individual plugin schemas remain authoritative in the app.
+
+The example enables only the dashboard Ask tab. It does not activate guest access, change allowances, or supply authored content. Users without `plugins` retain the same configuration values. New or changed configuration uses the standard YAML formatter. Reconciliation compares YAML values before writing an existing `brain.yaml`, so formatting-only differences are left untouched and cannot schedule unrelated deployments. Malformed or substantively changed configuration is regenerated.
 
 ## Directory-sync stress profiles
 

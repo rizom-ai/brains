@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 
 import { describe, expect, it } from "bun:test";
+import { Window } from "happy-dom";
 import type { AuthAccountSnapshot } from "@brains/auth-service/account-contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -58,18 +59,58 @@ describe("Account surface", () => {
     expect(html).toContain("Mira Reyes");
     expect(html).toContain("trusted");
     expect(html).toContain("Display name");
-    expect(html).toContain("Connected channels");
+    expect(html).toContain("Linked identities");
     expect(html).toContain("Passkeys");
     expect(html).toContain("Signed-in sessions");
     expect(html).toContain("mira@example.com");
-    expect(html).toContain(
-      "Verified contact details connected to your account.",
-    );
+    expect(html).toContain("mira@example.com");
+    expect(html).toContain("Verified:");
+    expect(html).toContain('title="2025-01-01T00:00:00.000Z"');
     expect(html).toContain("This session");
     expect(html).toContain("Sign out everywhere");
     expect(html).not.toContain("Members");
     expect(html).not.toContain("Invitations");
     expect(html).not.toContain("Audit");
+  });
+
+  it("separates personal profile, security and identities without invented capabilities", () => {
+    const window = new Window();
+    try {
+      window.document.body.innerHTML = render();
+      const tabs = [...window.document.querySelectorAll('[role="tab"]')];
+      expect(tabs.map((tab) => tab.textContent)).toEqual([
+        "Profile",
+        "Sign-in & sessions",
+        "Linked identities",
+      ]);
+      expect(
+        tabs
+          .filter((tab) => tab.getAttribute("aria-selected") === "true")
+          .map((tab) => tab.textContent),
+      ).toEqual(["Profile"]);
+      const panels = [...window.document.querySelectorAll('[role="tabpanel"]')];
+      expect(panels).toHaveLength(3);
+      expect(
+        panels.filter((panel) => !panel.hasAttribute("hidden")),
+      ).toHaveLength(1);
+      expect(
+        panels.find((panel) => !panel.hasAttribute("hidden"))?.textContent,
+      ).toContain("Display name");
+      expect(render()).toContain("Your account on this brain");
+      expect(render()).not.toContain("Applications acting as you");
+      expect(render()).not.toContain("Shared integrations");
+    } finally {
+      window.close();
+    }
+  });
+
+  it("offers administrators a separate access-management destination", () => {
+    expect(render({ ...account, role: "admin" })).toContain(
+      'href="/studio/workspaces/admin%3Aadministration"',
+    );
+    expect(render()).not.toContain(
+      'href="/studio/workspaces/admin%3Aadministration"',
+    );
   });
 
   it("renders schema-derived plugin settings without secret values", () => {
@@ -104,6 +145,8 @@ describe("Account surface", () => {
       ],
     });
 
+    expect(html).toContain("Personal settings");
+    expect(html).toContain("Settings for your account only");
     expect(html).toContain("Inbound mailbox");
     expect(html).toContain("imap.example.com");
     expect(html).toContain('type="password"');
@@ -115,18 +158,23 @@ describe("Account surface", () => {
     const html = render();
 
     expect(html).toContain('data-studio-page-head="true"');
-    expect(html).toContain("Signed in");
-    expect(html).toContain("Mira Reyes · Trusted");
+    expect(html).not.toContain("<style");
+    expect(html).not.toContain("studio-head-access");
+    expect(html).not.toContain("Mira Reyes · Trusted");
+    expect(html).toMatch(/class="people-detail-name [^"]+">Mira Reyes/);
+    expect(html).toContain('data-account-role="trusted"');
+    expect(html).toContain(">Trusted</span>");
     expect(html).not.toContain('data-studio-primary-action="true"');
     expect(html).not.toContain("account-hero");
-    // One detail card with the admin identity header and labeled sections,
-    // not a bespoke multi-column panel grid.
-    expect(html).toContain("people-detail-identity");
+    // Sections keep the existing identity and flat access-row presentation.
+    expect(html).toContain("account-identity");
     expect(html).toContain("people-detail-name");
-    expect(html).toContain("people-detail-section");
-    expect(html).toContain("people-access-item");
-    expect(html).toContain("people-detail-footer");
-    expect(html).not.toContain("account-grid");
+    expect(html).toContain("account-detail-sections");
+    expect(html).toContain("account-detail-section");
+    expect(html).toContain("account-access-item");
+    expect(html).toContain("account-session-actions");
+    expect(html).not.toContain("people-facets");
+    expect(html).not.toContain('class="card people-detail"');
     expect(html).not.toContain("panel-heading");
     // A single live status region exists at surface level.
     expect(html).toContain('role="status"');

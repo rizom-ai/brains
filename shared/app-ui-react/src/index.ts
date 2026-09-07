@@ -56,3 +56,4 @@ export {
   type AppTabDefinition,
   type ConfirmDialogProps,
 } from "./interactive";
+export { AppFetchProvider, useAppFetch, type AppFetch } from "./app-fetch";

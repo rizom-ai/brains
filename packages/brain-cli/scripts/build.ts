@@ -70,7 +70,6 @@ const webChatUiStylesheetPath = join(
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
 const studioUiDirectory = join(studioPackageDir, "dist", "ui");
-const studioUiAssetPath = join(studioUiDirectory, "studio-app.js");
 const studioUiManifestPath = join(
   studioUiDirectory,
   "studio-asset-manifest.json",
@@ -121,10 +120,6 @@ const studioBuildResult = await Bun.spawn(["bun", "run", "build"], {
 }).exited;
 if (studioBuildResult !== 0) {
   console.error("Studio editor UI build failed");
-  process.exit(1);
-}
-if (!existsSync(studioUiAssetPath)) {
-  console.error(`Studio editor UI asset not found at ${studioUiAssetPath}`);
   process.exit(1);
 }
 if (!existsSync(studioUiManifestPath)) {
@@ -403,6 +398,17 @@ cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
 mkdirSync(bundledWebChatUiDir, { recursive: true });
 cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
 cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
+for (const asset of [
+  "guest.js",
+  "guest.css",
+  "dashboard.js",
+  "dashboard.css",
+]) {
+  cpSync(
+    join(webChatPackageDir, "dist", "ui", asset),
+    join(bundledWebChatUiDir, asset),
+  );
+}
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));

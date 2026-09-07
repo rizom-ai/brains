@@ -150,7 +150,7 @@ describe("FileOperations", () => {
         );
       });
 
-      it("should handle note entities without subdirectories", () => {
+      it("keeps a nested note's diagnostic path without stripping its prefix", () => {
         const content = "test";
         const entity = createTestEntity("note", {
           id: "note:entity:test",
@@ -158,9 +158,9 @@ describe("FileOperations", () => {
           metadata: {},
         });
 
-        // Note entities go in root, "note:" prefix is stripped since it matches entity type
+        // The write guard refuses this historical ID; the builder remains diagnostic.
         const path = fileOps.getEntityFilePath(entity);
-        expect(path).toBe(join(testDir, "entity", "test.md"));
+        expect(path).toBe(join(testDir, "note", "entity", "test.md"));
       });
 
       it("should handle empty ID parts gracefully", () => {
@@ -173,11 +173,28 @@ describe("FileOperations", () => {
 
         const path = fileOps.getEntityFilePath(entity);
         // Should skip empty parts
-        expect(path).toBe(join(testDir, "summary", "2024.md"));
+        expect(path).toBe(join(testDir, "summary", "summary", "2024.md"));
       });
     });
 
     describe("writeEntity with subdirectories", () => {
+      it("refuses a nested note without creating its parent directories", async () => {
+        const entity = createTestEntity("note", {
+          id: "book-1:part-1:chapter-2",
+          content: "Nested note",
+          metadata: {},
+        });
+        const error = await fileOps
+          .writeEntity(entity)
+          .catch((failure: unknown) => failure);
+        expect(error).toMatchObject({
+          name: "EntityPlacementError",
+          owner: { entityType: "book-1", id: "part-1:chapter-2" },
+        });
+        expect(existsSync(join(testDir, "book-1"))).toBe(false);
+        expect(existsSync(join(testDir, "note"))).toBe(false);
+        expect(entity.id).toBe("book-1:part-1:chapter-2");
+      });
       it("should create necessary subdirectories when writing", async () => {
         const entityContent = "Daily summary content";
         const entity = createTestEntity("summary", {
@@ -626,7 +643,13 @@ describe("FileOperations", () => {
       expect(existsSync(badPath)).toBe(false);
 
       // Check that the properly nested file exists
-      const goodPath = join(testDir, "summary", "daily", "2024-01-27.md");
+      const goodPath = join(
+        testDir,
+        "summary",
+        "summary",
+        "daily",
+        "2024-01-27.md",
+      );
       expect(existsSync(goodPath)).toBe(true);
     });
 

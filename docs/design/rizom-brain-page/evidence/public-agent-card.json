@@ -1,0 +1,126 @@
+{
+  "name": "Rizom",
+  "description": "Rizom is Rizom's Knowledge and presence coordinator for the Rizom collective. Its purpose is: Capture, organize, and share the collective's knowledge across its three faces — the open platform, the team practice, and the foundation's research — and represent Rizom wherever it is asked about them..",
+  "url": "https://rizom.ai/a2a",
+  "version": "0.2.0-alpha.360",
+  "protocolVersion": "0.2.2",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "extensions": [
+      {
+        "uri": "https://rizom.ai/ext/anchor-profile/v1",
+        "description": "Anchor identity for this brain",
+        "params": {
+          "name": "Rizom",
+          "kind": "organization",
+          "category": "organization",
+          "description": "One practice, three faces: open tools for building the agent that represents you, a consulting practice for teams that need to coordinate better, and the foundation researching why the future of work is play."
+        }
+      }
+    ]
+  },
+  "skills": [
+    {
+      "id": "design-ecosystem-organizations",
+      "name": "Design Ecosystem Organizations",
+      "description": "Design organization structures that coordinate communities, teams, partners, and distributed ownership around shared missions.",
+      "tags": ["organization", "architecture", "agency", "community"],
+      "examples": [
+        "How could we design an ecosystem-based organization with distributed ownership?",
+        "Create an organizational model connecting a core team, community, and partner network.",
+        "What governance structure would support collaboration without centralizing all decision-making?"
+      ]
+    },
+    {
+      "id": "build-mission-aligned-financing",
+      "name": "Build Mission-Aligned Financing",
+      "description": "Develop financing strategies and financial models that connect organizational drivers, sustainable growth, and mission-aligned capital.",
+      "tags": ["analysis", "organization", "strategy", "finance"],
+      "examples": [
+        "Create a driver-based financial model for a mission-driven organization.",
+        "What funding strategy could support an open-source AI startup?",
+        "Compare grants, community investment, and revenue-based financing for this initiative."
+      ]
+    },
+    {
+      "id": "govern-open-and-distributed-technology",
+      "name": "Govern Open and Distributed Technology",
+      "description": "Establish governance practices for open-source, self-hosted, and distributed software ecosystems.",
+      "tags": ["ai-systems", "architecture", "governance", "best-practices"],
+      "examples": [
+        "Design a governance model for a self-hosted open-source platform.",
+        "How should contributors make decisions in a distributed software project?",
+        "Create guidelines for balancing community openness with reliable product stewardship."
+      ]
+    },
+    {
+      "id": "scale-collaborative-delivery",
+      "name": "Scale Collaborative Delivery",
+      "description": "Create partner-enabled service models and team practices that distribute delivery capacity while preserving quality and shared purpose.",
+      "tags": ["organization", "agency", "best-practices", "collaboration"],
+      "examples": [
+        "Design a scalable partner-delivered services model.",
+        "How can algorithmic team formation help assemble project teams?",
+        "Create operating principles for coordinating independent partners across multiple client projects."
+      ]
+    },
+    {
+      "id": "develop-mission-aligned-funding-strategies",
+      "name": "Develop Mission-Aligned Funding Strategies",
+      "description": "Analyze financing options and build financial models that connect investment, resource allocation, and growth with mission outcomes.",
+      "tags": ["analysis", "alignment", "organization", "ai-systems"],
+      "examples": [
+        "Build a driver-based financial model for a mission-led organization.",
+        "What financing strategy could support open-source AI infrastructure?",
+        "How should we evaluate funding programs for AI startups and open-source projects?"
+      ]
+    },
+    {
+      "id": "model-distributed-organizations",
+      "name": "Model Distributed Organizations",
+      "description": "Design team structures, ownership arrangements, and ecosystem relationships that support distributed coordination and shared accountability.",
+      "tags": ["organization", "agents", "alignment", "community"],
+      "examples": [
+        "Design a distributed ownership model for a growing collective.",
+        "How could algorithmic team formation support better collaboration?",
+        "What organizational architecture would connect autonomous teams into an ecosystem?"
+      ]
+    },
+    {
+      "id": "scale-partner-delivered-services",
+      "name": "Scale Partner-Delivered Services",
+      "description": "Design repeatable service models, partner systems, and operating practices that enable mission-aligned work to scale beyond a core team.",
+      "tags": ["agency", "organization", "alignment", "community"],
+      "examples": [
+        "How can we build a partner-delivered service model without losing quality?",
+        "Design an operating framework for coordinating independent delivery partners.",
+        "What capabilities should partners develop to scale our services?"
+      ]
+    },
+    {
+      "id": "govern-open-and-shared-software",
+      "name": "Govern Open and Shared Software",
+      "description": "Design governance, architecture, and operating practices for open-source and self-hosted software ecosystems.",
+      "tags": ["architecture", "ai-systems", "community", "best-practices"],
+      "examples": [
+        "What governance model would work for a self-hosted open-source platform?",
+        "Help us define contribution and decision-making processes for an open-source project.",
+        "Compare centralized and community-led governance for shared software."
+      ]
+    },
+    {
+      "id": "design-organizational-knowledge-systems",
+      "name": "Design Organizational Knowledge Systems",
+      "description": "Create systems for capturing, organizing, and sharing collective knowledge to improve coordination, learning, and decision-making.",
+      "tags": ["organization", "knowledge-base", "architecture", "content"],
+      "examples": [
+        "How should we design a knowledge system for a distributed collective?",
+        "Create a structure for documenting and sharing organizational practices.",
+        "What workflows would help us turn team experience into reusable knowledge?"
+      ]
+    }
+  ],
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"]
+}

@@ -13,31 +13,42 @@ import type { DirectorySyncOperationStatusService } from "./directory-sync-opera
 import { copySeedContentIfNeeded } from "./seed-content";
 import { validateSeedContentEntityTypes } from "./file-discovery";
 
+export interface InitialSyncRecovery {
+  onGitProgress(): void;
+  onGitRecoverySucceeded(): Promise<void>;
+  onGitRecoveryFailed(error: unknown): Promise<void>;
+}
+
+export interface InitialSyncOptions {
+  context: Pick<DirectorySyncHost, "dataDir" | "mirror" | "messaging">;
+  getDirectorySync: () => IDirectorySync;
+  config: DirectorySyncConfig;
+  logger: Logger;
+  gitSync?: IGitSync | undefined;
+  reconciliation?:
+    | Pick<GitReconciliationService, "captureCurrent" | "saveCheckpoint">
+    | undefined;
+  recovery?: InitialSyncRecovery | undefined;
+  operationStatus?:
+    Pick<DirectorySyncOperationStatusService, "addImportResult"> | undefined;
+}
+
 /**
  * Initial-sync orchestration, declared: once every plugin has registered,
  * optionally copy seed content, import files synchronously, then announce
  * SYSTEM_CHANNELS.initialSyncCompleted.
  */
-export function initialSyncSubscription(
-  host: Pick<DirectorySyncHost, "dataDir" | "mirror" | "messaging">,
-  getDirectorySync: () => IDirectorySync,
-  config: DirectorySyncConfig,
-  logger: Logger,
-  gitSync?: IGitSync,
-  reconciliation?: Pick<
-    GitReconciliationService,
-    "captureCurrent" | "saveCheckpoint"
-  >,
-  recovery?: {
-    onGitProgress(): void;
-    onGitRecoverySucceeded(): Promise<void>;
-    onGitRecoveryFailed(error: unknown): Promise<void>;
-  },
-  operationStatus?: Pick<
-    DirectorySyncOperationStatusService,
-    "addImportResult"
-  >,
-): AnySubscriptionDefinition {
+export function initialSyncSubscription(options: InitialSyncOptions): AnySubscriptionDefinition {
+  const {
+    context: host,
+    getDirectorySync,
+    config,
+    logger,
+    gitSync,
+    reconciliation,
+    recovery,
+    operationStatus,
+  } = options;
   let initialSyncStarted = false;
 
   const runInitialSync = async (): Promise<void> => {

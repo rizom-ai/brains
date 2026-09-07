@@ -6,7 +6,15 @@ import {
   resolveConsoleThemeCSS,
 } from "@brains/console-theme";
 import type { JSX } from "react";
+import {
+  OperatorDocumentBody,
+  OperatorPage,
+  OperatorFrame,
+  OperatorCanvas,
+  OperatorSections,
+} from "@brains/operator-view-react";
 import { Colophon } from "./colophon";
+import { AskPanel } from "./ask-panel";
 import { TabBar } from "./dashboard-tabs";
 import { KnowledgeMapPanel } from "./knowledge-map";
 import { Masthead } from "./masthead";
@@ -93,15 +101,15 @@ export function DashboardDocument({
           />
         )}
       </head>
-      <body>
+      <OperatorDocumentBody>
         <PublicHeader
           title={input.title}
           homeHref={dashboardPath}
           askHref={input.askHref}
           loginHref={input.authAccess?.loginUrl ?? "/login"}
         />
-        <main className="console" data-component="dashboard:dashboard">
-          <div
+        <OperatorPage className="console" data-component="dashboard:dashboard">
+          <OperatorFrame
             className="frame"
             data-ui-tabs
             data-ui-tabs-default="overview"
@@ -111,11 +119,13 @@ export function DashboardDocument({
             <TabBar
               knowledgeCount={input.appInfo.entities}
               networkCount={networkCount}
+              askEnabled={input.askEnabled ?? false}
             />
 
-            <div className="canvas">
-              <div className="dashboard-tab-panels">
+            <OperatorCanvas className="canvas">
+              <OperatorSections className="dashboard-tab-panels">
                 <OverviewPanel input={input} />
+                {input.askEnabled && <AskPanel />}
                 <KnowledgeMapPanel
                   block={knowledgeMap}
                   entityTotal={input.appInfo.entities}
@@ -133,15 +143,15 @@ export function DashboardDocument({
                   hasNetworkMap={proximityMap !== undefined}
                   networkCount={networkCount}
                 />
-              </div>
+              </OperatorSections>
               <Colophon
                 title={input.title}
                 appInfo={input.appInfo}
                 baseUrl={input.baseUrl}
               />
-            </div>
-          </div>
-        </main>
+            </OperatorCanvas>
+          </OperatorFrame>
+        </OperatorPage>
 
         {input.assetUrls ? (
           <script data-dashboard-script src={input.assetUrls.dashboardScript} />
@@ -160,7 +170,7 @@ export function DashboardDocument({
             dangerouslySetInnerHTML={{ __html: script }}
           />
         ))}
-      </body>
+      </OperatorDocumentBody>
     </html>
   );
 }

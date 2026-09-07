@@ -50,6 +50,7 @@ import siteInfoPackage from "@brains/site-info";
 import socialMediaPackage from "@brains/social-media";
 import stockPhotoPackage from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
+import askContentPackage from "@brains/ask-content";
 import topicsPackage from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
@@ -145,6 +146,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("prompt", "@brains/prompt", promptPackage),
     packageCapability("profile", "@brains/profile", profilePackage),
     packageCapability("style-guide", "@brains/style-guide", styleGuidePackage),
+    packageCapability("ask-content", "@brains/ask-content", askContentPackage),
     packageCapability("image", "@brains/image-plugin", imagePackage),
     packageCapability("document", "@brains/document-plugin", documentPackage),
     packageCapability("note", "@brains/note", notePackage),

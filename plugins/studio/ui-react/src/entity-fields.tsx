@@ -1,23 +1,56 @@
 /** @jsxImportSource react */
+import * as stylex from "@stylexjs/stylex";
+import { fieldStyles as f } from "./studio-fields.styles";
+import { typographyStyles } from "./studio-typography.styles";
+import { StudioStatus } from "./studio-status";
 import {
   Button,
+  Dialog,
+  DialogClose,
+  DialogPortal,
+  DialogTrigger,
   Input,
   NativeSelect,
   Switch,
   Textarea,
 } from "@brains/app-ui-react";
-import { Select as SelectPrimitive } from "radix-ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactElement } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import {
+  useStudioNavigationCollapsed,
+  setStudioNavigationCollapsed,
+} from "./studio-navigation-state";
+import { Dialog as DialogPrimitive, VisuallyHidden } from "radix-ui";
 import type {
   StudioWorkspaceInfo,
   EntityTypeInfo,
   FieldDescriptor,
+  ValidationIssue,
 } from "./api";
 import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
 import { useStudioApi } from "./studio-api-context";
-import { datetimeLocalValue, errorMessage } from "./ui-utils";
+import { StudioSearchField } from "./studio-search-field";
+import {
+  navigationClassName as navClass,
+  navigationStyles as nav,
+} from "./studio-navigation.styles";
+import { datetimeLocalValue, errorMessage, singularLabel } from "./ui-utils";
+import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
+import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
+
+function navigationTypeLabel(info: EntityTypeInfo): string {
+  return info.isSingleton && info.entityType !== "settings"
+    ? singularLabel(info.label)
+    : info.label;
+}
 
 const COLLECTION_ENTITY_TYPES = new Set([
   "project",
@@ -34,21 +67,46 @@ const SITE_ENTITY_TYPES = new Set([
 ]);
 // Brain machinery: operator-editable, but not authored content. These live
 // in their own rail group so a full brain doesn't flood "Content".
-const SYSTEM_ENTITY_TYPES = new Set([
-  "agent",
-  "agents",
-  "anchor-profile",
-  "brain-character",
-  "playbook",
-  "playbooks",
-  "prompt",
-  "prompts",
-  "skill",
-  "skills",
-  "style-guide",
-  "swot",
-  "swots",
-]);
+const SYSTEM_TYPE_GROUPS = [
+  {
+    label: "Identity",
+    presentation: "form",
+    types: ["anchor-profile", "brain-character", "style-guide"],
+  },
+  {
+    label: "Intelligence",
+    presentation: "document",
+    types: [
+      "prompt",
+      "prompts",
+      "skill",
+      "skills",
+      "playbook",
+      "playbooks",
+      "swot",
+      "swots",
+    ],
+  },
+  { label: "Network", presentation: "form", types: ["agent", "agents"] },
+] as const;
+const SYSTEM_ENTITY_TYPES = new Set<string>(
+  SYSTEM_TYPE_GROUPS.flatMap((group) => [...group.types]),
+);
+
+export type StudioEditorPresentation = "form" | "document" | "split";
+
+/** Host presentation only: never changes adapter body support or permissions. */
+export function studioEditorPresentation(
+  entityType: string,
+  hasBody: boolean,
+): StudioEditorPresentation {
+  if (!hasBody || SITE_ENTITY_TYPES.has(entityType)) return "form";
+  return (
+    SYSTEM_TYPE_GROUPS.find((group) =>
+      group.types.some((type) => type === entityType),
+    )?.presentation ?? "split"
+  );
+}
 
 function studioTypeGroup(
   entityType: string,
@@ -66,7 +124,9 @@ function studioTypeGroup(
  */
 export function typeHasPublicationField(fields: FieldDescriptor[]): boolean {
   return fields.some(
-    (field) => field.name === "status" || field.name === "published",
+    (field) =>
+      field.name === "published" ||
+      (field.name === "status" && field.options?.includes("published")),
   );
 }
 
@@ -96,6 +156,72 @@ export function visibleFieldValues(
   );
 }
 
+type StudioArea =
+  "overview" | "chat" | "library" | "work" | "administration" | "system";
+
+const areaMarks: Record<StudioArea, string> = {
+  overview: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
+  chat: "M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 3-2z",
+  library:
+    "M12 5v16 M12 5C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 1z",
+  work: "M8 7V4h8v3 M3 7h18v14H3z M3 12l9 3 9-3 M10 14v3h4v-3",
+  administration: "M12 2l9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z M8 12l3 3 5-6",
+  system:
+    "M5 3v6m0 4v8 M12 3v11m0 4v3 M19 3v2m0 4v12 M2 9h6v4H2z M9 14h6v4H9z M16 5h6v4h-6z",
+};
+
+function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={areaMarks[area]} />
+    </svg>
+  );
+}
+
+export function studioArea(
+  entityType: string | null,
+  workspaceId: string | null,
+): StudioArea | null {
+  // Navigation ownership, not renderer selection. Account has no owning rail area.
+  if (workspaceId === "studio:overview") return "overview";
+  if (workspaceId === STUDIO_CHAT_WORKSPACE_ID) return "chat";
+  if (workspaceId === "admin:administration") return "administration";
+  if (workspaceId === STUDIO_ACCOUNT_WORKSPACE_ID) return null;
+  if (workspaceId) return "work";
+  const group = entityType ? studioTypeGroup(entityType) : null;
+  return group === "Site" || group === "System" ? "system" : "library";
+}
+
+interface MobileNavigationOption {
+  value: string;
+  label: string;
+  /** How many items the destination holds. */
+  tally?: number;
+  /** How many of them need the operator. */
+  attention?: number;
+  accessibleLabel?: string;
+}
+
+/** Areas that are one destination, not a group of them. */
+const DIRECT_MOBILE_AREAS = ["overview", "chat", "administration"];
+
+interface MobileNavigationGroupModel {
+  area: string;
+  label: string;
+  options: MobileNavigationOption[];
+}
+
 const MOBILE_TYPE_PREFIX = "type:";
 const MOBILE_WORKSPACE_PREFIX = "workspace:";
 
@@ -113,6 +239,165 @@ export function studioMobileSelection(
   return null;
 }
 
+function MobileNavigationGroup(props: {
+  id: string;
+  label: string;
+  open: boolean;
+  currentLabel?: string | undefined;
+  onToggle: (open: boolean) => void;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <details
+      id={props.id}
+      className={navClass("studio-mobile-navigation-group", nav.mobileGroup)}
+      open={props.open}
+      onToggle={(event) => props.onToggle(event.currentTarget.open)}
+    >
+      <summary className={navClass("", nav.mobileSummary)}>
+        <span aria-hidden="true" className={navClass("", nav.mobileDisclosure)}>
+          ▾
+        </span>
+        <span
+          className={navClass(
+            "studio-mobile-group-name",
+            nav.mobileGroupName,
+            typographyStyles.section,
+          )}
+        >
+          {props.label}
+        </span>
+        {!props.open && props.currentLabel ? (
+          <span className={navClass("", nav.mobileCurrent)}>
+            {props.currentLabel}
+          </span>
+        ) : null}
+      </summary>
+      {props.children}
+    </details>
+  );
+}
+
+/**
+ * The Browse sheet's contents, independent of the dialog that carries them:
+ * one block of direct destinations above independently collapsible groups,
+ * narrowed by a filter. Selecting a destination is the caller's business, so
+ * this renders and reports, and closes nothing itself.
+ */
+export function StudioBrowseDestinations(props: {
+  groups: MobileNavigationGroupModel[];
+  filter: string;
+  activeValue: string;
+  groupId: (area: string) => string;
+  isGroupOpen: (area: string) => boolean;
+  onFilterChange: (value: string) => void;
+  onToggleGroup: (area: string, open: boolean) => void;
+  onSelect: (value: string) => void;
+  /** The dialog contributes its own way out; the list does not own one. */
+  trailing?: ReactNode;
+}): ReactElement {
+  const query = props.filter.trim().toLowerCase();
+  const matching = props.groups
+    .map((group) => ({
+      ...group,
+      options: group.options.filter(
+        (option) => query === "" || option.label.toLowerCase().includes(query),
+      ),
+    }))
+    .filter((group) => group.options.length > 0);
+  // Every single destination sits above the toggles: a lone row wedged
+  // between two group headers reads as the tail of the group above it.
+  const direct = matching
+    .filter((group) => DIRECT_MOBILE_AREAS.includes(group.area))
+    .flatMap((group) => group.options);
+  const collapsible = matching.filter(
+    (group) => !DIRECT_MOBILE_AREAS.includes(group.area),
+  );
+  const option = (
+    entry: MobileNavigationOption,
+    flush = false,
+  ): ReactElement => (
+    <button
+      key={entry.value}
+      className={navClass(
+        entry.value === props.activeValue
+          ? "studio-mobile-navigation-link active"
+          : "studio-mobile-navigation-link",
+        nav.mobileLink,
+        flush && nav.mobileDirectLink,
+        entry.value === props.activeValue && nav.mobileActive,
+      )}
+      type="button"
+      aria-label={entry.accessibleLabel}
+      aria-current={entry.value === props.activeValue ? "page" : undefined}
+      onClick={() => props.onSelect(entry.value)}
+    >
+      {entry.label}
+      {entry.attention === undefined ? null : (
+        <span
+          data-studio-attention=""
+          className={navClass("", nav.mobileAttention)}
+        >
+          {entry.attention}
+        </span>
+      )}
+      {entry.tally === undefined ? null : (
+        <span data-studio-tally="" className={navClass("", nav.mobileTally)}>
+          {entry.tally}
+        </span>
+      )}
+    </button>
+  );
+  return (
+    <>
+      <header className={navClass("", nav.sheetHead)}>
+        <div className={navClass("", nav.mobileFilter)}>
+          <StudioSearchField
+            hook="studio-mobile-navigation-filter"
+            label="Filter destinations"
+            placeholder="Filter destinations"
+            value={props.filter}
+            onChange={props.onFilterChange}
+          />
+        </div>
+        {props.trailing}
+      </header>
+      {matching.length === 0 ? (
+        <p className={navClass("", nav.mobileEmpty)}>
+          No destination matches “{props.filter.trim()}”. Clear the filter to
+          see every destination.
+        </p>
+      ) : null}
+      {direct.length > 0 && (
+        <section
+          className={navClass(
+            "studio-mobile-navigation-group",
+            nav.mobileDirect,
+          )}
+        >
+          {direct.map((entry) => option(entry, true))}
+        </section>
+      )}
+      {collapsible.map((group) => (
+        <MobileNavigationGroup
+          id={props.groupId(group.area)}
+          key={group.area}
+          label={group.label}
+          // A filter opens every group that still has something in it.
+          open={query !== "" || props.isGroupOpen(group.area)}
+          currentLabel={
+            group.options.find((entry) => entry.value === props.activeValue)
+              ?.label
+          }
+          onToggle={(open) => props.onToggleGroup(group.area, open)}
+        >
+          {group.options.map((entry) => option(entry))}
+        </MobileNavigationGroup>
+      ))}
+    </>
+  );
+}
+
 export function TypeSwitcher(props: {
   types: EntityTypeInfo[];
   active: string | null;
@@ -123,12 +408,19 @@ export function TypeSwitcher(props: {
   onSelectWorkspace?: (workspaceId: string) => void;
   renderMode?: "all" | "mobile" | "desktop";
 }): ReactElement {
+  const collapsed = useStudioNavigationCollapsed();
   const overviewWorkspace = props.workspaces?.find(
     (workspace) => workspace.id === "studio:overview",
   );
+  const chatWorkspace = props.workspaces?.find(
+    (workspace) => studioArea(null, workspace.id) === "chat",
+  );
+  const administrationWorkspace = props.workspaces?.find(
+    (workspace) => studioArea(null, workspace.id) === "administration",
+  );
   const operationWorkspaces =
     props.workspaces?.filter(
-      (workspace) => workspace.id !== "studio:overview",
+      (workspace) => studioArea(null, workspace.id) === "work",
     ) ?? [];
   const groups = (["Content", "Collections", "Site", "System"] as const)
     .map((label) => ({
@@ -141,91 +433,189 @@ export function TypeSwitcher(props: {
   const primaryTypeGroups = groups.filter(
     (group) => group.label === "Content" || group.label === "Collections",
   );
-  const secondaryTypeGroups = groups.filter(
-    (group) => group.label === "Site" || group.label === "System",
+  const systemTypes = (ids: string[]): EntityTypeInfo[] =>
+    ids.flatMap((id) => props.types.filter((info) => info.entityType === id));
+  const secondaryTypeGroups = [
+    ...SYSTEM_TYPE_GROUPS.map((group) => ({
+      label: group.label,
+      types: systemTypes([...group.types]),
+    })),
+    ...groups.filter((group) => group.label === "Site"),
+  ].filter((group) => group.types.length > 0);
+  const currentArea = studioArea(props.active, props.activeWorkspace ?? null);
+  const destination = props.activeWorkspace ?? props.active;
+  // Browsing does not navigate or discard drafts. A changed destination,
+  // including Back/Forward, restores its owning area.
+  const [browsingArea, setBrowsingArea] = useState<StudioArea | null>(null);
+  const [lastDestination, setLastDestination] = useState(destination);
+  if (destination !== lastDestination) {
+    setLastDestination(destination);
+    setBrowsingArea(null);
+  }
+  const activeArea = browsingArea ?? currentArea;
+  const leafOpen =
+    activeArea === "library" ||
+    activeArea === "work" ||
+    activeArea === "system";
+  const leafId = useId();
+  const selectArea = (area: StudioArea): void => {
+    const destinationWorkspace = [
+      overviewWorkspace,
+      chatWorkspace,
+      administrationWorkspace,
+    ].find((workspace) => workspace && studioArea(null, workspace.id) === area);
+    if (destinationWorkspace) {
+      if (destinationWorkspace.id === props.activeWorkspace)
+        setBrowsingArea(null);
+      else props.onSelectWorkspace?.(destinationWorkspace.id);
+    } else {
+      setStudioNavigationCollapsed(false);
+      setBrowsingArea(area);
+    }
+  };
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
+    currentArea ? { [currentArea]: true } : {},
   );
-  const mobileTypeLabel = (info: EntityTypeInfo): string =>
-    info.isSingleton ? info.label : `${info.label} · ${info.count}`;
-  const mobileWorkspaceLabel = (workspace: StudioWorkspaceInfo): string => {
-    const badge = props.workspaceBadges?.[workspace.id] ?? 0;
-    return badge > 0 ? `${workspace.label} · ${badge}` : workspace.label;
+  const toggleGroup = (area: string, open: boolean): void => {
+    setOpenGroups((previous) =>
+      previous[area] === open ? previous : { ...previous, [area]: open },
+    );
+  };
+  const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
+    value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
+    label: navigationTypeLabel(info),
+    ...(info.isSingleton ? {} : { tally: info.count }),
+  });
+  const workspaceBadge = (
+    workspace: StudioWorkspaceInfo | undefined,
+  ): number => (workspace ? (props.workspaceBadges?.[workspace.id] ?? 0) : 0);
+  const mobileWorkspaceOption = (
+    workspace: StudioWorkspaceInfo,
+  ): MobileNavigationOption => {
+    const attention = workspaceBadge(workspace);
+    return {
+      value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
+      label: workspace.label,
+      accessibleLabel: workspace.label,
+      ...(attention > 0 ? { attention } : {}),
+    };
   };
   const mobileGroups = [
     ...(overviewWorkspace
       ? [
           {
+            area: "overview",
             label: "Home",
+            options: [mobileWorkspaceOption(overviewWorkspace)],
+          },
+        ]
+      : []),
+    ...(chatWorkspace
+      ? [
+          {
+            area: "chat",
+            label: "Chat",
+            options: [mobileWorkspaceOption(chatWorkspace)],
+          },
+        ]
+      : []),
+    {
+      area: "library",
+      label: "Library",
+      options: primaryTypeGroups.flatMap((group) =>
+        group.types.map(mobileTypeOption),
+      ),
+    },
+    ...(operationWorkspaces.length > 0
+      ? [
+          {
+            area: "work",
+            label: "Work",
+            options: operationWorkspaces.map(mobileWorkspaceOption),
+          },
+        ]
+      : []),
+    ...(administrationWorkspace
+      ? [
+          {
+            area: "administration",
+            label: "Admin",
             options: [
               {
-                value: `${MOBILE_WORKSPACE_PREFIX}${overviewWorkspace.id}`,
-                label: mobileWorkspaceLabel(overviewWorkspace),
+                ...mobileWorkspaceOption(administrationWorkspace),
+                label: "Admin",
               },
             ],
           },
         ]
       : []),
-    ...primaryTypeGroups.map((group) => ({
-      label: group.label,
-      options: group.types.map((info) => ({
-        value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
-        label: mobileTypeLabel(info),
-      })),
-    })),
-    ...(operationWorkspaces.length > 0
-      ? [
-          {
-            label: "Operations",
-            options: operationWorkspaces.map((workspace) => ({
-              value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
-              label: mobileWorkspaceLabel(workspace),
-            })),
-          },
-        ]
-      : []),
-    ...secondaryTypeGroups.map((group) => ({
-      label: group.label,
-      options: group.types.map((info) => ({
-        value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
-        label: mobileTypeLabel(info),
-      })),
-    })),
+    {
+      area: "system",
+      label: "System",
+      options: secondaryTypeGroups.flatMap((group) =>
+        group.types.map(mobileTypeOption),
+      ),
+    },
   ];
   const activeMobileView = props.active
     ? `${MOBILE_TYPE_PREFIX}${props.active}`
     : props.activeWorkspace
       ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
       : "";
-  const activeMobileLabel = mobileGroups
-    .flatMap((group) => group.options)
-    .find((option) => option.value === activeMobileView)?.label;
+  const [mobileFilter, setMobileFilter] = useState("");
+  const [browseOpen, setBrowseOpen] = useState(false);
   const selectMobileView = (value: string): void => {
     const selection = studioMobileSelection(value);
     if (selection?.kind === "type") {
       props.onSelect(selection.id);
       return;
     }
-    if (selection?.kind === "workspace") {
+    if (
+      selection?.kind === "workspace" &&
+      selection.id !== props.activeWorkspace
+    ) {
       props.onSelectWorkspace?.(selection.id);
     }
   };
-  const renderGroup = (group: (typeof groups)[number]): ReactElement => (
-    <section className="rail-group" key={group.label}>
-      <div className="rail-title">{group.label}</div>
-      <ul>
+  const renderGroup = (group: {
+    label: string;
+    types: EntityTypeInfo[];
+  }): ReactElement => (
+    <section
+      className={navClass("studio-leaf-group", nav.leafGroup)}
+      key={group.label}
+    >
+      <div
+        className={navClass(
+          "studio-leaf-label",
+          nav.leafLabel,
+          typographyStyles.eyebrow,
+        )}
+      >
+        {group.label}
+      </div>
+      <ul className={navClass("", nav.list)}>
         {group.types.map((info) => (
           <li key={info.entityType}>
             <button
               type="button"
-              className={
-                info.entityType === props.active ? "type active" : "type"
+              className={navClass(
+                info.entityType === props.active
+                  ? "studio-leaf-link active"
+                  : "studio-leaf-link",
+                nav.leafLink,
+                info.entityType === props.active && nav.leafActive,
+              )}
+              aria-current={
+                info.entityType === props.active ? "page" : undefined
               }
               onClick={() => props.onSelect(info.entityType)}
             >
-              {info.label}
-              {info.isSingleton ? (
-                <span className="singleton-mark">solo</span>
-              ) : (
-                <span className="count">{info.count}</span>
+              {navigationTypeLabel(info)}
+              {!info.isSingleton && (
+                <span className={navClass("count", nav.count)}>
+                  {info.count}
+                </span>
               )}
             </button>
           </li>
@@ -233,132 +623,333 @@ export function TypeSwitcher(props: {
       </ul>
     </section>
   );
-
+  const renderWorkspaceLink = (
+    workspace: StudioWorkspaceInfo,
+  ): ReactElement => (
+    <li key={workspace.id}>
+      <button
+        type="button"
+        className={navClass(
+          workspace.id === props.activeWorkspace
+            ? "studio-leaf-link active"
+            : "studio-leaf-link",
+          nav.leafLink,
+          workspace.id === props.activeWorkspace && nav.leafActive,
+        )}
+        aria-current={
+          workspace.id === props.activeWorkspace ? "page" : undefined
+        }
+        onClick={() => props.onSelectWorkspace?.(workspace.id)}
+      >
+        {workspace.label}
+        {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
+          <span className={navClass("count count--attention", nav.count)}>
+            {props.workspaceBadges?.[workspace.id]}
+          </span>
+        )}
+      </button>
+    </li>
+  );
+  const areas: readonly {
+    id: StudioArea;
+    index: string;
+    label: string;
+    available: boolean;
+    accessibleLabel?: string;
+    badge?: number;
+  }[] = [
+    {
+      id: "overview",
+      index: "00",
+      label: "Overview",
+      available: overviewWorkspace !== undefined,
+      badge: workspaceBadge(overviewWorkspace),
+    },
+    {
+      id: "chat",
+      index: "01",
+      label: "Chat",
+      available: chatWorkspace !== undefined,
+      badge: workspaceBadge(chatWorkspace),
+    },
+    {
+      id: "library",
+      index: "02",
+      label: "Library",
+      available: primaryTypeGroups.length > 0,
+    },
+    {
+      id: "work",
+      index: "03",
+      label: "Work",
+      available: operationWorkspaces.length > 0,
+    },
+    {
+      id: "administration",
+      index: "04",
+      label: "Admin",
+      accessibleLabel: "Administration",
+      available: administrationWorkspace !== undefined,
+      badge: workspaceBadge(administrationWorkspace),
+    },
+    {
+      id: "system",
+      index: "05",
+      label: "System",
+      available: secondaryTypeGroups.length > 0,
+    },
+  ];
   return (
     <>
       {props.renderMode !== "desktop" ? (
-        <SelectPrimitive.Root
-          value={activeMobileView}
-          onValueChange={selectMobileView}
+        <Dialog
+          open={browseOpen}
+          onOpenChange={(open) => {
+            setBrowseOpen(open);
+            if (open) setMobileFilter("");
+          }}
         >
-          <SelectPrimitive.Trigger
-            className="studio-mobile-switcher"
-            aria-label="Studio view"
-          >
-            <span className="studio-mobile-switcher-label">Browse</span>
-            <SelectPrimitive.Value placeholder="Choose a Studio view">
-              <span className="studio-mobile-switcher-value">
-                {activeMobileLabel}
-              </span>
-            </SelectPrimitive.Value>
-            <SelectPrimitive.Icon
-              className="studio-mobile-switcher-chevron"
-              aria-hidden="true"
+          <DialogTrigger asChild>
+            <button
+              type="button"
+              className={navClass(
+                "studio-mobile-switcher",
+                nav.browse,
+                typographyStyles.eyebrow,
+              )}
+              aria-label="Browse Studio"
             >
-              ↓
-            </SelectPrimitive.Icon>
-          </SelectPrimitive.Trigger>
-          <SelectPrimitive.Portal>
-            <SelectPrimitive.Content
-              className="studio-mobile-switcher-content"
-              position="popper"
-              sideOffset={6}
-              align="start"
+              <span aria-hidden="true">≡</span>
+              Browse
+            </button>
+          </DialogTrigger>
+          <DialogPortal>
+            <DialogPrimitive.Overlay
+              className={navClass("", nav.sheetOverlay)}
+            />
+            <DialogPrimitive.Content
+              className={navClass("studio-mobile-navigation-sheet", nav.sheet)}
+              aria-describedby={undefined}
+              // Browse opens to be read. Focusing the filter would raise the
+              // phone keyboard over the destinations every time.
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+                if (event.currentTarget instanceof HTMLElement)
+                  event.currentTarget.focus();
+              }}
             >
-              <SelectPrimitive.ScrollUpButton className="studio-mobile-switcher-scroll">
-                ↑
-              </SelectPrimitive.ScrollUpButton>
-              <SelectPrimitive.Viewport className="studio-mobile-switcher-viewport">
-                {mobileGroups.map((group) => (
-                  <SelectPrimitive.Group
-                    className="studio-mobile-switcher-group"
-                    key={`mobile:${group.label}`}
-                  >
-                    <SelectPrimitive.Label className="studio-mobile-switcher-group-label">
-                      {group.label}
-                    </SelectPrimitive.Label>
-                    {group.options.map((option) => (
-                      <SelectPrimitive.Item
-                        className="studio-mobile-switcher-item"
-                        value={option.value}
-                        key={option.value}
-                      >
-                        <SelectPrimitive.ItemText>
-                          {option.label}
-                        </SelectPrimitive.ItemText>
-                        <SelectPrimitive.ItemIndicator className="studio-mobile-switcher-indicator">
-                          ✓
-                        </SelectPrimitive.ItemIndicator>
-                      </SelectPrimitive.Item>
-                    ))}
-                  </SelectPrimitive.Group>
-                ))}
-              </SelectPrimitive.Viewport>
-              <SelectPrimitive.ScrollDownButton className="studio-mobile-switcher-scroll">
-                ↓
-              </SelectPrimitive.ScrollDownButton>
-            </SelectPrimitive.Content>
-          </SelectPrimitive.Portal>
-        </SelectPrimitive.Root>
+              <div
+                className={navClass(
+                  "studio-mobile-navigation-list",
+                  nav.sheetList,
+                )}
+              >
+                <VisuallyHidden.Root>
+                  <DialogPrimitive.Title>Browse Studio</DialogPrimitive.Title>
+                </VisuallyHidden.Root>
+                <StudioBrowseDestinations
+                  groups={mobileGroups}
+                  filter={mobileFilter}
+                  activeValue={activeMobileView}
+                  groupId={(area) => `${leafId}-${area}`}
+                  isGroupOpen={(area) => openGroups[area] !== false}
+                  onFilterChange={setMobileFilter}
+                  onToggleGroup={toggleGroup}
+                  onSelect={(value) => {
+                    selectMobileView(value);
+                    setBrowseOpen(false);
+                  }}
+                  trailing={
+                    <DialogClose
+                      className={navClass("", nav.sheetClose)}
+                      aria-label="Close browse"
+                    >
+                      ✕
+                    </DialogClose>
+                  }
+                />
+              </div>
+            </DialogPrimitive.Content>
+          </DialogPortal>
+        </Dialog>
       ) : null}
       {props.renderMode !== "mobile" ? (
-        <nav className="types">
-          {overviewWorkspace && (
-            <section className="rail-group rail-group--overview">
-              <ul>
-                <li>
-                  <button
-                    type="button"
-                    className={
-                      overviewWorkspace.id === props.activeWorkspace
-                        ? "type workspace-type active"
-                        : "type workspace-type"
-                    }
-                    onClick={() =>
-                      props.onSelectWorkspace?.(overviewWorkspace.id)
-                    }
-                  >
-                    {overviewWorkspace.label}
-                    {(props.workspaceBadges?.[overviewWorkspace.id] ?? 0) >
-                      0 && (
-                      <span className="count count--attention">
-                        {props.workspaceBadges?.[overviewWorkspace.id]}
-                      </span>
+        <nav
+          className={navClass(
+            "types studio-navigation",
+            nav.navigation,
+            !leafOpen && nav.navigationDirect,
+            collapsed && nav.navigationCollapsed,
+          )}
+          data-leaf-open={leafOpen}
+          aria-label="Studio navigation"
+        >
+          <section
+            className={navClass("studio-area-rail", nav.areaRail)}
+            aria-label="Studio areas"
+          >
+            <div
+              className={navClass(
+                "studio-area-title",
+                nav.areaTitle,
+                typographyStyles.eyebrow,
+                collapsed && nav.collapsedTitle,
+              )}
+            >
+              <span className={navClass("", collapsed && nav.collapsedLabel)}>
+                Studio
+              </span>
+              <button
+                type="button"
+                className={navClass(
+                  "studio-navigation-collapse",
+                  nav.collapseButton,
+                )}
+                aria-label={
+                  collapsed ? "Expand navigation" : "Collapse navigation"
+                }
+                title={collapsed ? "Expand navigation" : "Collapse navigation"}
+                aria-expanded={!collapsed}
+                aria-controls={leafOpen ? leafId : undefined}
+                onClick={() => setStudioNavigationCollapsed(!collapsed)}
+              >
+                {collapsed ? "⇥" : "⇤"}
+              </button>
+            </div>
+            {areas
+              .filter(
+                (area) =>
+                  area.available ||
+                  !["chat", "administration"].includes(area.id),
+              )
+              .map((area) => (
+                <button
+                  className={navClass(
+                    area.id === activeArea
+                      ? "studio-area-link active"
+                      : "studio-area-link",
+                    nav.areaLink,
+                    area.id === activeArea && nav.areaActive,
+                    collapsed && nav.collapsedLink,
+                  )}
+                  type="button"
+                  disabled={!area.available}
+                  aria-label={area.accessibleLabel ?? area.label}
+                  title={
+                    collapsed ? (area.accessibleLabel ?? area.label) : undefined
+                  }
+                  aria-pressed={area.id === activeArea}
+                  aria-description={
+                    (area.badge ?? 0) > 0
+                      ? `${area.badge} need attention`
+                      : undefined
+                  }
+                  aria-controls={
+                    leafOpen && ["library", "work", "system"].includes(area.id)
+                      ? leafId
+                      : undefined
+                  }
+                  aria-expanded={
+                    ["library", "work", "system"].includes(area.id)
+                      ? leafOpen && !collapsed && area.id === activeArea
+                      : undefined
+                  }
+                  key={area.id}
+                  onClick={() => selectArea(area.id)}
+                >
+                  <b
+                    className={navClass(
+                      "",
+                      nav.ordinal,
+                      area.id === activeArea && nav.ordinalActive,
                     )}
-                  </button>
-                </li>
-              </ul>
-            </section>
-          )}
-          {primaryTypeGroups.map(renderGroup)}
-          {operationWorkspaces.length > 0 && (
-            <section className="rail-group rail-group--operations">
-              <div className="rail-title">Operations</div>
-              <ul>
-                {operationWorkspaces.map((workspace) => (
-                  <li key={workspace.id}>
-                    <button
-                      type="button"
-                      className={
-                        workspace.id === props.activeWorkspace
-                          ? "type workspace-type active"
-                          : "type workspace-type"
-                      }
-                      onClick={() => props.onSelectWorkspace?.(workspace.id)}
-                    >
-                      {workspace.label}
-                      {(props.workspaceBadges?.[workspace.id] ?? 0) > 0 && (
-                        <span className="count count--attention">
-                          {props.workspaceBadges?.[workspace.id]}
-                        </span>
+                  >
+                    {collapsed ? <StudioAreaMark area={area.id} /> : area.index}
+                  </b>
+                  <span
+                    data-area-label={area.label}
+                    className={navClass(
+                      "",
+                      nav.areaLabel,
+                      collapsed && nav.collapsedLabel,
+                    )}
+                  >
+                    {area.label}
+                    {(area.badge ?? 0) > 0 ? (
+                      <small className={navClass("", nav.count)}>
+                        {area.badge}
+                      </small>
+                    ) : null}
+                  </span>
+                </button>
+              ))}
+            <div className={navClass("", nav.areaFoot)}>
+              <button
+                type="button"
+                className={navClass(
+                  "command-chip",
+                  nav.areaLink,
+                  collapsed && nav.collapsedLink,
+                )}
+                aria-label="Commands"
+                title={collapsed ? "Commands" : undefined}
+              >
+                <b className={navClass("", nav.ordinal)}>⌘</b>
+                <span className={navClass("", collapsed && nav.collapsedLabel)}>
+                  Commands
+                </span>
+              </button>
+            </div>
+          </section>
+          {leafOpen ? (
+            <section
+              id={leafId}
+              className={navClass(
+                "studio-leaf-rail",
+                nav.leaf,
+                collapsed && nav.collapsedLabel,
+              )}
+              aria-label={`${areas.find((area) => area.id === activeArea)?.label ?? "Studio"} destinations`}
+            >
+              <header className={navClass("studio-leaf-head", nav.leafHead)}>
+                <h2
+                  className={navClass(
+                    "",
+                    nav.leafTitle,
+                    typographyStyles.secondaryDisplay,
+                  )}
+                >
+                  {areas.find((area) => area.id === activeArea)?.label}
+                </h2>
+              </header>
+              <div className={navClass("studio-leaf-scroll", nav.leafScroll)}>
+                {activeArea === "library"
+                  ? primaryTypeGroups.map(renderGroup)
+                  : null}
+                {activeArea === "work" && operationWorkspaces.length > 0 ? (
+                  <section
+                    className={navClass("studio-leaf-group", nav.leafGroup)}
+                  >
+                    <div
+                      className={navClass(
+                        "studio-leaf-label",
+                        nav.leafLabel,
+                        typographyStyles.eyebrow,
                       )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                    >
+                      Workspaces
+                    </div>
+                    <ul className={navClass("", nav.list)}>
+                      {operationWorkspaces.map(renderWorkspaceLink)}
+                    </ul>
+                  </section>
+                ) : null}
+                {activeArea === "system"
+                  ? secondaryTypeGroups.map(renderGroup)
+                  : null}
+              </div>
             </section>
-          )}
-          {secondaryTypeGroups.map(renderGroup)}
+          ) : null}
         </nav>
       ) : null}
     </>
@@ -381,54 +972,117 @@ function ImageField(props: {
   const uploadMutation = useMutation({
     mutationFn: (file: File): Promise<UploadImageResult> =>
       uploadImage(api, file),
+    onSuccess: () => {
+      void invalidateAfterUpload(queryClient);
+    },
   });
   const current = typeof value === "string" && value.length > 0 ? value : null;
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const uploading = useRef(false);
+  const startUpload = (file: File): void => {
+    if (uploading.current) return;
+    uploading.current = true;
+    setSelectedFile(file);
+    uploadMutation.mutate(file, {
+      onSuccess: (result) => {
+        onChange(result.entityId);
+        setSelectedFile(null);
+      },
+      onSettled: () => {
+        uploading.current = false;
+      },
+    });
+  };
 
   return (
-    <div className="field field-image">
-      <span className="field-label">
+    <div {...stylex.props(f.field)} data-studio-field="image">
+      <span {...stylex.props(f.label)}>
         {descriptor.label}
-        <em className="kind">image entity</em>
+        <em {...stylex.props(f.kind)}>image entity</em>
       </span>
       {current && (
-        <p className="image-ref">
-          <code>{current}</code>
+        <p {...stylex.props(f.imageRef)}>
+          <code {...stylex.props(f.imageCode)}>{current}</code>
           <Button
             type="button"
             variant="link"
             size="xs"
-            onClick={() => onChange("")}
+            xstyle={f.clear}
+            disabled={uploadMutation.isPending}
+            onClick={() => {
+              onChange("");
+              setSelectedFile(null);
+              uploadMutation.reset();
+            }}
           >
             Clear
           </Button>
         </p>
       )}
-      <label className="upload-zone">
-        <span className="upload-glyph" aria-hidden="true">
+      <label {...stylex.props(f.upload)}>
+        <span {...stylex.props(f.glyph)} aria-hidden="true">
           ↑
         </span>
-        <strong>Choose an image</strong>
-        <small>PNG, JPEG, GIF, WebP, AVIF, or SVG</small>
+        <strong {...stylex.props(f.uploadTitle)}>Choose an image</strong>
+        <small {...stylex.props(f.uploadNote)}>
+          PNG, JPEG, GIF, WebP, AVIF, or SVG. Keep files below 10 MiB.
+        </small>
         <input
+          {...stylex.props(f.file)}
           type="file"
           accept="image/*"
+          disabled={uploadMutation.isPending}
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
-            if (!file) return;
-            uploadMutation.mutate(file, {
-              onSuccess: (result) => {
-                onChange(result.entityId);
-                void invalidateAfterUpload(queryClient);
-              },
-            });
+            event.currentTarget.value = "";
+            if (file) startUpload(file);
           }}
         />
       </label>
-      {uploadMutation.isPending && <p className="status">Uploading…</p>}
+      <div role="status" aria-live="polite">
+        {uploadMutation.isPending && (
+          <StudioStatus>
+            Uploading {selectedFile?.name}… Wait for the upload before saving
+            this reference.
+          </StudioStatus>
+        )}
+        {uploadMutation.isSuccess && (
+          <StudioStatus tone="good">
+            Uploaded {uploadMutation.variables.name}. Save changes to keep this
+            reference.
+          </StudioStatus>
+        )}
+      </div>
       {uploadMutation.error && (
-        <p className="status status-error">
-          {errorMessage(uploadMutation.error)}
-        </p>
+        <StudioStatus tone="error">
+          <span>
+            {selectedFile?.name}: {errorMessage(uploadMutation.error)} Your
+            previous image reference is unchanged.
+            <br />
+            Choose another file, or retry. If the previous upload reached the
+            server, retrying may create another image.
+            <br />
+            {selectedFile && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => startUpload(selectedFile)}
+              >
+                Retry upload
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setSelectedFile(null);
+                uploadMutation.reset();
+              }}
+            >
+              Dismiss upload error
+            </Button>
+          </span>
+        </StudioStatus>
       )}
     </div>
   );
@@ -450,19 +1104,20 @@ function StringListField(props: {
   };
 
   return (
-    <div className="field field-tags">
-      <span className="field-label">
+    <div {...stylex.props(f.field)} data-studio-field="tags">
+      <span {...stylex.props(f.label)}>
         {props.descriptor.label}
-        <em className="kind">tags</em>
+        <em {...stylex.props(f.kind)}>tags</em>
       </span>
-      <div className="tags">
+      <div {...stylex.props(f.tags)}>
         {values.map((value) => (
-          <span className="tag" key={value}>
+          <span {...stylex.props(f.tag)} key={value}>
             {value}
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
+              xstyle={f.tagButton}
               aria-label={`Remove ${value}`}
               onClick={() =>
                 props.onChange(values.filter((item) => item !== value))
@@ -472,8 +1127,9 @@ function StringListField(props: {
             </Button>
           </span>
         ))}
-        <span className="tag tag-add">
+        <span {...stylex.props(f.tag, f.tagAdd)}>
           <Input
+            xstyle={f.tagInput}
             type="text"
             value={pending}
             aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
@@ -490,6 +1146,7 @@ function StringListField(props: {
             type="button"
             variant="ghost"
             size="icon-xs"
+            xstyle={f.tagButton}
             aria-label="Add tag"
             onClick={add}
           >
@@ -546,15 +1203,17 @@ export function FieldAssistControls(props: {
 
   if (active && state.kind === "suggested") {
     return (
-      <div className="field-assist-suggestion">
+      <div {...stylex.props(f.suggestion)}>
         {Array.isArray(state.suggestion) ? (
-          <span className="field-assist-tags">
+          <span {...stylex.props(f.suggestionTags)}>
             {state.suggestion.map((tag) => (
-              <code key={tag}>{tag}</code>
+              <code {...stylex.props(f.suggestionToken)} key={tag}>
+                {tag}
+              </code>
             ))}
           </span>
         ) : (
-          <span className="field-assist-copy">{state.suggestion}</span>
+          <span {...stylex.props(f.suggestionCopy)}>{state.suggestion}</span>
         )}
         <Button
           type="button"
@@ -571,7 +1230,7 @@ export function FieldAssistControls(props: {
   }
 
   return (
-    <div className="field-assist-controls">
+    <div {...stylex.props(f.assist)}>
       <Button
         type="button"
         variant="outline"
@@ -586,7 +1245,9 @@ export function FieldAssistControls(props: {
             : `Suggest ${descriptor.label.toLowerCase()}`}
       </Button>
       {active && state.kind === "error" && (
-        <span className="status status-error">{state.message}</span>
+        <StudioStatus inline tone="error">
+          {state.message}
+        </StudioStatus>
       )}
     </div>
   );
@@ -596,19 +1257,81 @@ export function Field(props: {
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
+  issues?: ValidationIssue[] | undefined;
 }): ReactElement {
-  const { descriptor, value, onChange } = props;
+  const errorId = useId();
+  const group = useRef<HTMLDivElement>(null);
+  const issues =
+    props.issues?.filter((issue) => issue.path[0] === props.descriptor.name) ??
+    [];
+  useEffect(() => {
+    const node = group.current;
+    if (
+      !node?.hasAttribute("data-studio-invalid-field") ||
+      node !==
+        node.closest("form")?.querySelector("[data-studio-invalid-field]")
+    )
+      return;
+    const control = node.querySelector<HTMLElement>(
+      'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [role="switch"]:not([disabled])',
+    );
+    (control?.getAttribute("aria-describedby") === errorId
+      ? control
+      : node
+    ).focus();
+  }, [props.issues, errorId]);
+  return (
+    <div
+      ref={group}
+      role="group"
+      aria-label={props.descriptor.label}
+      tabIndex={-1}
+      aria-describedby={issues.length ? errorId : undefined}
+      data-studio-invalid-field={
+        issues.length ? props.descriptor.name : undefined
+      }
+    >
+      <FieldControl
+        descriptor={props.descriptor}
+        value={props.value}
+        onChange={props.onChange}
+        errorId={issues.length ? errorId : undefined}
+      />
+      {issues.length > 0 && (
+        <div id={errorId}>
+          <StudioStatus tone="error">
+            Last save:{" "}
+            {issues
+              .map(
+                (issue) =>
+                  `${issue.path.length > 1 ? `${issue.path.slice(1).join(".")}: ` : ""}${issue.message}`,
+              )
+              .join(" · ")}
+          </StudioStatus>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FieldControl(props: {
+  descriptor: FieldDescriptor;
+  value: unknown;
+  onChange: (raw: unknown) => void;
+  errorId: string | undefined;
+}): ReactElement {
+  const { descriptor, value, onChange, errorId } = props;
+  const validation = {
+    "aria-invalid": errorId ? true : undefined,
+    "aria-describedby": errorId,
+  };
   const required = descriptor.required !== false;
   const text =
     typeof value === "string" || typeof value === "number" ? String(value) : "";
   const label = (
-    <span className="field-label">
+    <span {...stylex.props(f.label)}>
       {descriptor.label}
-      {required ? (
-        <em className="req">required</em>
-      ) : (
-        <em className="kind">{descriptor.widget}</em>
-      )}
+      {required ? <em {...stylex.props(f.required)}>required</em> : null}
     </span>
   );
 
@@ -620,9 +1343,12 @@ export function Field(props: {
 
   if (descriptor.widget === "boolean") {
     return (
-      <label className="field field-inline">
-        <span className="field-label">{descriptor.label}</span>
+      <label {...stylex.props(f.field, f.inline)} data-studio-field="boolean">
+        <span {...stylex.props(f.label, f.inlineLabel)}>
+          {descriptor.label}
+        </span>
         <Switch
+          {...validation}
           checked={value === true}
           onCheckedChange={(checked) => onChange(checked)}
         />
@@ -632,9 +1358,11 @@ export function Field(props: {
 
   if (descriptor.widget === "select") {
     return (
-      <label className="field">
+      <label {...stylex.props(f.field)} data-studio-field="select">
         {label}
         <NativeSelect
+          {...validation}
+          xstyle={f.control}
           value={text}
           required={required}
           onChange={(event) => onChange(event.currentTarget.value)}
@@ -652,9 +1380,11 @@ export function Field(props: {
 
   if (descriptor.widget === "text") {
     return (
-      <label className="field">
+      <label {...stylex.props(f.field)} data-studio-field="text">
         {label}
         <Textarea
+          {...validation}
+          xstyle={f.control}
           value={text}
           required={required}
           rows={4}
@@ -678,12 +1408,14 @@ export function Field(props: {
     // Nested structured widgets remain read-only; the value round-trips
     // untouched because saves only send changed draft keys.
     return (
-      <label className="field">
-        <span className="field-label">
+      <label {...stylex.props(f.field)} data-studio-field="structured">
+        <span {...stylex.props(f.label)}>
           {descriptor.label}
-          <em className="kind">read-only</em>
+          <em {...stylex.props(f.kind)}>read-only</em>
         </span>
         <Textarea
+          {...validation}
+          xstyle={[f.control, f.readOnly]}
           value={JSON.stringify(value ?? null, null, 2)}
           disabled
           rows={4}
@@ -693,9 +1425,11 @@ export function Field(props: {
   }
 
   return (
-    <label className="field">
+    <label {...stylex.props(f.field)} data-studio-field={descriptor.widget}>
       {label}
       <Input
+        {...validation}
+        xstyle={[f.control, descriptor.widget === "datetime" && f.date]}
         type={
           descriptor.widget === "number"
             ? "number"

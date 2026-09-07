@@ -108,6 +108,7 @@ export interface MockServicePluginContextOptions {
  * with toHaveBeenCalledWith.
  */
 type SpiedNamespace =
+  | "content"
   | "entities"
   | "templates"
   | "views"
@@ -164,6 +165,7 @@ export function createMockServicePluginContext(
     ...context,
     // Namespaces tests assert against are wrapped so the factory's real
     // behaviour still runs while calls are recorded.
+    content: spyOnMembers(context.content),
     entities: spyOnMembers(context.entities),
     templates: spyOnMembers(context.templates),
     views: spyOnMembers(context.views),

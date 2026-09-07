@@ -56,14 +56,23 @@ async function invokeTool(
         ...(options.confirm ? ["--yes"] : []),
       ],
       consumerDirectory,
-      { env: runtimeEnv, timeoutMs: 90_000 },
+      {
+        env: {
+          ...runtimeEnv,
+          BUN_OPTIONS: `--preload=${join(consumerDirectory, "generation-provider.ts")}`,
+        },
+        timeoutMs: 90_000,
+      },
     ),
   );
 }
 
 function startRuntime(consumerDirectory: string): StartedCommand {
   return startCommand(["bun", "run", "brain", "start"], consumerDirectory, {
-    env: runtimeEnv,
+    env: {
+      ...runtimeEnv,
+      BUN_OPTIONS: `--preload=${join(consumerDirectory, "generation-provider.ts")}`,
+    },
   });
 }
 
@@ -82,16 +91,13 @@ async function waitForCompletedDigest(
   consumerDirectory: string,
   jobId: string,
   runtime: StartedCommand,
+  tool = "reading-insights_reading-digest-status",
 ): Promise<string> {
   const deadline = Date.now() + 30_000;
   let diagnostic = "job status was not queried";
   while (Date.now() < deadline) {
     try {
-      diagnostic = await invokeTool(
-        consumerDirectory,
-        "reading-insights_reading-digest-status",
-        { jobId },
-      );
+      diagnostic = await invokeTool(consumerDirectory, tool, { jobId });
       if (diagnostic.includes('"status": "completed"')) return diagnostic;
       if (diagnostic.includes('"status": "failed"')) break;
     } catch (error) {
@@ -104,8 +110,40 @@ async function waitForCompletedDigest(
   );
 }
 
+/** Generated entities appear asynchronously; read them back through typed readers. */
+async function waitForGeneratedOutputs(
+  consumerDirectory: string,
+  references: { digestId: string; overviewId: string },
+  runtime: StartedCommand,
+): Promise<string> {
+  const deadline = Date.now() + 30_000;
+  let diagnostic = "generated outputs were not read";
+  while (Date.now() < deadline) {
+    try {
+      const readback = await invokeTool(
+        consumerDirectory,
+        "reading-insights_read-generated-outputs",
+        references,
+      );
+      diagnostic = await waitForCompletedDigest(
+        consumerDirectory,
+        jobIdFrom(readback),
+        runtime,
+        "reading-insights_generated-output-status",
+      );
+      if (diagnostic.includes("Generated reading digest")) return diagnostic;
+    } catch (error) {
+      diagnostic = getErrorMessage(error);
+    }
+    await Bun.sleep(250);
+  }
+  throw new Error(
+    `Generated outputs were not persisted\n${diagnostic}\n--- runtime ---\n${combinedOutput(runtime.getOutput())}`,
+  );
+}
+
 describe("public authoring Phase 3 packed service contract", () => {
-  it("executes a declarative durable job after the enqueueing process exits", async () => {
+  it("executes durable jobs and mixed generation after the enqueueing process exits", async () => {
     const temporaryDirectory = await mkdtemp(
       join(tmpdir(), "public-authoring-phase3-"),
     );
@@ -141,7 +179,6 @@ describe("public authoring Phase 3 packed service contract", () => {
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(consumerFixture, consumerDirectory, tarballs);
-
       await invokeTool(
         consumerDirectory,
         "system_create",
@@ -173,6 +210,28 @@ describe("public authoring Phase 3 packed service contract", () => {
       const jobId = jobIdFrom(enqueued);
       expect(jobId).not.toBeEmpty();
 
+      const preview = await invokeTool(
+        consumerDirectory,
+        "reading-insights_generate-reading-content",
+        { bookmarkId: "durable-services", dryRun: true },
+      );
+      expect(preview).toContain('"plannedTargets": 2');
+      expect(preview).toContain('"queuedTargets": 0');
+      expect(preview).not.toContain('"batchId"');
+      expect(preview).not.toContain('"jobId"');
+      const admitted = await invokeTool(
+        consumerDirectory,
+        "reading-insights_generate-reading-content",
+        { bookmarkId: "durable-services" },
+      );
+      expect(admitted).toContain('"queuedTargets": 2');
+      const batchId = /"batchId":\s*"([^"]+)"/u.exec(admitted)?.[1];
+      if (!batchId) throw new Error(`Missing generation batch: ${admitted}`);
+      const admittedJobs = [...admitted.matchAll(/"jobId":\s*"([^"]+)"/gu)].map(
+        (match) => match[1],
+      );
+      expect(new Set(admittedJobs).size).toBe(2);
+
       runtime = startRuntime(consumerDirectory);
       await runtime.waitForOutput("Brain worker runtime ready");
       const completed = await waitForCompletedDigest(
@@ -187,6 +246,35 @@ describe("public authoring Phase 3 packed service contract", () => {
       expect(completed).toContain('"wordCount": 4');
       expect(completed).toContain('"progress": 100');
       expect(completed).toContain('"message": "Digest ready"');
+
+      expect(admitted).toContain('"template": "generatedDigest"');
+      expect(admitted).toContain('"template": "generatedBookmark"');
+      // The result carries each destination's stored entity ID, so an author
+      // reads output back without reconstructing one from path segments.
+      const [digestId, overviewId] = [
+        ...admitted.matchAll(/"entityId":\s*"([^"]+)"/gu),
+      ].map((match) => match[1]);
+      if (!digestId || !overviewId)
+        throw new Error(`Missing output references: ${admitted}`);
+      const outputs = await waitForGeneratedOutputs(
+        consumerDirectory,
+        { digestId, overviewId },
+        runtime,
+      );
+      expect(outputs).toContain("Generated reading digest");
+      expect(outputs).toContain("Independent bookmark output");
+      expect(outputs).toContain('"bookmarkId": "durable-services"');
+      expect(outputs).toContain(
+        "https://example.test/reading/durable-services",
+      );
+      const skipped = await invokeTool(
+        consumerDirectory,
+        "reading-insights_generate-reading-content",
+        { bookmarkId: "durable-services" },
+      );
+      expect(skipped).toContain('"skippedTargets": 2');
+      expect(skipped).toContain('"queuedTargets": 0');
+      expect(skipped).not.toContain('"batchId"');
 
       const shutdown = await stopRuntime(runtime);
       runtime = undefined;

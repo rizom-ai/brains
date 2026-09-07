@@ -14,6 +14,6 @@ Remove or fold a plan when it is implemented, superseded by a narrower plan, or 
 
 ## Priority and product direction
 
-These plans are **not** prioritized or categorized here. The single roadmap — [../roadmap.md](../roadmap.md) — organizes every active plan into the product story (§1–§6) and is the source of truth for what comes next. This README only states the directory's cleanup policy; each plan's own `## Status` section is the source of truth for that plan's state.
+These plans are **not** prioritized or categorized here. The single roadmap — [../roadmap.md](../roadmap.md) — organizes every active plan into the product story (§1–§7) and is the source of truth for what comes next. This README only states the directory's cleanup policy; each plan's own `## Status` section is the source of truth for that plan's state.
 
 When you add a plan to this directory, link it from the relevant roadmap section so the roadmap stays the complete index.

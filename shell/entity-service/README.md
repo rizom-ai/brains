@@ -77,6 +77,102 @@ if (note) {
 await entityService.deleteEntity({ entityType: "note", id: entityId });
 ```
 
+## Hierarchy queries (internal client)
+
+`queryEntityHierarchy()` is available on the existing entity-service client used by
+Studio. It projects stored identity, not filesystem placement or composition order:
+
+```typescript
+const page = await entityService.queryEntityHierarchy({
+  entityType: "book-section",
+  prefix: ["book-1"], // null or omitted for the collection root
+  visibilityScope: "shared",
+  limit: 40,
+  offset: 0,
+});
+// page.folders: [{ path, name, descendantCount }]
+// page.entities: [{ entity, path }] — direct children only
+// page.totalEntities and page.offset describe the direct-entry page.
+```
+
+Visibility defaults to public and is applied before deriving folders and counts.
+Optional `filter` supports literal content search, metadata equality and exact visibility
+(intersected with the caller scope). Folders are complete and ordered by their segment's
+UTF-8 bytes; only direct entries page. Entries default to ID order; `sortFields` uses the
+ordinary list sorting rules with an ID tie-breaker.
+
+Set `includeDescendants: true` for a paged recursive result beneath the same prefix.
+This mode returns no folder summaries; `totalEntities` counts all matching descendants
+before pagination. A null prefix searches the whole collection. Visibility and filters
+still apply before counting or returning entries. The default remains immediate children.
+
+The entry limit defaults to 50 and accepts 1–100. More than 1,000 visible matching immediate
+folders rejects the query rather than returning an incomplete folder list. Folder grouping
+and entry paging run in SQLite. Nested prefixes use the existing ID index, with literal,
+case-sensitive bounds supplied by the entity-path codec. No schema migration is needed.
+
+Existing empty or path-like ID segments remain addressable through structured prefixes;
+components containing the identity separator are rejected. New-path authoring still uses
+the stricter `entityIdPathSchema`. Derived paths are returned outside entity data: neither
+stored IDs nor metadata are modified. Filesystem placement remains directory-sync's job.
+
+## Conditional writes and recovery (internal runtime)
+
+`getEntityWriteSnapshot()` reads the raw entity and its opaque revision together, using
+an explicit visibility scope (public-only when omitted). Authorized runtime callers can
+pass that revision to `updateEntity()`:
+
+```typescript
+const snapshot = await entityService.getEntityWriteSnapshot({
+  entityType: "note",
+  id: entityId,
+  visibilityScope: "public",
+});
+if (snapshot) {
+  await entityService.updateEntity({
+    entity: { ...snapshot.entity, content: "Generated replacement" },
+    options: {
+      conditionalWrite: { expectedRevision: snapshot.revision },
+    },
+  });
+}
+```
+
+For `createEntity()`, use an explicit ID and `expectedRevision: null`; conditional creates
+cannot deduplicate IDs. A failed precondition throws `EntityWriteConflictError`. The
+revision is derived from the stored row's content hash, metadata, and visibility, so any
+writer's change is detected, including direct SQL, with no version table or triggers. An
+identical state after a revert or recreate is the same revision: it is the state that was
+authorized for replacement.
+
+A conditional mutation commits the entity, FTS changes, and projection/export journals in
+one SQLite transaction. Nothing records completion: a retry after acknowledgement loss
+meets the changed revision and fails with `EntityWriteConflictError`, so a committed write
+is never repeated or overwritten. Concurrent attempts can still both call an external
+provider before either commits.
+
+Create/update options also accept a runtime `signal`. Cancellation is checked before
+validation and immediately before the entity write, including after awaited validation
+or asset preparation. Once the write starts, the entity and its journals settle atomically;
+late cancellation does not undo a committed entity. Search options accept a runtime
+signal for query embedding and result-consumption checkpoints. Signals are not persisted.
+
+Runtime callers may also supply `beforeWrite(entity)`, an asynchronous guard receiving the
+final serialized fields after entity/persist validation and immediately before SQL mutation.
+A thrown error rolls back the transaction, including projection/export state.
+The guard must not mutate entities or perform nested writes. It is not called for no-op
+skips. Durable generation uses it to recheck current authority and reject
+validator-derived visibility/publication escalation. The hook is runtime-only; it does not
+make auth-account changes atomic with the separate entity database.
+
+These primitives do **not** grant authority: runtime callers must enforce current actor,
+entity-action, visibility, and operation-access policy. Event publication and embedding
+enqueue happen after the transaction and are not guaranteed to replay following
+acknowledgement loss.
+
+Revisions are derived from stored rows, so no table, migration, or trigger is added and no
+revision data enters Markdown.
+
 ## Entity model
 
 All entities extend `BaseEntity`:

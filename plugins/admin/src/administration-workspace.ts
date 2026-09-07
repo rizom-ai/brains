@@ -62,7 +62,6 @@ export const administrationQuerySchema: z.ZodType<{
 interface AdministrationData {
   readonly tab: "people" | "invitations" | "audit";
   readonly attention: number;
-  readonly headBlocks: readonly AdminTabBlock[];
   readonly peopleBlocks: readonly AdminTabBlock[];
   readonly invitationBlocks: readonly AdminTabBlock[];
   readonly auditBlocks: readonly AdminTabBlock[];
@@ -114,10 +113,9 @@ export const administrationWorkspace: StudioWorkspaceDefinition<
     kicker: "Access administration",
     title: "Administration",
     description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
+      "Manage people, invitations, and access to this brain. Use Account for your own profile, sign-in security, and personal settings.",
     ...(data.primaryAction ? { primaryAction: data.primaryAction } : {}),
     blocks: [
-      ...data.headBlocks,
       {
         type: "tabs",
         id: "administration-tabs",
@@ -131,7 +129,7 @@ export const administrationWorkspace: StudioWorkspaceDefinition<
             label: "Invitations",
             blocks: data.invitationBlocks,
           },
-          { id: "audit", label: "Audit", blocks: data.auditBlocks },
+          { id: "audit", label: "Access activity", blocks: data.auditBlocks },
         ],
       },
     ],

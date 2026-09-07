@@ -39,9 +39,10 @@ const issueKindSchema: z.ZodEnum<{
   quarantined: "quarantined";
   import: "import";
   export: "export";
+  placement: "placement";
   git: "git";
   source: "source";
-}> = z.enum(["quarantined", "import", "export", "git", "source"]);
+}> = z.enum(["quarantined", "import", "export", "placement", "git", "source"]);
 export type DirectorySyncIssueKind = z.output<typeof issueKindSchema>;
 
 type RunMetricsSchema = z.ZodObject<{
@@ -145,7 +146,7 @@ const storedStatusSchema: z.ZodObject<{
 }> = z.object({
   activeRun: activeDirectorySyncRunSchema.optional(),
   recentRuns: z.array(recentDirectorySyncRunSchema).max(5),
-  issues: z.array(directorySyncIssueSchema).max(8),
+  issues: z.array(directorySyncIssueSchema),
 });
 export type DirectorySyncOperationSnapshot = z.output<
   typeof storedStatusSchema
@@ -425,6 +426,20 @@ export class DirectorySyncOperationStatusService {
     });
   }
 
+  /** Clear a standing issue without clearing unrelated entities' diagnostics. */
+  clearIssue(input: {
+    kind: DirectorySyncIssueKind;
+    path: string;
+  }): Promise<void> {
+    const path =
+      input.kind === "placement" ? input.path : this.safePath(input.path);
+    return this.mutate((status) => {
+      status.issues = status.issues.filter(
+        (issue) => issue.id !== `${input.kind}:${path}`,
+      );
+    });
+  }
+
   completeRun(runId: string, summary: string): Promise<void> {
     return this.finishRun(runId, "succeeded", summary);
   }
@@ -674,7 +689,12 @@ export class DirectorySyncOperationStatusService {
       message: string;
     },
   ): void {
-    const safePath = input.path ? this.safePath(input.path) : undefined;
+    // Placement keys are opaque <type>/<id> identities, not filesystem paths.
+    const safePath = input.path
+      ? input.kind === "placement"
+        ? input.path
+        : this.safePath(input.path)
+      : undefined;
     const issue: DirectorySyncIssue = {
       id: `${input.kind}:${safePath ?? sanitizeMessage(input.message, 80)}`,
       kind: input.kind,
@@ -682,10 +702,16 @@ export class DirectorySyncOperationStatusService {
       message: sanitizeMessage(input.message),
       occurredAt: new Date(this.now()).toISOString(),
     };
-    status.issues = [
+    const issues = [
       issue,
       ...status.issues.filter((candidate) => candidate.id !== issue.id),
-    ].slice(0, 8);
+    ];
+    // Recent operational diagnostics stay bounded; standing placement issues
+    // remain until their entity exports or its deletion is processed.
+    let recent = 0;
+    status.issues = issues.filter(
+      (candidate) => candidate.kind === "placement" || recent++ < 8,
+    );
   }
 
   private async withEffectiveProgress(

@@ -1,13 +1,14 @@
 {
   "name": "@brains/console-theme",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.356",
+  "version": "0.2.0-alpha.396",
   "description": "Shared operator token sheet, climate, and command palette",
   "dependencies": {
     "@brains/theme-base": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",

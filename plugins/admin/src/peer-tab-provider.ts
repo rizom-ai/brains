@@ -65,7 +65,7 @@ const invitePeer = defineWorkspaceAction({
 });
 const linkPeer = defineWorkspaceAction({
   name: "link-external-peer",
-  label: "Link peer to person",
+  label: "Link an existing person",
   permission: "admin",
   confirmation: { kind: "prepared" },
   input: linkInputSchema,
@@ -130,8 +130,9 @@ export function selectPeerTabSections(blocks: readonly ViewBlock[]): {
     : "invite-peer-unavailable";
   return {
     people: [
-      requiredPeerRegion(blocks, "link-peer"),
       requiredPeerRegion(blocks, "peers"),
+      requiredPeerRegion(blocks, "link-peer"),
+      requiredPeerRegion(blocks, inviteId),
     ],
     invitations: [requiredPeerRegion(blocks, inviteId)],
   };

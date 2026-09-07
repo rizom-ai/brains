@@ -1,13 +1,23 @@
 import { describe, expect, test } from "bun:test";
 import site from "../src";
+import { brainCaptureAssets } from "../src/brain-assets";
 
 describe("@rizom/site-rizom-ai", () => {
+  test("registers Studio captures without retired network snapshots", () => {
+    expect(Object.keys(brainCaptureAssets).sort()).toEqual([
+      "/images/brain/chat-desktop-dark.svg",
+      "/images/brain/chat-desktop-light.svg",
+      "/images/brain/chat-mobile-dark.svg",
+      "/images/brain/chat-mobile-light.svg",
+    ]);
+  });
+
   test("exports a Rizom site definition for the AI site", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
-      "home",
       "living-memory",
       "brain",
+      "public-ask",
       "writing",
       "network",
       "work",
@@ -24,35 +34,34 @@ describe("@rizom/site-rizom-ai", () => {
       "home",
       "living-memory",
       "brain",
+      "public-ask",
       "work",
       "foundation",
     ]);
   });
 
-  test("exposes the /brain room — the product's four-chapter page", () => {
+  test("exposes the Brain landing page with stable content IDs", () => {
     const brain = site.routes.find((route) => route.id === "brain");
     expect(brain?.path).toBe("/brain");
-    // The brain's life with its owner: capture → ask → see it run → connect,
-    // then the data principles, the quickstart, and the closing band.
+    // Answers, capabilities, collective work, ownership and starting points.
+    // The closing CTA is folded into Quickstart; old closing content is retained unrouted.
     expect(brain?.sections?.map((s) => s.id)).toEqual([
       "hero",
       "capture",
       "ask",
-      "run",
       "connect",
+      "run",
       "your-data",
       "quickstart",
-      "close",
     ]);
     expect(brain?.sections?.map((s) => s.template)).toEqual([
       "brain:hero",
       "brain:capture",
       "brain:ask",
+      "brain-network:connect",
       "brain:run",
-      "brain:connect",
       "brain:your-data",
       "brain:quickstart",
-      "brain:close",
     ]);
   });
 
@@ -115,17 +124,17 @@ describe("@rizom/site-rizom-ai", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
-    // The map is the hero; the text hero is gone. Rev-11 order: the system
-    // before the pitch — map → the pain (problem) → how it comes together
-    // (growth) → mission → the ask carried by proof (the knowledge map,
-    // which folds the alive-line in) → faces.
+    // Keep the approved composition and its existing content identities.
     expect(sectionIds).toEqual([
-      "network",
+      "hero",
       "problem",
+      "science",
+      "turn",
+      "system",
       "growth",
-      "mission",
-      "knowledge",
-      "faces",
+      "proof",
+      "arc",
+      "doors",
     ]);
 
     // The opener is the agent-discovery datasource section; a dataQuery routes
@@ -138,7 +147,7 @@ describe("@rizom/site-rizom-ai", () => {
     );
     expect(network?.dataQuery).toBeDefined();
     const knowledge = route?.sections?.find(
-      (section) => section.id === "knowledge",
+      (section) => section.id === "proof",
     );
     expect(knowledge?.template).toBe("@brains/knowledge-map:map");
     expect(knowledge?.dataQuery).toBeDefined();
@@ -151,11 +160,14 @@ describe("@rizom/site-rizom-ai", () => {
 
     expect(templates).toEqual([
       "@brains/agent-discovery:agent:proximity-map",
-      "home:problem",
-      "home:growth",
-      "home:mission",
+      "living-memory:problem",
+      "living-memory:science",
+      "living-memory:turn",
+      "living-memory:system",
+      "living-memory:growth",
       "@brains/knowledge-map:map",
-      "home:faces",
+      "living-memory:arc",
+      "living-memory:doors",
     ]);
   });
 });

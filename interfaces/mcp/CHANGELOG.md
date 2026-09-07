@@ -1,5 +1,445 @@
 # @brains/mcp
 
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/auth-service@0.2.0-alpha.396
+  - @brains/mcp-service@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/auth-service@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/mcp-service@0.2.0-alpha.395
+
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.394
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/auth-service@0.2.0-alpha.394
+  - @brains/mcp-service@0.2.0-alpha.394
+  - @brains/plugins@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.393
+  - @brains/auth-service@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/mcp-service@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.392
+  - @brains/auth-service@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/mcp-service@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.391
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/auth-service@0.2.0-alpha.391
+  - @brains/mcp-service@0.2.0-alpha.391
+  - @brains/plugins@0.2.0-alpha.391
+
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.390
+  - @brains/utils@0.2.0-alpha.390
+  - @brains/auth-service@0.2.0-alpha.390
+  - @brains/mcp-service@0.2.0-alpha.390
+  - @brains/plugins@0.2.0-alpha.390
+
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.389
+  - @brains/utils@0.2.0-alpha.389
+  - @brains/auth-service@0.2.0-alpha.389
+  - @brains/mcp-service@0.2.0-alpha.389
+  - @brains/plugins@0.2.0-alpha.389
+
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.388
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/auth-service@0.2.0-alpha.388
+  - @brains/mcp-service@0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/auth-service@0.2.0-alpha.387
+  - @brains/mcp-service@0.2.0-alpha.387
+  - @brains/plugins@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/auth-service@0.2.0-alpha.386
+  - @brains/mcp-service@0.2.0-alpha.386
+  - @brains/plugins@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/auth-service@0.2.0-alpha.385
+  - @brains/mcp-service@0.2.0-alpha.385
+  - @brains/plugins@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/auth-service@0.2.0-alpha.384
+  - @brains/mcp-service@0.2.0-alpha.384
+  - @brains/plugins@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/auth-service@0.2.0-alpha.383
+  - @brains/mcp-service@0.2.0-alpha.383
+  - @brains/plugins@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/auth-service@0.2.0-alpha.382
+  - @brains/mcp-service@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/auth-service@0.2.0-alpha.381
+  - @brains/mcp-service@0.2.0-alpha.381
+  - @brains/plugins@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/auth-service@0.2.0-alpha.380
+  - @brains/mcp-service@0.2.0-alpha.380
+  - @brains/plugins@0.2.0-alpha.380
+
+## 0.2.0-alpha.379
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.379
+  - @brains/utils@0.2.0-alpha.379
+  - @brains/auth-service@0.2.0-alpha.379
+  - @brains/mcp-service@0.2.0-alpha.379
+  - @brains/plugins@0.2.0-alpha.379
+
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.378
+  - @brains/utils@0.2.0-alpha.378
+  - @brains/auth-service@0.2.0-alpha.378
+  - @brains/mcp-service@0.2.0-alpha.378
+  - @brains/plugins@0.2.0-alpha.378
+
+## 0.2.0-alpha.377
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.377
+  - @brains/utils@0.2.0-alpha.377
+  - @brains/auth-service@0.2.0-alpha.377
+  - @brains/mcp-service@0.2.0-alpha.377
+  - @brains/plugins@0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.376
+  - @brains/utils@0.2.0-alpha.376
+  - @brains/auth-service@0.2.0-alpha.376
+  - @brains/mcp-service@0.2.0-alpha.376
+  - @brains/plugins@0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.375
+  - @brains/utils@0.2.0-alpha.375
+  - @brains/auth-service@0.2.0-alpha.375
+  - @brains/mcp-service@0.2.0-alpha.375
+  - @brains/plugins@0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.374
+  - @brains/utils@0.2.0-alpha.374
+  - @brains/auth-service@0.2.0-alpha.374
+  - @brains/mcp-service@0.2.0-alpha.374
+  - @brains/plugins@0.2.0-alpha.374
+
+## 0.2.0-alpha.373
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.373
+  - @brains/utils@0.2.0-alpha.373
+  - @brains/auth-service@0.2.0-alpha.373
+  - @brains/mcp-service@0.2.0-alpha.373
+  - @brains/plugins@0.2.0-alpha.373
+
+## 0.2.0-alpha.372
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.372
+  - @brains/utils@0.2.0-alpha.372
+  - @brains/auth-service@0.2.0-alpha.372
+  - @brains/mcp-service@0.2.0-alpha.372
+  - @brains/plugins@0.2.0-alpha.372
+
+## 0.2.0-alpha.371
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.371
+  - @brains/utils@0.2.0-alpha.371
+  - @brains/auth-service@0.2.0-alpha.371
+  - @brains/mcp-service@0.2.0-alpha.371
+  - @brains/plugins@0.2.0-alpha.371
+
+## 0.2.0-alpha.370
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.370
+  - @brains/utils@0.2.0-alpha.370
+  - @brains/auth-service@0.2.0-alpha.370
+  - @brains/mcp-service@0.2.0-alpha.370
+  - @brains/plugins@0.2.0-alpha.370
+
+## 0.2.0-alpha.369
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.369
+  - @brains/utils@0.2.0-alpha.369
+  - @brains/auth-service@0.2.0-alpha.369
+  - @brains/mcp-service@0.2.0-alpha.369
+  - @brains/plugins@0.2.0-alpha.369
+
+## 0.2.0-alpha.368
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.368
+  - @brains/utils@0.2.0-alpha.368
+  - @brains/auth-service@0.2.0-alpha.368
+  - @brains/mcp-service@0.2.0-alpha.368
+  - @brains/plugins@0.2.0-alpha.368
+
+## 0.2.0-alpha.367
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.367
+  - @brains/utils@0.2.0-alpha.367
+  - @brains/auth-service@0.2.0-alpha.367
+  - @brains/mcp-service@0.2.0-alpha.367
+  - @brains/plugins@0.2.0-alpha.367
+
+## 0.2.0-alpha.366
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.366
+  - @brains/utils@0.2.0-alpha.366
+  - @brains/auth-service@0.2.0-alpha.366
+  - @brains/mcp-service@0.2.0-alpha.366
+  - @brains/plugins@0.2.0-alpha.366
+
+## 0.2.0-alpha.365
+
+### Patch Changes
+
+- Updated dependencies [[`4dba750`](https://github.com/rizom-ai/brains/commit/4dba750e83322faa22aa608c32504c115ea15907)]:
+  - @brains/plugins@0.2.0-alpha.365
+  - @brains/auth-service@0.2.0-alpha.365
+  - @brains/contracts@0.2.0-alpha.365
+  - @brains/utils@0.2.0-alpha.365
+  - @brains/mcp-service@0.2.0-alpha.365
+
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/auth-service@0.2.0-alpha.364
+  - @brains/mcp-service@0.2.0-alpha.364
+  - @brains/plugins@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies [[`6e17546`](https://github.com/rizom-ai/brains/commit/6e17546fd41c2d52ee602c2ac2cb2dc08fc9a5a9)]:
+  - @brains/auth-service@0.2.0-alpha.363
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/mcp-service@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/auth-service@0.2.0-alpha.362
+  - @brains/mcp-service@0.2.0-alpha.362
+  - @brains/plugins@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/auth-service@0.2.0-alpha.361
+  - @brains/mcp-service@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/auth-service@0.2.0-alpha.360
+  - @brains/mcp-service@0.2.0-alpha.360
+  - @brains/plugins@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/auth-service@0.2.0-alpha.359
+  - @brains/mcp-service@0.2.0-alpha.359
+  - @brains/plugins@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/auth-service@0.2.0-alpha.358
+  - @brains/mcp-service@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/auth-service@0.2.0-alpha.357
+  - @brains/mcp-service@0.2.0-alpha.357
+  - @brains/plugins@0.2.0-alpha.357
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

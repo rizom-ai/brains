@@ -20,6 +20,7 @@ export const DASHBOARD_CHANNELS = {
 export const DIRECTORY_SYNC_CHANNELS = {
   getRepoInfo: "git-sync:get-repo-info",
   statusRequest: "sync:status:request",
+  pathRequest: "sync:path:request",
   configureRequest: "sync:configure:request",
   initialCompleted: "sync:initial:completed",
   entityExportRequest: "entity:export:request",

@@ -175,7 +175,6 @@ export type { NewsletterSignupProps } from "./NewsletterSignup";
 // Shared SSR primitives for dashboard widgets
 export {
   createWidgetInstanceId,
-  CardHeader,
   EmptyState as WidgetPrimitiveEmptyState,
   KeyValueList,
   WidgetActionLink,
@@ -189,6 +188,8 @@ export {
   WidgetTabs,
   WidgetTags,
 } from "./WidgetPrimitives";
+// Standalone hosts must include the immutable stylesheet for compiled widgets.
+export { operatorViewStylexCSS } from "@brains/operator-view-react";
 export type {
   KeyValueItem,
   WidgetDataAttributes,

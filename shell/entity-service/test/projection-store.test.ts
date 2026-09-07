@@ -238,6 +238,23 @@ describe("ProjectionStore", () => {
     ).toEqual(expect.objectContaining({ id: "wave-after-error" }));
   });
 
+  it("rejects a nested callback with a different batch identity", async () => {
+    await store.runBulkMutation(
+      { source: "directory-sync", operationId: "sync-outer" },
+      async () => {
+        void expect(
+          store.runBulkMutation(
+            { source: "directory-sync", operationId: "sync-other" },
+            async () => {},
+          ),
+        ).rejects.toBeInstanceOf(ProjectionBatchFencedError);
+        expect((await store.getProjectionBatchDiagnostics()).open).toBe(1);
+      },
+    );
+
+    expect((await store.getProjectionBatchDiagnostics()).open).toBe(0);
+  });
+
   it("fences an active wave result when a bulk boundary opens", async () => {
     await store.markDirty({
       sourceType: "document",

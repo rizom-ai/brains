@@ -17,6 +17,37 @@ import {
 } from "../src/chat";
 
 describe("public headless Chat contract", () => {
+  it("serializes bounded session search and archive pages without widening the transport scope", async () => {
+    const requests: string[] = [];
+    const client = createChatClient({
+      apiPath: "/custom/chat",
+      fetch: async (input): Promise<Response> => {
+        requests.push(String(input));
+        return Response.json({ sessions: [] });
+      },
+    });
+    await client.listSessions({
+      query: "  Release & notes  ",
+      archived: true,
+      offset: 25,
+    });
+    expect(requests).toEqual([
+      "/custom/chat/sessions?q=Release+%26+notes&archived=true&offset=25",
+    ]);
+    const rejected = await Promise.all(
+      [{ offset: -1 }, { limit: 101 }].map(async (query): Promise<boolean> => {
+        try {
+          await client.listSessions(query);
+          return false;
+        } catch {
+          return true;
+        }
+      }),
+    );
+    expect(rejected).toEqual([true, true]);
+    expect(requests).toHaveLength(1);
+  });
+
   it("derives every supported path from one configurable API root", () => {
     const paths = createChatApiPaths("/custom/chat/");
 
@@ -381,6 +412,30 @@ describe("public headless Chat contract", () => {
         ],
       },
     });
+  });
+
+  it.each([
+    "private diagnostic",
+    JSON.stringify({ state: "invalid", conversationId: "private diagnostic" }),
+    JSON.stringify({
+      state: "completed",
+      conversationId: "locator",
+      prompt: "private diagnostic",
+    }),
+  ])("does not expose unvalidated send-conflict bodies: %s", async (body) => {
+    const client = createChatClient({
+      fetch: async (): Promise<Response> => new Response(body, { status: 409 }),
+    });
+    const error = await client
+      .streamMessages({ messages: [{ role: "user", content: "Hello" }] })
+      .catch((failure: unknown): unknown => failure);
+    expect(error).toBeInstanceOf(ChatApiError);
+    if (!(error instanceof ChatApiError))
+      throw new Error("Expected HTTP error");
+    expect(error.status).toBe(409);
+    expect(error.guestSubmission).toBeUndefined();
+    expect(String(error)).not.toContain("private diagnostic");
+    expect(JSON.stringify(error)).not.toContain("private diagnostic");
   });
 
   it("reports bounded HTTP failures without exposing response bodies", async () => {

@@ -2,6 +2,7 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  createServicePluginContext,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
@@ -9,6 +10,7 @@ import {
   type DashboardWidgetProviderContext,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
+  type StudioWorkspaceActor,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import {
@@ -169,14 +171,14 @@ describe("Studio Overview workspace", () => {
           view: {
             kicker: "Operator home",
             title: "Overview",
-            status: { label: "2 need you", tone: "warn" },
             blocks: [
               {
                 type: "columns",
                 primary: [
                   {
                     type: "card",
-                    label: "Needs attention",
+                    label: "Needs you",
+                    metadata: ["2 need attention"],
                     blocks: [
                       {
                         type: "list",
@@ -184,10 +186,16 @@ describe("Studio Overview workspace", () => {
                           {
                             title: "Publication Pipeline",
                             tone: "warn",
-                            link: {
-                              kind: "launch",
-                              launch: { target: "publishing" },
-                            },
+                            metadata: ["Publishing", "2 items"],
+                            links: [
+                              {
+                                label: "Open publishing",
+                                target: {
+                                  kind: "launch",
+                                  launch: { target: "publishing" },
+                                },
+                              },
+                            ],
                           },
                         ],
                       },
@@ -196,10 +204,17 @@ describe("Studio Overview workspace", () => {
                   {
                     type: "card",
                     label: "Publication Pipeline",
+                    presentation: "disclosure",
+                    tone: "neutral",
                     blocks: expect.any(Array),
                   },
                 ],
                 aside: [
+                  {
+                    type: "card",
+                    label: "Recent activity",
+                    blocks: [{ type: "list", items: [] }],
+                  },
                   { type: "card", label: "System" },
                   { type: "card", label: "Network" },
                 ],
@@ -333,7 +348,9 @@ describe("Studio Overview workspace", () => {
     );
     const payload = JSON.stringify(await response.json());
 
-    expect(payload).toContain("While you were away");
+    expect(payload).toContain("Recent activity");
+    expect(payload).toContain('"presentation":"attention"');
+    expect(payload).toContain('"presentation":"activity"');
     expect(payload).toContain("site:build completed");
     expect(payload).toContain("newsletter:dispatch failed");
     expect(payload).toContain("Transport rejected the payload");

@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window, type HTMLElement as HappyDOMHTMLElement } from "happy-dom";
+import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { DASHBOARD_UI_SCRIPT } from "../src/render/ui-script";
 
+let restoreGlobals: RestoreGlobals;
 let window: Window;
 
 function element(selector: string): HappyDOMHTMLElement {
@@ -49,18 +51,12 @@ function runScript(): void {
 
 beforeEach(() => {
   window = new Window({ url: "http://brain.test/dashboard" });
-  Object.assign(globalThis, {
-    window,
-    document: window.document,
-  });
+  restoreGlobals = installGlobals({ window, document: window.document });
 });
 
 afterEach(() => {
   window.close();
-  // `delete` on globalThis needs the property to be optional; Reflect does the
-  // same removal without asserting the global object into a bag of unknowns.
-  Reflect.deleteProperty(globalThis, "window");
-  Reflect.deleteProperty(globalThis, "document");
+  restoreGlobals();
 });
 
 describe("dashboard tab behavior", () => {
@@ -233,10 +229,14 @@ describe("dashboard spatial behavior", () => {
     expect(
       element("[data-ui-spatial]").getAttribute("data-ui-spatial-active"),
     ).toBe("a");
-    expect(element("#a").classList.contains("is-selected")).toBe(true);
     expect(element("#a").getAttribute("aria-pressed")).toBe("true");
-    expect(element("#b").classList.contains("is-related")).toBe(true);
-    expect(element("#c").classList.contains("is-related")).toBe(false);
+    expect(element("#a").getAttribute("aria-pressed")).toBe("true");
+    expect(element("#b").hasAttribute("data-ui-spatial-related-active")).toBe(
+      true,
+    );
+    expect(element("#c").hasAttribute("data-ui-spatial-related-active")).toBe(
+      false,
+    );
     expect(element("#detail-a").hasAttribute("hidden")).toBe(false);
 
     focus("#b");
@@ -268,10 +268,10 @@ describe("dashboard knowledge atlas behavior", () => {
     runScript();
 
     expect(
-      element('[data-knowledge-zone="governance"]').classList.contains(
-        "is-active",
+      element('[data-knowledge-zone="governance"]').getAttribute(
+        "data-map-active",
       ),
-    ).toBe(true);
+    ).toBe("true");
     expect(
       element('[data-knowledge-zone-ref="governance"]').getAttribute(
         "aria-pressed",
@@ -280,22 +280,42 @@ describe("dashboard knowledge atlas behavior", () => {
 
     focus('[data-knowledge-zone-ref="learning"]');
     expect(
-      element('[data-knowledge-zone="learning"]').classList.contains(
+      element('[data-knowledge-zone-ref="learning"]').getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("true");
+    expect(
+      element('[data-knowledge-zone-ref="governance"]').getAttribute(
+        "aria-pressed",
+      ),
+    ).toBe("false");
+    expect(
+      element('[data-knowledge-zone-ref="learning"]').classList.contains(
         "is-active",
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(
-      element('[data-knowledge-zone="governance"]').classList.contains(
+      element('[data-knowledge-zone="learning"]').getAttribute(
+        "data-map-active",
+      ),
+    ).toBe("true");
+    expect(
+      element('[data-knowledge-zone="governance"]').getAttribute(
+        "data-map-active",
+      ),
+    ).toBe("false");
+    expect(
+      element('[data-knowledge-zone="learning"]').classList.contains(
         "is-active",
       ),
     ).toBe(false);
 
     focus("#outside");
     expect(
-      element('[data-knowledge-zone="governance"]').classList.contains(
-        "is-active",
+      element('[data-knowledge-zone="governance"]').getAttribute(
+        "data-map-active",
       ),
-    ).toBe(true);
+    ).toBe("true");
   });
 });
 

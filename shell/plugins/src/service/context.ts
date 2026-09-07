@@ -22,8 +22,19 @@ import type {
   EntityServiceClient,
 } from "@brains/entity-service";
 import { createEntityBulkCoordination } from "@brains/entity-service";
-import type { ResolutionOptions } from "@brains/content-service";
-import type { RuntimeInterfacePrincipalState } from "@brains/contracts";
+import {
+  scopeTemplateName,
+  type ContentGenerationBatchResult,
+  type ContentGenerationTargetInput,
+  type GenerationCaller,
+  type ResolutionOptions,
+} from "@brains/content-service";
+import {
+  SHELL_CHANNELS,
+  type RuntimeInterfacePrincipalState,
+} from "@brains/contracts";
+import { createEnqueueJobFn } from "@brains/job-queue";
+import type { ToolContext } from "@brains/mcp-service";
 import { TemplateCapabilities } from "@brains/templates";
 import type {
   ConfiguredPrincipalSeeds,
@@ -108,6 +119,19 @@ export interface IViewsNamespace {
  * Includes: entity management, templates, views, prompt resolution, AI, messaging, jobs.
  * Excludes: MCP protocol registration, transport.
  */
+export interface IServiceContentNamespace {
+  generate(request: {
+    /** Template names are local to this plugin; the runtime scopes them. */
+    targets: ContentGenerationTargetInput[];
+    /** The trusted caller and job attribution. Omission uses this plugin's own service authority. */
+    toolContext?: ToolContext | undefined;
+    force?: boolean;
+    dryRun?: boolean;
+    /** Request cancellation only; never persisted or owned by admitted jobs. */
+    signal?: AbortSignal;
+  }): Promise<ContentGenerationBatchResult>;
+}
+
 export interface IServiceRuntimePermissionsNamespace {
   /** Exact principals declared in brain configuration for bootstrap/recovery. */
   getConfiguredPrincipalSeeds(): ConfiguredPrincipalSeeds;
@@ -151,6 +175,9 @@ export interface ServicePluginContext
 
   /** Entity management namespace */
   readonly entities: IEntitiesNamespace;
+
+  /** Template-backed content generation and persistence. */
+  readonly content: IServiceContentNamespace;
 
   /** Template operations namespace (register, format, parse, resolve, getCapabilities) */
   readonly templates: IServiceTemplatesNamespace;
@@ -218,6 +245,66 @@ export function createServicePluginContext(
       getRoutes: () => shell.getPluginWebRoutes(),
     },
 
+    content: {
+      generate: async ({
+        targets,
+        toolContext,
+        force,
+        dryRun,
+        signal,
+      }): Promise<ContentGenerationBatchResult> => {
+        signal?.throwIfAborted();
+        // The tool context is the trusted caller; without one, this plugin's
+        // own configured service authority applies.
+        const caller: GenerationCaller = toolContext
+          ? {
+              actor: toolContext.actor,
+              permissionLevel: toolContext.userPermissionLevel ?? "public",
+            }
+          : {
+              actor: { kind: "service", serviceId: pluginId },
+              permissionLevel: permissionService.determineUserLevel(
+                "service",
+                pluginId,
+              ),
+            };
+        const enqueueJob = createEnqueueJobFn(
+          shell.getJobQueueService(),
+          pluginId,
+          false,
+        );
+        return contentService.submitGeneration(
+          {
+            caller,
+            targets,
+            pluginId,
+            options: {
+              ...(force !== undefined && { force }),
+              ...(dryRun !== undefined && { dryRun }),
+            },
+          },
+          {
+            enqueue: (jobData, batchId) =>
+              enqueueJob({
+                type: SHELL_CHANNELS.contentGeneration,
+                data: jobData,
+                toolContext: toolContext ?? null,
+                options: {
+                  source: pluginId,
+                  rootJobId: batchId,
+                  // At most once. A job whose worker died is marked failed on
+                  // reclaim instead of re-run, so output is never regenerated
+                  // or resurrected; re-submitting skips what exists.
+                  maxRetries: 0,
+                  metadata: { operationType: "content_operations", pluginId },
+                },
+              }),
+          },
+          signal,
+        );
+      },
+    },
+
     templates: {
       register: (
         templates: Record<string, Template>,
@@ -262,10 +349,9 @@ export function createServicePluginContext(
         canRender: boolean;
         isStaticOnly: boolean;
       } | null => {
-        const scopedTemplateName = templateName.includes(":")
-          ? templateName
-          : `${pluginId}:${templateName}`;
-        const template = shell.getTemplate(scopedTemplateName);
+        const template = shell.getTemplate(
+          scopeTemplateName(templateName, pluginId),
+        );
         if (!template) return null;
         const capabilities = TemplateCapabilities.getCapabilities(template);
         return {

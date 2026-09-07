@@ -25,10 +25,83 @@ The current release remains fail-closed:
 
 The intended future split is Studio for authenticated actors, with a separately
 restricted Public policy, and standalone Web Chat for explicitly enabled
-anonymous guests. Guest mode is not implemented or implied by routes registered
-with `public: true`. It must remain disabled until guest identity, capability,
+anonymous guests. Neither `public: true` nor preview route reachability grants
+guest access. It must remain disabled until guest identity, capability,
 rate, abuse, spend, retention, consent, deletion, and kill-switch policies are
 accepted and enforced server-side.
+
+## Bounded preview authorization
+
+With guest configuration omitted, the runtime derives the preview origin from
+deployment context and reuses shared guest bounds. It stays off until an
+administrator explicitly authorizes access. Existing `guest: false` blocks this
+activation; `guest: local-test` remains a separate loopback-only test convention.
+
+On the authenticated primary origin, `GET /api/chat/guest/access` reports the
+proposed allowance and current usage without granting access or invoking a model.
+`POST` accepts only `{"enabled":true}` or `{"enabled":false}`, requires an Admin
+browser session and same-origin JSON request, and cannot override the origin,
+limits or accounting. This is an operator HTTP action, not an Ops/YAML setting.
+
+The current shared bounds authorize at most **two messages and $4 total** across
+all visitors and time. Authorization and lifetime reservations are durable in the
+existing CAS ledger. Failures, cleanup, retries, restart and disable/re-enable do
+not refund or replenish them. An exhausted allowance cannot be renewed through
+this action. Background generation/indexing is accounted separately.
+
+Only declared guest routes and their presentation assets are served on preview.
+Management and other APIs stay excluded there; primary-host guest requests remain
+denied. Owned history and deletion remain available after exhaustion. Guest
+credentials are HttpOnly cookies; optional conversation locators use sessionStorage,
+not transcript storage. Closing a tab can lose its locators; this is not automatic
+credential or locator recovery. Production guest access requires separate work
+and approval.
+
+## Public page composition
+
+The installed site owns `/ask` chrome. After guest admission, Web Chat returns a
+`SitePageResponse`: Webserver can serve the generated page at the same path from
+that host's active site output, retaining the handler's cache policy. Denials,
+redirects and ordinary authenticated responses never delegate to site output.
+Apps without a generated Ask page retain a headerless standalone fallback.
+
+The site page mounts the shared guest app using `data-web-chat-root`,
+`data-guest-chat` and `data-chat-api-path="/api/chat/guest"`, plus the existing
+`/ask/assets/app.js`, `app.css` and scoped `page.css`. The site's own layout and
+runtime supply navigation, fonts, theme switching and footer. This does not
+change guest API admission or authorize production-page publication.
+
+## Authored Ask content and the dashboard tab
+
+The `ask-content` singleton is the shared source of welcome copy and suggested
+questions for `/ask`, the Brain-page box and the dashboard. Its markdown body is
+the introduction; optional `title` and `topics` frontmatter provide the heading
+and editable topic buttons. Store it at `ask-content/ask-content.md` in the
+content directory, with `visibility: public`. Missing, private or malformed
+content produces no welcome or topics. It is not a system prompt or policy.
+
+The guest bootstrap response delivers this bounded presentation after the
+existing admission checks. Privacy, provider, retention and expiry information
+still come from runtime policy. No host page supplies fallback chat copy.
+
+An owner can show the public dashboard tab with:
+
+```yaml
+plugins:
+  dashboard:
+    ask: true
+```
+
+This setting defaults to false and requires Web Chat to be installed. It only
+controls visibility: it does not enable guest access or replenish limits. The
+shared Web Chat UI mounts once when the tab is first selected; switching tabs
+preserves its draft and conversation. Full Ask uses the existing same-origin
+owned locator and never replays a question on navigation.
+
+Existing Brain-page `hero.chat` copy is no longer consumed. Move approved welcome
+and topics into the dedicated entity before publishing the new presentation;
+do not copy old privacy or retention text into authored welcome content. No
+automatic migration, generated welcome or hosted content write is performed.
 
 ## Build
 
@@ -42,7 +115,7 @@ Buttons, fields, selects, dialogs, and menus reuse `@brains/app-ui-react`, the s
 - `Chat`/`useChat` from the AI SDK exclusively owns the active conversation's messages, transient parts, and stream state.
 - Reopening a session fetches `webChatKeys.history(conversationId)`, copies that snapshot with `createActiveMessageSeed()`, and seeds the AI SDK owner. Never render or stream directly from the history query cache.
 - Drawer, dialog, composer, upload notice, and other transient controls stay component-local.
-- The durable conversation ID remains the AI SDK chat ID and is mirrored in localStorage for reload continuity.
+- In the authenticated presentation, the durable conversation ID remains the AI SDK chat ID and is mirrored in localStorage for reload continuity. Anonymous guest locators follow the separate sessionStorage boundary described above.
 
 ## Query and mutation conventions
 
@@ -63,7 +136,7 @@ Do not persist the query cache or use it as a second active-message owner. Tests
 
 ## Addressable state
 
-A guest-surface conversation door uses `/ask#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
+An authenticated standalone conversation door uses `/ask#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
 
 The interface owns the universal Inbox **Discuss in chat** follow-up at its
 configured mount for sources that support permission-checked detail. Its

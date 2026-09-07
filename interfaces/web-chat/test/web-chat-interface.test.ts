@@ -1,5 +1,6 @@
 import { AGENT_ACTION_REQUEST_CHANNEL } from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/auth-service";
+import { coerceConversationMetadata } from "@brains/plugins";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
@@ -213,12 +214,32 @@ function makeFixedConversationService(input: {
     listConversationsUpdatedSince: async () => [],
     getConversationChangeHead: async () => null,
     listConversations: async (options) =>
-      input.conversations.filter(
-        (c) =>
-          (options?.interfaceType === undefined ||
-            c.interfaceType === options.interfaceType) &&
-          (options?.personId === undefined || c.personId === options.personId),
-      ),
+      input.conversations
+        .filter((c) => {
+          const metadata = coerceConversationMetadata(c.metadata);
+          const query = options?.query?.toLowerCase() ?? "";
+          return (
+            (options?.interfaceType === undefined ||
+              c.interfaceType === options.interfaceType) &&
+            (options?.personId === undefined ||
+              c.personId === options.personId) &&
+            (options?.archived === undefined ||
+              (typeof metadata["archivedAt"] === "string") ===
+                options.archived) &&
+            (!query ||
+              String(metadata["title"] ?? "")
+                .toLowerCase()
+                .includes(query) ||
+              (input.messagesByConversation[c.id] ?? []).some((message) =>
+                message.content.toLowerCase().includes(query),
+              ))
+          );
+        })
+        .slice(
+          options?.offset ?? 0,
+          (options?.offset ?? 0) +
+            (options?.limit ?? input.conversations.length),
+        ),
     searchConversations: async () => [],
     getMessages: async (conversationId: string) =>
       input.messagesByConversation[conversationId] ?? [],
@@ -244,6 +265,7 @@ function makeFixedConversationService(input: {
       input.updateConversationMetadata ?? (async (): Promise<boolean> => true),
     deleteConversation:
       input.deleteConversation ?? (async (): Promise<boolean> => true),
+    deleteExpiredGuestConversations: async (): Promise<number> => 0,
     close: (): void => {},
   };
 }
@@ -807,7 +829,11 @@ describe("the web chat interface", () => {
 
     const routes = plugin.getWebRoutes?.() ?? [];
 
-    expect(routes).toHaveLength(18);
+    expect(routes).toHaveLength(24);
+    expect(routes.slice(-2)).toMatchObject([
+      { path: "/api/chat/guest/access", method: "GET", public: true },
+      { path: "/api/chat/guest/access", method: "POST", public: true },
+    ]);
     expect(routes[0]).toMatchObject({
       path: "/ask",
       method: "GET",
@@ -1749,9 +1775,51 @@ describe("the web chat interface", () => {
       }),
     );
     expect(events.at(-1)).toEqual(
-      expect.objectContaining({ type: "text-end" }),
+      expect.objectContaining({ type: "finish", finishReason: "stop" }),
     );
   });
+
+  for (const outcome of ["abort", "error", "reported-error"] as const) {
+    it(`does not mark ${outcome} as a successful stream completion`, async () => {
+      const controller = new AbortController();
+      const agent = createSpyAgentService();
+      agent.chat = async (): Promise<AgentResponse> => {
+        if (outcome === "error") throw new Error("Private provider failure");
+        if (outcome === "abort") controller.abort();
+        return {
+          text: "Partial response",
+          ...(outcome === "reported-error"
+            ? { error: "Private provider failure" }
+            : {}),
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      };
+      harness.setAgentService(agent);
+      const plugin = adminPlugin();
+      await harness.installPlugin(plugin);
+      const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+        new Request("http://brain/api/chat", {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: "test-conversation",
+            messages: [
+              { role: "user", parts: [{ type: "text", text: "Hello" }] },
+            ],
+          }),
+        }),
+      );
+      const events = [];
+      for await (const event of readChatProtocolEvents(response))
+        events.push(event);
+      expect(events.at(-1)?.type).toBe(
+        outcome === "reported-error" ? "error" : outcome,
+      );
+      expect(JSON.stringify(events)).not.toContain("Private provider failure");
+      expect(events.some((event) => event.type === "finish")).toBe(false);
+    });
+  }
 
   it("keeps streamed tool results compatible with the public decoder", async () => {
     const agent = createSpyAgentService({
@@ -1792,6 +1860,8 @@ describe("the web chat interface", () => {
         data: expect.objectContaining({ toolName: "note_search" }),
       }),
     );
+    expect(events.filter((event) => event.type === "finish")).toHaveLength(1);
+    expect(events.at(-1)?.type).toBe("finish");
   });
 
   it("streams approval cards as AI SDK native tool chunks", async () => {
@@ -3114,6 +3184,7 @@ describe("the web chat interface", () => {
 
     expect(response?.status).toBe(200);
     expect(agent.confirmCalls).toHaveLength(1);
+    expect(body).toContain('"type":"finish"');
     expect(body).toContain("tool-output-error");
     expect(body).toContain("expired-call");
     expect(persistedMessages).toContainEqual(
@@ -3291,6 +3362,56 @@ describe("the web chat interface", () => {
     ]);
     expect(body).toContain("tool-output-available");
     expect(body).toContain("call-1");
+  });
+
+  it("reports approval failures without leaking details or replaying submitted decisions", async () => {
+    const agent = createSpyAgentService(undefined, {
+      text: "Private provider failure",
+      error: "Private provider failure",
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    });
+    harness.setAgentService(agent);
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "test-conversation",
+          messages: [
+            {
+              id: "assistant-message",
+              role: "assistant",
+              parts: [true, false].map((approved, index) => ({
+                type: "dynamic-tool",
+                toolCallId: `call-${index}`,
+                toolName: "delete_note",
+                state: "approval-responded",
+                approval: { id: `approval:call-${index}`, approved },
+              })),
+            },
+          ],
+        }),
+      }),
+    );
+    const events = [];
+    for await (const event of readChatProtocolEvents(response))
+      events.push(event);
+    expect(agent.chatCalls).toHaveLength(0);
+    expect(
+      agent.confirmCalls.map((call) => ({
+        id: call.approvalId,
+        approved: call.confirmed,
+      })),
+    ).toEqual([
+      { id: "approval:call-0", approved: true },
+      { id: "approval:call-1", approved: false },
+    ]);
+    expect(events.at(-1)?.type).toBe("error");
+    expect(events.some((event) => event.type === "finish")).toBe(false);
+    expect(JSON.stringify(events)).not.toContain("Private provider failure");
+    expect(JSON.stringify(events)).toContain("The action failed.");
   });
 
   it("handles multiple AI SDK approval responses through one chat request", async () => {
@@ -3840,7 +3961,7 @@ describe("the web chat interface", () => {
     expect(body.sessions[0].title).toBe("Renamed thread");
   });
 
-  it("does not list archived web chat sessions", async () => {
+  it("lists active sessions by default and supports explicit archived search", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
       makeFixedConversationService({
@@ -3876,6 +3997,30 @@ describe("the web chat interface", () => {
     expect(body.sessions.map((session: { id: string }) => session.id)).toEqual([
       "active-session",
     ]);
+    const archived = await route?.handler(
+      new Request(
+        "http://brain/api/chat/sessions?archived=true&q=Archived&limit=1",
+      ),
+    );
+    const archivedBody = z
+      .object({
+        sessions: z.array(z.object({ id: z.string(), archived: z.boolean() })),
+      })
+      .parse(await archived?.json());
+    expect(archivedBody.sessions).toEqual([
+      { id: "archived-session", archived: true },
+    ]);
+    for (const search of [
+      "offset=-1",
+      "limit=101",
+      "archived=maybe",
+      `q=${"x".repeat(201)}`,
+    ]) {
+      const invalid = await route?.handler(
+        new Request(`http://brain/api/chat/sessions?${search}`),
+      );
+      expect(invalid?.status).toBe(400);
+    }
   });
 
   it("returns 404 for every Trusted read or mutation of another person's session", async () => {

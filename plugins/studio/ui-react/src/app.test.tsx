@@ -1,14 +1,22 @@
 /** @jsxImportSource react */
 import { describe, expect, it } from "bun:test";
+import { Window } from "happy-dom";
+import * as stylex from "@stylexjs/stylex";
+import { StudioCreationLayout, StudioFolderTrail } from "./studio-hierarchy";
+import { hierarchyStyles } from "./studio-hierarchy.styles";
+import { styleGuideFrontmatterSchema } from "@brains/contracts";
+import { zodFieldToStudioWidget } from "../../src/config";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import responsiveStyles from "./responsive.css" with { type: "text" };
-import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
-import chromeStyles from "./studio-chrome.css" with { type: "text" };
-import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
-import { styles } from "./app-styles";
-import { StudioAppView, type StudioAppViewProps } from "./app-view";
+import documentStyles from "./studio-document.css" with { type: "text" };
+import { readStudioStylesheet } from "../../test/ui-asset-fixture";
+const compiledStyles = await readStudioStylesheet();
+import {
+  StudioAppView,
+  mobileEditorEntry,
+  type StudioAppViewProps,
+} from "./app-view";
 import { StudioChrome } from "./studio-chrome";
 import {
   AgentAnswerPanel,
@@ -32,6 +40,10 @@ import {
   PublishConfirmationDialog,
 } from "./publication-actions";
 import { emptyDraft, entityPublicationState, entityTitle } from "./ui-utils";
+import {
+  studioCollectionQuerySchema,
+  type StudioCollectionQuery,
+} from "../../src/collection-query";
 import {
   DeleteDialog,
   derivePipeline,
@@ -87,11 +99,9 @@ const selectField: FieldDescriptor = {
 
 describe("Studio shell chrome", () => {
   it("renders one contextual header without cross-product navigation", () => {
-    const html = renderToStaticMarkup(
-      <StudioChrome contextLabel="Overview" contextBadge={3} />,
-    );
+    const html = renderToStaticMarkup(<StudioChrome contextLabel="Overview" />);
 
-    expect(html).toContain('class="studio-chrome"');
+    expect(html).toMatch(/class="studio-chrome x[^"]+"/);
     expect(html).toContain("Overview");
     expect(html).toContain("Search or run a command");
     expect(html).toContain("Your account account menu");
@@ -100,176 +110,84 @@ describe("Studio shell chrome", () => {
   });
 });
 
-describe("editor surface styles", () => {
-  it("defines the editorial library and manuscript treatment", () => {
-    expect(visualRefreshStyles).toContain("232px minmax(0, 1fr)");
-    expect(visualRefreshStyles).toContain(".body-preview h1");
-    expect(visualRefreshStyles).toContain('"IBM Plex Mono"');
-    expect(visualRefreshStyles).toContain(".chip.published");
-  });
-
-  it("defines tablet collection switching and phone editing panes", () => {
-    expect(responsiveStyles).toContain("@media (max-width: 900px)");
-    expect(responsiveStyles).toContain("@media (max-width: 640px)");
-    expect(responsiveStyles).toContain('.editor[data-mobile-pane="details"]');
-    expect(responsiveStyles).toContain('.studio[data-view="editor"]');
-    expect(responsiveStyles).toContain(".studio-mobile-save-status");
-    expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
-  });
-
-  it("defines the native Chat working room and sequential mobile destinations", () => {
-    expect(chatStyles).toContain(
-      "grid-template-columns: 260px minmax(420px, 1fr) 298px",
-    );
-    expect(chatStyles).toContain(".studio-chat-thread-scroll");
-    expect(chatStyles).toContain("overflow: auto");
-    expect(chatStyles).toContain("env(safe-area-inset-bottom)");
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="sessions"]',
-    );
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="thread"]',
-    );
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="context"]',
-    );
-    expect(chatStyles).toContain("min-height: var(--console-touch, 44px)");
-    expect(chatStyles).toContain(
-      '.studio[data-view="chat"] {\n  display: grid;',
-    );
-    expect(chatStyles).toContain("grid-template-rows: auto minmax(0, 1fr);");
-    expect(chatStyles).not.toContain("iframe");
-    expect(chatStyles).not.toContain("data-web-chat-root");
-  });
-
-  it("removes the retired mail desk styles", () => {
-    expect(visualRefreshStyles).not.toContain(".mail-triage-");
-    expect(responsiveStyles).not.toContain(".mail-triage-");
-  });
-
-  it("contains no specialized workspace styles", () => {
-    for (const legacyClass of [
+describe("compiled editor surface contracts", () => {
+  it("removes retired presentation selectors without changing console tokens", () => {
+    for (const selector of [
+      ".body-preview",
+      ".row .title",
+      ".field-label",
+      ".pipeline .reload",
+      ".status-error",
+      ".chip.published",
+      ".studio-chrome{",
+      ".mail-triage-",
       ".publishing-workspace",
       ".site-workspace",
       ".directory-sync-workspace",
       ".unified-inbox-workspace",
-    ]) {
-      expect(visualRefreshStyles).not.toContain(legacyClass);
-      expect(responsiveStyles).not.toContain(legacyClass);
-    }
+    ])
+      expect(compiledStyles).not.toContain(selector);
+    expect(compiledStyles).not.toContain("--console-mono:");
   });
-
-  it("replaces the crumbbar with one contextual Studio header", () => {
-    expect(styles).not.toContain("crumbbar");
-    expect(visualRefreshStyles).not.toContain("crumbbar");
-    expect(responsiveStyles).not.toContain("console-strip");
-    expect(chromeStyles).toContain(".studio-chrome");
-    expect(chromeStyles).toContain(".studio-chrome-location");
+  it("ships native pane state and safe-area rules", () => {
+    expect(compiledStyles).toMatch(/@media\s*\(max-width:\s*900px\)/);
+    expect(compiledStyles).toMatch(/@media\s*\(max-width:\s*640px\)/);
+    expect(compiledStyles).toContain("[data-mobile-pane=details]");
+    expect(compiledStyles).toContain("[data-mobile-pane=write]");
+    expect(compiledStyles).toContain("[data-mobile-pane=preview]");
+    expect(compiledStyles).toContain("env(safe-area-inset-bottom)");
   });
-
-  it("keeps the Studio rail present while editing on desktop", () => {
-    expect(visualRefreshStyles).not.toMatch(
-      /\.studio\[data-view="editor"\] \.rail \{[^}]*display: none/,
+  it("keeps native Chat bounded without a second dock", () => {
+    expect(compiledStyles).toContain("grid-template-columns:minmax(0,1fr)");
+    expect(compiledStyles).not.toContain(
+      "grid-template-columns:180px minmax(0,1fr)",
     );
-    expect(visualRefreshStyles).not.toMatch(
-      /\.studio\[data-view="editor"\] \.studio-body \{[^}]*grid-template-columns: 1fr/,
-    );
+    expect(compiledStyles).toContain("height:100dvh");
+    expect(compiledStyles).not.toContain("--studio-chat-columns");
+    expect(compiledStyles).not.toContain(".studio-chat-mobile-destinations");
   });
-
-  it("separates the save bar's status line from the pipeline readout", () => {
-    // Without a margin the error line butts against the commit ref:
-    // "last write 3bfa1e6× title: …".
-    expect(visualRefreshStyles).toMatch(
-      /\.pipeline > \.status \{[^}]*margin-left/,
+  it("retains Direction B chrome and all three rail widths", () => {
+    for (const columns of [
+      "344px minmax(0,1fr)",
+      "124px minmax(0,1fr)",
+      "68px minmax(0,1fr)",
+      "auto minmax(140px,1fr) auto",
+    ])
+      expect(compiledStyles).toContain(`grid-template-columns:${columns}`);
+    expect(compiledStyles).toContain(
+      "min-height:calc(56px + env(safe-area-inset-top))",
     );
+    expect(compiledStyles).not.toContain("crumbbar");
   });
-
-  it("lets the conflict card's reload button keep its ghost treatment", () => {
-    // `.pipeline .reload` once styled the button for the dark pipeline
-    // bar (frame-on-frame). The button now lives in the floating conflict
-    // card, where that rule made it invisible in paper climate — it must
-    // fall through to `.btn.ghost`.
-    expect(styles).not.toContain(".pipeline .reload");
+  it("locks editor routes while reading surfaces retain document scrolling", () => {
+    const selectors = documentStyles
+      .replace(/\s+/g, " ")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")");
+    expect(selectors).toContain(
+      'html:has(body[data-console-host="studio"] [data-studio-shell][data-view="editor"])',
+    );
+    expect(selectors).toContain(
+      'body[data-console-host="studio"]:has([data-studio-shell][data-view="editor"])',
+    );
+    expect(selectors).toMatch(
+      /\[data-view="editor"\]\) \{ height: 100%; overflow: hidden;/,
+    );
+    expect(selectors).toContain(
+      'body[data-console-host="studio"]:not(:has([data-studio-shell][data-view="editor"]))',
+    );
+    expect(documentStyles).toContain("min-height: 100%");
   });
-
-  it("keeps phone Studio to one compact chrome bar with one context picker", () => {
-    expect(responsiveStyles).toContain('body[data-console-host="studio"]');
-    expect(responsiveStyles).not.toContain("console-strip");
-    expect(chromeStyles).toMatch(
-      /\.studio-chrome \{[^}]*grid-template-columns: auto minmax\(0, 1fr\) auto/,
+  it("keeps reading surfaces document-scrolling and save diagnostics bounded", () => {
+    expect(compiledStyles).toContain("align-content:start");
+    expect(compiledStyles).toContain("overflow:visible");
+    expect(compiledStyles).toContain("position:sticky");
+    expect(compiledStyles).toContain("overflow-wrap:anywhere");
+    expect(compiledStyles).toContain("margin-left:14px");
+    expect(compiledStyles).toContain(
+      "[data-studio-save-bar]:has(> [data-studio-status])",
     );
-    expect(chromeStyles).toMatch(
-      /\.studio-chrome-mobile-navigation \.studio-mobile-switcher \{[^}]*display: grid/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.studio-mobile-switcher \{[^}]*display: grid/,
-    );
-    expect(responsiveStyles).toMatch(/\.types \{[^}]*display: none/);
-    expect(responsiveStyles).toMatch(
-      /\.studio-mobile-switcher \{[^}]*width: 100%[^}]*min-height: var\(--console-touch\)/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.studio-mobile-switcher-label,[\s\S]*\.studio-mobile-switcher-chevron \{[^}]*pointer-events: none/,
-    );
-    expect(responsiveStyles).toContain(
-      ".studio-mobile-switcher-item[data-highlighted]",
-    );
-    expect(responsiveStyles).not.toContain("mask-image: linear-gradient");
-    expect(chromeStyles).toContain("env(safe-area-inset-top)");
-  });
-
-  it("locks the phone document only for the editor's app shell", () => {
-    // The editor holds its pane switcher and save bar still while the panes
-    // scroll, so it owns the viewport. Reading surfaces must not: locking them
-    // pins the mobile browser's collapsible URL bar open.
-    expect(responsiveStyles).toMatch(
-      /html:has\(body\[data-console-host="studio"\] \.studio\[data-view="editor"\]\) \{[^}]*overflow: hidden/,
-    );
-    expect(responsiveStyles).toMatch(
-      /body\[data-console-host="studio"\]:has\(\.studio\[data-view="editor"\]\) \{[^}]*overflow: hidden/,
-    );
-    expect(responsiveStyles).toMatch(
-      /body\[data-console-host="studio"\]:not\(:has\(\.studio\[data-view="editor"\]\)\) \{[^}]*min-height: 100%/,
-    );
-    // No blanket lock may survive alongside those two scoped ones.
-    expect(responsiveStyles).not.toMatch(
-      /body\[data-console-host="studio"\] \{[^}]*overflow: hidden/,
-    );
-  });
-
-  it("hands the phone scroll to the document on reading surfaces", () => {
-    expect(responsiveStyles).toMatch(
-      /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*align-content: start/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*overflow: visible/,
-    );
-    expect(responsiveStyles).toMatch(/\.listing \{[^}]*overflow: visible/);
-    // The consolidated header keeps the context picker reachable while the
-    // document scrolls; the duplicate phone rail is removed.
-    expect(chromeStyles).toMatch(/\.studio-chrome \{[^}]*position: sticky/);
-    expect(responsiveStyles).toMatch(/\.rail \{[^}]*display: none/);
-  });
-
-  it("keeps phone library rows readable without adding another scroll region", () => {
-    expect(responsiveStyles).toMatch(
-      /\.row \{[^}]*grid-template-columns: 24px minmax\(0, 1fr\) auto/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.row \.title small \{[^}]*white-space: normal/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.studio\[data-view="editor"\] \.studio-body \{[^}]*overflow: hidden/,
-    );
-  });
-
-  it("keeps editor errors inside the single-row phone save dock", () => {
-    expect(responsiveStyles).toMatch(
-      /\.pipeline:has\(> \.status\) \.studio-mobile-save-status \{[^}]*display: none/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.pipeline > \.status \{[^}]*-webkit-line-clamp: 2/,
-    );
+    expect(compiledStyles).toContain("-webkit-line-clamp:2");
   });
 });
 
@@ -517,12 +435,12 @@ describe("TypeSwitcher", () => {
         onSelect: () => {},
       }),
     );
+    expect(html).toContain("Library");
     expect(html).toContain("Content");
     expect(html).toContain("Posts");
-    expect(html).toContain("Site");
-    expect(html).toContain("Site Info");
-    // Active styling lands on the button for the active type only.
-    expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+    expect(html).toContain("System");
+    // The area and its active destination both carry location state.
+    expect(html.match(/class="[^"]*active/g)).toHaveLength(2);
   });
 
   it("validates phone context-picker values before navigation", () => {
@@ -560,14 +478,15 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain('class="studio-mobile-switcher"');
-    expect(html).toContain('aria-label="Studio view"');
-    expect(html).toContain('role="combobox"');
-    expect(html).toContain("Administration · 2");
-    expect(html).toContain('<select aria-hidden="true"');
+    expect(html).toMatch(/class="studio-mobile-switcher x[^"]+"/);
+    expect(html).toContain('aria-label="Browse Studio"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain("Administration");
+    expect(html).not.toContain("Administration · 2");
+    expect(html).not.toContain('<select aria-hidden="true"');
   });
 
-  it("renders Account as an active Studio workspace", () => {
+  it("keeps Account out of the rail even while its workspace is active", () => {
     const accountWorkspace: StudioWorkspaceInfo = {
       id: "studio:account",
       pluginId: "studio",
@@ -588,12 +507,14 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain("Operations");
-    expect(html).toContain("Account");
-    expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+    expect(html).not.toContain("Account");
+    expect(html).not.toContain("Access");
+    expect(html).toContain('data-leaf-open="false"');
+    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).not.toContain("studio-leaf-rail");
   });
 
-  it("pins Overview above the workspace list", () => {
+  it("keeps Overview a direct destination without a duplicate leaf column", () => {
     const overview: StudioWorkspaceInfo = {
       id: "studio:overview",
       pluginId: "studio",
@@ -623,13 +544,18 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Operations"));
-    expect(html.indexOf("Administration")).toBeGreaterThan(
-      html.indexOf("Operations"),
-    );
+    expect(html).toContain('aria-label="Overview"');
+    expect(html).toContain('data-leaf-open="false"');
+    expect(html).not.toContain('aria-label="Overview destinations"');
+    expect(html).not.toContain("studio-leaf-rail");
+    expect(html).not.toContain("00 / operator home");
+    expect(html).not.toContain("Attention, activity and operational health.");
+    expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Work"));
+    expect(html).toContain('aria-label="Administration"');
+    expect(html).not.toContain('aria-label="Administration destinations"');
   });
 
-  it("shows registered workspaces beside Account operations", () => {
+  it("shows registered workflow destinations and their attention badges", () => {
     const workspace: StudioWorkspaceInfo = {
       id: "publishing",
       pluginId: "content-pipeline",
@@ -658,10 +584,11 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(withWorkspace).toContain("Operations");
+    expect(withWorkspace).toContain("Work");
+    expect(withWorkspace).toContain("Workspaces");
     expect(withWorkspace).toContain("Publishing");
     expect(withWorkspace).toContain(">2<");
-    expect(withoutWorkspace).not.toContain("Operations");
+    expect(withoutWorkspace).not.toContain("Workspaces");
     expect(withoutWorkspace).not.toContain("Account");
     expect(withoutWorkspace).not.toContain("Publishing");
   });
@@ -704,50 +631,71 @@ describe("TypeSwitcher", () => {
     const html = renderToStaticMarkup(
       createElement(TypeSwitcher, {
         types: [...types, ...machinery],
-        active: "post",
+        active: "prompt",
         onSelect: () => {},
       }),
     );
 
     expect(html).toContain("System");
-    // System renders last, after the authored-content groups.
-    expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
-    expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
-    expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
-    expect(html.indexOf("Style Guide")).toBeGreaterThan(html.indexOf("System"));
+    expect(html).toContain('aria-label="System destinations"');
+    expect(html).not.toContain("03 / machinery");
+    for (const label of ["Site Info", "Prompts", "Agents", "Style Guide"]) {
+      expect(html.lastIndexOf(label)).toBeGreaterThan(
+        html.indexOf('aria-label="System destinations"'),
+      );
+    }
   });
 });
 
 function renderCapabilityView(
   capabilities: EntityTypeInfo["capabilities"],
   mode: "browse" | "edit",
+  page: {
+    offset?: number;
+    limit?: number;
+    total?: number;
+    readError?: string;
+    query?: Partial<StudioCollectionQuery>;
+    dirty?: boolean;
+    hasBody?: boolean;
+    entityType?: string;
+    entity?: Partial<EntityDetail>;
+    folders?: StudioAppViewProps["folders"];
+    singleton?: boolean;
+    fields?: FieldDescriptor[];
+    frontmatter?: Record<string, unknown>;
+  } = {},
 ): string {
+  const entityType = page.entityType ?? "post";
   const entity: EntityDetail = {
     id: "post-1",
-    entityType: "post",
-    frontmatter: { title: "Post one", status: "draft" },
+    entityType,
+    frontmatter: page.frontmatter ?? { title: "Post one", status: "draft" },
     body: "Post body",
     contentHash: "post-1-hash",
     created: "2026-07-01T00:00:00.000Z",
     updated: "2026-07-01T00:00:00.000Z",
+    ...page.entity,
   };
   const schema: TypeSchema = {
-    entityType: "post",
+    entityType,
     format: "frontmatter",
-    isSingleton: false,
-    hasBody: true,
-    fields: [stringField],
+    isSingleton: page.singleton ?? false,
+    hasBody: page.hasBody ?? true,
+    fields: page.fields ?? [stringField],
   };
   const type: EntityTypeInfo = {
-    entityType: "post",
-    label: "Posts",
-    isSingleton: false,
-    hasBody: true,
-    count: 1,
+    entityType,
+    label: entityType === "site-content" ? "Site content" : "Posts",
+    isSingleton: page.singleton ?? false,
+    hasBody: page.hasBody ?? true,
+    count: page.total ?? 1,
     capabilities,
   };
   const props: StudioAppViewProps = {
     activeWorkspaceId: null,
+    readError: page.readError ?? null,
+    onRetryRead: () => {},
     types: [type],
     workspaces: [
       {
@@ -763,8 +711,22 @@ function renderCapabilityView(
     workspaceError: null,
     declarativeWorkspaceData: null,
     workspaceQuery: { offset: 0, limit: 50 },
-    entityType: "post",
-    entities: [entity],
+    entityType,
+    entities: page.total === 0 ? [] : [entity],
+    folders: page.folders ?? [],
+    collectionPath: "/studio/entities/post",
+    selectFolder: () => {},
+    creationDestination: { data: null, pending: false, error: null },
+    entityOffset: page.offset ?? 0,
+    entityLimit: page.limit ?? 10,
+    entityTotal: page.total ?? 1,
+    collectionQuery: studioCollectionQuerySchema.parse({
+      offset: page.offset,
+      limit: page.limit,
+      ...page.query,
+    }),
+    onCollectionQueryChange: () => {},
+    entityListLoading: false,
     schema,
     editor: {
       mode: mode === "edit" ? { kind: "edit", entity } : { kind: "browse" },
@@ -780,7 +742,7 @@ function renderCapabilityView(
     baselineCommit: null,
     agentTargets: [],
     deleting: false,
-    hasUnsavedChanges: false,
+    hasUnsavedChanges: page.dirty ?? false,
     navigationBlocked: false,
     dispatchEditor: () => {},
     setFieldAssistState: () => {},
@@ -789,6 +751,7 @@ function renderCapabilityView(
     backToList: () => {},
     selectEntityType: () => {},
     selectWorkspace: () => {},
+    changeEntityPage: () => {},
     openWorkspaceEntity: () => {},
     openWorkspaceLaunch: () => {},
     performPublishingAction: successfulPublishingAction,
@@ -805,6 +768,571 @@ function renderCapabilityView(
   };
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
+
+it("uses page terminology throughout site-content collection navigation", () => {
+  const window = new Window();
+  try {
+    window.document.body.innerHTML = renderCapabilityView(
+      {
+        canRead: true,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+        canExtract: false,
+        canPublish: false,
+        canAssist: false,
+      },
+      "browse",
+      {
+        entityType: "site-content",
+        query: { prefix: ["about"] },
+        folders: [
+          { name: "team", path: ["about", "team"], descendantCount: 3 },
+        ],
+      },
+    );
+    expect(
+      window.document.querySelector('[aria-label="Pages (complete list)"]'),
+    ).not.toBeNull();
+    expect(
+      window.document.querySelector('[aria-label="Page trail"]'),
+    ).not.toBeNull();
+    expect(window.document.body.textContent).toContain("1 page");
+    expect(window.document.body.textContent).toContain("This page");
+    expect(window.document.body.textContent.toLowerCase()).not.toContain(
+      "folder",
+    );
+  } finally {
+    window.close();
+  }
+});
+
+it("offers an explicit editor-header return control, including read-only records, but not singletons", () => {
+  const window = new Window();
+  try {
+    for (const singleton of [false, true]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "edit",
+        { entityType: "site-content", singleton },
+      );
+      const back = window.document.querySelector(
+        '[data-studio-page-head] button[aria-label="Back to Site content"]',
+      );
+      expect(back !== null).toBe(!singleton);
+      if (back) {
+        expect(back.textContent).toContain("Back to Site content");
+        expect(back.getAttribute("type")).toBe("button");
+      }
+    }
+  } finally {
+    window.close();
+  }
+});
+
+it("uses the structured leaf as a folder row fallback without changing titles or identity", () => {
+  const cases: Array<{ entity: Partial<EntityDetail>; label: string }> = [
+    { entity: {}, label: "highlights" },
+    {
+      entity: { displayTitle: "Projected highlights" },
+      label: "Projected highlights",
+    },
+    {
+      entity: { frontmatter: { title: "Authored highlights" } },
+      label: "Authored highlights",
+    },
+    {
+      entity: { id: "about:high%3Alights", path: ["about", "high:lights"] },
+      label: "high:lights",
+    },
+    { entity: { id: "about:", path: ["about", ""] }, label: "about:" },
+  ];
+  const window = new Window();
+  try {
+    for (const { entity: overrides, label } of cases) {
+      const entity: Partial<EntityDetail> = {
+        id: "about:highlights",
+        path: ["about", "highlights"],
+        frontmatter: {},
+        ...overrides,
+      };
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType: "site-content", query: { prefix: ["about"] }, entity },
+      );
+      const title = window.document.querySelector(
+        "[data-studio-record] [title]",
+      );
+      expect(title?.textContent).toBe(label);
+      expect(title?.getAttribute("title")).toBe(entity.id);
+    }
+  } finally {
+    window.close();
+  }
+});
+
+it("offers note creation only at the collection root, not in historical folders", () => {
+  const window = new Window();
+  try {
+    for (const nested of [false, true]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType: "note", query: { prefix: nested ? ["book"] : null } },
+      );
+      const action = window.document.querySelector("[data-studio-library-new]");
+      expect(action).not.toBeNull();
+      expect(action?.hasAttribute("disabled")).toBe(nested);
+    }
+  } finally {
+    window.close();
+  }
+});
+
+it("labels a folder's direct count as entries here, not a collection total", () => {
+  const html = renderCapabilityView(
+    {
+      canRead: true,
+      canCreate: false,
+      canUpdate: false,
+      canDelete: false,
+      canExtract: false,
+      canPublish: false,
+      canAssist: false,
+    },
+    "browse",
+    { query: { prefix: ["book"] } },
+  );
+  expect(html).toContain("1 entry here");
+});
+
+it("keeps the collection row's bottom rule after StyleX composition", async () => {
+  const window = new Window();
+  try {
+    const doc = window.document;
+    doc.head.innerHTML = `<style>:root{--console-rule-strong:black}${compiledStyles}</style>`;
+    doc.body.innerHTML = renderCapabilityView(
+      {
+        canRead: true,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+        canExtract: false,
+        canPublish: false,
+        canAssist: false,
+      },
+      "browse",
+    );
+    const row = doc.querySelector("[data-studio-record]");
+    if (!row) throw new Error("Missing collection entry");
+    expect(window.getComputedStyle(row).borderBottomWidth).toBe("1px");
+    expect(window.getComputedStyle(row).borderBottomStyle).toBe("solid");
+  } finally {
+    await window.happyDOM.close();
+  }
+});
+
+it.each([1440, 390])(
+  "puts creation destination before editor panes at %spx",
+  async (width) => {
+    const window = new Window({ width });
+    try {
+      const doc = window.document;
+      doc.head.innerHTML = `<style>${compiledStyles}</style>`;
+      doc.body.innerHTML = renderToStaticMarkup(
+        <StudioCreationLayout active split>
+          <div {...stylex.props(hierarchyStyles.destinationFrame)}>
+            <StudioFolderTrail
+              collectionLabel="Notes"
+              collectionPath="/studio/entities/note"
+              query={studioCollectionQuerySchema.parse({ prefix: ["book"] })}
+              onNavigate={() => {}}
+            />
+          </div>
+        </StudioCreationLayout>,
+      );
+      const layout = doc.querySelector("[data-studio-creation-layout]");
+      const destination = layout?.firstElementChild;
+      if (!layout || !destination) throw new Error("Missing creation layout");
+      expect(window.getComputedStyle(layout).gridRow).toBe(
+        width === 390 ? "2 / 4" : "2",
+      );
+      expect(window.getComputedStyle(destination).gridRow).toBe("1");
+      const crumb = destination.querySelector('[aria-current="page"]');
+      if (!crumb) throw new Error("Missing folder chip");
+      if (width === 390)
+        expect(window.getComputedStyle(crumb).borderTopWidth).toBe("1px");
+      expect(
+        renderToStaticMarkup(
+          <StudioCreationLayout active={false} split>
+            <span>Body</span>
+          </StudioCreationLayout>,
+        ),
+      ).toBe("<span>Body</span>");
+      doc.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "browse",
+      );
+      const headAction = doc.querySelector("[data-studio-library-new]");
+      if (!headAction) throw new Error("Missing collection head action");
+      expect(window.getComputedStyle(headAction).display === "none").toBe(
+        width === 390,
+      );
+    } finally {
+      await window.happyDOM.close();
+    }
+  },
+);
+
+describe("bodyless entity editor layout", () => {
+  for (const width of [1440, 768, 390]) {
+    for (const hasBody of [false, true]) {
+      it(`uses the available form width at ${width}px with hasBody=${hasBody}`, async () => {
+        const window = new Window({ width });
+        try {
+          const doc = window.document;
+          doc.head.innerHTML = `<style>:root{--console-rule-strong:black}${compiledStyles}</style>`;
+          doc.body.innerHTML = renderCapabilityView(
+            {
+              canRead: true,
+              canCreate: false,
+              canUpdate: false,
+              canDelete: false,
+              canExtract: false,
+              canPublish: false,
+              canAssist: false,
+            },
+            "edit",
+            { hasBody },
+          );
+          const properties = doc.querySelector(
+            "[data-studio-editor] [data-studio-properties]",
+          );
+          if (!properties) throw new Error("Missing Properties form");
+          expect(window.getComputedStyle(properties).gridColumn).toBe(
+            hasBody ? "1" : "1 / -1",
+          );
+          expect(properties.querySelector("fieldset")?.disabled).toBe(true);
+          expect(properties.querySelector("input")).not.toBeNull();
+          expect(
+            doc.querySelector("[data-studio-editor] section") !== null,
+          ).toBe(hasBody);
+          if (!hasBody) {
+            expect(window.getComputedStyle(properties).borderRightWidth).toBe(
+              "0px",
+            );
+            expect(doc.body.textContent).not.toContain("This type has no body");
+          }
+          expect(doc.querySelector(".studio-editor-head-save") !== null).toBe(
+            hasBody,
+          );
+        } finally {
+          await window.happyDOM.close();
+        }
+      });
+    }
+  }
+});
+
+describe("System editor presentation", () => {
+  const readonlyCapabilities = {
+    canRead: true,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    canExtract: false,
+    canPublish: false,
+    canAssist: false,
+  };
+  for (const width of [1440, 768, 390]) {
+    for (const [entityType, presentation] of [
+      ["anchor-profile", "form"],
+      ["brain-character", "form"],
+      ["style-guide", "form"],
+      ["site-info", "form"],
+      ["agent", "form"],
+      ["prompt", "document"],
+      ["skill", "document"],
+      ["playbook", "document"],
+      ["swot", "document"],
+      ["post", "split"],
+    ] satisfies Array<[string, string]>) {
+      it(`renders ${entityType} as ${presentation} at ${width}px without dropping body or permissions`, async () => {
+        const window = new Window({ width });
+        try {
+          const doc = window.document;
+          doc.head.innerHTML = `<style>${compiledStyles}</style>`;
+          doc.body.innerHTML = renderCapabilityView(
+            readonlyCapabilities,
+            "edit",
+            { entityType, hasBody: true },
+          );
+          const editor = doc.querySelector("[data-studio-editor]");
+          expect(editor?.getAttribute("data-editor-presentation")).toBe(
+            presentation,
+          );
+          expect(editor?.querySelector("fieldset")?.disabled).toBe(true);
+          expect(editor?.textContent).toContain("Post body");
+          if (presentation !== "split") {
+            expect(doc.querySelector(".studio-mobile-tabs")).toBeNull();
+            expect(doc.querySelector(".studio-editor-head-save")).toBeNull();
+            const content = editor?.querySelector(
+              "[data-studio-editor-content]",
+            );
+            if (!content) throw new Error("Missing scroll owner");
+            expect(window.getComputedStyle(content).overflowY).toBe("auto");
+            expect(window.getComputedStyle(content).gridRow).toBe("2");
+            const modes = editor?.querySelector(
+              '[aria-label="Editor body view"]',
+            );
+            if (!modes) throw new Error("Missing inline body modes");
+            expect(modes.querySelectorAll('[role="tab"]')).toHaveLength(2);
+            expect(window.getComputedStyle(modes).display).not.toBe("none");
+          }
+          const disclosure = editor?.querySelector(
+            "details[data-studio-properties]",
+          );
+          expect(!!disclosure).toBe(presentation === "document");
+          if (disclosure) expect(disclosure.hasAttribute("open")).toBe(false);
+        } finally {
+          await window.happyDOM.close();
+        }
+      });
+    }
+  }
+});
+
+it("keeps exact timestamps in semantic Library and System collection metadata", async () => {
+  const window = new Window();
+  try {
+    for (const entityType of ["post", "prompt"]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canPublish: false,
+          canExtract: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType },
+      );
+      const time = window.document.querySelector("[data-studio-record] time");
+      expect(time?.getAttribute("datetime")).toBe("2026-07-01T00:00:00.000Z");
+      expect(time?.getAttribute("title")).toBe("2026-07-01T00:00:00.000Z");
+      expect(time?.textContent).toBeTruthy();
+    }
+  } finally {
+    await window.happyDOM.close();
+  }
+});
+
+describe("System mockup alignment", () => {
+  const capabilities = {
+    canRead: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: false,
+    canExtract: false,
+    canPublish: false,
+    canAssist: false,
+  };
+  for (const [entityType, heading] of [
+    ["anchor-profile", "Story"],
+    ["style-guide", "Guidance"],
+    ["prompt", "Instructions"],
+    ["skill", "Capability notes"],
+    ["playbook", "Procedure"],
+    ["swot", "Analysis"],
+    ["agent", "Profile and capabilities"],
+  ] satisfies Array<[string, string]>) {
+    it(`names the supported ${entityType} body and explains its purpose`, () => {
+      const html = renderCapabilityView(capabilities, "edit", { entityType });
+      expect(html).toContain(`>${heading}</h2>`);
+      expect(html).toContain("data-studio-system-intro");
+      expect(html).toContain('aria-label="Markdown source"');
+    });
+  }
+  for (const width of [1440, 768, 390]) {
+    it(`renders real Style guide schema groups and usable fields at ${width}px`, async () => {
+      const window = new Window({ width });
+      try {
+        const fields = Object.entries(styleGuideFrontmatterSchema.shape).map(
+          ([name, schema]) => zodFieldToStudioWidget(name, schema),
+        );
+        window.document.head.innerHTML = `<style>${compiledStyles}</style>`;
+        window.document.body.innerHTML = renderCapabilityView(
+          capabilities,
+          "edit",
+          {
+            entityType: "style-guide",
+            fields,
+            frontmatter: {
+              name: "Editorial style",
+              messaging: { positioning: "Evidence first" },
+              voice: { summary: "Clear and candid", traits: ["Precise"] },
+              visual: { artDirection: "Editorial" },
+            },
+          },
+        );
+        const form = window.document.querySelector(
+          "[data-studio-system-fields]",
+        );
+        expect(form).not.toBeNull();
+        for (const name of ["Messaging", "Voice", "Visual"])
+          expect(form?.textContent).toContain(name);
+        expect(
+          form?.querySelector('[data-studio-field="structured"]'),
+        ).toBeNull();
+        expect(
+          [...window.document.querySelectorAll("textarea")].some(
+            (input) => input.value === "Clear and candid" && !input.disabled,
+          ),
+        ).toBe(true);
+        const grid = form?.querySelector("[data-studio-system-grid]");
+        if (!grid) throw new Error("Missing field grid");
+        expect(window.getComputedStyle(grid).gridTemplateColumns).toBe(
+          width > 1000 ? "minmax(0,1fr) minmax(0,1fr)" : "minmax(0,1fr)",
+        );
+      } finally {
+        await window.happyDOM.close();
+      }
+    });
+  }
+  it("keeps System collections contextual and does not advertise denied creation", () => {
+    const html = renderCapabilityView(
+      { ...capabilities, canCreate: false },
+      "browse",
+      { entityType: "agent" },
+    );
+    expect(html).toContain("data-studio-system-intro");
+    expect(html).toContain("Post one");
+    expect(html).not.toContain("New agent");
+    expect(html).toContain("pagination");
+  });
+  it("presents unsupported structured lists as readable content, not disabled JSON", () => {
+    const html = renderCapabilityView(capabilities, "edit", {
+      entityType: "anchor-profile",
+      fields: [
+        {
+          name: "socialLinks",
+          label: "Social links",
+          widget: "list",
+          required: false,
+          fields: [{ name: "url", label: "URL", widget: "string" }],
+        },
+      ],
+      frontmatter: { socialLinks: [{ url: "https://example.org" }] },
+    });
+    expect(html).toContain('href="https://example.org"');
+    expect(html).toContain("Read-only structured field");
+    expect(html).not.toContain("&quot;url&quot;");
+  });
+  it("omits unset optional profile fields without hiding required values or zero counts", () => {
+    const html = renderCapabilityView(
+      { ...capabilities, canUpdate: false },
+      "edit",
+      {
+        entityType: "agent",
+        fields: [
+          { name: "name", label: "Name", widget: "text", required: true },
+          {
+            name: "cardUri",
+            label: "Card URI",
+            widget: "text",
+            required: false,
+          },
+          {
+            name: "cardFailureCount",
+            label: "Failures",
+            widget: "number",
+            required: false,
+          },
+        ],
+        frontmatter: { name: "Network peer", cardFailureCount: 0 },
+      },
+    );
+    expect(html).not.toContain("Card URI");
+    expect(html).toContain("Network peer");
+    expect(html).toContain("Failures");
+  });
+  it("renders a read-only Agent as a readable profile rather than disabled inputs", () => {
+    const html = renderCapabilityView(
+      { ...capabilities, canUpdate: false },
+      "edit",
+      { entityType: "agent" },
+    );
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    const properties = window.document.querySelector(
+      "[data-studio-properties]",
+    );
+    expect(properties?.querySelector("dl")).not.toBeNull();
+    expect(properties?.querySelector("input, textarea, select")).toBeNull();
+    expect(properties?.textContent).toContain("Post one");
+    expect(html).not.toContain("Save changes");
+    window.close();
+  });
+});
+
+describe("document action emphasis", () => {
+  it.each([false, true])(
+    "keeps clean saves available and emphasizes dirty=%s",
+    (dirty) => {
+      const html = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: true,
+          canExtract: true,
+          canPublish: true,
+          canAssist: true,
+        },
+        "edit",
+        { dirty },
+      );
+      const save = html.match(/<button[^>]*studio-editor-head-save[^>]*>/)?.[0];
+      expect(save).toContain(`data-variant="${dirty ? "default" : "outline"}"`);
+      expect(save).not.toContain("disabled");
+    },
+  );
+});
 
 describe("capability-aware Studio controls", () => {
   const deniedCapabilities: EntityTypeInfo["capabilities"] = {
@@ -834,32 +1362,27 @@ describe("capability-aware Studio controls", () => {
     expect(browse).toContain("1 entity");
     expect(edit).toContain('data-studio-page-head="true"');
     expect(edit).toContain("Post one");
-    expect(browse).toContain('disabled="">New post</button>');
-    expect(edit).toContain('class="capability-fields" disabled=""');
+    expect(browse).toMatch(/<button[^>]*disabled=""[^>]*>New post<\/button>/);
+    expect(edit).toMatch(/<fieldset[^>]*disabled=""/);
     expect(edit).toMatch(
       /<button[^>]*(?:studio-editor-head-save[^>]*disabled|disabled[^>]*studio-editor-head-save)/,
     );
-    expect(edit).toMatch(
-      /<button[^>]*(?:studio-editor-phone-save[^>]*disabled|disabled[^>]*studio-editor-phone-save)/,
-    );
+    expect(edit).not.toContain("studio-editor-phone-save");
     expect(edit).not.toContain(">Delete<");
     expect(edit).not.toContain("AI selection rewrite");
     expect(edit).not.toContain("Add to queue");
   });
 
-  it("places editor save in the desktop head and the existing phone pipeline", () => {
+  it("keeps B's single Save action in the document head at every width", () => {
     const edit = renderCapabilityView(allowedCapabilities, "edit");
-    const head = edit.slice(
-      edit.indexOf('class="studio-page-head"'),
-      edit.indexOf('class="studio-mobile-modes"'),
-    );
-
-    expect(head).toContain("studio-editor-head-save");
-    expect(head).toContain("Save changes");
-    expect(edit).toContain("studio-editor-phone-save");
-    expect(responsiveStyles).toMatch(
+    expect(edit).toContain("studio-editor-head-save");
+    expect(edit).toContain("Save changes");
+    expect(edit).not.toContain("studio-editor-phone-save");
+    expect(compiledStyles).not.toMatch(
       /\.studio-editor-head-save \{[^}]*display: none/,
     );
+    expect(edit).toContain('aria-label="Editor view"');
+    expect(edit).not.toContain('class="studio-mobile-mode"');
   });
 
   it("renders controls granted by the active type capabilities", () => {
@@ -874,6 +1397,70 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain(">Delete<");
     expect(edit).toContain("AI selection rewrite");
     expect(edit).toContain("Add to queue");
+  });
+
+  it("retains collection navigation and the open document when a read fails", () => {
+    for (const mode of ["browse", "edit"] as const) {
+      const html = renderCapabilityView(allowedCapabilities, mode, {
+        readError: "Collection unavailable",
+      });
+      expect(html).toContain("Collection unavailable");
+      expect(html).toContain(">Retry</button>");
+      expect(html).toContain("Post one");
+      expect(html).toContain("Library");
+    }
+  });
+
+  it("distinguishes an empty filtered collection from an empty writable collection", () => {
+    const filtered = renderCapabilityView(allowedCapabilities, "browse", {
+      total: 0,
+      query: { q: "missing", visibility: "restricted" },
+    });
+    expect(filtered).toContain("No entries match these filters");
+    expect(filtered).toContain("Clear search and filters");
+    expect(filtered).not.toContain("start the first entry");
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", { total: 0 }),
+    ).toContain("start the first entry");
+  });
+
+  it("paginates entity collections with the shared previous/next grammar", () => {
+    const first = renderCapabilityView(allowedCapabilities, "browse", {
+      limit: 1,
+      total: 2,
+    });
+    const second = renderCapabilityView(allowedCapabilities, "browse", {
+      offset: 1,
+      limit: 1,
+      total: 2,
+    });
+
+    expect(first).toContain('aria-label="Posts pagination"');
+    expect(first.indexOf('aria-label="Posts pagination"')).toBeLessThan(
+      first.indexOf('data-studio-record=""'),
+    );
+    expect(first).toContain("1–1 of 2");
+    expect(first).toContain(">Previous</button>");
+    expect(first).toContain(">Next</button>");
+    expect(second).toContain("2–2 of 2");
+    expect(second).toContain(">02</span>");
+  });
+
+  it("keeps the pager visible on a single-page collection and supports 25-item offsets", () => {
+    const single = renderCapabilityView(allowedCapabilities, "browse", {
+      limit: 25,
+      total: 1,
+    });
+    expect(single).toContain('aria-label="Posts pagination"');
+    expect(single).toMatch(/disabled=""[^>]*>Previous<\/button>/);
+    expect(single).toMatch(/disabled=""[^>]*>Next<\/button>/);
+    const last = renderCapabilityView(allowedCapabilities, "browse", {
+      limit: 25,
+      total: 26,
+      offset: 25,
+    });
+    expect(last).toContain("26–26 of 26");
+    expect(last).toContain(">26</span>");
   });
 });
 
@@ -935,6 +1522,24 @@ describe("typeHasPublicationField", () => {
     ).toBe(false);
     expect(typeHasPublicationField([])).toBe(false);
   });
+  it.each([
+    ["discovered", "approved", "archived"],
+    ["draft", "active", "archived"],
+  ])(
+    "does not label relationship or workflow states as publication",
+    (first, second, third) => {
+      expect(
+        typeHasPublicationField([
+          {
+            name: "status",
+            label: "Status",
+            widget: "select",
+            options: [first, second, third],
+          },
+        ]),
+      ).toBe(false);
+    },
+  );
 });
 
 describe("emptyDraft", () => {
@@ -984,21 +1589,41 @@ describe("BodyEditor", () => {
     expect(html).toContain('data-editor="codemirror6"');
     expect(html).toContain('aria-label="Markdown source"');
     expect(html).not.toContain("<textarea");
-    expect(html).not.toContain("body-preview");
+    expect(html).not.toContain("data-studio-preview");
   });
 
   it("renders the markdown preview in preview mode", () => {
     const html = renderBody("preview");
     expect(html).not.toContain("<textarea");
-    expect(html).toContain("body-preview");
+    expect(html).toContain("data-studio-preview");
     expect(html).toContain("<h1");
-    expect(html).toContain("<em>prose</em>");
+    expect(html).toMatch(/<em[^>]*>prose<\/em>/);
   });
 
   it("renders both panes in split mode", () => {
     const html = renderBody("split");
     expect(html).toContain('data-editor="codemirror6"');
-    expect(html).toContain("body-preview");
+    expect(html).toContain("data-studio-preview");
+  });
+
+  it("keeps one styled copy action on fenced code blocks", () => {
+    const html = renderToStaticMarkup(
+      createElement(BodyEditor, {
+        value: "```ts\nconst first = 1;\nconst second = 2;\n```",
+        mode: "preview",
+        onChange: () => {},
+        onModeChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('data-streamdown="code-block-copy-button"');
+    expect(html).toContain('data-streamdown="code-block-actions"');
+    expect(html).not.toContain('data-streamdown="code-block-download-button"');
+    // Token spans may split source text; copy controls still receive the original source.
+    const text = html.replace(/<[^>]*>/g, "");
+    expect(text).toContain("const first = 1;");
+    expect(text).toContain("const second = 2;");
+    expect(html).toContain('data-code-token="keyword"');
   });
 
   it("keeps body content byte-identical in the CM6 state", () => {
@@ -1125,7 +1750,6 @@ describe("SaveStateNotice", () => {
         renderToStaticMarkup(
           createElement(SaveStateNotice, {
             state,
-            onReload: () => {},
           }),
         ),
       ).toBe("");
@@ -1136,7 +1760,6 @@ describe("SaveStateNotice", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
         state: { kind: "saved" },
-        onReload: () => {},
       }),
     );
     expect(html).toContain("entity service");
@@ -1146,25 +1769,25 @@ describe("SaveStateNotice", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
         state: { kind: "saved", noop: true },
-        onReload: () => {},
       }),
     );
     expect(html).toContain("No changes");
   });
 
-  it("offers a reload action on write conflicts", () => {
+  it("offers rescue actions rather than an immediate reload on conflicts", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
         state: {
           kind: "conflict",
           message: "This entry changed since it was opened",
         },
-        onReload: () => {},
+        conflictActions: createElement("button", {}, "Compare changes"),
       }),
     );
     expect(html).toContain("changed since it was opened");
     expect(html).toContain("The manuscript changed elsewhere");
-    expect(html).toContain(">Reload latest<");
+    expect(html).toContain(">Compare changes<");
+    expect(html).not.toContain(">Reload latest<");
   });
 
   it("shows stale capability denials without offering a conflict reload", () => {
@@ -1174,7 +1797,6 @@ describe("SaveStateNotice", () => {
           kind: "error",
           message: "update post requires admin permission",
         },
-        onReload: () => {},
       }),
     );
     expect(html).toContain("update post requires admin permission");
@@ -1334,8 +1956,8 @@ describe("PipelineStations", () => {
     expect(html).toContain("entity db");
     expect(html).toContain("exported to file");
     expect(html).toContain("committed");
-    expect(html.match(/station done/g)).toHaveLength(2);
-    expect(html.match(/station active/g)).toHaveLength(1);
+    expect(html.match(/data-studio-station="done"/g)).toHaveLength(2);
+    expect(html.match(/data-studio-station="active"/g)).toHaveLength(1);
   });
 
   it("animates the track between a done and an active station", () => {
@@ -1350,7 +1972,7 @@ describe("PipelineStations", () => {
         gitConfigured: true,
       }),
     );
-    expect(html.match(/track flowing/g)).toHaveLength(1);
+    expect(html.match(/data-studio-flowing=""/g)).toHaveLength(1);
   });
 
   it("shows the last write ref", () => {
@@ -1407,8 +2029,44 @@ describe("entityPublicationState", () => {
   });
 });
 
+describe("mobile editor entry", () => {
+  it("opens raw documents on content and respects a chosen pane without storing drafts", () => {
+    expect(mobileEditorEntry({ format: "raw", hasBody: true }, null)).toBe(
+      "preview",
+    );
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: true }, null),
+    ).toBe("details");
+    expect(mobileEditorEntry({ format: "raw", hasBody: true }, "details")).toBe(
+      "details",
+    );
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: true }, "write"),
+    ).toBe("write");
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: false }, "write"),
+    ).toBe("details");
+  });
+});
+
 describe("entityTitle", () => {
-  it("prefers the frontmatter title", () => {
+  it("prefers the adapter-owned title without changing the durable id or properties", () => {
+    const entity = {
+      id: "opaque-id",
+      entityType: "note",
+      frontmatter: { title: " " },
+      displayTitle: "Readable heading",
+      updated: "2026-09-11",
+    };
+    expect(entityTitle(entity)).toBe("Readable heading");
+    expect(entity.id).toBe("opaque-id");
+    expect(entity.frontmatter.title).toBe(" ");
+    expect(
+      entityTitle({ ...entity, frontmatter: { title: "Authored title" } }),
+    ).toBe("Readable heading");
+  });
+
+  it("uses the authored frontmatter title when no adapter title is available", () => {
     expect(
       entityTitle({
         id: "abc",

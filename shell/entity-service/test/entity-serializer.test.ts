@@ -1,6 +1,7 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createMockLogger } from "@brains/test-utils";
+import type { EntityData } from "../src/entity-data";
 import { EntityRegistry } from "../src/entityRegistry";
 import { EntitySerializer } from "../src/entity-serializer";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
@@ -56,6 +57,38 @@ function createSerializer(): EntitySerializer {
 }
 
 describe("EntitySerializer.reconstructEntity", () => {
+  it("omits raw parser diagnostics for bounded reads without changing normal diagnostics", async () => {
+    const logger = createMockLogger();
+    const registry = EntityRegistry.createFresh(logger);
+    const adapter = new TestAdapter();
+    registry.registerEntityType("test", testEntitySchema, adapter);
+    const serializer = new EntitySerializer(registry, logger);
+    const row: EntityData = {
+      id: "private-query-identifier",
+      entityType: "test",
+      content: "body",
+      contentHash: "h",
+      visibility: "public",
+      created: 0,
+      updated: 0,
+      metadata: {},
+    };
+    const parser = spyOn(adapter, "fromMarkdown").mockImplementation(() => {
+      throw new Error("private parser payload");
+    });
+    try {
+      expect(await serializer.convertToEntity(row, false)).toBeNull();
+      expect(await serializer.convertToEntities([row], "test", false)).toEqual(
+        [],
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(await serializer.convertToEntity(row)).toBeNull();
+      expect(logger.error).toHaveBeenCalledTimes(1);
+    } finally {
+      parser.mockRestore();
+    }
+  });
+
   it("prefers DB metadata over parsed-markdown metadata", () => {
     const serializer = createSerializer();
     const entity = testEntitySchema.parse(

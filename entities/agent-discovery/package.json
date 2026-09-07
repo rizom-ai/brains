@@ -1,7 +1,7 @@
 {
   "name": "@brains/agent-discovery",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.356",
+  "version": "0.2.0-alpha.396",
   "description": "Agent discovery — brain+anchor contacts and skills",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
@@ -28,7 +28,8 @@
     "typescript": "^7.0.2"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./proximity-map": "./src/proximity-map.ts"
   },
   "private": true,
   "scripts": {

@@ -1,5 +1,22 @@
 import { describe, expect, it } from "bun:test";
-import { createShellConfig, getStandardConfig } from "../src/config";
+import {
+  createShellConfig,
+  getStandardConfig,
+  logLevelSchema,
+  reasoningEffortSchema,
+  shellConfigSchema,
+} from "../src/config";
+
+describe("shell config schema", () => {
+  it("exposes the log level and reasoning effort enums it validates with", () => {
+    expect(shellConfigSchema.shape.logging.unwrap().shape.level.unwrap()).toBe(
+      logLevelSchema,
+    );
+    expect(shellConfigSchema.shape.ai.shape.reasoningEffort.unwrap()).toBe(
+      reasoningEffortSchema,
+    );
+  });
+});
 
 describe("shell config", () => {
   it("preserves shared conversation spaces", () => {
@@ -35,6 +52,138 @@ describe("shell config", () => {
         jobQueue: { workerConcurrency: 2 },
       }).jobQueue.workerConcurrency,
     ).toBe(2);
+  });
+
+  it("fills every default from the schema", () => {
+    const config = createShellConfig({
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+    });
+
+    expect(config.name).toBe("brain-app");
+    expect(config.version).toBe("1.0.0");
+    expect(config.dataDir).toBe("./brain-data");
+    expect(config.themeCSS).toBe("");
+    expect(config.preferLocalUrls).toBe(false);
+    expect(config.features).toEqual({});
+    expect(config.spaces).toEqual([]);
+    expect(config.plugins).toEqual([]);
+    expect(config.permissions).toEqual({});
+    expect(config.logging).toEqual({
+      level: "info",
+      format: "text",
+      context: "shell",
+    });
+    expect(config.ai).toEqual({
+      apiKey: "test-key",
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      maxTokens: 1000,
+      webSearch: true,
+    });
+    expect(config.embedding).toEqual({ enabled: true });
+  });
+
+  it("uses the standard database paths unless a database is overridden", () => {
+    const standard = getStandardConfig();
+    const config = createShellConfig({
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      conversationDatabase: { url: "file:elsewhere.db" },
+    });
+
+    expect(config.database).toEqual(standard.database);
+    expect(config.jobQueueDatabase).toEqual(standard.jobQueueDatabase);
+    expect(config.runtimeStateDatabase).toEqual(standard.runtimeStateDatabase);
+    expect(config.embeddingDatabase).toEqual(standard.embeddingDatabase);
+    expect(config.conversationDatabase).toEqual({ url: "file:elsewhere.db" });
+  });
+
+  it("defaults the AI key to an empty string when only a model is configured", () => {
+    const config = createShellConfig({ ai: { model: "gpt-4o-mini" } });
+
+    expect(config.ai.apiKey).toBe("");
+  });
+
+  it("rejects a configuration without a model", () => {
+    expect(() => createShellConfig({ ai: { apiKey: "test-key" } })).toThrow();
+  });
+
+  it("omits optional fields that were not provided", () => {
+    const config = createShellConfig({
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+    });
+
+    const absent = [
+      "siteBaseUrl",
+      "localSiteUrl",
+      "gitBrokerSocket",
+      "gitBrokerCheckout",
+      "entityDisplay",
+      "profileKind",
+      "identity",
+      "profile",
+      "agentInstructions",
+      "evalHandlerRegistry",
+    ];
+    expect(Object.keys(config).filter((key) => absent.includes(key))).toEqual(
+      [],
+    );
+    expect(Object.keys(config.ai)).not.toContain("imageApiKey");
+    expect(Object.keys(config.ai)).not.toContain("reasoningEffort");
+    expect(Object.keys(config.logging)).not.toContain("file");
+  });
+
+  it("keeps optional fields that were provided", () => {
+    const config = createShellConfig({
+      ai: {
+        apiKey: "test-key",
+        model: "gpt-4o-mini",
+        imageApiKey: "image-key",
+      },
+      logging: { level: "debug", file: "/var/log/brain.log" },
+      siteBaseUrl: "https://example.test",
+      localSiteUrl: "http://localhost:3000",
+      gitBrokerSocket: "/tmp/broker.sock",
+      gitBrokerCheckout: "/srv/checkout",
+      dataDir: "/srv/data",
+      profileKind: "person",
+      entityDisplay: { note: { label: "Note" } },
+    });
+
+    expect(config.ai.imageApiKey).toBe("image-key");
+    expect(config.logging).toEqual({
+      level: "debug",
+      format: "text",
+      context: "shell",
+      file: "/var/log/brain.log",
+    });
+    expect(config.siteBaseUrl).toBe("https://example.test");
+    expect(config.localSiteUrl).toBe("http://localhost:3000");
+    expect(config.gitBrokerSocket).toBe("/tmp/broker.sock");
+    expect(config.gitBrokerCheckout).toBe("/srv/checkout");
+    expect(config.dataDir).toBe("/srv/data");
+    expect(config.profileKind).toBe("person");
+    expect(config.entityDisplay).toEqual({ note: { label: "Note" } });
+  });
+
+  it("carries runtime objects through by reference", () => {
+    const permissions = { rules: [] };
+    const identity = {
+      name: "Rover",
+      role: "assistant",
+      purpose: "help",
+      values: ["care"],
+    };
+    const agentInstructions = ["be brief"];
+    const config = createShellConfig({
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      permissions,
+      identity,
+      agentInstructions,
+    });
+
+    expect(config.permissions).toBe(permissions);
+    expect(config.identity).toBe(identity);
+    expect(config.agentInstructions).toBe(agentInstructions);
   });
 });
 

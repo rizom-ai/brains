@@ -236,6 +236,11 @@ jobs:
       - name: Publish to npm
         run: bun run changeset:publish:core
 
+      # Publishing acknowledgement is not proof that consumers can fetch the release.
+      - name: Verify published core artifacts
+        timeout-minutes: 20
+        run: bun scripts/verify-published-core.ts
+
       - name: Sync docs content repo
         if: env.DOCS_CONTENT_SYNC_TOKEN != ''
         env:

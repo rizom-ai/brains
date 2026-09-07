@@ -3,7 +3,7 @@ import { z } from "@brains/utils/zod";
 
 /**
  * Note frontmatter schema (optional in markdown)
- * Title is optional - falls back to H1 heading or filename
+ * Title is optional - falls back to a body H1 or first nonblank body line
  */
 export const noteStatusSchema: z.ZodEnum<{
   generating: "generating";
@@ -26,7 +26,7 @@ export type NoteFrontmatter = z.output<typeof noteFrontmatterSchema>;
 
 /**
  * Note metadata schema - derived from frontmatter
- * Title is required in metadata (derived from frontmatter, H1, or filename)
+ * Title is required in metadata (frontmatter, body H1, body line, or Untitled)
  */
 export const noteMetadataSchema: z.ZodObject<{
   title: z.ZodString;

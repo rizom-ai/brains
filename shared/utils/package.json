@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.356",
+  "version": "0.2.0-alpha.396",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",
@@ -22,6 +22,7 @@
     "typescript": "^7.0.2"
   },
   "exports": {
+    "./config-merge": "./src/config-merge.ts",
     "./array": "./src/array.ts",
     "./chunk-message": "./src/chunk-message.ts",
     "./clone": "./src/clone.ts",
