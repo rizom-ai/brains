@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   parseMarkdownWithFrontmatter,
 } from "@brains/sdk/entities";
 import type {
@@ -57,7 +57,7 @@ export const projectDataSource: EntityDataSourceDefinition<
     pagination: PaginationInfo | null;
     baseUrl: string | null;
   }
-> = defineEntityDataSource({
+> = defineDataSource({
   id: "entities",
   name: "Portfolio Project DataSource",
   description: "Fetches and transforms project entities for rendering",

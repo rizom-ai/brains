@@ -330,7 +330,6 @@ export {
   createDeclarativeDataSource,
   createDeclarativeEntityDataSource,
   defineDataSource,
-  defineEntityDataSource,
   type AnyDataSourceDeclaration,
   type AnyEntityDataSourceDefinition,
   type DataSourceDefinition,

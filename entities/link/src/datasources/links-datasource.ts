@@ -1,4 +1,4 @@
-import { defineEntityDataSource } from "@brains/sdk/entities";
+import { defineDataSource } from "@brains/sdk/entities";
 import type {
   AnyEntityDataSourceDefinition,
   BaseEntity,
@@ -23,33 +23,32 @@ function toSummary(entity: BaseEntity): LinkSummary {
  * The id is local: the runtime scopes it to the package, and templates
  * naming it are rewritten to match.
  */
-export const linksDataSource: AnyEntityDataSourceDefinition =
-  defineEntityDataSource({
-    id: "entities",
-    name: "Links Entity DataSource",
-    description: "Fetches and transforms link entities for rendering",
-    entityType: "link",
-    entitySchema: linkSchema,
-    defaultSort: [{ field: "capturedAt", direction: "desc" }],
-    defaultLimit: 1000,
-    lookupField: "id",
-    enableNavigation: true,
-    navigationLimit: 1000,
-    transform: toSummary,
-    list: (items: LinkSummary[]) => ({
-      links: items,
-      totalCount: items.length,
-    }),
-    detail: ({ item, siblings }) => {
-      const links = [...siblings];
-      const index = links.findIndex((entry) => entry.id === item.id);
-      return {
-        link: item,
-        prevLink: index > 0 ? (links[index - 1] ?? null) : null,
-        nextLink:
-          index >= 0 && index < links.length - 1
-            ? (links[index + 1] ?? null)
-            : null,
-      };
-    },
-  });
+export const linksDataSource: AnyEntityDataSourceDefinition = defineDataSource({
+  id: "entities",
+  name: "Links Entity DataSource",
+  description: "Fetches and transforms link entities for rendering",
+  entityType: "link",
+  entitySchema: linkSchema,
+  defaultSort: [{ field: "capturedAt", direction: "desc" }],
+  defaultLimit: 1000,
+  lookupField: "id",
+  enableNavigation: true,
+  navigationLimit: 1000,
+  transform: toSummary,
+  list: (items: LinkSummary[]) => ({
+    links: items,
+    totalCount: items.length,
+  }),
+  detail: ({ item, siblings }) => {
+    const links = [...siblings];
+    const index = links.findIndex((entry) => entry.id === item.id);
+    return {
+      link: item,
+      prevLink: index > 0 ? (links[index - 1] ?? null) : null,
+      nextLink:
+        index >= 0 && index < links.length - 1
+          ? (links[index + 1] ?? null)
+          : null,
+    };
+  },
+});

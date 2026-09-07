@@ -1,6 +1,5 @@
 import {
   defineDataSource,
-  defineEntityDataSource,
   type DataSourceDefinition,
   type EntityDataSourceDefinition,
   type EntityQueryReader,
@@ -60,7 +59,7 @@ export const blogDataSource: EntityDataSourceDefinition<
     pagination: PaginationInfo | null;
     baseUrl: string | null;
   }
-> = defineEntityDataSource({
+> = defineDataSource({
   id: "entities",
   name: "Blog Entity DataSource",
   description: "Fetches and transforms blog post entities for rendering",

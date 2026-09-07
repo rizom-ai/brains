@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   type AnyEntityDataSourceDefinition,
 } from "@brains/sdk/entities";
 import { parseSummaryBody } from "../lib/summary-body";
@@ -27,7 +27,7 @@ interface TransformedSummary {
  * it once per entity rather than each view doing it again.
  */
 export const summaryDataSource: AnyEntityDataSourceDefinition =
-  defineEntityDataSource({
+  defineDataSource({
     id: SUMMARY_DATASOURCE_ID,
     name: "Summary Entity DataSource",
     description: "Fetches and transforms summary entities for rendering",
