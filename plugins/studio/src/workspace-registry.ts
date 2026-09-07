@@ -1,9 +1,9 @@
 import type {
   StudioWorkspaceActor,
   StudioWorkspaceDescriptor,
-  StudioWorkspaceRegistration,
   UserPermissionLevel,
 } from "@brains/sdk/services";
+import type { StudioWorkspaceRegistration } from "@brains/sdk/plugins";
 import { z } from "@brains/utils/zod";
 
 const workspaceRegistrationSchema = z.object({

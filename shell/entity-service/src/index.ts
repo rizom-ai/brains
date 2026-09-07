@@ -159,6 +159,7 @@ export type {
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,
+  DeleteEntityRequest,
   UpdateEntityRequest,
   UpsertEntityRequest,
   ProjectSemanticSpaceRequest,

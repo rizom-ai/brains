@@ -86,3 +86,24 @@ export type {
   MessageSender,
   MessageWithPayload,
 } from "@brains/plugins/contracts/messaging";
+
+/**
+ * What a host and an infrastructure package name, which ordinary authoring
+ * does not.
+ *
+ * A console keeps a registry of what other packages announced, and a sync
+ * package holds a mirror of the entity service; both need the runtime's own
+ * shapes. Neither is something an extension declares, so they are advanced
+ * contracts here rather than ordinary ones on the services entry — the
+ * surface test treats the registration and entity-service shapes as private
+ * to the normal path. Named consumers: @brains/studio, @brains/dashboard,
+ * @brains/directory-sync.
+ */
+export type {
+  DashboardWidgetRegistration,
+  EntityMirror,
+  EntityMirrorClient,
+  StudioOverviewContributionRegistration,
+  StudioWorkspaceRegistration,
+  StudioWorkspaceRegistrationResult,
+} from "@brains/plugins";
