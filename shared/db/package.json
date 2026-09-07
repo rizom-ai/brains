@@ -25,6 +25,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
+    "test:thread-proof:packed": "bun test/turso-thread-packed.ts",
     "typecheck": "tsc --noEmit"
   },
   "type": "module",

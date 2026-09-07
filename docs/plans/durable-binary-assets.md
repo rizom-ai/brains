@@ -17,10 +17,13 @@ The local Docker fixture also checks image references, metadata, and exact PNG
 bytes across offline backup, restore, and restart. These checks are not a
 production cutover or a browser/site/publishing acceptance rehearsal.
 
-The existing 16 MiB RPC frame limit still applies, including encoded bytes and
-request/response metadata. The 100 MiB asset-store ceiling is not an end-to-end
-worker payload guarantee. Bounded large-asset transport and acceptance remain a
-0.3 release gate; do not raise the global frame limit to claim that coverage.
+The existing 16 MiB RPC frame limit still applies. An uncommitted prototype now
+transfers and persists 100 MiB through 1 MiB chunks, including disconnect cleanup
+and cross-connection staging isolation. It does not establish request-loop
+isolation: native Turso execution, hashing and bulk copies still occur on calling
+threads. The [off-thread persistence proposal](turso-off-thread-persistence.md)
+is the next architectural gate. Do not raise the global frame limit or treat a
+successful transfer as production-readiness evidence.
 
 PR #125 implemented a filesystem-backed content-addressed asset store under
 `data/assets`. That backend is no longer the target architecture. Do not merge or deploy

@@ -964,6 +964,28 @@ rover and real-instance authentication/job recovery rehearsal remain required.
   released-0.2-to-0.3 migration tests. Verify the packed runtime contains no
   libSQL dependency; only the separate migration tool may carry it.
 
+#### Off-thread persistence and binary processing — OPEN
+
+The installed Turso 0.7.2 Promise facade calls native `prepare`, `bindAt`,
+`stepSync` and row extraction on the calling thread. Its default Node I/O wait
+is a no-op. Asynchronous method signatures therefore do not establish request-loop
+isolation. The chunked-transfer prototype passes a local 100 MiB persistence/read
+rehearsal, but still assembles and hashes bulk data on calling threads.
+
+[The architecture proposal](turso-off-thread-persistence.md) requires an explicit
+native-execution and binary-processing boundary, retaining single ownership and
+atomic asset/entity writes. Driver commands, connection affinity, binary ownership,
+packaging and crash/shutdown semantics must be reviewed before that refactor.
+Performance measurements verify the eventual design; they do not waive this gate.
+
+The approved isolated driver proof now passes source, packed-JavaScript and
+compiled-consumer acceptance, including deterministic main-thread HTTP progress
+while its native-owning worker is blocked, transaction isolation and durable
+main-file-only recovery. It uses an installed worker sidecar; compiled Bun needs
+`--compile-autoload-package-json` for SDK/native-addon resolution. No runtime
+caller was switched. Full driver parity, binary staging and canonical build/runtime
+integration remain open; see the proposal for the precise proof limits.
+
 #### Per-instance procedure
 
 1. Stop the 0.2 runtime and fence all writers, including any auth replica sync.
