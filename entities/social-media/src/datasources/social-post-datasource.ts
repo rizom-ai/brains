@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   parseMarkdownWithFrontmatter,
 } from "@brains/sdk/entities";
 import type {
@@ -50,7 +50,7 @@ export const socialPostDataSource: EntityDataSourceDefinition<
     pagination: PaginationInfo | null;
     baseUrl: string | null;
   }
-> = defineEntityDataSource({
+> = defineDataSource({
   id: "posts",
   name: "Social Post DataSource",
   description: "Fetches and transforms social post entities for rendering",

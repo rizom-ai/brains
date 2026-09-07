@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   parseMarkdownWithFrontmatter,
   truncateText,
   type EntityDataSourceDefinition,
@@ -90,7 +90,7 @@ export const newsletterDataSource: EntityDataSourceDefinition<
   Newsletter,
   TransformedNewsletter,
   NewsletterListData
-> = defineEntityDataSource({
+> = defineDataSource({
   id: "entities",
   name: "Newsletter Entity DataSource",
   description: "Fetches and transforms newsletter entities for rendering",

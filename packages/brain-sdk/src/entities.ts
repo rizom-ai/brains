@@ -40,7 +40,7 @@ export type {
 // surface it has to reach into @brains/plugins and cannot be published.
 // Named consumer: @brains/doc.
 //
-// `defineEntityDataSource` is deliberately the only way to declare one.
+// `defineDataSource` is deliberately the only way to declare one.
 // The runtime `DataSource` interface cannot be published: its `fetch` takes
 // a context carrying a scoped entity service, which reaches the projection
 // store, so exporting it would drag the entity-service runtime into the
@@ -51,7 +51,6 @@ export {
   contentVisibilitySchema,
   createTemplate,
   defineDataSource,
-  defineEntityDataSource,
   defineProjectionRule,
   paginationInfoSchema,
   parseMarkdownWithFrontmatter,
