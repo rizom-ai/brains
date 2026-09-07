@@ -566,25 +566,34 @@ Sources: `shell/plugins/src/package-definition.ts`,
 
 ### I. Contributor binding — declare the loader where state exists
 
-**Disposition: remove the bind step with the two-stage migration.**
+**Disposition: keep the bind step. The premise below was wrong.**
 
 A Studio workspace or Dashboard widget is declared once with
 `defineStudioWorkspace` or `defineDashboardWidget` and then, in the
-`studioWorkspaces` or `dashboardWidgets` slot, bound again with
-`.bind(bindingContext, { load, actions })` so its loader and action handlers
-can reach setup state. That second step exists only because the object form
-cannot see `state` at declaration time. The two-stage pattern gives the
-behavior stage the state, so the loader and handlers can be written in the
-declaration itself.
+`studioWorkspaces` or `dashboardWidgets` slot, bound with
+`.bind(context, { load, actions })`.
 
-**Decided:** `studioWorkspaces` and `dashboardWidgets` in the behavior stage
-return definitions that carry `load` and action handlers directly, closing
-over state; the runtime keeps binding config, caller, visibility-scoped
-entities, and cancellation as it does now. `bind`, `OperatorBindingContext`,
-`BoundStudioWorkspace`, and `BoundWorkspaceAction` leave the public surface.
-An action definition a package exports for reuse keeps its schemas; its
-handler lives with the workspace that declares it. Lands with slice 2, since
-the same consumers migrate.
+This was scheduled for removal on the premise that the bind step exists only
+because the object form cannot see `state` at declaration time. Reading the
+runtime during slice 2 showed that premise is false, so the removal is
+withdrawn rather than attempted. `bind` does two things the two-stage change
+does not replace. It seals the executor behind a module-private symbol, and
+`getStudioWorkspaceExecutor` refuses a binding that lacks it — a hand-written
+object claiming to be a workspace is rejected where it would otherwise reach
+the console. And it is where the config, state and account-settings types are
+inferred from: without the context argument they would have to come from the
+slot's contextual return type, which is where generic inference is least
+reliable.
+
+What the slot passes is not redundant bookkeeping either. The context is
+`{config, state, accountSettings}`, which is what the behavior slot already
+receives, and threading it into `bind` is what ties the loader's context to
+this package's types.
+
+**Decided:** keep `bind`, `OperatorBindingContext`, `BoundStudioWorkspace`
+and `BoundWorkspaceAction` as they are. Removing the sealing to save one
+threaded argument would trade a real guarantee for a cosmetic gain, and the
+inference it provides has no better source. Nothing lands for this candidate.
 
 Sources: `shell/plugins/src/service/service-definition-contract.ts`
 (`studioWorkspaces`, `dashboardWidgets`),
@@ -658,8 +667,7 @@ needs are small.
 2. Implement the two-stage setup pattern across families, with compile
    fixtures covering both property orders for services, generic interfaces,
    and message interfaces. Every later slice expresses its contracts in that
-   shape. Do not begin step 3 until this has landed. The same consumer
-   migration removes the contributor `bind` step (I).
+   shape. Do not begin step 3 until this has landed.
 3. Unify service routes with the existing instance-bound lifecycle; add the
    Newsletter two-instance regression. Delete the config-only rationale comment.
 4. Combine service templates/views and the two data-source helper names, one
@@ -829,8 +837,6 @@ posture script and rebuild preview through the running app before inspecting
 - [ ] Plugin ids, job types, and workspace ids carry no package prefix, and a
       duplicate declaration id is refused at registration with both packages
       named.
-- [ ] Workspace and widget loaders and handlers are declared with their
-      definitions; no `bind` step or binding-context type is public.
 - [ ] Public documentation allows breaking cleanup before stable `0.2.0` and
       states that the `0.2.x` patch promise and later-minor breaking-change policy
       apply only after the stable freeze.
