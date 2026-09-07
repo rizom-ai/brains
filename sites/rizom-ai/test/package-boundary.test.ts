@@ -180,12 +180,12 @@ describe("@rizom/site-rizom-ai package boundary", () => {
         [
           "bun",
           "-e",
-          'const site = await import("@rizom/site-rizom-ai"); console.log(site.default.routes[0].id, typeof site.createRizomSite, typeof site.Header)',
+          'const site = await import("@rizom/site-rizom-ai"); console.log(site.default.routes[0].id, site.default.routes[0].path, typeof site.createRizomSite, typeof site.Header)',
         ],
         tempDir,
       );
 
-      expect(output.trim()).toBe("home function function");
+      expect(output.trim()).toBe("living-memory / function function");
 
       const productionRender = await run(
         [

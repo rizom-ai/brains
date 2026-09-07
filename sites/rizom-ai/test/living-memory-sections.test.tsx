@@ -48,7 +48,7 @@ const rows = ["01", "02", "03"].map((no) => ({
 }));
 
 describe("approved living-memory composition", () => {
-  test("owns its rendering without changing home, and keeps the maps live", () => {
+  test("is the only homepage, preserves content identity, and keeps the maps live", () => {
     expect(Object.keys(livingMemorySections.sections)).toEqual([
       "problem",
       "science",
@@ -60,19 +60,26 @@ describe("approved living-memory composition", () => {
     ]);
     const route = site.routes.find((route) => route.id === "living-memory");
     expect(route?.sections).toEqual([
-      { id: "hero", template: "agent-discovery:proximity-map", dataQuery: {} },
+      {
+        id: "hero",
+        template: "@brains/agent-discovery:agent:proximity-map",
+        dataQuery: {},
+      },
       { id: "problem", template: "living-memory:problem" },
       { id: "science", template: "living-memory:science" },
       { id: "turn", template: "living-memory:turn" },
       { id: "system", template: "living-memory:system" },
       { id: "growth", template: "living-memory:growth" },
-      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
+      { id: "proof", template: "@brains/knowledge-map:map", dataQuery: {} },
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ]);
-    expect(
-      site.routes.find((route) => route.id === "home")?.sections,
-    ).toContainEqual({ id: "growth", template: "home:growth" });
+    expect(route?.path).toBe("/");
+    expect(site.routes.filter((route) => route.path === "/")).toHaveLength(1);
+    expect(site.routes.some((route) => route.path === "/living-memory")).toBe(
+      false,
+    );
+    expect(site.routes.some((route) => route.id === "home")).toBe(false);
   });
   test("lantern retains one illustration and three accessible states", () => {
     const html = renderSection("science", { ...lead, dimensions });
@@ -106,6 +113,15 @@ describe("approved living-memory composition", () => {
     const pageRule = css?.match(/:scope\s*\{([^}]+)\}/)?.[1];
     expect(pageRule).toBeDefined();
     expect(pageRule).not.toMatch(/background(?:-color|-image)?\s*:/);
+  });
+
+  test("sticky navigation uses the shared theme surface without washing out its texture", () => {
+    const css = site.staticAssets?.["/styles/living-memory.css"];
+    const headerRule = css?.match(/\.site-header\s*\{([^}]+)\}/)?.[1];
+    expect(headerRule).toContain("background-color: var(--color-bg)");
+    expect(headerRule).toContain("background-image: var(--bg-noise)");
+    expect(headerRule).toContain("backdrop-filter: none");
+    expect(headerRule).toContain("position: sticky");
   });
 
   test("heading emphasis follows the brand: italic, accent yellow, and inline", () => {

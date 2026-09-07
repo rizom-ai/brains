@@ -1,5 +1,85 @@
 # @brains/doc
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/plugins@0.2.0-alpha.364
+  - @brains/templates@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+  - @brains/templates@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/plugins@0.2.0-alpha.362
+  - @brains/templates@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+  - @brains/templates@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/plugins@0.2.0-alpha.360
+  - @brains/templates@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/plugins@0.2.0-alpha.359
+  - @brains/templates@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+  - @brains/templates@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/plugins@0.2.0-alpha.357
+  - @brains/templates@0.2.0-alpha.357
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

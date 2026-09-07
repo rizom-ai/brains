@@ -3,9 +3,14 @@
   /* Living memory: one editorial grid, with the approved lantern as its focal object. */
   :scope {
     margin: 0;
+    isolation: isolate;
     /* Preserve the shared theme texture across the frame and outer gutters. */
     color: var(--color-text);
     font-family: var(--font-body);
+  }
+  /* Keep the restored rail decorative, behind the editorial content. */
+  .mycelium-rail {
+    z-index: -1;
   }
   *,
   *::before,
@@ -158,8 +163,10 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: color-mix(in srgb, var(--color-bg) 95%, transparent);
-    backdrop-filter: blur(14px);
+    /* Match the shared page surface while covering content under sticky navigation. */
+    background-color: var(--color-bg);
+    background-image: var(--bg-noise);
+    backdrop-filter: none;
     border-bottom: 1px solid var(--color-border-light);
   }
   .faces-bar {

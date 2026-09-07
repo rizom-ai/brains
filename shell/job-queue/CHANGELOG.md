@@ -1,5 +1,93 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/db@0.2.0-alpha.364
+  - @brains/operation-context@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/mcp-service@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/db@0.2.0-alpha.363
+  - @brains/operation-context@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/mcp-service@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/db@0.2.0-alpha.362
+  - @brains/operation-context@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/mcp-service@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/db@0.2.0-alpha.361
+  - @brains/operation-context@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/mcp-service@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/db@0.2.0-alpha.360
+  - @brains/operation-context@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/mcp-service@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/db@0.2.0-alpha.359
+  - @brains/operation-context@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/mcp-service@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/db@0.2.0-alpha.358
+  - @brains/operation-context@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/mcp-service@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/db@0.2.0-alpha.357
+  - @brains/operation-context@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/mcp-service@0.2.0-alpha.357
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

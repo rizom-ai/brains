@@ -1,5 +1,109 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies [[`1a86a8b`](https://github.com/rizom-ai/brains/commit/1a86a8bdc21febdc1e8315a77fe7861f58535b0b)]:
+  - @brains/operator-view-react@0.2.0-alpha.364
+  - @brains/console-theme@0.2.0-alpha.364
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/ui-library@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/auth-service@0.2.0-alpha.364
+  - @brains/plugins@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies [[`6e17546`](https://github.com/rizom-ai/brains/commit/6e17546fd41c2d52ee602c2ac2cb2dc08fc9a5a9)]:
+  - @brains/auth-service@0.2.0-alpha.363
+  - @brains/console-theme@0.2.0-alpha.363
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/operator-view-react@0.2.0-alpha.363
+  - @brains/ui-library@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies [[`8ea29b9`](https://github.com/rizom-ai/brains/commit/8ea29b909f57a74d7f21a3d9494b2ed8cc82c1c8)]:
+  - @brains/operator-view-react@0.2.0-alpha.362
+  - @brains/console-theme@0.2.0-alpha.362
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/ui-library@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/auth-service@0.2.0-alpha.362
+  - @brains/plugins@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.361
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/operator-view-react@0.2.0-alpha.361
+  - @brains/ui-library@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/auth-service@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.360
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/operator-view-react@0.2.0-alpha.360
+  - @brains/ui-library@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/auth-service@0.2.0-alpha.360
+  - @brains/plugins@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.359
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/operator-view-react@0.2.0-alpha.359
+  - @brains/ui-library@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/auth-service@0.2.0-alpha.359
+  - @brains/plugins@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.358
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/operator-view-react@0.2.0-alpha.358
+  - @brains/ui-library@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/auth-service@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.357
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/operator-view-react@0.2.0-alpha.357
+  - @brains/ui-library@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/auth-service@0.2.0-alpha.357
+  - @brains/plugins@0.2.0-alpha.357
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

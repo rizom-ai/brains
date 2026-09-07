@@ -735,6 +735,147 @@ describe("OperatorViewRenderer confirmations", () => {
     expect(disclosure.textContent).toContain("Discord user ID");
   });
 
+  it("keeps disclosure action failures visible inside the open disclosure", async () => {
+    const action: RuntimeOperatorActionControl = {
+      actionId: "invite",
+      label: "Add a person",
+      input: { idempotencyKey: "request-1" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+        fields: [],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: { view: { blocks: [{ type: "action", ...action }] } },
+          onAction: async () => {
+            throw new Error("Delivery identity is already connected");
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    await clickButton("Create invitation");
+
+    const disclosure = container.querySelector(
+      ".declarative-action-disclosure",
+    );
+    const error = disclosure?.querySelector(".status-error");
+    expect(error?.textContent).toContain(
+      "Action failed: Delivery identity is already connected",
+    );
+  });
+
+  it("keeps a sensitive action receipt when refreshed data removes its control", async () => {
+    let finishAction: (value: unknown) => void = () => {};
+    const actionResult = new Promise<unknown>((resolve) => {
+      finishAction = resolve;
+    });
+    let copied = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string): Promise<void> => {
+          copied = value;
+        },
+      },
+    });
+    const action: RuntimeOperatorActionControl = {
+      actionId: "resend-invitation",
+      label: "Resend",
+      input: { invitationId: "inv-natalie" },
+      confirmation: {
+        kind: "static",
+        message: "Create a new single-use setup link?",
+      },
+      result: {
+        title: "Invitation setup",
+        fields: [
+          { name: "status", label: "Status" },
+          {
+            name: "setupUrl",
+            label: "Single-use setup URL",
+            copyable: true,
+            sensitive: true,
+          },
+        ],
+      },
+    };
+    const workspace = (
+      rows: RuntimeStudioWorkspaceData["view"]["blocks"],
+    ): RuntimeStudioWorkspaceData => ({ view: { blocks: rows } });
+    const withInvitation = workspace([
+      {
+        type: "table",
+        id: "invitations",
+        empty: "No invitation history yet.",
+        columns: [{ key: "person", label: "Person" }],
+        rows: [
+          {
+            id: "inv-natalie",
+            cells: { person: "Natalie" },
+            actions: [action],
+          },
+        ],
+      },
+    ]);
+    const withoutInvitation = workspace([
+      {
+        type: "table",
+        id: "invitations",
+        empty: "No invitation history yet.",
+        columns: [{ key: "person", label: "Person" }],
+        rows: [],
+      },
+    ]);
+    const onAction = async (): Promise<unknown> => actionResult;
+
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: withInvitation,
+          onAction,
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+    await clickButton("Resend");
+    await clickButton("Confirm action");
+
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: withoutInvitation,
+          onAction,
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+    await act(async () => {
+      finishAction({
+        status: "Delivery provider accepted the invitation.",
+        setupUrl: "https://brain.test/setup?token=setup_latest",
+      });
+      await actionResult;
+    });
+
+    const receipt = container.querySelector(".declarative-action-receipt");
+    expect(receipt?.textContent).toContain(
+      "Delivery provider accepted the invitation.",
+    );
+    expect(receipt?.textContent).toContain(
+      "https://brain.test/setup?token=setup_latest",
+    );
+    expect(receipt?.querySelector("[data-sensitive]")).not.toBeNull();
+    await clickButton("Copy");
+    expect(copied).toBe("https://brain.test/setup?token=setup_latest");
+    await clickButton("Dismiss");
+    expect(container.querySelector(".declarative-action-receipt")).toBeNull();
+  });
+
   it("submits typed form input and presents bounded action results", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     let copied = "";

@@ -83,7 +83,7 @@ const HOME_CHROME: FaceChrome = {
 /* The umbrella pages: the ones that speak for the whole practice rather than
    from inside one room. They wear the home chrome — the full faces nav, no
    room-specific product bar. */
-const UMBRELLA_PATHS = new Set(["/", "/living-memory"]);
+const UMBRELLA_PATHS = new Set(["/"]);
 
 function isUmbrella(path: string): boolean {
   return UMBRELLA_PATHS.has(path);
@@ -320,7 +320,7 @@ function MyceliumRail(): JSX.Element {
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none absolute top-0 -left-[18px] hidden h-full w-[210px] xl:block"
+      className="mycelium-rail pointer-events-none absolute top-0 -left-[18px] hidden h-full w-[210px] xl:block"
       viewBox="0 0 210 2400"
       preserveAspectRatio="xMidYMin slice"
     >
@@ -370,7 +370,7 @@ function RizomAiChrome({
 }): JSX.Element {
   const face = activeFace(path);
   const umbrella = isUmbrella(path) || orgIndexActive(path) !== null;
-  const livingMemory = path === "/living-memory";
+  const livingMemory = path === "/";
   return (
     <RizomFrame>
       {/* xl:pl matches the mockup's 148px left rail (68 + the 80px
@@ -378,10 +378,13 @@ function RizomAiChrome({
       <div
         data-room={face}
         className={
-          livingMemory ? "living-memory-page relative" : "relative xl:pl-[68px]"
+          livingMemory
+            ? "living-memory-page relative xl:pl-[68px]"
+            : "relative xl:pl-[68px]"
         }
       >
-        {livingMemory ? <LivingMemoryStyles /> : <MyceliumRail />}
+        {livingMemory && <LivingMemoryStyles />}
+        <MyceliumRail />
         <header className="site-header sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip path={path} />
           <FaceNav face={face} umbrella={umbrella} />
