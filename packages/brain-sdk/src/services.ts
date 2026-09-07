@@ -203,8 +203,6 @@ export type {
   ServiceBatchStatus,
   ServiceGitBroker,
   ServiceRole,
-  EntityMirror,
-  EntityMirrorClient,
   IRuntimeStateNamespace,
   RuntimeHealthCheck,
   OperationalHealthProvider,
@@ -316,18 +314,14 @@ export {
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
 } from "@brains/plugins";
 export type {
-  DashboardWidgetRegistration,
   RuntimeDashboardOperatorView,
   RuntimeDashboardWidgetData,
   RuntimeStudioOperatorCardBlock,
   RuntimeStudioOperatorPanelBlock,
   RuntimeStudioOperatorView,
-  StudioOverviewContributionRegistration,
   StudioOverviewContributionUnregistration,
   StudioWorkspaceActor,
   StudioWorkspaceDescriptor,
-  StudioWorkspaceRegistration,
-  StudioWorkspaceRegistrationResult,
   StudioWorkspaceUnregistration,
 } from "@brains/plugins";
 

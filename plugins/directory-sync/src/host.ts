@@ -1,10 +1,10 @@
 import type {
-  EntityMirror,
   ServiceGitBroker,
   ServiceJobs,
   ServicePublisher,
   ServiceRole,
 } from "@brains/sdk/services";
+import type { EntityMirror } from "@brains/sdk/plugins";
 import type {
   IRuntimeStateStore,
   RuntimeStateScopeOptions,
