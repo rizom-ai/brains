@@ -48,7 +48,7 @@ const rows = ["01", "02", "03"].map((no) => ({
 }));
 
 describe("approved living-memory composition", () => {
-  test("owns its rendering without changing home, and keeps the maps live", () => {
+  test("is the only homepage, preserves content identity, and keeps the maps live", () => {
     expect(Object.keys(livingMemorySections.sections)).toEqual([
       "problem",
       "science",
@@ -70,9 +70,12 @@ describe("approved living-memory composition", () => {
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ]);
-    expect(
-      site.routes.find((route) => route.id === "home")?.sections,
-    ).toContainEqual({ id: "growth", template: "home:growth" });
+    expect(route?.path).toBe("/");
+    expect(site.routes.filter((route) => route.path === "/")).toHaveLength(1);
+    expect(site.routes.some((route) => route.path === "/living-memory")).toBe(
+      false,
+    );
+    expect(site.routes.some((route) => route.id === "home")).toBe(false);
   });
   test("lantern retains one illustration and three accessible states", () => {
     const html = renderSection("science", { ...lead, dimensions });

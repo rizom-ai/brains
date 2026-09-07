@@ -83,7 +83,7 @@ const HOME_CHROME: FaceChrome = {
 /* The umbrella pages: the ones that speak for the whole practice rather than
    from inside one room. They wear the home chrome — the full faces nav, no
    room-specific product bar. */
-const UMBRELLA_PATHS = new Set(["/", "/living-memory"]);
+const UMBRELLA_PATHS = new Set(["/"]);
 
 function isUmbrella(path: string): boolean {
   return UMBRELLA_PATHS.has(path);
@@ -370,7 +370,7 @@ function RizomAiChrome({
 }): JSX.Element {
   const face = activeFace(path);
   const umbrella = isUmbrella(path) || orgIndexActive(path) !== null;
-  const livingMemory = path === "/living-memory";
+  const livingMemory = path === "/";
   return (
     <RizomFrame>
       {/* xl:pl matches the mockup's 148px left rail (68 + the 80px
