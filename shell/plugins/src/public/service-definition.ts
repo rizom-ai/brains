@@ -13,7 +13,6 @@ import type {
   ServiceDefinitionHeaderInput,
   ServiceDefinitionInput,
   ServiceSchemaMap,
-  ServiceViewSchemaMap,
   ServiceTemplateShapeMap,
 } from "../service/service-definition-contract";
 
@@ -132,16 +131,14 @@ export type {
   ServiceResourceDefinition,
   ServiceChannelReader,
   ServiceEntityShapes,
+  ServiceRenderSchema,
   ServiceSchema,
   ServiceSchemaMap,
-  ServiceViewSchema,
-  ServiceViewSchemaMap,
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
   ServiceTemplateReads,
   ServiceTemplateGenerationDefinition,
   ServiceToolDefinition,
-  ServiceViewDefinition,
 } from "../service/service-definition-contract";
 
 /**
@@ -177,7 +174,6 @@ function createServicePackage<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
@@ -186,7 +182,6 @@ function createServicePackage<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions
   >,
@@ -230,7 +225,6 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
@@ -241,7 +235,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions
   >,
@@ -251,7 +244,6 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
@@ -261,7 +253,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions
   >,
@@ -271,7 +262,6 @@ export function defineServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
@@ -281,7 +271,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions
   >,
@@ -294,7 +283,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions
   > = { ...header, ...behavior };
@@ -317,7 +305,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings,
     TTemplateDefinitions
   > = {

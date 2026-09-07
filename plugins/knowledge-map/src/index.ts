@@ -15,5 +15,5 @@ export {
   type KnowledgeMapZone,
 } from "./knowledge-map-data";
 export { KnowledgeMap, knowledgeMapStyles } from "./knowledge-map";
-export { getKnowledgeMapTemplate } from "./knowledge-map-template";
+export { knowledgeMapTemplate } from "./knowledge-map-template";
 export { knowledgeMapWidgetView } from "./knowledge-map-widget";
