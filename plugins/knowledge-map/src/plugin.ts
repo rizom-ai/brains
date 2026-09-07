@@ -11,7 +11,7 @@ import {
   knowledgeMapDataSchema,
   type KnowledgeMapDataContext,
 } from "./knowledge-map-data";
-import { getKnowledgeMapTemplate } from "./knowledge-map-template";
+import { knowledgeMapTemplate } from "./knowledge-map-template";
 import { knowledgeMapWidgetView } from "./knowledge-map-widget";
 import { KnowledgeMapWidget, knowledgeMapStyles } from "./knowledge-map";
 
@@ -88,7 +88,7 @@ const knowledgeMapPackage: ServicePackageDefinition<
       }),
     ],
 
-    templates: () => ({ map: getKnowledgeMapTemplate() }),
+    templates: () => ({ map: knowledgeMapTemplate }),
 
     dashboardWidgets: (context) => [
       knowledgeMapWidget.bind(context, async ({ corpus, signal }) => {

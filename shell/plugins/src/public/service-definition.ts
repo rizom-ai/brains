@@ -13,7 +13,6 @@ import type {
   ServiceDefinitionHeaderInput,
   ServiceDefinitionInput,
   ServiceSchemaMap,
-  ServiceViewSchemaMap,
 } from "../service/service-definition-contract";
 
 export { defineAccountSettings } from "../operator/account-settings-definition-contract";
@@ -122,15 +121,13 @@ export type {
   ServiceResourceDefinition,
   ServiceChannelReader,
   ServiceEntityShapes,
+  ServiceRenderSchema,
   ServiceSchema,
   ServiceSchemaMap,
-  ServiceViewSchema,
-  ServiceViewSchemaMap,
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
   ServiceTemplateReads,
   ServiceToolDefinition,
-  ServiceViewDefinition,
 } from "../service/service-definition-contract";
 
 /**
@@ -166,7 +163,6 @@ function createServicePackage<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: NormalizedServiceDefinitionInput<
@@ -174,7 +170,6 @@ function createServicePackage<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >,
 ): ServicePackageDefinition<TConfigSchema> {
@@ -217,7 +212,6 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
 >(
@@ -227,7 +221,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >,
 ): ServicePackageDefinition<TConfigSchema>;
@@ -236,7 +229,6 @@ export function defineServicePlugin<
   TState extends object = Record<never, never>,
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
-  TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
 >(
   header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
@@ -245,7 +237,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >,
 ): ServicePackageDefinition<TConfigSchema>;
@@ -254,7 +245,6 @@ export function defineServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
@@ -263,7 +253,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >,
 ): ServicePackageDefinition<TConfigSchema> {
@@ -275,7 +264,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   > = { ...header, ...behavior };
   // Both plugins scope to `${packageName}:${id}`, so a service sharing an
@@ -297,7 +285,6 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   > = {
     ...definition,

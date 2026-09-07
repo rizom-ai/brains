@@ -253,10 +253,9 @@ Definitions and schema vocabulary:
 - `SerializedStatusStoreOptions`
 - `StaticSiteOutput`
 - `ServiceTemplateDefinition`
-- `ServiceViewDefinition`
 - `ServiceTemplateReads`
 - `ServiceSchema`
-- `ServiceViewSchema`
+- `ServiceRenderSchema`
 - `requireSameOriginJson`
 - `requireSameOriginRequest`
 - `DECLARATIVE_STUDIO_WORKSPACE_RENDERER`

@@ -3,6 +3,7 @@ import type {
   TemplateDataSchema,
   UserPermissionLevel,
 } from "@brains/templates";
+import type { ContentFormatter } from "@brains/content-formatters";
 import type { JsonObject } from "@brains/contracts";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
@@ -789,7 +790,14 @@ export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
    * Named consumer: @brains/site-content.
    */
   readonly permission?: UserPermissionLevel | undefined;
-  format(context: { readonly value: z.output<TSchema> }): string;
+  /**
+   * How a value becomes text, when this template produces any.
+   *
+   * Optional because a template may exist only to render: a page section
+   * that is drawn in a browser and never written to a file has nothing to
+   * format. A template must do one or the other, which registration checks.
+   */
+  format?(context: { readonly value: z.output<TSchema> }): string;
   /**
    * The value this template's markdown came from.
    *
@@ -800,28 +808,48 @@ export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
    * Named consumer: @brains/site-content.
    */
   parse?(content: string): z.output<TSchema>;
+  /**
+   * How a value is drawn, when this template renders.
+   *
+   * A React component taking the parsed value as its props, mounted by the
+   * site builder.
+   *
+   * The props are stored and serialized to the browser, so what the schema
+   * produces has to be JSON. That is not spelled as a type constraint here:
+   * a schema declared as `z.ZodType<SomeNamedType>` produces JSON at runtime
+   * without being assignable to an index-signature type, and rejecting those
+   * would refuse templates that are perfectly well formed. The runtime parses
+   * the props through this schema before mounting, which is where a value
+   * that cannot survive the trip actually fails.
+   */
+  readonly render?: ComponentType<z.output<TSchema>> | undefined;
+  /** What this template is, where a console or a site lists it. */
+  readonly description?: string | undefined;
+  /**
+   * The data source this template draws from, when it is not written by hand.
+   *
+   * A site route naming this template asks the runtime to fill it, and the
+   * runtime asks the named source. Local to the package; the runtime scopes
+   * it. Named consumer: @brains/knowledge-map, whose map is drawn from the
+   * corpus rather than authored.
+   */
+  readonly dataSourceId?: string | undefined;
+  /**
+   * How saved copy is read, for a template whose data is fetched.
+   *
+   * Without this a data source and saved content are alternatives, and the
+   * source wins. With it the saved content is parsed and laid over what the
+   * source returned, so a live section can still carry an editor's words.
+   * Named consumer: @brains/knowledge-map.
+   */
+  readonly overlayFormatter?: ContentFormatter<unknown> | undefined;
 }
 
 /**
- * A view schema must produce JSON: its parsed value is stored, serialized to
- * the browser, and handed to a React component as props.
+ * A schema a template can render from must produce JSON: the parsed value is
+ * stored, serialized to the browser, and handed to a React component as props.
  */
-export type ServiceViewSchema = TemplateDataSchema<JsonObject>;
-export type ServiceViewSchemaMap = Record<string, ServiceViewSchema>;
-
-export interface ServiceViewDefinition<TSchema extends ServiceViewSchema> {
-  readonly schema: TSchema;
-  readonly description?: string | undefined;
-  readonly renderers: {
-    /**
-     * A React component receiving the schema-parsed value as props. Views are
-     * mounted with createElement by the site builder, exactly like site
-     * sections — the earlier string-returning form was mounted the same way,
-     * which would have rendered its markup as an escaped text node.
-     */
-    readonly web: ComponentType<z.output<TSchema>>;
-  };
-}
+export type ServiceRenderSchema = TemplateDataSchema<JsonObject>;
 
 /**
  * A publish provider a service supplies, named with the entity type it serves.
@@ -1112,7 +1140,6 @@ interface ServiceDefinitionBehavior<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > {
   /**
@@ -1368,20 +1395,7 @@ interface ServiceDefinitionBehavior<
         readonly config: z.output<TConfigSchema>;
       }) => Record<string, ServiceTemplateDefinition<ServiceSchema>>)
     | undefined;
-  /**
-   * How this package's own values are rendered. Takes a function of config
-   * for the same reason the templates slot does.
-   */
-  readonly views?:
-    | {
-        readonly [K in keyof TViewSchemas]: ServiceViewDefinition<
-          TViewSchemas[K]
-        >;
-      }
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-      }) => Record<string, ServiceViewDefinition<ServiceViewSchema>>)
-    | undefined;
+
   readonly jobs?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;
@@ -1518,7 +1532,6 @@ type ServiceDefinitionCore<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > = ServiceDefinitionHeader<TConfigSchema, TState> &
   ServiceDefinitionBehavior<
@@ -1526,7 +1539,6 @@ type ServiceDefinitionCore<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >;
 
@@ -1535,14 +1547,12 @@ export type NormalizedServiceDefinitionInput<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > = ServiceDefinitionCore<
   TConfigSchema,
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TViewSchemas,
   TAccountSettings
 > & { readonly accountSettings: TAccountSettings };
 
@@ -1551,14 +1561,12 @@ export type ServiceDefinitionInput<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > = ServiceDefinitionCore<
   TConfigSchema,
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TViewSchemas,
   TAccountSettings
 > &
   (TAccountSettings extends AnyAccountSettingsDefinition

@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { ContentFormatter } from "@brains/content-formatters";
 import { PUBLISH_CHANNELS, type JsonObject } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "../system-channels";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
@@ -77,7 +78,6 @@ import type {
   ServiceResourceDefinition,
   ServiceSchema,
   ServiceSchemaMap,
-  ServiceViewSchemaMap,
   ServiceTemplateFormatter,
 } from "./service-definition-contract";
 import {
@@ -100,18 +100,27 @@ interface ErasedServiceTemplate {
   readonly schema: ServiceSchema;
   readonly namespace?: string | undefined;
   readonly permission?: UserPermissionLevel | undefined;
-  format(value: unknown): string;
+  readonly description?: string | undefined;
+  format?(value: unknown): string;
   parse?(content: string): unknown;
+  readonly component?: ComponentType<JsonObject> | undefined;
+  readonly dataSourceId?: string | undefined;
+  readonly overlayFormatter?: ContentFormatter<unknown> | undefined;
 }
 
 /**
- * A view with its schema erased to the JSON bound it is declared with, and its
- * author component wrapped so props are parsed before render.
+ * A rendering template.s schema, as the registry needs it typed.
+ *
+ * The declaration proves the props: the runtime parses them through this very
+ * schema before mounting the component, and a value that cannot survive the
+ * trip fails there. What is lost is the static type alone, erased by walking
+ * a map whose templates each carry a different schema.
  */
-interface ErasedServiceView {
-  readonly schema: TemplateDataSchema<JsonObject>;
-  readonly description?: string | undefined;
-  readonly component: ComponentType<JsonObject>;
+function renderableSchema(
+  schema: ServiceSchema,
+): TemplateDataSchema<JsonObject> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the erasure point described above; the runtime parse is the check
+  return schema as TemplateDataSchema<JsonObject>;
 }
 
 function promptInput(value: string | undefined): unknown {
@@ -264,7 +273,6 @@ class DeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: NormalizedServiceDefinitionInput<
@@ -272,7 +280,6 @@ class DeclarativeServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >;
   private readonly publicId: string;
@@ -311,7 +318,6 @@ class DeclarativeServicePlugin<
       TState,
       TPromptSchemas,
       TTemplateSchemas,
-      TViewSchemas,
       TAccountSettings
     >,
     config: z.output<TConfigSchema>,
@@ -1411,7 +1417,9 @@ class DeclarativeServicePlugin<
         // A package's own template formats through the declaration it was
         // written as; a template the brain composed formats through the
         // registry that holds it.
-        if (template) return template.format(value);
+        // A template that only renders has no text to give, so the registry
+        // answers for it.
+        if (template?.format) return template.format(value);
         return context.templates.format(name, value);
       },
       capabilities: (name) => context.templates.getCapabilities(name),
@@ -1434,21 +1442,43 @@ class DeclarativeServicePlugin<
         ? declared({ config: this.config })
         : (declared ?? {});
     return new Map(
-      Object.entries(templates).map(([name, template]) => [
-        name,
-        {
-          schema: template.schema,
-          namespace: template.namespace,
-          permission: template.permission,
-          format: (value: unknown): string =>
-            template.format({ value: template.schema.parse(value) }),
-          ...(template.parse
-            ? {
-                parse: (content: string): unknown => template.parse?.(content),
-              }
-            : {}),
-        },
-      ]),
+      Object.entries(templates).map(([name, template]) => {
+        const { format, render } = template;
+        if (!format && !render) {
+          throw new Error(
+            `Service "${this.publicId}" template "${name}" neither formats nor renders`,
+          );
+        }
+        return [
+          name,
+          {
+            schema: template.schema,
+            namespace: template.namespace,
+            permission: template.permission,
+            description: template.description,
+            dataSourceId: template.dataSourceId,
+            overlayFormatter: template.overlayFormatter,
+            ...(format
+              ? {
+                  format: (value: unknown): string =>
+                    format({ value: template.schema.parse(value) }),
+                }
+              : {}),
+            ...(template.parse
+              ? {
+                  parse: (content: string): unknown =>
+                    template.parse?.(content),
+                }
+              : {}),
+            ...(render
+              ? {
+                  component: (props: JsonObject) =>
+                    render(template.schema.parse(props)),
+                }
+              : {}),
+          },
+        ];
+      }),
     );
   }
 
@@ -1469,25 +1499,6 @@ class DeclarativeServicePlugin<
     return type.startsWith(prefix) ? type.slice(prefix.length) : type;
   }
 
-  private erasedViews(): Map<string, ErasedServiceView> {
-    const declared = this.definition.views;
-    const views =
-      typeof declared === "function"
-        ? declared({ config: this.config })
-        : (declared ?? {});
-    return new Map(
-      Object.entries(views).map(([name, view]) => [
-        name,
-        {
-          schema: view.schema,
-          description: view.description,
-          component: (props: JsonObject) =>
-            view.renderers.web(view.schema.parse(props)),
-        },
-      ]),
-    );
-  }
-
   /**
    * Every template this package registers, grouped by where it is named
    * from. Most sit under the package; a configured page section sits under
@@ -1506,31 +1517,25 @@ class DeclarativeServicePlugin<
   }
 
   private runtimeTemplates(): Record<string, Template> {
-    const templates = this.erasedTemplates();
-    const views = this.erasedViews();
     const result: Record<string, Template> = {};
-    const names = new Set([...templates.keys(), ...views.keys()]);
 
-    for (const name of names) {
-      const template = templates.get(name);
-      const view = views.get(name);
-      if (template && view && template.schema !== view.schema) {
-        throw new Error(
-          `Service "${this.publicId}" template and view "${name}" must share one schema`,
-        );
-      }
-      const schema = template?.schema ?? view?.schema;
-      if (!schema) continue;
-      const parse = template?.parse;
+    for (const [name, template] of this.erasedTemplates()) {
+      const { format, parse, component } = template;
       const base = {
         name,
-        description: view?.description ?? `${this.publicId} ${name}`,
-        schema,
-        requiredPermission: template?.permission ?? ("admin" as const),
-        ...(template
+        description: template.description ?? `${this.publicId} ${name}`,
+        schema: template.schema,
+        requiredPermission: template.permission ?? ("admin" as const),
+        ...(template.dataSourceId
+          ? { dataSourceId: template.dataSourceId }
+          : {}),
+        ...(template.overlayFormatter
+          ? { overlayFormatter: template.overlayFormatter }
+          : {}),
+        ...(format
           ? {
               formatter: {
-                format: (value: unknown): string => template.format(value),
+                format: (value: unknown): string => format(value),
                 // A template that only formats is a one-way street; saying so
                 // where it is read beats returning something made up.
                 parse: parse
@@ -1542,15 +1547,13 @@ class DeclarativeServicePlugin<
             }
           : {}),
       };
-      if (!view) {
-        result[name] = createTemplate(base);
-        continue;
-      }
-      result[name] = createTemplate<JsonObject>({
-        ...base,
-        schema: view.schema,
-        layout: { component: view.component },
-      });
+      result[name] = component
+        ? createTemplate<JsonObject>({
+            ...base,
+            schema: renderableSchema(template.schema),
+            layout: { component },
+          })
+        : createTemplate(base);
     }
     return result;
   }
@@ -1679,7 +1682,6 @@ export function createDeclarativeServicePlugin<
   TState extends object,
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
 >(
   definition: NormalizedServiceDefinitionInput<
@@ -1687,7 +1689,6 @@ export function createDeclarativeServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TViewSchemas,
     TAccountSettings
   >,
   config: z.output<TConfigSchema>,
@@ -1699,7 +1700,6 @@ export function createDeclarativeServicePlugin<
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TViewSchemas,
   TAccountSettings
 > {
   return new DeclarativeServicePlugin(definition, config, metadata, id, scope);
