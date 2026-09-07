@@ -1,4 +1,4 @@
-import type { EntityMirrorClient } from "@brains/sdk/services";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { JobRequest } from "../types";
 import { DirectoryBatchQueue } from "./directory-batch-queue";

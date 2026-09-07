@@ -1,6 +1,6 @@
 import type { DirectorySyncHost } from "../host";
 import type { BaseEntity } from "@brains/sdk/entities";
-import type { EntityMirrorClient } from "@brains/sdk/services";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import { createId } from "@brains/utils/id";
 import type { BatchMetadata, BatchResult } from "../types";
 import type { Logger } from "@brains/utils/logger";

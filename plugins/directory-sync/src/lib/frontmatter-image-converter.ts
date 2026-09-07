@@ -1,4 +1,4 @@
-import type { EntityMirrorClient } from "@brains/sdk/services";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
 import { z } from "@brains/utils/zod";

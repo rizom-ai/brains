@@ -1,4 +1,4 @@
-import type { EntityMirrorClient } from "@brains/sdk/services";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import { Cause, Clock, Effect, Exit, Schedule } from "@brains/utils/effect";
 import type { Clock as ClockType } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
