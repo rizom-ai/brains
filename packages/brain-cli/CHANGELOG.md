@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- [#233](https://github.com/rizom-ai/brains/pull/233) [`b0d505a`](https://github.com/rizom-ai/brains/commit/b0d505ae95a878826f2f17fa61196e2b7b4541f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable fleet image containing the Rizom homepage promotion. No runtime implementation changes are included.
+
 ## 0.2.0-alpha.358
 
 ### Patch Changes

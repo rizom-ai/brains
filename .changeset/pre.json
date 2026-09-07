@@ -390,6 +390,7 @@
     "core--retired-projection-job-recovery",
     "core--rizom-background-image",
     "core--rizom-btn-shared-defaults",
+    "core--rizom-homepage-image",
     "core--rizom-topbar-image",
     "core--rizom-ui-public-boundary",
     "core--runtime-bun14-image-rebuild",

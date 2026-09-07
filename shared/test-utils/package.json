@@ -1,7 +1,7 @@
 {
   "name": "@brains/test-utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.358",
+  "version": "0.2.0-alpha.359",
   "dependencies": {
     "@brains/utils": "workspace:*",
     "parse5": "^7.3.0"
