@@ -87,6 +87,16 @@ describe("AiLayout chrome", () => {
     expect(html).not.toContain(">brain</span>");
   });
 
+  test("the homepage shares the desktop-only rail and gutter with the other pages", () => {
+    for (const path of ["/", "/brain", "/work", "/foundation"]) {
+      const html = renderChrome(path);
+      expect(html.match(/class="myc-root"/g)).toHaveLength(1);
+      expect(html).toContain("mycelium-rail pointer-events-none");
+      expect(html).toContain("hidden h-full w-[210px] xl:block");
+      expect(html).toContain("xl:pl-[68px]");
+    }
+  });
+
   test("org-index pages still claim no face in the strip", () => {
     const html = renderChrome("/writing");
     const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
