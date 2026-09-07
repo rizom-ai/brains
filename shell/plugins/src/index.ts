@@ -784,6 +784,10 @@ export type { IAgentService } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
+export {
+  messageErrorCodeSchema,
+  type MessageErrorCode,
+} from "@brains/messaging-service";
 export type { ContentFormatter } from "@brains/content-formatters";
 export type { ProgressCallback } from "@brains/utils/progress";
 

@@ -1,5 +1,6 @@
 import type { BaseEntity } from "@brains/sdk/entities";
 import { A2A_CHANNELS } from "@brains/contracts";
+import { messageErrorCodeSchema } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import type { StudioRequestAccess } from "./editor-contracts";
 import { requireEntityAction } from "./editor-access";
@@ -52,7 +53,11 @@ const askAgentPayloadSchema = z.object({
 // A send nobody answers comes back as a success with nothing in it.
 const busAnswerSchema = z.union([
   z.looseObject({ success: z.literal(true), data: z.unknown().optional() }),
-  z.looseObject({ success: z.literal(false), error: z.string().optional() }),
+  z.looseObject({
+    success: z.literal(false),
+    error: z.string().optional(),
+    code: messageErrorCodeSchema.optional(),
+  }),
 ]);
 
 const a2aCallResultSchema = z.looseObject({
@@ -327,11 +332,12 @@ export async function handleAskAgent(
     }),
   );
   if (!answer.success || !answer.data.success) {
-    const error =
-      answer.success && !answer.data.success && answer.data.error
-        ? answer.data.error
-        : "Agent call failed";
-    const unavailable = error.startsWith("No handler found");
+    const failure = answer.success && !answer.data.success ? answer.data : null;
+    const error = failure?.error ?? "Agent call failed";
+    // Nothing listening means this brain has no agent to ask, which is a
+    // different answer from one that tried and failed. The code says which;
+    // the sentence beside it is for whoever reads the response.
+    const unavailable = failure?.code === "no_handler";
     return jsonResponse(
       { error: unavailable ? "Agent asking is unavailable" : error },
       unavailable ? 503 : 400,

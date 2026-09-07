@@ -64,6 +64,10 @@ export function toMessageResponse<R>(
 
   return {
     success: false,
+    // Nothing answering is a different fact from something answering badly:
+    // the first says the capability is absent from this brain, the second
+    // that it broke. A caller that has to tell them apart reads the code.
+    code: response ? "handler_failed" : "no_handler",
     error:
       response?.error?.message ?? `No handler found for message type: ${type}`,
   };

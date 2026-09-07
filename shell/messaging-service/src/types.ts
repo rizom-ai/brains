@@ -13,9 +13,11 @@ import type {
 } from "./base-types";
 
 export {
+  messageErrorCodeSchema,
   messageResponseSchema,
   messageWithPayloadSchema,
   baseMessageSchema,
+  type MessageErrorCode,
   type MessageResponse,
   type MessageWithPayload,
   type MessageHandler,

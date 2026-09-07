@@ -122,6 +122,14 @@ export type {
 // What the brain reports about itself, for the console that shows it.
 export type { AppInfo } from "@brains/plugins/contracts/app-info";
 
+// Why a request over the bus failed, as a word rather than a sentence. A
+// package that answers differently when a capability is absent checks this;
+// the message beside it may be reworded at any time.
+// Named consumer: @brains/studio, whose assist path reports 503 rather than
+// 400 when nothing is listening.
+export { messageErrorCodeSchema } from "@brains/plugins";
+export type { MessageErrorCode } from "@brains/plugins";
+
 export { SYSTEM_CHANNELS } from "@brains/plugins";
 export type { SystemChannelName } from "@brains/plugins";
 
