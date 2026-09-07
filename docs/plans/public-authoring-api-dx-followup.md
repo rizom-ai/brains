@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-**Investigation complete; recommendations proposed; API implementation not started.**
+**Investigation complete; decisions made; API implementation not started.**
 Follow-up to the public API/DX review
 of `work/plugin-api-boundaries` at
 [`ad97dc8e3`](https://github.com/rizom-ai/brains/tree/ad97dc8e352cc0fd41685f6248f6d15e6e6197cc).
@@ -98,17 +98,19 @@ Primary implementation locations on the branch:
 3. Add a generated external compile consumer importing every promised type
    and value from the packed entry points, not private workspace sources.
    Exercise runtime imports for value exports as well.
-4. Quarantine the 13 missing names in an explicit `undecided` ledger category
-   so the reverse check passes without lying about the surface. Do not decide
-   keep/remove here: Phase 3 curation and the whole-surface removals below
-   define the final surface, and resolving the names against a surface that
-   later steps redefine reconciles the ledger twice. Do not restore an unwanted
-   API solely to preserve an alpha promise. The `undecided` category must be
-   empty before Phase 3 exits; the ledger test enforces this.
+4. Export the 13 missing names from the family entry points in this slice.
+   They are not undecided: every one is an input type of a stable helper.
+   `EntityDefinitionConfig`, `EntitySeedDefinition`, and `EntitySeedTrigger`
+   are the `defineEntity` input; the `Operator*` and `WorkspaceAction*` names
+   are the `defineStudioWorkspace` action and view inputs, most of them already
+   exported from the plugins package index. Hiding their names does not hide
+   the capability, and an author who extracts a form or a seed into a named
+   value needs them. There is no quarantine category: a ledger category whose
+   purpose is to be emptied later is machinery built to be deleted.
 
 **Exit:** the ledger check machinery describes what an external consumer can
-actually import, not merely the source files the workspace can resolve. The
-final dispositions for quarantined names land with Phase 3.
+actually import, not merely the source files the workspace can resolve, and
+the reverse check passes with no exception list.
 
 ## Phase 2 — Explore missing abstractions before widening the API
 
@@ -142,10 +144,11 @@ registries, and name runtime renderer payloads. Those host needs have expanded
 the normal service exports.
 
 Explore a narrow host-side view of registered contributions with lifecycle and
-caller-scoped resolution owned by the runtime. First decide whether supporting
-third-party console hosts is an intended product feature. If not, keep the
-consumer side internal; if so, describe it as an explicitly advanced contract.
-Do not build a general registry API or replace the existing contributor helpers.
+caller-scoped resolution owned by the runtime. Third-party console hosts are
+not a product feature: the product is one brain with its own Dashboard and
+Studio, and a plugin is justified by owning real behavior, not by reuse. The
+consumer side is therefore internal. Do not build a general registry API or
+replace the existing contributor helpers.
 
 **Proof:** Dashboard and Studio no longer need internal registration-message
 names on the ordinary authoring entry point. Registration rollback, removal,
@@ -195,9 +198,10 @@ on every service setup context.
 
 Separate naming inconsistency from genuinely missing lifecycle behavior. Reuse
 existing `defineDaemon`, account lifecycle, cleanup, and runtime-state scopes.
-Investigate whether broker/role behavior belongs behind a narrow infrastructure
-integration rather than teaching ordinary services process roles. Do not move
-role switches into another universally available context property.
+Broker/role behavior belongs behind an opt-in on the declaring definition
+rather than on every service setup context; the mechanism is decided in the
+investigation results below. Do not move role switches into another
+universally available context property.
 
 **Proof:** representative services and interfaces have consistent vocabulary
 for in-memory state, durable bookkeeping, and cleanup. Failure during setup and
@@ -292,8 +296,13 @@ instance. Keep `defineRoute` and `createRuntimeRoute`; do not add
 `defineRouteDescriptor`, a second registration callback, or a descriptor
 registry to ordinary authoring. Delete the config-only rationale comment on the
 service `routes` slot in the same change so the requirement is not re-litigated
-from a stale comment. Update manifest evidence to controlled registration with
-external effects stubbed, and cover finalized runtime inventory.
+from a stale comment. Register services in the manifest test the way it
+already registers interfaces. Nothing needs stubbing on the branch: service
+bring-up runs in `lifecycle.onRegistered`, which only `finalizeRegistration`
+triggers, and site-builder's setup initializes its status store without
+building. The manifest test's comment that registering a service would start a
+filesystem sync or a build describes the class-based plugins and is deleted
+with the change. Cover finalized runtime inventory as well.
 
 Also repair the existing `RouteOutput` type: it currently yields `unknown` for
 schema responses, so `{ count: "wrong" }` compiles against
@@ -462,9 +471,16 @@ namespace keys as a side effect of renaming the accessor: services currently use
 package namespaces, while interfaces use declaration IDs.
 
 Directory-sync alone demonstrates a need for broker endpoint and scheduler-role
-facts. Hide those behind its infrastructure boundary rather than keeping
-`ServiceRole`, `ServiceGitBroker`, and an unrestricted mirror on every setup
-context. This does not make trusted in-process plugins a sandbox.
+facts. **Decided mechanism:** `role`, `gitBroker`, and `entityMirror` leave
+`ServiceSetupContext`. A definition opts in with one declaration-level field
+whose type lives on `@rizom/brain/plugins`, the existing consumer-backed
+advanced entry, and only that definition's setup context is widened with the
+three fields. Directory-sync is the single consumer and stays a declared
+package. `ServiceRole`, `ServiceGitBroker`, `EntityMirror`, and
+`EntityMirrorClient` move from the stable services ledger to the advanced
+plugins ledger with that consumer. `dataDir` stays on the ordinary context:
+Studio's upload staging uses it and it carries no process authority. This does
+not make trusted in-process plugins a sandbox.
 
 Sources: `shell/plugins/src/service/service-definition-contract.ts`,
 `interface/{interface-definition-contract,declarative-daemon}.ts`,
@@ -506,14 +522,18 @@ families whose comments mention it. It follows TypeScript's
 [left-to-right contextual inference](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-7.html#improved-function-inference-in-objects-and-methods).
 `NoInfer` is not a demonstrated fix.
 
-Do not add an independent setup-builder API for each family. First attempt a
-single type-level correction with the existing object syntax. If the complete
-fixtures cannot support it, review one shared two-stage definition pattern using
-the existing family helper names: config/setup first, behavior receiving the
-inferred result second. The minimal prototype compiles, but production config
-schemas, account settings, templates, async setup, and extracted handlers still
-need proof. This is an explicit API-shape decision, not a hidden compatibility
-shim or a promised one-line type fix.
+**Decided: one shared two-stage definition pattern under the existing family
+helper names**, config/setup first, behavior receiving the inferred result
+second. There is no type-level correction of the object form to attempt first:
+TypeScript defers every context-sensitive function in an object literal and
+then infers them in property order, and `setup` and every `({ state }) =>`
+callback are all context-sensitive, so no annotation on the object type lets a
+later property inform an earlier one. `NoInfer` was the one candidate and it
+failed. The minimal two-stage prototype compiles; slice 2 proves it against
+production config schemas, account settings, templates, async setup, and
+extracted handlers with the compile fixtures. Do not add an independent
+setup-builder API per family. This is an API-shape change made deliberately,
+not a hidden compatibility shim.
 
 It is also the only decision in this plan that can change the shape of every
 family's definition object. If the two-stage pattern wins, the contracts
@@ -526,12 +546,12 @@ needs are small.
 ### Recommended implementation order
 
 1. Land the ledger check machinery: reverse built-declaration checks, the
-   packed-consumer fixture, and the `undecided` quarantine for the 13 names.
-   Fix `RouteOutput` as a standalone commit in this slice.
-2. Decide setup inference once across families, with compile fixtures covering
-   both property orders for services, generic interfaces, and message
-   interfaces. Every later slice expresses its contracts in the winning shape.
-   Do not begin step 3 until this is decided.
+   packed-consumer fixture, and the 13 missing re-exports. Fix `RouteOutput`
+   as a standalone commit in this slice.
+2. Implement the two-stage setup pattern across families, with compile
+   fixtures covering both property orders for services, generic interfaces,
+   and message interfaces. Every later slice expresses its contracts in that
+   shape. Do not begin step 3 until this has landed.
 3. Unify service routes with the existing instance-bound lifecycle; add the
    Newsletter two-instance regression. Delete the config-only rationale comment.
 4. Combine service templates/views and the two data-source helper names, one
@@ -542,20 +562,26 @@ needs are small.
    alongside request-failure semantics. No new top-level helper by default.
 6. Curate the boundary (Phase 3): remove host/infrastructure and unrelated
    utility exposure from normal authoring, keep advanced integration only where
-   external support is intended, and empty the `undecided` ledger category.
+   external support is intended.
 7. Reconcile the external guide, golden examples, and presentation rule with
    the resulting API.
 
 No abstractions from this investigation require a new general public framework.
-The one unresolved design decision is third-party host support; it does not
-block any slice above because B's disposition is internal-only until that is
-approved. Preserving legacy alpha APIs is not a requirement.
+No design decision remains open: third-party host support is not a product
+feature, so B is internal-only. Preserving legacy alpha APIs is not a
+requirement.
 
 ### Landing strategy
 
 Each numbered slice above is an independently reviewable and revertable change
-against the integration branch, gated on its own targeted checks plus
-`bun run typecheck` and `bun run surface:check`. The slices are ordered by
+against the integration branch. Slices land on `work/plugin-api-boundaries`
+until that branch is on `main`; independent landing applies from then. Every
+slice changes public surface, so each one carries a changeset and passes the
+repository gate, not a subset of it: forced typecheck, forced lint through
+`bun scripts/lint.mjs --force`, the static gates (`casts:check`,
+`catches:check`, `arch:check`, `tests:assertions`, `format:check:core`,
+`docs:check`, `surface:check`, `changeset:check`), and the full suite that
+the pre-commit hook runs. The slices are ordered by
 dependency, not preference: 1 has no dependencies, 2 gates everything after it,
 and 3–5 may land in any order once 2 has landed. Do not accumulate slices into
 one long-lived branch; a slice that is not landable on its own is too large and
@@ -594,16 +620,18 @@ The built-ins still work, and no class-first authoring path is reintroduced.
   both property orders for services, generic interfaces, and message
   interfaces. Preserve config defaults, transforms, async setup where supported,
   and extracted handler inference. Do not fix the examples with casts,
-  empty-state widening, or explicit framework generics. If inference requires
-  an API-shape change, review the two smallest viable designs before
-  implementation.
+  empty-state widening, or explicit framework generics. The shape is the
+  two-stage pattern decided above.
 - Implement the accepted route-binding design from Phase 2. Convert Newsletter
   and Dashboard first; extend to other service routes only after the pattern is
   proven. Keep authentication, body/response validation, and rollback semantics.
-- Decide the entity presentation rule explicitly. Proposed direction: presentation
-  intrinsic to an entity may live with its definition; cross-type or independently
-  configured presentation belongs in a service. Alternatively, retain the original
-  service-only rule and migrate the built-ins. Do not document both as mandatory.
+- The entity presentation rule is decided: presentation intrinsic to an entity
+  lives with its definition; cross-type or independently configured
+  presentation belongs in a service. This is what the entity definition
+  contract, blog, and doc already do, so the code stays and the documents
+  change: `docs/external-plugin-authoring.md` (the "does not have a
+  `templates` field" statement) and the public-authoring fixture README's
+  entity-to-template flow.
 - Align the external guide, official-package guide, fixture comments, and ledger
   with that decision. Document the normal family choice, setup/resource lifetime,
   and the advanced boundary without requiring readers to study internal plans.
@@ -669,8 +697,8 @@ posture script and rebuild preview through the running app before inspecting
 
 **Implementation acceptance:**
 
-- [ ] Promised exports and packed declarations agree in both directions, and the
-      `undecided` ledger category is empty.
+- [ ] Promised exports and packed declarations agree in both directions, with
+      no exception list.
 - [ ] Normal authoring avoids host registries, broker details, and process roles.
 - [ ] Setup inference and route instance state are predictable and tested.
 - [ ] Presentation ownership has one documented rule used by real consumers.
@@ -697,9 +725,9 @@ to build three small external extensions through the existing fixture system:
 
 All three must compile and exercise their live paths without casts, duplicated
 schemas, private imports, explicit framework generics, property-order rules, or
-mutable outer state used to bridge lifecycle gaps. Setup inference must have one
-consistent solution across families; it is the remaining API-shape risk, not a
-documentation workaround.
+mutable outer state used to bridge lifecycle gaps. Setup inference has one
+solution across families, the two-stage pattern; the sign-off examples prove
+it rather than a documentation workaround.
 
 When these examples and the acceptance checks pass, the public surface is
 sufficiently coherent for v0.2 DX sign-off. Stop abstraction cleanup at that point;
