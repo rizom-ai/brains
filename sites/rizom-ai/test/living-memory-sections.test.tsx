@@ -101,6 +101,13 @@ describe("approved living-memory composition", () => {
     expect(html).not.toContain("*quiet emphasis*");
   });
 
+  test("the page wrapper does not mask the shared theme background in wide layouts", () => {
+    const css = site.staticAssets?.["/styles/living-memory.css"];
+    const pageRule = css?.match(/:scope\s*\{([^}]+)\}/)?.[1];
+    expect(pageRule).toBeDefined();
+    expect(pageRule).not.toMatch(/background(?:-color|-image)?\s*:/);
+  });
+
   test("heading emphasis follows the brand: italic, accent yellow, and inline", () => {
     const css = site.staticAssets?.["/styles/living-memory.css"];
     for (const pattern of [

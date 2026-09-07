@@ -3,7 +3,7 @@
   /* Living memory: one editorial grid, with the approved lantern as its focal object. */
   :scope {
     margin: 0;
-    background: var(--color-bg);
+    /* Preserve the shared theme texture across the frame and outer gutters. */
     color: var(--color-text);
     font-family: var(--font-body);
   }
