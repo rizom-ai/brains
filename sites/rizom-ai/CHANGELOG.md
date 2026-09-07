@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.245
+
+### Patch Changes
+
+- [#229](https://github.com/rizom-ai/brains/pull/229) [`e716b10`](https://github.com/rizom-ai/brains/commit/e716b1066188b9415dc79193f0a48d66c1a4c5a3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the living-memory page wrapper transparent so the shared theme background and texture remain consistent between the centered content and outer gutters on wide screens.
+
 ## 0.2.0-alpha.244
 
 ### Patch Changes
