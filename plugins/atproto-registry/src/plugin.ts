@@ -83,87 +83,90 @@ const metadataListSchema: z.ZodType<AtprotoLexiconMetadata[]> = z.custom<
 
 const atprotoRegistryPackage: ServicePackageDefinition<
   typeof atprotoRegistryConfigSchema
-> = defineServicePlugin({
-  id: "atproto-registry",
-  config: atprotoRegistryConfigSchema,
-
-  routes: ({ config }) =>
-    config.enabled
-      ? [
-          defineRoute({
-            method: "GET",
-            path: `${BASE_PATH}/index.json`,
-            security: { kind: "public" },
-            response: indexResponseSchema,
-            handle: () => getIndex(),
-          }),
-          ...listCanonicalAtprotoLexicons().map((lexicon) =>
+> = defineServicePlugin(
+  {
+    id: "atproto-registry",
+    config: atprotoRegistryConfigSchema,
+  },
+  {
+    routes: ({ config }) =>
+      config.enabled
+        ? [
             defineRoute({
               method: "GET",
-              path: `${BASE_PATH}/${lexicon.id}.json`,
+              path: `${BASE_PATH}/index.json`,
               security: { kind: "public" },
-              response: lexiconResponseSchema,
-              handle: () => lexicon,
+              response: indexResponseSchema,
+              handle: () => getIndex(),
             }),
-          ),
-        ]
-      : [],
+            ...listCanonicalAtprotoLexicons().map((lexicon) =>
+              defineRoute({
+                method: "GET",
+                path: `${BASE_PATH}/${lexicon.id}.json`,
+                security: { kind: "public" },
+                response: lexiconResponseSchema,
+                handle: () => lexicon,
+              }),
+            ),
+          ]
+        : [],
 
-  tools: () => [
-    defineTool({
-      name: "list-lexicons",
-      description: "List canonical Rizom AT Protocol lexicons.",
-      input: z.object({}),
-      output: indexResponseSchema,
-      execute: async () => getIndex(),
-    }),
-    defineTool({
-      name: "validate-lexicon",
-      description:
-        "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
-      input: z.strictObject({
-        nsid: z.string().describe("Canonical lexicon NSID"),
-        record: z
-          .record(z.string(), z.unknown())
-          .describe("Record payload to validate"),
+    tools: () => [
+      defineTool({
+        name: "list-lexicons",
+        description: "List canonical Rizom AT Protocol lexicons.",
+        input: z.object({}),
+        output: indexResponseSchema,
+        execute: async () => getIndex(),
       }),
-      output: z.object({
-        valid: z.boolean(),
-        error: z.string().optional(),
+      defineTool({
+        name: "validate-lexicon",
+        description:
+          "Validate a record payload against a canonical Rizom AT Protocol lexicon.",
+        input: z.strictObject({
+          nsid: z.string().describe("Canonical lexicon NSID"),
+          record: z
+            .record(z.string(), z.unknown())
+            .describe("Record payload to validate"),
+        }),
+        output: z.object({
+          valid: z.boolean(),
+          error: z.string().optional(),
+        }),
+        execute: async ({ input }) => {
+          const lexicon = getLexicon(input.nsid);
+          if (!lexicon) {
+            throw new Error(`Unknown AT Protocol lexicon: ${input.nsid}`);
+          }
+          try {
+            validateAtprotoRecord(lexicon, input.record);
+            return { valid: true };
+          } catch (error) {
+            return {
+              valid: false,
+              error: getErrorMessage(error, "Invalid record"),
+            };
+          }
+        },
       }),
-      execute: async ({ input }) => {
-        const lexicon = getLexicon(input.nsid);
-        if (!lexicon) {
-          throw new Error(`Unknown AT Protocol lexicon: ${input.nsid}`);
-        }
-        try {
-          validateAtprotoRecord(lexicon, input.record);
-          return { valid: true };
-        } catch (error) {
-          return {
-            valid: false,
-            error: getErrorMessage(error, "Invalid record"),
-          };
-        }
-      },
-    }),
-    defineTool({
-      name: "check-contracts",
-      description:
-        "Check that canonical Rizom AT Protocol lexicon contracts are available.",
-      input: z.object({}),
-      output: z.object({
-        lexiconCount: z.number(),
-        nsids: z.array(z.string()),
-        metadata: metadataListSchema,
+      defineTool({
+        name: "check-contracts",
+        description:
+          "Check that canonical Rizom AT Protocol lexicon contracts are available.",
+        input: z.object({}),
+        output: z.object({
+          lexiconCount: z.number(),
+          nsids: z.array(z.string()),
+          metadata: metadataListSchema,
+        }),
+        execute: async () => ({
+          lexiconCount: listCanonicalAtprotoLexicons().length,
+          nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
+          metadata: listCanonicalAtprotoLexiconMetadata(),
+        }),
       }),
-      execute: async () => ({
-        lexiconCount: listCanonicalAtprotoLexicons().length,
-        nsids: listCanonicalAtprotoLexicons().map((lexicon) => lexicon.id),
-        metadata: listCanonicalAtprotoLexiconMetadata(),
-      }),
-    }),
-  ],
-});
+    ],
+  },
+);
 
 export default atprotoRegistryPackage;

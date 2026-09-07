@@ -36,58 +36,62 @@ function instantiate(
   return plugin;
 }
 
-const conversationInterface = defineInterface({
-  id: "conversation",
-  config: z.object({}),
-  tools: () => [
-    defineTool({
-      name: "chat",
-      description: "Talk to the brain.",
-      input: z.object({
-        message: z.string().min(1),
-        conversationId: z.string().min(1),
+const conversationInterface = defineInterface(
+  {
+    id: "conversation",
+    config: z.object({}),
+  },
+  {
+    tools: () => [
+      defineTool({
+        name: "chat",
+        description: "Talk to the brain.",
+        input: z.object({
+          message: z.string().min(1),
+          conversationId: z.string().min(1),
+        }),
+        output: z.object({ text: z.string(), conversationId: z.string() }),
+        permission: "public",
+        directMcpExposure: "basic",
+        agentTool: false,
+        execute: async ({ input, agent, signal }) => {
+          const answer = await agent.chat({
+            conversationId: input.conversationId,
+            message: input.message,
+            signal,
+          });
+          // The brain asked something back: hand the question on rather than
+          // inventing an answer to it.
+          if (answer.asked) return answer.asked;
+          return { text: answer.text, conversationId: input.conversationId };
+        },
       }),
-      output: z.object({ text: z.string(), conversationId: z.string() }),
-      permission: "public",
-      directMcpExposure: "basic",
-      agentTool: false,
-      execute: async ({ input, agent, signal }) => {
-        const answer = await agent.chat({
-          conversationId: input.conversationId,
-          message: input.message,
-          signal,
-        });
-        // The brain asked something back: hand the question on rather than
-        // inventing an answer to it.
-        if (answer.asked) return answer.asked;
-        return { text: answer.text, conversationId: input.conversationId };
-      },
-    }),
-    defineTool({
-      name: "confirm",
-      description: "Answer what the brain asked.",
-      input: z.object({
-        conversationId: z.string().min(1),
-        approvalId: z.string().min(1),
-        confirmed: z.boolean(),
+      defineTool({
+        name: "confirm",
+        description: "Answer what the brain asked.",
+        input: z.object({
+          conversationId: z.string().min(1),
+          approvalId: z.string().min(1),
+          confirmed: z.boolean(),
+        }),
+        output: z.object({ text: z.string() }),
+        permission: "public",
+        directMcpExposure: "basic",
+        agentTool: false,
+        execute: async ({ input, agent, signal }) => {
+          const answer = await agent.resolve({
+            conversationId: input.conversationId,
+            approvalId: input.approvalId,
+            confirmed: input.confirmed,
+            signal,
+          });
+          if (answer.asked) return answer.asked;
+          return { text: answer.text };
+        },
       }),
-      output: z.object({ text: z.string() }),
-      permission: "public",
-      directMcpExposure: "basic",
-      agentTool: false,
-      execute: async ({ input, agent, signal }) => {
-        const answer = await agent.resolve({
-          conversationId: input.conversationId,
-          approvalId: input.approvalId,
-          confirmed: input.confirmed,
-          signal,
-        });
-        if (answer.asked) return answer.asked;
-        return { text: answer.text };
-      },
-    }),
-  ],
-});
+    ],
+  },
+);
 
 describe("a tool that is the conversation", () => {
   it("puts a message to the brain and answers with its text", async () => {
@@ -189,29 +193,33 @@ describe("a tool that is the conversation", () => {
       invalidateAgent: (): void => {},
     });
 
-    const gated = defineInterface({
-      id: "gated",
-      config: z.object({}),
-      tools: () => [
-        defineTool({
-          name: "chat",
-          description: "Talk to the brain, with a gate of its own.",
-          input: z.object({ message: z.string().min(1) }),
-          output: z.object({ text: z.string() }),
-          permission: "public",
-          agentTool: false,
-          confirmation: "Send this to the brain?",
-          execute: async ({ input, agent, signal }) => {
-            const answer = await agent.chat({
-              conversationId: "gated-thread",
-              message: input.message,
-              signal,
-            });
-            return answer.asked ?? { text: answer.text };
-          },
-        }),
-      ],
-    });
+    const gated = defineInterface(
+      {
+        id: "gated",
+        config: z.object({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "chat",
+            description: "Talk to the brain, with a gate of its own.",
+            input: z.object({ message: z.string().min(1) }),
+            output: z.object({ text: z.string() }),
+            permission: "public",
+            agentTool: false,
+            confirmation: "Send this to the brain?",
+            execute: async ({ input, agent, signal }) => {
+              const answer = await agent.chat({
+                conversationId: "gated-thread",
+                message: input.message,
+                signal,
+              });
+              return answer.asked ?? { text: answer.text };
+            },
+          }),
+        ],
+      },
+    );
 
     await harness.installPlugin(instantiate(gated, {}));
 
@@ -235,27 +243,31 @@ describe("a tool that is the conversation", () => {
       invalidateAgent: (): void => {},
     });
 
-    const looping = defineInterface({
-      id: "looping",
-      config: z.object({}),
-      tools: () => [
-        defineTool({
-          name: "chat",
-          description: "Talk to the brain, without saying the agent may not.",
-          input: z.object({ message: z.string().min(1) }),
-          output: z.object({ text: z.string() }),
-          permission: "public",
-          execute: async ({ input, agent, signal }) => {
-            const answer = await agent.chat({
-              conversationId: "looping-thread",
-              message: input.message,
-              signal,
-            });
-            return answer.asked ?? { text: answer.text };
-          },
-        }),
-      ],
-    });
+    const looping = defineInterface(
+      {
+        id: "looping",
+        config: z.object({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "chat",
+            description: "Talk to the brain, without saying the agent may not.",
+            input: z.object({ message: z.string().min(1) }),
+            output: z.object({ text: z.string() }),
+            permission: "public",
+            execute: async ({ input, agent, signal }) => {
+              const answer = await agent.chat({
+                conversationId: "looping-thread",
+                message: input.message,
+                signal,
+              });
+              return answer.asked ?? { text: answer.text };
+            },
+          }),
+        ],
+      },
+    );
 
     await harness.installPlugin(instantiate(looping, {}));
 

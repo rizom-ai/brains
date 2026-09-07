@@ -37,78 +37,82 @@ function instantiate(
   return plugin;
 }
 
-const consoleChannel = defineMessageInterface({
-  id: "console-channel",
-  config: z.object({}),
-  channel: {
-    type: "console-channel",
-    displayName: "Console",
-    subjectLabel: "Browser session",
-    recipient: z.string().min(1),
-  },
-  setup: ({ endpoints, interactions, runtimeState, uploads, logger }) => {
-    // A console is a way in, and says so.
-    endpoints.register({
-      label: "Console",
-      url: "/console",
-      priority: 10,
-      visibility: "trusted",
-    });
-    interactions.register({
-      id: "console-channel",
-      label: "Console",
-      href: "/console",
-      kind: "human",
-      priority: 10,
-      visibility: "trusted",
-    });
-    return {
-      // Both halves at once: bookkeeping that survives a restart, and
-      // somewhere to put the files people attach.
-      seen: runtimeState({
-        namespace: "seen",
-        schema: z.object({ count: z.number() }),
-      }),
-      files: uploads({
-        namespace: "upload",
-        refKind: "upload",
-        routePath: "/console/uploads",
-      }),
-      logger,
-    };
-  },
-  routes: ({ state }) => [
-    defineRoute({
-      method: "GET",
-      path: "/console",
-      security: { kind: "public" },
-      // A console serves a page, not an envelope.
-      response: verbatim,
-      handle: () =>
-        new Response("<!doctype html><title>Console</title>", {
-          headers: { "content-type": "text/html; charset=utf-8" },
+const consoleChannel = defineMessageInterface(
+  {
+    id: "console-channel",
+    config: z.object({}),
+    setup: ({ endpoints, interactions, runtimeState, uploads, logger }) => {
+      // A console is a way in, and says so.
+      endpoints.register({
+        label: "Console",
+        url: "/console",
+        priority: 10,
+        visibility: "trusted",
+      });
+      interactions.register({
+        id: "console-channel",
+        label: "Console",
+        href: "/console",
+        kind: "human",
+        priority: 10,
+        visibility: "trusted",
+      });
+      return {
+        // Both halves at once: bookkeeping that survives a restart, and
+        // somewhere to put the files people attach.
+        seen: runtimeState({
+          namespace: "seen",
+          schema: z.object({ count: z.number() }),
         }),
-    }),
-    defineRoute({
-      method: "POST",
-      path: "/console/uploads",
-      security: { kind: "public" },
-      body: z.object({ filename: z.string(), text: z.string() }),
-      response: z.object({ id: z.string(), count: z.number() }),
-      handle: async ({ body }) => {
-        const record = await state.files.save({
-          filename: body.filename,
-          mediaType: "text/plain",
-          content: Buffer.from(body.text, "utf8"),
-        });
-        const previous = (await state.seen.get("total"))?.count ?? 0;
-        await state.seen.set("total", { count: previous + 1 });
-        return { id: record.ref.id, count: previous + 1 };
-      },
-    }),
-  ],
-  send: () => undefined,
-});
+        files: uploads({
+          namespace: "upload",
+          refKind: "upload",
+          routePath: "/console/uploads",
+        }),
+        logger,
+      };
+    },
+    channel: {
+      type: "console-channel",
+      displayName: "Console",
+      subjectLabel: "Browser session",
+      recipient: z.string().min(1),
+    },
+  },
+  {
+    routes: ({ state }) => [
+      defineRoute({
+        method: "GET",
+        path: "/console",
+        security: { kind: "public" },
+        // A console serves a page, not an envelope.
+        response: verbatim,
+        handle: () =>
+          new Response("<!doctype html><title>Console</title>", {
+            headers: { "content-type": "text/html; charset=utf-8" },
+          }),
+      }),
+      defineRoute({
+        method: "POST",
+        path: "/console/uploads",
+        security: { kind: "public" },
+        body: z.object({ filename: z.string(), text: z.string() }),
+        response: z.object({ id: z.string(), count: z.number() }),
+        handle: async ({ body }) => {
+          const record = await state.files.save({
+            filename: body.filename,
+            mediaType: "text/plain",
+            content: Buffer.from(body.text, "utf8"),
+          });
+          const previous = (await state.seen.get("total"))?.count ?? 0;
+          await state.seen.set("total", { count: previous + 1 });
+          return { id: record.ref.id, count: previous + 1 };
+        },
+      }),
+    ],
+    send: () => undefined,
+  },
+);
 
 describe("a message interface that is also a console", () => {
   it("serves its own routes, keeps state, and advertises where it is", async () => {

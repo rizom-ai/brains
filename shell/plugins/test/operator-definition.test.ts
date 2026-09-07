@@ -72,43 +72,47 @@ const widget = defineDashboardWidget({
 
 describe("public operator definitions", () => {
   it("keeps contracts at module scope and infers factory-bound executors", () => {
-    const definition = defineServicePlugin({
-      id: "reading-operator",
-      config: z.object({ prefix: z.string() }),
-      accountSettings,
-      setup: ({ config }) => ({ offset: config.prefix.length }),
-      dashboardWidgets: (context) => {
-        expectTypeOf(context.accountSettings).toEqualTypeOf<
-          typeof accountSettings
-        >();
-        return [
-          widget.bind(context, async ({ config, state, settings }) => {
-            expectTypeOf(config.prefix).toEqualTypeOf<string>();
-            expectTypeOf(state.offset).toEqualTypeOf<number>();
-            // The token field is declared secret, so operator callbacks never
-            // receive it: view data is serialized to the browser.
-            expectTypeOf(settings).toEqualTypeOf<{
-              endpoint: string;
-            } | null>();
-            return {
-              label: settings?.endpoint ?? config.prefix,
-              count: state.offset,
-            };
-          }),
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "reading-operator",
+        config: z.object({ prefix: z.string() }),
+        accountSettings,
+        setup: ({ config }) => ({ offset: config.prefix.length }),
       },
-      studioWorkspaces: (context) => {
-        const action = refresh.bind(context, ({ input, config, state }) => ({
-          refreshed: `${config.prefix}:${input.id}:${state.offset}`,
-        }));
-        return [
-          workspace.bind(context, {
-            actions: [action],
-            load: ({ state }) => ({ count: state.offset }),
-          }),
-        ];
+      {
+        dashboardWidgets: (context) => {
+          expectTypeOf(context.accountSettings).toEqualTypeOf<
+            typeof accountSettings
+          >();
+          return [
+            widget.bind(context, async ({ config, state, settings }) => {
+              expectTypeOf(config.prefix).toEqualTypeOf<string>();
+              expectTypeOf(state.offset).toEqualTypeOf<number>();
+              // The token field is declared secret, so operator callbacks never
+              // receive it: view data is serialized to the browser.
+              expectTypeOf(settings).toEqualTypeOf<{
+                endpoint: string;
+              } | null>();
+              return {
+                label: settings?.endpoint ?? config.prefix,
+                count: state.offset,
+              };
+            }),
+          ];
+        },
+        studioWorkspaces: (context) => {
+          const action = refresh.bind(context, ({ input, config, state }) => ({
+            refreshed: `${config.prefix}:${input.id}:${state.offset}`,
+          }));
+          return [
+            workspace.bind(context, {
+              actions: [action],
+              load: ({ state }) => ({ count: state.offset }),
+            }),
+          ];
+        },
       },
-    });
+    );
 
     expect(definition.family).toBe("service");
     expect(Object.isFrozen(widget)).toBeTrue();

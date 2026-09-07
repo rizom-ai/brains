@@ -27,16 +27,20 @@ const principal: AuthPrincipal = {
 describe("reaching auth through the runtime", () => {
   it("hands a service the registered implementation", async () => {
     let seen: AuthPrincipal | undefined;
-    const definition = defineServicePlugin({
-      id: "console-desk",
-      config: z.object({}),
-      setup: () => ({}),
-      ready: async ({ auth }) => {
-        seen = await auth
-          .getCaller()
-          ?.resolveSession(new Request("https://example.test/"));
+    const definition = defineServicePlugin(
+      {
+        id: "console-desk",
+        config: z.object({}),
+        setup: () => ({}),
       },
-    });
+      {
+        ready: async ({ auth }) => {
+          seen = await auth
+            .getCaller()
+            ?.resolveSession(new Request("https://example.test/"));
+        },
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -58,15 +62,19 @@ describe("reaching auth through the runtime", () => {
   it("answers undefined in a brain with no auth-service", async () => {
     let called = false;
     let resolved: unknown = "unset";
-    const definition = defineServicePlugin({
-      id: "console-desk",
-      config: z.object({}),
-      setup: () => ({}),
-      ready: async ({ auth }) => {
-        called = true;
-        resolved = auth.getCaller();
+    const definition = defineServicePlugin(
+      {
+        id: "console-desk",
+        config: z.object({}),
+        setup: () => ({}),
       },
-    });
+      {
+        ready: async ({ auth }) => {
+          called = true;
+          resolved = auth.getCaller();
+        },
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},

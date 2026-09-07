@@ -70,38 +70,41 @@ async function readBundledPlaybook(fileName: string): Promise<string> {
 
 const onboardingPackage: ServicePackageDefinition<
   typeof onboardingConfigSchema
-> = defineServicePlugin({
-  id: "onboarding",
-  config: onboardingConfigSchema,
+> = defineServicePlugin(
+  {
+    id: "onboarding",
+    config: onboardingConfigSchema,
 
-  // Seeding waits for the packages whose types it writes.
-  // One package now, so both plugin ids carry its scope: the playbook type
-  // and the runs that walk it register together.
-  dependsOn: ["@brains/playbooks:playbook", "@brains/playbooks:playbooks"],
-
-  // The playbooks themselves: written by the runtime, only where nothing with
-  // that id exists at any visibility, so a seed never overwrites authored
-  // content — and never at all when onboarding is disabled.
-  seeds: ({ config }) =>
-    config.enabled
-      ? bundledPlaybooks.map((playbook) => ({
-          entityType: "playbook",
-          id: playbook.id,
-          markdown: () => readBundledPlaybook(playbook.fileName),
-        }))
-      : [],
-
-  // The lifecycle starters, announced once every plugin is registered.
-  ready: async ({ config, messaging }) => {
-    if (!config.enabled) return;
-    for (const playbook of bundledPlaybooks) {
-      if (!playbook.starter) continue;
-      await messaging.send({
-        type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-        payload: playbook.starter,
-      });
-    }
+    // Seeding waits for the packages whose types it writes.
+    // One package now, so both plugin ids carry its scope: the playbook type
+    // and the runs that walk it register together.
+    dependsOn: ["@brains/playbooks:playbook", "@brains/playbooks:playbooks"],
   },
-});
+  {
+    // The playbooks themselves: written by the runtime, only where nothing with
+    // that id exists at any visibility, so a seed never overwrites authored
+    // content — and never at all when onboarding is disabled.
+    seeds: ({ config }) =>
+      config.enabled
+        ? bundledPlaybooks.map((playbook) => ({
+            entityType: "playbook",
+            id: playbook.id,
+            markdown: () => readBundledPlaybook(playbook.fileName),
+          }))
+        : [],
+
+    // The lifecycle starters, announced once every plugin is registered.
+    ready: async ({ config, messaging }) => {
+      if (!config.enabled) return;
+      for (const playbook of bundledPlaybooks) {
+        if (!playbook.starter) continue;
+        await messaging.send({
+          type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+          payload: playbook.starter,
+        });
+      }
+    },
+  },
+);
 
 export default onboardingPackage;

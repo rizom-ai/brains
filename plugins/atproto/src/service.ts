@@ -116,71 +116,74 @@ function jetstreamConsumer(
 export function atprotoService(
   deps: AtprotoServiceDeps = {},
 ): ServicePackageDefinition<typeof atprotoConfigSchema> {
-  return defineServicePlugin({
-    id: "atproto",
-    config: atprotoConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "atproto",
+      config: atprotoConfigSchema,
 
-    setup: ({
-      config,
-      lifecycle,
-      entities,
-      state,
-      identity,
-      profileKinds,
-      publicSkills,
-      http,
-      siteUrl,
-      logger,
-    }): AtprotoState => {
-      const publisher = createAtprotoPublisher({
+      setup: ({
         config,
-        brain: { identity, profileKinds, publicSkills, http, siteUrl },
+        lifecycle,
         entities,
+        state,
+        identity,
+        profileKinds,
+        publicSkills,
+        http,
+        siteUrl,
         logger,
-        deps,
-      });
-      const tasks = new PublishingTaskQueue(logger, () =>
-        publisher.hasPublishingCredentials(),
-      );
-      const jetstream: AtprotoState["jetstream"] = { consumer: undefined };
-      lifecycle.onCleanup(async () => {
-        await jetstream.consumer?.stop();
-        jetstream.consumer = undefined;
-        await tasks.settle();
-      });
-      return {
-        publisher,
-        tasks,
-        boot: { fullBootObserved: false },
-        runtime: { logger, state },
-        jetstream,
-        logger,
-      };
-    },
-
-    subscriptions: ({ config, state }) =>
-      config.enabled ? ambientSubscriptions(state) : [],
-
-    routes: ({ config }) => buildAtprotoWebRoutes(config),
-
-    // Scheduled, not awaited: ready is on the boot path, and an unresponsive
-    // PDS must not stall startup. Cleanup drains the tasks.
-    ready: async ({ config, state, messaging }) => {
-      if (!config.enabled || !state.boot.fullBootObserved) return;
-
-      void scheduleBrainCardPublish(state, messaging);
-
-      if (config.lexiconAuthority) {
-        void state.tasks.run(LEXICON_SCHEMA_COLLECTION, () =>
-          publishCanonicalLexiconSchemas(state, messaging),
+      }): AtprotoState => {
+        const publisher = createAtprotoPublisher({
+          config,
+          brain: { identity, profileKinds, publicSkills, http, siteUrl },
+          entities,
+          logger,
+          deps,
+        });
+        const tasks = new PublishingTaskQueue(logger, () =>
+          publisher.hasPublishingCredentials(),
         );
-      }
-
-      if (config.jetstream.enabled && !state.jetstream.consumer) {
-        const consumer = jetstreamConsumer(state, config, messaging, deps);
-        state.jetstream.consumer = consumer;
-        await consumer.start();
-      }
+        const jetstream: AtprotoState["jetstream"] = { consumer: undefined };
+        lifecycle.onCleanup(async () => {
+          await jetstream.consumer?.stop();
+          jetstream.consumer = undefined;
+          await tasks.settle();
+        });
+        return {
+          publisher,
+          tasks,
+          boot: { fullBootObserved: false },
+          runtime: { logger, state },
+          jetstream,
+          logger,
+        };
+      },
     },
-  });
+    {
+      subscriptions: ({ config, state }) =>
+        config.enabled ? ambientSubscriptions(state) : [],
+
+      routes: ({ config }) => buildAtprotoWebRoutes(config),
+
+      // Scheduled, not awaited: ready is on the boot path, and an unresponsive
+      // PDS must not stall startup. Cleanup drains the tasks.
+      ready: async ({ config, state, messaging }) => {
+        if (!config.enabled || !state.boot.fullBootObserved) return;
+
+        void scheduleBrainCardPublish(state, messaging);
+
+        if (config.lexiconAuthority) {
+          void state.tasks.run(LEXICON_SCHEMA_COLLECTION, () =>
+            publishCanonicalLexiconSchemas(state, messaging),
+          );
+        }
+
+        if (config.jetstream.enabled && !state.jetstream.consumer) {
+          const consumer = jetstreamConsumer(state, config, messaging, deps);
+          state.jetstream.consumer = consumer;
+          await consumer.start();
+        }
+      },
+    },
+  );
 }

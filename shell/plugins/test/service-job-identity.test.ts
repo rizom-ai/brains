@@ -40,13 +40,17 @@ describe("the id a handler's work was queued under", () => {
     harness.getMockShell().getJobQueueService = (): typeof queue => queue;
 
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "site-builder",
-        config: z.object({}),
-        jobs: () => [
-          buildJob.handle(async ({ jobId }) => ({ recordedAgainst: jobId })),
-        ],
-      }),
+      defineServicePlugin(
+        {
+          id: "site-builder",
+          config: z.object({}),
+        },
+        {
+          jobs: () => [
+            buildJob.handle(async ({ jobId }) => ({ recordedAgainst: jobId })),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/site-builder", version: "0.1.0" },
     );

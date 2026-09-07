@@ -12,21 +12,25 @@ import { createMockShell } from "../src/test/mock-shell";
 /** A service reporting one check always and a second only when configured. */
 function instantiate(config: { git: boolean }): Plugin {
   const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "directory-sync",
-      config: z.object({ git: z.boolean().default(false) }),
-      health: ({ config }) => ({
-        "git-progress": (): { status: "healthy" } => ({ status: "healthy" }),
-        ...(config.git
-          ? {
-              "git-broker": (): { status: "degraded"; message: string } => ({
-                status: "degraded",
-                message: "The checkout owner has not reported progress",
-              }),
-            }
-          : {}),
-      }),
-    }),
+    defineServicePlugin(
+      {
+        id: "directory-sync",
+        config: z.object({ git: z.boolean().default(false) }),
+      },
+      {
+        health: ({ config }) => ({
+          "git-progress": (): { status: "healthy" } => ({ status: "healthy" }),
+          ...(config.git
+            ? {
+                "git-broker": (): { status: "degraded"; message: string } => ({
+                  status: "degraded",
+                  message: "The checkout owner has not reported progress",
+                }),
+              }
+            : {}),
+        }),
+      },
+    ),
     config,
     { name: "@fixture/directory-sync", version: "0.1.0" },
   );
