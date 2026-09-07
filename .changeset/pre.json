@@ -370,6 +370,7 @@
     "core--projection-startup-recovery",
     "core--projection-wave-completion-race",
     "core--projection-wave-json-boundaries",
+    "core--proximity-heading-level",
     "core--public-authoring-definitions",
     "core--public-plugin-surface-soundness",
     "core--quality-refactor-sweep",
