@@ -48,24 +48,28 @@ async function turnContext(
   receivers.length = 0;
   let seen: ChatContext | undefined;
 
-  const definition = defineMessageInterface({
-    id: "session-holder",
-    config: z.object({}),
-    channel: {
-      type: "session-holder",
-      displayName: "Session Holder",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  const definition = defineMessageInterface(
+    {
+      id: "session-holder",
+      config: z.object({}),
+      channel: {
+        type: "session-holder",
+        displayName: "Session Holder",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    listen: async ({ messages, signal, health }) => {
-      receivers.push(messages);
-      health.ready();
-      await new Promise<void>((resolve) => {
-        signal.addEventListener("abort", () => resolve(), { once: true });
-      });
+    {
+      listen: async ({ messages, signal, health }) => {
+        receivers.push(messages);
+        health.ready();
+        await new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      },
+      send: async () => "message-1",
     },
-    send: async () => "message-1",
-  });
+  );
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},

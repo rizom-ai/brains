@@ -54,18 +54,22 @@ describe("what a declared job is told once the queue has settled it", () => {
     const settled: ServiceJobSettledContext<{ path: string }>[] = [];
 
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "directory-sync",
-        config: z.object({}),
-        jobs: () => [
-          importJob.handle(async () => ({}), {
-            settled: async (context) => {
-              settled.push(context);
-            },
-          }),
-          plainJob.handle(async () => ({})),
-        ],
-      }),
+      defineServicePlugin(
+        {
+          id: "directory-sync",
+          config: z.object({}),
+        },
+        {
+          jobs: () => [
+            importJob.handle(async () => ({}), {
+              settled: async (context) => {
+                settled.push(context);
+              },
+            }),
+            plainJob.handle(async () => ({})),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/directory-sync", version: "0.1.0" },
     );

@@ -28,56 +28,60 @@ const digestJob = defineJob({
 describe("declarative service definitions", () => {
   it("infers config, state, jobs, templates, and plain tool output", async () => {
     let cleaned = false;
-    const definition = defineServicePlugin({
-      id: "reading-insights",
-      config: z.object({ prefix: z.string().default("Digest") }),
-      setup({ config, lifecycle }) {
-        expectTypeOf(config.prefix).toEqualTypeOf<string>();
-        lifecycle.onCleanup(() => {
-          cleaned = true;
-        });
-        return {
-          summarize(bookmarkId: string): {
-            bookmarkId: string;
-            words: number;
-          } {
-            return { bookmarkId, words: 3 };
-          },
-        };
-      },
-      templates: {
-        digest: {
-          schema: digestOutput,
-          format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
+    const definition = defineServicePlugin(
+      {
+        id: "reading-insights",
+        config: z.object({ prefix: z.string().default("Digest") }),
+        setup({ config, lifecycle }) {
+          expectTypeOf(config.prefix).toEqualTypeOf<string>();
+          lifecycle.onCleanup(() => {
+            cleaned = true;
+          });
+          return {
+            summarize(bookmarkId: string): {
+              bookmarkId: string;
+              words: number;
+            } {
+              return { bookmarkId, words: 3 };
+            },
+          };
         },
       },
-      jobs: ({ state }) => [
-        digestJob.handle(async ({ input, templates }) => {
-          const output = state.summarize(input.bookmarkId);
-          expect(templates.format("digest", output)).toBe("saved: 3");
-          return output;
-        }),
-      ],
-      resources: ({ config }) => ({
-        guide: {
-          uri: "reading://guide",
-          read: (): string => config.prefix,
+      {
+        templates: {
+          digest: {
+            schema: digestOutput,
+            format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
+          },
         },
-      }),
-      tools: ({ jobs }) => [
-        defineTool({
-          name: "compile-digest",
-          description: "Compile a reading digest.",
-          input: digestInput,
-          output: z.object({ jobId: z.string() }),
-          confirmation: "Compile this digest?",
-          async execute({ input }) {
-            const job = await jobs.enqueue(digestJob, input);
-            return { jobId: job.id };
+        jobs: ({ state }) => [
+          digestJob.handle(async ({ input, templates }) => {
+            const output = state.summarize(input.bookmarkId);
+            expect(templates.format("digest", output)).toBe("saved: 3");
+            return output;
+          }),
+        ],
+        resources: ({ config }) => ({
+          guide: {
+            uri: "reading://guide",
+            read: (): string => config.prefix,
           },
         }),
-      ],
-    });
+        tools: ({ jobs }) => [
+          defineTool({
+            name: "compile-digest",
+            description: "Compile a reading digest.",
+            input: digestInput,
+            output: z.object({ jobId: z.string() }),
+            confirmation: "Compile this digest?",
+            async execute({ input }) {
+              const job = await jobs.enqueue(digestJob, input);
+              return { jobId: job.id };
+            },
+          }),
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
@@ -160,12 +164,16 @@ describe("declarative service definitions", () => {
       bookmarkId: input.bookmarkId,
       words: 1,
     }));
-    const definition = defineServicePlugin({
-      id: "failing-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [binding, binding],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "failing-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [binding, binding],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -204,30 +212,34 @@ describe("declarative service definitions", () => {
       input: digestInput,
       output: digestOutput,
     });
-    const definition = defineServicePlugin({
-      id: "replay-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [
-        attributedJob.handle(async ({ input }) => ({
-          bookmarkId: input.bookmarkId,
-          words: 1,
-        })),
-      ],
-      tools: ({ jobs }) => [
-        defineTool({
-          name: "compile",
-          description: "Compile a digest.",
-          input: digestInput,
-          output: z.object({ jobId: z.string() }),
-          confirmation: "Compile this digest?",
-          async execute({ input }) {
-            const job = await jobs.enqueue(attributedJob, input);
-            return { jobId: job.id };
-          },
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "replay-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          attributedJob.handle(async ({ input }) => ({
+            bookmarkId: input.bookmarkId,
+            words: 1,
+          })),
+        ],
+        tools: ({ jobs }) => [
+          defineTool({
+            name: "compile",
+            description: "Compile a digest.",
+            input: digestInput,
+            output: z.object({ jobId: z.string() }),
+            confirmation: "Compile this digest?",
+            async execute({ input }) {
+              const job = await jobs.enqueue(attributedJob, input);
+              return { jobId: job.id };
+            },
+          }),
+        ],
+      },
+    );
     const makePlugin = (): NonNullable<
       ReturnType<typeof instantiatePluginPackageDefinition>[number]
     > => {
@@ -345,13 +357,12 @@ describe("declarative service definitions", () => {
     });
 
     const install = async (
-      extra: Partial<Parameters<typeof defineServicePlugin>[0]>,
+      behavior: NonNullable<Parameters<typeof defineServicePlugin>[1]>,
     ): Promise<void> => {
-      const definition = defineServicePlugin({
-        id: "reading-operator",
-        config: z.object({}),
-        ...extra,
-      });
+      const definition = defineServicePlugin(
+        { id: "reading-operator", config: z.object({}) },
+        behavior,
+      );
       const [plugin] = instantiatePluginPackageDefinition(
         definition,
         {},
@@ -393,23 +404,27 @@ describe("declarative service definitions", () => {
 describe("a tool and who called it", () => {
   it("hands execute the caller, so a grant can be attributed", async () => {
     let seen: unknown;
-    const definition = defineServicePlugin({
-      id: "trust-desk",
-      config: z.object({}),
-      setup: () => ({}),
-      tools: () => [
-        defineTool({
-          name: "record",
-          description: "Record who asked.",
-          input: z.object({}),
-          output: z.object({ actor: z.string() }),
-          execute: ({ caller }) => {
-            seen = caller;
-            return { actor: caller?.actor.kind ?? "anonymous" };
-          },
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "trust-desk",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "record",
+            description: "Record who asked.",
+            input: z.object({}),
+            output: z.object({ actor: z.string() }),
+            execute: ({ caller }) => {
+              seen = caller;
+              return { actor: caller?.actor.kind ?? "anonymous" };
+            },
+          }),
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
@@ -442,28 +457,32 @@ describe("a tool and who called it", () => {
 
 describe("a tool the agent must not wield", () => {
   it("carries agentTool through, so a human-only tool stays out of the agent's set", async () => {
-    const definition = defineServicePlugin({
-      id: "metrics-desk",
-      config: z.object({}),
-      setup: () => ({}),
-      tools: () => [
-        defineTool({
-          name: "readout",
-          description: "Read metrics.",
-          input: z.object({}),
-          output: z.object({ ok: z.boolean() }),
-          agentTool: false,
-          execute: () => ({ ok: true }),
-        }),
-        defineTool({
-          name: "everyday",
-          description: "An ordinary tool.",
-          input: z.object({}),
-          output: z.object({ ok: z.boolean() }),
-          execute: () => ({ ok: true }),
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "metrics-desk",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "readout",
+            description: "Read metrics.",
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            agentTool: false,
+            execute: () => ({ ok: true }),
+          }),
+          defineTool({
+            name: "everyday",
+            description: "An ordinary tool.",
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            execute: () => ({ ok: true }),
+          }),
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
@@ -488,22 +507,26 @@ describe("a tool the agent must not wield", () => {
 
 describe("what a confirmation says", () => {
   it("can name the subject, so a person sees what they are agreeing to", async () => {
-    const definition = defineServicePlugin({
-      id: "trust-gate",
-      config: z.object({}),
-      setup: () => ({}),
-      tools: () => [
-        defineTool({
-          name: "grant",
-          description: "Grant access.",
-          input: z.object({ agent: z.string(), level: z.string() }),
-          output: z.object({ granted: z.string() }),
-          confirmation: ({ agent, level }) =>
-            `Grant ${level} access to ${agent}?`,
-          execute: ({ input }) => ({ granted: input.agent }),
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "trust-gate",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "grant",
+            description: "Grant access.",
+            input: z.object({ agent: z.string(), level: z.string() }),
+            output: z.object({ granted: z.string() }),
+            confirmation: ({ agent, level }) =>
+              `Grant ${level} access to ${agent}?`,
+            execute: ({ input }) => ({ granted: input.agent }),
+          }),
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,

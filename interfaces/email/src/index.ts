@@ -311,199 +311,201 @@ export interface EmailInterfacePackage {
 export function emailInterface(
   dependencies: EmailInterfaceDependencies = {},
 ): EmailInterfacePackage {
-  return defineMessageInterface({
-    id: "email",
-    config: emailConfigSchema,
+  return defineMessageInterface(
+    {
+      id: "email",
+      config: emailConfigSchema,
 
-    channel: {
-      type: "email",
-      displayName: "Email",
-      subjectLabel: "Email address",
-      subjectPattern: {
-        source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-        flags: "i",
-      },
-      recipient: z.string().min(1),
-    },
+      // `setup` comes first so its return type is inferred before any slot whose
+      // context carries `state`; a destructured parameter above it would resolve
+      // that context while the state type is still unknown.
+      setup: ({ config, runtimeState, messaging, logger }): EmailState => {
+        const fetchImpl = dependencies.fetchImpl ?? fetch;
+        const imapClientFactory =
+          dependencies.imapClientFactory ?? createInboundEmailClient;
 
-    // `setup` comes first so its return type is inferred before any slot whose
-    // context carries `state`; a destructured parameter above it would resolve
-    // that context while the state type is still unknown.
-    setup: ({ config, runtimeState, messaging, logger }): EmailState => {
-      const fetchImpl = dependencies.fetchImpl ?? fetch;
-      const imapClientFactory =
-        dependencies.imapClientFactory ?? createInboundEmailClient;
+        if (!config.apiKey || !config.from) {
+          logger.warn(
+            "Email interface transport is disabled because apiKey or from is missing",
+          );
+        }
 
-      if (!config.apiKey || !config.from) {
-        logger.warn(
-          "Email interface transport is disabled because apiKey or from is missing",
+        if (!config.imap) {
+          return {
+            fetchImpl,
+            imapClientFactory,
+            logger,
+            sourceLocators: undefined,
+            supervisor: undefined,
+          };
+        }
+
+        const cursor: IRuntimeStateStore<InboundEmailCursor> = runtimeState({
+          namespace: "inbound.uid-cursor",
+          schema: inboundCursorSchema,
+        });
+        const sourceLocators = new EmailSourceLocatorStore(
+          runtimeState({
+            namespace: "inbound.source-locators",
+            schema: emailSourceLocatorSchema,
+          }),
         );
-      }
+        const publish: InboundEmailPublisher = (message) =>
+          messaging.send(message);
 
-      if (!config.imap) {
+        const supervisor = new InboundEmailSupervisor({
+          config: config.imap,
+          createClient: imapClientFactory,
+          intake: async (client, selection): Promise<number> =>
+            intakeInboundEmail(client, selection, {
+              cursor,
+              publish,
+              resolveSender: async (address) =>
+                resolveInboundSender(messaging, address),
+              recordSourceLocator: async (sourceRef, sel, uid) =>
+                sourceLocators.record(sourceRef, sel, uid),
+              pruneSourceLocators: async () => sourceLocators.prune(),
+              logger,
+            }),
+          logger,
+          ...(dependencies.inboundSleep
+            ? { sleep: dependencies.inboundSleep }
+            : {}),
+        });
+
         return {
           fetchImpl,
           imapClientFactory,
           logger,
-          sourceLocators: undefined,
-          supervisor: undefined,
+          sourceLocators,
+          supervisor,
         };
-      }
-
-      const cursor: IRuntimeStateStore<InboundEmailCursor> = runtimeState({
-        namespace: "inbound.uid-cursor",
-        schema: inboundCursorSchema,
-      });
-      const sourceLocators = new EmailSourceLocatorStore(
-        runtimeState({
-          namespace: "inbound.source-locators",
-          schema: emailSourceLocatorSchema,
-        }),
-      );
-      const publish: InboundEmailPublisher = (message) =>
-        messaging.send(message);
-
-      const supervisor = new InboundEmailSupervisor({
-        config: config.imap,
-        createClient: imapClientFactory,
-        intake: async (client, selection): Promise<number> =>
-          intakeInboundEmail(client, selection, {
-            cursor,
-            publish,
-            resolveSender: async (address) =>
-              resolveInboundSender(messaging, address),
-            recordSourceLocator: async (sourceRef, sel, uid) =>
-              sourceLocators.record(sourceRef, sel, uid),
-            pruneSourceLocators: async () => sourceLocators.prune(),
-            logger,
-          }),
-        logger,
-        ...(dependencies.inboundSleep
-          ? { sleep: dependencies.inboundSleep }
-          : {}),
-      });
-
-      return {
-        fetchImpl,
-        imapClientFactory,
-        logger,
-        sourceLocators,
-        supervisor,
-      };
+      },
+      channel: {
+        type: "email",
+        displayName: "Email",
+        subjectLabel: "Email address",
+        subjectPattern: {
+          source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+          flags: "i",
+        },
+        recipient: z.string().min(1),
+      },
     },
+    {
+      // An inbound-only posture has no key and must still boot; it registers the
+      // channel and simply cannot be delivered to.
+      available: ({ config }) => Boolean(config.apiKey && config.from),
 
-    // An inbound-only posture has no key and must still boot; it registers the
-    // channel and simply cannot be delivered to.
-    available: ({ config }) => Boolean(config.apiKey && config.from),
-
-    daemons: ({ state }) =>
-      state.supervisor
-        ? [
-            defineDaemon({
-              id: "inbound",
-              required: false,
-              // Connected or reconnecting is a fact about now, and only the
-              // supervisor knows it.
-              check: () => {
-                const supervisor = state.supervisor;
-                const connected = supervisor?.isConnected() ?? false;
-                return {
-                  status: connected ? "healthy" : "error",
-                  message: connected
-                    ? "Inbound email listener connected"
-                    : supervisor?.isRunning()
-                      ? "Inbound email listener awaiting connection"
-                      : "Inbound email listener disconnected",
-                };
-              },
-              async run({ signal, health }) {
-                const supervisor = state.supervisor;
-                if (!supervisor) return;
-                try {
-                  await supervisor.start();
-                } catch {
-                  throw new Error("Inbound email listener failed to start");
-                }
-                state.logger.info(
-                  supervisor.isConnected()
-                    ? "Inbound email listener connected"
-                    : "Inbound email listener started; awaiting connection",
-                );
-                health.ready();
-                await new Promise<void>((resolve) => {
-                  signal.addEventListener("abort", () => resolve(), {
-                    once: true,
-                  });
-                });
-                try {
-                  await supervisor.stop();
-                } catch {
-                  throw new Error(
-                    "Inbound email listener failed to disconnect",
+      daemons: ({ state }) =>
+        state.supervisor
+          ? [
+              defineDaemon({
+                id: "inbound",
+                required: false,
+                // Connected or reconnecting is a fact about now, and only the
+                // supervisor knows it.
+                check: () => {
+                  const supervisor = state.supervisor;
+                  const connected = supervisor?.isConnected() ?? false;
+                  return {
+                    status: connected ? "healthy" : "error",
+                    message: connected
+                      ? "Inbound email listener connected"
+                      : supervisor?.isRunning()
+                        ? "Inbound email listener awaiting connection"
+                        : "Inbound email listener disconnected",
+                  };
+                },
+                async run({ signal, health }) {
+                  const supervisor = state.supervisor;
+                  if (!supervisor) return;
+                  try {
+                    await supervisor.start();
+                  } catch {
+                    throw new Error("Inbound email listener failed to start");
+                  }
+                  state.logger.info(
+                    supervisor.isConnected()
+                      ? "Inbound email listener connected"
+                      : "Inbound email listener started; awaiting connection",
                   );
-                }
-                state.logger.info("Inbound email listener disconnected");
-              },
-            }),
-          ]
-        : [],
+                  health.ready();
+                  await new Promise<void>((resolve) => {
+                    signal.addEventListener("abort", () => resolve(), {
+                      once: true,
+                    });
+                  });
+                  try {
+                    await supervisor.stop();
+                  } catch {
+                    throw new Error(
+                      "Inbound email listener failed to disconnect",
+                    );
+                  }
+                  state.logger.info("Inbound email listener disconnected");
+                },
+              }),
+            ]
+          : [],
 
-    // The interface that delivered a message is the only thing that can fetch
-    // it back, so something has to be able to ask.
-    subscriptions: ({ config, state }) =>
-      state.sourceLocators
-        ? [
-            defineSubscription({
-              topic: EMAIL_SOURCE_READ,
-              payload: z.unknown(),
-              handle: ({ payload }) => readSource(state, config, payload),
-            }),
-          ]
-        : [],
+      // The interface that delivered a message is the only thing that can fetch
+      // it back, so something has to be able to ask.
+      subscriptions: ({ config, state }) =>
+        state.sourceLocators
+          ? [
+              defineSubscription({
+                topic: EMAIL_SOURCE_READ,
+                payload: z.unknown(),
+                handle: ({ payload }) => readSource(state, config, payload),
+              }),
+            ]
+          : [],
 
-    deliver: async ({ config, state, recipient, delivery }) => {
-      const secret = shouldRedactDelivery(delivery.sensitivity);
-      try {
-        const result = await sendWithResend(state, config, {
-          to: recipient,
-          subject: delivery.subject,
-          text: delivery.text,
-          ...(delivery.html ? { html: delivery.html } : {}),
-          ...(delivery.threading
-            ? {
-                threading: emailDeliveryThreadingSchema.parse(
-                  delivery.threading,
-                ),
-              }
-            : {}),
-          idempotencyKey: delivery.idempotencyKey,
-        });
-        return result.status === "sent"
-          ? {
-              status: "sent" as const,
-              ...(result.id ? { providerDeliveryId: result.id } : {}),
-            }
-          : {
-              status: "failed" as const,
-              failureCode: "email_delivery_failed",
-            };
-      } catch (error) {
-        if (secret) {
-          state.logger.warn("Email delivery failed for a secret message");
-        } else {
-          state.logger.warn("Email delivery failed", {
+      deliver: async ({ config, state, recipient, delivery }) => {
+        const secret = shouldRedactDelivery(delivery.sensitivity);
+        try {
+          const result = await sendWithResend(state, config, {
             to: recipient,
             subject: delivery.subject,
-            error: getErrorMessage(error),
+            text: delivery.text,
+            ...(delivery.html ? { html: delivery.html } : {}),
+            ...(delivery.threading
+              ? {
+                  threading: emailDeliveryThreadingSchema.parse(
+                    delivery.threading,
+                  ),
+                }
+              : {}),
+            idempotencyKey: delivery.idempotencyKey,
           });
+          return result.status === "sent"
+            ? {
+                status: "sent" as const,
+                ...(result.id ? { providerDeliveryId: result.id } : {}),
+              }
+            : {
+                status: "failed" as const,
+                failureCode: "email_delivery_failed",
+              };
+        } catch (error) {
+          if (secret) {
+            state.logger.warn("Email delivery failed for a secret message");
+          } else {
+            state.logger.warn("Email delivery failed", {
+              to: recipient,
+              subject: delivery.subject,
+              error: getErrorMessage(error),
+            });
+          }
+          return {
+            status: "failed" as const,
+            failureCode: "email_delivery_failed",
+          };
         }
-        return {
-          status: "failed" as const,
-          failureCode: "email_delivery_failed",
-        };
-      }
+      },
     },
-  });
+  );
 }
 
 const emailPackage: EmailInterfacePackage = emailInterface();

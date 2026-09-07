@@ -26,31 +26,35 @@ async function callerSeenBy(
   security: RouteSecurity,
   signedIn?: ReturnType<typeof createTestPrincipal>,
 ): Promise<z.output<typeof seenSchema> | number> {
-  const definition = defineServicePlugin({
-    id: "studio",
-    config: z.object({}),
-    routes: () => [
-      defineRoute({
-        method: "GET",
-        path: "/studio/api/me",
-        security,
-        response: verbatim,
-        handle: ({ caller }) =>
-          Response.json(
-            caller
-              ? {
-                  actorId: caller.actor.id,
-                  permission: caller.permission,
-                  isAnchor: caller.isAnchor,
-                  ...(caller.actor.canonicalId !== undefined
-                    ? { canonicalId: caller.actor.canonicalId }
-                    : {}),
-                }
-              : null,
-          ),
-      }),
-    ],
-  });
+  const definition = defineServicePlugin(
+    {
+      id: "studio",
+      config: z.object({}),
+    },
+    {
+      routes: () => [
+        defineRoute({
+          method: "GET",
+          path: "/studio/api/me",
+          security,
+          response: verbatim,
+          handle: ({ caller }) =>
+            Response.json(
+              caller
+                ? {
+                    actorId: caller.actor.id,
+                    permission: caller.permission,
+                    isAnchor: caller.isAnchor,
+                    ...(caller.actor.canonicalId !== undefined
+                      ? { canonicalId: caller.actor.canonicalId }
+                      : {}),
+                  }
+                : null,
+            ),
+        }),
+      ],
+    },
+  );
 
   const harness = createPluginHarness();
   harness

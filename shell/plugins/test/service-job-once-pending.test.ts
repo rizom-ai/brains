@@ -43,18 +43,22 @@ describe("work that should only wait once", () => {
   async function install(): Promise<ServiceJobs> {
     let captured: ServiceJobs | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "site-builder",
-        config: z.object({}),
-        setup: ({ jobs }) => {
-          captured = jobs;
-          return {};
+      defineServicePlugin(
+        {
+          id: "site-builder",
+          config: z.object({}),
+          setup: ({ jobs }) => {
+            captured = jobs;
+            return {};
+          },
         },
-        jobs: () => [
-          siteBuild.handle(async () => ({ built: true })),
-          plainBuild.handle(async () => ({ built: true })),
-        ],
-      }),
+        {
+          jobs: () => [
+            siteBuild.handle(async () => ({ built: true })),
+            plainBuild.handle(async () => ({ built: true })),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/site-builder", version: "0.1.0" },
     );

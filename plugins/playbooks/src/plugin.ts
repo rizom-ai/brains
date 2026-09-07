@@ -1084,75 +1084,78 @@ export const playbookManageTool = (
  * runtime's and what stays here is the engine those surfaces call.
  */
 const playbooksPackage: ServicePackageDefinition<typeof playbooksConfigSchema> =
-  defineServicePlugin({
-    id: "playbooks",
-    config: playbooksConfigSchema,
-    entities: [playbookEntity],
+  defineServicePlugin(
+    {
+      id: "playbooks",
+      config: playbooksConfigSchema,
+      entities: [playbookEntity],
 
-    // The goal check is the reason this package needs the corpus and the
-    // model: deciding whether a run's stated outcome holds means looking for
-    // evidence of it and putting that evidence to a judge.
-    setup: ({ config, logger, entities, state, corpus, judge }) =>
-      new PlaybookOperations({
-        config,
-        logger,
-        entities,
-        runs: new PlaybookRunStore(state),
-        goalCheck: createJudgeGoalCheck({ corpus, judge }),
-      }),
-
-    instructions: ({ config }) => buildInstructions(config.lifecycle),
-
-    evals: ({ state }) => ({
-      goalCheck: async (payload: unknown) => state.evaluateGoal(payload),
-    }),
-
-    tools: ({ state }) => [playbookManageTool(state)],
-
-    subscriptions: ({ state }) => [
-      defineSubscription({
-        topic: PLAYBOOKS_LIFECYCLE_STARTERS,
-        payload: lifecycleStartersRequestSchema,
-        handle: async ({ payload }) => ({
-          starters: await state.lifecycleStarters.resolveStarters(payload),
+      // The goal check is the reason this package needs the corpus and the
+      // model: deciding whether a run's stated outcome holds means looking for
+      // evidence of it and putting that evidence to a judge.
+      setup: ({ config, logger, entities, state, corpus, judge }) =>
+        new PlaybookOperations({
+          config,
+          logger,
+          entities,
+          runs: new PlaybookRunStore(state),
+          goalCheck: createJudgeGoalCheck({ corpus, judge }),
         }),
+    },
+    {
+      instructions: ({ config }) => buildInstructions(config.lifecycle),
+
+      evals: ({ state }) => ({
+        goalCheck: async (payload: unknown) => state.evaluateGoal(payload),
       }),
-      defineSubscription({
-        topic: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-        payload: lifecycleStarterRegistrationSchema,
-        handle: async ({ payload, source }) =>
-          state.lifecycleStarters.register(payload, source),
-      }),
-      defineSubscription({
-        topic: AGENT_CONTEXT_REQUEST_CHANNEL,
-        payload: agentContextRequestSchema,
-        handle: async ({ payload }) => {
-          const item = await state.buildAgentContextItem(
-            payload.conversationId,
-          );
-          return { items: item ? [item] : [] };
-        },
-      }),
-      defineSubscription({
-        topic: AGENT_ACTION_REQUEST_CHANNEL,
-        payload: agentActionRequestSchema,
-        handle: async ({ payload }) => state.handleAgentAction(payload),
-      }),
-      // A playbook advances on what actually happened, not on the agent
-      // saying it happened, so entity writes are evidence.
-      defineSubscription({
-        topic: ENTITY_CHANNELS.created,
-        payload: z.record(z.string(), z.unknown()),
-        handle: async ({ payload }) =>
-          state.runs.recordEntityEventEvidence("created", payload),
-      }),
-      defineSubscription({
-        topic: ENTITY_CHANNELS.updated,
-        payload: z.record(z.string(), z.unknown()),
-        handle: async ({ payload }) =>
-          state.runs.recordEntityEventEvidence("updated", payload),
-      }),
-    ],
-  });
+
+      tools: ({ state }) => [playbookManageTool(state)],
+
+      subscriptions: ({ state }) => [
+        defineSubscription({
+          topic: PLAYBOOKS_LIFECYCLE_STARTERS,
+          payload: lifecycleStartersRequestSchema,
+          handle: async ({ payload }) => ({
+            starters: await state.lifecycleStarters.resolveStarters(payload),
+          }),
+        }),
+        defineSubscription({
+          topic: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+          payload: lifecycleStarterRegistrationSchema,
+          handle: async ({ payload, source }) =>
+            state.lifecycleStarters.register(payload, source),
+        }),
+        defineSubscription({
+          topic: AGENT_CONTEXT_REQUEST_CHANNEL,
+          payload: agentContextRequestSchema,
+          handle: async ({ payload }) => {
+            const item = await state.buildAgentContextItem(
+              payload.conversationId,
+            );
+            return { items: item ? [item] : [] };
+          },
+        }),
+        defineSubscription({
+          topic: AGENT_ACTION_REQUEST_CHANNEL,
+          payload: agentActionRequestSchema,
+          handle: async ({ payload }) => state.handleAgentAction(payload),
+        }),
+        // A playbook advances on what actually happened, not on the agent
+        // saying it happened, so entity writes are evidence.
+        defineSubscription({
+          topic: ENTITY_CHANNELS.created,
+          payload: z.record(z.string(), z.unknown()),
+          handle: async ({ payload }) =>
+            state.runs.recordEntityEventEvidence("created", payload),
+        }),
+        defineSubscription({
+          topic: ENTITY_CHANNELS.updated,
+          payload: z.record(z.string(), z.unknown()),
+          handle: async ({ payload }) =>
+            state.runs.recordEntityEventEvidence("updated", payload),
+        }),
+      ],
+    },
+  );
 
 export default playbooksPackage;

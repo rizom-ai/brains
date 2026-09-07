@@ -342,7 +342,13 @@ export interface InterfaceSetupContext<
   readonly logger: Logger;
 }
 
-export interface InterfaceDefinitionInput<
+/**
+ * A generic interface: what it is and what it sets up, then what it serves.
+ *
+ * Two arguments, so the state `setup` returns is fixed before the second
+ * is checked and its slots read `state` in any order.
+ */
+export interface InterfaceDefinitionHeader<
   TConfigSchema extends InterfaceConfigSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TState extends object = Record<never, never>,
@@ -376,6 +382,19 @@ export interface InterfaceDefinitionInput<
         },
       ) => TState)
     | undefined;
+}
+
+/**
+ * A generic interface: what it is and what it sets up, then what it serves.
+ *
+ * Two arguments, so the state `setup` returns is fixed before the second
+ * is checked and its slots read `state` in any order.
+ */
+export interface InterfaceDefinitionBehavior<
+  TConfigSchema extends InterfaceConfigSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TState extends object = Record<never, never>,
+> {
   /**
    * Requests this interface answers on the message bus.
    * Message interfaces already declared these; a plain interface can be the
@@ -433,6 +452,14 @@ export interface InterfaceDefinitionInput<
       )[])
     | undefined;
 }
+
+/** The header and the behavior, as the runtime reads them. */
+export type InterfaceDefinitionInput<
+  TConfigSchema extends InterfaceConfigSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TState extends object = Record<never, never>,
+> = InterfaceDefinitionHeader<TConfigSchema, TAccountSettings, TState> &
+  InterfaceDefinitionBehavior<TConfigSchema, TAccountSettings, TState>;
 
 export interface MessageChannelDefinition<
   TRecipientSchema extends MessageRecipientSchema,
@@ -665,7 +692,13 @@ export interface MessageReceiver {
   pendingApprovals(channel: MessageChannel): Promise<readonly string[]>;
 }
 
-export interface MessageInterfaceDefinitionInput<
+/**
+ * A message interface: its channel and its setup, then how it talks.
+ *
+ * Two arguments, so the state `setup` returns is fixed before the second
+ * is checked and its slots read `state` in any order.
+ */
+export interface MessageInterfaceDefinitionHeader<
   TConfigSchema extends InterfaceConfigSchema,
   TState extends object,
   TRecipientSchema extends MessageRecipientSchema,
@@ -678,11 +711,9 @@ export interface MessageInterfaceDefinitionInput<
   /**
    * What the interface holds while it runs, built once at registration.
    *
-   * **Write this before any slot that destructures `state`.** The state type
-   * is inferred from what `setup` returns, and a destructured parameter above
-   * it resolves its context while that type is still unknown — which silently
-   * fixes `state` to an empty object rather than failing, so every later slot
-   * reports its own fields as missing.
+   * What this returns is the `state` every behavior slot reads. It sits in
+   * the header, a separate argument, so the type is fixed before any of them
+   * is checked — the order they are written in does not matter.
    */
   readonly setup?:
     | ((
@@ -700,6 +731,20 @@ export interface MessageInterfaceDefinitionInput<
         },
       ) => TState | Promise<TState>)
     | undefined;
+}
+
+/**
+ * A message interface: its channel and its setup, then how it talks.
+ *
+ * Two arguments, so the state `setup` returns is fixed before the second
+ * is checked and its slots read `state` in any order.
+ */
+export interface MessageInterfaceDefinitionBehavior<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
+  TRecipientSchema extends MessageRecipientSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> {
   /**
    * Whether delivery can actually be attempted right now.
    *
@@ -934,3 +979,22 @@ export interface MessageInterfaceDefinitionInput<
         | Promise<string | void | MessageDeliveryOutcome>)
     | undefined;
 }
+
+/** The header and the behavior, as the runtime reads them. */
+export type MessageInterfaceDefinitionInput<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object,
+  TRecipientSchema extends MessageRecipientSchema,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = MessageInterfaceDefinitionHeader<
+  TConfigSchema,
+  TState,
+  TRecipientSchema,
+  TAccountSettings
+> &
+  MessageInterfaceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  >;

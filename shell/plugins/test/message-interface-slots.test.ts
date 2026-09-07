@@ -30,18 +30,22 @@ function instantiate(
 
 describe("declarative message interface: channel subject pattern", () => {
   it("carries the pattern onto the registered descriptor", async () => {
-    const definition = defineMessageInterface({
-      id: "post",
-      config: z.object({}),
-      channel: {
-        type: "post",
-        displayName: "Post",
-        subjectLabel: "Address",
-        subjectPattern: { source: "^[^@\\s]+@[^@\\s]+$", flags: "i" },
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "post",
+        config: z.object({}),
+        channel: {
+          type: "post",
+          displayName: "Post",
+          subjectLabel: "Address",
+          subjectPattern: { source: "^[^@\\s]+@[^@\\s]+$", flags: "i" },
+          recipient: z.string().min(1),
+        },
       },
-      deliver: ({ recipient }) => `sent:${recipient}`,
-    });
+      {
+        deliver: ({ recipient }) => `sent:${recipient}`,
+      },
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(definition, {}, "@fixture/post"));
     await harness.finalizeRegistration();
@@ -59,19 +63,23 @@ describe("declarative message interface: channel subject pattern", () => {
 
 describe("declarative message interface: delivery availability", () => {
   it("registers the channel but no provider when the declaration is unavailable", async () => {
-    const definition = defineMessageInterface({
-      id: "halfwired",
-      config: z.object({ apiKey: z.string().optional() }),
-      channel: {
-        type: "halfwired",
-        displayName: "Halfwired",
-        subjectLabel: "Address",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "halfwired",
+        config: z.object({ apiKey: z.string().optional() }),
+        channel: {
+          type: "halfwired",
+          displayName: "Halfwired",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
       },
-      // Configured inbound-only: the channel still exists, delivery does not.
-      available: ({ config }) => Boolean(config.apiKey),
-      deliver: ({ recipient }) => `sent:${recipient}`,
-    });
+      {
+        // Configured inbound-only: the channel still exists, delivery does not.
+        available: ({ config }) => Boolean(config.apiKey),
+        deliver: ({ recipient }) => `sent:${recipient}`,
+      },
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(
       instantiate(definition, {}, "@fixture/halfwired"),
@@ -86,18 +94,22 @@ describe("declarative message interface: delivery availability", () => {
   });
 
   it("reports available once the configuration carries the credential", async () => {
-    const definition = defineMessageInterface({
-      id: "wired",
-      config: z.object({ apiKey: z.string().optional() }),
-      channel: {
-        type: "wired",
-        displayName: "Wired",
-        subjectLabel: "Address",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "wired",
+        config: z.object({ apiKey: z.string().optional() }),
+        channel: {
+          type: "wired",
+          displayName: "Wired",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
       },
-      available: ({ config }) => Boolean(config.apiKey),
-      deliver: ({ recipient }) => `sent:${recipient}`,
-    });
+      {
+        available: ({ config }) => Boolean(config.apiKey),
+        deliver: ({ recipient }) => `sent:${recipient}`,
+      },
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(
       instantiate(definition, { apiKey: "key" }, "@fixture/wired"),
@@ -119,27 +131,31 @@ describe("declarative message interface: durable state in setup", () => {
     const seen: number[] = [];
 
     const build = (): ReturnType<typeof defineMessageInterface> =>
-      defineMessageInterface({
-        id: "cursored",
-        config: z.object({}),
-        channel: {
-          type: "cursored",
-          displayName: "Cursored",
-          subjectLabel: "Address",
-          recipient: z.string().min(1),
+      defineMessageInterface(
+        {
+          id: "cursored",
+          config: z.object({}),
+          setup: async ({ runtimeState }) => {
+            const store = runtimeState({
+              namespace: "cursor",
+              schema: cursorSchema,
+            });
+            const current = await store.get("inbox");
+            seen.push(current?.lastUid ?? 0);
+            await store.set("inbox", { lastUid: (current?.lastUid ?? 0) + 1 });
+            return { store };
+          },
+          channel: {
+            type: "cursored",
+            displayName: "Cursored",
+            subjectLabel: "Address",
+            recipient: z.string().min(1),
+          },
         },
-        setup: async ({ runtimeState }) => {
-          const store = runtimeState({
-            namespace: "cursor",
-            schema: cursorSchema,
-          });
-          const current = await store.get("inbox");
-          seen.push(current?.lastUid ?? 0);
-          await store.set("inbox", { lastUid: (current?.lastUid ?? 0) + 1 });
-          return { store };
+        {
+          deliver: ({ recipient }) => `sent:${recipient}`,
         },
-        deliver: ({ recipient }) => `sent:${recipient}`,
-      });
+      );
 
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(build(), {}, "@fixture/cursored"));
@@ -162,25 +178,29 @@ describe("declarative message interface: durable state in setup", () => {
 
 describe("declarative message interface: subscriptions", () => {
   it("answers a request on its declared topic with a validated payload", async () => {
-    const definition = defineMessageInterface({
-      id: "answering",
-      config: z.object({}),
-      channel: {
-        type: "answering",
-        displayName: "Answering",
-        subjectLabel: "Address",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "answering",
+        config: z.object({}),
+        channel: {
+          type: "answering",
+          displayName: "Answering",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
       },
-      subscriptions: () => [
-        defineSubscription({
-          topic: "answering:lookup",
-          payload: z.object({ id: z.string() }),
-          // payload is typed here, which is the point of the helper
-          handle: ({ payload }) => ({ found: `entry-${payload.id}` }),
-        }),
-      ],
-      deliver: ({ recipient }) => `sent:${recipient}`,
-    });
+      {
+        subscriptions: () => [
+          defineSubscription({
+            topic: "answering:lookup",
+            payload: z.object({ id: z.string() }),
+            // payload is typed here, which is the point of the helper
+            handle: ({ payload }) => ({ found: `entry-${payload.id}` }),
+          }),
+        ],
+        deliver: ({ recipient }) => `sent:${recipient}`,
+      },
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(
       instantiate(definition, {}, "@fixture/answering"),
@@ -197,22 +217,26 @@ describe("declarative message interface: subscriptions", () => {
 describe("declarative message interface: the delivery envelope", () => {
   it("hands deliver the whole envelope and honours a structured failure", async () => {
     const seen: unknown[] = [];
-    const definition = defineMessageInterface({
-      id: "enveloped",
-      config: z.object({}),
-      channel: {
-        type: "enveloped",
-        displayName: "Enveloped",
-        subjectLabel: "Address",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "enveloped",
+        config: z.object({}),
+        channel: {
+          type: "enveloped",
+          displayName: "Enveloped",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
       },
-      deliver: ({ delivery }) => {
-        seen.push(delivery);
-        // A transport that knows why it failed says so, rather than throwing
-        // and being flattened to one generic code.
-        return { status: "failed", failureCode: "enveloped_rejected" };
+      {
+        deliver: ({ delivery }) => {
+          seen.push(delivery);
+          // A transport that knows why it failed says so, rather than throwing
+          // and being flattened to one generic code.
+          return { status: "failed", failureCode: "enveloped_rejected" };
+        },
       },
-    });
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(
       instantiate(definition, {}, "@fixture/enveloped"),
@@ -252,27 +276,31 @@ describe("declarative message interface: the delivery envelope", () => {
 
 describe("declarative message interface: reaching the bus from setup", () => {
   it("publishes on a topic another package listens to", async () => {
-    const definition = defineMessageInterface({
-      id: "publisher",
-      config: z.object({}),
-      channel: {
-        type: "publisher",
-        displayName: "Publisher",
-        subjectLabel: "Address",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "publisher",
+        config: z.object({}),
+        // An interface that takes delivery of something external has to be able
+        // to hand it on, and to say so in the log; nothing else can.
+        setup: async ({ messaging, logger }) => {
+          logger.debug("publisher ready");
+          await messaging.send({
+            type: "publisher:arrived",
+            payload: { id: "letter-1" },
+          });
+          return {};
+        },
+        channel: {
+          type: "publisher",
+          displayName: "Publisher",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
       },
-      // An interface that takes delivery of something external has to be able
-      // to hand it on, and to say so in the log; nothing else can.
-      setup: async ({ messaging, logger }) => {
-        logger.debug("publisher ready");
-        await messaging.send({
-          type: "publisher:arrived",
-          payload: { id: "letter-1" },
-        });
-        return {};
+      {
+        deliver: ({ recipient }) => `sent:${recipient}`,
       },
-      deliver: ({ recipient }) => `sent:${recipient}`,
-    });
+    );
     const harness = createPluginHarness();
     const received: unknown[] = [];
     harness.subscribe("publisher:arrived", async (message) => {

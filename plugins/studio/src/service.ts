@@ -156,220 +156,227 @@ export function studioService(
   // built through this rather than through an argument it is not given.
   let held: StudioState | undefined;
 
-  return defineServicePlugin({
-    id: "studio",
-    config: studioConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "studio",
+      config: studioConfigSchema,
 
-    setup: ({
-      config,
-      entities,
-      entityShapes,
-      operatorEntities,
-      messaging,
-      judge,
-      identity,
-      auth,
-      channels,
-      inbox,
-      inboxFollowUps,
-      plugins,
-      surfaces,
-      themeCSS,
-      readiness,
-      entityDisplay,
-      logger,
-    }): StudioState => {
-      const runtime: StudioRuntime = {
+      setup: ({
+        config,
         entities,
-        shapes: entityShapes,
-        operator: operatorEntities,
+        entityShapes,
+        operatorEntities,
         messaging,
         judge,
         identity,
         auth,
         channels,
         inbox,
+        inboxFollowUps,
         plugins,
         surfaces,
         themeCSS,
         readiness,
+        entityDisplay,
         logger,
-      };
-      const workspaces = deps.workspaces ?? new StudioWorkspaceRegistry();
-      const overview = deps.overview ?? new StudioOverviewRegistry();
-      workspaces.register(
-        createStudioOverviewWorkspace({ runtime, registry: overview }),
-      );
+      }): StudioState => {
+        const runtime: StudioRuntime = {
+          entities,
+          shapes: entityShapes,
+          operator: operatorEntities,
+          messaging,
+          judge,
+          identity,
+          auth,
+          channels,
+          inbox,
+          plugins,
+          surfaces,
+          themeCSS,
+          readiness,
+          logger,
+        };
+        const workspaces = deps.workspaces ?? new StudioWorkspaceRegistry();
+        const overview = deps.overview ?? new StudioOverviewRegistry();
+        workspaces.register(
+          createStudioOverviewWorkspace({ runtime, registry: overview }),
+        );
 
-      // An inbox item can become a note, or open the entity it came from.
-      // Whether a person may create a note depends on the person, never on
-      // the item, so it is answered once per level.
-      const canCreateNote = (
-        permission: "admin" | "trusted" | "public",
-      ): boolean =>
-        entities.getEntityTypes().includes("note") &&
-        operatorEntities.allows("note", "create", {
-          actor: { id: "inbox-follow-up" },
-          permission,
-          isAnchor: false,
-        });
-      inboxFollowUps.registerKind({
-        kind: "capture-as-note",
-        label: "Capture as note",
-        priority: 20,
-        mode: "universal",
-        permissionLevel: "trusted",
-        applies: ({ item, actor }) =>
-          item.entityRef !== undefined && canCreateNote(actor.permissionLevel),
-        resolve: ({ item, actor }) => {
-          if (!item.entityRef || !canCreateNote(actor.permissionLevel)) {
-            return undefined;
-          }
-          return {
-            href: studioCreatePath(config.routePath, "note"),
-            state: createStudioCreatePrefillState(
-              item.title,
-              entityBacklink(
-                item.entityRef.entityType,
-                item.entityRef.entityId,
-              ),
-              safeInboxSummary(item.summary),
-            ),
-          };
-        },
-      });
-      inboxFollowUps.registerKind({
-        kind: "open-entity",
-        label: "Open source entity",
-        priority: 30,
-        mode: "universal",
-        permissionLevel: "trusted",
-        applies: ({ item }) => item.entityRef !== undefined,
-        resolve: ({ item }) =>
-          item.entityRef
-            ? {
-                href: studioEntityPath(
-                  config.routePath,
+        // An inbox item can become a note, or open the entity it came from.
+        // Whether a person may create a note depends on the person, never on
+        // the item, so it is answered once per level.
+        const canCreateNote = (
+          permission: "admin" | "trusted" | "public",
+        ): boolean =>
+          entities.getEntityTypes().includes("note") &&
+          operatorEntities.allows("note", "create", {
+            actor: { id: "inbox-follow-up" },
+            permission,
+            isAnchor: false,
+          });
+        inboxFollowUps.registerKind({
+          kind: "capture-as-note",
+          label: "Capture as note",
+          priority: 20,
+          mode: "universal",
+          permissionLevel: "trusted",
+          applies: ({ item, actor }) =>
+            item.entityRef !== undefined &&
+            canCreateNote(actor.permissionLevel),
+          resolve: ({ item, actor }) => {
+            if (!item.entityRef || !canCreateNote(actor.permissionLevel)) {
+              return undefined;
+            }
+            return {
+              href: studioCreatePath(config.routePath, "note"),
+              state: createStudioCreatePrefillState(
+                item.title,
+                entityBacklink(
                   item.entityRef.entityType,
                   item.entityRef.entityId,
                 ),
-              }
-            : undefined,
-      });
+                safeInboxSummary(item.summary),
+              ),
+            };
+          },
+        });
+        inboxFollowUps.registerKind({
+          kind: "open-entity",
+          label: "Open source entity",
+          priority: 30,
+          mode: "universal",
+          permissionLevel: "trusted",
+          applies: ({ item }) => item.entityRef !== undefined,
+          resolve: ({ item }) =>
+            item.entityRef
+              ? {
+                  href: studioEntityPath(
+                    config.routePath,
+                    item.entityRef.entityType,
+                    item.entityRef.entityId,
+                  ),
+                }
+              : undefined,
+        });
 
-      held = {
-        runtime,
-        workspaces,
-        overview,
-        entityDisplay:
-          config.entityDisplay ?? parseEntityDisplay(entityDisplay),
-      };
-      return held;
-    },
-
-    interactions: ({ config }) => [
-      {
-        id: "studio",
-        label: "Studio",
-        description: "Edit and manage content through the browser Studio.",
-        href: config.routePath,
-        kind: "admin",
-        priority: 40,
-        visibility: "public",
-        requiresActiveSession: true,
+        held = {
+          runtime,
+          workspaces,
+          overview,
+          entityDisplay:
+            config.entityDisplay ?? parseEntityDisplay(entityDisplay),
+        };
+        return held;
       },
-    ],
+    },
+    {
+      interactions: ({ config }) => [
+        {
+          id: "studio",
+          label: "Studio",
+          description: "Edit and manage content through the browser Studio.",
+          href: config.routePath,
+          kind: "admin",
+          priority: 40,
+          visibility: "public",
+          requiresActiveSession: true,
+        },
+      ],
 
-    // Workspaces and overview contributions arrive from the packages that
-    // declared them; entity and job activity arrives from the runtime.
-    subscriptions: ({ config, state }) => [
-      defineSubscription({
-        topic: STUDIO_WORKSPACE_REGISTER_MESSAGE,
-        payload: workspaceRegistrationPayload,
-        // A refusal is thrown: the runtime answers the sender with it.
-        handle: ({ payload }) => {
-          if (
-            payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
-            payload.id === STUDIO_CHAT_WORKSPACE_ID ||
-            payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
-          ) {
-            throw new Error(
-              `Studio workspace id is reserved by the host: ${payload.id}`,
-            );
-          }
-          const workspace = state.workspaces.register(payload);
-          return {
-            workspaceUrl: studioWorkspacePath(config.routePath, workspace.id),
-          };
-        },
-      }),
-      defineSubscription({
-        topic: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
-        payload: workspaceUnregistrationPayload,
-        handle: ({ payload }) => {
-          if (payload.pluginId !== "studio") {
-            state.workspaces.unregister(payload.pluginId, payload.workspaceId);
-          }
-          return {};
-        },
-      }),
-      defineSubscription({
-        topic: STUDIO_OVERVIEW_REGISTER_MESSAGE,
-        payload: overviewRegistrationPayload,
-        handle: ({ payload }) => {
-          state.overview.register(payload);
-          return {};
-        },
-      }),
-      defineSubscription({
-        topic: STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-        payload: overviewUnregistrationPayload,
-        handle: ({ payload }) => {
-          state.overview.unregister(payload);
-          return {};
-        },
-      }),
-      ...(["created", "updated", "deleted"] as const).map((action) =>
+      // Workspaces and overview contributions arrive from the packages that
+      // declared them; entity and job activity arrives from the runtime.
+      subscriptions: ({ config, state }) => [
         defineSubscription({
-          topic: ENTITY_CHANNELS[action],
-          payload: z.unknown(),
+          topic: STUDIO_WORKSPACE_REGISTER_MESSAGE,
+          payload: workspaceRegistrationPayload,
+          // A refusal is thrown: the runtime answers the sender with it.
           handle: ({ payload }) => {
-            state.overview.recordEntity(action, payload);
+            if (
+              payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
+              payload.id === STUDIO_CHAT_WORKSPACE_ID ||
+              payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
+            ) {
+              throw new Error(
+                `Studio workspace id is reserved by the host: ${payload.id}`,
+              );
+            }
+            const workspace = state.workspaces.register(payload);
+            return {
+              workspaceUrl: studioWorkspacePath(config.routePath, workspace.id),
+            };
+          },
+        }),
+        defineSubscription({
+          topic: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+          payload: workspaceUnregistrationPayload,
+          handle: ({ payload }) => {
+            if (payload.pluginId !== "studio") {
+              state.workspaces.unregister(
+                payload.pluginId,
+                payload.workspaceId,
+              );
+            }
             return {};
           },
         }),
-      ),
-      defineSubscription({
-        topic: JOB_CHANNELS.progress,
-        payload: z.unknown(),
-        handle: ({ payload }) => {
-          state.overview.recordJob(payload);
-          return {};
-        },
-      }),
-    ],
-
-    // Declared from configuration alone, so a brain can say what it serves
-    // before setup ran; a handler reaches what setup built when asked.
-    routes: ({ config }) => [
-      ...legacySurfaceRedirects(config.routePath),
-      ...createEditorRoutes(
-        (): EditorRouteState => {
-          const state = held;
-          if (!state) {
-            throw new Error("Studio was asked to serve before it was set up");
-          }
-          return {
-            runtime: state.runtime,
-            entityDisplay: state.entityDisplay,
-            workspaceRegistry: state.workspaces,
-            recordAuditEvent: async (event): Promise<void> => {
-              await state.runtime.auth.getAudit()?.recordAuditEvent(event);
+        defineSubscription({
+          topic: STUDIO_OVERVIEW_REGISTER_MESSAGE,
+          payload: overviewRegistrationPayload,
+          handle: ({ payload }) => {
+            state.overview.register(payload);
+            return {};
+          },
+        }),
+        defineSubscription({
+          topic: STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+          payload: overviewUnregistrationPayload,
+          handle: ({ payload }) => {
+            state.overview.unregister(payload);
+            return {};
+          },
+        }),
+        ...(["created", "updated", "deleted"] as const).map((action) =>
+          defineSubscription({
+            topic: ENTITY_CHANNELS[action],
+            payload: z.unknown(),
+            handle: ({ payload }) => {
+              state.overview.recordEntity(action, payload);
+              return {};
             },
-          };
-        },
-        { routePath: config.routePath },
-      ),
-    ],
-  });
+          }),
+        ),
+        defineSubscription({
+          topic: JOB_CHANNELS.progress,
+          payload: z.unknown(),
+          handle: ({ payload }) => {
+            state.overview.recordJob(payload);
+            return {};
+          },
+        }),
+      ],
+
+      // Declared from configuration alone, so a brain can say what it serves
+      // before setup ran; a handler reaches what setup built when asked.
+      routes: ({ config }) => [
+        ...legacySurfaceRedirects(config.routePath),
+        ...createEditorRoutes(
+          (): EditorRouteState => {
+            const state = held;
+            if (!state) {
+              throw new Error("Studio was asked to serve before it was set up");
+            }
+            return {
+              runtime: state.runtime,
+              entityDisplay: state.entityDisplay,
+              workspaceRegistry: state.workspaces,
+              recordAuditEvent: async (event): Promise<void> => {
+                await state.runtime.auth.getAudit()?.recordAuditEvent(event);
+              },
+            };
+          },
+          { routePath: config.routePath },
+        ),
+      ],
+    },
+  );
 }

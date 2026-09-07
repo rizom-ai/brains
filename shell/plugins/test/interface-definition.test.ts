@@ -55,58 +55,66 @@ describe("declarative generic interfaces", () => {
   });
 
   it("authenticates protocol callers, resolves trust, and enqueues typed jobs", async () => {
-    const service = defineServicePlugin({
-      id: "digest-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [
-        digestJob.handle(async ({ input }) => ({
-          bookmarkId: input.bookmarkId,
-        })),
-      ],
-    });
-    const definition = defineInterface({
-      id: "reading-webhook",
-      config: z.object({ token: z.string() }),
-      routes: ({ config, jobs }) => [
-        defineRoute({
-          method: "GET",
-          path: "/health",
-          security: { kind: "public" },
-          response: z.object({ status: z.literal("ok") }),
-          handle: () => ({ status: "ok" as const }),
-        }),
-        defineRoute({
-          method: "POST",
-          path: "/digest",
-          security: protocol({
-            authenticate({ request }) {
-              return request.headers.get("authorization") === config.token
-                ? { id: "reader-1" }
-                : null;
+    const service = defineServicePlugin(
+      {
+        id: "digest-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          digestJob.handle(async ({ input }) => ({
+            bookmarkId: input.bookmarkId,
+          })),
+        ],
+      },
+    );
+    const definition = defineInterface(
+      {
+        id: "reading-webhook",
+        config: z.object({ token: z.string() }),
+      },
+      {
+        routes: ({ config, jobs }) => [
+          defineRoute({
+            method: "GET",
+            path: "/health",
+            security: { kind: "public" },
+            response: z.object({ status: z.literal("ok") }),
+            handle: () => ({ status: "ok" as const }),
+          }),
+          defineRoute({
+            method: "POST",
+            path: "/digest",
+            security: protocol({
+              authenticate({ request }) {
+                return request.headers.get("authorization") === config.token
+                  ? { id: "reader-1" }
+                  : null;
+              },
+            }),
+            body: digestJob.input,
+            response: z.object({
+              jobId: z.string(),
+              permission: z.enum(["admin", "trusted", "public"]),
+              anchor: z.boolean(),
+            }),
+            async handle({ body, caller }) {
+              expectTypeOf(body.bookmarkId).toEqualTypeOf<string>();
+              expectTypeOf(caller.permission).toEqualTypeOf<
+                "admin" | "trusted" | "public"
+              >();
+              const job = await jobs.enqueue(digestJob, body);
+              return {
+                jobId: job.id,
+                permission: caller.permission,
+                anchor: caller.isAnchor,
+              };
             },
           }),
-          body: digestJob.input,
-          response: z.object({
-            jobId: z.string(),
-            permission: z.enum(["admin", "trusted", "public"]),
-            anchor: z.boolean(),
-          }),
-          async handle({ body, caller }) {
-            expectTypeOf(body.bookmarkId).toEqualTypeOf<string>();
-            expectTypeOf(caller.permission).toEqualTypeOf<
-              "admin" | "trusted" | "public"
-            >();
-            const job = await jobs.enqueue(digestJob, body);
-            return {
-              jobId: job.id,
-              permission: caller.permission,
-              anchor: caller.isAnchor,
-            };
-          },
-        }),
-      ],
-    });
+        ],
+      },
+    );
 
     const harness = createPluginHarness();
     const shell = harness.getMockShell();
@@ -182,32 +190,36 @@ describe("declarative generic interfaces", () => {
     });
     const started: string[] = [];
     const stopped: string[] = [];
-    const definition = defineInterface({
-      id: "mailbox",
-      config: z.object({}),
-      accountSettings: settings,
-      daemons: () => [
-        defineDaemon({
-          id: "mailboxes",
-          forAccounts: settings,
-          async run({ account, health, signal }) {
-            expectTypeOf(account.settings.password).toEqualTypeOf<string>();
-            started.push(`${account.id}:${account.settings.password}`);
-            health.ready();
-            await new Promise<void>((resolve) => {
-              signal.addEventListener(
-                "abort",
-                () => {
-                  stopped.push(`${account.id}:${account.settings.password}`);
-                  resolve();
-                },
-                { once: true },
-              );
-            });
-          },
-        }),
-      ],
-    });
+    const definition = defineInterface(
+      {
+        id: "mailbox",
+        config: z.object({}),
+        accountSettings: settings,
+      },
+      {
+        daemons: () => [
+          defineDaemon({
+            id: "mailboxes",
+            forAccounts: settings,
+            async run({ account, health, signal }) {
+              expectTypeOf(account.settings.password).toEqualTypeOf<string>();
+              started.push(`${account.id}:${account.settings.password}`);
+              health.ready();
+              await new Promise<void>((resolve) => {
+                signal.addEventListener(
+                  "abort",
+                  () => {
+                    stopped.push(`${account.id}:${account.settings.password}`);
+                    resolve();
+                  },
+                  { once: true },
+                );
+              });
+            },
+          }),
+        ],
+      },
+    );
 
     const harness = createPluginHarness();
     const shell = harness.getMockShell();
@@ -278,30 +290,34 @@ describe("declarative generic interfaces", () => {
 
   it("supervises one abortable daemon with emitted health", async () => {
     let stopped = false;
-    const definition = defineInterface({
-      id: "event-feed",
-      config: z.object({}),
-      daemons: () => [
-        defineDaemon({
-          id: "events",
-          required: true,
-          async run({ signal, health }) {
-            health.warning("Connecting");
-            health.ready();
-            await new Promise<void>((resolve) => {
-              signal.addEventListener(
-                "abort",
-                () => {
-                  stopped = true;
-                  resolve();
-                },
-                { once: true },
-              );
-            });
-          },
-        }),
-      ],
-    });
+    const definition = defineInterface(
+      {
+        id: "event-feed",
+        config: z.object({}),
+      },
+      {
+        daemons: () => [
+          defineDaemon({
+            id: "events",
+            required: true,
+            async run({ signal, health }) {
+              health.warning("Connecting");
+              health.ready();
+              await new Promise<void>((resolve) => {
+                signal.addEventListener(
+                  "abort",
+                  () => {
+                    stopped = true;
+                    resolve();
+                  },
+                  { once: true },
+                );
+              });
+            },
+          }),
+        ],
+      },
+    );
     const harness = createPluginHarness();
     const plugin = instantiate(definition, {}, "@fixture/event-feed");
     await harness.installPlugin(plugin);
@@ -322,17 +338,21 @@ describe("declarative generic interfaces", () => {
 describe("declarative message interfaces", () => {
   it("rejects conversational listeners without a reply transport", () => {
     expect(() =>
-      defineMessageInterface({
-        id: "silent-listener",
-        config: z.object({}),
-        channel: {
-          type: "silent",
-          displayName: "Silent",
-          subjectLabel: "Room",
-          recipient: z.string(),
+      defineMessageInterface(
+        {
+          id: "silent-listener",
+          config: z.object({}),
+          channel: {
+            type: "silent",
+            displayName: "Silent",
+            subjectLabel: "Room",
+            recipient: z.string(),
+          },
         },
-        listen: async () => {},
-      }),
+        {
+          listen: async () => {},
+        },
+      ),
     ).toThrow("must define send when it defines listen");
   });
 
@@ -343,31 +363,37 @@ describe("declarative message interfaces", () => {
       fields: { user: { label: "User" } },
     });
     const started: string[] = [];
-    const definition = defineMessageInterface({
-      id: "mail-channel",
-      config: z.object({}),
-      accountSettings: settings,
-      channel: {
-        type: "mail-channel",
-        displayName: "Mail",
-        subjectLabel: "Address",
-        recipient: z.string(),
+    const definition = defineMessageInterface(
+      {
+        id: "mail-channel",
+        config: z.object({}),
+        accountSettings: settings,
+        channel: {
+          type: "mail-channel",
+          displayName: "Mail",
+          subjectLabel: "Address",
+          recipient: z.string(),
+        },
       },
-      daemons: () => [
-        defineDaemon({
-          id: "mailboxes",
-          forAccounts: settings,
-          required: true,
-          async run({ account, health, signal }) {
-            started.push(`${account.id}:${account.settings.user}`);
-            health.ready();
-            await new Promise<void>((resolve) =>
-              signal.addEventListener("abort", () => resolve(), { once: true }),
-            );
-          },
-        }),
-      ],
-    });
+      {
+        daemons: () => [
+          defineDaemon({
+            id: "mailboxes",
+            forAccounts: settings,
+            required: true,
+            async run({ account, health, signal }) {
+              started.push(`${account.id}:${account.settings.user}`);
+              health.ready();
+              await new Promise<void>((resolve) =>
+                signal.addEventListener("abort", () => resolve(), {
+                  once: true,
+                }),
+              );
+            },
+          }),
+        ],
+      },
+    );
     const harness = createPluginHarness();
     const registry = harness.getMockShell().getAccountSettingsRegistry();
     registry.bindBackend({
@@ -394,17 +420,21 @@ describe("declarative message interfaces", () => {
   });
 
   it("allows outbound-only delivery without setup or listener placeholders", async () => {
-    const definition = defineMessageInterface({
-      id: "pager",
-      config: z.object({}),
-      channel: {
-        type: "pager",
-        displayName: "Pager",
-        subjectLabel: "Address",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "pager",
+        config: z.object({}),
+        channel: {
+          type: "pager",
+          displayName: "Pager",
+          subjectLabel: "Address",
+          recipient: z.string().min(1),
+        },
       },
-      deliver: ({ recipient, message }) => `${recipient}:${message.text}`,
-    });
+      {
+        deliver: ({ recipient, message }) => `${recipient}:${message.text}`,
+      },
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(definition, {}, "@fixture/pager"));
     await harness.finalizeRegistration();
@@ -446,37 +476,41 @@ describe("declarative message interfaces", () => {
         url: "data:text/plain,saved%20attachment",
       },
     ]);
-    const definition = defineMessageInterface({
-      id: "campfire",
-      config: z.object({ token: z.string() }),
-      channel: {
-        type: "campfire",
-        displayName: "Campfire",
-        subjectLabel: "Room",
-        recipient: z.object({ roomId: z.string().min(1) }),
+    const definition = defineMessageInterface(
+      {
+        id: "campfire",
+        config: z.object({ token: z.string() }),
+        channel: {
+          type: "campfire",
+          displayName: "Campfire",
+          subjectLabel: "Room",
+          recipient: z.object({ roomId: z.string().min(1) }),
+        },
+        setup: ({ config }) => ({ token: config.token }),
       },
-      setup: ({ config }) => ({ token: config.token }),
-      async listen({ state, signal, health, messages }) {
-        expect(state.token).toBe("secret");
-        receiver = messages;
-        health.ready();
-        await new Promise<void>((resolve) => {
-          signal.addEventListener("abort", () => resolve(), { once: true });
-        });
+      {
+        async listen({ state, signal, health, messages }) {
+          expect(state.token).toBe("secret");
+          receiver = messages;
+          health.ready();
+          await new Promise<void>((resolve) => {
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          });
+        },
+        async send({ state, channel, message }) {
+          expect(state.token).toBe("secret");
+          sent.push({ channelId: channel.id, text: message.text });
+          return `message-${sent.length}`;
+        },
+        edit({ messageId, message }) {
+          edited.push({ messageId, text: message.text });
+        },
+        deliver({ recipient, message }) {
+          delivered.push({ roomId: recipient.roomId, text: message.text });
+          return "delivery-1";
+        },
       },
-      async send({ state, channel, message }) {
-        expect(state.token).toBe("secret");
-        sent.push({ channelId: channel.id, text: message.text });
-        return `message-${sent.length}`;
-      },
-      edit({ messageId, message }) {
-        edited.push({ messageId, text: message.text });
-      },
-      deliver({ recipient, message }) {
-        delivered.push({ roomId: recipient.roomId, text: message.text });
-        return "delivery-1";
-      },
-    });
+    );
 
     const harness = createPluginHarness();
     harness.setPermissionService(

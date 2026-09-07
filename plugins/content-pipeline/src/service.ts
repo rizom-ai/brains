@@ -89,23 +89,14 @@ const INSTRUCTIONS = `## Publishing
 export function contentPipelineService(
   deps: ContentPipelineDeps = {},
 ): ServicePackageDefinition<typeof contentPipelineConfigSchema> {
-  return defineServicePlugin({
-    id: "publishing",
-    config: contentPipelineConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "publishing",
+      config: contentPipelineConfigSchema,
 
-    setup: ({
-      config,
-      lifecycle,
-      entities,
-      publishing,
-      permissions,
-      attachments,
-      messaging,
-      jobs,
-      state,
-      logger,
-    }): ContentPipelineState => {
-      const runtime: PipelineRuntime = {
+      setup: ({
+        config,
+        lifecycle,
         entities,
         publishing,
         permissions,
@@ -114,137 +105,149 @@ export function contentPipelineService(
         jobs,
         state,
         logger,
-      };
-      const queueManager = deps.queueManager ?? QueueManager.createFresh();
-      const providerRegistry =
-        deps.providerRegistry ?? ProviderRegistry.createFresh();
-      const retryTracker = deps.retryTracker ?? RetryTracker.createFresh();
-      const publishAssetRegistry =
-        deps.publishAssetRegistry ?? PublishAssetRegistry.createFresh();
-      const publicationQueueService = new PublicationQueueService(
-        runtime,
-        queueManager,
-      );
-      const publishAssetPreflight = new PublishAssetPreflight({
-        runtime,
-        registry: publishAssetRegistry,
-      });
-      const publishExecutor = new PublishExecutor({
-        runtime,
-        providerRegistry,
-        publishAssetPreflight,
-      });
-      const scheduler = createScheduler({
-        context: runtime,
-        config,
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        publishExecutor,
-        logger,
-      });
-      lifecycle.onCleanup(() => scheduler.stop());
-      return {
-        runtime,
-        queueManager,
-        publicationQueueService,
-        providerRegistry,
-        retryTracker,
-        publishExecutor,
-        publishAssetRegistry,
-        publishAssetPreflight,
-        scheduler,
-      };
+      }): ContentPipelineState => {
+        const runtime: PipelineRuntime = {
+          entities,
+          publishing,
+          permissions,
+          attachments,
+          messaging,
+          jobs,
+          state,
+          logger,
+        };
+        const queueManager = deps.queueManager ?? QueueManager.createFresh();
+        const providerRegistry =
+          deps.providerRegistry ?? ProviderRegistry.createFresh();
+        const retryTracker = deps.retryTracker ?? RetryTracker.createFresh();
+        const publishAssetRegistry =
+          deps.publishAssetRegistry ?? PublishAssetRegistry.createFresh();
+        const publicationQueueService = new PublicationQueueService(
+          runtime,
+          queueManager,
+        );
+        const publishAssetPreflight = new PublishAssetPreflight({
+          runtime,
+          registry: publishAssetRegistry,
+        });
+        const publishExecutor = new PublishExecutor({
+          runtime,
+          providerRegistry,
+          publishAssetPreflight,
+        });
+        const scheduler = createScheduler({
+          context: runtime,
+          config,
+          queueManager,
+          providerRegistry,
+          retryTracker,
+          publishExecutor,
+          logger,
+        });
+        lifecycle.onCleanup(() => scheduler.stop());
+        return {
+          runtime,
+          queueManager,
+          publicationQueueService,
+          providerRegistry,
+          retryTracker,
+          publishExecutor,
+          publishAssetRegistry,
+          publishAssetPreflight,
+          scheduler,
+        };
+      },
     },
+    {
+      subscriptions: ({ state }) =>
+        pipelineSubscriptions(state.runtime, {
+          queueManager: state.queueManager,
+          publicationQueueService: state.publicationQueueService,
+          providerRegistry: state.providerRegistry,
+          retryTracker: state.retryTracker,
+          publishExecutor: state.publishExecutor,
+          publishAssetRegistry: state.publishAssetRegistry,
+          publishAssetPreflight: state.publishAssetPreflight,
+          scheduler: state.scheduler,
+          logger: state.runtime.logger,
+        }),
 
-    subscriptions: ({ state }) =>
-      pipelineSubscriptions(state.runtime, {
-        queueManager: state.queueManager,
-        publicationQueueService: state.publicationQueueService,
-        providerRegistry: state.providerRegistry,
-        retryTracker: state.retryTracker,
-        publishExecutor: state.publishExecutor,
-        publishAssetRegistry: state.publishAssetRegistry,
-        publishAssetPreflight: state.publishAssetPreflight,
-        scheduler: state.scheduler,
-        logger: state.runtime.logger,
-      }),
+      tools: ({ state }) => [
+        defineTool({
+          name: "manage",
+          description:
+            "Manage publishing: inspect and change the publish queue, or publish an entity to its platform.",
+          input: publishingManageInputSchema,
+          output: publishingManageOutputSchema,
+          permission: "trusted",
+          sideEffects: "external",
+          execute: async ({ input, caller }): Promise<PublishingManageOutput> =>
+            publishingManageOutputSchema.parse(
+              await handlePublishingManage({
+                runtime: state.runtime,
+                services: {
+                  queueManager: state.queueManager,
+                  publicationQueueService: state.publicationQueueService,
+                  providerRegistry: state.providerRegistry,
+                  publishExecutor: state.publishExecutor,
+                },
+                input,
+                caller: caller ?? SYSTEM_CALLER,
+              }),
+            ),
+        }),
+      ],
 
-    tools: ({ state }) => [
-      defineTool({
-        name: "manage",
-        description:
-          "Manage publishing: inspect and change the publish queue, or publish an entity to its platform.",
-        input: publishingManageInputSchema,
-        output: publishingManageOutputSchema,
-        permission: "trusted",
-        sideEffects: "external",
-        execute: async ({ input, caller }): Promise<PublishingManageOutput> =>
-          publishingManageOutputSchema.parse(
-            await handlePublishingManage({
-              runtime: state.runtime,
-              services: {
-                queueManager: state.queueManager,
-                publicationQueueService: state.publicationQueueService,
-                providerRegistry: state.providerRegistry,
-                publishExecutor: state.publishExecutor,
-              },
-              input,
-              caller: caller ?? SYSTEM_CALLER,
-            }),
-          ),
-      }),
-    ],
+      dashboardWidgets: (context) => [
+        publicationPipelineWidget.bind(
+          context,
+          loadPipelineWidget(context.state.runtime, {
+            providerRegistry: context.state.providerRegistry,
+            queueManager: context.state.queueManager,
+            retryTracker: context.state.retryTracker,
+          }),
+        ),
+      ],
 
-    dashboardWidgets: (context) => [
-      publicationPipelineWidget.bind(
-        context,
-        loadPipelineWidget(context.state.runtime, {
+      studioWorkspaces: (context) => {
+        const handlers = publishingWorkspaceHandlers(context.state.runtime, {
           providerRegistry: context.state.providerRegistry,
           queueManager: context.state.queueManager,
+          publicationQueueService: context.state.publicationQueueService,
           retryTracker: context.state.retryTracker,
-        }),
-      ),
-    ],
+          publishExecutor: context.state.publishExecutor,
+        });
+        return [
+          publishingWorkspace.bind(context, {
+            authorize: handlers.authorize,
+            listEntityTypes: handlers.listEntityTypes,
+            load: handlers.load,
+            actions: [
+              queueAction.bind(context, handlers.queue),
+              removeAction.bind(context, handlers.remove),
+              retryAction.bind(context, handlers.retry),
+              reorderAction.bind(context, handlers.reorder),
+              publishAction.bind(
+                context,
+                handlers.publish,
+                handlers.preparePublish,
+              ),
+            ],
+          }),
+        ];
+      },
 
-    studioWorkspaces: (context) => {
-      const handlers = publishingWorkspaceHandlers(context.state.runtime, {
-        providerRegistry: context.state.providerRegistry,
-        queueManager: context.state.queueManager,
-        publicationQueueService: context.state.publicationQueueService,
-        retryTracker: context.state.retryTracker,
-        publishExecutor: context.state.publishExecutor,
-      });
-      return [
-        publishingWorkspace.bind(context, {
-          authorize: handlers.authorize,
-          listEntityTypes: handlers.listEntityTypes,
-          load: handlers.load,
-          actions: [
-            queueAction.bind(context, handlers.queue),
-            removeAction.bind(context, handlers.remove),
-            retryAction.bind(context, handlers.retry),
-            reorderAction.bind(context, handlers.reorder),
-            publishAction.bind(
-              context,
-              handlers.publish,
-              handlers.preparePublish,
-            ),
-          ],
-        }),
-      ];
+      // The queue is durable intent recorded on entities; the in-memory
+      // projection is rebuilt from them, and only then does the schedule start.
+      ready: async ({ state }) => {
+        await state.publicationQueueService.reconcile(
+          state.providerRegistry.getRegisteredTypes(),
+        );
+        await state.scheduler.start();
+        state.runtime.logger.info("Content pipeline started");
+      },
+
+      instructions: () => INSTRUCTIONS,
     },
-
-    // The queue is durable intent recorded on entities; the in-memory
-    // projection is rebuilt from them, and only then does the schedule start.
-    ready: async ({ state }) => {
-      await state.publicationQueueService.reconcile(
-        state.providerRegistry.getRegisteredTypes(),
-      );
-      await state.scheduler.start();
-      state.runtime.logger.info("Content pipeline started");
-    },
-
-    instructions: () => INSTRUCTIONS,
-  });
+  );
 }

@@ -62,115 +62,120 @@ export type AgentDiscoveryConfigInput = z.input<
  */
 export const agentDiscovery: ServicePackageDefinition<
   typeof agentDiscoveryConfigSchema
-> = defineServicePlugin({
-  // Plural: the entity type is "agent", and a service sharing that id would
-  // scope to the same plugin name as the entity plugin the package installs.
-  id: "agents",
-  config: agentDiscoveryConfigSchema,
-  entities: [agent, skill],
-  tools: () => [
-    agentConnectTool(),
-    agentScanDirectoriesTool(),
-    agentSetTrustLevelTool(),
-  ],
-  inbox: () => agentSightingsInbox,
-  // A rule rather than an entity-side projection: whether skills are derived
-  // at all is configured, and the entity slot is static.
-  projectionRules: ({ config }) =>
-    config.enableSkillDerivation ? [createSkillProjectionRule()] : [],
-  evals: () => skillEvalHandlers(),
-  checks: ({ config }) => [
-    {
-      id: "directory-scan",
-      cadence: "daily",
-      deliverAlerts: config.notifyOnNewAgents,
-      run: async (context): Promise<{ alerts?: DirectoryAlert[] }> => {
-        const result = await scanAgentDirectories(
-          context,
-          undefined,
-          context.signal,
-        );
-
-        const alerts: DirectoryAlert[] = [];
-        if (result.created > 0) {
-          const createdDomains = [...result.createdDomains].sort();
-          const peers = [...result.introducingPeers].sort();
-          const visibleDomains = createdDomains.slice(0, 5).join(", ");
-          const overflow =
-            createdDomains.length > 5 ? ` +${createdDomains.length - 5}` : "";
-          alerts.push({
-            dedupeKey: `sightings:${computeContentHash(
-              `${result.observedAt}\0${createdDomains.join("\0")}`,
-            )}`,
-            // The dedicated source projects each sighting with its entity and
-            // decision actions; this rollup remains channel-only.
-            includeInInbox: false,
-            title: `${result.created} new agent sighting${result.created === 1 ? "" : "s"}`,
-            body: `Found ${visibleDomains}${overflow}, introduced through ${peers.join(", ")}. Review in Agent sightings.`,
-          });
-        }
-
-        // Only drained when it will actually be delivered. Recording happens
-        // whether or not notifications are on — that is the point, so that
-        // switching them on shows what was already found — and draining a
-        // backlog nobody is told about would throw away the same history a
-        // second way.
-        if (!config.notifyOnNewAgents) {
-          return alerts.length > 0 ? { alerts } : {};
-        }
-
-        const notifications = atprotoNotifications(context);
-        const records = await notifications.list({ keyPrefix: "candidate:" });
-        const pending = records
-          .filter((record) => record.value.status === "pending")
-          .sort((left, right) =>
-            left.value.observedAt.localeCompare(right.value.observedAt),
+> = defineServicePlugin(
+  {
+    // Plural: the entity type is "agent", and a service sharing that id would
+    // scope to the same plugin name as the entity plugin the package installs.
+    id: "agents",
+    config: agentDiscoveryConfigSchema,
+    entities: [agent, skill],
+  },
+  {
+    tools: () => [
+      agentConnectTool(),
+      agentScanDirectoriesTool(),
+      agentSetTrustLevelTool(),
+    ],
+    inbox: () => agentSightingsInbox,
+    // A rule rather than an entity-side projection: whether skills are derived
+    // at all is configured, and the entity slot is static.
+    projectionRules: ({ config }) =>
+      config.enableSkillDerivation ? [createSkillProjectionRule()] : [],
+    evals: () => skillEvalHandlers(),
+    checks: ({ config }) => [
+      {
+        id: "directory-scan",
+        cadence: "daily",
+        deliverAlerts: config.notifyOnNewAgents,
+        run: async (context): Promise<{ alerts?: DirectoryAlert[] }> => {
+          const result = await scanAgentDirectories(
+            context,
+            undefined,
+            context.signal,
           );
-        if (pending.length > 0) {
-          const names = pending
-            .slice(0, 5)
-            .map((record) => record.value.name)
-            .join(", ");
-          const overflow = pending.length > 5 ? ` +${pending.length - 5}` : "";
-          const countLabel = `${pending.length} new agent${pending.length === 1 ? "" : "s"}`;
-          const dedupeInput = pending.map((record) => record.key).join("\0");
-          alerts.push({
-            dedupeKey: `atproto:${computeContentHash(dedupeInput)}`,
-            title: "New ATProto agents awaiting review",
-            body: `${countLabel} awaiting review: ${names}${overflow}. Review: /agents?status=discovered`,
-          });
-          for (const record of pending) {
-            await notifications.delete(record.key);
-          }
-        }
 
-        const conflicts = atprotoConflicts(context);
-        const conflictRecords = await conflicts.list({
-          keyPrefix: "conflict:",
-        });
-        if (conflictRecords.length > 0) {
-          const domains = [
-            ...new Set(conflictRecords.map((record) => record.value.domain)),
-          ].sort();
-          alerts.push({
-            dedupeKey: `atproto-conflict:${computeContentHash(
-              conflictRecords
-                .map((record) => record.key)
-                .sort()
-                .join("\0"),
-            )}`,
-            title: "ATProto identity conflict",
-            body: `${conflictRecords.length} conflicting repo claim${conflictRecords.length === 1 ? "" : "s"} blocked for ${domains.join(", ")}. Existing approvals were preserved.`,
-          });
-          for (const record of conflictRecords) {
-            await conflicts.delete(record.key);
+          const alerts: DirectoryAlert[] = [];
+          if (result.created > 0) {
+            const createdDomains = [...result.createdDomains].sort();
+            const peers = [...result.introducingPeers].sort();
+            const visibleDomains = createdDomains.slice(0, 5).join(", ");
+            const overflow =
+              createdDomains.length > 5 ? ` +${createdDomains.length - 5}` : "";
+            alerts.push({
+              dedupeKey: `sightings:${computeContentHash(
+                `${result.observedAt}\0${createdDomains.join("\0")}`,
+              )}`,
+              // The dedicated source projects each sighting with its entity and
+              // decision actions; this rollup remains channel-only.
+              includeInInbox: false,
+              title: `${result.created} new agent sighting${result.created === 1 ? "" : "s"}`,
+              body: `Found ${visibleDomains}${overflow}, introduced through ${peers.join(", ")}. Review in Agent sightings.`,
+            });
           }
-        }
 
-        return alerts.length > 0 ? { alerts } : {};
+          // Only drained when it will actually be delivered. Recording happens
+          // whether or not notifications are on — that is the point, so that
+          // switching them on shows what was already found — and draining a
+          // backlog nobody is told about would throw away the same history a
+          // second way.
+          if (!config.notifyOnNewAgents) {
+            return alerts.length > 0 ? { alerts } : {};
+          }
+
+          const notifications = atprotoNotifications(context);
+          const records = await notifications.list({ keyPrefix: "candidate:" });
+          const pending = records
+            .filter((record) => record.value.status === "pending")
+            .sort((left, right) =>
+              left.value.observedAt.localeCompare(right.value.observedAt),
+            );
+          if (pending.length > 0) {
+            const names = pending
+              .slice(0, 5)
+              .map((record) => record.value.name)
+              .join(", ");
+            const overflow =
+              pending.length > 5 ? ` +${pending.length - 5}` : "";
+            const countLabel = `${pending.length} new agent${pending.length === 1 ? "" : "s"}`;
+            const dedupeInput = pending.map((record) => record.key).join("\0");
+            alerts.push({
+              dedupeKey: `atproto:${computeContentHash(dedupeInput)}`,
+              title: "New ATProto agents awaiting review",
+              body: `${countLabel} awaiting review: ${names}${overflow}. Review: /agents?status=discovered`,
+            });
+            for (const record of pending) {
+              await notifications.delete(record.key);
+            }
+          }
+
+          const conflicts = atprotoConflicts(context);
+          const conflictRecords = await conflicts.list({
+            keyPrefix: "conflict:",
+          });
+          if (conflictRecords.length > 0) {
+            const domains = [
+              ...new Set(conflictRecords.map((record) => record.value.domain)),
+            ].sort();
+            alerts.push({
+              dedupeKey: `atproto-conflict:${computeContentHash(
+                conflictRecords
+                  .map((record) => record.key)
+                  .sort()
+                  .join("\0"),
+              )}`,
+              title: "ATProto identity conflict",
+              body: `${conflictRecords.length} conflicting repo claim${conflictRecords.length === 1 ? "" : "s"} blocked for ${domains.join(", ")}. Existing approvals were preserved.`,
+            });
+            for (const record of conflictRecords) {
+              await conflicts.delete(record.key);
+            }
+          }
+
+          return alerts.length > 0 ? { alerts } : {};
+        },
       },
-    },
-  ],
-});
+    ],
+  },
+);
 
 export default agentDiscovery;

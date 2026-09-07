@@ -34,96 +34,99 @@ interface TerminalState {
  * coalesced block, approvals numbered, `yes 2` lowered back to an id.
  */
 const chatReplInterface: ReturnType<typeof defineMessageInterface> =
-  defineMessageInterface({
-    id: "cli",
-    config: cliConfigSchema,
+  defineMessageInterface(
+    {
+      id: "cli",
+      config: cliConfigSchema,
 
-    setup: (): TerminalState => ({
-      app: undefined,
-      removeSignalHandlers: undefined,
-      onReply: undefined,
-      onProgress: undefined,
-      onProgressEvents: undefined,
-    }),
-
-    channel: {
-      type: "cli",
-      displayName: "CLI",
-      subjectLabel: "Terminal",
-      recipient: z.literal("cli"),
+      setup: (): TerminalState => ({
+        app: undefined,
+        removeSignalHandlers: undefined,
+        onReply: undefined,
+        onProgress: undefined,
+        onProgressEvents: undefined,
+      }),
+      channel: {
+        type: "cli",
+        displayName: "CLI",
+        subjectLabel: "Terminal",
+        recipient: z.literal("cli"),
+      },
     },
+    {
+      // One implicit channel: whoever runs the process. The terminal has no
+      // second room to route between.
+      listen: async ({ state, messages, signal, health }) => {
+        // Dynamic, to keep React out of the module graph of anything that only
+        // imports this package for its config.
+        const [inkModule, reactModule, appModule] = await Promise.all([
+          import("ink"),
+          import("react"),
+          import("./components/EnhancedApp"),
+        ]);
 
-    // One implicit channel: whoever runs the process. The terminal has no
-    // second room to route between.
-    listen: async ({ state, messages, signal, health }) => {
-      // Dynamic, to keep React out of the module graph of anything that only
-      // imports this package for its config.
-      const [inkModule, reactModule, appModule] = await Promise.all([
-        import("ink"),
-        import("react"),
-        import("./components/EnhancedApp"),
-      ]);
-
-      state.app = inkModule.render(
-        reactModule.default.createElement(appModule.default, {
-          interface: {
-            processInput: async (text: string): Promise<void> => {
-              await messages.receiveAuthenticated({
-                sender: { id: "local" },
-                channel: { id: "cli" },
-                text,
-              });
+        state.app = inkModule.render(
+          reactModule.default.createElement(appModule.default, {
+            interface: {
+              processInput: async (text: string): Promise<void> => {
+                await messages.receiveAuthenticated({
+                  sender: { id: "local" },
+                  channel: { id: "cli" },
+                  text,
+                });
+              },
             },
-          },
-          registerProgressCallback: (callback): void => {
-            state.onProgressEvents = callback;
-          },
-          unregisterProgressCallback: (): void => {
-            state.onProgressEvents = undefined;
-          },
-          registerResponseCallback: (callback): void => {
-            state.onReply = callback;
-          },
-          registerSystemMessageCallback: (callback): void => {
-            state.onProgress = callback;
-          },
-          unregisterMessageCallbacks: (): void => {
-            state.onReply = undefined;
-            state.onProgress = undefined;
-          },
-        }),
-      );
+            registerProgressCallback: (callback): void => {
+              state.onProgressEvents = callback;
+            },
+            unregisterProgressCallback: (): void => {
+              state.onProgressEvents = undefined;
+            },
+            registerResponseCallback: (callback): void => {
+              state.onReply = callback;
+            },
+            registerSystemMessageCallback: (callback): void => {
+              state.onProgress = callback;
+            },
+            unregisterMessageCallbacks: (): void => {
+              state.onReply = undefined;
+              state.onProgress = undefined;
+            },
+          }),
+        );
 
-      // Stored so it can be removed when the daemon stops — otherwise a
-      // listener leaks per start and Node warns about the max listener count.
-      state.removeSignalHandlers = addProcessSignalListeners(
-        ["SIGINT", "SIGTERM"],
-        () => {
-          state.app?.unmount();
-        },
-      );
-      health.ready();
+        // Stored so it can be removed when the daemon stops — otherwise a
+        // listener leaks per start and Node warns about the max listener count.
+        state.removeSignalHandlers = addProcessSignalListeners(
+          ["SIGINT", "SIGTERM"],
+          () => {
+            state.app?.unmount();
+          },
+        );
+        health.ready();
 
-      await new Promise<void>((resolve) => {
-        signal.addEventListener("abort", () => resolve(), { once: true });
-      });
-      state.removeSignalHandlers();
-      state.app.unmount();
+        await new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+        state.removeSignalHandlers();
+        state.app.unmount();
+      },
+
+      // A reply is conversation; job progress is the runtime reporting on work.
+      // The UI coalesces the second and not the first, which is the whole reason
+      // the runtime says which is which.
+      send: ({ state, message, origin }) => {
+        const deliver =
+          origin === "progress" ? state.onProgress : state.onReply;
+        deliver?.(message.text);
+      },
+
+      interpret: ({ text, approvalIds }) =>
+        resolveApprovalIndexSugar(text, approvalIds),
+
+      present: ({ directives }) => renderTerminalAnswer(directives),
     },
-
-    // A reply is conversation; job progress is the runtime reporting on work.
-    // The UI coalesces the second and not the first, which is the whole reason
-    // the runtime says which is which.
-    send: ({ state, message, origin }) => {
-      const deliver = origin === "progress" ? state.onProgress : state.onReply;
-      deliver?.(message.text);
-    },
-
-    interpret: ({ text, approvalIds }) =>
-      resolveApprovalIndexSugar(text, approvalIds),
-
-    present: ({ directives }) => renderTerminalAnswer(directives),
-  });
+  );
 
 export default chatReplInterface;
 export type { CLIConfig };

@@ -46,32 +46,36 @@ async function poster(answer?: AgentResponse): Promise<{
   const sent: string[] = [];
   const edits: { messageId: string; text: string }[] = [];
   const receivers: MessageReceiver[] = [];
-  const definition = defineMessageInterface({
-    id: "poster",
-    config: z.object({}),
-    channel: {
-      type: "poster",
-      displayName: "Poster",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  const definition = defineMessageInterface(
+    {
+      id: "poster",
+      config: z.object({}),
+      channel: {
+        type: "poster",
+        displayName: "Poster",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    routes: ({ messages }) => {
-      receivers.push(messages);
-      return [];
+    {
+      routes: ({ messages }) => {
+        receivers.push(messages);
+        return [];
+      },
+      // Posts the card itself and says which message it became.
+      present: ({ directives, confirmation, permissionLevel }) => {
+        presented.push({ confirmation, directives, permissionLevel });
+        return { messageId: "posted-7" };
+      },
+      send: ({ message }) => {
+        sent.push(message.text);
+        return "sent-1";
+      },
+      edit: ({ messageId, message }) => {
+        edits.push({ messageId, text: message.text });
+      },
     },
-    // Posts the card itself and says which message it became.
-    present: ({ directives, confirmation, permissionLevel }) => {
-      presented.push({ confirmation, directives, permissionLevel });
-      return { messageId: "posted-7" };
-    },
-    send: ({ message }) => {
-      sent.push(message.text);
-      return "sent-1";
-    },
-    edit: ({ messageId, message }) => {
-      edits.push({ messageId, text: message.text });
-    },
-  });
+  );
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},

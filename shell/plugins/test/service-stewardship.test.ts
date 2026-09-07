@@ -51,19 +51,23 @@ function stewardPlugin(options?: {
     }) => Promise<unknown>;
   }) => Promise<void>;
 }): Plugin {
-  const definition = defineServicePlugin({
-    id: options?.id ?? "identity-desk",
-    config: z.object({}),
-    setup: () => ({}),
-    ...(options?.stewards ? { stewards: options.stewards } : {}),
-    ...(options?.onReady
-      ? {
-          ready: async ({ entities }): Promise<void> => {
-            await options.onReady?.(entities);
-          },
-        }
-      : {}),
-  });
+  const definition = defineServicePlugin(
+    {
+      id: options?.id ?? "identity-desk",
+      config: z.object({}),
+      setup: () => ({}),
+      ...(options?.stewards ? { stewards: options.stewards } : {}),
+    },
+    {
+      ...(options?.onReady
+        ? {
+            ready: async ({ entities }): Promise<void> => {
+              await options.onReady?.(entities);
+            },
+          }
+        : {}),
+    },
+  );
   const plugin = instantiatePluginPackageDefinition(
     definition,
     {},
