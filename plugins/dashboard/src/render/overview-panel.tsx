@@ -6,6 +6,17 @@ import {
   resolveUrl,
 } from "@brains/utils/string-utils";
 import type { JSX } from "react";
+import {
+  OperatorSection,
+  OperatorPanel,
+  OperatorPanelGrid,
+  OperatorPanelParagraph,
+  OperatorPanelStatus,
+  OperatorPanelEmpty,
+  OperatorPanelList,
+  OperatorPanelListItem,
+  OperatorStats,
+} from "@brains/operator-view-react";
 import { findSkills } from "./public-card-data";
 import type { DashboardRenderInput } from "./types";
 
@@ -31,22 +42,25 @@ function identitySource(input: DashboardRenderInput): string {
 function IdentityCard({ input }: { input: DashboardRenderInput }): JSX.Element {
   const identityStatement = input.character.role || "A shared digital brain";
   return (
-    <article className="card public-identity-card">
-      <div className="card-head">
-        <span className="card-title">What is this</span>
-        <span className="card-from">{identitySource(input)}</span>
-      </div>
-      <p>
-        <b>{input.title}</b> is a brain. {identityStatement}.
+    <OperatorPanel
+      className="card public-identity-card"
+      heading="What is this"
+      source={identitySource(input)}
+    >
+      <OperatorPanelParagraph lead={input.title}>
+        {" is a brain. "}
+        {identityStatement}.
         {input.character.purpose ? ` ${input.character.purpose}` : ""}
-      </p>
-      <p>
+      </OperatorPanelParagraph>
+      <OperatorPanelParagraph>
         It is grown from what {input.profile.name || "its owner"} has chosen to
         share, and belongs to them. Ask it anything it holds; answers stay in
         public scope. Private memory and operator activity stay behind Studio.
-      </p>
-      <span className="public-card-pulse">alive · public scope only</span>
-    </article>
+      </OperatorPanelParagraph>
+      <OperatorPanelStatus tone="good">
+        alive · public scope only
+      </OperatorPanelStatus>
+    </OperatorPanel>
   );
 }
 
@@ -145,57 +159,59 @@ function ContactCard({ input }: { input: DashboardRenderInput }): JSX.Element {
     Math.max(0, 5 - shownInteractions.length - shownEndpoints.length),
   );
   return (
-    <article className="card public-contact-card">
-      <div className="card-head">
-        <span className="card-title">Ways to connect</span>
-      </div>
+    <OperatorPanel
+      className="card public-contact-card"
+      heading="Ways to connect"
+    >
       {shownInteractions.length === 0 &&
       shownEndpoints.length === 0 &&
       publicProfileDoors.length === 0 ? (
-        <p className="public-card-empty">
+        <OperatorPanelEmpty>
           No public interaction doors are advertised yet.
-        </p>
+        </OperatorPanelEmpty>
       ) : (
-        <ul className="public-card-rows">
+        <OperatorPanelList>
           {shownInteractions.map((interaction) => (
-            <li data-kind={interaction.kind} key={interaction.id}>
-              <a href={resolveUrl(interaction.href, input.baseUrl)}>
-                <span>
-                  <strong>{displayLinkLabel(interaction.label)}</strong>
-                  <em>
-                    {interaction.description ??
-                      `Connect through ${interaction.label}.`}
-                  </em>
-                </span>
-                <small>{INTERACTION_KIND_LABELS[interaction.kind]}</small>
-              </a>
-            </li>
+            <OperatorPanelListItem
+              data-kind={interaction.kind}
+              key={interaction.id}
+              href={resolveUrl(interaction.href, input.baseUrl)}
+              label={displayLinkLabel(interaction.label)}
+              description={
+                interaction.description ??
+                `Connect through ${interaction.label}.`
+              }
+              badge={INTERACTION_KIND_LABELS[interaction.kind]}
+              tone={
+                interaction.kind === "agent" || interaction.kind === "protocol"
+                  ? "secondary"
+                  : "neutral"
+              }
+            />
           ))}
           {shownEndpoints.map((endpoint) => (
-            <li data-kind="site" key={`${endpoint.pluginId}:${endpoint.url}`}>
-              <a href={resolveUrl(endpoint.url, input.baseUrl)}>
-                <span>
-                  <strong>{displayLinkLabel(endpoint.label)}</strong>
-                  <em>Browse this brain through its public endpoint.</em>
-                </span>
-                <small>Site</small>
-              </a>
-            </li>
+            <OperatorPanelListItem
+              data-kind="site"
+              key={`${endpoint.pluginId}:${endpoint.url}`}
+              href={resolveUrl(endpoint.url, input.baseUrl)}
+              label={displayLinkLabel(endpoint.label)}
+              description="Browse this brain through its public endpoint."
+              badge="Site"
+            />
           ))}
           {shownProfileDoors.map((door) => (
-            <li data-kind="profile" key={door.href}>
-              <a href={door.href}>
-                <span>
-                  <strong>{door.label}</strong>
-                  <em>{door.description}</em>
-                </span>
-                <small>{door.kind}</small>
-              </a>
-            </li>
+            <OperatorPanelListItem
+              data-kind="profile"
+              key={door.href}
+              href={door.href}
+              label={door.label}
+              description={door.description}
+              badge={door.kind}
+            />
           ))}
-        </ul>
+        </OperatorPanelList>
       )}
-    </article>
+    </OperatorPanel>
   );
 }
 
@@ -213,51 +229,55 @@ function HoldingsCard({ input }: { input: DashboardRenderInput }): JSX.Element {
         left.entityType.localeCompare(right.entityType),
     );
   return (
-    <article className="card public-holdings-card">
-      <div className="card-head">
-        <span className="card-title">What I hold</span>
-        <span className="card-from">public scope</span>
-      </div>
+    <OperatorPanel
+      className="card public-holdings-card"
+      heading="What I hold"
+      source="public scope"
+    >
       {counts.length === 0 ? (
-        <p className="public-card-empty">No public entities yet.</p>
+        <OperatorPanelEmpty>No public entities yet.</OperatorPanelEmpty>
       ) : (
-        <dl className="public-holdings">
-          {counts.slice(0, 4).map((entry) => (
-            <div key={entry.entityType}>
-              <dt>{holdingLabel(entry.entityType, entry.count)}</dt>
-              <dd>{entry.count}</dd>
-            </div>
-          ))}
-        </dl>
+        <OperatorStats
+          density="compact"
+          presentation="ledger"
+          items={counts.slice(0, 4).map((entry) => ({
+            label: holdingLabel(entry.entityType, entry.count),
+            value: entry.count,
+          }))}
+        />
       )}
-    </article>
+    </OperatorPanel>
   );
 }
 
 function SkillsCard({ input }: { input: DashboardRenderInput }): JSX.Element {
   const skills = findSkills(input.widgets);
   return (
-    <article className="card public-skills-card">
-      <div className="card-head">
-        <span className="card-title">Skills</span>
-        <span className="card-from">the moss marks on the map</span>
-      </div>
+    <OperatorPanel
+      className="card public-skills-card"
+      heading="Skills"
+      source="the moss marks on the map"
+    >
       {skills.length === 0 ? (
-        <p className="public-card-empty">No public skills advertised yet.</p>
+        <OperatorPanelEmpty>
+          No public skills advertised yet.
+        </OperatorPanelEmpty>
       ) : (
-        <ul className="public-card-rows">
+        <OperatorPanelList>
           {skills.slice(0, 3).map((skill) => (
-            <li className="is-skill" key={skill.id}>
-              <span>
-                <strong>{skill.title}</strong>
-                {skill.description && <em>{skill.description}</em>}
-              </span>
-              <small>Skill</small>
-            </li>
+            <OperatorPanelListItem
+              key={skill.id}
+              label={skill.title}
+              description={
+                skill.description === "" ? undefined : skill.description
+              }
+              badge="Skill"
+              tone="good"
+            />
           ))}
-        </ul>
+        </OperatorPanelList>
       )}
-    </article>
+    </OperatorPanel>
   );
 }
 
@@ -267,7 +287,7 @@ export function OverviewPanel({
   input: DashboardRenderInput;
 }): JSX.Element {
   return (
-    <section
+    <OperatorSection
       id="overview"
       className="dashboard-tab-panel is-active"
       data-dashboard-tab-panel
@@ -275,12 +295,12 @@ export function OverviewPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-overview"
     >
-      <div className="public-card-grid">
+      <OperatorPanelGrid className="public-card-grid">
         <IdentityCard input={input} />
         <ContactCard input={input} />
         <HoldingsCard input={input} />
         <SkillsCard input={input} />
-      </div>
-    </section>
+      </OperatorPanelGrid>
+    </OperatorSection>
   );
 }

@@ -383,6 +383,30 @@ describe("public headless Chat contract", () => {
     });
   });
 
+  it.each([
+    "private diagnostic",
+    JSON.stringify({ state: "invalid", conversationId: "private diagnostic" }),
+    JSON.stringify({
+      state: "completed",
+      conversationId: "locator",
+      prompt: "private diagnostic",
+    }),
+  ])("does not expose unvalidated send-conflict bodies: %s", async (body) => {
+    const client = createChatClient({
+      fetch: async (): Promise<Response> => new Response(body, { status: 409 }),
+    });
+    const error = await client
+      .streamMessages({ messages: [{ role: "user", content: "Hello" }] })
+      .catch((failure: unknown): unknown => failure);
+    expect(error).toBeInstanceOf(ChatApiError);
+    if (!(error instanceof ChatApiError))
+      throw new Error("Expected HTTP error");
+    expect(error.status).toBe(409);
+    expect(error.guestSubmission).toBeUndefined();
+    expect(String(error)).not.toContain("private diagnostic");
+    expect(JSON.stringify(error)).not.toContain("private diagnostic");
+  });
+
   it("reports bounded HTTP failures without exposing response bodies", async () => {
     const client = createChatClient({
       fetch: async () => new Response("private diagnostic", { status: 403 }),

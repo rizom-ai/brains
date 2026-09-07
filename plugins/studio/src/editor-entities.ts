@@ -19,9 +19,10 @@ import {
   stripStudioPolicyMetadata,
   withStudioVisibility,
 } from "./editor-content";
-import type {
-  StudioAuditRecorder,
-  StudioRequestAccess,
+import {
+  STUDIO_ENTITY_PAGE_LIMIT,
+  type StudioAuditRecorder,
+  type StudioRequestAccess,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
 import type { StudioRuntime } from "./runtime";
@@ -43,6 +44,21 @@ const createEntityPayloadSchema = z.object({
 
 const deleteEntityPayloadSchema = z.object({
   confirmed: z.literal(true),
+});
+
+const entityListQuerySchema = z.object({
+  offset: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(0),
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .default(STUDIO_ENTITY_PAGE_LIMIT),
 });
 
 export async function handleGetEntities(
@@ -88,9 +104,21 @@ export async function handleGetEntities(
     });
   }
 
+  const query = entityListQuerySchema.safeParse({
+    offset: params.get("offset") ?? undefined,
+    limit: params.get("limit") ?? undefined,
+  });
+  if (!query.success) {
+    return jsonResponse({ error: "Invalid entity page" }, 400);
+  }
   const entities = await runtime.entities.listEntities({
     entityType,
-    options: { filter: { visibilityScope: access.visibilityScope } },
+    options: {
+      offset: query.data.offset,
+      limit: query.data.limit,
+      sortFields: [{ field: "updated", direction: "desc" }],
+      filter: { visibilityScope: access.visibilityScope },
+    },
   });
   return jsonResponse({
     entities: entities.map((entity) => ({

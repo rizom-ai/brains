@@ -1,4 +1,11 @@
 /** @jsxImportSource react */
+import { StudioStatus } from "./studio-status";
+import { ConfirmDialog } from "@brains/app-ui-react";
+import {
+  StudioChatDraftStore,
+  shouldBlockChatNavigation,
+  type StudioChatNavigationState,
+} from "./studio-chat-drafts";
 import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
@@ -16,6 +23,7 @@ import {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactElement,
 } from "react";
 import {
@@ -26,6 +34,7 @@ import {
   parseStudioPath,
 } from "../../src/studio-paths";
 import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
+import { STUDIO_ENTITY_PAGE_LIMIT } from "../../src/editor-contracts";
 import {
   STUDIO_ACCOUNT_WORKSPACE_ID,
   STUDIO_ACCOUNT_WORKSPACE_RENDERER,
@@ -199,6 +208,10 @@ export function App(): ReactElement {
     null,
   );
   const [entityType, setEntityType] = useState<string | null>(null);
+  const [entityPage, setEntityPage] = useState<{
+    entityType: string | null;
+    offset: number;
+  }>({ entityType: null, offset: 0 });
   // Renderer-agnostic per-workspace query params (filters, paging). Renderers
   // own their query semantics; the container only stores and forwards them.
   const [workspaceQueries, setWorkspaceQueries] = useState<
@@ -210,17 +223,33 @@ export function App(): ReactElement {
   );
   const { mode, draft, body, save: saveState } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
+  const [chatDraftStore] = useState(() => new StudioChatDraftStore());
+  const hasChatDrafts = useSyncExternalStore(
+    chatDraftStore.subscribe,
+    chatDraftStore.hasDrafts,
+    chatDraftStore.hasDrafts,
+  );
+  const [chatNavigation, setChatNavigation] =
+    useState<StudioChatNavigationState>({ hasDraft: false, busy: false });
   const navigationBlocker = useBlocker({
-    shouldBlockFn: () => hasUnsavedChanges,
-    enableBeforeUnload: hasUnsavedChanges,
+    shouldBlockFn: ({ next }) =>
+      hasUnsavedChanges ||
+      (routePathname === STUDIO_CHAT_ROUTE_PATH &&
+        shouldBlockChatNavigation(
+          { ...chatNavigation, hasDraft: hasChatDrafts },
+          next.pathname,
+        )),
+    enableBeforeUnload:
+      hasUnsavedChanges || hasChatDrafts || chatNavigation.busy,
     withResolver: true,
   });
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
-  const [bodyMode, setBodyMode] = useState<BodyMode>("split");
+  const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const saveStartedAt = useRef(0);
   const pendingOpenState = useRef<{
@@ -236,6 +265,10 @@ export function App(): ReactElement {
   const types = navigationQuery.data?.types ?? null;
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
+  const entityListOffset =
+    entityPage.entityType === entityType && activeType?.isSingleton !== true
+      ? entityPage.offset
+      : 0;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
@@ -290,7 +323,12 @@ export function App(): ReactElement {
   });
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
-    ...entityListQueryOptions(api, entityType ?? ""),
+    ...entityListQueryOptions(
+      api,
+      entityType ?? "",
+      entityListOffset,
+      STUDIO_ENTITY_PAGE_LIMIT,
+    ),
     enabled: entityType !== null,
   });
   const entities = entityType ? (entityListQuery.data ?? null) : null;
@@ -320,6 +358,22 @@ export function App(): ReactElement {
     activeDeclarativeWorkspace && workspaceResponse
       ? workspaceResponse.data
       : null;
+
+  useEffect(() => {
+    if (
+      !entityType ||
+      activeType === undefined ||
+      entityPage.entityType !== entityType
+    ) {
+      return;
+    }
+    const lastOffset =
+      Math.floor(Math.max(0, activeType.count - 1) / STUDIO_ENTITY_PAGE_LIMIT) *
+      STUDIO_ENTITY_PAGE_LIMIT;
+    if (entityPage.offset > lastOffset) {
+      setEntityPage({ entityType, offset: lastOffset });
+    }
+  }, [activeType, entityPage, entityType]);
 
   useEffect(() => {
     if (!activeWorkspaceId || !declarativeWorkspaceData?.refreshAfterMs) {
@@ -557,6 +611,7 @@ export function App(): ReactElement {
     createMode,
     currentStudioPathname,
     entityType,
+    loadAttempt,
     queryClient,
     routePathname,
     routeTarget,
@@ -756,6 +811,7 @@ export function App(): ReactElement {
 
   const selectEntityType = useCallback(
     (nextEntityType: string): void => {
+      setEntityPage({ entityType: nextEntityType, offset: 0 });
       router.history.push(studioCollectionPath(studioBasePath, nextEntityType));
       // A long rail can put its last groups below the document fold. Treat a
       // rail selection like page navigation instead of retaining that offset
@@ -763,6 +819,15 @@ export function App(): ReactElement {
       window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
+  );
+
+  const changeEntityPage = useCallback(
+    (offset: number): void => {
+      if (!entityType) return;
+      setEntityPage({ entityType, offset });
+      window.scrollTo({ top: 0, left: 0 });
+    },
+    [entityType],
   );
 
   const selectWorkspace = useCallback(
@@ -891,6 +956,13 @@ export function App(): ReactElement {
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
+          ...(mode.kind === "create"
+            ? [
+                queryClient.invalidateQueries({
+                  queryKey: studioKeys.navigation(),
+                }),
+              ]
+            : []),
         ]);
         const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
@@ -945,6 +1017,9 @@ export function App(): ReactElement {
             }),
             queryClient.invalidateQueries({
               queryKey: studioKeys.syncStatus(),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: studioKeys.navigation(),
             }),
           ]);
           router.history.replace(
@@ -1125,10 +1200,24 @@ export function App(): ReactElement {
 
   const visibleLoadError =
     loadError ??
-    (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
+    (navigationQuery.error
+      ? errorMessage(navigationQuery.error)
+      : entityListQuery.error
+        ? errorMessage(entityListQuery.error)
+        : null);
 
-  if (visibleLoadError) {
-    return <StudioAppStatus message={visibleLoadError} error />;
+  const retryRead = (): void => {
+    setLoadError(null);
+    if (navigationQuery.error) void navigationQuery.refetch();
+    if (entityListQuery.error) void entityListQuery.refetch();
+    if (workspaceQuery.error) void workspaceQuery.refetch();
+    // Re-run an unsuccessful open, but never replace an already-open draft.
+    if (mode.kind === "browse") setLoadAttempt((attempt) => attempt + 1);
+  };
+  if (visibleLoadError && !types) {
+    return (
+      <StudioAppStatus message={visibleLoadError} error onRetry={retryRead} />
+    );
   }
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
@@ -1146,7 +1235,7 @@ export function App(): ReactElement {
         selectEntityType={selectEntityType}
         selectWorkspace={selectWorkspace}
       >
-        <Suspense fallback={<p className="status">Opening Account…</p>}>
+        <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
           <LazyAccountApp
             bootstrap={accountBootstrap(accountPath, studioBasePath)}
           />
@@ -1156,29 +1245,54 @@ export function App(): ReactElement {
   }
   if (activeChat) {
     return (
-      <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
-        <LazyStudioChatWorkspace
-          apiPath={activeWorkspace.chatApiPath}
-          studioBasePath={studioBasePath}
-          sessionId={studioChatSessionId(routeSearch)}
-          types={types}
-          workspaces={workspaces}
-          handoff={readStudioChatHandoffState(routeState)}
-          navigate={(href) => router.history.push(href)}
-          selectEntityType={selectEntityType}
-          selectWorkspace={selectWorkspace}
-        />
-      </Suspense>
+      <>
+        <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
+          <LazyStudioChatWorkspace
+            apiPath={activeWorkspace.chatApiPath}
+            draftStore={chatDraftStore}
+            onNavigationStateChange={setChatNavigation}
+            studioBasePath={studioBasePath}
+            sessionId={studioChatSessionId(routeSearch)}
+            types={types}
+            workspaces={workspaces}
+            handoff={readStudioChatHandoffState(routeState)}
+            navigate={(href, options) => {
+              // Acknowledged internal transitions keep drafts intact; work is not abandoned.
+              router.history.push(href, undefined, {
+                ignoreBlocker: options?.preserveWork === true,
+              });
+            }}
+            selectEntityType={selectEntityType}
+            selectWorkspace={selectWorkspace}
+          />
+        </Suspense>
+        {navigationBlocker.status === "blocked" && (
+          <ConfirmDialog
+            mark="↩"
+            title="Leave this conversation?"
+            titleId="chat-navigation-title"
+            cancelLabel="Stay"
+            confirmLabel="Leave"
+            onCancel={() => navigationBlocker.reset()}
+            onConfirm={() => navigationBlocker.proceed()}
+          >
+            <p>
+              Your draft stays in this tab. Leaving stops receiving the
+              response, but does not undo completed actions or background jobs.
+            </p>
+          </ConfirmDialog>
+        )}
+      </>
     );
   }
   if (
     activeWorkspaceId
       ? !workspaceData && !workspaceError
-      : entityType && (!schema || !entities)
+      : entityType && !schema && !visibleLoadError
   ) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (!activeWorkspaceId && (!entityType || !schema)) {
+  if (!activeWorkspaceId && (!entityType || (!schema && !visibleLoadError))) {
     return (
       <StudioAppStatus message="No editable entity types are registered." />
     );
@@ -1190,10 +1304,16 @@ export function App(): ReactElement {
       types={types}
       workspaces={workspaces}
       workspaceError={workspaceError}
+      readError={visibleLoadError}
+      onRetryRead={retryRead}
       declarativeWorkspaceData={declarativeWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
+      entityOffset={entityListOffset}
+      entityLimit={STUDIO_ENTITY_PAGE_LIMIT}
+      entityTotal={activeType?.count ?? entities?.length ?? 0}
+      entityListLoading={entityListQuery.isPending}
       schema={schema}
       editor={editor}
       fieldAssistState={fieldAssistState}
@@ -1212,6 +1332,7 @@ export function App(): ReactElement {
       backToList={backToList}
       selectEntityType={selectEntityType}
       selectWorkspace={selectWorkspace}
+      changeEntityPage={changeEntityPage}
       openWorkspaceEntity={openWorkspaceEntity}
       openWorkspaceLaunch={openWorkspaceLaunch}
       performPublishingAction={performPublishingAction}

@@ -1,4 +1,5 @@
 import { inspect } from "node:util";
+import { deferred } from "@brains/utils/deferred";
 import { fakeEntityDb } from "./helpers/fake-entity-db";
 import type { EntityDB } from "../src/db";
 import { describe, test, expect, mock } from "bun:test";
@@ -83,6 +84,65 @@ function createEntitySearch(options?: {
 }
 
 describe("EntitySearch query preparation", () => {
+  const readBudget = { rows: 1, rowBytes: 1000, queryCharacters: 40 };
+
+  test("rejects oversized bounded input before embedding and suppresses query previews", async () => {
+    const logger = createMockLogger();
+    const { entitySearch, embeddingService } = createEntitySearch({ logger });
+    expect(
+      await entitySearch
+        .search("x".repeat(41), { readBudget })
+        .catch(() => null),
+    ).toBeNull();
+    expect(embeddingService.generateEmbedding).not.toHaveBeenCalled();
+    const query = "private visitor wording";
+    await entitySearch.search(query, { readBudget });
+    expect(logger.debug).not.toHaveBeenCalledWith(
+      expect.stringContaining(query),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("propagates cancellation and starts no SQL after a late embedding completes", async () => {
+    let queries = 0;
+    const { entitySearch, embeddingService } = createEntitySearch({
+      db: createSearchDb(() => {
+        queries++;
+      }),
+    });
+    const controller = new AbortController();
+    const entered = deferred<void>();
+    const release = deferred<void>();
+    let captured: AbortSignal | undefined;
+    embeddingService.generateEmbedding = async (
+      _text,
+      signal,
+    ): ReturnType<QueryEmbedder["generateEmbedding"]> => {
+      captured = signal;
+      entered.resolve();
+      await release.promise;
+      return {
+        embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+        usage: { tokens: 1 },
+      };
+    };
+    let settled = false;
+    const pending = entitySearch
+      .search("question", { readBudget, signal: controller.signal })
+      .catch(() => null)
+      .finally(() => {
+        settled = true;
+      });
+    await entered.promise;
+    expect(captured).toBe(controller.signal);
+    controller.abort();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    release.resolve();
+    expect(await pending).toBeNull();
+    expect(queries).toBe(0);
+  });
+
   test("normalizes whitespace before generating a search embedding", async () => {
     const { entitySearch, embeddingService } = createEntitySearch();
 

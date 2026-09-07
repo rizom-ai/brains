@@ -541,7 +541,7 @@ describe("dashboard service", () => {
       );
       const previewHtml = await previewResponse?.text();
       expect(previewResponse?.status).toBe(200);
-      expect(previewHtml).toContain('class="public-header"');
+      expect(previewHtml).toContain('class="public-header ');
       expect(previewHtml).not.toContain("Public member");
     });
 

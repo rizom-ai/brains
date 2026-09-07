@@ -1,13 +1,95 @@
 import { z } from "@brains/utils/zod";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
+export {
+  guestExecutionLimitsSchema,
+  guestExecutionPolicySchema,
+  type GuestExecutionPolicy,
+} from "./guest-execution";
+
 export const CHAT_API_VERSION = 1 as const;
 export const DEFAULT_CHAT_API_PATH = "/api/chat" as const;
+/** Server-owned conversation scope; never derive it from browser role claims. */
+export const guestInterfaceType = "web-chat-guest";
 
 type Loose<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$loose>;
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
+/** Pinned when a guest conversation is created; reads cannot renew retention. */
+export const guestRetentionSchema: Strict<{
+  idleSeconds: z.ZodNumber;
+  maxAgeSeconds: z.ZodNumber;
+}> = z
+  .strictObject({
+    idleSeconds: z
+      .number()
+      .int()
+      .positive()
+      .max(Math.floor(Number.MAX_SAFE_INTEGER / 1000)),
+    maxAgeSeconds: z
+      .number()
+      .int()
+      .positive()
+      .max(Math.floor(Number.MAX_SAFE_INTEGER / 1000)),
+  })
+  .refine(
+    (retention) => retention.idleSeconds <= retention.maxAgeSeconds,
+    "Guest idle expiry must not exceed maximum age",
+  );
+
+export const guestConversationOwnershipSchema: Strict<{
+  visitorId: z.ZodString;
+  retention: typeof guestRetentionSchema;
+}> = z.strictObject({
+  visitorId: z.string().uuid(),
+  retention: guestRetentionSchema,
+});
+export type GuestConversationOwnership = z.output<
+  typeof guestConversationOwnershipSchema
+>;
+
 const chatIdSchema: z.ZodString = z.string().trim().min(1).max(256);
+/** Present on guest send/status responses; it is a locator, never authority. */
+export const CHAT_CONVERSATION_ID_HEADER = "x-brain-conversation-id";
+
+export const guestChatSessionResponseSchema: Strict<{
+  expiresAt: z.ZodNumber;
+  provider: z.ZodString;
+  notice: z.ZodString;
+  deletionLimitations: z.ZodString;
+  retention: typeof guestRetentionSchema;
+  messageCharacters: z.ZodNumber;
+  canSend: z.ZodBoolean;
+}> = z.strictObject({
+  expiresAt: z.number().int().positive(),
+  provider: z.string().min(1),
+  notice: z.string().min(1),
+  deletionLimitations: z.string().min(1),
+  retention: guestRetentionSchema,
+  messageCharacters: z.number().int().positive(),
+  canSend: z.boolean(),
+});
+export type GuestChatSessionResponse = z.output<
+  typeof guestChatSessionResponseSchema
+>;
+
+export const guestChatSubmissionStatusSchema: Strict<{
+  conversationId: z.ZodString;
+  state: z.ZodEnum<{
+    active: "active";
+    completed: "completed";
+    failed: "failed";
+    interrupted: "interrupted";
+    uncertain: "uncertain";
+  }>;
+}> = z.strictObject({
+  conversationId: chatIdSchema,
+  state: z.enum(["active", "completed", "failed", "interrupted", "uncertain"]),
+});
+export type GuestChatSubmissionStatus = z.output<
+  typeof guestChatSubmissionStatusSchema
+>;
+
 const chatUploadIdSchema: z.ZodString = z
   .string()
   .regex(
@@ -203,6 +285,67 @@ export const chatCardSchema: z.ZodDiscriminatedUnion<
 ]);
 
 export type ChatCard = z.output<typeof chatCardSchema>;
+
+/** Presentation projection, not authorization: callers must use guest-scoped
+ * runtime results or owned guest history. Never pass arbitrary operator cards. */
+export function getGuestSourceCards(
+  value: unknown,
+): Extract<ChatCard, { kind: "sources" }>[] {
+  if (!Array.isArray(value)) return [];
+  const sources: Extract<ChatCard, { kind: "sources" }>["sources"] = [];
+  const seen = new Set<string>();
+  for (const candidate of value.slice(0, 10)) {
+    const parsed = chatSourcesCardSchema.safeParse(candidate);
+    if (!parsed.success || parsed.data.id !== "sources:tool-results") continue;
+    for (const source of parsed.data.sources) {
+      if (sources.length >= 15) break;
+      if (
+        !source.entityType ||
+        !source.entityId ||
+        source.entityId.length > 256 ||
+        source.source !== source.entityType ||
+        source.id !== `${source.entityType}:${source.entityId}` ||
+        seen.has(source.id)
+      )
+        continue;
+      seen.add(source.id);
+      let url: string | undefined;
+      if (source.url && source.url.length <= 512) {
+        try {
+          const parsedUrl = new URL(source.url);
+          if (
+            parsedUrl.protocol === "https:" &&
+            !parsedUrl.username &&
+            !parsedUrl.password &&
+            parsedUrl.href.length <= 512
+          )
+            url = parsedUrl.href;
+        } catch {
+          // An untrusted URL must not turn a citation into navigation authority.
+        }
+      }
+      sources.push({
+        id: source.id,
+        source: source.entityType,
+        entityType: source.entityType,
+        entityId: source.entityId,
+        title: (source.title ?? source.entityId).slice(0, 160),
+        ...(source.excerpt ? { excerpt: source.excerpt.slice(0, 280) } : {}),
+        ...(url ? { url } : {}),
+      });
+    }
+  }
+  return sources.length
+    ? [
+        {
+          kind: "sources",
+          id: "sources:tool-results",
+          title: "Retrieved sources",
+          sources,
+        },
+      ]
+    : [];
+}
 
 export type ChatEventAction = AgentEventAction;
 export const chatEventActionSchema: typeof agentEventActionSchema =
@@ -434,6 +577,23 @@ export const chatMessagesResponseSchema: Loose<{
 
 export type ChatMessagesResponse = z.output<typeof chatMessagesResponseSchema>;
 
+/** Read-only guest history plus the exact submission's existing receipt. */
+export const guestChatSubmissionIdSchema: z.ZodString = z
+  .string()
+  .min(1)
+  .max(256)
+  .refine((value) => value.trim().length > 0);
+export const guestChatHistoryResponseSchema: Strict<{
+  messages: z.ZodArray<typeof chatHistoryMessageSchema>;
+  submission: z.ZodNullable<typeof guestChatSubmissionStatusSchema>;
+}> = z.strictObject({
+  messages: z.array(chatHistoryMessageSchema).max(100),
+  submission: guestChatSubmissionStatusSchema.nullable(),
+});
+export type GuestChatHistoryResponse = z.output<
+  typeof guestChatHistoryResponseSchema
+>;
+
 export const chatTextPartSchema: z.ZodObject<{
   type: z.ZodLiteral<"text">;
   text: z.ZodString;
@@ -571,6 +731,34 @@ export const chatMessageRequestSchema: Strict<{
   .strict();
 
 export type ChatMessageRequest = z.output<typeof chatMessageRequestSchema>;
+
+/** Guest history is loaded by the server, not replayed as browser authority. */
+export const guestChatMessageRequestSchema: Strict<{
+  id: z.ZodOptional<z.ZodString>;
+  messages: z.ZodArray<
+    Strict<{
+      id: z.ZodString;
+      role: z.ZodLiteral<"user">;
+      parts: z.ZodArray<
+        Strict<{ type: z.ZodLiteral<"text">; text: z.ZodString }>
+      >;
+    }>
+  >;
+}> = z.strictObject({
+  id: chatIdSchema.optional(),
+  messages: z
+    .array(
+      z.strictObject({
+        id: chatIdSchema,
+        role: z.literal("user"),
+        parts: z
+          .array(z.strictObject({ type: z.literal("text"), text: z.string() }))
+          .min(1)
+          .max(16),
+      }),
+    )
+    .length(1),
+});
 
 const chatJobStatusValueSchema: z.ZodEnum<{
   pending: "pending";
@@ -1061,12 +1249,18 @@ export interface ChatClientOptions {
 export interface ChatClient {
   readonly version: typeof CHAT_API_VERSION;
   readonly paths: ChatApiPaths;
+  /** Use a guest API base path. Establishes a credential, not a conversation. */
+  openGuestSession(): Promise<GuestChatSessionResponse>;
   streamMessages(
     request: ChatMessageRequest,
     options?: { signal?: AbortSignal | undefined },
   ): Promise<Response>;
   listSessions(): Promise<ChatSession[]>;
   getMessages(conversationId: string): Promise<ChatHistoryMessage[]>;
+  getGuestHistory(
+    conversationId: string,
+    submissionId: string,
+  ): Promise<GuestChatHistoryResponse>;
   renameSession(
     conversationId: string,
     title: string,
@@ -1090,17 +1284,27 @@ export class ChatApiError extends Error {
   public readonly operation: string;
   public readonly status: number;
   public readonly kind: ChatApiErrorKind;
+  /** Validated duplicate-send status, so a lost first response can recover its locator. */
+  public readonly guestSubmission: GuestChatSubmissionStatus | undefined;
 
   public constructor(
     operation: string,
     status: number,
     kind: ChatApiErrorKind = "http",
+    guestSubmission?: GuestChatSubmissionStatus,
   ) {
     super(`Chat API could not ${operation} (${status})`);
     this.name = "ChatApiError";
     this.operation = operation;
     this.status = status;
     this.kind = kind;
+    // Recovery data is not routine error telemetry; keep its locator out of
+    // ordinary error serialization while allowing explicit client recovery.
+    Object.defineProperty(this, "guestSubmission", {
+      value: guestSubmission,
+      enumerable: false,
+      writable: false,
+    });
   }
 }
 
@@ -1205,6 +1409,18 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
   return {
     version: CHAT_API_VERSION,
     paths,
+    async openGuestSession(): Promise<GuestChatSessionResponse> {
+      return requestJson(
+        "open guest session",
+        `${paths.stream}/session`,
+        guestChatSessionResponseSchema,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        },
+      );
+    },
     async streamMessages(
       request: ChatMessageRequest,
       streamOptions: { signal?: AbortSignal | undefined } = {},
@@ -1218,7 +1434,23 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
         ...(streamOptions.signal ? { signal: streamOptions.signal } : {}),
       });
       if (!response.ok) {
-        throw new ChatApiError("send messages", response.status);
+        let submission: GuestChatSubmissionStatus | undefined;
+        if (response.status === 409) {
+          try {
+            const status = guestChatSubmissionStatusSchema.safeParse(
+              await response.json(),
+            );
+            if (status.success) submission = status.data;
+          } catch {
+            // Non-JSON conflicts remain ordinary HTTP errors; never expose raw bodies.
+          }
+        }
+        throw new ChatApiError(
+          "send messages",
+          response.status,
+          "http",
+          submission,
+        );
       }
       return response;
     },
@@ -1237,6 +1469,16 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
         chatMessagesResponseSchema,
       );
       return response.messages;
+    },
+    async getGuestHistory(
+      conversationId: string,
+      submissionId: string,
+    ): Promise<GuestChatHistoryResponse> {
+      return requestJson(
+        "check guest history",
+        `${withId(paths.messages, conversationId)}&submissionId=${encodeURIComponent(guestChatSubmissionIdSchema.parse(submissionId))}`,
+        guestChatHistoryResponseSchema,
+      );
     },
     async renameSession(
       conversationId: string,

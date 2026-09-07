@@ -5,6 +5,8 @@ import type {
   InterfaceCaller,
 } from "@brains/sdk/services";
 
+export const STUDIO_ENTITY_PAGE_LIMIT = 25;
+
 /**
  * What a request may see and do, read off the caller the runtime resolved.
  *

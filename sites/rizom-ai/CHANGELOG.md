@@ -1,5 +1,37 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.250
+
+### Patch Changes
+
+- [`7b85eb4`](https://github.com/rizom-ai/brains/commit/7b85eb49878e502b54d65f983cccdf38e92e5479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Resolve the hero chat enhancement module against the browser origin at runtime. Keep the Brain-served `/ask/assets/guest.js` out of the site's filesystem dependency graph while preserving same-origin lazy loading.
+
+## 0.2.0-alpha.249
+
+### Patch Changes
+
+- [`71104c6`](https://github.com/rizom-ai/brains/commit/71104c6a81203861b0d684c62b1e40980bed8777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish the redesigned Brain landing page with the shared fixed-height Ask box, updated section schemas and the interactive local agent proximity map. Remove the retired network snapshots from site assets while retaining the illustrative Studio captures.
+
+  Coordinate this release with the seven Brain sections authored in rizom-content commits 358ece0 and 1625268. Old and new section schemas are incompatible: neither a content-only push nor an uncoordinated site upgrade is a safe rollout. The matching core release is required for the guest HTTP/UI assets; production guest admission remains disabled.
+
+## 0.2.0-alpha.248
+
+### Patch Changes
+
+- [#234](https://github.com/rizom-ai/brains/pull/234) [`38386e9`](https://github.com/rizom-ai/brains/commit/38386e9cb20ba080f599f4e920ccb8044f727cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore the shared desktop mycelium rail and its gutter on the homepage while retaining the approved composition and theme surfaces. The rail remains hidden below the existing xl breakpoint.
+
+## 0.2.0-alpha.247
+
+### Patch Changes
+
+- [#233](https://github.com/rizom-ai/brains/pull/233) [`b0d505a`](https://github.com/rizom-ai/brains/commit/b0d505ae95a878826f2f17fa61196e2b7b4541f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make the approved living-memory composition the sole homepage at `/`. Remove the `/living-memory` route without a redirect, retain existing authored content identities, and apply its navigation and styles at the root URL.
+
+## 0.2.0-alpha.246
+
+### Patch Changes
+
+- [#232](https://github.com/rizom-ai/brains/pull/232) [`89ae051`](https://github.com/rizom-ai/brains/commit/89ae05168ccc679a179051f177f29dd24d6b5bcd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Match the living-memory topbar to the shared theme background and grain, while retaining an opaque surface for readable sticky navigation.
+
 ## 0.2.0-alpha.245
 
 ### Patch Changes

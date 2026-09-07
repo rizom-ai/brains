@@ -6,7 +6,6 @@ import { dirname, join } from "path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
-const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
 const aliasRoot = packageRoot;
 const outdir = join(packageRoot, "dist", "ui");
 const reactRoot = dirname(require.resolve("react/package.json"));
@@ -21,54 +20,60 @@ const reactAliases: Record<string, string> = {
 
 await mkdir(outdir, { recursive: true });
 
-const stylex = createStylexBunTransform();
-const result = await Bun.build({
-  entrypoints: [entrypoint],
-  outdir,
-  target: "browser",
-  format: "esm",
-  minify: true,
-  sourcemap: "external",
-  naming: "app.js",
-  plugins: [
-    stylex.plugin,
-    {
-      name: "web-chat-aliases",
-      setup(build): void {
-        build.onResolve({ filter: /^@\// }, (args) => {
-          const resolved = join(aliasRoot, args.path.slice(2));
-          for (const candidate of [
-            resolved,
-            `${resolved}.tsx`,
-            `${resolved}.ts`,
-          ]) {
-            if (existsSync(candidate)) return { path: candidate };
-          }
-          return { path: resolved };
-        });
+for (const [entryName, assetName] of [
+  ["main", "app"],
+  ["guest-box", "guest"],
+] as const) {
+  const entrypoint = join(packageRoot, "ui-react", "src", `${entryName}.tsx`);
+  const stylex = createStylexBunTransform();
+  const result = await Bun.build({
+    entrypoints: [entrypoint],
+    outdir,
+    target: "browser",
+    format: "esm",
+    minify: true,
+    sourcemap: "external",
+    naming: `${assetName}.js`,
+    plugins: [
+      stylex.plugin,
+      {
+        name: "web-chat-aliases",
+        setup(build): void {
+          build.onResolve({ filter: /^@\// }, (args) => {
+            const resolved = join(aliasRoot, args.path.slice(2));
+            for (const candidate of [
+              resolved,
+              `${resolved}.tsx`,
+              `${resolved}.ts`,
+            ]) {
+              if (existsSync(candidate)) return { path: candidate };
+            }
+            return { path: resolved };
+          });
+        },
       },
-    },
-    {
-      name: "dedupe-react",
-      setup(build): void {
-        build.onResolve(
-          {
-            filter:
-              /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
-          },
-          (args) => ({ path: reactAliases[args.path] }),
-        );
+      {
+        name: "dedupe-react",
+        setup(build): void {
+          build.onResolve(
+            {
+              filter:
+                /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
+            },
+            (args) => ({ path: reactAliases[args.path] }),
+          );
+        },
       },
-    },
-  ],
-});
+    ],
+  });
 
-if (!result.success) {
-  for (const log of result.logs) {
-    console.error(log);
+  if (!result.success) {
+    for (const log of result.logs) {
+      console.error(log);
+    }
+    process.exit(1);
   }
-  process.exit(1);
-}
 
-await writeFile(join(outdir, "app.css"), `${stylex.css()}\n`);
-console.log(`Built ${join(dirname(outdir), "ui", "app.js")} and app.css`);
+  await writeFile(join(outdir, `${assetName}.css`), `${stylex.css()}\n`);
+  console.log(`Built ${join(outdir, `${assetName}.js`)} and ${assetName}.css`);
+}

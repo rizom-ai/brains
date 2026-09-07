@@ -61,6 +61,11 @@ describe("directory-sync Studio workspace", () => {
       path: "note/broken.md",
       message: "Frontmatter is invalid",
     });
+    await operationStatus.recordIssue({
+      kind: "import",
+      path: "note/another.md",
+      message: "Required title is missing",
+    });
     const directorySync = createMockDirectorySync({
       getStatus: mock(async () => ({
         syncPath: "/private/runtime/brain-data",
@@ -109,6 +114,16 @@ describe("directory-sync Studio workspace", () => {
     expect(snapshot.issues).toHaveLength(1);
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
+
+    const runId = await operationStatus.startRun("manual", "pulling");
+    if (!runId) throw new Error("Run did not start");
+    expect(await registration.dataProvider(adminActor)).toMatchObject({
+      view: { primaryAction: { actionId: "sync-now", disabled: true } },
+    });
+    await operationStatus.clearRun(runId);
+    expect(await registration.dataProvider(adminActor)).not.toHaveProperty(
+      "view.primaryAction.disabled",
+    );
   });
 
   it("files Sync now as the person who asked, through the shared request", async () => {

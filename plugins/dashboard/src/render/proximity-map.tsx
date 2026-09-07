@@ -1,7 +1,23 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import {
+  OperatorSection,
+  OperatorSectionHeading,
+  OperatorPanel,
+  OperatorMapFrame,
+  OperatorMapGraphic,
+  OperatorMapEmpty,
+  OperatorMapLegend,
+  OperatorMapLegendItem,
+  OperatorMapLegendNote,
+  OperatorMapGroup,
+  OperatorMapPath,
+  OperatorMapCircle,
+  OperatorMapText,
+} from "@brains/operator-view-react";
 import { type RadialMapBlock, widgetSourceData } from "./public-card-data";
 import type { RenderableWidgetData } from "./types";
+import { mapLegendPresentation } from "./map-legend";
 
 const WIDTH = 980;
 const HEIGHT = 560;
@@ -23,12 +39,21 @@ function radialPosition(distance: number, bearing: number): PointPosition {
   };
 }
 
-function statusClass(status: string, kind: string): string {
-  if (kind === "sighting") return "is-sighting";
-  if (status === "approved") return "is-approved";
-  if (status === "discovered") return "is-discovered";
-  if (status === "archived") return "is-archived";
-  return "is-neutral";
+function nodePresentation(
+  status: string,
+  kind: string,
+): {
+  tone: "neutral" | "warn" | "secondary";
+  dimmed: boolean;
+  shape: "bulb" | "diamond" | "circle";
+} {
+  if (kind === "sighting")
+    return { tone: "secondary", dimmed: false, shape: "diamond" };
+  if (status === "approved")
+    return { tone: "warn", dimmed: false, shape: "bulb" };
+  if (status === "discovered")
+    return { tone: "secondary", dimmed: false, shape: "circle" };
+  return { tone: "neutral", dimmed: status === "archived", shape: "circle" };
 }
 
 export function ProximityMapPanel({
@@ -44,7 +69,7 @@ export function ProximityMapPanel({
   const RegisteredVisualization = widget.component;
 
   return (
-    <section
+    <OperatorSection
       id="network"
       className="dashboard-tab-panel card-map-panel"
       data-dashboard-tab-panel
@@ -53,19 +78,16 @@ export function ProximityMapPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-network"
     >
-      <header className="tab-section-head">
-        <h2>Network</h2>
-      </header>
-      <article className="card map-card">
-        <div className="card-head">
-          <span className="card-title">Agent proximity</span>
-          <span className="card-from">
-            public directory · semantic distance
-          </span>
-        </div>
+      <OperatorSectionHeading>Network</OperatorSectionHeading>
+      <OperatorPanel
+        className="card map-card"
+        heading="Agent proximity"
+        source="public directory · semantic distance"
+        inset="tight"
+      >
         <RegisteredVisualization data={widgetSourceData(widget.data)} />
-      </article>
-    </section>
+      </OperatorPanel>
+    </OperatorSection>
   );
 }
 
@@ -82,7 +104,7 @@ function DeclarativeProximityMapPanel({
     block?.points.filter((point) => point.status !== "archived").length ?? 0;
 
   return (
-    <section
+    <OperatorSection
       id="network"
       className="dashboard-tab-panel card-map-panel"
       data-dashboard-tab-panel
@@ -91,19 +113,16 @@ function DeclarativeProximityMapPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-network"
     >
-      <header className="tab-section-head">
-        <h2>Network</h2>
-      </header>
-      <article className="card map-card">
-        <div className="card-head">
-          <span className="card-title">Agent proximity</span>
-          <span className="card-from">
-            public directory · semantic distance
-          </span>
-        </div>
-        <div className="proximity-map-field map-field">
+      <OperatorSectionHeading>Network</OperatorSectionHeading>
+      <OperatorPanel
+        className="card map-card"
+        heading="Agent proximity"
+        source="public directory · semantic distance"
+        inset="tight"
+      >
+        <OperatorMapFrame className="proximity-map-field map-field" ambient>
           {block ? (
-            <svg
+            <OperatorMapGraphic
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
               role="img"
               aria-labelledby="proximity-map-title proximity-map-description"
@@ -137,7 +156,8 @@ function DeclarativeProximityMapPanel({
                 const x = 60 + ((index * 137) % 850);
                 const y = 44 + ((index * 89) % 470);
                 return (
-                  <circle
+                  <OperatorMapCircle
+                    presentation="spore"
                     className="proximity-spore"
                     key={`spore-${index}`}
                     cx={x}
@@ -155,10 +175,19 @@ function DeclarativeProximityMapPanel({
                       (MAX_RADIUS - 56);
                   return (
                     <g className="proximity-stratum" key={stratum.id}>
-                      <circle cx={CENTER_X} cy={CENTER_Y} r={radius} />
-                      <text x={CENTER_X + radius + 6} y={CENTER_Y + 3}>
+                      <OperatorMapCircle
+                        presentation="distance"
+                        cx={CENTER_X}
+                        cy={CENTER_Y}
+                        r={radius}
+                      />
+                      <OperatorMapText
+                        presentation="distance"
+                        x={CENTER_X + radius + 6}
+                        y={CENTER_Y + 3}
+                      >
                         {stratum.label}
-                      </text>
+                      </OperatorMapText>
                     </g>
                   );
                 })}
@@ -181,10 +210,20 @@ function DeclarativeProximityMapPanel({
                   ) + 27;
                 return (
                   <g className="proximity-cluster" key={cluster.id}>
-                    <circle cx={x} cy={y} r={radius} />
-                    <text x={x} y={y - radius - 8} textAnchor="middle">
+                    <OperatorMapCircle
+                      presentation="region"
+                      cx={x}
+                      cy={y}
+                      r={radius}
+                    />
+                    <OperatorMapText
+                      presentation="group"
+                      x={x}
+                      y={y - radius - 8}
+                      textAnchor="middle"
+                    >
                       {cluster.label}
-                    </text>
+                    </OperatorMapText>
                   </g>
                 );
               })}
@@ -193,7 +232,8 @@ function DeclarativeProximityMapPanel({
                 const target = positions.get(relationship.targetId);
                 if (!source || !target) return null;
                 return (
-                  <path
+                  <OperatorMapPath
+                    presentation="connector"
                     className="proximity-thread"
                     key={`${relationship.sourceId}:${relationship.targetId}`}
                     d={`M ${source.x} ${source.y} Q ${CENTER_X} ${CENTER_Y}, ${target.x} ${target.y}`}
@@ -201,104 +241,125 @@ function DeclarativeProximityMapPanel({
                 );
               })}
               <g className="proximity-center">
-                <circle
+                <OperatorMapCircle
+                  presentation="halo"
                   className="proximity-center-halo"
                   cx={CENTER_X}
                   cy={CENTER_Y}
                   r="48"
                   fill="url(#proximity-center-glow)"
                 />
-                <circle
+                <OperatorMapCircle
+                  presentation="identity"
                   className="proximity-center-core"
                   cx={CENTER_X}
                   cy={CENTER_Y}
                   r="8"
                 />
-                <text x={CENTER_X} y={CENTER_Y + 30} textAnchor="middle">
+                <OperatorMapText
+                  presentation="identity"
+                  x={CENTER_X}
+                  y={CENTER_Y + 30}
+                  textAnchor="middle"
+                >
                   {block.centerLabel}
-                </text>
+                </OperatorMapText>
               </g>
               {block.points.map((point) => {
                 const location = positions.get(point.id);
                 if (!location) return null;
-                const state = statusClass(point.status, point.kind);
+                const appearance = nodePresentation(point.status, point.kind);
                 return (
-                  <g
-                    className={`proximity-node ${state}`}
+                  <OperatorMapGroup
+                    dimmed={appearance.dimmed}
+                    className="proximity-node"
                     data-proximity-status={point.status}
                     key={point.id}
                   >
                     <title>{`${point.label} · ${point.status}${point.tags?.length ? ` · ${point.tags.join(", ")}` : ""}`}</title>
-                    {state === "is-approved" ? (
+                    {appearance.shape === "bulb" ? (
                       <>
-                        <circle
+                        <OperatorMapCircle
+                          presentation="glow"
                           className="proximity-node-glow"
                           cx={location.x}
                           cy={location.y}
                           r="15"
                           filter="url(#proximity-bulb-glow)"
                         />
-                        <path
+                        <OperatorMapPath
+                          presentation="stem"
                           className="proximity-node-stem"
                           d={`M ${location.x} ${location.y + 5} Q ${location.x - 7} ${location.y + 15}, ${location.x - 1} ${location.y + 23}`}
                         />
-                        <circle
+                        <OperatorMapCircle
+                          presentation="node"
+                          tone={appearance.tone}
                           className="proximity-node-mark"
                           cx={location.x}
                           cy={location.y}
                           r="5.5"
                         />
                       </>
-                    ) : state === "is-sighting" ? (
-                      <path
+                    ) : appearance.shape === "diamond" ? (
+                      <OperatorMapPath
+                        presentation="node"
+                        tone={appearance.tone}
                         className="proximity-node-mark"
                         d={`M ${location.x} ${location.y - 5} L ${location.x + 5} ${location.y} L ${location.x} ${location.y + 5} L ${location.x - 5} ${location.y} Z`}
                       />
                     ) : (
-                      <circle
+                      <OperatorMapCircle
+                        presentation="node"
+                        tone={appearance.tone}
                         className="proximity-node-mark"
                         cx={location.x}
                         cy={location.y}
                         r="4.5"
                       />
                     )}
-                    <text x={location.x + 10} y={location.y - 8}>
+                    <OperatorMapText
+                      presentation="node"
+                      x={location.x + 10}
+                      y={location.y - 8}
+                    >
                       {point.label}
-                    </text>
-                  </g>
+                    </OperatorMapText>
+                  </OperatorMapGroup>
                 );
               })}
-            </svg>
+            </OperatorMapGraphic>
           ) : (
-            <div className="map-empty">
+            <OperatorMapEmpty className="map-empty">
               The public agent network will appear as approved peers are
               indexed.
-            </div>
+            </OperatorMapEmpty>
           )}
-        </div>
-        <div className="map-legend" aria-label="Agent proximity legend">
+        </OperatorMapFrame>
+        <OperatorMapLegend
+          className="map-legend"
+          aria-label="Agent proximity legend"
+        >
           {(
             block?.legend ?? [
               { label: "Approved", tone: "good" },
               { label: "Discovered", tone: "warn" },
             ]
           ).map((item) => (
-            <span className="map-legend-item" key={item.label}>
-              <i
-                data-kind={item.label.toLowerCase().replace(/\s+/g, "-")}
-                data-tone={item.tone ?? "neutral"}
-              ></i>
-              {item.label}
-            </span>
+            <OperatorMapLegendItem
+              key={item.label}
+              label={item.label}
+              {...mapLegendPresentation(item)}
+            />
           ))}
-          <span className="map-live">
+          <OperatorMapLegendNote className="map-live">
             {activeCount} {activeCount === 1 ? "agent" : "agents"} ·{" "}
             {block?.clusters?.length ?? 0}{" "}
             {block?.clusters?.length === 1 ? "constellation" : "constellations"}
             {" discovered · federation open"}
-          </span>
-        </div>
-      </article>
-    </section>
+          </OperatorMapLegendNote>
+        </OperatorMapLegend>
+      </OperatorPanel>
+    </OperatorSection>
   );
 }

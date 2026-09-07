@@ -7,8 +7,14 @@ export const WebRouteMethods = [
 ] as const;
 export type WebRouteMethod = (typeof WebRouteMethods)[number];
 
+/** Host-supplied socket metadata. Never derive this from HTTP/forwarding headers. */
+export interface WebRouteTransportContext {
+  readonly remoteAddress?: string;
+}
+
 export type WebRouteHandler = (
   request: Request,
+  transport?: WebRouteTransportContext,
 ) => Response | Promise<Response>;
 
 export type WebRouteMatch = "exact" | "prefix";

@@ -11,6 +11,7 @@ import type { OperatorViewComponents } from "@brains/operator-view-react";
 /** Studio's adapter for the shared renderer's host-owned control seam. */
 export const STUDIO_OPERATOR_COMPONENTS: OperatorViewComponents = {
   engine: "app",
+  density: "comfortable",
   Button,
   Input,
   Select: NativeSelect,

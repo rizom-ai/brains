@@ -234,10 +234,15 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
+export {
+  createScheduledMaintenanceDaemon,
+  type ScheduledMaintenanceOptions,
+} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
   RuntimeStateRecordValue,
+  RuntimeStateListOptions,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 export type {
@@ -973,6 +978,7 @@ export type {
   RegisteredWebRoute,
   WebRouteMethod,
   WebRouteHandler,
+  WebRouteTransportContext,
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";

@@ -142,6 +142,7 @@ export type {
   SearchOptions,
   GetEntityRequest,
   GetEntitiesRequest,
+  EntityReadOptions,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,

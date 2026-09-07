@@ -1,6 +1,22 @@
 /** @jsxImportSource react */
 import { displayLinkLabel, resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "react";
+import {
+  OperatorSection,
+  OperatorSectionHeading,
+  OperatorPanel,
+  OperatorColumns,
+  OperatorFacts,
+  OperatorStatusDot,
+  OperatorStatusList,
+  OperatorStatusSummary,
+  OperatorStatusPill,
+  OperatorReadiness,
+  OperatorSteps,
+  OperatorChecks,
+  OperatorStats,
+  OperatorPanelParagraph,
+} from "@brains/operator-view-react";
 import type { DashboardRenderInput } from "./types";
 
 interface PublicSurface {
@@ -78,26 +94,6 @@ function publicSurfaces(input: DashboardRenderInput): PublicSurface[] {
   });
 }
 
-function SurfaceStatus({
-  state,
-}: {
-  state: PublicSurface["state"];
-}): JSX.Element {
-  const label =
-    state === "online" ? "Online" : state === "soon" ? "Soon" : "Offline";
-  return <small data-state={state}>{label}</small>;
-}
-
-function CheckStatus({ current }: { current: boolean }): JSX.Element {
-  return (
-    <span
-      className={`system-status-pill ${current ? "is-current" : "is-waiting"}`}
-    >
-      {current ? "current" : "waiting"}
-    </span>
-  );
-}
-
 export function SystemPanel({
   input,
   now,
@@ -125,7 +121,7 @@ export function SystemPanel({
   const healthy = !hasOfflineSurface;
 
   return (
-    <section
+    <OperatorSection
       id="system"
       className="dashboard-tab-panel"
       data-dashboard-tab-panel
@@ -134,236 +130,246 @@ export function SystemPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-system"
     >
-      <header className="tab-section-head">
-        <h2>System</h2>
-      </header>
-      <div className="system-layout">
-        <div className="system-main">
-          <article className="card system-health-card">
-            <div className="card-head">
-              <span className="card-title">System health</span>
-              <span className="card-from">public snapshot · just now</span>
-            </div>
-            <div className="system-health-lead">
-              <span
-                className={`system-health-orbit${healthy ? " is-healthy" : " is-degraded"}`}
-                aria-hidden="true"
-              >
-                <i></i>
-              </span>
-              <div>
-                <strong>
-                  {healthy
+      <OperatorSectionHeading>System</OperatorSectionHeading>
+      <OperatorColumns
+        density="compact"
+        presentation="panels"
+        primary={
+          <>
+            <OperatorPanel
+              className="card system-health-card"
+              fullWidth
+              heading="System health"
+              source="public snapshot · just now"
+              inset="flush-bottom"
+            >
+              <OperatorStatusSummary
+                tone={healthy ? "good" : "warn"}
+                title={
+                  healthy
                     ? "All public systems operational"
-                    : "A public surface needs attention"}
-                </strong>
-                <p>
-                  {healthy
+                    : "A public surface needs attention"
+                }
+                description={
+                  healthy
                     ? "No advertised public surface reports an outage."
-                    : "One or more advertised public surfaces are unavailable."}
-                </p>
-              </div>
-              <span
-                className={`system-health-pill${healthy ? " is-healthy" : " is-degraded"}`}
-              >
-                {healthy ? "Healthy" : "Attention"}
-              </span>
-            </div>
-            <div className="system-health-metrics">
-              <div>
-                <span>Public surfaces</span>
-                <strong>
-                  {onlineCount} / {surfaces.length}
-                </strong>
-                <small>online</small>
-              </div>
-              <div>
-                <span>Knowledge map</span>
-                <strong>{hasKnowledgeMap ? "Current" : "Waiting"}</strong>
-                <small>projection</small>
-              </div>
-              <div>
-                <span>Network map</span>
-                <strong>{hasNetworkMap ? "Current" : "Waiting"}</strong>
-                <small>directory</small>
-              </div>
-            </div>
-          </article>
+                    : "One or more advertised public surfaces are unavailable."
+                }
+                status={healthy ? "Healthy" : "Attention"}
+              />
+              <OperatorStats
+                density="compact"
+                presentation="band"
+                items={[
+                  {
+                    label: "Public surfaces",
+                    value: `${onlineCount} / ${surfaces.length}`,
+                    caption: "online",
+                    captionTone: "good",
+                  },
+                  {
+                    label: "Knowledge map",
+                    value: hasKnowledgeMap ? "Current" : "Waiting",
+                    caption: "projection",
+                    captionTone: "good",
+                  },
+                  {
+                    label: "Network map",
+                    value: hasNetworkMap ? "Current" : "Waiting",
+                    caption: "directory",
+                    captionTone: "good",
+                  },
+                ]}
+              />
+            </OperatorPanel>
 
-          <article className="card system-index-card">
-            <div className="card-head">
-              <span className="card-title">Semantic index</span>
-              <span className="card-from">public projection</span>
-            </div>
-            <div className="system-index-gauge">
-              <div
-                className={`system-index-ring${hasKnowledgeMap ? " is-ready" : ""}`}
-                aria-label={
+            <OperatorPanel
+              className="card system-index-card"
+              heading="Semantic index"
+              source="public projection"
+            >
+              <OperatorReadiness
+                tone={hasKnowledgeMap ? "good" : "neutral"}
+                indicator={hasKnowledgeMap ? "Live" : "—"}
+                indicatorLabel={
                   hasKnowledgeMap
                     ? "Public semantic projection is ready"
                     : "Public semantic projection is waiting for data"
                 }
-              >
-                <span>{hasKnowledgeMap ? "Live" : "—"}</span>
-              </div>
-              <div className="system-index-copy">
-                <strong>{hasKnowledgeMap ? "Ready" : "Awaiting data"}</strong>
-                <p>
-                  {hasKnowledgeMap
+                title={hasKnowledgeMap ? "Ready" : "Awaiting data"}
+                description={
+                  hasKnowledgeMap
                     ? "The public knowledge projection is current."
-                    : "The projection will appear when public topics are indexed."}
-                </p>
-                <div className="system-inline-facts">
-                  <span>{input.appInfo.entities} entities</span>
-                  <span>{knowledgeMapZones} territories</span>
-                  <span>{knowledgeMapPoints} points</span>
-                </div>
-              </div>
-            </div>
-          </article>
+                    : "The projection will appear when public topics are indexed."
+                }
+                facts={[
+                  `${input.appInfo.entities} entities`,
+                  `${knowledgeMapZones} territories`,
+                  `${knowledgeMapPoints} points`,
+                ]}
+              />
+            </OperatorPanel>
 
-          <article className="card system-content-card">
-            <div className="card-head">
-              <span className="card-title">Public content</span>
-              <span className="card-from">dashboard render</span>
-            </div>
-            <dl className="system-kv">
-              <div>
-                <dt>Knowledge map</dt>
-                <dd>
-                  <i data-state={hasKnowledgeMap ? "online" : "waiting"}></i>
-                  {hasKnowledgeMap ? "Current" : "Waiting"}
-                </dd>
-              </div>
-              <div>
-                <dt>Network map</dt>
-                <dd>
-                  <i data-state={hasNetworkMap ? "online" : "waiting"}></i>
-                  {hasNetworkMap ? "Current" : "Waiting"}
-                </dd>
-              </div>
-              <div>
-                <dt>Public entities</dt>
-                <dd>{input.appInfo.entities}</dd>
-              </div>
-            </dl>
-            <div
-              className="system-pipeline"
-              aria-label="Public content pipeline"
+            <OperatorPanel
+              className="card system-content-card"
+              heading="Public content"
+              source="dashboard render"
             >
-              <span className="is-done">entities</span>
-              <i></i>
-              <span className={hasKnowledgeMap ? "is-done" : ""}>indexed</span>
-              <i></i>
-              <span className="is-done">published</span>
-            </div>
-          </article>
+              <OperatorFacts
+                density="compact"
+                presentation="reference"
+                items={[
+                  {
+                    label: "Knowledge map",
+                    value: (
+                      <>
+                        <OperatorStatusDot
+                          tone={hasKnowledgeMap ? "good" : "warn"}
+                        />
+                        {hasKnowledgeMap ? "Current" : "Waiting"}
+                      </>
+                    ),
+                  },
+                  {
+                    label: "Network map",
+                    value: (
+                      <>
+                        <OperatorStatusDot
+                          tone={hasNetworkMap ? "good" : "warn"}
+                        />
+                        {hasNetworkMap ? "Current" : "Waiting"}
+                      </>
+                    ),
+                  },
+                  { label: "Public entities", value: input.appInfo.entities },
+                ]}
+              />
+              <OperatorSteps
+                label="Public content pipeline"
+                items={[
+                  { label: "entities", complete: true },
+                  { label: "indexed", complete: hasKnowledgeMap },
+                  { label: "published", complete: true },
+                ]}
+              />
+            </OperatorPanel>
 
-          <article className="card system-checks-card">
-            <div className="card-head">
-              <span className="card-title">Public system checks</span>
-              <span className="card-from">this render</span>
-            </div>
-            <div className="system-checks-head">
-              <span>Operation</span>
-              <span>Updated</span>
-              <span>Status</span>
-            </div>
-            <div className="system-check-row">
-              <div>
-                <strong>public-card-render</strong>
-                <small>
-                  dashboard · {input.appInfo.entities} public entities
-                </small>
-              </div>
-              <span>now</span>
-              <CheckStatus current />
-            </div>
-            <div className="system-check-row">
-              <div>
-                <strong>knowledge-map-refresh</strong>
-                <small>topics · {knowledgeMapZones} public territories</small>
-              </div>
-              <span>this render</span>
-              <CheckStatus current={hasKnowledgeMap} />
-            </div>
-            <div className="system-check-row">
-              <div>
-                <strong>agent-proximity-scan</strong>
-                <small>agent-discovery · {networkCount} public agents</small>
-              </div>
-              <span>this render</span>
-              <CheckStatus current={hasNetworkMap} />
-            </div>
-          </article>
-        </div>
+            <OperatorPanel
+              className="card system-checks-card"
+              fullWidth
+              heading="Public system checks"
+              source="this render"
+            >
+              <OperatorChecks
+                label="Public system checks"
+                headings={["Operation", "Updated", "Status"]}
+                items={[
+                  {
+                    name: "public-card-render",
+                    description: `dashboard · ${input.appInfo.entities} public entities`,
+                    updated: "now",
+                    status: "current",
+                    tone: "good",
+                  },
+                  {
+                    name: "knowledge-map-refresh",
+                    description: `topics · ${knowledgeMapZones} public territories`,
+                    updated: "this render",
+                    status: hasKnowledgeMap ? "current" : "waiting",
+                    tone: hasKnowledgeMap ? "good" : "warn",
+                  },
+                  {
+                    name: "agent-proximity-scan",
+                    description: `agent-discovery · ${networkCount} public agents`,
+                    updated: "this render",
+                    status: hasNetworkMap ? "current" : "waiting",
+                    tone: hasNetworkMap ? "good" : "warn",
+                  },
+                ]}
+              />
+            </OperatorPanel>
+          </>
+        }
+        aside={
+          <>
+            <OperatorPanel
+              className="card system-runtime-card"
+              wash="neutral"
+              heading="Runtime"
+              source="public metadata"
+            >
+              <OperatorFacts
+                density="compact"
+                presentation="reference"
+                items={[
+                  { label: "Version", value: `v${input.appInfo.version}` },
+                  {
+                    label: "Uptime",
+                    value: formatUptime(input.appInfo.uptime),
+                  },
+                  {
+                    label: "Entities",
+                    value: `${input.appInfo.entities} public`,
+                  },
+                  {
+                    label: "Surfaces",
+                    value: `${onlineCount}/${surfaces.length} online`,
+                  },
+                  {
+                    label: "Rendered",
+                    value: (
+                      <time dateTime={now.toISOString()}>
+                        {formatRendered(now)}
+                      </time>
+                    ),
+                  },
+                ]}
+              />
+            </OperatorPanel>
 
-        <aside className="system-side">
-          <article className="card system-runtime-card">
-            <div className="card-head">
-              <span className="card-title">Runtime</span>
-              <span className="card-from">public metadata</span>
-            </div>
-            <dl className="system-kv">
-              <div>
-                <dt>Version</dt>
-                <dd>v{input.appInfo.version}</dd>
-              </div>
-              <div>
-                <dt>Uptime</dt>
-                <dd>{formatUptime(input.appInfo.uptime)}</dd>
-              </div>
-              <div>
-                <dt>Entities</dt>
-                <dd>{input.appInfo.entities} public</dd>
-              </div>
-              <div>
-                <dt>Surfaces</dt>
-                <dd>
-                  {onlineCount}/{surfaces.length} online
-                </dd>
-              </div>
-              <div>
-                <dt>Rendered</dt>
-                <dd>
-                  <time dateTime={now.toISOString()}>
-                    {formatRendered(now)}
-                  </time>
-                </dd>
-              </div>
-            </dl>
-          </article>
+            <OperatorPanel
+              className="card system-surfaces-card"
+              heading="Public surfaces"
+              source={<>{onlineCount} online</>}
+            >
+              <OperatorStatusList
+                items={surfaces.slice(0, 5).map((surface) => ({
+                  id: surface.key,
+                  label: surface.label,
+                  status:
+                    surface.state === "online"
+                      ? "Online"
+                      : surface.state === "soon"
+                        ? "Soon"
+                        : "Offline",
+                  tone:
+                    surface.state === "online"
+                      ? "good"
+                      : surface.state === "soon"
+                        ? "warn"
+                        : "error",
+                }))}
+              />
+            </OperatorPanel>
 
-          <article className="card system-surfaces-card">
-            <div className="card-head">
-              <span className="card-title">Public surfaces</span>
-              <span className="card-from">{onlineCount} online</span>
-            </div>
-            <ul>
-              {surfaces.slice(0, 5).map((surface) => (
-                <li key={surface.key}>
-                  <span>
-                    <i data-state={surface.state}></i>
-                    <strong>{surface.label}</strong>
-                  </span>
-                  <SurfaceStatus state={surface.state} />
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article className="card system-scope-card">
-            <div className="card-head">
-              <span className="card-title">Visibility</span>
-              <span className="system-scope-mark">Public</span>
-            </div>
-            <p>
-              This view reports public service health only. Private memory,
-              internal paths, and operator activity remain in Studio.
-            </p>
-          </article>
-        </aside>
-      </div>
-    </section>
+            <OperatorPanel
+              className="card system-scope-card"
+              wash="good"
+              heading="Visibility"
+              accessory={
+                <OperatorStatusPill className="system-scope-mark" tone="good">
+                  Public
+                </OperatorStatusPill>
+              }
+            >
+              <OperatorPanelParagraph presentation="note">
+                This view reports public service health only. Private memory,
+                internal paths, and operator activity remain in Studio.
+              </OperatorPanelParagraph>
+            </OperatorPanel>
+          </>
+        }
+      />
+    </OperatorSection>
   );
 }

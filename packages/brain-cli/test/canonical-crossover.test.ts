@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import {
   existsSync,
   mkdtempSync,
@@ -221,13 +222,13 @@ describe("single canonical crossover", () => {
     expect(packageJson).not.toMatch(/"@brains\/(rover|relay|ranger)"/);
   });
 
-  test("migrates all checked-in brain configs to explicit bundles", () => {
-    const configs = [
-      ...new Bun.Glob("**/brain.yaml").scanSync({
-        cwd: repositoryRoot,
-        dot: true,
-      }),
-    ];
+  test("migrates all checked-in brain configs to explicit bundles", async () => {
+    // Inspect tracked configs, not ignored artifacts or nested worktrees.
+    const tracked = await runProcessOrThrow(
+      ["git", "ls-files", "-z", "--", "brain.yaml", "**/brain.yaml"],
+      { cwd: repositoryRoot },
+    );
+    const configs = tracked.split("\0").filter(Boolean);
     expect(configs.length).toBeGreaterThan(0);
 
     const retiredCanonicalSelections = new Set([

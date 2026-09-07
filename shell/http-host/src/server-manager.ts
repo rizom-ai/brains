@@ -7,6 +7,7 @@ import type {
   RegisteredHttpRoute,
   RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
+import type { WebRouteTransportContext } from "@brains/plugins/contracts/web-routes";
 import { resolve, join, sep } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
@@ -21,6 +22,7 @@ export function isPathContained(filePath: string, dir: string): boolean {
 
 export interface ServerManagerOptions {
   logger: Logger;
+  hostname?: string;
   previewDistDir?: string;
   productionDistDir: string;
   sharedImagesDir: string;
@@ -99,9 +101,15 @@ export interface RunningServer {
 
 /** The options this manager passes, and the server it expects back. */
 export type ServeFn = (options: {
+  hostname?: string;
   port: number;
   idleTimeout: number;
-  fetch: (req: Request) => Promise<Response> | Response;
+  fetch: (
+    req: Request,
+    server?: {
+      requestIP(request: Request): { address: string } | null;
+    },
+  ) => Promise<Response> | Response;
 }) => RunningServer;
 
 export class ServerManager {
@@ -113,6 +121,7 @@ export class ServerManager {
   private stopPromise: Promise<void> | undefined;
   private shutdownController = new AbortController();
   private readonly requests = new Set<Promise<Response>>();
+  private readonly transport = new WeakMap<Request, WebRouteTransportContext>();
 
   private isPreviewHost(host: string | null): boolean {
     if (!host) {
@@ -167,10 +176,15 @@ export class ServerManager {
     const serve = this.options.serve ?? Bun.serve;
     try {
       this.productionServer = serve({
+        ...(this.options.hostname ? { hostname: this.options.hostname } : {}),
         port: this.options.productionPort,
         idleTimeout: this.options.idleTimeout ?? WEBSERVER_IDLE_TIMEOUT_SECONDS,
-        fetch: (request) =>
+        fetch: (request, server) =>
           this.admitRequest(request, async (req) => {
+            // Socket identity belongs to the original Bun request; route dispatch
+            // uses the admitted clone carrying the host shutdown signal.
+            const remoteAddress = server?.requestIP(request)?.address;
+            this.transport.set(req, Object.freeze({ ...(remoteAddress ? { remoteAddress } : {}) }));
             const fastResponse = await this.serveImageFastPath(req);
             if (fastResponse) return fastResponse;
 
@@ -461,7 +475,7 @@ export class ServerManager {
       if (handlerRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
-      return handlerRoute.handler(c.req.raw);
+      return handlerRoute.handler(c.req.raw, this.transport.get(c.req.raw));
     }
 
     const toolRoute = this.routes.find(

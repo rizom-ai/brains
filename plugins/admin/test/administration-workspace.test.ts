@@ -174,30 +174,34 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(people).toMatchObject({
       view: {
         title: "Administration",
-        blocks: [
-          { type: "stats", id: "people-summary" },
-          { type: "tabs", defaultTab: "people" },
-        ],
+        blocks: [{ type: "tabs", defaultTab: "people" }],
       },
     });
     expect(people).not.toHaveProperty("view.status");
     expect(rosterLoads).toBeGreaterThan(0);
     expect(await workspace.badgeProvider?.(actor)).toBe(2);
 
-    // People leads with the roster, then reads in the same main-plus-aside
-    // grammar as Invitations: the peer roster owns the primary column while
-    // standing facts and the peer actions sit beside it. Totals move to the
-    // head instead of banding across the top of the table.
     const peopleTab = peopleTabBlocks(people);
-    expect(blockIds(peopleTab)).toEqual(["people", "people-standing"]);
-    const layout = peopleTab.find((block) => block.type === "columns");
-    expect(blockIds(layout?.primary)).toEqual(["people-peers"]);
-    expect(blockIds(layout?.aside)).toEqual([
+    expect(blockIds(peopleTab)).toEqual([
+      "people",
+      "people-peers",
       "brain-anchor",
-      "people-peer-note",
-      "link-peer",
     ]);
-    expect(peopleTab.some((block) => block.type === "stats")).toBe(false);
-    expect(headBlockIds(people)).toContain("people-summary");
+    expect(peopleTab[1]).toMatchObject({
+      type: "card",
+      presentation: "disclosure",
+      label: "External brains",
+    });
+    expect(peopleTab[2]).toMatchObject({
+      type: "card",
+      presentation: "disclosure",
+      blocks: [{ id: "people-summary" }, { type: "key-values" }],
+    });
+    expect(
+      peopleTab.some(
+        (block) => block.type === "columns" || block.type === "stats",
+      ),
+    ).toBe(false);
+    expect(headBlockIds(people)).not.toContain("people-summary");
   });
 });

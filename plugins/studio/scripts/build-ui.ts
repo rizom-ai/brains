@@ -1,12 +1,19 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { createStylexBunTransform } from "@brains/build-tools";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import { dirname, join, relative } from "node:path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
+const operatorRoot = join(packageRoot, "../../shared/operator-view-react");
+await runProcessOrThrow([process.execPath, "run", "build"], {
+  cwd: operatorRoot,
+});
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
-const outdir = join(packageRoot, "dist", "ui");
+const destination = join(packageRoot, "dist", "ui");
+await mkdir(destination, { recursive: true });
+const outdir = await mkdtemp(join(packageRoot, "dist", ".studio-ui-"));
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
 const reactAliases: Record<string, string> = {
@@ -16,9 +23,6 @@ const reactAliases: Record<string, string> = {
   "react-dom": join(reactDomRoot, "index.js"),
   "react-dom/client": join(reactDomRoot, "client.js"),
 };
-
-await rm(outdir, { recursive: true, force: true });
-await mkdir(outdir, { recursive: true });
 
 const stylex = createStylexBunTransform();
 const result = await Bun.build({
@@ -61,7 +65,19 @@ if (!result.success) {
 }
 
 const stylexFile = "studio-app.css";
-await writeFile(join(outdir, stylexFile), `${stylex.css()}\n`);
+const operatorCSS = await Bun.file(
+  join(operatorRoot, "dist/stylex.css"),
+).text();
+const vendorCSS = await Bun.file(
+  join(packageRoot, "ui-react/src/codemirror-vendor.css"),
+).text();
+const documentCSS = await Bun.file(
+  join(packageRoot, "ui-react/src/studio-document.css"),
+).text();
+await writeFile(
+  join(outdir, stylexFile),
+  `${vendorCSS}\n${stylex.css()}\n${operatorCSS}\n${documentCSS}\n`,
+);
 const outputFiles = [
   ...result.outputs.map((output) =>
     relative(outdir, output.path).replaceAll("\\", "/"),
@@ -83,6 +99,15 @@ await writeFile(
   `${JSON.stringify({ version: 1, assets }, null, 2)}\n`,
 );
 
+// Publish complete files without removing assets being read by tests or open
+// browser tabs during a concurrent CLI rebuild. Advertise the manifest last.
+for (const file of [...outputFiles, "studio-asset-manifest.json"]) {
+  const target = join(destination, file);
+  await mkdir(dirname(target), { recursive: true });
+  await rename(join(outdir, file), target);
+}
+await rm(outdir, { recursive: true, force: true });
+
 console.log(
-  `Built ${join(outdir, "studio-app.js")} with ${outputFiles.length - 1} split assets`,
+  `Built ${join(destination, "studio-app.js")} with ${outputFiles.length - 1} split assets`,
 );

@@ -7,6 +7,7 @@ import {
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
+import { guestReadOptions } from "./guest-read-context";
 
 const DEFAULT_SYSTEM_SEARCH_MIN_SCORE = 0.5;
 
@@ -20,6 +21,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "Search entities using semantic search. For broad search, make one system_search call with scope.kind all. Use scope.kind type only when the user asks for a specific entity type. Applies a default minScore of 0.5 to reduce weak matches; lower minScore only for exploratory or loose recall. Search results include each matched entity's content. When relevant results already contain the complete evidence needed, answer from those results instead of redundantly listing or getting the same entities. Search results are candidates; do not present weak or unrelated candidates as exact matches.",
       searchInputSchema,
       async (input, context) => {
+        const readOptions = guestReadOptions(context);
         const visibilityScope = permissionToVisibilityScope(
           context.userPermissionLevel,
         );
@@ -39,6 +41,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                     includeUngenerated: input.includeUngenerated,
                   }),
                   visibilityScope,
+                  ...readOptions,
                 },
               })
             ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
@@ -60,7 +63,11 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "Retrieve a specific entity by type and identifier (ID, slug, or title). If retrieval fails, report the entity as not found rather than describing related generation work as pending.",
       getInputSchema,
       async (input, context) => {
-        if (!entityService.getEntityTypes().includes(input.entityType)) {
+        const readOptions = guestReadOptions(context);
+        if (
+          !readOptions.readBudget &&
+          !entityService.getEntityTypes().includes(input.entityType)
+        ) {
           return {
             success: false,
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
@@ -76,6 +83,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           logger,
           undefined,
           visibilityScope,
+          readOptions,
         );
         if (!result.ok) {
           return { success: false, error: result.error };
@@ -100,7 +108,11 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
       "List entities by a known entity type. Returns metadata only — use system_get for full content. Use system_search, not system_list, for broad or vague lookup requests. Use system_list to inspect metadata dates such as publishedAt when the user asks for the latest item of a known type, such as latest blog post.",
       listInputSchema,
       async (input, context) => {
-        if (!entityService.getEntityTypes().includes(input.entityType)) {
+        const readOptions = guestReadOptions(context);
+        if (
+          !readOptions.readBudget &&
+          !entityService.getEntityTypes().includes(input.entityType)
+        ) {
           return {
             success: false,
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
@@ -120,7 +132,7 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         }
         const entities = await entityService.listEntities({
           entityType: input.entityType,
-          options: { limit: input.limit ?? 20, filter },
+          options: { limit: input.limit ?? 20, filter, ...readOptions },
         });
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,

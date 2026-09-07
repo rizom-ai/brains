@@ -11,8 +11,13 @@ import type { ReactElement } from "react";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import { studioWorkspacePath } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { TypeSwitcher } from "./entity-fields";
+import { studioArea, TypeSwitcher } from "./entity-fields";
 import { getStudioRouterBasePath } from "./studio-router";
+import { chromeStyles as chrome } from "./studio-chrome.styles";
+import {
+  navigationClassName as navClass,
+  navigationStyles as nav,
+} from "./studio-navigation.styles";
 
 function rootAttribute(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -46,7 +51,6 @@ export interface StudioChromeNavigation {
 
 export function StudioChrome(props: {
   contextLabel: string;
-  contextBadge?: number | undefined;
   onContextClick?: (() => void) | undefined;
   navigation?: StudioChromeNavigation | undefined;
 }): ReactElement {
@@ -70,21 +74,51 @@ export function StudioChrome(props: {
     STUDIO_ACCOUNT_WORKSPACE_ID,
   );
 
+  const area = props.navigation
+    ? studioArea(
+        props.navigation.activeEntityType,
+        props.navigation.activeWorkspaceId,
+      )
+    : null;
+  const accountCurrent =
+    props.navigation?.activeWorkspaceId === STUDIO_ACCOUNT_WORKSPACE_ID;
+  const location =
+    area && ["library", "work", "system"].includes(area)
+      ? `${area.charAt(0).toUpperCase()}${area.slice(1)} · ${props.contextLabel}`
+      : props.contextLabel;
+
   return (
-    <header className="studio-chrome" aria-label="Studio">
-      <a className="studio-chrome-brand" href={studioPath}>
-        <span className="studio-chrome-mark" aria-hidden="true">
+    <header
+      className={navClass("studio-chrome", chrome.header)}
+      aria-label="Studio"
+    >
+      <a
+        className={navClass("studio-chrome-brand", chrome.brand)}
+        href={studioPath}
+      >
+        <span
+          className={navClass("studio-chrome-mark", chrome.mark)}
+          aria-hidden="true"
+        >
           {brandName.slice(0, 1).toUpperCase()}
         </span>
         <span className="studio-chrome-brain">{brandName}</span>
-        <span className="studio-chrome-slash" aria-hidden="true">
+        <span
+          className={navClass("studio-chrome-slash", chrome.slash)}
+          aria-hidden="true"
+        >
           /
         </span>
-        <strong>Studio</strong>
+        <strong className={navClass("", chrome.studio)}>Studio</strong>
       </a>
 
       {props.navigation ? (
-        <div className="studio-chrome-mobile-navigation">
+        <div
+          className={navClass(
+            "studio-chrome-mobile-navigation",
+            nav.mobileHost,
+          )}
+        >
           <TypeSwitcher
             renderMode="mobile"
             types={props.navigation.types}
@@ -98,35 +132,41 @@ export function StudioChrome(props: {
         </div>
       ) : null}
 
-      <div className="studio-chrome-location">
-        <span>Workspace</span>
+      <div className={navClass("studio-chrome-location", chrome.location)}>
         {props.onContextClick ? (
-          <button type="button" onClick={props.onContextClick}>
-            ← {props.contextLabel}
+          <button
+            className={navClass("", chrome.locationText)}
+            type="button"
+            onClick={props.onContextClick}
+            aria-label={`Back to ${props.contextLabel}`}
+          >
+            {location}
           </button>
         ) : (
-          <strong>{props.contextLabel}</strong>
+          <strong className={navClass("", chrome.locationText)}>
+            {location}
+          </strong>
         )}
-        {props.contextBadge !== undefined && props.contextBadge > 0 ? (
-          <b>{props.contextBadge}</b>
-        ) : null}
       </div>
 
-      <div className="studio-chrome-tools">
+      <div className={navClass("studio-chrome-tools", chrome.tools)}>
         <button
-          className="command-chip studio-chrome-command"
+          className={navClass(
+            "command-chip studio-chrome-command",
+            chrome.command,
+          )}
           type="button"
           aria-label="Search or run a command"
         >
           <span className="command-chip-hint">Search or run a command…</span>
-          <kbd>⌘K</kbd>
-          <span className="command-chip-icon" aria-hidden="true">
-            ⌕
-          </span>
+          <kbd className={navClass("", chrome.key)}>⌘K</kbd>
         </button>
         <button
           id="climateToggle"
-          className="climate-chip studio-chrome-climate"
+          className={navClass(
+            "climate-chip studio-chrome-climate",
+            chrome.climate,
+          )}
           type="button"
           aria-label="Toggle climate"
         >
@@ -135,30 +175,54 @@ export function StudioChrome(props: {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="studio-chrome-identity"
+              className={navClass("studio-chrome-identity", chrome.identity)}
               type="button"
               aria-label={`${displayName} account menu`}
+              aria-current={accountCurrent ? "page" : undefined}
             >
-              {initials(displayName)}
+              <span
+                className={navClass(
+                  "",
+                  chrome.identityBadge,
+                  accountCurrent && chrome.identityCurrent,
+                )}
+              >
+                {initials(displayName)}
+              </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="studio-chrome-identity-menu"
+            className={navClass("studio-chrome-identity-menu", chrome.menu)}
             align="end"
             sideOffset={8}
           >
             <DropdownMenuLabel className="studio-chrome-identity-label">
-              <strong>{displayName}</strong>
-              <span>{role}</span>
+              <strong className={navClass("", chrome.name)}>
+                {displayName}
+              </strong>
+              <span className={navClass("", chrome.role)}>{role}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate(accountHref)}>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (props.navigation) {
+                  if (!accountCurrent)
+                    props.navigation.selectWorkspace(
+                      STUDIO_ACCOUNT_WORKSPACE_ID,
+                    );
+                } else navigate(accountHref);
+              }}
+            >
               Account
-              <span aria-hidden="true">→</span>
+              <span className={navClass("", chrome.arrow)} aria-hidden="true">
+                →
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate(dashboardHref)}>
               View public dashboard
-              <span aria-hidden="true">↗</span>
+              <span className={navClass("", chrome.arrow)} aria-hidden="true">
+                ↗
+              </span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -166,7 +230,9 @@ export function StudioChrome(props: {
               onSelect={() => navigate(sessionHref)}
             >
               Sign out
-              <span aria-hidden="true">⇥</span>
+              <span className={navClass("", chrome.arrow)} aria-hidden="true">
+                ⇥
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
