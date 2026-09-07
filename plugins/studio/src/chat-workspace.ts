@@ -1,4 +1,4 @@
-import type { UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/services";
 export const STUDIO_CHAT_ROUTE_PATH = "/chat";
 export const STUDIO_CHAT_WORKSPACE_ID = "web-chat:chat";
 export const STUDIO_CHAT_WORKSPACE_RENDERER = "StudioChatWorkspace";

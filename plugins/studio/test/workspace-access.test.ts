@@ -2,9 +2,8 @@ import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AuthPrincipal } from "@brains/auth-service";
 import type { StudioWorkspaceActor, WebRouteDefinition } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
 
-import { createEditorRoutes } from "../src/editor-routes";
+import { installStudio, signIn } from "./helpers/install";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 
 const principal: AuthPrincipal = {
@@ -28,14 +27,13 @@ const publicPrincipal: AuthPrincipal = {
   isAnchor: false,
 };
 
-function setup(resolvedPrincipal: AuthPrincipal = principal): {
+async function setup(resolvedPrincipal: AuthPrincipal = principal): Promise<{
   routes: WebRouteDefinition[];
   registry: StudioWorkspaceRegistry;
   actors: StudioWorkspaceActor[];
   privateCalls: { data: number; action: number };
-} {
+}> {
   const shell = createMockShell({ domain: "yeehaa.io" });
-  const context = createServicePluginContext(shell, "studio");
   const registry = new StudioWorkspaceRegistry();
   const actors: StudioWorkspaceActor[] = [];
   const privateCalls = { data: 0, action: 0 };
@@ -71,18 +69,11 @@ function setup(resolvedPrincipal: AuthPrincipal = principal): {
       return { private: true };
     },
   });
-  return {
-    actors,
-    privateCalls,
-    registry,
-    routes: createEditorRoutes({
-      routePath: "/studio",
-      getContext: () => context,
-      resolveAuthPrincipal: async () => resolvedPrincipal,
-      getEntityDisplay: () => undefined,
-      workspaceRegistry: registry,
-    }),
-  };
+  signIn(shell, () => resolvedPrincipal);
+  const { routes } = await installStudio(shell, {
+    deps: { workspaces: registry },
+  });
+  return { actors, privateCalls, registry, routes };
 }
 
 function route(
@@ -123,7 +114,7 @@ const expectedActor: StudioWorkspaceActor = {
 
 describe("Studio workspace access", () => {
   it("filters descriptors through provider admission", async () => {
-    const fixture = setup();
+    const fixture = await setup();
     const types = fixture.routes.find(
       (candidate) =>
         candidate.path === "/studio/api/types" && candidate.method === "GET",
@@ -136,14 +127,18 @@ describe("Studio workspace access", () => {
     const body = await response.json();
 
     expect(body).toMatchObject({
-      workspaces: [{ id: "studio:account" }, { id: "trusted-workspace" }],
+      workspaces: [
+        { id: "studio:overview" },
+        { id: "studio:account" },
+        { id: "trusted-workspace" },
+      ],
     });
     expect(JSON.stringify(body)).not.toContain("admin-workspace");
     expect(fixture.privateCalls.data).toBe(0);
   });
 
   it("admits an active Public actor only to an explicitly lowered workspace", async () => {
-    const fixture = setup(publicPrincipal);
+    const fixture = await setup(publicPrincipal);
     fixture.registry.register({
       id: "account-workspace",
       pluginId: "account-provider",
@@ -191,7 +186,7 @@ describe("Studio workspace access", () => {
   });
 
   it("passes the real actor to admitted reads and actions", async () => {
-    const fixture = setup();
+    const fixture = await setup();
     const read = await route(fixture.routes, "GET").handler(
       new Request(
         "https://yeehaa.io/studio/api/workspace?id=trusted-workspace",
@@ -210,7 +205,7 @@ describe("Studio workspace access", () => {
   });
 
   it("returns 404 before denied provider code", async () => {
-    const fixture = setup();
+    const fixture = await setup();
     const read = await route(fixture.routes, "GET").handler(
       new Request("https://yeehaa.io/studio/api/workspace?id=admin-workspace"),
     );

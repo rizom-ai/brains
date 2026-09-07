@@ -5,7 +5,7 @@ import {
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 
-import { studioPlugin } from "../src";
+import { instantiate } from "./helpers/install";
 import {
   STUDIO_ACCOUNT_WORKSPACE,
   listBuiltInStudioWorkspaces,
@@ -37,7 +37,7 @@ describe("Studio Account workspace declaration", () => {
 
   it("cannot be replaced by an external registration", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const registration: StudioWorkspaceRegistration = {
       id: "studio:account",

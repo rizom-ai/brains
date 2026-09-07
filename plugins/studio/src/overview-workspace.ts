@@ -12,14 +12,13 @@ import {
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorView,
   type RuntimeStudioWorkspaceData,
-  type ServicePluginContext,
   type StudioOverviewContributionRegistration,
   type StudioOverviewContributionUnregistration,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
   type UserPermissionLevel,
-} from "@brains/plugins";
-import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
+} from "@brains/sdk/services";
+import type { StudioRuntime } from "./runtime";
 import { z } from "@brains/utils/zod";
 import {
   STUDIO_OVERVIEW_REFRESH_MS,
@@ -338,15 +337,15 @@ function activityCard(
 }
 
 async function runtimeCards(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   actor: StudioWorkspaceActor,
   sourceCount: number,
 ): Promise<readonly RuntimeStudioOperatorCardBlock[]> {
   const [appInfoResult, readinessResult, countsResult] =
     await Promise.allSettled([
-      context.appInfo(),
-      context.readiness(),
-      context.entityService.getEntityCounts(actor.visibilityScope),
+      runtime.identity.getAppInfo(),
+      runtime.readiness(),
+      runtime.entities.getEntityCounts(actor.visibilityScope),
     ]);
   const appInfo =
     appInfoResult.status === "fulfilled" ? appInfoResult.value : null;
@@ -371,12 +370,12 @@ async function runtimeCards(
   let channels = 0;
   let inboxSources = 0;
   try {
-    channels = context.channels.listDescriptors().length;
+    channels = runtime.channels.listDescriptors().length;
   } catch {
     // Registration can still be finalizing in tests or a warming runtime.
   }
   try {
-    inboxSources = context.inbox.listSources().length;
+    inboxSources = runtime.inbox.listSources().length;
   } catch {
     // Overview degrades to zero sources rather than failing the whole view.
   }
@@ -644,7 +643,7 @@ function overviewView(
 }
 
 export function createStudioOverviewWorkspace(input: {
-  context: ServicePluginContext;
+  runtime: StudioRuntime;
   registry: StudioOverviewRegistry;
 }): StudioWorkspaceRegistration {
   return {
@@ -662,9 +661,9 @@ export function createStudioOverviewWorkspace(input: {
       signal,
     ): Promise<RuntimeStudioWorkspaceData> => {
       const loaded = await input.registry.load(actor, signal);
-      const runtime = await runtimeCards(input.context, actor, loaded.length);
+      const cards = await runtimeCards(input.runtime, actor, loaded.length);
       return {
-        view: overviewView(loaded, input.registry.listActivity(), runtime),
+        view: overviewView(loaded, input.registry.listActivity(), cards),
         refreshAfterMs: STUDIO_OVERVIEW_REFRESH_MS,
       };
     },
@@ -676,26 +675,4 @@ export function createStudioOverviewWorkspace(input: {
           .filter((activity) => activity.tone === "error").length,
       ),
   };
-}
-
-export function registerStudioOverviewActivity(
-  context: ServicePluginContext,
-  registry: StudioOverviewRegistry,
-): void {
-  context.messaging.subscribe(ENTITY_CHANNELS.created, (message) => {
-    registry.recordEntity("created", message.payload);
-    return { success: true };
-  });
-  context.messaging.subscribe(ENTITY_CHANNELS.updated, (message) => {
-    registry.recordEntity("updated", message.payload);
-    return { success: true };
-  });
-  context.messaging.subscribe(ENTITY_CHANNELS.deleted, (message) => {
-    registry.recordEntity("deleted", message.payload);
-    return { success: true };
-  });
-  context.messaging.subscribe(JOB_CHANNELS.progress, (message) => {
-    registry.recordJob(message.payload);
-    return { success: true };
-  });
 }

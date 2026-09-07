@@ -508,6 +508,7 @@ class DeclarativeServicePlugin<
           channels: {
             getDeliveryProvider: (channelType) =>
               context.channels.getDeliveryProvider(channelType),
+            listDescriptors: () => context.channels.listDescriptors(),
           },
           auth: context.auth,
           inbox: context.inbox,
@@ -563,6 +564,7 @@ class DeclarativeServicePlugin<
           entityShapes: entityShapesOf(context),
           themeCSS: context.themeCSS,
           readiness: () => context.readiness(),
+          entityDisplay: context.entityDisplay,
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {
               activeId: this.definition.id,

@@ -1,16 +1,17 @@
 import { join } from "node:path";
 import {
+  defineRoute,
   requireSameOriginJson,
   requireSameOriginRequest,
-} from "@brains/auth-service";
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import {
-  canWriteVisibility,
-  permissionToVisibilityScope,
-} from "@brains/plugins";
+  verbatim,
+  type AnyInterfaceRouteDefinition,
+  type InterfaceCaller,
+} from "@brains/sdk/services";
+import { canWriteVisibility } from "@brains/sdk/entities";
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
+import { getErrorMessage } from "@brains/utils/error";
 import {
   entityTypeLabels,
   isRawEntityType,
@@ -25,7 +26,6 @@ import {
   STUDIO_CHAT_ROUTE_PATH,
 } from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
-import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
 import {
   handleCreateEntity,
@@ -40,6 +40,7 @@ import {
   handleListAgents,
 } from "./editor-assist";
 import {
+  accessFor,
   deriveTypeCapabilities,
   getTypeCapabilities,
   requireAdminCapability,
@@ -47,42 +48,25 @@ import {
   toStudioWorkspaceActor,
 } from "./editor-access";
 import type {
+  StudioAuditRecorder,
   StudioRequestAccess,
-  StudioRequestAccessResolution,
-  EditorRouteOptions,
 } from "./editor-contracts";
+import type { StudioRuntime } from "./runtime";
 
 export type {
   StudioRequestAccess,
   StudioTypeCapabilities,
-  EditorRouteOptions,
 } from "./editor-contracts";
 
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
-function resolveStudioChatApiPath(
-  context: ServicePluginContext,
-): string | undefined {
-  if (!context.plugins.has("web-chat")) return undefined;
-  const routes = context.webRoutes
-    .getRoutes()
-    .filter((route) => route.pluginId === "web-chat");
-  const actionsRoute = routes.find(
-    (route) =>
-      route.fullPath.endsWith("/actions") &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  );
-  if (!actionsRoute) return DEFAULT_CHAT_API_PATH;
-  const apiPath = actionsRoute.fullPath.slice(0, -"/actions".length);
-  return routes.some(
-    (route) =>
-      route.fullPath === apiPath &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  )
-    ? apiPath
-    : DEFAULT_CHAT_API_PATH;
+/**
+ * Where the chat workspace sends its turns. Web-chat's API path is its own
+ * configuration; the console reaches it at the contract's default, which is
+ * what a brain composes it at unless it says otherwise.
+ */
+function resolveStudioChatApiPath(runtime: StudioRuntime): string | undefined {
+  return runtime.plugins.has("web-chat") ? DEFAULT_CHAT_API_PATH : undefined;
 }
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
@@ -115,6 +99,12 @@ const syncStatusMessageSchema = z.object({
       remote: z.string().nullable(),
     })
     .nullable(),
+});
+
+/** What directory-sync answers, when it is there to answer. */
+const syncStatusAnswerSchema = z.object({
+  success: z.literal(true),
+  data: syncStatusMessageSchema,
 });
 
 function isSafeStudioAssetPath(value: string): boolean {
@@ -181,22 +171,37 @@ async function serveStudioAsset(
   });
 }
 
+export interface EditorRouteOptions {
+  /** Base route the editor is served from, e.g. "/studio". */
+  readonly routePath: string;
+}
+
+/**
+ * What a handler reaches once the console is set up. Routes are declared
+ * from configuration alone, so a brain can say what it serves before any
+ * of it runs; a handler asks for this at the moment a request arrives.
+ */
+export interface EditorRouteState {
+  readonly runtime: StudioRuntime;
+  readonly entityDisplay: StudioEntityDisplayMap | undefined;
+  readonly workspaceRegistry: StudioWorkspaceRegistry;
+  readonly recordAuditEvent: StudioAuditRecorder;
+}
+
 /**
  * Routes for the first-party Studio editor: the React shell, its bundled
- * asset, and the entity read/write API. Every route except the asset is
- * gated on an authenticated session; writes go through the entity service so
- * the entity DB stays the single authoritative writer.
+ * assets, and the entity read/write API.
+ *
+ * The shell and assets are public routes that decide for themselves — the
+ * shell redirects an anonymous visitor to sign in rather than refusing. The
+ * API is declared `session`: the runtime resolves the signed-in person and
+ * their role, and nothing here is asked who the caller is.
  */
 export function createEditorRoutes(
+  state: () => EditorRouteState,
   options: EditorRouteOptions,
-): WebRouteDefinition[] {
-  const {
-    routePath,
-    getContext,
-    resolveAuthPrincipal,
-    getEntityDisplay,
-    workspaceRegistry,
-  } = options;
+): AnyInterfaceRouteDefinition[] {
+  const { routePath } = options;
   const normalizedBase = normalizeStudioBasePath(routePath);
   const shellPath = normalizedBase || "/";
   const assetPrefix = `${normalizedBase}/assets`;
@@ -204,58 +209,34 @@ export function createEditorRoutes(
   const stylesheetPath = `${assetPrefix}/app.css`;
   const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
-  const resolveRequestAccess = async (
+  /** Who is asking, when the runtime already answered; the shell asks itself. */
+  const resolveShellCaller = async (
     request: Request,
-  ): Promise<StudioRequestAccessResolution> => {
-    const principal = await resolveAuthPrincipal(request);
-    if (principal?.status !== "active") {
-      return { state: "unauthenticated" };
-    }
-    const visibilityScope = permissionToVisibilityScope(
-      principal.permissionLevel,
-    );
+  ): Promise<InterfaceCaller | null> => {
+    const principal = await state()
+      .runtime.auth.getCaller()
+      ?.resolveSession(request);
+    if (principal?.status !== "active") return null;
     return {
-      state: "allowed",
-      access: {
-        principal,
-        actor: {
-          kind: "user",
-          userId: principal.userId,
-          ...(principal.canonicalId
-            ? { canonicalId: principal.canonicalId }
-            : {}),
-        },
-        permissionLevel: principal.permissionLevel,
-        visibilityScope,
-        isAnchor: principal.isAnchor,
+      actor: {
+        id: principal.userId,
+        displayName: principal.displayName,
+        ...(principal.canonicalId !== undefined
+          ? { canonicalId: principal.canonicalId }
+          : {}),
       },
+      permission: principal.permissionLevel,
+      isAnchor: principal.isAnchor,
     };
   };
 
-  const requireAccess = async (
-    request: Request,
-  ): Promise<StudioRequestAccess | Response> => {
-    const resolution = await resolveRequestAccess(request);
-    if (resolution.state === "unauthenticated") {
-      return jsonResponse({ error: "Authentication required" }, 401);
-    }
-    return resolution.access;
-  };
-
-  const requireTrustedAccess = async (
-    request: Request,
-  ): Promise<StudioRequestAccess | Response> => {
-    const access = await requireAccess(request);
-    if (access instanceof Response) return access;
-    return requireTrustedCapability(access) ?? access;
-  };
-
   const serveShell = async (request: Request): Promise<Response> => {
+    const { runtime } = state();
     const requestUrl = new URL(request.url);
     const nativeChat = requestUrl.pathname === STUDIO_CHAT_ROUTE_PATH;
     const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
-    const resolution = await resolveRequestAccess(request);
-    if (resolution.state === "unauthenticated") {
+    const caller = await resolveShellCaller(request);
+    if (!caller) {
       return new Response(null, {
         status: 302,
         headers: {
@@ -264,16 +245,13 @@ export function createEditorRoutes(
         },
       });
     }
-    if (nativeChat && !resolveStudioChatApiPath(getContext())) {
+    if (nativeChat && !resolveStudioChatApiPath(runtime)) {
       return new Response("Chat is not configured", { status: 404 });
     }
-    const context = getContext();
-    const dashboardHref = context.webRoutes
-      .getRoutes()
-      .filter((route) => route.pluginId === "dashboard")
-      .map((route) => route.fullPath)
-      .sort((left, right) => left.length - right.length)[0];
-    const profileName = context.identity.getProfile().name.trim();
+    const dashboardHref = runtime
+      .surfaces({ permissionLevel: caller.permission, hasActiveSession: true })
+      .find((surface) => surface.id === "dashboard")?.href;
+    const profileName = runtime.identity.getProfile().name.trim();
     return new Response(
       renderEditorShellHtml({
         assetPath,
@@ -282,10 +260,10 @@ export function createEditorRoutes(
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
         dashboardHref: `${dashboardHref ?? "/dashboard"}?view=public`,
         brandName: profileName || "Brain",
-        themeCSS: context.themeCSS,
+        themeCSS: runtime.themeCSS,
         principal: {
-          displayName: resolution.access.principal.displayName,
-          role: resolution.access.principal.role,
+          displayName: caller.actor.displayName ?? "",
+          role: caller.permission,
         },
       }),
       {
@@ -297,213 +275,163 @@ export function createEditorRoutes(
     );
   };
 
+  const shellRoute = (path: string): AnyInterfaceRouteDefinition =>
+    defineRoute({
+      method: "GET",
+      path,
+      security: { kind: "public" },
+      response: verbatim,
+      handle: ({ request }) => serveShell(request),
+    });
+
+  /** An API route: the runtime resolved the session; the handler acts as it. */
+  const api = (
+    method: "GET" | "POST" | "PUT" | "DELETE",
+    suffix: string,
+    handle: (
+      request: Request,
+      access: StudioRequestAccess,
+      s: EditorRouteState,
+    ) => Promise<Response> | Response,
+    options: {
+      trusted?: boolean;
+      admin?: boolean;
+      sameOrigin?: "json" | "request";
+    } = {},
+  ): AnyInterfaceRouteDefinition =>
+    defineRoute({
+      method,
+      path: apiPath(suffix),
+      security: { kind: "session" },
+      response: verbatim,
+      handle: async ({ request, caller }) => {
+        const access = accessFor(caller);
+        if (options.admin) {
+          const denied = requireAdminCapability(access);
+          if (denied) return denied;
+        } else if (options.trusted) {
+          const denied = requireTrustedCapability(access);
+          if (denied) return denied;
+        }
+        if (options.sameOrigin === "json") {
+          const denied = requireSameOriginJson(request);
+          if (denied) return denied;
+        } else if (options.sameOrigin === "request") {
+          const denied = requireSameOriginRequest(request);
+          if (denied) return denied;
+        }
+        return handle(request, access, state());
+      },
+    });
+
   return [
-    {
-      path: STUDIO_CHAT_ROUTE_PATH,
+    shellRoute(STUDIO_CHAT_ROUTE_PATH),
+    shellRoute(shellPath),
+    // The React app owns every path under the mount; the shell serves them
+    // all and the client router decides what is shown.
+    defineRoute({
       method: "GET",
-      public: true,
-      handler: serveShell,
-    },
-    {
-      path: shellPath,
-      method: "GET",
-      public: true,
-      handler: serveShell,
-    },
-    {
       path: `${normalizedBase}/entities`,
       match: "prefix",
+      security: { kind: "public" },
+      response: verbatim,
+      handle: ({ request }) => serveShell(request),
+    }),
+    defineRoute({
       method: "GET",
-      public: true,
-      handler: serveShell,
-    },
-    {
       path: `${normalizedBase}/workspaces`,
       match: "prefix",
+      security: { kind: "public" },
+      response: verbatim,
+      handle: ({ request }) => serveShell(request),
+    }),
+    defineRoute({
       method: "GET",
-      public: true,
-      handler: serveShell,
-    },
-    {
       path: assetPrefix,
       match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Promise<Response> =>
-        serveStudioAsset(request, assetPrefix),
-    },
-    {
-      path: apiPath("types"),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
-        if (access instanceof Response) return access;
-        return handleListTypes(
-          getContext(),
-          getEntityDisplay(),
-          workspaceRegistry,
-          access,
-        );
+      security: { kind: "public" },
+      response: verbatim,
+      handle: ({ request }) => serveStudioAsset(request, assetPrefix),
+    }),
+    api("GET", "types", (_request, access, s) =>
+      handleListTypes(s.runtime, s.entityDisplay, s.workspaceRegistry, access),
+    ),
+    api("GET", "workspace", (request, access, s) =>
+      handleGetWorkspace(s.workspaceRegistry, request, access),
+    ),
+    api(
+      "POST",
+      "workspace",
+      (request, access, s) =>
+        handleWorkspaceAction(s.workspaceRegistry, request, access),
+      { sameOrigin: "json" },
+    ),
+    api(
+      "GET",
+      "schema",
+      (request, access, s) => handleGetSchema(s.runtime, request, access),
+      { trusted: true },
+    ),
+    api(
+      "GET",
+      "entities",
+      (request, access, s) => handleGetEntities(s.runtime, request, access),
+      { trusted: true },
+    ),
+    api(
+      "PUT",
+      "entities",
+      (request, access, s) =>
+        handleUpdateEntity(s.runtime, request, access, s.recordAuditEvent),
+      { trusted: true, sameOrigin: "json" },
+    ),
+    api(
+      "POST",
+      "entities",
+      (request, access, s) =>
+        handleCreateEntity(s.runtime, request, access, s.recordAuditEvent),
+      { trusted: true, sameOrigin: "json" },
+    ),
+    api(
+      "DELETE",
+      "entities",
+      (request, access, s) =>
+        handleDeleteEntity(s.runtime, request, access, s.recordAuditEvent),
+      { trusted: true, sameOrigin: "json" },
+    ),
+    api(
+      "POST",
+      "upload",
+      (request, access, s) =>
+        handleUpload(s.runtime.operator, request, access, s.recordAuditEvent),
+      { trusted: true, sameOrigin: "request" },
+    ),
+    api(
+      "POST",
+      "assist",
+      (request, access, s) => handleAssist(s.runtime, request, access),
+      { trusted: true, sameOrigin: "json" },
+    ),
+    api(
+      "GET",
+      "agents",
+      (request, access, s) => handleListAgents(s.runtime, request, access),
+      { trusted: true },
+    ),
+    api(
+      "POST",
+      "ask-agent",
+      (request, access, s) => handleAskAgent(s.runtime, request, access),
+      { trusted: true, sameOrigin: "json" },
+    ),
+    api(
+      "GET",
+      "sync-status",
+      (_request, _access, s) => handleSyncStatus(s.runtime),
+      {
+        admin: true,
       },
-    },
-    {
-      path: apiPath("workspace"),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
-        if (access instanceof Response) return access;
-        return handleGetWorkspace(workspaceRegistry, request, access);
-      },
-    },
-    {
-      path: apiPath("workspace"),
-      method: "POST",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginJson(request);
-        if (requestDenied) return requestDenied;
-        return handleWorkspaceAction(workspaceRegistry, request, access);
-      },
-    },
-    {
-      path: apiPath("schema"),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        return handleGetSchema(getContext(), request, access);
-      },
-    },
-    {
-      path: apiPath("entities"),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        return handleGetEntities(getContext(), request, access);
-      },
-    },
-    {
-      path: apiPath("entities"),
-      method: "PUT",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginJson(request);
-        if (requestDenied) return requestDenied;
-        return handleUpdateEntity(
-          getContext(),
-          request,
-          access,
-          options.recordAuditEvent,
-        );
-      },
-    },
-    {
-      path: apiPath("entities"),
-      method: "POST",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginJson(request);
-        if (requestDenied) return requestDenied;
-        return handleCreateEntity(
-          getContext(),
-          request,
-          access,
-          options.recordAuditEvent,
-        );
-      },
-    },
-    {
-      path: apiPath("entities"),
-      method: "DELETE",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginJson(request);
-        if (requestDenied) return requestDenied;
-        return handleDeleteEntity(
-          getContext(),
-          request,
-          access,
-          options.recordAuditEvent,
-        );
-      },
-    },
-    {
-      path: apiPath("upload"),
-      method: "POST",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginRequest(request);
-        if (requestDenied) return requestDenied;
-        return handleUpload(
-          getContext(),
-          request,
-          apiPath("upload"),
-          access,
-          options.recordAuditEvent,
-        );
-      },
-    },
-    {
-      path: apiPath("assist"),
-      method: "POST",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginJson(request);
-        if (requestDenied) return requestDenied;
-        return handleAssist(getContext(), request, access);
-      },
-    },
-    {
-      path: apiPath("agents"),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        return handleListAgents(getContext(), request, access);
-      },
-    },
-    {
-      path: apiPath("ask-agent"),
-      method: "POST",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        const requestDenied = requireSameOriginJson(request);
-        if (requestDenied) return requestDenied;
-        return handleAskAgent(getContext(), request, access);
-      },
-    },
-    {
-      path: apiPath("sync-status"),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireAccess(request);
-        if (access instanceof Response) return access;
-        const denied = requireAdminCapability(access);
-        if (denied) return denied;
-        return handleSyncStatus(getContext());
-      },
-    },
+    ),
   ];
 }
 
@@ -513,34 +441,28 @@ export function createEditorRoutes(
  * over the message bus; when it (or git) is absent the payload degrades to
  * nulls and the strip simply doesn't render those stations.
  */
-async function handleSyncStatus(
-  context: ServicePluginContext,
-): Promise<Response> {
+async function handleSyncStatus(runtime: StudioRuntime): Promise<Response> {
   const unavailable = { directorySync: null, git: null };
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.statusRequest,
-    payload: {},
-  });
-  if (!("success" in response) || !response.success) {
+  const answer = syncStatusAnswerSchema.safeParse(
+    await runtime.messaging.send({
+      type: DIRECTORY_SYNC_CHANNELS.statusRequest,
+      payload: {},
+    }),
+  );
+  if (!answer.success) {
     return jsonResponse(unavailable);
   }
-
-  const parsed = syncStatusMessageSchema.safeParse(response.data);
-  if (!parsed.success) {
-    return jsonResponse(unavailable);
-  }
-
   return jsonResponse({
     directorySync: {
-      lastSync: parsed.data.lastSync,
-      watching: parsed.data.watchEnabled,
+      lastSync: answer.data.data.lastSync,
+      watching: answer.data.data.watchEnabled,
     },
-    git: parsed.data.git,
+    git: answer.data.data.git,
   });
 }
 
 async function handleListTypes(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   entityDisplay: StudioEntityDisplayMap | undefined,
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
@@ -548,28 +470,26 @@ async function handleListTypes(
   const types = [];
   if (access.permissionLevel !== "public") {
     const counts = new Map(
-      (await context.entityService.getEntityCounts(access.visibilityScope)).map(
+      (await runtime.entities.getEntityCounts(access.visibilityScope)).map(
         (entry) => [entry.entityType, entry.count],
       ),
     );
-    for (const entityType of context.entityService.getEntityTypes()) {
-      const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
-      if (!schema) continue;
+    for (const entityType of runtime.entities.getEntityTypes()) {
+      if (!runtime.shapes.frontmatterSchema(entityType)) continue;
       const count = counts.get(entityType) ?? 0;
       const capabilities = deriveTypeCapabilities(
-        context,
+        runtime.operator,
         entityType,
         count,
         access,
       );
       if (!capabilities) continue;
-      const adapter = context.entities.getAdapter(entityType);
       types.push({
         entityType,
         label: entityTypeLabels(entityType, entityDisplay?.[entityType])
           .pluralLabel,
-        isSingleton: adapter?.isSingleton === true,
-        hasBody: adapter?.hasBody !== false,
+        isSingleton: runtime.shapes.isSingleton(entityType),
+        hasBody: runtime.shapes.hasBody(entityType),
         count,
         capabilities,
       });
@@ -579,7 +499,7 @@ async function handleListTypes(
   const workspaces = [
     ...listBuiltInStudioChatWorkspaces(
       access.permissionLevel,
-      resolveStudioChatApiPath(context),
+      resolveStudioChatApiPath(runtime),
     ),
     ...listBuiltInStudioWorkspaces(access.permissionLevel),
     ...(await workspaceRegistry.listDescriptors(
@@ -695,7 +615,7 @@ async function handleWorkspaceAction(
 }
 
 async function handleGetSchema(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -704,15 +624,14 @@ async function handleGetSchema(
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
 
-  const capabilities = await getTypeCapabilities(context, entityType, access);
+  const capabilities = await getTypeCapabilities(runtime, entityType, access);
   const schema = capabilities
-    ? context.entities.getEffectiveFrontmatterSchema(entityType)
+    ? runtime.shapes.frontmatterSchema(entityType)
     : undefined;
   if (!schema) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const adapter = context.entities.getAdapter(entityType);
   const raw = isRawEntityType(entityType);
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
@@ -737,8 +656,8 @@ async function handleGetSchema(
   return jsonResponse({
     entityType,
     format: raw ? "raw" : "frontmatter",
-    isSingleton: adapter?.isSingleton === true,
-    hasBody: raw || adapter?.hasBody !== false,
+    isSingleton: runtime.shapes.isSingleton(entityType),
+    hasBody: raw || runtime.shapes.hasBody(entityType),
     fields,
   });
 }

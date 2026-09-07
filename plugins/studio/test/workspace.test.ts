@@ -17,7 +17,8 @@ import {
 
 import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-import { studioPlugin, type StudioPlugin } from "../src";
+import type { Plugin } from "@brains/plugins";
+import { instantiate, routesOf } from "./helpers/install";
 
 const authPlugins: AuthServicePlugin[] = [];
 
@@ -47,16 +48,14 @@ class NoteTestAdapter extends BaseEntityAdapter<BaseEntity> {
 }
 
 function findRoute(
-  plugin: StudioPlugin,
+  plugin: Plugin,
   path: string,
   method: WebRouteDefinition["method"] = "GET",
 ): WebRouteDefinition {
-  const route = plugin
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === path && (candidate.method ?? "GET") === method,
-    );
+  const route = routesOf(plugin).find(
+    (candidate) =>
+      candidate.path === path && (candidate.method ?? "GET") === method,
+  );
   if (!route) throw new Error(`Missing ${method} route: ${path}`);
   return route;
 }
@@ -126,7 +125,7 @@ describe("optional Studio workspaces", () => {
   it("lists the built-in Overview and Account workspaces when no provider registers", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     const response = await findRoute(plugin, "/studio/api/types").handler(
@@ -147,7 +146,7 @@ describe("optional Studio workspaces", () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     enableChatCapability(shell);
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     const response = await findRoute(plugin, "/studio/api/types").handler(
@@ -186,7 +185,7 @@ describe("optional Studio workspaces", () => {
     shell
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new NoteTestAdapter());
-    const plugin = studioPlugin({ routePath: "/studio" });
+    const plugin = instantiate({ routePath: "/studio" });
     await plugin.register(shell);
     shell.getInboxFollowUpRegistry().finalize();
 
@@ -229,7 +228,7 @@ describe("optional Studio workspaces", () => {
 
   it("hides note capture when the note entity capability is absent", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     shell.getInboxFollowUpRegistry().finalize();
 
@@ -258,7 +257,7 @@ describe("optional Studio workspaces", () => {
       entityActions: { note: { create: "never" } },
     });
     shell.getPermissionService = (): PermissionService => permissionService;
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     shell.getInboxFollowUpRegistry().finalize();
 
@@ -280,7 +279,7 @@ describe("optional Studio workspaces", () => {
 
   it("registers a workspace and returns its configured Studio URL", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin({ routePath: "/studio" });
+    const plugin = instantiate({ routePath: "/studio" });
     await plugin.register(shell);
 
     const response = await registerWorkspace(shell, {
@@ -302,7 +301,7 @@ describe("optional Studio workspaces", () => {
 
   it("unregisters only workspaces owned by the requesting plugin", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const registration: StudioWorkspaceRegistration = {
       id: "publishing",
@@ -334,7 +333,7 @@ describe("optional Studio workspaces", () => {
 
   it("rejects the retired Email Triage workspace renderer", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const legacyRegistration: StudioWorkspaceRegistration = {
       id: "email-workflows",
@@ -359,7 +358,7 @@ describe("optional Studio workspaces", () => {
 
   it("accepts the host-owned declarative workspace renderer", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     expect(
@@ -377,7 +376,7 @@ describe("optional Studio workspaces", () => {
 
   it("rejects the retired email reply draft workspace renderer", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     expect(
@@ -401,7 +400,7 @@ describe("optional Studio workspaces", () => {
   it("exposes URL query capability only for opted-in workspaces", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     await registerWorkspace(shell, {
       id: "inbox",
@@ -449,7 +448,7 @@ describe("optional Studio workspaces", () => {
   it("exposes registered descriptors and provider data to the browser", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     await registerWorkspace(shell, {
       id: "publishing",
@@ -521,7 +520,7 @@ describe("optional Studio workspaces", () => {
   it("resolves actor-aware entityTypes when listing descriptors", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     await registerWorkspace(shell, {
       id: "publishing",
@@ -555,7 +554,7 @@ describe("optional Studio workspaces", () => {
   it("passes authorized workspace query parameters to the provider", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const queries: unknown[] = [];
     await registerWorkspace(shell, {
@@ -592,7 +591,7 @@ describe("optional Studio workspaces", () => {
   it("access-checks and failure-isolates workspace badges", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     let deniedBadgeCalls = 0;
     await registerWorkspace(shell, {
@@ -652,7 +651,7 @@ describe("optional Studio workspaces", () => {
   it("orders multiple workspaces deterministically", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     await registerWorkspace(shell, {
@@ -699,7 +698,7 @@ describe("optional Studio workspaces", () => {
 
   it("rejects duplicate workspace ids without replacing the provider", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     await registerWorkspace(shell, {
@@ -730,7 +729,7 @@ describe("optional Studio workspaces", () => {
   it("derives the authenticated Studio actor for registered actions", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const calls: Array<{
       action: unknown;

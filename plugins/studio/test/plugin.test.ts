@@ -7,7 +7,7 @@ import {
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
-import { studioPlugin } from "../src";
+import { instantiate, routesOf } from "./helpers/install";
 
 function createStudioTestShell(): MockShell {
   return createMockShell({ domain: "yeehaa.io" });
@@ -28,11 +28,11 @@ function findRoute(
 describe("studio plugin", () => {
   it("uses the canonical Studio identity and redirects legacy CMS paths", async () => {
     const shell = createStudioTestShell();
-    const plugin = studioPlugin();
+    const plugin = instantiate();
 
     await plugin.register(shell);
 
-    const paths = plugin.getWebRoutes().map((route) => route.path);
+    const paths = routesOf(plugin).map((route) => route.path);
     expect(paths).toContain("/chat");
     expect(paths).toContain("/studio");
     expect(paths).toContain("/studio/api/entities");
@@ -40,7 +40,7 @@ describe("studio plugin", () => {
     expect(paths).toContain("/account");
     expect(paths).toContain("/admin");
 
-    const legacyRoute = findRoute(plugin.getWebRoutes(), "/cms");
+    const legacyRoute = findRoute(routesOf(plugin), "/cms");
     const redirects: ReadonlyArray<{
       source: string;
       destination: string;
@@ -64,7 +64,7 @@ describe("studio plugin", () => {
     }
 
     const accountRedirect = await findRoute(
-      plugin.getWebRoutes(),
+      routesOf(plugin),
       "/account",
     ).handler(new Request("https://yeehaa.io/account?section=passkeys"));
     expect(accountRedirect.status).toBe(308);
@@ -72,29 +72,39 @@ describe("studio plugin", () => {
       "/studio/workspaces/studio%3Aaccount?section=passkeys",
     );
 
-    const adminRedirect = await findRoute(
-      plugin.getWebRoutes(),
-      "/admin",
-    ).handler(new Request("https://yeehaa.io/admin/people?person=private"));
+    const adminRedirect = await findRoute(routesOf(plugin), "/admin").handler(
+      new Request("https://yeehaa.io/admin/people?person=private"),
+    );
     expect(adminRedirect.status).toBe(308);
     expect(adminRedirect.headers.get("location")).toBe("/studio");
 
-    expect(shell.listEndpoints()).toContainEqual(
+    await plugin.ready?.();
+    expect(shell.listInteractions()).toContainEqual(
       expect.objectContaining({
+        id: "studio",
         label: "Studio",
-        pluginId: "studio",
-        url: "/studio",
+        href: "/studio",
       }),
     );
   });
 
+  it("declares its routes from configuration alone", () => {
+    // A brain lists what it serves before anything is set up; a handler
+    // reaches what setup built only when a request arrives.
+    const paths = routesOf(instantiate()).map((route) => route.path);
+
+    expect(paths).toContain("/studio");
+    expect(paths).toContain("/studio/api/entities");
+    expect(paths).toContain("/cms");
+  });
+
   it("registers exactly the editor routes", async () => {
     const shell = createStudioTestShell();
-    const plugin = studioPlugin();
+    const plugin = instantiate();
 
     await plugin.register(shell);
 
-    const routes = plugin.getWebRoutes();
+    const routes = routesOf(plugin);
     expect(
       routes.map(
         (route) =>
@@ -127,18 +137,16 @@ describe("studio plugin", () => {
 
   it("always gates the Studio and canonical Chat shells on an auth session", async () => {
     const shell = createStudioTestShell();
-    const plugin = studioPlugin();
+    const plugin = instantiate();
 
     await plugin.register(shell);
 
-    const studioResponse = await findRoute(
-      plugin.getWebRoutes(),
-      "/studio",
-    ).handler(new Request("https://yeehaa.io/studio"));
-    const chatResponse = await findRoute(
-      plugin.getWebRoutes(),
-      "/chat",
-    ).handler(new Request("https://yeehaa.io/chat?session=thread-1"));
+    const studioResponse = await findRoute(routesOf(plugin), "/studio").handler(
+      new Request("https://yeehaa.io/studio"),
+    );
+    const chatResponse = await findRoute(routesOf(plugin), "/chat").handler(
+      new Request("https://yeehaa.io/chat?session=thread-1"),
+    );
 
     expect(studioResponse.status).toBe(302);
     expect(studioResponse.headers.get("location")).toBe(
@@ -163,15 +171,15 @@ describe("studio plugin", () => {
     const session = await authPlugin
       .getService()
       .createAuthSession(trusted.userId);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
 
     const request = new Request("https://yeehaa.io/studio", {
       headers: { Cookie: session.cookie },
     });
     const [shellResponse, apiResponse] = await Promise.all([
-      findRoute(plugin.getWebRoutes(), "/studio").handler(request),
-      findRoute(plugin.getWebRoutes(), "/studio/api/types").handler(request),
+      findRoute(routesOf(plugin), "/studio").handler(request),
+      findRoute(routesOf(plugin), "/studio/api/types").handler(request),
     ]);
 
     expect(shellResponse.status).toBe(200);
@@ -180,11 +188,11 @@ describe("studio plugin", () => {
 
   it("preserves a deep Studio path through authentication", async () => {
     const shell = createStudioTestShell();
-    const plugin = studioPlugin();
+    const plugin = instantiate();
 
     await plugin.register(shell);
 
-    const route = findRoute(plugin.getWebRoutes(), "/studio/entities");
+    const route = findRoute(routesOf(plugin), "/studio/entities");
     expect(route.match).toBe("prefix");
     const response = await route.handler(
       new Request(
@@ -199,43 +207,43 @@ describe("studio plugin", () => {
   });
 
   it("rejects the retired CMS mount as Studio's canonical route", () => {
-    expect(() => studioPlugin({ routePath: "/cms" })).toThrow(
+    expect(() => instantiate({ routePath: "/cms" })).toThrow(
       /reserved for Studio redirects/i,
     );
   });
 
   it("respects a custom route path while retaining the legacy redirect", async () => {
     const shell = createStudioTestShell();
-    const plugin = studioPlugin({ routePath: "/authoring" });
+    const plugin = instantiate({ routePath: "/authoring" });
 
     await plugin.register(shell);
 
-    const paths = plugin.getWebRoutes().map((route) => route.path);
+    const paths = routesOf(plugin).map((route) => route.path);
     expect(paths).toContain("/authoring");
     expect(paths).toContain("/authoring/api/entities");
     expect(paths).toContain("/cms");
   });
 
-  it("advertises the Studio endpoint so the dashboard can link to it", async () => {
+  it("advertises Studio once, as the interaction the console links to", async () => {
     const shell = createStudioTestShell();
-    const plugin = studioPlugin();
+    const plugin = instantiate();
 
     await plugin.register(shell);
+    // Interactions are declared once the brain is up, like every plugin.
+    await plugin.ready?.();
 
-    const endpoints = shell.listEndpoints();
-    const studio = endpoints.find((e) => e.label === "Studio");
-    expect(studio).toBeDefined();
-    expect(studio?.url).toBe("/studio");
-    expect(studio?.pluginId).toBe("studio");
-    expect(studio).toMatchObject({
-      visibility: "public",
-      requiresActiveSession: true,
-    });
+    // The console dedupes interactions and endpoints by path, so the
+    // endpoint the class also registered never rendered. Only the
+    // interaction is declared.
+    expect(
+      shell.listEndpoints().find((endpoint) => endpoint.label === "Studio"),
+    ).toBeUndefined();
     expect(
       shell
         .listInteractions()
         .find((interaction) => interaction.id === "studio"),
     ).toMatchObject({
+      href: "/studio",
       visibility: "public",
       requiresActiveSession: true,
     });

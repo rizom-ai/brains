@@ -10,12 +10,10 @@ import type {
   CreateExecutionContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { createServicePluginContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
-import { createEditorRoutes } from "../src/editor-routes";
-import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { installStudio, signIn } from "./helpers/install";
 
 const trustedPrincipal: AuthPrincipal = {
   userId: "usr_uploader",
@@ -43,18 +41,9 @@ async function setup(): Promise<{
     },
   });
   shell.getPermissionService = (): PermissionService => permissions;
-  const context = createServicePluginContext(shell, "studio");
   const auditEvents: AppendAuthAuditEventInput[] = [];
-  const routes = createEditorRoutes({
-    routePath: "/studio",
-    getContext: () => context,
-    resolveAuthPrincipal: async (): Promise<AuthPrincipal> => trustedPrincipal,
-    getEntityDisplay: () => undefined,
-    workspaceRegistry: new StudioWorkspaceRegistry(),
-    recordAuditEvent: async (event) => {
-      auditEvents.push(event);
-    },
-  });
+  signIn(shell, () => trustedPrincipal, { audit: auditEvents });
+  const { routes } = await installStudio(shell);
   const uploadRoute = routes.find(
     (candidate) =>
       candidate.path === "/studio/api/upload" && candidate.method === "POST",
@@ -79,7 +68,7 @@ function uploadRequest(): Request {
 }
 
 async function temporaryUploads(dataDir: string): Promise<string[]> {
-  return readdir(join(dataDir, "upload", "uploads")).catch(() => []);
+  return readdir(join(dataDir, "studio-upload", "uploads")).catch(() => []);
 }
 
 describe("Studio upload policy", () => {

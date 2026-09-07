@@ -134,6 +134,13 @@ export interface InterfaceRouteInput<
 > {
   readonly method: TMethod;
   readonly path: string;
+  /**
+   * Whether the path names one resource or everything beneath it. A
+   * single-page app serves one shell for every path under its mount, and a
+   * bundle of assets is served from one prefix; neither is a list of exact
+   * paths. Defaults to exact. Named consumer: @brains/studio.
+   */
+  readonly match?: "exact" | "prefix" | undefined;
   readonly security: TSecurity;
   readonly body?: TBodySchema | undefined;
   readonly response: TResponseSchema;

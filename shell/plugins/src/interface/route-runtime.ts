@@ -40,11 +40,18 @@ export function createRuntimeRoute(
   return {
     method: definition.method,
     path: definition.path,
+    ...(definition.match ? { match: definition.match } : {}),
     public: true,
     handler: async (request): Promise<Response> => {
       const caller = await resolveCaller(definition, request, options);
       if (definition.security.kind !== "public" && !caller) {
-        return jsonError("Unauthorized", 401);
+        // A person is asked to sign in; a peer is told its credential failed.
+        return jsonError(
+          definition.security.kind === "session"
+            ? "Authentication required"
+            : "Unauthorized",
+          401,
+        );
       }
 
       let body: unknown;

@@ -1,16 +1,21 @@
+import type { ActorRef } from "@brains/contracts";
+import type { ContentVisibility } from "@brains/sdk/entities";
 import type {
   AppendAuthAuditEventInput,
-  AuthPrincipal,
-} from "@brains/auth-service";
-import type { ActorRef } from "@brains/contracts";
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
-import type { StudioEntityDisplayMap } from "./config";
-import type { StudioWorkspaceRegistry } from "./workspace-registry";
+  InterfaceCaller,
+} from "@brains/sdk/services";
 
+/**
+ * What a request may see and do, read off the caller the runtime resolved.
+ *
+ * The runtime verified the session and read the person's role out of the
+ * brain's own user store; nothing here was decided by this package. The
+ * visibility scope is a function of the permission level, as everywhere.
+ */
 export interface StudioRequestAccess {
-  principal: AuthPrincipal;
+  caller: InterfaceCaller;
   actor: Extract<ActorRef, { kind: "user" }>;
-  permissionLevel: AuthPrincipal["permissionLevel"];
+  permissionLevel: InterfaceCaller["permission"];
   visibilityScope: ContentVisibility;
   isAnchor: boolean;
 }
@@ -25,19 +30,6 @@ export interface StudioTypeCapabilities {
   canAssist: boolean;
 }
 
-export interface EditorRouteOptions {
-  /** Base route the editor is served from, e.g. "/studio". */
-  routePath: string;
-  getContext: () => ServicePluginContext;
-  resolveAuthPrincipal: (
-    request: Request,
-  ) => Promise<AuthPrincipal | undefined>;
-  getEntityDisplay: () => StudioEntityDisplayMap | undefined;
-  workspaceRegistry: StudioWorkspaceRegistry;
-  recordAuditEvent?:
-    ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
-}
-
-export type StudioRequestAccessResolution =
-  | { state: "allowed"; access: StudioRequestAccess }
-  | { state: "unauthenticated" };
+/** The audit trail a console keeps of what an operator asked for. */
+export type StudioAuditRecorder =
+  ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;

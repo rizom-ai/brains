@@ -1,4 +1,6 @@
+import { z } from "@brains/utils/zod";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
+import { normalizeStudioBasePath } from "./studio-paths";
 import {
   getArrayElement,
   getKind,
@@ -171,4 +173,51 @@ export function zodFieldToStudioWidget(
     default:
       return { ...base, widget: "string" };
   }
+}
+
+const entityDisplayEntrySchema: z.ZodObject<
+  {
+    label: z.ZodOptional<z.ZodString>;
+    pluralName: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$loose
+> = z.looseObject({
+  label: z.string().optional(),
+  pluralName: z.string().optional(),
+});
+
+const entityDisplaySchema: z.ZodRecord<
+  z.ZodString,
+  typeof entityDisplayEntrySchema
+> = z.record(z.string(), entityDisplayEntrySchema);
+
+export const studioConfigSchema: z.ZodObject<{
+  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+  routePath: z.ZodDefault<z.ZodString>;
+}> = z.object({
+  entityDisplay: entityDisplaySchema.optional(),
+  routePath: z
+    .string()
+    .default("/studio")
+    .refine(
+      (routePath) =>
+        !["/cms", "/account", "/admin"].includes(
+          normalizeStudioBasePath(routePath),
+        ),
+      {
+        message:
+          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
+      },
+    ),
+});
+
+export type StudioConfig = z.output<typeof studioConfigSchema>;
+export type StudioConfigInput = z.input<typeof studioConfigSchema>;
+
+/** The brain's own display map, when it parses as one. */
+export function parseEntityDisplay(
+  value: unknown,
+): StudioEntityDisplayMap | undefined {
+  const parsed = entityDisplaySchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }

@@ -13,7 +13,10 @@ import type {
   IInboxNamespace,
 } from "../base/context-types";
 import type { AnyInterfaceRouteDefinition } from "../interface/route-contract";
-import type { ChannelDeliveryProvider } from "../channel-registry";
+import type {
+  ChannelDeliveryProvider,
+  ChannelDescriptor,
+} from "../channel-registry";
 import type { ToolAgent, ToolAsk } from "./tool-agent";
 
 /**
@@ -105,6 +108,12 @@ export interface ServicePublisher {
 
 export interface ServiceChannelReader {
   getDeliveryProvider(channelType: string): ChannelDeliveryProvider | undefined;
+  /**
+   * Every channel the brain can be reached on, as the registry describes
+   * them. A console that reports on the brain counts them; nothing here
+   * registers one. Named consumer: @brains/studio.
+   */
+  listDescriptors(): ChannelDescriptor[];
 }
 import type { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
@@ -169,6 +178,7 @@ import type {
 import type { ServicePublishingAccess } from "./publish-delegation-registry";
 import type { OperatorEntityWrites } from "./operator-entities";
 import type { RuntimeReadiness } from "../contracts/runtime-health";
+import type { EntityDisplayEntry } from "@brains/site-composition";
 
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
@@ -900,6 +910,12 @@ interface ServiceDefinitionCore<
          * reports on the brain it runs in. Named consumer: @brains/studio.
          */
         readonly readiness: () => Promise<RuntimeReadiness>;
+        /**
+         * How the brain labels its entity types, when it says. A console
+         * shows a type the way the brain names it rather than by its
+         * identifier. Named consumer: @brains/studio.
+         */
+        readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
         /**
          * The other doors this caller should be shown.
          *

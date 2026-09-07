@@ -1,4 +1,4 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
 import { A2A_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { StudioRequestAccess } from "./editor-contracts";
@@ -6,6 +6,7 @@ import { requireEntityAction } from "./editor-access";
 import { zodFieldToStudioWidget } from "./config";
 import { splitEntityContent } from "./editor-content";
 import { jsonResponse } from "./editor-response";
+import type { StudioRuntime } from "./runtime";
 
 const assistContextShape = {
   entityType: z.string(),
@@ -47,6 +48,13 @@ const askAgentPayloadSchema = z.object({
   agent: z.string().trim().min(1).max(253),
 });
 
+/** What the bus answers, when something answered at all. */
+// A send nobody answers comes back as a success with nothing in it.
+const busAnswerSchema = z.union([
+  z.looseObject({ success: z.literal(true), data: z.unknown().optional() }),
+  z.looseObject({ success: z.literal(false), error: z.string().optional() }),
+]);
+
 const a2aCallResultSchema = z.looseObject({
   response: z.string(),
 });
@@ -67,15 +75,15 @@ interface StudioAssistEntityContext {
 }
 
 async function resolveStudioAssistEntity(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   entityType: string,
   id: string,
   access: StudioRequestAccess,
 ): Promise<StudioAssistEntityContext | Response> {
-  if (!context.entities.getEffectiveFrontmatterSchema(entityType)) {
+  if (!runtime.shapes.frontmatterSchema(entityType)) {
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
-  const entity = await context.entityService.getEntity({
+  const entity = await runtime.entities.getEntity({
     entityType,
     id,
     visibilityScope: access.visibilityScope,
@@ -83,7 +91,12 @@ async function resolveStudioAssistEntity(
   if (!entity) {
     return jsonResponse({ error: `Entity not found: ${id}` }, 404);
   }
-  const denied = requireEntityAction(context, entityType, "update", access);
+  const denied = requireEntityAction(
+    runtime.operator,
+    entityType,
+    "update",
+    access,
+  );
   if (denied) return denied;
   const content = splitEntityContent(entityType, entity.content);
   return { entity, ...content };
@@ -102,7 +115,7 @@ function requireStoredSelection(
 }
 
 export async function handleAssist(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -117,14 +130,14 @@ export async function handleAssist(
   }
 
   const entityContext = await resolveStudioAssistEntity(
-    context,
+    runtime,
     payload.entityType,
     payload.id,
     access,
   );
   if (entityContext instanceof Response) return entityContext;
 
-  const frontmatterSchema = context.entities.getEffectiveFrontmatterSchema(
+  const frontmatterSchema = runtime.shapes.frontmatterSchema(
     payload.entityType,
   );
   if (!frontmatterSchema) {
@@ -156,44 +169,46 @@ export async function handleAssist(
       );
     }
 
-    const contextLines = [
-      "You are editing Studio frontmatter from an existing markdown body.",
+    // The instruction is what to do; the material is what to do it to.
+    const material = [
       `Entity type: ${payload.entityType}`,
       `Target field: ${payload.targetField}`,
       `Existing frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
       "",
       "Full markdown body:",
       entityContext.body,
-    ];
+    ].join("\n");
 
     if (payload.variant === "summarise") {
-      const { object } = await context.ai.generateObject(
-        [
+      const { verdict } = await runtime.judge({
+        instruction: [
+          "You are editing Studio frontmatter from an existing markdown body.",
           "Summarise the body for the target frontmatter field.",
           "Return only the field value in the suggestion field.",
-          ...contextLines,
         ].join("\n"),
-        assistResponseSchema,
-      );
+        material,
+        schema: assistResponseSchema,
+      });
       return jsonResponse({
         variant: payload.variant,
         targetField: payload.targetField,
-        suggestion: object.suggestion,
+        suggestion: verdict.suggestion,
       });
     }
 
-    const { object } = await context.ai.generateObject(
-      [
+    const { verdict } = await runtime.judge({
+      instruction: [
+        "You are editing Studio frontmatter from an existing markdown body.",
         "Suggest tags for the target frontmatter field.",
         "Return concise tag strings in the suggestions field without duplicates.",
-        ...contextLines,
       ].join("\n"),
-      tagAssistResponseSchema,
-    );
+      material,
+      schema: tagAssistResponseSchema,
+    });
     return jsonResponse({
       variant: payload.variant,
       targetField: payload.targetField,
-      suggestions: [...new Set(object.suggestions)],
+      suggestions: [...new Set(verdict.suggestions)],
     });
   }
 
@@ -202,32 +217,32 @@ export async function handleAssist(
     payload.selection,
   );
   if (selectionError) return selectionError;
-  const prompt = [
-    "You are editing markdown for the Studio.",
-    "Rewrite only the selected text according to the instruction.",
-    "Return only replacement markdown in the suggestion field.",
-    "Do not include commentary, code fences, or unchanged surrounding body text.",
-    "",
-    `Entity type: ${payload.entityType}`,
-    `Frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
-    `Instruction: ${payload.instruction}`,
-    "",
-    "Selected markdown:",
-    payload.selection,
-    "",
-    "Full body for context:",
-    entityContext.body,
-  ].join("\n");
 
-  const { object } = await context.ai.generateObject(
-    prompt,
-    assistResponseSchema,
-  );
-  return jsonResponse({ suggestion: object.suggestion });
+  const { verdict } = await runtime.judge({
+    instruction: [
+      "You are editing markdown for the Studio.",
+      "Rewrite only the selected text according to the instruction.",
+      "Return only replacement markdown in the suggestion field.",
+      "Do not include commentary, code fences, or unchanged surrounding body text.",
+      `Instruction: ${payload.instruction}`,
+    ].join("\n"),
+    material: [
+      `Entity type: ${payload.entityType}`,
+      `Frontmatter JSON: ${JSON.stringify(entityContext.frontmatter)}`,
+      "",
+      "Selected markdown:",
+      payload.selection,
+      "",
+      "Full body for context:",
+      entityContext.body,
+    ].join("\n"),
+    schema: assistResponseSchema,
+  });
+  return jsonResponse({ suggestion: verdict.suggestion });
 }
 
 export async function handleListAgents(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -241,34 +256,36 @@ export async function handleListAgents(
     );
   }
   const entityContext = await resolveStudioAssistEntity(
-    context,
+    runtime,
     entityType,
     id,
     access,
   );
   if (entityContext instanceof Response) return entityContext;
 
-  const response = await context.messaging.send({
-    type: A2A_CHANNELS.callAgents,
-    payload: {
-      entityType,
-      entityId: entityContext.entity.id,
-      actor: access.actor,
-      interfaceType: "studio",
-    },
-  });
-  if (!("success" in response) || !response.success) {
+  const answer = busAnswerSchema.safeParse(
+    await runtime.messaging.send({
+      type: A2A_CHANNELS.callAgents,
+      payload: {
+        entityType,
+        entityId: entityContext.entity.id,
+        actor: access.actor,
+        interfaceType: "studio",
+      },
+    }),
+  );
+  if (!answer.success || !answer.data.success) {
     // No a2a interface (or no directory) means the client keeps the existing
     // model-only assist bar.
     return jsonResponse({ agents: [] });
   }
 
-  const parsed = a2aAgentListSchema.safeParse(response.data);
+  const parsed = a2aAgentListSchema.safeParse(answer.data.data);
   return jsonResponse(parsed.success ? parsed.data : { agents: [] });
 }
 
 export async function handleAskAgent(
-  context: ServicePluginContext,
+  runtime: StudioRuntime,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -283,7 +300,7 @@ export async function handleAskAgent(
   }
 
   const entityContext = await resolveStudioAssistEntity(
-    context,
+    runtime,
     payload.entityType,
     payload.id,
     access,
@@ -295,22 +312,24 @@ export async function handleAskAgent(
   );
   if (selectionError) return selectionError;
 
-  const result = await context.messaging.send({
-    type: A2A_CHANNELS.callRequest,
-    payload: {
-      agent: payload.agent,
-      instruction: payload.instruction,
-      selection: payload.selection,
-      entityType: payload.entityType,
-      entityId: entityContext.entity.id,
-      actor: access.actor,
-      interfaceType: "studio",
-    },
-  });
-  if (!("success" in result) || !result.success) {
+  const answer = busAnswerSchema.safeParse(
+    await runtime.messaging.send({
+      type: A2A_CHANNELS.callRequest,
+      payload: {
+        agent: payload.agent,
+        instruction: payload.instruction,
+        selection: payload.selection,
+        entityType: payload.entityType,
+        entityId: entityContext.entity.id,
+        actor: access.actor,
+        interfaceType: "studio",
+      },
+    }),
+  );
+  if (!answer.success || !answer.data.success) {
     const error =
-      "error" in result && typeof result.error === "string"
-        ? result.error
+      answer.success && !answer.data.success && answer.data.error
+        ? answer.data.error
         : "Agent call failed";
     const unavailable = error.startsWith("No handler found");
     return jsonResponse(
@@ -319,10 +338,10 @@ export async function handleAskAgent(
     );
   }
 
-  if (result.data === undefined) {
+  if (answer.data.data === undefined) {
     return jsonResponse({ error: "Agent asking is unavailable" }, 503);
   }
-  const parsed = a2aCallResultSchema.safeParse(result.data);
+  const parsed = a2aCallResultSchema.safeParse(answer.data.data);
   if (!parsed.success) {
     return jsonResponse({ error: "Invalid response from agent" }, 502);
   }
@@ -332,10 +351,3 @@ export async function handleAskAgent(
     response: parsed.data.response,
   });
 }
-
-/**
- * Store the uploaded bytes in the shared runtime upload store, then promote
- * them through the upload-save handler the owning entity plugin registered
- * (images: the `image` plugin's promotion pipeline). The editor never
- * writes media entities itself — the pipeline stays the single owner.
- */

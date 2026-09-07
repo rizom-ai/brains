@@ -11,7 +11,7 @@ import {
 
 import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
-import { studioPlugin, type StudioPlugin } from "../src";
+import { instantiate, routesOf } from "./helpers/install";
 
 const authPlugins: AuthServicePlugin[] = [];
 const servicePlugins: Plugin[] = [];
@@ -26,16 +26,14 @@ afterEach(async () => {
 });
 
 function findRoute(
-  plugin: StudioPlugin,
+  plugin: Plugin,
   path: string,
   method: WebRouteDefinition["method"] = "GET",
 ): WebRouteDefinition {
-  const route = plugin
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === path && (candidate.method ?? "GET") === method,
-    );
+  const route = routesOf(plugin).find(
+    (candidate) =>
+      candidate.path === path && (candidate.method ?? "GET") === method,
+  );
   if (!route) throw new Error(`Missing ${method} route: ${path}`);
   return route;
 }
@@ -112,7 +110,7 @@ describe("public declarative Studio workspace", () => {
     authPlugins.push(auth);
     const cookie = (await auth.getService().createAuthSession()).cookie;
 
-    const studio = studioPlugin();
+    const studio = instantiate();
     await studio.register(shell);
     const service = instantiateService();
     await service.register(shell);

@@ -312,6 +312,14 @@ export {
 } from "@brains/contracts";
 export type { ActorRef } from "@brains/contracts";
 
+// How far a caller may see and write. A console that serves every type
+// reads at the scope its caller's level allows and offers only the
+// visibilities that level may write. Named consumer: @brains/studio.
+export {
+  canWriteVisibility,
+  permissionToVisibilityScope,
+} from "@brains/plugins";
+
 // How far a piece of content may travel. Paired with contentVisibilitySchema
 // above, which validates it.
 export type { ContentVisibility } from "@brains/plugins";

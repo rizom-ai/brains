@@ -408,6 +408,7 @@ export {
   type ServiceCorpusSearch,
   type ServiceJudge,
   type ServiceEntityExtension,
+  type ServiceChannelReader,
   type ServiceEntityShapes,
   type ServiceInteractionDeclaration,
   type ServiceEvalHandler,
@@ -920,6 +921,7 @@ export { sourceAttachmentKey } from "./entity/source-attachment-key";
 
 export { SerialQueue } from "./service/serial-queue";
 export type { StaticSiteOutput } from "./contracts/http-host";
+export type { EntityAction } from "@brains/templates";
 export { createOperatorEntities } from "./service/operator-entities";
 export type {
   OperatorEntityWrites,

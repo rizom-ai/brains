@@ -147,6 +147,8 @@ Definitions and schema vocabulary:
 - `z`
 - `inboxActorSchema`
 - `inboxItemIdSchema`
+- `canWriteVisibility`
+- `permissionToVisibilityScope`
 
 Types:
 
@@ -234,6 +236,37 @@ Definitions and schema vocabulary:
 - `ServiceTemplateReads`
 - `ServiceSchema`
 - `ServiceViewSchema`
+- `requireSameOriginJson`
+- `requireSameOriginRequest`
+- `DECLARATIVE_STUDIO_WORKSPACE_RENDERER`
+- `STUDIO_OVERVIEW_REGISTER_MESSAGE`
+- `STUDIO_OVERVIEW_UNREGISTER_MESSAGE`
+- `STUDIO_WORKSPACE_REGISTER_MESSAGE`
+- `STUDIO_WORKSPACE_UNREGISTER_MESSAGE`
+- `DashboardWidgetRegistration`
+- `RuntimeDashboardOperatorView`
+- `RuntimeDashboardWidgetData`
+- `RuntimeStudioOperatorCardBlock`
+- `RuntimeStudioOperatorPanelBlock`
+- `RuntimeStudioOperatorView`
+- `StudioOverviewContributionRegistration`
+- `StudioOverviewContributionUnregistration`
+- `StudioWorkspaceActor`
+- `StudioWorkspaceDescriptor`
+- `StudioWorkspaceRegistration`
+- `StudioWorkspaceRegistrationResult`
+- `StudioWorkspaceUnregistration`
+- `EntityAction`
+- `IInboxNamespace`
+- `IPluginsNamespace`
+- `InterfaceCaller`
+- `OperatorEntityWrites`
+- `OperatorUploadOutcome`
+- `OperatorUploadRequest`
+- `RuntimeReadiness`
+- `ServiceChannelReader`
+- `ServiceEntityShapes`
+- `UserPermissionLevel`
 
 Types:
 

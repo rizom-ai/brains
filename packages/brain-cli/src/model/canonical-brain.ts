@@ -21,7 +21,7 @@ import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
 import chatPackage, { chatConfigFromEnv } from "@brains/chat";
-import { studioPlugin } from "@brains/studio";
+import studioPackage from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
 import conversationMemoryPackage from "@brains/conversation-memory";
 import dashboardPackage from "@brains/dashboard";
@@ -182,7 +182,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
 
     packageCapability("playbooks", "@brains/playbooks", playbooksPackage),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage),
-    ["studio", studioPlugin, undefined],
+    packageCapability("studio", "@brains/studio", studioPackage),
     packageCapability("dashboard", "@brains/dashboard", dashboardPackage),
     packageCapability("admin", "@brains/admin", adminPackage),
 

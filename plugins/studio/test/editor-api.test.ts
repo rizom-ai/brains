@@ -14,7 +14,8 @@ import type {
 import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
-import { studioPlugin, type StudioPlugin } from "../src";
+import type { Plugin } from "@brains/plugins";
+import { instantiate, routesOf } from "./helpers/install";
 
 const postFrontmatterSchema = z.object({
   title: z.string(),
@@ -209,23 +210,21 @@ async function createSessionCookie(shell: MockShell): Promise<string> {
   return session.cookie;
 }
 
-async function registerPlugin(shell: MockShell): Promise<StudioPlugin> {
-  const plugin = studioPlugin();
+async function registerPlugin(shell: MockShell): Promise<Plugin> {
+  const plugin = instantiate();
   await plugin.register(shell);
   return plugin;
 }
 
 function findRoute(
-  plugin: StudioPlugin,
+  plugin: Plugin,
   path: string,
   method: WebRouteDefinition["method"] = "GET",
 ): WebRouteDefinition {
-  const route = plugin
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === path && (candidate.method ?? "GET") === method,
-    );
+  const route = routesOf(plugin).find(
+    (candidate) =>
+      candidate.path === path && (candidate.method ?? "GET") === method,
+  );
   if (!route) throw new Error(`Missing ${method} route: ${path}`);
   return route;
 }
@@ -965,7 +964,7 @@ describe("studio editor api", () => {
   it("honours entityDisplay overrides in type labels", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
-    const plugin = studioPlugin({
+    const plugin = instantiate({
       entityDisplay: { post: { label: "Essay" } },
     });
     await plugin.register(shell);

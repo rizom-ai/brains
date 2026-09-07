@@ -159,6 +159,15 @@ describe("editing entities on an operator's behalf", () => {
     expect(entities.allows("note", "update", visitor)).toBe(false);
   });
 
+  it("says why the policy refuses, in the policy's own words", async () => {
+    const entities = await install({ note: { update: "admin" } });
+
+    expect(entities.refusal("note", "update", operator)).toBeUndefined();
+    expect(entities.refusal("note", "update", visitor)).toBe(
+      "Updating `note` requires Admin permission; your current permission is Public.",
+    );
+  });
+
   it("refuses an edit the brain's policy refuses", async () => {
     const entities = await install({ note: { update: "trusted" } });
     const stored = await seedNote();

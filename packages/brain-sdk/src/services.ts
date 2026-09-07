@@ -207,6 +207,24 @@ export type {
 
 export type { StaticSiteOutput } from "@brains/plugins";
 
+// What a console holds from registration: editing every type on the
+// operator's behalf, the shapes those types take, who is calling, and the
+// reads a console makes about the brain it runs in.
+// Named consumer: @brains/studio.
+export type {
+  EntityAction,
+  IInboxNamespace,
+  IPluginsNamespace,
+  InterfaceCaller,
+  OperatorEntityWrites,
+  OperatorUploadOutcome,
+  OperatorUploadRequest,
+  RuntimeReadiness,
+  ServiceChannelReader,
+  ServiceEntityShapes,
+  UserPermissionLevel,
+} from "@brains/plugins";
+
 // One bounded status document in runtime state, read-modify-written one
 // mutation at a time. A package that keeps a projection of its own work —
 // what is running, what the last few runs did — needs exactly this engine,
@@ -254,5 +272,41 @@ export type {
   AuthCaller,
   AuthPrincipal,
 } from "@brains/auth-service";
+
+// Two request checks a console applies before a state-changing route runs:
+// the request came from the console's own origin, and a JSON body did too.
+// Pure functions of the request. Named consumer: @brains/studio.
+export {
+  requireSameOriginJson,
+  requireSameOriginRequest,
+} from "@brains/auth-service";
+
+// What Studio hosts. Every package that declares `studioWorkspaces` or
+// `dashboardWidgets` announces one over the bus, and the console is what
+// those announcements reach: it validates what the runtime sent, decides who
+// may see each, and renders what the declaration returned. The shapes are
+// the runtime's; a host has to name them. Named consumer: @brains/studio.
+export {
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  STUDIO_OVERVIEW_REGISTER_MESSAGE,
+  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+} from "@brains/plugins";
+export type {
+  DashboardWidgetRegistration,
+  RuntimeDashboardOperatorView,
+  RuntimeDashboardWidgetData,
+  RuntimeStudioOperatorCardBlock,
+  RuntimeStudioOperatorPanelBlock,
+  RuntimeStudioOperatorView,
+  StudioOverviewContributionRegistration,
+  StudioOverviewContributionUnregistration,
+  StudioWorkspaceActor,
+  StudioWorkspaceDescriptor,
+  StudioWorkspaceRegistration,
+  StudioWorkspaceRegistrationResult,
+  StudioWorkspaceUnregistration,
+} from "@brains/plugins";
 
 export { z } from "@brains/utils/zod";

@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **25 of 27 packages converted**
+Phases 1 through 5 done, phase 6 underway; **26 of 27 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
@@ -13,10 +13,11 @@ Phases 1 through 5 done, phase 6 underway; **25 of 27 packages converted**
 `@brains/content-pipeline`,
 `@brains/dashboard`,
 `@brains/site-builder`,
-`@brains/site-content`).
+`@brains/site-content`,
+`@brains/studio`).
 
-The two that remain both still extend a base class: `directory-sync` and
-`studio`. Three that are converted —
+The one that remains still extends a base class: `directory-sync`.
+Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -1121,6 +1122,25 @@ consumer:
    already answers and the setup context does not.
 5. **Eight subscriptions become declarations**: the four registrations and
    four entity-and-job activity listeners the overview keeps.
+
+Shipped. Converting the tests surfaced four more things, each closed on the
+runtime rather than in the package. A `session` route nobody is signed in
+to answers `Authentication required`, as the console always had. The
+policy's refusal reaches the person in the policy's own words:
+`operatorEntities.refusal` returns it, and `allows` is the boolean of it,
+so the console asks the same question the write asks and asserts nothing
+itself. An upload whose handler refused or crashed has its staged bytes
+removed and is reported as a refusal that names the type. And the overview
+counts channels through `channels.listDescriptors()`, a read the setup
+context did not have. Routes gained `match: "prefix"` for the shell and
+the legacy redirects. The endpoint registration went as decided; the tests
+now read the interaction. A declared subscription answers through the
+runtime's envelope, so the handlers return what they have to say and throw
+a refusal rather than wrapping either.
+The route manifest caught one more: the editor routes were declared only
+once setup had run, so a composed brain listed three redirects and no
+editor. Routes are declared from configuration alone, and a handler reaches
+what setup built through a getter at the moment a request arrives.
 
 ## Validation
 

@@ -5,6 +5,7 @@ import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
   type RuntimeReadiness,
+  type ServiceChannelReader,
 } from "../src";
 import { createPluginHarness } from "../src/test/harness";
 
@@ -27,16 +28,21 @@ describe("what a console reads about the brain it runs in", () => {
   async function install(): Promise<{
     themeCSS: string;
     readiness: () => Promise<RuntimeReadiness>;
+    channels: ServiceChannelReader;
   }> {
     let captured:
-      | { themeCSS: string; readiness: () => Promise<RuntimeReadiness> }
+      | {
+          themeCSS: string;
+          readiness: () => Promise<RuntimeReadiness>;
+          channels: ServiceChannelReader;
+        }
       | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
       defineServicePlugin({
         id: "studio",
         config: z.object({}),
-        setup: ({ themeCSS, readiness }) => {
-          captured = { themeCSS, readiness };
+        setup: ({ themeCSS, readiness, channels }) => {
+          captured = { themeCSS, readiness, channels };
           return {};
         },
       }),
@@ -45,6 +51,8 @@ describe("what a console reads about the brain it runs in", () => {
     );
     if (!plugin) throw new Error("Service plugin was not created");
     await harness.installPlugin(plugin);
+    // The channel list is read once every channel has registered.
+    await harness.finalizeRegistration();
     if (!captured) throw new Error("setup did not run");
     return captured;
   }
@@ -53,6 +61,12 @@ describe("what a console reads about the brain it runs in", () => {
     const { themeCSS } = await install();
 
     expect(typeof themeCSS).toBe("string");
+  });
+
+  it("counts the channels the brain can be reached on", async () => {
+    const { channels } = await install();
+
+    expect(Array.isArray(channels.listDescriptors())).toBe(true);
   });
 
   it("reads whether the runtime is ready", async () => {

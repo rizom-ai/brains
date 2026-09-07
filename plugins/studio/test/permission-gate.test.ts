@@ -8,7 +8,8 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
 import { z, type ZodType } from "@brains/utils/zod";
-import { studioPlugin, type StudioPlugin } from "../src";
+import type { Plugin } from "@brains/plugins";
+import { instantiate, routesOf } from "./helpers/install";
 
 interface SessionMatrix {
   admin: string;
@@ -25,16 +26,14 @@ interface RouteRequest {
 }
 
 function findRoute(
-  plugin: StudioPlugin,
+  plugin: Plugin,
   path: string,
   method: WebRouteDefinition["method"] = "GET",
 ): WebRouteDefinition {
-  const route = plugin
-    .getWebRoutes()
-    .find(
-      (candidate) =>
-        candidate.path === path && (candidate.method ?? "GET") === method,
-    );
+  const route = routesOf(plugin).find(
+    (candidate) =>
+      candidate.path === path && (candidate.method ?? "GET") === method,
+  );
   if (!route) throw new Error(`Missing ${method} route: ${path}`);
   return route;
 }
@@ -209,12 +208,12 @@ function enableChatCapability(shell: MockShell): void {
 
 async function setup(): Promise<{
   shell: MockShell;
-  plugin: StudioPlugin;
+  plugin: Plugin;
   sessions: SessionMatrix;
 }> {
   const shell = createMockShell({ domain: "yeehaa.io" });
   const sessions = await createSessionMatrix(shell);
-  const plugin = studioPlugin();
+  const plugin = instantiate();
   await plugin.register(shell);
   return { shell, plugin, sessions };
 }
@@ -227,7 +226,7 @@ describe("Studio active-session gate inversion", () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const sessions = await createSessionMatrix(shell);
     enableChatCapability(shell);
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const route = findRoute(plugin, "/studio/api/types");
 
@@ -262,8 +261,7 @@ describe("Studio active-session gate inversion", () => {
     const apiRoutes = apiRouteRequests();
 
     expect(
-      plugin
-        .getWebRoutes()
+      routesOf(plugin)
         .filter((route) => route.path.startsWith("/studio/api/"))
         .map((route) => `${route.method ?? "GET"} ${route.path}`),
     ).toEqual(

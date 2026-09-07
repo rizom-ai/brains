@@ -11,6 +11,7 @@ import {
   type EntityEditOutcome,
   type EntityEditRequest,
 } from "@brains/entity-service";
+import type { EntityAction } from "@brains/templates";
 import type { IShell } from "../interfaces";
 import type { InterfaceCaller } from "../interface/route-contract";
 
@@ -37,7 +38,14 @@ export type OperatorUploadOutcome =
     }
   | {
       readonly kind: "denied";
-      readonly reason: "unsupported-media-type" | "entity-action-policy";
+      readonly reason: "unsupported-media-type";
+      readonly message: string;
+    }
+  | {
+      /** The type that takes this kind of file is one the caller may not create. */
+      readonly kind: "denied";
+      readonly reason: "entity-action-policy";
+      readonly entityType: string;
       readonly message: string;
     };
 
@@ -67,9 +75,19 @@ export interface OperatorEntityWrites {
    */
   allows(
     entityType: string,
-    action: EntityEditAction,
+    action: EntityAction,
     caller: InterfaceCaller,
   ): boolean;
+  /**
+   * Why this caller may not take this action on this type, in the policy's
+   * own words — what a console shows the person it refused. Undefined when
+   * they may.
+   */
+  refusal(
+    entityType: string,
+    action: EntityAction,
+    caller: InterfaceCaller,
+  ): string | undefined;
   /**
    * Store an entity the caller assembled. Narrower than the agent's create,
    * which chooses a source to derive from and runs a type's interceptor; a
@@ -131,9 +149,27 @@ export function createOperatorEntities(
     permissions.assertEntityActionAllowed(entityType, action, permission);
   };
 
+  const refusal = (
+    entityType: string,
+    action: EntityAction,
+    caller: InterfaceCaller,
+  ): string | undefined => {
+    try {
+      permissions.assertEntityActionAllowed(
+        entityType,
+        action,
+        caller.permission,
+      );
+      return undefined;
+    } catch (error) {
+      return getErrorMessage(error, `${action} is not allowed`);
+    }
+  };
+
   return {
+    refusal,
     allows: (entityType, action, caller): boolean =>
-      permissions.canPerformEntityAction(caller.permission, entityType, action),
+      refusal(entityType, action, caller) === undefined,
     create: (request, caller) =>
       applyEntityCreate(
         {
@@ -174,6 +210,7 @@ export function createOperatorEntities(
         return {
           kind: "denied",
           reason: "entity-action-policy",
+          entityType: registration.entityType,
           message: getErrorMessage(error, "create is not allowed"),
         };
       }
@@ -182,20 +219,34 @@ export function createOperatorEntities(
         mediaType: request.mediaType,
         content: request.content,
       });
-      const result = await registration.handler(
-        { upload: { kind: "upload", id: record.id } },
-        {
-          interfaceType: options.interfaceType,
-          actor: {
-            kind: "user",
-            userId: caller.actor.id,
-            ...(caller.actor.canonicalId !== undefined
-              ? { canonicalId: caller.actor.canonicalId }
-              : {}),
+      // The bytes are staged only for the handler's moment with them. A
+      // handler that refuses or crashes leaves nothing behind, and says so
+      // as a refusal rather than a crash.
+      let result: Awaited<ReturnType<typeof registration.handler>>;
+      try {
+        result = await registration.handler(
+          { upload: { kind: "upload", id: record.id } },
+          {
+            interfaceType: options.interfaceType,
+            actor: {
+              kind: "user",
+              userId: caller.actor.id,
+              ...(caller.actor.canonicalId !== undefined
+                ? { canonicalId: caller.actor.canonicalId }
+                : {}),
+            },
           },
-        },
-      );
+        );
+      } catch (error) {
+        await staging.remove(record.id);
+        return {
+          kind: "refused",
+          entityType: registration.entityType,
+          message: getErrorMessage(error, "The upload could not be stored"),
+        };
+      }
       if (!result.success) {
+        await staging.remove(record.id);
         return {
           kind: "refused",
           entityType: registration.entityType,

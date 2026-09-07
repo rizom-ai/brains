@@ -1,3 +1,7 @@
+import { mkdtempSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -51,8 +55,11 @@ function imageAdapter(): EntityAdapter<BaseEntity> {
  * uploads. Named consumer: @brains/studio.
  */
 describe("uploading on an operator's behalf", () => {
+  // Its own staging area, so what a test finds there is what it left.
+  const dataDir = mkdtempSync(join(tmpdir(), "operator-upload-"));
   const harness = createPluginHarness({
     logger: createSilentLogger("operator-upload-test"),
+    dataDir,
   });
 
   afterEach(async () => {
@@ -112,6 +119,11 @@ describe("uploading on an operator's behalf", () => {
     return { entities: captured, received };
   }
 
+  /** What the staging area still holds, once the file was promoted or not. */
+  async function stagedUploads(): Promise<string[]> {
+    return readdir(join(dataDir, "studio-upload", "uploads")).catch(() => []);
+  }
+
   const png = {
     filename: "photo.png",
     mediaType: "image/png",
@@ -158,9 +170,12 @@ describe("uploading on an operator's behalf", () => {
 
     const outcome = await entities.upload(png, visitor);
 
+    // The console's audit trail names the type that was refused, so the
+    // refusal says which one that was.
     expect(outcome).toMatchObject({
       kind: "denied",
       reason: "entity-action-policy",
+      entityType: "image",
     });
     expect(received).toEqual([]);
   });
@@ -172,9 +187,32 @@ describe("uploading on an operator's behalf", () => {
       mediaTypes: ["image/png"],
       handler: async () => ({ success: false, error: "Too blurry" }),
     });
+    const stagedBefore = await stagedUploads();
 
     const outcome = await entities.upload(png, operator);
 
     expect(outcome).toMatchObject({ kind: "refused", message: "Too blurry" });
+    expect(await stagedUploads()).toEqual(stagedBefore);
+  });
+
+  it("reports a handler that crashed as a refusal, and keeps no bytes", async () => {
+    const { entities } = await install();
+    harness.getEntityRegistry().registerUploadSaveHandler({
+      entityType: "image",
+      mediaTypes: ["image/png"],
+      handler: async () => {
+        throw new Error("Promotion crashed");
+      },
+    });
+    const stagedBefore = await stagedUploads();
+
+    const outcome = await entities.upload(png, operator);
+
+    expect(outcome).toMatchObject({
+      kind: "refused",
+      entityType: "image",
+      message: "Promotion crashed",
+    });
+    expect(await stagedUploads()).toEqual(stagedBefore);
   });
 });
