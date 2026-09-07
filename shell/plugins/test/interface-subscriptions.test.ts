@@ -26,35 +26,39 @@ describe("interface subscriptions", () => {
 
   async function install(): Promise<void> {
     const [plugin] = instantiatePluginPackageDefinition(
-      defineInterface({
-        id: "peers",
-        config: z.object({}),
-        subscriptions: () => [
-          defineSubscription({
-            topic: "peers:approved",
-            payload: z.object({ minimum: z.number() }),
-            handle: async ({ payload, entities }) => {
-              if (!entities.getEntityTypes().includes("agent")) {
-                return { agents: [] };
-              }
-              const agents = await entities.listEntities({
-                entityType: "agent",
-                options: {
-                  filter: {
-                    metadata: { status: "approved" },
-                    visibilityScope: "restricted",
+      defineInterface(
+        {
+          id: "peers",
+          config: z.object({}),
+        },
+        {
+          subscriptions: () => [
+            defineSubscription({
+              topic: "peers:approved",
+              payload: z.object({ minimum: z.number() }),
+              handle: async ({ payload, entities }) => {
+                if (!entities.getEntityTypes().includes("agent")) {
+                  return { agents: [] };
+                }
+                const agents = await entities.listEntities({
+                  entityType: "agent",
+                  options: {
+                    filter: {
+                      metadata: { status: "approved" },
+                      visibilityScope: "restricted",
+                    },
                   },
-                },
-              });
-              return {
-                agents: agents
-                  .map(({ id }) => id)
-                  .filter((id) => id.length >= payload.minimum),
-              };
-            },
-          }),
-        ],
-      }),
+                });
+                return {
+                  agents: agents
+                    .map(({ id }) => id)
+                    .filter((id) => id.length >= payload.minimum),
+                };
+              },
+            }),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/peers", version: "0.1.0" },
     );

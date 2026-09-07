@@ -37,38 +37,42 @@ describe("service site reads", () => {
   it("hands setup the brain's addresses and the templates it renders with", async () => {
     let captured: Captured | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "site-builder",
-        config: z.object({}),
-        templates: {
-          page: {
-            schema: z.object({ title: z.string() }),
-            format: ({ value }) => value.title,
-          },
-        },
-        setup: async ({
-          domain,
-          siteUrl,
-          previewUrl,
-          localSiteUrl,
-          preferLocalUrls,
-          views,
-          templates,
-        }) => {
-          captured = {
+      defineServicePlugin(
+        {
+          id: "site-builder",
+          config: z.object({}),
+          setup: async ({
             domain,
             siteUrl,
             previewUrl,
             localSiteUrl,
             preferLocalUrls,
-            viewNames: views.list().map((view) => view.name),
-            resolved: await templates
-              .resolve("site-builder:page")
-              .catch(() => "unresolved"),
-          };
-          return {};
+            views,
+            templates,
+          }) => {
+            captured = {
+              domain,
+              siteUrl,
+              previewUrl,
+              localSiteUrl,
+              preferLocalUrls,
+              viewNames: views.list().map((view) => view.name),
+              resolved: await templates
+                .resolve("site-builder:page")
+                .catch(() => "unresolved"),
+            };
+            return {};
+          },
         },
-      }),
+        {
+          templates: {
+            page: {
+              schema: z.object({ title: z.string() }),
+              format: ({ value }) => value.title,
+            },
+          },
+        },
+      ),
       {},
       { name: "@fixture/site-builder", version: "0.1.0" },
     );

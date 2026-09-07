@@ -41,75 +41,77 @@ export function platformInterface(
   dependencies: ChatPlatformDependencies = {},
 ): ReturnType<typeof defineMessageInterface<typeof chatConfigSchema>> {
   const channel = CHANNELS[platform];
-  return defineMessageInterface({
-    id: platform,
-    config: chatConfigSchema,
+  return defineMessageInterface(
+    {
+      id: platform,
+      config: chatConfigSchema,
 
-    channel: {
-      type: platform,
-      displayName: channel.displayName,
-      subjectLabel: channel.subjectLabel,
-      subjectPattern: { source: channel.subjectPattern },
-      recipient: z.string(),
-      // The key the class wrote: threads already hold conversations under it,
-      // and the approvals still pending in them.
-      conversationKey: ({ id }) => getChatConversationId(platform, id),
+      setup: (context): ChatPlatformState =>
+        createPlatformState(platform, context, dependencies),
+      channel: {
+        type: platform,
+        displayName: channel.displayName,
+        subjectLabel: channel.subjectLabel,
+        subjectPattern: { source: channel.subjectPattern },
+        recipient: z.string(),
+        // The key the class wrote: threads already hold conversations under it,
+        // and the approvals still pending in them.
+        conversationKey: ({ id }) => getChatConversationId(platform, id),
+      },
     },
+    {
+      // The adapter's inbound events become turns here. The receiver is the
+      // same one `listen` gets, and the handlers must exist before the app
+      // initializes — a webhook-mode Slack app receives without any loop.
+      routes: ({ state, messages }) => {
+        new ChatTurnRouter(state, messages).register(state.app);
+        return platformRoutes(state);
+      },
 
-    setup: (context): ChatPlatformState =>
-      createPlatformState(platform, context, dependencies),
+      listen: async ({ state, signal, health }) => {
+        await state.app.initialize();
+        state.running = true;
+        state.loop?.start();
+        health.ready();
+        try {
+          await new Promise<void>((resolve) => {
+            if (signal.aborted) {
+              resolve();
+              return;
+            }
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          });
+        } finally {
+          await state.loop?.stop();
+          state.threads.clear();
+          state.uploads.clear();
+          state.presenter.clear();
+          await state.app.shutdown();
+          state.running = false;
+        }
+      },
 
-    // The adapter's inbound events become turns here. The receiver is the
-    // same one `listen` gets, and the handlers must exist before the app
-    // initializes — a webhook-mode Slack app receives without any loop.
-    routes: ({ state, messages }) => {
-      new ChatTurnRouter(state, messages).register(state.app);
-      return platformRoutes(state);
-    },
-
-    listen: async ({ state, signal, health }) => {
-      await state.app.initialize();
-      state.running = true;
-      state.loop?.start();
-      health.ready();
-      try {
-        await new Promise<void>((resolve) => {
-          if (signal.aborted) {
-            resolve();
-            return;
-          }
-          signal.addEventListener("abort", () => resolve(), { once: true });
-        });
-      } finally {
-        await state.loop?.stop();
-        state.threads.clear();
-        state.uploads.clear();
-        state.presenter.clear();
-        await state.app.shutdown();
-        state.running = false;
-      }
-    },
-
-    present: ({
-      state,
-      channel: room,
-      directives,
-      permissionLevel,
-      confirmation,
-    }) =>
-      state.presenter.present({
-        channelId: room.id,
+      present: ({
+        state,
+        channel: room,
         directives,
         permissionLevel,
         confirmation,
-      }),
+      }) =>
+        state.presenter.present({
+          channelId: room.id,
+          directives,
+          permissionLevel,
+          confirmation,
+        }),
 
-    send: ({ state, channel: room, message, event }) =>
-      state.presenter.send(room.id, message, event),
+      send: ({ state, channel: room, message, event }) =>
+        state.presenter.send(room.id, message, event),
 
-    edit: ({ state, channel: room, messageId, message, event }) =>
-      state.presenter.edit(room.id, messageId, message, event),
+      edit: ({ state, channel: room, messageId, message, event }) =>
+        state.presenter.edit(room.id, messageId, message, event),
 
-    toolStatus: ({ state, update }) => state.presenter.toolStatus(update),
-  });
+      toolStatus: ({ state, update }) => state.presenter.toolStatus(update),
+    },
+  );
 }

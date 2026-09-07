@@ -33,31 +33,35 @@ function instantiate(
 describe("declarative service ready", () => {
   it("runs after registration with entities, messaging and a logger", async () => {
     const order: string[] = [];
-    const definition = defineServicePlugin({
-      id: "seeder",
-      config: z.object({}),
-      setup: ({ logger }) => {
-        order.push("setup");
-        logger.debug("seeder setup");
-        return {};
+    const definition = defineServicePlugin(
+      {
+        id: "seeder",
+        config: z.object({}),
+        setup: ({ logger }) => {
+          order.push("setup");
+          logger.debug("seeder setup");
+          return {};
+        },
       },
-      ready: async ({ entities, messaging, logger }) => {
-        order.push("ready");
-        logger.debug("seeder ready");
-        // Reading another package's type is the point: a seeder asks whether
-        // the entity exists before creating it.
-        const existing = await entities.getEntity({
-          entityType: "playbook",
-          id: "onboarding",
-          visibilityScope: "restricted",
-        });
-        expect(existing).toBeNull();
-        await messaging.send({
-          type: "seeder:announce",
-          payload: { seeded: true },
-        });
+      {
+        ready: async ({ entities, messaging, logger }) => {
+          order.push("ready");
+          logger.debug("seeder ready");
+          // Reading another package's type is the point: a seeder asks whether
+          // the entity exists before creating it.
+          const existing = await entities.getEntity({
+            entityType: "playbook",
+            id: "onboarding",
+            visibilityScope: "restricted",
+          });
+          expect(existing).toBeNull();
+          await messaging.send({
+            type: "seeder:announce",
+            payload: { seeded: true },
+          });
+        },
       },
-    });
+    );
     const harness = createPluginHarness();
     const announced: unknown[] = [];
     harness.subscribe("seeder:announce", async (message) => {
@@ -90,20 +94,24 @@ describe("declarative service ready", () => {
     // runtime performs the write — the package never holds a cross-type
     // write capability.
     let loads = 0;
-    const definition = defineServicePlugin({
-      id: "md-seeder",
-      config: z.object({}),
-      seeds: () => [
-        {
-          entityType: "playbook",
-          id: "onboarding",
-          markdown: (): string => {
-            loads += 1;
-            return "---\ntitle: Onboarding\n---\nBody";
+    const definition = defineServicePlugin(
+      {
+        id: "md-seeder",
+        config: z.object({}),
+      },
+      {
+        seeds: () => [
+          {
+            entityType: "playbook",
+            id: "onboarding",
+            markdown: (): string => {
+              loads += 1;
+              return "---\ntitle: Onboarding\n---\nBody";
+            },
           },
-        },
-      ],
-    });
+        ],
+      },
+    );
     const harness = createPluginHarness();
     const created: { entityType: string; id: string }[] = [];
     const service = harness.getMockShell().getEntityService();
@@ -190,20 +198,24 @@ describe("declarative service ready: generating from what the brain knows", () =
           body: string;
         }
       | undefined;
-    const definition = defineServicePlugin({
-      id: "generator",
-      config: z.object({}),
-      ready: ({ dataDir, entityShapes, entities }) => {
-        const types = entities.getEntityTypes();
-        const first = types[0] ?? "missing";
-        observed = {
-          dataDir,
-          schema: entityShapes.frontmatterSchema(first),
-          singleton: entityShapes.isSingleton(first),
-          body: entityShapes.bodyTemplate(first),
-        };
+    const definition = defineServicePlugin(
+      {
+        id: "generator",
+        config: z.object({}),
       },
-    });
+      {
+        ready: ({ dataDir, entityShapes, entities }) => {
+          const types = entities.getEntityTypes();
+          const first = types[0] ?? "missing";
+          observed = {
+            dataDir,
+            schema: entityShapes.frontmatterSchema(first),
+            singleton: entityShapes.isSingleton(first),
+            body: entityShapes.bodyTemplate(first),
+          };
+        },
+      },
+    );
     const harness = createPluginHarness({ dataDir: "/tmp/generator-brain" });
     const plugin = instantiate(definition, {}, "@fixture/generator");
     await harness.installPlugin(plugin);

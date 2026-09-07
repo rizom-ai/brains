@@ -32,22 +32,26 @@ function instantiate(
 
 describe("declarative service routes", () => {
   it("serves a public route with a validated response", async () => {
-    const definition = defineServicePlugin({
-      id: "registry",
-      config: z.object({ enabled: z.boolean().default(true) }),
-      routes: ({ config }) =>
-        config.enabled
-          ? [
-              defineRoute({
-                method: "GET",
-                path: "/registry/index.json",
-                security: { kind: "public" },
-                response: z.object({ entries: z.array(z.string()) }),
-                handle: () => ({ entries: ["one", "two"] }),
-              }),
-            ]
-          : [],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "registry",
+        config: z.object({ enabled: z.boolean().default(true) }),
+      },
+      {
+        routes: ({ config }) =>
+          config.enabled
+            ? [
+                defineRoute({
+                  method: "GET",
+                  path: "/registry/index.json",
+                  security: { kind: "public" },
+                  response: z.object({ entries: z.array(z.string()) }),
+                  handle: () => ({ entries: ["one", "two"] }),
+                }),
+              ]
+            : [],
+      },
+    );
     const harness = createPluginHarness();
     const plugin = instantiate(definition, {}, "@fixture/registry");
     await harness.installPlugin(plugin);
@@ -67,27 +71,31 @@ describe("declarative service routes", () => {
   });
 
   it("refuses an unauthenticated caller on a protocol route", async () => {
-    const definition = defineServicePlugin({
-      id: "guarded",
-      config: z.object({}),
-      routes: () => [
-        defineRoute({
-          method: "POST",
-          path: "/guarded/echo",
-          security: protocol({
-            authenticate: ({ request }) =>
-              request.headers.get("x-user")
-                ? { id: request.headers.get("x-user") ?? "" }
-                : null,
+    const definition = defineServicePlugin(
+      {
+        id: "guarded",
+        config: z.object({}),
+      },
+      {
+        routes: () => [
+          defineRoute({
+            method: "POST",
+            path: "/guarded/echo",
+            security: protocol({
+              authenticate: ({ request }) =>
+                request.headers.get("x-user")
+                  ? { id: request.headers.get("x-user") ?? "" }
+                  : null,
+            }),
+            body: z.object({ text: z.string() }),
+            response: z.object({ echoed: z.string() }),
+            handle: ({ body, caller }) => ({
+              echoed: `${caller.actor.id}:${body.text}`,
+            }),
           }),
-          body: z.object({ text: z.string() }),
-          response: z.object({ echoed: z.string() }),
-          handle: ({ body, caller }) => ({
-            echoed: `${caller.actor.id}:${body.text}`,
-          }),
-        }),
-      ],
-    });
+        ],
+      },
+    );
     const harness = createPluginHarness();
     const plugin = instantiate(definition, {}, "@fixture/guarded");
     await harness.installPlugin(plugin);

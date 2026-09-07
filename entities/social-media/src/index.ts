@@ -16,25 +16,29 @@ import { createLinkedInProvider } from "./lib/linkedin-client";
 
 const socialMediaPackage: ServicePackageDefinition<
   typeof socialMediaConfigSchema
-> = defineServicePlugin({
-  id: "publishing",
-  config: socialMediaConfigSchema,
-  entities: [socialPost],
-  // No credentials, no provider: the publish pipeline is told about
-  // LinkedIn only when this brain can actually reach it.
-  publish: ({ config, logger }) => {
-    const linkedin = config.linkedin;
-    return linkedin?.accessToken
-      ? [
-          {
-            entityType: "social-post",
-            provider: createLinkedInProvider(linkedin, logger),
-            resultIdField: "platformPostId",
-          },
-        ]
-      : [];
+> = defineServicePlugin(
+  {
+    id: "publishing",
+    config: socialMediaConfigSchema,
+    entities: [socialPost],
   },
-});
+  {
+    // No credentials, no provider: the publish pipeline is told about
+    // LinkedIn only when this brain can actually reach it.
+    publish: ({ config, logger }) => {
+      const linkedin = config.linkedin;
+      return linkedin?.accessToken
+        ? [
+            {
+              entityType: "social-post",
+              provider: createLinkedInProvider(linkedin, logger),
+              resultIdField: "platformPostId",
+            },
+          ]
+        : [];
+    },
+  },
+);
 
 export default socialMediaPackage;
 

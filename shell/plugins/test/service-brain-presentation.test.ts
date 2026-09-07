@@ -80,44 +80,48 @@ describe("service brain presentation and announcements", () => {
       });
     }
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "card",
-        config: z.object({}),
-        ready: async ({ messaging }) => {
-          await messaging.publish({
-            topic: "card:announced",
-            data: { from: "ready" },
-          });
+      defineServicePlugin(
+        {
+          id: "card",
+          config: z.object({}),
         },
-        subscriptions: () => [
-          defineSubscription({
-            topic: "card:trigger",
-            payload: z.object({}),
-            handle: async ({ messaging }) => {
-              await messaging.publish({
-                topic: "card:announced",
-                data: { from: "subscription" },
-              });
-              return {};
-            },
-          }),
-        ],
-        tools: () => [
-          defineTool({
-            name: "announce",
-            description: "Announce.",
-            input: z.object({}),
-            output: z.object({}),
-            execute: async ({ messaging }) => {
-              await messaging.publish({
-                topic: "card:announced",
-                data: { from: "tool" },
-              });
-              return {};
-            },
-          }),
-        ],
-      }),
+        {
+          ready: async ({ messaging }) => {
+            await messaging.publish({
+              topic: "card:announced",
+              data: { from: "ready" },
+            });
+          },
+          subscriptions: () => [
+            defineSubscription({
+              topic: "card:trigger",
+              payload: z.object({}),
+              handle: async ({ messaging }) => {
+                await messaging.publish({
+                  topic: "card:announced",
+                  data: { from: "subscription" },
+                });
+                return {};
+              },
+            }),
+          ],
+          tools: () => [
+            defineTool({
+              name: "announce",
+              description: "Announce.",
+              input: z.object({}),
+              output: z.object({}),
+              execute: async ({ messaging }) => {
+                await messaging.publish({
+                  topic: "card:announced",
+                  data: { from: "tool" },
+                });
+                return {};
+              },
+            }),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/card", version: "0.1.0" },
     );

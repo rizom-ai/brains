@@ -262,94 +262,97 @@ const readingWidget = defineDashboardWidget({
   },
 });
 
-export default defineServicePlugin({
-  id: "reading-operator",
-  config: z.object({}),
-  accountSettings: readingAccountSettings,
+export default defineServicePlugin(
+  {
+    id: "reading-operator",
+    config: z.object({}),
+    accountSettings: readingAccountSettings,
+  },
+  {
+    // Contracts stay at module scope; executors bind once after setup. Only the
+    // current caller's parsed settings reach loaders/actions at request time.
+    dashboardWidgets: (context) => [
+      readingWidget.bind(context, async ({ entities, settings, signal }) => {
+        signal.throwIfAborted();
+        const [bookmarks, digests] = await Promise.all([
+          entities.list(bookmark),
+          entities.list(readingDigest),
+        ]);
+        const covered = new Set(
+          digests.map((digest) => digest.metadata.bookmarkId),
+        );
 
-  // Contracts stay at module scope; executors bind once after setup. Only the
-  // current caller's parsed settings reach loaders/actions at request time.
-  dashboardWidgets: (context) => [
-    readingWidget.bind(context, async ({ entities, settings, signal }) => {
-      signal.throwIfAborted();
-      const [bookmarks, digests] = await Promise.all([
-        entities.list(bookmark),
-        entities.list(readingDigest),
-      ]);
-      const covered = new Set(
-        digests.map((digest) => digest.metadata.bookmarkId),
+        return {
+          connected: settings !== null,
+          bookmarks: bookmarks.length,
+          digests: digests.length,
+          missingDigests: bookmarks.filter((saved) => !covered.has(saved.id))
+            .length,
+        };
+      }),
+    ],
+
+    studioWorkspaces: (context) => {
+      const refreshDigestHandler = refreshDigest.bind(
+        context,
+        async ({ input, jobs, signal }) => {
+          signal.throwIfAborted();
+          const job = await jobs.enqueue(compileReadingDigest, input);
+          return { jobId: job.id };
+        },
+        ({ input }) => ({
+          summary: `Refresh the digest for ${input.bookmarkId}?`,
+          revision: input.bookmarkId,
+        }),
       );
 
-      return {
-        connected: settings !== null,
-        bookmarks: bookmarks.length,
-        digests: digests.length,
-        missingDigests: bookmarks.filter((saved) => !covered.has(saved.id))
-          .length,
-      };
-    }),
-  ],
-
-  studioWorkspaces: (context) => {
-    const refreshDigestHandler = refreshDigest.bind(
-      context,
-      async ({ input, jobs, signal }) => {
-        signal.throwIfAborted();
-        const job = await jobs.enqueue(compileReadingDigest, input);
-        return { jobId: job.id };
-      },
-      ({ input }) => ({
-        summary: `Refresh the digest for ${input.bookmarkId}?`,
-        revision: input.bookmarkId,
-      }),
-    );
-
-    const addReadingItemHandler = addReadingItem.bind(
-      context,
-      async ({ input, signal }) => {
-        signal.throwIfAborted();
-        return {
-          status: `${input.title} queued as ${input.visibility}${input.notify ? " with notification" : ""}`,
-          sourceUrl: input.sourceUrl,
-        };
-      },
-    );
-
-    return [
-      readingWorkspace.bind(context, {
-        actions: [refreshDigestHandler, addReadingItemHandler],
-        async load({ entities, settings, signal, query }) {
+      const addReadingItemHandler = addReadingItem.bind(
+        context,
+        async ({ input, signal }) => {
           signal.throwIfAborted();
-          const selected = query.get(readingWorkspaceQuery);
-          const [allBookmarks, digests] = await Promise.all([
-            entities.list(bookmark),
-            entities.list(readingDigest),
-          ]);
-          const digestByBookmark = new Map(
-            digests.map((digest) => [digest.metadata.bookmarkId, digest]),
-          );
-          const bookmarks = selected.tag
-            ? allBookmarks.filter((saved) =>
-                saved.metadata.tags.includes(selected.tag ?? ""),
-              )
-            : allBookmarks;
-
           return {
-            connected: settings !== null,
-            ...(selected.tag ? { selectedTag: selected.tag } : {}),
-            bookmarks: bookmarks.map((saved) => {
-              const digest = digestByBookmark.get(saved.id);
-              return {
-                id: saved.id,
-                title: saved.metadata.title,
-                tags: saved.metadata.tags,
-                ...(digest ? { wordCount: digest.metadata.wordCount } : {}),
-              };
-            }),
-            digestCount: digests.length,
+            status: `${input.title} queued as ${input.visibility}${input.notify ? " with notification" : ""}`,
+            sourceUrl: input.sourceUrl,
           };
         },
-      }),
-    ];
+      );
+
+      return [
+        readingWorkspace.bind(context, {
+          actions: [refreshDigestHandler, addReadingItemHandler],
+          async load({ entities, settings, signal, query }) {
+            signal.throwIfAborted();
+            const selected = query.get(readingWorkspaceQuery);
+            const [allBookmarks, digests] = await Promise.all([
+              entities.list(bookmark),
+              entities.list(readingDigest),
+            ]);
+            const digestByBookmark = new Map(
+              digests.map((digest) => [digest.metadata.bookmarkId, digest]),
+            );
+            const bookmarks = selected.tag
+              ? allBookmarks.filter((saved) =>
+                  saved.metadata.tags.includes(selected.tag ?? ""),
+                )
+              : allBookmarks;
+
+            return {
+              connected: settings !== null,
+              ...(selected.tag ? { selectedTag: selected.tag } : {}),
+              bookmarks: bookmarks.map((saved) => {
+                const digest = digestByBookmark.get(saved.id);
+                return {
+                  id: saved.id,
+                  title: saved.metadata.title,
+                  tags: saved.metadata.tags,
+                  ...(digest ? { wordCount: digest.metadata.wordCount } : {}),
+                };
+              }),
+              digestCount: digests.length,
+            };
+          },
+        }),
+      ];
+    },
   },
-});
+);

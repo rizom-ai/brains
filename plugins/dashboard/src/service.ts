@@ -96,107 +96,110 @@ export function dashboardService(
   // state through this rather than through an argument it is not given.
   let held: DashboardState | undefined;
 
-  return defineServicePlugin({
-    id: "dashboard",
-    config: dashboardConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "dashboard",
+      config: dashboardConfigSchema,
 
-    setup: ({
-      config,
-      identity,
-      entities,
-      auth,
-      surfaces,
-      siteUrl,
-      logger,
-    }): DashboardState => {
-      const widgets = deps.widgets ?? new DashboardWidgetRegistry(logger);
-      const assets = new DashboardAssetRegistry(config.routePath);
-      const state: DashboardState = {
-        widgets,
-        dashboard: new DashboardDataSource(widgets, logger),
-        assets,
-        assetUrls: assets.createRenderUrls({
-          ...(config.themeCSS !== undefined && { themeCSS: config.themeCSS }),
-        }),
-        reads: {
-          identity,
-          entities,
-          auth,
-          surfaces,
-          siteUrl,
-          logger,
-        },
-      };
-      logger.info("Dashboard registered", { routePath: config.routePath });
-      held = state;
-      return state;
-    },
-
-    // A widget arrives from whichever package declared it; the payload schema
-    // is the boundary, and a malformed one is refused rather than rendered.
-    subscriptions: ({ state }) => [
-      defineSubscription({
-        topic: DASHBOARD_CHANNELS.registerWidget,
-        payload: registerWidgetPayloadSchema,
-        handle: ({ payload }) => {
-          state.widgets.register(createRegisteredWidget(payload));
-          state.reads.logger.debug("Widget registered", {
-            widgetId: payload.id,
-            pluginId: payload.pluginId,
-          });
-          return { success: true };
-        },
-      }),
-      defineSubscription({
-        topic: DASHBOARD_CHANNELS.unregisterWidget,
-        payload: unregisterWidgetPayloadSchema,
-        handle: ({ payload }) => {
-          state.widgets.unregister(payload.pluginId, payload.widgetId);
-          return { success: true };
-        },
-      }),
-    ],
-
-    dataSources: ({ state }) => [
-      defineDataSource({
-        id: "dashboard",
-        name: "Dashboard DataSource",
-        description: "Aggregates dashboard widgets from all plugins",
-        fetch: async () => state.dashboard.getDashboardData(),
-      }),
-    ],
-
-    interactions: ({ config }) => [
-      {
-        id: "dashboard",
-        label: "Dashboard",
-        description:
-          "Explore this brain's public identity, knowledge, network, and system health.",
-        href: config.routePath,
-        kind: "human",
-        priority: 30,
-        visibility: "public",
+      setup: ({
+        config,
+        identity,
+        entities,
+        auth,
+        surfaces,
+        siteUrl,
+        logger,
+      }): DashboardState => {
+        const widgets = deps.widgets ?? new DashboardWidgetRegistry(logger);
+        const assets = new DashboardAssetRegistry(config.routePath);
+        const state: DashboardState = {
+          widgets,
+          dashboard: new DashboardDataSource(widgets, logger),
+          assets,
+          assetUrls: assets.createRenderUrls({
+            ...(config.themeCSS !== undefined && { themeCSS: config.themeCSS }),
+          }),
+          reads: {
+            identity,
+            entities,
+            auth,
+            surfaces,
+            siteUrl,
+            logger,
+          },
+        };
+        logger.info("Dashboard registered", { routePath: config.routePath });
+        held = state;
+        return state;
       },
-    ],
+    },
+    {
+      // A widget arrives from whichever package declared it; the payload schema
+      // is the boundary, and a malformed one is refused rather than rendered.
+      subscriptions: ({ state }) => [
+        defineSubscription({
+          topic: DASHBOARD_CHANNELS.registerWidget,
+          payload: registerWidgetPayloadSchema,
+          handle: ({ payload }) => {
+            state.widgets.register(createRegisteredWidget(payload));
+            state.reads.logger.debug("Widget registered", {
+              widgetId: payload.id,
+              pluginId: payload.pluginId,
+            });
+            return { success: true };
+          },
+        }),
+        defineSubscription({
+          topic: DASHBOARD_CHANNELS.unregisterWidget,
+          payload: unregisterWidgetPayloadSchema,
+          handle: ({ payload }) => {
+            state.widgets.unregister(payload.pluginId, payload.widgetId);
+            return { success: true };
+          },
+        }),
+      ],
 
-    routes: ({ config }) => [
-      defineRoute({
-        method: "GET",
-        path: config.routePath,
-        security: { kind: "public" },
-        response: verbatim,
-        handle: ({ request }) => renderDashboard(held, config, request),
-      }),
-      defineRoute({
-        method: "GET",
-        path: "/api/console/jump",
-        security: { kind: "public" },
-        response: verbatim,
-        handle: ({ request }) => answerConsoleJump(held, config, request),
-      }),
-      ...assetRoutes(config),
-    ],
-  });
+      dataSources: ({ state }) => [
+        defineDataSource({
+          id: "dashboard",
+          name: "Dashboard DataSource",
+          description: "Aggregates dashboard widgets from all plugins",
+          fetch: async () => state.dashboard.getDashboardData(),
+        }),
+      ],
+
+      interactions: ({ config }) => [
+        {
+          id: "dashboard",
+          label: "Dashboard",
+          description:
+            "Explore this brain's public identity, knowledge, network, and system health.",
+          href: config.routePath,
+          kind: "human",
+          priority: 30,
+          visibility: "public",
+        },
+      ],
+
+      routes: ({ config }) => [
+        defineRoute({
+          method: "GET",
+          path: config.routePath,
+          security: { kind: "public" },
+          response: verbatim,
+          handle: ({ request }) => renderDashboard(held, config, request),
+        }),
+        defineRoute({
+          method: "GET",
+          path: "/api/console/jump",
+          security: { kind: "public" },
+          response: verbatim,
+          handle: ({ request }) => answerConsoleJump(held, config, request),
+        }),
+        ...assetRoutes(config),
+      ],
+    },
+  );
 }
 
 /** The asset files the page loads, derived from config alone. */

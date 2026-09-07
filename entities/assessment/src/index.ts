@@ -15,15 +15,19 @@ import { swot } from "./swot-entity";
 
 const assessmentPackage: ServicePackageDefinition<
   typeof assessmentConfigSchema
-> = defineServicePlugin({
-  id: "assessment",
-  config: assessmentConfigSchema,
-  entities: [swot],
-  // Whether the rule exists at all is a configured question, so it is a
-  // function of config rather than static entity data.
-  projectionRules: ({ config }) =>
-    config.enableSwotDerivation ? [createSwotProjectionRule()] : [],
-});
+> = defineServicePlugin(
+  {
+    id: "assessment",
+    config: assessmentConfigSchema,
+    entities: [swot],
+  },
+  {
+    // Whether the rule exists at all is a configured question, so it is a
+    // function of config rather than static entity data.
+    projectionRules: ({ config }) =>
+      config.enableSwotDerivation ? [createSwotProjectionRule()] : [],
+  },
+);
 
 export default assessmentPackage;
 

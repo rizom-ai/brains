@@ -46,18 +46,22 @@ describe("batches a declared service enqueues", () => {
   async function install(): Promise<{ plugin: Plugin; jobs: ServiceJobs }> {
     let captured: ServiceJobs | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "directory-sync",
-        config: z.object({}),
-        setup: ({ jobs }) => {
-          captured = jobs;
-          return {};
+      defineServicePlugin(
+        {
+          id: "directory-sync",
+          config: z.object({}),
+          setup: ({ jobs }) => {
+            captured = jobs;
+            return {};
+          },
         },
-        jobs: () => [
-          importJob.handle(async () => ({})),
-          cleanupJob.handle(async () => ({})),
-        ],
-      }),
+        {
+          jobs: () => [
+            importJob.handle(async () => ({})),
+            cleanupJob.handle(async () => ({})),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/directory-sync", version: "0.1.0" },
     );

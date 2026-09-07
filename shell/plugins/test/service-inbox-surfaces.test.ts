@@ -16,16 +16,20 @@ import {
 describe("a service that reads the inbox registries", () => {
   it("hands setup the sources other packages filed", async () => {
     let sourceCount: number | undefined;
-    const definition = defineServicePlugin({
-      id: "inbox-desk",
-      config: z.object({}),
-      setup: ({ inbox }) => ({
-        sources: (): number => inbox.listSources().length,
-      }),
-      ready: ({ state }) => {
-        sourceCount = state.sources();
+    const definition = defineServicePlugin(
+      {
+        id: "inbox-desk",
+        config: z.object({}),
+        setup: ({ inbox }) => ({
+          sources: (): number => inbox.listSources().length,
+        }),
       },
-    });
+      {
+        ready: ({ state }) => {
+          sourceCount = state.sources();
+        },
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -48,24 +52,28 @@ describe("a check that tells someone where to go", () => {
       siteUrl: "unset",
       inbox: "unset",
     };
-    const definition = defineServicePlugin({
-      id: "digest-desk",
-      config: z.object({}),
-      setup: () => ({}),
-      checks: () => [
-        {
-          id: "daily-digest",
-          cadence: "daily",
-          run: async ({
-            siteUrl,
-            workspaceUrl,
-          }): Promise<Record<never, never>> => {
-            seen = { siteUrl, inbox: workspaceUrl("inbox") };
-            return { alerts: [] };
+    const definition = defineServicePlugin(
+      {
+        id: "digest-desk",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        checks: () => [
+          {
+            id: "daily-digest",
+            cadence: "daily",
+            run: async ({
+              siteUrl,
+              workspaceUrl,
+            }): Promise<Record<never, never>> => {
+              seen = { siteUrl, inbox: workspaceUrl("inbox") };
+              return { alerts: [] };
+            },
           },
-        },
-      ],
-    });
+        ],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -98,22 +106,26 @@ describe("a check that tells someone where to go", () => {
 
 describe("a service that offers a way in", () => {
   it("declares its console link", async () => {
-    const definition = defineServicePlugin({
-      id: "inbox-desk",
-      config: z.object({}),
-      setup: () => ({}),
-      interactions: () => [
-        {
-          id: "unified-inbox",
-          label: "Inbox",
-          description: "Review source-owned items that need attention.",
-          href: "/studio/workspaces/inbox",
-          kind: "admin",
-          priority: 20,
-          visibility: "admin",
-        },
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "inbox-desk",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        interactions: () => [
+          {
+            id: "unified-inbox",
+            label: "Inbox",
+            description: "Review source-owned items that need attention.",
+            href: "/studio/workspaces/inbox",
+            kind: "admin",
+            priority: 20,
+            visibility: "admin",
+          },
+        ],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},

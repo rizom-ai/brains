@@ -72,96 +72,101 @@ export function newsletterService(
   // built at setup, so the route closes over the state setup produces.
   let state: NewsletterState | undefined;
 
-  return defineServicePlugin({
-    id: "buttondown",
-    config: newsletterConfigSchema,
-    entities: [newsletterEntity],
+  return defineServicePlugin(
+    {
+      id: "buttondown",
+      config: newsletterConfigSchema,
+      entities: [newsletterEntity],
 
-    setup: ({ config, logger }): NewsletterState => {
-      state = {
-        client: config.apiKey
-          ? new ButtondownClient(
-              { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
-              logger,
-              { fetch: dependencies.fetch },
-            )
-          : undefined,
-        logger,
-      };
-      return state;
+      setup: ({ config, logger }): NewsletterState => {
+        state = {
+          client: config.apiKey
+            ? new ButtondownClient(
+                { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
+                logger,
+                { fetch: dependencies.fetch },
+              )
+            : undefined,
+          logger,
+        };
+        return state;
+      },
     },
+    {
+      tools: ({ state }) =>
+        state.client ? [subscribersTool(state.client)] : [],
 
-    tools: ({ state }) => (state.client ? [subscribersTool(state.client)] : []),
+      routes: ({ config }) =>
+        config.apiKey
+          ? [
+              defineRoute({
+                method: "POST",
+                path: SUBSCRIBE_PATH,
+                security: { kind: "public" },
+                response: verbatim,
+                handle: ({ request }) =>
+                  handleSubscribe(request, state?.client),
+              }),
+            ]
+          : [],
 
-    routes: ({ config }) =>
-      config.apiKey
-        ? [
-            defineRoute({
-              method: "POST",
-              path: SUBSCRIBE_PATH,
-              security: { kind: "public" },
-              response: verbatim,
-              handle: ({ request }) => handleSubscribe(request, state?.client),
-            }),
-          ]
-        : [],
+      // A published post goes out to subscribers, when the operator asked for
+      // that. Throwing is how the handler reports a failed send to the bus.
+      subscriptions: ({ config, state }) =>
+        config.autoSendOnPublish && state.client
+          ? [
+              defineSubscription({
+                topic: PUBLISH_CHANNELS.completed,
+                payload: publishCompletedSchema,
+                handle: async ({ payload, entities }) => {
+                  const client = state.client;
+                  if (!client) throw new Error("Buttondown is not configured");
+                  const result = await handlePublishCompleted(
+                    payload,
+                    client,
+                    entities,
+                    state.logger,
+                  );
+                  if (!result.success) {
+                    state.logger.error("Buttondown auto-send failed", {
+                      entityId: payload.entityId,
+                      error: result.error,
+                    });
+                    throw new Error(result.error);
+                  }
+                  return result;
+                },
+              }),
+            ]
+          : [],
 
-    // A published post goes out to subscribers, when the operator asked for
-    // that. Throwing is how the handler reports a failed send to the bus.
-    subscriptions: ({ config, state }) =>
-      config.autoSendOnPublish && state.client
-        ? [
-            defineSubscription({
-              topic: PUBLISH_CHANNELS.completed,
-              payload: publishCompletedSchema,
-              handle: async ({ payload, entities }) => {
-                const client = state.client;
-                if (!client) throw new Error("Buttondown is not configured");
-                const result = await handlePublishCompleted(
-                  payload,
-                  client,
-                  entities,
-                  state.logger,
-                );
-                if (!result.success) {
-                  state.logger.error("Buttondown auto-send failed", {
-                    entityId: payload.entityId,
-                    error: result.error,
-                  });
-                  throw new Error(result.error);
-                }
-                return result;
+      publish: ({ state }) =>
+        state.client
+          ? [
+              {
+                entityType: "newsletter",
+                provider: buttondownProvider(state.client),
+                resultIdField: "buttondownId",
+                timestampField: "sentAt",
               },
-            }),
-          ]
-        : [],
+            ]
+          : [],
 
-    publish: ({ state }) =>
-      state.client
-        ? [
-            {
-              entityType: "newsletter",
-              provider: buttondownProvider(state.client),
-              resultIdField: "buttondownId",
-              timestampField: "sentAt",
-            },
-          ]
-        : [],
-
-    // The signup form in the site footer, offered once every plugin has
-    // registered so the site builder is listening for slots.
-    ready: async ({ config, messaging }) => {
-      if (!config.apiKey) return;
-      await messaging.send({
-        type: SITE_BUILDER_CHANNELS.slotRegister,
-        payload: {
-          pluginId: "buttondown",
-          slotName: "footer-top",
-          render: () => h(NewsletterSignup, { variant: "inline" }),
-        },
-      });
+      // The signup form in the site footer, offered once every plugin has
+      // registered so the site builder is listening for slots.
+      ready: async ({ config, messaging }) => {
+        if (!config.apiKey) return;
+        await messaging.send({
+          type: SITE_BUILDER_CHANNELS.slotRegister,
+          payload: {
+            pluginId: "buttondown",
+            slotName: "footer-top",
+            render: () => h(NewsletterSignup, { variant: "inline" }),
+          },
+        });
+      },
     },
-  });
+  );
 }
 
 const newsletterPackage: ServicePackageDefinition<

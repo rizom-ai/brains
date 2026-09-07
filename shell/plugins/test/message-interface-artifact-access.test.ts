@@ -45,28 +45,32 @@ function instantiate(
 function recorder(
   seen: ResponseRenderDirective[],
 ): ReturnType<typeof defineMessageInterface> {
-  return defineMessageInterface({
-    id: "artifact-reader",
-    config: z.object({}),
-    channel: {
-      type: "artifact-reader",
-      displayName: "Artifact Reader",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  return defineMessageInterface(
+    {
+      id: "artifact-reader",
+      config: z.object({}),
+      channel: {
+        type: "artifact-reader",
+        displayName: "Artifact Reader",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    listen: async ({ messages, signal, health }) => {
-      receivers.push(messages);
-      health.ready();
-      await new Promise<void>((resolve) => {
-        signal.addEventListener("abort", () => resolve(), { once: true });
-      });
+    {
+      listen: async ({ messages, signal, health }) => {
+        receivers.push(messages);
+        health.ready();
+        await new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      },
+      send: async () => "message-1",
+      present: ({ directives }) => {
+        seen.push(...directives);
+        return undefined;
+      },
     },
-    send: async () => "message-1",
-    present: ({ directives }) => {
-      seen.push(...directives);
-      return undefined;
-    },
-  });
+  );
 }
 
 async function deliverWithArtifact(

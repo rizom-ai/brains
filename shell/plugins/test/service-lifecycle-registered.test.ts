@@ -34,19 +34,23 @@ describe("what a service does once it is registered", () => {
 
   function instantiate(log: string[]): Plugin {
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "directory-sync",
-        config: z.object({}),
-        setup: ({ lifecycle, jobs }) => {
-          lifecycle.onRegistered(async () => {
-            log.push("registered");
-            await jobs.enqueue(replayJob, { from: "checkpoint" });
-          });
-          log.push("setup");
-          return {};
+      defineServicePlugin(
+        {
+          id: "directory-sync",
+          config: z.object({}),
+          setup: ({ lifecycle, jobs }) => {
+            lifecycle.onRegistered(async () => {
+              log.push("registered");
+              await jobs.enqueue(replayJob, { from: "checkpoint" });
+            });
+            log.push("setup");
+            return {};
+          },
         },
-        jobs: () => [replayJob.handle(async () => ({}))],
-      }),
+        {
+          jobs: () => [replayJob.handle(async () => ({}))],
+        },
+      ),
       {},
       { name: "@fixture/directory-sync", version: "0.1.0" },
     );

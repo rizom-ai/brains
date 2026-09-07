@@ -143,15 +143,19 @@ const executionContext: CreateExecutionContext = {
 
 describe("service package declaring entities", () => {
   it("emits an entity plugin per declared type alongside the service plugin", () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ apiKey: z.string().default("anonymous") }),
-      entities: [bookmark],
-      setup: ({ config }) => ({ fetcher: `fetcher(${config.apiKey})` }),
-      jobs: ({ state }) => [
-        captureJob().handle(async () => ({ fetchedWith: state.fetcher })),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ apiKey: z.string().default("anonymous") }),
+        entities: [bookmark],
+        setup: ({ config }) => ({ fetcher: `fetcher(${config.apiKey})` }),
+      },
+      {
+        jobs: ({ state }) => [
+          captureJob().handle(async () => ({ fetchedWith: state.fetcher })),
+        ],
+      },
+    );
 
     const plugins = instantiatePluginPackageDefinition(
       definition,
@@ -170,15 +174,19 @@ describe("service package declaring entities", () => {
   // the guard may actually have been protecting: both plugins reaching a
   // running shell, registering, and the entity type becoming usable.
   it("registers both plugins and the declared entity type in a live shell", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ apiKey: z.string().default("anonymous") }),
-      entities: [bookmark],
-      setup: ({ config }) => ({ fetcher: `fetcher(${config.apiKey})` }),
-      jobs: ({ state }) => [
-        captureJob().handle(async () => ({ fetchedWith: state.fetcher })),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ apiKey: z.string().default("anonymous") }),
+        entities: [bookmark],
+        setup: ({ config }) => ({ fetcher: `fetcher(${config.apiKey})` }),
+      },
+      {
+        jobs: ({ state }) => [
+          captureJob().handle(async () => ({ fetchedWith: state.fetcher })),
+        ],
+      },
+    );
     const plugins = instantiatePluginPackageDefinition(
       definition,
       { apiKey: "secret" },
@@ -206,22 +214,26 @@ describe("service package declaring entities", () => {
   // — the job passes a definition object, and only definitions this package
   // declared are accepted.
   it("lets a job write an entity type the package declares", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ apiKey: z.string().default("anonymous") }),
-      entities: [bookmark],
-      setup: ({ config }) => ({ apiKey: config.apiKey }),
-      jobs: ({ state }) => [
-        captureJob().handle(async ({ input, entities }) => {
-          await entities.create({
-            entityType: "bookmark",
-            content: `fetched ${input.url} with ${state.apiKey}`,
-            metadata: { url: input.url },
-          });
-          return { fetchedWith: state.apiKey };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ apiKey: z.string().default("anonymous") }),
+        entities: [bookmark],
+        setup: ({ config }) => ({ apiKey: config.apiKey }),
+      },
+      {
+        jobs: ({ state }) => [
+          captureJob().handle(async ({ input, entities }) => {
+            await entities.create({
+              entityType: "bookmark",
+              content: `fetched ${input.url} with ${state.apiKey}`,
+              metadata: { url: input.url },
+            });
+            return { fetchedWith: state.apiKey };
+          }),
+        ],
+      },
+    );
 
     const created = await runCaptureJob(definition);
     expect(created).toMatchObject({ entityType: "bookmark" });
@@ -233,20 +245,24 @@ describe("service package declaring entities", () => {
   // another package's entity is the same trespass as writing one.
   it("deletes an entity type it declares, and refuses one it does not", () => {
     const deleted: string[] = [];
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({}),
-      entities: [bookmark],
-      setup: () => ({}),
-      jobs: () => [
-        captureJob().handle(async ({ entities }) => {
-          await entities.delete("bookmark", "stale");
-          deleted.push("bookmark");
-          await entities.delete("note", "not-mine");
-          return { fetchedWith: "none" };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({}),
+        entities: [bookmark],
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          captureJob().handle(async ({ entities }) => {
+            await entities.delete("bookmark", "stale");
+            deleted.push("bookmark");
+            await entities.delete("note", "not-mine");
+            return { fetchedWith: "none" };
+          }),
+        ],
+      },
+    );
 
     expect(runCaptureJob(definition)).rejects.toThrow(
       /may only write entity types it declares/,
@@ -254,22 +270,26 @@ describe("service package declaring entities", () => {
   });
 
   it("refuses a write to an entity type the package does not declare", async () => {
-    const definition = defineServicePlugin({
-      id: "trespasser",
-      config: z.object({}),
-      entities: [],
-      setup: () => ({}),
-      jobs: () => [
-        captureJob().handle(async ({ entities }) => {
-          await entities.create({
-            entityType: "bookmark",
-            content: "not mine",
-            metadata: { url: "https://example.com" },
-          });
-          return { fetchedWith: "none" };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "trespasser",
+        config: z.object({}),
+        entities: [],
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          captureJob().handle(async ({ entities }) => {
+            await entities.create({
+              entityType: "bookmark",
+              content: "not mine",
+              metadata: { url: "https://example.com" },
+            });
+            return { fetchedWith: "none" };
+          }),
+        ],
+      },
+    );
 
     expect(runCaptureJob(definition)).rejects.toThrow(
       /may only write entity types it declares/,
@@ -279,17 +299,21 @@ describe("service package declaring entities", () => {
   // Eval test cases exercise the same integration the jobs do, so they need
   // the same credentials. The entity-side evals slot deliberately has none.
   it("registers eval handlers that can read config", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ apiKey: z.string().default("anonymous") }),
-      entities: [bookmark],
-      setup: ({ config }) => ({ apiKey: config.apiKey }),
-      evals: ({ state }) => ({
-        fetchWithKey: async (): Promise<{ usedKey: string }> => ({
-          usedKey: state.apiKey,
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ apiKey: z.string().default("anonymous") }),
+        entities: [bookmark],
+        setup: ({ config }) => ({ apiKey: config.apiKey }),
+      },
+      {
+        evals: ({ state }) => ({
+          fetchWithKey: async (): Promise<{ usedKey: string }> => ({
+            usedKey: state.apiKey,
+          }),
         }),
-      }),
-    });
+      },
+    );
     const plugins = instantiatePluginPackageDefinition(
       definition,
       { apiKey: "secret" },
@@ -325,28 +349,32 @@ describe("service package declaring entities", () => {
   // what it produced. Splitting those across the two evals slots forced
   // packages to reach for the raw context to get the other half.
   it("gives service eval handlers the same capability context entity evals get", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ minScore: z.number().default(0.5) }),
-      entities: [bookmark],
-      evals: ({ config }) => ({
-        countSeeded: async (
-          _input,
-          { entities, fixtures },
-        ): Promise<{ before: number; after: number; minScore: number }> => {
-          const before = (
-            await entities.listEntities({ entityType: "bookmark" })
-          ).length;
-          await fixtures.reset();
-          return {
-            before,
-            after: (await entities.listEntities({ entityType: "bookmark" }))
-              .length,
-            minScore: config.minScore,
-          };
-        },
-      }),
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ minScore: z.number().default(0.5) }),
+        entities: [bookmark],
+      },
+      {
+        evals: ({ config }) => ({
+          countSeeded: async (
+            _input,
+            { entities, fixtures },
+          ): Promise<{ before: number; after: number; minScore: number }> => {
+            const before = (
+              await entities.listEntities({ entityType: "bookmark" })
+            ).length;
+            await fixtures.reset();
+            return {
+              before,
+              after: (await entities.listEntities({ entityType: "bookmark" }))
+                .length,
+              minScore: config.minScore,
+            };
+          },
+        }),
+      },
+    );
     const plugins = instantiatePluginPackageDefinition(
       definition,
       { minScore: 0.8 },
@@ -396,52 +424,60 @@ describe("service package declaring entities", () => {
   // the caller cannot otherwise see — so a package never names a visibility
   // scope.
   it("creates a pending placeholder and completes it, without naming a scope", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({}),
-      entities: [bookmark],
-      setup: () => ({}),
-      jobs: () => [
-        captureJob().handle(async ({ input, entities }) => {
-          const pending = await entities.createPending({
-            id: "bookmark-1",
-            entityType: "bookmark",
-            content: "pending",
-            metadata: { url: input.url },
-          });
-          await entities.saveProcessed({
-            id: pending.entityId,
-            entityType: "bookmark",
-            content: "captured",
-            metadata: { url: input.url },
-          });
-          return { fetchedWith: "none" };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({}),
+        entities: [bookmark],
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          captureJob().handle(async ({ input, entities }) => {
+            const pending = await entities.createPending({
+              id: "bookmark-1",
+              entityType: "bookmark",
+              content: "pending",
+              metadata: { url: input.url },
+            });
+            await entities.saveProcessed({
+              id: pending.entityId,
+              entityType: "bookmark",
+              content: "captured",
+              metadata: { url: input.url },
+            });
+            return { fetchedWith: "none" };
+          }),
+        ],
+      },
+    );
 
     const saved = await runCaptureJob(definition);
     expect(saved).toMatchObject({ content: "captured" });
   });
 
   it("refuses a pending write to an entity type the package does not declare", async () => {
-    const definition = defineServicePlugin({
-      id: "trespasser",
-      config: z.object({}),
-      entities: [],
-      setup: () => ({}),
-      jobs: () => [
-        captureJob().handle(async ({ entities }) => {
-          await entities.createPending({
-            id: "bookmark-1",
-            entityType: "bookmark",
-            content: "not mine",
-            metadata: { url: "https://example.com" },
-          });
-          return { fetchedWith: "none" };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "trespasser",
+        config: z.object({}),
+        entities: [],
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          captureJob().handle(async ({ entities }) => {
+            await entities.createPending({
+              id: "bookmark-1",
+              entityType: "bookmark",
+              content: "not mine",
+              metadata: { url: "https://example.com" },
+            });
+            return { fetchedWith: "none" };
+          }),
+        ],
+      },
+    );
 
     expect(runCaptureJob(definition)).rejects.toThrow(
       /may only write entity types it declares/,
@@ -459,13 +495,19 @@ describe("service package declaring entities", () => {
       metadata: z.object({ url: z.string() }),
       create: { fromPrompt: { delegate: "capture-bookmark" } },
     });
-    const definition = defineServicePlugin({
-      id: "capture",
-      config: z.object({}),
-      entities: [captured],
-      setup: () => ({}),
-      jobs: () => [captureJob().handle(async () => ({ fetchedWith: "none" }))],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "capture",
+        config: z.object({}),
+        entities: [captured],
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          captureJob().handle(async () => ({ fetchedWith: "none" })),
+        ],
+      },
+    );
     const plugins = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -516,21 +558,25 @@ describe("service package declaring entities", () => {
     };
 
     function definePublishingPackage(): ReturnType<typeof defineServicePlugin> {
-      return defineServicePlugin({
-        id: "bookmarks",
-        config: z.object({ accessToken: z.string().optional() }),
-        entities: [bookmark],
-        publish: ({ config }) =>
-          config.accessToken
-            ? [
-                {
-                  entityType: "bookmark",
-                  provider: linkedish,
-                  resultIdField: "platformPostId",
-                },
-              ]
-            : [],
-      });
+      return defineServicePlugin(
+        {
+          id: "bookmarks",
+          config: z.object({ accessToken: z.string().optional() }),
+          entities: [bookmark],
+        },
+        {
+          publish: ({ config }) =>
+            config.accessToken
+              ? [
+                  {
+                    entityType: "bookmark",
+                    provider: linkedish,
+                    resultIdField: "platformPostId",
+                  },
+                ]
+              : [],
+        },
+      );
     }
 
     async function installWith(config: object): Promise<{
@@ -591,15 +637,19 @@ describe("service package declaring entities", () => {
   // jobs and evals are: analytics reports traffic through a client it only
   // has when credentials are configured.
   it("registers insights built from config", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ label: z.string().default("anonymous") }),
-      insights: ({ config }) => ({
-        "bookmark-source": async (): Promise<Record<string, unknown>> => ({
-          source: config.label,
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ label: z.string().default("anonymous") }),
+      },
+      {
+        insights: ({ config }) => ({
+          "bookmark-source": async (): Promise<Record<string, unknown>> => ({
+            source: config.label,
+          }),
         }),
-      }),
-    });
+      },
+    );
     const plugins = instantiatePluginPackageDefinition(
       definition,
       { label: "shared" },
@@ -648,15 +698,19 @@ describe("service package declaring entities", () => {
       },
     });
     let namedTemplate = "";
-    const definition = defineServicePlugin({
-      id: "summaries",
-      config: z.object({}),
-      entities: [summarised],
-      projectionRules: ({ template }) => {
-        namedTemplate = template("extraction");
-        return [];
+    const definition = defineServicePlugin(
+      {
+        id: "summaries",
+        config: z.object({}),
+        entities: [summarised],
       },
-    });
+      {
+        projectionRules: ({ template }) => {
+          namedTemplate = template("extraction");
+          return [];
+        },
+      },
+    );
 
     instantiatePluginPackageDefinition(
       definition,
@@ -668,26 +722,30 @@ describe("service package declaring entities", () => {
   });
 
   it("attaches config-derived projection rules to the entity they target", async () => {
-    const definition = defineServicePlugin({
-      id: "bookmarks",
-      config: z.object({ extract: z.boolean().default(true) }),
-      entities: [bookmark],
-      projectionRules: ({ config }) =>
-        config.extract
-          ? [
-              defineProjectionRule({
-                id: "bookmark-extraction",
-                version: "1",
-                sources: [{ kind: "entity", types: ["*"] }],
-                targetType: "bookmark",
-                targets: { authority: "additive" },
-                inputSchema: z.object({}),
-                selectInput: async () => ({}),
-                derive: async () => [],
-              }),
-            ]
-          : [],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "bookmarks",
+        config: z.object({ extract: z.boolean().default(true) }),
+        entities: [bookmark],
+      },
+      {
+        projectionRules: ({ config }) =>
+          config.extract
+            ? [
+                defineProjectionRule({
+                  id: "bookmark-extraction",
+                  version: "1",
+                  sources: [{ kind: "entity", types: ["*"] }],
+                  targetType: "bookmark",
+                  targets: { authority: "additive" },
+                  inputSchema: z.object({}),
+                  selectInput: async () => ({}),
+                  derive: async () => [],
+                }),
+              ]
+            : [],
+      },
+    );
 
     const enabled = instantiatePluginPackageDefinition(
       definition,

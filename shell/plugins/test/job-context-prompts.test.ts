@@ -48,15 +48,19 @@ describe("job context prompts", () => {
     harness.getMockShell().getJobQueueService = (): typeof queue => queue;
 
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "triage",
-        config: z.object({}),
-        jobs: () => [
-          classifyJob.handle(async ({ prompts }) => ({
-            rubric: await prompts.resolve("triage:rubric", "default rubric"),
-          })),
-        ],
-      }),
+      defineServicePlugin(
+        {
+          id: "triage",
+          config: z.object({}),
+        },
+        {
+          jobs: () => [
+            classifyJob.handle(async ({ prompts }) => ({
+              rubric: await prompts.resolve("triage:rubric", "default rubric"),
+            })),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/triage", version: "0.1.0" },
     );

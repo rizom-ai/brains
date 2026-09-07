@@ -32,21 +32,25 @@ async function conversationIdsSeenBy(
   const conversationIds: string[] = [];
   const confirmed: string[] = [];
   const receivers: MessageReceiver[] = [];
-  const definition = defineMessageInterface({
-    id: "legacy",
-    config: z.object({}),
-    channel: {
-      type: "legacy",
-      displayName: "Legacy",
-      subjectLabel: "Thread",
-      recipient: z.string(),
-      conversationKey,
+  const definition = defineMessageInterface(
+    {
+      id: "legacy",
+      config: z.object({}),
+      channel: {
+        type: "legacy",
+        displayName: "Legacy",
+        subjectLabel: "Thread",
+        recipient: z.string(),
+        conversationKey,
+      },
     },
-    routes: ({ messages }) => {
-      receivers.push(messages);
-      return [];
+    {
+      routes: ({ messages }) => {
+        receivers.push(messages);
+        return [];
+      },
     },
-  });
+  );
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},

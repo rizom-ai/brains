@@ -40,38 +40,41 @@ export interface AnalyticsDependencies {
 export function analyticsService(
   dependencies: AnalyticsDependencies = {},
 ): ServicePackageDefinition<typeof analyticsConfigSchema> {
-  return defineServicePlugin({
-    id: "analytics",
-    config: analyticsConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "analytics",
+      config: analyticsConfigSchema,
 
-    setup: ({ config }) => ({
-      client: config.cloudflare
-        ? new CloudflareClient(config.cloudflare, dependencies)
-        : undefined,
-    }),
-
-    insights: ({ state }) => ({
-      "traffic-overview": createTrafficOverviewInsight(state.client),
-    }),
-
-    tools: ({ state }) => createAnalyticsTools(state.client),
-
-    // The beacon reaches site builds through the head-script channel, and
-    // site-builder's subscription only exists once every plugin has
-    // registered — which is what `ready` is for.
-    ready: async ({ config, messaging }) => {
-      const siteTag = config.cloudflare?.siteTag;
-      if (!siteTag) return;
-
-      await messaging.send({
-        type: SITE_BUILDER_CHANNELS.headScriptRegister,
-        payload: {
-          pluginId: "analytics",
-          script: generateCloudflareBeaconScript(siteTag),
-        },
-      });
+      setup: ({ config }) => ({
+        client: config.cloudflare
+          ? new CloudflareClient(config.cloudflare, dependencies)
+          : undefined,
+      }),
     },
-  });
+    {
+      insights: ({ state }) => ({
+        "traffic-overview": createTrafficOverviewInsight(state.client),
+      }),
+
+      tools: ({ state }) => createAnalyticsTools(state.client),
+
+      // The beacon reaches site builds through the head-script channel, and
+      // site-builder's subscription only exists once every plugin has
+      // registered — which is what `ready` is for.
+      ready: async ({ config, messaging }) => {
+        const siteTag = config.cloudflare?.siteTag;
+        if (!siteTag) return;
+
+        await messaging.send({
+          type: SITE_BUILDER_CHANNELS.headScriptRegister,
+          payload: {
+            pluginId: "analytics",
+            script: generateCloudflareBeaconScript(siteTag),
+          },
+        });
+      },
+    },
+  );
 }
 
 /** The package as a deployment installs it: no injected dependencies. */

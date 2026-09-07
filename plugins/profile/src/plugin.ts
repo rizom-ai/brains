@@ -81,130 +81,133 @@ interface StarterGate {
 }
 
 const profilePackage: ServicePackageDefinition<typeof profileConfigSchema> =
-  defineServicePlugin({
-    id: "profile",
-    config: profileConfigSchema,
+  defineServicePlugin(
+    {
+      id: "profile",
+      config: profileConfigSchema,
 
-    setup: (): { gate: StarterGate } => ({
-      gate: {
-        initialSyncSucceeded: false,
-        registrationComplete: false,
-        enqueued: false,
-      },
-    }),
-
-    stewards: STEWARDED_TYPES,
-
-    profileKinds: () => BUILT_IN_PROFILE_KINDS,
-
-    // Evaluated after the kind selection is frozen: the fields a valid
-    // anchor profile carries depend on which kind this brain represents.
-    entityExtensions: ({ profileKinds }) => {
-      const selection = profileKinds.getResolved();
-      const definition = profileKinds.getSelectedDefinition();
-      if (selection && !definition) {
-        throw new Error(
-          `Selected profile kind "${selection.kind}" has no field definition`,
-        );
-      }
-      return [
-        {
-          entityType: "anchor-profile",
-          frontmatter: profileBaseFrontmatterExtension,
+      setup: (): { gate: StarterGate } => ({
+        gate: {
+          initialSyncSucceeded: false,
+          registrationComplete: false,
+          enqueued: false,
         },
-        ...(definition
-          ? [{ entityType: "anchor-profile", frontmatter: definition.fields }]
-          : []),
-        {
-          entityType: "anchor-profile",
-          validate: (entity): void => {
-            validateProfileContent(
-              entity.content,
-              selection && definition
-                ? { category: selection.category, fields: definition.fields }
-                : undefined,
-            );
+      }),
+
+      stewards: STEWARDED_TYPES,
+    },
+    {
+      profileKinds: () => BUILT_IN_PROFILE_KINDS,
+
+      // Evaluated after the kind selection is frozen: the fields a valid
+      // anchor profile carries depend on which kind this brain represents.
+      entityExtensions: ({ profileKinds }) => {
+        const selection = profileKinds.getResolved();
+        const definition = profileKinds.getSelectedDefinition();
+        if (selection && !definition) {
+          throw new Error(
+            `Selected profile kind "${selection.kind}" has no field definition`,
+          );
+        }
+        return [
+          {
+            entityType: "anchor-profile",
+            frontmatter: profileBaseFrontmatterExtension,
           },
-        },
-      ];
-    },
-
-    jobs: ({ config }) => [
-      seedStarterIdentityJob.handle(
-        async ({ entities, ai, domain, profileKinds, logger }) => {
-          const deferred = {
-            brainCharacter: "deferred",
-            anchorProfile: "deferred",
-          } as const;
-          if (!config.starterIdentity.enabled) return deferred;
-
-          const identifier = resolveStarterIdentityIdentifier({ domain });
-          if (!identifier) {
-            logger.warn(
-              "Starter identity deferred: configure a canonical brain domain",
-            );
-            return deferred;
-          }
-
-          const selection = profileKinds.getResolved();
-          // A provider outage is transient, so the failure reaches the queue
-          // and is retried there. The class this replaced could only wait for
-          // another initial-sync signal, which may never come again.
-          return seedOrMigrateStarterIdentity({
-            entityService: entities,
-            identifier,
-            ...(selection && {
-              profileKind: selection.kind,
-              profileCategory: selection.category,
-            }),
-            generateBrainCharacter: async ({
-              profileKind,
-              profileCategory,
-              anchorEntity,
-              anchorIsAuthored,
-            }) => {
-              const brief = await buildStarterCharacterBrief({
-                entityService: entities,
-                ...(profileKind && { profileKind }),
-                ...(profileCategory && { profileCategory }),
-                anchorEntity,
-                includeAnchor: anchorIsAuthored,
-              });
-              return generateStarterCharacter(ai, brief);
+          ...(definition
+            ? [{ entityType: "anchor-profile", frontmatter: definition.fields }]
+            : []),
+          {
+            entityType: "anchor-profile",
+            validate: (entity): void => {
+              validateProfileContent(
+                entity.content,
+                selection && definition
+                  ? { category: selection.category, fields: definition.fields }
+                  : undefined,
+              );
             },
-            logger,
-          });
-        },
-      ),
-    ],
+          },
+        ];
+      },
 
-    subscriptions: ({ config, state, jobs }) =>
-      config.starterIdentity.enabled
-        ? [
-            defineSubscription({
-              topic: SYSTEM_CHANNELS.initialSyncCompleted,
-              payload: z.object({ success: z.boolean().optional() }),
-              handle: async ({ payload }) => {
-                if (payload.success !== true) return { success: true };
-                state.gate.initialSyncSucceeded = true;
-                if (state.gate.registrationComplete && !state.gate.enqueued) {
-                  state.gate.enqueued = true;
-                  await jobs.enqueue(seedStarterIdentityJob, {});
-                }
-                return { success: true };
+      jobs: ({ config }) => [
+        seedStarterIdentityJob.handle(
+          async ({ entities, ai, domain, profileKinds, logger }) => {
+            const deferred = {
+              brainCharacter: "deferred",
+              anchorProfile: "deferred",
+            } as const;
+            if (!config.starterIdentity.enabled) return deferred;
+
+            const identifier = resolveStarterIdentityIdentifier({ domain });
+            if (!identifier) {
+              logger.warn(
+                "Starter identity deferred: configure a canonical brain domain",
+              );
+              return deferred;
+            }
+
+            const selection = profileKinds.getResolved();
+            // A provider outage is transient, so the failure reaches the queue
+            // and is retried there. The class this replaced could only wait for
+            // another initial-sync signal, which may never come again.
+            return seedOrMigrateStarterIdentity({
+              entityService: entities,
+              identifier,
+              ...(selection && {
+                profileKind: selection.kind,
+                profileCategory: selection.category,
+              }),
+              generateBrainCharacter: async ({
+                profileKind,
+                profileCategory,
+                anchorEntity,
+                anchorIsAuthored,
+              }) => {
+                const brief = await buildStarterCharacterBrief({
+                  entityService: entities,
+                  ...(profileKind && { profileKind }),
+                  ...(profileCategory && { profileCategory }),
+                  anchorEntity,
+                  includeAnchor: anchorIsAuthored,
+                });
+                return generateStarterCharacter(ai, brief);
               },
-            }),
-          ]
-        : [],
+              logger,
+            });
+          },
+        ),
+      ],
 
-    ready: async ({ config, state, jobs }) => {
-      if (!config.starterIdentity.enabled) return;
-      state.gate.registrationComplete = true;
-      if (state.gate.initialSyncSucceeded && !state.gate.enqueued) {
-        state.gate.enqueued = true;
-        await jobs.enqueue(seedStarterIdentityJob, {});
-      }
+      subscriptions: ({ config, state, jobs }) =>
+        config.starterIdentity.enabled
+          ? [
+              defineSubscription({
+                topic: SYSTEM_CHANNELS.initialSyncCompleted,
+                payload: z.object({ success: z.boolean().optional() }),
+                handle: async ({ payload }) => {
+                  if (payload.success !== true) return { success: true };
+                  state.gate.initialSyncSucceeded = true;
+                  if (state.gate.registrationComplete && !state.gate.enqueued) {
+                    state.gate.enqueued = true;
+                    await jobs.enqueue(seedStarterIdentityJob, {});
+                  }
+                  return { success: true };
+                },
+              }),
+            ]
+          : [],
+
+      ready: async ({ config, state, jobs }) => {
+        if (!config.starterIdentity.enabled) return;
+        state.gate.registrationComplete = true;
+        if (state.gate.initialSyncSucceeded && !state.gate.enqueued) {
+          state.gate.enqueued = true;
+          await jobs.enqueue(seedStarterIdentityJob, {});
+        }
+      },
     },
-  });
+  );
 
 export default profilePackage;

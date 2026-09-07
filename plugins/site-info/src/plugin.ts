@@ -114,54 +114,57 @@ export function resolveIdentityFallbacks(
 
 const siteInfoPackage: ServicePackageDefinition<
   z.ZodObject<Record<never, never>>
-> = defineServicePlugin({
-  // Not "site-info": the entity type owns that name, and both plugins
-  // scope to the package. This half answers questions about the site.
-  id: "site-metadata",
-  config: z.object({}),
-  setup: () => ({}),
-  entities: [siteInfo],
+> = defineServicePlugin(
+  {
+    // Not "site-info": the entity type owns that name, and both plugins
+    // scope to the package. This half answers questions about the site.
+    id: "site-metadata",
+    config: z.object({}),
+    setup: () => ({}),
+    entities: [siteInfo],
+  },
+  {
+    subscriptions: () => [
+      // What the site is called, answered live rather than cached: an
+      // operator editing the singleton expects the next build to see it.
+      defineSubscription({
+        topic: SITE_METADATA_GET_CHANNEL,
+        payload: z.object({}).loose(),
+        handle: async ({ entities, identity }) => {
+          const entity = await entities.getEntity({
+            entityType: SITE_INFO_TYPE,
+            id: SITE_INFO_TYPE,
+          });
+          const body = entity
+            ? siteInfoBodySchema.parse(entity.metadata)
+            : { represents: "anchor" as const };
+          return resolveIdentityFallbacks(body, identity);
+        },
+      }),
 
-  subscriptions: () => [
-    // What the site is called, answered live rather than cached: an
-    // operator editing the singleton expects the next build to see it.
-    defineSubscription({
-      topic: SITE_METADATA_GET_CHANNEL,
-      payload: z.object({}).loose(),
-      handle: async ({ entities, identity }) => {
-        const entity = await entities.getEntity({
-          entityType: SITE_INFO_TYPE,
-          id: SITE_INFO_TYPE,
-        });
-        const body = entity
-          ? siteInfoBodySchema.parse(entity.metadata)
-          : { represents: "anchor" as const };
-        return resolveIdentityFallbacks(body, identity);
-      },
-    }),
-
-    // A change to the singleton has to reach whatever is already
-    // rendering from it; the entity channel says something changed, not
-    // what it now means.
-    defineSubscription({
-      topic: ENTITY_CHANNELS.updated,
-      payload: z.object({ entityType: z.string() }).loose(),
-      handle: async ({ payload, entities, identity, messaging }) => {
-        if (payload.entityType !== SITE_INFO_TYPE) return;
-        const entity = await entities.getEntity({
-          entityType: SITE_INFO_TYPE,
-          id: SITE_INFO_TYPE,
-        });
-        const body = entity
-          ? siteInfoBodySchema.parse(entity.metadata)
-          : { represents: "anchor" as const };
-        await messaging.send({
-          type: SITE_METADATA_UPDATED_CHANNEL,
-          payload: resolveIdentityFallbacks(body, identity),
-        });
-      },
-    }),
-  ],
-});
+      // A change to the singleton has to reach whatever is already
+      // rendering from it; the entity channel says something changed, not
+      // what it now means.
+      defineSubscription({
+        topic: ENTITY_CHANNELS.updated,
+        payload: z.object({ entityType: z.string() }).loose(),
+        handle: async ({ payload, entities, identity, messaging }) => {
+          if (payload.entityType !== SITE_INFO_TYPE) return;
+          const entity = await entities.getEntity({
+            entityType: SITE_INFO_TYPE,
+            id: SITE_INFO_TYPE,
+          });
+          const body = entity
+            ? siteInfoBodySchema.parse(entity.metadata)
+            : { represents: "anchor" as const };
+          await messaging.send({
+            type: SITE_METADATA_UPDATED_CHANNEL,
+            payload: resolveIdentityFallbacks(body, identity),
+          });
+        },
+      }),
+    ],
+  },
+);
 
 export default siteInfoPackage;

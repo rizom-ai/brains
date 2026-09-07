@@ -31,29 +31,39 @@ describe("interface presentation reads", () => {
     ]);
     let described: Record<string, unknown> | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
-      defineInterface({
-        id: "card",
-        config: z.object({}),
-        setup: ({ identity, profileKinds, tools, publicSkills, entities }) => {
-          described = {
-            character: identity.get().name,
-            profile: identity.getProfile().name,
-            // Asked lazily: the selection finalizes after every plugin has
-            // registered, so a card built at setup would read too early.
-            kind: (): ReturnType<typeof profileKinds.getResolved> =>
-              profileKinds.getResolved(),
-            publicTools: tools.listForPermissionLevel("public").length,
-            skills: publicSkills.list(),
-            types: entities.getEntityTypes(),
-            agents: entities.listEntities({
-              entityType: "agent",
-              options: { filter: { visibilityScope: "public" } },
-            }),
-          };
-          return {};
+      defineInterface(
+        {
+          id: "card",
+          config: z.object({}),
+          setup: ({
+            identity,
+            profileKinds,
+            tools,
+            publicSkills,
+            entities,
+          }) => {
+            described = {
+              character: identity.get().name,
+              profile: identity.getProfile().name,
+              // Asked lazily: the selection finalizes after every plugin has
+              // registered, so a card built at setup would read too early.
+              kind: (): ReturnType<typeof profileKinds.getResolved> =>
+                profileKinds.getResolved(),
+              publicTools: tools.listForPermissionLevel("public").length,
+              skills: publicSkills.list(),
+              types: entities.getEntityTypes(),
+              agents: entities.listEntities({
+                entityType: "agent",
+                options: { filter: { visibilityScope: "public" } },
+              }),
+            };
+            return {};
+          },
         },
-        instructions: () => "Call peers through this interface.",
-      }),
+        {
+          instructions: () => "Call peers through this interface.",
+        },
+      ),
       {},
       { name: "@fixture/card", version: "0.1.0" },
     );

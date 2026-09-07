@@ -25,15 +25,15 @@ describe("an interface asked which channels are spaces", () => {
     const messageInterface = defineMessageInterface({
       id: "listener",
       config: z.object({}),
+      setup: (context) => {
+        seen.push([...context.spaces]);
+        return {};
+      },
       channel: {
         type: "listener",
         displayName: "Listener",
         subjectLabel: "Room",
         recipient: z.string(),
-      },
-      setup: (context) => {
-        seen.push([...context.spaces]);
-        return {};
       },
     });
     const plainInterface = defineInterface({

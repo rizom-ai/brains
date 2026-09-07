@@ -3706,15 +3706,20 @@ describe("declarative entity seeding", () => {
 
       await harness.sendMessage("generate:execute", { entityType: "guide" });
 
-      expect(enqueued).toEqual([
-        {
-          type: "guide:generation",
-          data: {
-            sourceEntityType: "note",
-            sourceEntityIds: ["note-1", "note-2"],
-          },
-        },
-      ]);
+      // Sources are listed newest first, and both notes are seeded in the
+      // same breath — so whether they share a millisecond decides which comes
+      // back first. What the batch promises is that every published note is
+      // in it, not the order they arrive in.
+      expect(enqueued).toHaveLength(1);
+      const [job] = enqueued;
+      expect(job?.type).toBe("guide:generation");
+      const batch = z
+        .object({
+          sourceEntityType: z.literal("note"),
+          sourceEntityIds: z.array(z.string()),
+        })
+        .parse(job?.data);
+      expect([...batch.sourceEntityIds].sort()).toEqual(["note-1", "note-2"]);
 
       await harness.reset();
     });

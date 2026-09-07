@@ -36,50 +36,54 @@ function instantiate(
 
 describe("an interface that holds a file", () => {
   it("saves bytes and reads them back through a scoped store", async () => {
-    const definition = defineInterface({
-      id: "uploader",
-      config: z.object({}),
-      setup: ({ uploads }) => ({
-        store: uploads({
-          namespace: "upload",
-          refKind: "upload",
-          routePath: "/api/uploader/uploads",
+    const definition = defineInterface(
+      {
+        id: "uploader",
+        config: z.object({}),
+        setup: ({ uploads }) => ({
+          store: uploads({
+            namespace: "upload",
+            refKind: "upload",
+            routePath: "/api/uploader/uploads",
+          }),
         }),
-      }),
-      tools: ({ state }) => [
-        defineTool({
-          name: "keep",
-          description: "Store a note and hand back its ref.",
-          input: z.object({ filename: z.string(), text: z.string() }),
-          output: z.object({ kind: z.string(), id: z.string() }),
-          permission: "public",
-          execute: async ({ input }) => {
-            const record = await state.store.save({
-              filename: input.filename,
-              mediaType: "text/plain",
-              content: Buffer.from(input.text, "utf8"),
-            });
-            return record.ref;
-          },
-        }),
-        defineTool({
-          name: "recall",
-          description: "Read a stored note back.",
-          input: z.object({ id: z.string() }),
-          output: z.object({ text: z.string(), filename: z.string() }),
-          permission: "public",
-          execute: async ({ input }) => {
-            // `read` refuses rather than answering undefined, so a caller
-            // cannot mistake a missing file for an empty one.
-            const resolved = await state.store.read(input.id);
-            return {
-              text: resolved.content.toString("utf8"),
-              filename: resolved.record.filename,
-            };
-          },
-        }),
-      ],
-    });
+      },
+      {
+        tools: ({ state }) => [
+          defineTool({
+            name: "keep",
+            description: "Store a note and hand back its ref.",
+            input: z.object({ filename: z.string(), text: z.string() }),
+            output: z.object({ kind: z.string(), id: z.string() }),
+            permission: "public",
+            execute: async ({ input }) => {
+              const record = await state.store.save({
+                filename: input.filename,
+                mediaType: "text/plain",
+                content: Buffer.from(input.text, "utf8"),
+              });
+              return record.ref;
+            },
+          }),
+          defineTool({
+            name: "recall",
+            description: "Read a stored note back.",
+            input: z.object({ id: z.string() }),
+            output: z.object({ text: z.string(), filename: z.string() }),
+            permission: "public",
+            execute: async ({ input }) => {
+              // `read` refuses rather than answering undefined, so a caller
+              // cannot mistake a missing file for an empty one.
+              const resolved = await state.store.read(input.id);
+              return {
+                text: resolved.content.toString("utf8"),
+                filename: resolved.record.filename,
+              };
+            },
+          }),
+        ],
+      },
+    );
 
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(definition, {}));
@@ -112,45 +116,49 @@ describe("an interface that holds a file", () => {
     // A ref is only meaningful in the scope that issued it. Two interfaces
     // both accepting attachments must not be able to read each other's.
     const uploader = (id: string): ReturnType<typeof defineInterface> =>
-      defineInterface({
-        id,
-        config: z.object({}),
-        setup: ({ uploads }) => ({
-          store: uploads({
-            namespace: "upload",
-            refKind: "upload",
-            routePath: `/api/${id}/uploads`,
+      defineInterface(
+        {
+          id,
+          config: z.object({}),
+          setup: ({ uploads }) => ({
+            store: uploads({
+              namespace: "upload",
+              refKind: "upload",
+              routePath: `/api/${id}/uploads`,
+            }),
           }),
-        }),
-        tools: ({ state }) => [
-          defineTool({
-            name: "keep",
-            description: "Store a note.",
-            input: z.object({ text: z.string() }),
-            output: z.object({ id: z.string() }),
-            permission: "public",
-            execute: async ({ input }) => {
-              const record = await state.store.save({
-                filename: "note.txt",
-                mediaType: "text/plain",
-                content: Buffer.from(input.text, "utf8"),
-              });
-              return { id: record.ref.id };
-            },
-          }),
-          defineTool({
-            name: "recall",
-            description: "Read a note back.",
-            input: z.object({ id: z.string() }),
-            output: z.object({ text: z.string() }),
-            permission: "public",
-            execute: async ({ input }) => {
-              const resolved = await state.store.read(input.id);
-              return { text: resolved.content.toString("utf8") };
-            },
-          }),
-        ],
-      });
+        },
+        {
+          tools: ({ state }) => [
+            defineTool({
+              name: "keep",
+              description: "Store a note.",
+              input: z.object({ text: z.string() }),
+              output: z.object({ id: z.string() }),
+              permission: "public",
+              execute: async ({ input }) => {
+                const record = await state.store.save({
+                  filename: "note.txt",
+                  mediaType: "text/plain",
+                  content: Buffer.from(input.text, "utf8"),
+                });
+                return { id: record.ref.id };
+              },
+            }),
+            defineTool({
+              name: "recall",
+              description: "Read a note back.",
+              input: z.object({ id: z.string() }),
+              output: z.object({ text: z.string() }),
+              permission: "public",
+              execute: async ({ input }) => {
+                const resolved = await state.store.read(input.id);
+                return { text: resolved.content.toString("utf8") };
+              },
+            }),
+          ],
+        },
+      );
 
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(uploader("first"), {}));

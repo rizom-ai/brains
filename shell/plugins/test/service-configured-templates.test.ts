@@ -41,40 +41,46 @@ describe("templates and views a package's configuration declares", () => {
     sections: Array<{ name: string; title: string; namespace?: string }>,
   ): Promise<PluginCapabilities> {
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "site-content",
-        config: configSchema,
-        templates: ({ config }) =>
-          Object.fromEntries(
-            config.sections.map((section) => [
-              section.name,
-              {
-                schema: sectionSchema,
-                permission: "public" as const,
-                ...(section.namespace ? { namespace: section.namespace } : {}),
-                format: ({ value }: { value: { heading: string } }): string =>
-                  `# ${value.heading}`,
-                parse: (content: string): { heading: string } => ({
-                  heading: content.replace(/^# /u, ""),
-                }),
-              },
-            ]),
-          ),
-        views: ({ config }) =>
-          Object.fromEntries(
-            config.sections.map((section) => [
-              section.name,
-              {
-                schema: sectionSchema,
-                description: section.title,
-                renderers: {
-                  web: ({ heading }: { heading: string }): ReactElement =>
-                    h("h1", {}, heading),
+      defineServicePlugin(
+        {
+          id: "site-content",
+          config: configSchema,
+        },
+        {
+          templates: ({ config }) =>
+            Object.fromEntries(
+              config.sections.map((section) => [
+                section.name,
+                {
+                  schema: sectionSchema,
+                  permission: "public" as const,
+                  ...(section.namespace
+                    ? { namespace: section.namespace }
+                    : {}),
+                  format: ({ value }: { value: { heading: string } }): string =>
+                    `# ${value.heading}`,
+                  parse: (content: string): { heading: string } => ({
+                    heading: content.replace(/^# /u, ""),
+                  }),
                 },
-              },
-            ]),
-          ),
-      }),
+              ]),
+            ),
+          views: ({ config }) =>
+            Object.fromEntries(
+              config.sections.map((section) => [
+                section.name,
+                {
+                  schema: sectionSchema,
+                  description: section.title,
+                  renderers: {
+                    web: ({ heading }: { heading: string }): ReactElement =>
+                      h("h1", {}, heading),
+                  },
+                },
+              ]),
+            ),
+        },
+      ),
       { sections },
       { name: "@fixture/site-content", version: "0.1.0" },
     );

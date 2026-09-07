@@ -49,52 +49,56 @@ function talkback(
   sent: string[],
   presented: string[],
 ): ReturnType<typeof defineMessageInterface> {
-  return defineMessageInterface({
-    id: "talkback",
-    config: z.object({}),
-    channel: {
-      type: "talkback",
-      displayName: "Talkback",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  return defineMessageInterface(
+    {
+      id: "talkback",
+      config: z.object({}),
+      channel: {
+        type: "talkback",
+        displayName: "Talkback",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    listen: async ({ messages, signal, health }) => {
-      receivers.push(messages);
-      health.ready();
-      await new Promise<void>((resolve) => {
-        signal.addEventListener("abort", () => resolve(), { once: true });
-      });
-    },
-    send: async ({ message }) => {
-      sent.push(message.text);
-      return "message-1";
-    },
-    // A terminal numbers what it printed, so "yes 1" means the first of
-    // them. Only this interface knows that, because only it did the
-    // numbering.
-    interpret: ({ text, approvalIds }) => {
-      const match = /^(.*?)\s+#?(\d+)$/u.exec(text.trim());
-      if (!match?.[1] || !match[2]) return text;
-      const approvalId = approvalIds[Number(match[2]) - 1];
-      return approvalId ? `${match[1]} ${approvalId}` : text;
-    },
-    // A terminal joins the whole answer into one block rather than sending
-    // the text and then the approval as separate messages.
-    present: ({ directives }) => {
-      const blocks: string[] = [];
-      for (const directive of directives) {
-        if (directive.kind === "text") blocks.push(directive.text);
-        if (directive.kind === "approvals") {
-          for (const confirmation of directive.confirmations) {
-            const prompt = `approve ${confirmation.id}? reply yes ${confirmation.id}`;
-            presented.push(prompt);
-            blocks.push(prompt);
+    {
+      listen: async ({ messages, signal, health }) => {
+        receivers.push(messages);
+        health.ready();
+        await new Promise<void>((resolve) => {
+          signal.addEventListener("abort", () => resolve(), { once: true });
+        });
+      },
+      send: async ({ message }) => {
+        sent.push(message.text);
+        return "message-1";
+      },
+      // A terminal numbers what it printed, so "yes 1" means the first of
+      // them. Only this interface knows that, because only it did the
+      // numbering.
+      interpret: ({ text, approvalIds }) => {
+        const match = /^(.*?)\s+#?(\d+)$/u.exec(text.trim());
+        if (!match?.[1] || !match[2]) return text;
+        const approvalId = approvalIds[Number(match[2]) - 1];
+        return approvalId ? `${match[1]} ${approvalId}` : text;
+      },
+      // A terminal joins the whole answer into one block rather than sending
+      // the text and then the approval as separate messages.
+      present: ({ directives }) => {
+        const blocks: string[] = [];
+        for (const directive of directives) {
+          if (directive.kind === "text") blocks.push(directive.text);
+          if (directive.kind === "approvals") {
+            for (const confirmation of directive.confirmations) {
+              const prompt = `approve ${confirmation.id}? reply yes ${confirmation.id}`;
+              presented.push(prompt);
+              blocks.push(prompt);
+            }
           }
         }
-      }
-      return blocks.join("\n\n");
+        return blocks.join("\n\n");
+      },
     },
-  });
+  );
 }
 
 const receivers: Receiver[] = [];

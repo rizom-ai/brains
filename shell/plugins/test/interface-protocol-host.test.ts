@@ -32,42 +32,46 @@ function instantiate(
 describe("an interface that hosts a protocol", () => {
   it("holds one server, and offers tools of its own", async () => {
     let built = 0;
-    const definition = defineInterface({
-      id: "protocol-host",
-      config: z.object({ transport: z.enum(["stdio", "http"]) }),
-      setup: ({ config, endpoints, interactions }) => {
-        if (config.transport === "http") {
-          endpoints.register({
-            label: "Host",
-            url: "/host",
-            priority: 30,
-            visibility: "trusted",
-          });
-          interactions.register({
-            id: "protocol-host",
-            label: "Host",
-            href: "/host",
-            kind: "protocol",
-            priority: 30,
-            visibility: "trusted",
-          });
-        }
-        // Built once and reused: every route answers through the same
-        // transport, and a second one would answer to nobody.
-        built += 1;
-        return { server: built };
+    const definition = defineInterface(
+      {
+        id: "protocol-host",
+        config: z.object({ transport: z.enum(["stdio", "http"]) }),
+        setup: ({ config, endpoints, interactions }) => {
+          if (config.transport === "http") {
+            endpoints.register({
+              label: "Host",
+              url: "/host",
+              priority: 30,
+              visibility: "trusted",
+            });
+            interactions.register({
+              id: "protocol-host",
+              label: "Host",
+              href: "/host",
+              kind: "protocol",
+              priority: 30,
+              visibility: "trusted",
+            });
+          }
+          // Built once and reused: every route answers through the same
+          // transport, and a second one would answer to nobody.
+          built += 1;
+          return { server: built };
+        },
       },
-      tools: ({ state }) => [
-        defineTool({
-          name: "ping",
-          description: "Answer over the hosted protocol.",
-          input: z.object({}),
-          output: z.object({ server: z.number() }),
-          permission: "public",
-          execute: async () => ({ server: state.server }),
-        }),
-      ],
-    });
+      {
+        tools: ({ state }) => [
+          defineTool({
+            name: "ping",
+            description: "Answer over the hosted protocol.",
+            input: z.object({}),
+            output: z.object({ server: z.number() }),
+            permission: "public",
+            execute: async () => ({ server: state.server }),
+          }),
+        ],
+      },
+    );
 
     const harness = createPluginHarness();
     const capabilities = await harness.installPlugin(
@@ -89,27 +93,31 @@ describe("an interface that hosts a protocol", () => {
     // The protocol on the wire is not this interface's to shape. An MCP
     // client reads an event stream with its own headers and status codes;
     // re-encoding that as a JSON envelope would break every one of them.
-    const definition = defineInterface({
-      id: "protocol-host",
-      config: z.object({}),
-      setup: () => ({}),
-      routes: () => [
-        defineRoute({
-          method: "POST",
-          path: "/mcp",
-          security: { kind: "public" },
-          response: verbatim,
-          handle: () =>
-            new Response("event: message\ndata: {}\n\n", {
-              status: 202,
-              headers: {
-                "content-type": "text/event-stream",
-                "mcp-session-id": "session-1",
-              },
-            }),
-        }),
-      ],
-    });
+    const definition = defineInterface(
+      {
+        id: "protocol-host",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        routes: () => [
+          defineRoute({
+            method: "POST",
+            path: "/mcp",
+            security: { kind: "public" },
+            response: verbatim,
+            handle: () =>
+              new Response("event: message\ndata: {}\n\n", {
+                status: 202,
+                headers: {
+                  "content-type": "text/event-stream",
+                  "mcp-session-id": "session-1",
+                },
+              }),
+          }),
+        ],
+      },
+    );
 
     const harness = createPluginHarness();
     const plugin = instantiate(definition, {});
@@ -130,22 +138,26 @@ describe("an interface that hosts a protocol", () => {
   });
 
   it("declares HTTP routes without a host plugin", async () => {
-    const definition = defineInterface({
-      id: "protocol-host",
-      config: z.object({ transport: z.enum(["stdio", "http"]) }),
-      routes: ({ config }) =>
-        config.transport === "http"
-          ? [
-              defineRoute({
-                method: "GET",
-                path: "/protocol",
-                security: { kind: "public" },
-                response: verbatim,
-                handle: () => new Response("protocol"),
-              }),
-            ]
-          : [],
-    });
+    const definition = defineInterface(
+      {
+        id: "protocol-host",
+        config: z.object({ transport: z.enum(["stdio", "http"]) }),
+      },
+      {
+        routes: ({ config }) =>
+          config.transport === "http"
+            ? [
+                defineRoute({
+                  method: "GET",
+                  path: "/protocol",
+                  security: { kind: "public" },
+                  response: verbatim,
+                  handle: () => new Response("protocol"),
+                }),
+              ]
+            : [],
+      },
+    );
     const harness = createPluginHarness();
     const plugin = instantiate(definition, { transport: "http" });
     await harness.installPlugin(plugin);

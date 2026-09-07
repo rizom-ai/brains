@@ -46,29 +46,33 @@ describe("generating against a template the runtime holds", () => {
 
     let captured: ServiceTemplateReads | undefined;
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "site-content",
-        config: z.object({}),
-        setup: ({ templates }) => {
-          captured = templates;
-          return {};
+      defineServicePlugin(
+        {
+          id: "site-content",
+          config: z.object({}),
+          setup: ({ templates }) => {
+            captured = templates;
+            return {};
+          },
         },
-        jobs: () => [
-          fillSection.handle(async ({ input, templates }) => {
-            const capabilities = templates.capabilities(input.template);
-            if (!capabilities?.canGenerate) {
-              return { markdown: "", canGenerate: false };
-            }
-            const value = await templates.generate(input.template, {
-              data: { headline: "from the model" },
-            });
-            return {
-              markdown: templates.format(input.template, value),
-              canGenerate: true,
-            };
-          }),
-        ],
-      }),
+        {
+          jobs: () => [
+            fillSection.handle(async ({ input, templates }) => {
+              const capabilities = templates.capabilities(input.template);
+              if (!capabilities?.canGenerate) {
+                return { markdown: "", canGenerate: false };
+              }
+              const value = await templates.generate(input.template, {
+                data: { headline: "from the model" },
+              });
+              return {
+                markdown: templates.format(input.template, value),
+                canGenerate: true,
+              };
+            }),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/site-content", version: "0.1.0" },
     );

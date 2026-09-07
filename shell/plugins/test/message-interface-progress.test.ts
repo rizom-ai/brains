@@ -39,28 +39,32 @@ describe("a channel that streams", () => {
     const frames: Array<{ id: string; status: string; percent?: number }> = [];
     const sent: string[] = [];
 
-    const definition = defineMessageInterface({
-      id: "streaming-channel",
-      config: z.object({}),
-      channel: {
-        type: "streaming-channel",
-        displayName: "Stream",
-        subjectLabel: "Session",
-        recipient: z.string().min(1),
+    const definition = defineMessageInterface(
+      {
+        id: "streaming-channel",
+        config: z.object({}),
+        channel: {
+          type: "streaming-channel",
+          displayName: "Stream",
+          subjectLabel: "Session",
+          recipient: z.string().min(1),
+        },
       },
-      send: ({ message }) => {
-        sent.push(message.text);
+      {
+        send: ({ message }) => {
+          sent.push(message.text);
+        },
+        progress: ({ event }) => {
+          frames.push({
+            id: event.id,
+            status: event.status,
+            ...(event.progress !== undefined
+              ? { percent: event.progress.percentage }
+              : {}),
+          });
+        },
       },
-      progress: ({ event }) => {
-        frames.push({
-          id: event.id,
-          status: event.status,
-          ...(event.progress !== undefined
-            ? { percent: event.progress.percentage }
-            : {}),
-        });
-      },
-    });
+    );
 
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(definition, {}));

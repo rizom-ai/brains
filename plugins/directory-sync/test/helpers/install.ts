@@ -94,21 +94,12 @@ export async function hostFor(
   options: { readonly role?: "scheduler" | "worker" | undefined } = {},
 ): Promise<DirectorySyncHost> {
   let captured: DirectorySyncHost | undefined;
-  const definition = defineServicePlugin({
-    id: "directory-sync",
-    config: z.object({}),
-    setup: ({
-      entityMirror,
-      jobs,
-      messaging,
-      state,
-      logger,
-      dataDir,
-      role,
-      gitBroker,
-    }) => {
-      captured = {
-        mirror: entityMirror,
+  const definition = defineServicePlugin(
+    {
+      id: "directory-sync",
+      config: z.object({}),
+      setup: ({
+        entityMirror,
         jobs,
         messaging,
         state,
@@ -116,20 +107,33 @@ export async function hostFor(
         dataDir,
         role,
         gitBroker,
-      };
-      return {};
+      }) => {
+        captured = {
+          mirror: entityMirror,
+          jobs,
+          messaging,
+          state,
+          logger,
+          dataDir,
+          role,
+          gitBroker,
+        };
+        return {};
+      },
     },
-    jobs: () => [
-      directorySyncJob.handle(notRun),
-      syncRequestJob.handle(notRun),
-      directoryImportJob.handle(notRun),
-      directoryExportJob.handle(notRun),
-      directoryDeleteJob.handle(notRun),
-      directoryCleanupJob.handle(notRun),
-      coverImageConvertJob.handle(notRun),
-      inlineImageConvertJob.handle(notRun),
-    ],
-  });
+    {
+      jobs: () => [
+        directorySyncJob.handle(notRun),
+        syncRequestJob.handle(notRun),
+        directoryImportJob.handle(notRun),
+        directoryExportJob.handle(notRun),
+        directoryDeleteJob.handle(notRun),
+        directoryCleanupJob.handle(notRun),
+        coverImageConvertJob.handle(notRun),
+        inlineImageConvertJob.handle(notRun),
+      ],
+    },
+  );
   bindPluginPackageMetadata(definition, PACKAGE_METADATA);
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
@@ -153,11 +157,15 @@ export async function installSubscriptions(
   shell: MockShell,
   subscriptions: readonly AnySubscriptionDefinition[],
 ): Promise<Plugin> {
-  const definition = defineServicePlugin({
-    id: "directory-sync",
-    config: z.object({}),
-    subscriptions: () => subscriptions,
-  });
+  const definition = defineServicePlugin(
+    {
+      id: "directory-sync",
+      config: z.object({}),
+    },
+    {
+      subscriptions: () => subscriptions,
+    },
+  );
   bindPluginPackageMetadata(definition, PACKAGE_METADATA);
   const [plugin] = instantiatePluginPackageDefinition(
     definition,

@@ -20,27 +20,31 @@ import {
 describe("a route declared over a prefix", () => {
   it("is registered with the runtime as a prefix match", async () => {
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "studio",
-        config: z.object({}),
-        routes: () => [
-          defineRoute({
-            method: "GET",
-            path: "/studio/entities",
-            match: "prefix",
-            security: { kind: "public" },
-            response: verbatim,
-            handle: () => new Response("shell"),
-          }),
-          defineRoute({
-            method: "GET",
-            path: "/studio/api/types",
-            security: { kind: "public" },
-            response: verbatim,
-            handle: () => new Response("types"),
-          }),
-        ],
-      }),
+      defineServicePlugin(
+        {
+          id: "studio",
+          config: z.object({}),
+        },
+        {
+          routes: () => [
+            defineRoute({
+              method: "GET",
+              path: "/studio/entities",
+              match: "prefix",
+              security: { kind: "public" },
+              response: verbatim,
+              handle: () => new Response("shell"),
+            }),
+            defineRoute({
+              method: "GET",
+              path: "/studio/api/types",
+              security: { kind: "public" },
+              response: verbatim,
+              handle: () => new Response("types"),
+            }),
+          ],
+        },
+      ),
       {},
       { name: "@fixture/studio", version: "0.1.0" },
     );

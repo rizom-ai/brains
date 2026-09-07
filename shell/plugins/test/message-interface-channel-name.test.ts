@@ -24,20 +24,24 @@ async function turnsSeenBy(): Promise<{
 }> {
   const contexts: (ChatContext | undefined)[] = [];
   const receivers: MessageReceiver[] = [];
-  const definition = defineMessageInterface({
-    id: "rooms",
-    config: z.object({}),
-    channel: {
-      type: "rooms",
-      displayName: "Rooms",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  const definition = defineMessageInterface(
+    {
+      id: "rooms",
+      config: z.object({}),
+      channel: {
+        type: "rooms",
+        displayName: "Rooms",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    routes: ({ messages }) => {
-      receivers.push(messages);
-      return [];
+    {
+      routes: ({ messages }) => {
+        receivers.push(messages);
+        return [];
+      },
     },
-  });
+  );
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},

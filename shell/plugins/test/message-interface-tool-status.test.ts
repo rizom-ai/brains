@@ -21,43 +21,51 @@ function statusReader(
   seen: ToolStatusUpdate[],
   sent: string[],
 ): ReturnType<typeof defineMessageInterface> {
-  return defineMessageInterface({
-    id: "status-reader",
-    config: z.object({}),
-    channel: {
-      type: "status-reader",
-      displayName: "Status Reader",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  return defineMessageInterface(
+    {
+      id: "status-reader",
+      config: z.object({}),
+      channel: {
+        type: "status-reader",
+        displayName: "Status Reader",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    send: async ({ message }) => {
-      sent.push(message.text);
-      return "message-1";
+    {
+      send: async ({ message }) => {
+        sent.push(message.text);
+        return "message-1";
+      },
+      toolStatus: ({ update }) => {
+        seen.push(update);
+      },
     },
-    toolStatus: ({ update }) => {
-      seen.push(update);
-    },
-  });
+  );
 }
 
 /** The same interface without the slot, which should see nothing. */
 function silentReader(
   sent: string[],
 ): ReturnType<typeof defineMessageInterface> {
-  return defineMessageInterface({
-    id: "status-reader",
-    config: z.object({}),
-    channel: {
-      type: "status-reader",
-      displayName: "Status Reader",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  return defineMessageInterface(
+    {
+      id: "status-reader",
+      config: z.object({}),
+      channel: {
+        type: "status-reader",
+        displayName: "Status Reader",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    send: async ({ message }) => {
-      sent.push(message.text);
-      return "message-1";
+    {
+      send: async ({ message }) => {
+        sent.push(message.text);
+        return "message-1";
+      },
     },
-  });
+  );
 }
 
 async function invokeTool(

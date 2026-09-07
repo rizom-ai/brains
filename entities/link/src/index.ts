@@ -29,34 +29,38 @@ const captureJob = defineJob({
 });
 
 const linkPackage: ServicePackageDefinition<typeof linkConfigSchema> =
-  defineServicePlugin({
-    id: "capture",
-    config: linkConfigSchema,
-    entities: [link],
-    setup: ({ config }) => ({
-      fetcherOptions: config.jinaApiKey
-        ? { jinaApiKey: config.jinaApiKey }
-        : undefined,
-    }),
-    jobs: ({ state }) => [
-      captureJob.handle(
-        async ({ input, entities, ai, logger, progress, template }) => {
-          const handler = new LinkCaptureJobHandler(
-            logger,
-            { entities, ai, extractionTemplate: template("extraction") },
-            state.fetcherOptions,
-          );
-          return handler.process(input, LINK_CAPTURE_JOB, progress);
-        },
-      ),
-    ],
-    // Its test cases fetch a live URL, so the eval needs the same key the
-    // capture job does.
-    evals: ({ state }) => ({
-      extractContent: async (input: unknown) =>
-        extractContentEval(input, new UrlFetcher(state.fetcherOptions)),
-    }),
-  });
+  defineServicePlugin(
+    {
+      id: "capture",
+      config: linkConfigSchema,
+      entities: [link],
+      setup: ({ config }) => ({
+        fetcherOptions: config.jinaApiKey
+          ? { jinaApiKey: config.jinaApiKey }
+          : undefined,
+      }),
+    },
+    {
+      jobs: ({ state }) => [
+        captureJob.handle(
+          async ({ input, entities, ai, logger, progress, template }) => {
+            const handler = new LinkCaptureJobHandler(
+              logger,
+              { entities, ai, extractionTemplate: template("extraction") },
+              state.fetcherOptions,
+            );
+            return handler.process(input, LINK_CAPTURE_JOB, progress);
+          },
+        ),
+      ],
+      // Its test cases fetch a live URL, so the eval needs the same key the
+      // capture job does.
+      evals: ({ state }) => ({
+        extractContent: async (input: unknown) =>
+          extractContentEval(input, new UrlFetcher(state.fetcherOptions)),
+      }),
+    },
+  );
 
 export default linkPackage;
 

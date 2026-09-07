@@ -70,32 +70,35 @@ const knowledgeMapWidget = defineDashboardWidget({
  */
 const knowledgeMapPackage: ServicePackageDefinition<
   z.ZodObject<Record<never, never>>
-> = defineServicePlugin({
-  id: "knowledge-map",
-  config: z.object({}),
-  setup: () => ({}),
+> = defineServicePlugin(
+  {
+    id: "knowledge-map",
+    config: z.object({}),
+    setup: () => ({}),
+  },
+  {
+    dataSources: () => [
+      defineDataSource({
+        id: KNOWLEDGE_MAP_LOCAL_ID,
+        name: "Knowledge Map DataSource",
+        description:
+          "Builds the public knowledge map: the corpus in semantic space with topic territories",
+        fetch: async (_query, entities) =>
+          buildKnowledgeMapData(mapContext(entities)),
+      }),
+    ],
 
-  dataSources: () => [
-    defineDataSource({
-      id: KNOWLEDGE_MAP_LOCAL_ID,
-      name: "Knowledge Map DataSource",
-      description:
-        "Builds the public knowledge map: the corpus in semantic space with topic territories",
-      fetch: async (_query, entities) =>
-        buildKnowledgeMapData(mapContext(entities)),
-    }),
-  ],
+    templates: () => ({ map: getKnowledgeMapTemplate() }),
 
-  templates: () => ({ map: getKnowledgeMapTemplate() }),
-
-  dashboardWidgets: (context) => [
-    knowledgeMapWidget.bind(context, async ({ corpus, signal }) => {
-      signal.throwIfAborted();
-      const data = await buildKnowledgeMapData(mapContext(corpus));
-      signal.throwIfAborted();
-      return data;
-    }),
-  ],
-});
+    dashboardWidgets: (context) => [
+      knowledgeMapWidget.bind(context, async ({ corpus, signal }) => {
+        signal.throwIfAborted();
+        const data = await buildKnowledgeMapData(mapContext(corpus));
+        signal.throwIfAborted();
+        return data;
+      }),
+    ],
+  },
+);
 
 export default knowledgeMapPackage;

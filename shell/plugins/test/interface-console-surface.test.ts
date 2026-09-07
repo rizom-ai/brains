@@ -39,48 +39,52 @@ function instantiate(
   return plugin;
 }
 
-const console = defineMessageInterface({
-  id: "web-chat",
-  config: z.object({}),
-  channel: {
-    type: "web-chat",
-    displayName: "Chat",
-    subjectLabel: "Browser session",
-    recipient: z.string().min(1),
+const console = defineMessageInterface(
+  {
+    id: "web-chat",
+    config: z.object({}),
+    setup: ({ surfaces, inboxFollowUps }) => {
+      // A console offers a way to continue an inbox item as a conversation.
+      inboxFollowUps.registerKind({
+        kind: "discuss-in-chat",
+        label: "Discuss in chat",
+        priority: 10,
+        mode: "universal",
+        permissionLevel: "trusted",
+        applies: () => true,
+        resolve: () => ({ href: "/chat" }),
+      });
+      return { surfaces };
+    },
+    channel: {
+      type: "web-chat",
+      displayName: "Chat",
+      subjectLabel: "Browser session",
+      recipient: z.string().min(1),
+    },
   },
-  setup: ({ surfaces, inboxFollowUps }) => {
-    // A console offers a way to continue an inbox item as a conversation.
-    inboxFollowUps.registerKind({
-      kind: "discuss-in-chat",
-      label: "Discuss in chat",
-      priority: 10,
-      mode: "universal",
-      permissionLevel: "trusted",
-      applies: () => true,
-      resolve: () => ({ href: "/chat" }),
-    });
-    return { surfaces };
+  {
+    routes: ({ state }) => [
+      defineRoute({
+        method: "GET",
+        path: "/chat",
+        security: { kind: "public" },
+        response: verbatim,
+        handle: () =>
+          Response.json({
+            doors: state
+              .surfaces({
+                permissionLevel: "admin",
+                hasActiveSession: true,
+                selfHref: "/chat",
+              })
+              .map((surface) => surface.id),
+          }),
+      }),
+    ],
+    send: () => undefined,
   },
-  routes: ({ state }) => [
-    defineRoute({
-      method: "GET",
-      path: "/chat",
-      security: { kind: "public" },
-      response: verbatim,
-      handle: () =>
-        Response.json({
-          doors: state
-            .surfaces({
-              permissionLevel: "admin",
-              hasActiveSession: true,
-              selfHref: "/chat",
-            })
-            .map((surface) => surface.id),
-        }),
-    }),
-  ],
-  send: () => undefined,
-});
+);
 
 describe("a console asking about the rest of the brain", () => {
   it("answers with its own workspace and the doors a caller may see", async () => {

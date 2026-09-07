@@ -695,24 +695,14 @@ export interface DirectorySyncDeps {
 export function directorySyncService(
   deps: DirectorySyncDeps = {},
 ): ServicePackageDefinition<typeof directorySyncConfigSchema> {
-  return defineServicePlugin({
-    id: "directory-sync",
-    config: directorySyncConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "directory-sync",
+      config: directorySyncConfigSchema,
 
-    setup: async ({
-      config,
-      entityMirror,
-      jobs,
-      messaging,
-      state: runtimeState,
-      logger,
-      dataDir,
-      role,
-      gitBroker,
-      lifecycle,
-    }): Promise<DirectorySyncState> => {
-      const host: DirectorySyncHost = {
-        mirror: entityMirror,
+      setup: async ({
+        config,
+        entityMirror,
         jobs,
         messaging,
         state: runtimeState,
@@ -720,237 +710,251 @@ export function directorySyncService(
         dataDir,
         role,
         gitBroker,
-      };
-      const state = new DirectorySyncState(host, config);
-      deps.onState?.(state);
-      await bringUp(state, lifecycle);
-      lifecycle.onCleanup(() => state.shutdown());
-      return state;
-    },
-
-    // The status template, formatted as the status formatter always did.
-    templates: {
-      status: {
-        schema: directorySyncStatusSchema,
-        format: ({ value }) => new DirectorySyncStatusFormatter().format(value),
+        lifecycle,
+      }): Promise<DirectorySyncState> => {
+        const host: DirectorySyncHost = {
+          mirror: entityMirror,
+          jobs,
+          messaging,
+          state: runtimeState,
+          logger,
+          dataDir,
+          role,
+          gitBroker,
+        };
+        const state = new DirectorySyncState(host, config);
+        deps.onState?.(state);
+        await bringUp(state, lifecycle);
+        lifecycle.onCleanup(() => state.shutdown());
+        return state;
       },
     },
+    {
+      // The status template, formatted as the status formatter always did.
+      templates: {
+        status: {
+          schema: directorySyncStatusSchema,
+          format: ({ value }) =>
+            new DirectorySyncStatusFormatter().format(value),
+        },
+      },
 
-    // Every job the sweeps file, bound to the handlers that run them. The
-    // four that run as a child of a durable bulk mutation settle it once the
-    // queue has recorded where they ended.
-    jobs: ({ state }) => {
-      const { host, logger, operationStatus } = state;
-      const child = (name: string): Logger => logger.child(name);
-      const directorySync = state.directorySyncFacade;
-      const syncHandler = new DirectorySyncJobHandler(
-        child("DirectorySyncJobHandler"),
-        host,
-        () => state.requireDirectorySync(),
-      );
-      const exportHandler = new DirectoryExportJobHandler(
-        child("DirectoryExportJobHandler"),
-        host,
-        directorySync,
-        operationStatus,
-      );
-      const importHandler = new DirectoryImportJobHandler(
-        child("DirectoryImportJobHandler"),
-        host,
-        directorySync,
-        operationStatus,
-      );
-      const deleteHandler = new DirectoryDeleteJobHandler(
-        child("DirectoryDeleteJobHandler"),
-        host,
-        directorySync,
-      );
-      const cleanupHandler = new DirectoryCleanupJobHandler(
-        child("DirectoryCleanupJobHandler"),
-        host,
-        directorySync,
-      );
-      const coverImageHandler = new CoverImageConversionJobHandler(
-        host,
-        child("CoverImageConversionJobHandler"),
-      );
-      const inlineImageHandler = new InlineImageConversionJobHandler(
-        host,
-        child("InlineImageConversionJobHandler"),
-      );
-      const bindings = [
-        directorySyncJob.handle(({ input, jobId, progress }) =>
-          syncHandler.process(input, jobId, progress),
-        ),
-        directoryExportJob.handle(({ input, jobId, progress }) =>
-          exportHandler.process(input, jobId, progress),
-        ),
-        directoryImportJob.handle(
-          ({ input, jobId, progress }) =>
-            importHandler.process(input, jobId, progress),
-          {
-            settled: ({ input, jobId, outcome, error }) =>
-              outcome === "completed"
-                ? importHandler.onTerminalSuccess(input, jobId)
-                : importHandler.onTerminalError(
-                    error ?? new Error("Import failed"),
-                    input,
-                    jobId,
-                  ),
-          },
-        ),
-        directoryDeleteJob.handle(
-          ({ input, jobId, progress }) =>
-            deleteHandler.process(input, jobId, progress),
-          {
-            settled: ({ input, jobId, outcome, error }) =>
-              outcome === "completed"
-                ? deleteHandler.onTerminalSuccess(input, jobId)
-                : deleteHandler.onTerminalError(
-                    error ?? new Error("Delete failed"),
-                    input,
-                    jobId,
-                  ),
-          },
-        ),
-        directoryCleanupJob.handle(
-          ({ input, jobId, progress }) =>
-            cleanupHandler.process(input, jobId, progress),
-          {
-            settled: ({ input, jobId, outcome, error }) =>
-              outcome === "completed"
-                ? cleanupHandler.onTerminalSuccess(input, jobId)
-                : cleanupHandler.onTerminalError(
-                    error ?? new Error("Cleanup failed"),
-                    input,
-                    jobId,
-                  ),
-          },
-        ),
-        coverImageConvertJob.handle(({ input, jobId, progress }) =>
-          coverImageHandler.process(input, jobId, progress),
-        ),
-        inlineImageConvertJob.handle(({ input, jobId, progress }) =>
-          inlineImageHandler.process(input, jobId, progress),
-        ),
-      ];
-      if (!state.gitConfigured) return bindings;
-      const requestHandler = new DirectorySyncRequestJobHandler(
-        child("DirectorySyncRequestJobHandler"),
-        host,
-        () => state.requireDirectorySync(),
-        () => state.requireGitSync(),
-        state.gitReconciliation,
-        operationStatus,
-      );
-      return [
-        ...bindings,
-        syncRequestJob.handle(({ input, jobId, progress }) =>
-          requestHandler.process(input, jobId, progress),
-        ),
-      ];
-    },
+      // Every job the sweeps file, bound to the handlers that run them. The
+      // four that run as a child of a durable bulk mutation settle it once the
+      // queue has recorded where they ended.
+      jobs: ({ state }) => {
+        const { host, logger, operationStatus } = state;
+        const child = (name: string): Logger => logger.child(name);
+        const directorySync = state.directorySyncFacade;
+        const syncHandler = new DirectorySyncJobHandler(
+          child("DirectorySyncJobHandler"),
+          host,
+          () => state.requireDirectorySync(),
+        );
+        const exportHandler = new DirectoryExportJobHandler(
+          child("DirectoryExportJobHandler"),
+          host,
+          directorySync,
+          operationStatus,
+        );
+        const importHandler = new DirectoryImportJobHandler(
+          child("DirectoryImportJobHandler"),
+          host,
+          directorySync,
+          operationStatus,
+        );
+        const deleteHandler = new DirectoryDeleteJobHandler(
+          child("DirectoryDeleteJobHandler"),
+          host,
+          directorySync,
+        );
+        const cleanupHandler = new DirectoryCleanupJobHandler(
+          child("DirectoryCleanupJobHandler"),
+          host,
+          directorySync,
+        );
+        const coverImageHandler = new CoverImageConversionJobHandler(
+          host,
+          child("CoverImageConversionJobHandler"),
+        );
+        const inlineImageHandler = new InlineImageConversionJobHandler(
+          host,
+          child("InlineImageConversionJobHandler"),
+        );
+        const bindings = [
+          directorySyncJob.handle(({ input, jobId, progress }) =>
+            syncHandler.process(input, jobId, progress),
+          ),
+          directoryExportJob.handle(({ input, jobId, progress }) =>
+            exportHandler.process(input, jobId, progress),
+          ),
+          directoryImportJob.handle(
+            ({ input, jobId, progress }) =>
+              importHandler.process(input, jobId, progress),
+            {
+              settled: ({ input, jobId, outcome, error }) =>
+                outcome === "completed"
+                  ? importHandler.onTerminalSuccess(input, jobId)
+                  : importHandler.onTerminalError(
+                      error ?? new Error("Import failed"),
+                      input,
+                      jobId,
+                    ),
+            },
+          ),
+          directoryDeleteJob.handle(
+            ({ input, jobId, progress }) =>
+              deleteHandler.process(input, jobId, progress),
+            {
+              settled: ({ input, jobId, outcome, error }) =>
+                outcome === "completed"
+                  ? deleteHandler.onTerminalSuccess(input, jobId)
+                  : deleteHandler.onTerminalError(
+                      error ?? new Error("Delete failed"),
+                      input,
+                      jobId,
+                    ),
+            },
+          ),
+          directoryCleanupJob.handle(
+            ({ input, jobId, progress }) =>
+              cleanupHandler.process(input, jobId, progress),
+            {
+              settled: ({ input, jobId, outcome, error }) =>
+                outcome === "completed"
+                  ? cleanupHandler.onTerminalSuccess(input, jobId)
+                  : cleanupHandler.onTerminalError(
+                      error ?? new Error("Cleanup failed"),
+                      input,
+                      jobId,
+                    ),
+            },
+          ),
+          coverImageConvertJob.handle(({ input, jobId, progress }) =>
+            coverImageHandler.process(input, jobId, progress),
+          ),
+          inlineImageConvertJob.handle(({ input, jobId, progress }) =>
+            inlineImageHandler.process(input, jobId, progress),
+          ),
+        ];
+        if (!state.gitConfigured) return bindings;
+        const requestHandler = new DirectorySyncRequestJobHandler(
+          child("DirectorySyncRequestJobHandler"),
+          host,
+          () => state.requireDirectorySync(),
+          () => state.requireGitSync(),
+          state.gitReconciliation,
+          operationStatus,
+        );
+        return [
+          ...bindings,
+          syncRequestJob.handle(({ input, jobId, progress }) =>
+            requestHandler.process(input, jobId, progress),
+          ),
+        ];
+      },
 
-    // What other packages ask over the bus, entity activity that wakes the
-    // exporter, and the startup signal that runs the initial sync. A worker
-    // answers none of these; the scheduler owns the mirror's motion.
-    subscriptions: ({
-      config,
-      state,
-      workspaceUrl,
-    }): readonly AnySubscriptionDefinition[] => {
-      if (!state.isScheduler) return [];
-      const { host, logger, operationStatus } = state;
-      return [
-        ...directorySyncSubscriptions({
-          getDirectorySync: () => state.requireDirectorySync(),
-          configure: (options) => state.configure(options),
-          logger,
-          gitConfig: config.git,
-          getGitSync: () => state.gitSync,
-          getManagementUrl: () => workspaceUrl("sync"),
-        }),
-        ...entityActivitySubscriptions(
-          () => state.requireEntityExportDispatcher().wake(),
-          logger,
-          config.entityTypes,
-        ),
-        ...(config.initialSync
-          ? [
-              initialSyncSubscription(
-                host,
-                () => state.requireDirectorySync(),
-                config,
-                logger,
-                state.gitSync,
-                state.gitSync ? state.gitReconciliation : undefined,
-                initialSyncRecovery(state),
-                operationStatus,
-              ),
-            ]
-          : []),
-      ];
-    },
+      // What other packages ask over the bus, entity activity that wakes the
+      // exporter, and the startup signal that runs the initial sync. A worker
+      // answers none of these; the scheduler owns the mirror's motion.
+      subscriptions: ({
+        config,
+        state,
+        workspaceUrl,
+      }): readonly AnySubscriptionDefinition[] => {
+        if (!state.isScheduler) return [];
+        const { host, logger, operationStatus } = state;
+        return [
+          ...directorySyncSubscriptions({
+            getDirectorySync: () => state.requireDirectorySync(),
+            configure: (options) => state.configure(options),
+            logger,
+            gitConfig: config.git,
+            getGitSync: () => state.gitSync,
+            getManagementUrl: () => workspaceUrl("sync"),
+          }),
+          ...entityActivitySubscriptions(
+            () => state.requireEntityExportDispatcher().wake(),
+            logger,
+            config.entityTypes,
+          ),
+          ...(config.initialSync
+            ? [
+                initialSyncSubscription(
+                  host,
+                  () => state.requireDirectorySync(),
+                  config,
+                  logger,
+                  state.gitSync,
+                  state.gitSync ? state.gitReconciliation : undefined,
+                  initialSyncRecovery(state),
+                  operationStatus,
+                ),
+              ]
+            : []),
+        ];
+      },
 
-    health: ({ config, state }) => ({
-      "git-progress": () => state.operationStatus.getOperationalHealth(),
-      // Two different questions. The first is what this role believes about
-      // its own sync run; the second is what the checkout owner reports about
-      // the work it is actually holding, which is the only place a wedged Git
-      // child is visible at all. A fresh read-only connection: asking through
-      // this role's own client would let a health request reattach, notice a
-      // new owner, and schedule durable replay — writes from a read.
-      ...(state.gitConfigured &&
-      config.git &&
-      state.host.gitBroker.socket !== undefined
-        ? {
-            "git-broker": createBrokerHealthCheck({
-              probe: probeBrokerActivity(state.host.gitBroker.socket),
-              now: (): number => Date.now(),
-              progressTimeoutMs: resolveBrokerProgressTimeoutMs(),
-            }),
-          }
-        : {}),
-    }),
-
-    tools: ({ state }) =>
-      createDirectorySyncTools({
-        directorySync: state.directorySyncFacade,
-        host: state.host,
-        gitSync: state.gitSync ? state.gitSyncFacade : undefined,
-        operationStatus: state.operationStatus,
+      health: ({ config, state }) => ({
+        "git-progress": () => state.operationStatus.getOperationalHealth(),
+        // Two different questions. The first is what this role believes about
+        // its own sync run; the second is what the checkout owner reports about
+        // the work it is actually holding, which is the only place a wedged Git
+        // child is visible at all. A fresh read-only connection: asking through
+        // this role's own client would let a health request reattach, notice a
+        // new owner, and schedule durable replay — writes from a read.
+        ...(state.gitConfigured &&
+        config.git &&
+        state.host.gitBroker.socket !== undefined
+          ? {
+              "git-broker": createBrokerHealthCheck({
+                probe: probeBrokerActivity(state.host.gitBroker.socket),
+                now: (): number => Date.now(),
+                progressTimeoutMs: resolveBrokerProgressTimeoutMs(),
+              }),
+            }
+          : {}),
       }),
 
-    // The sync workspace, declared for Studio to host: the provider owns
-    // the data and the action, Studio owns the rendering.
-    studioWorkspaces: (bindingContext) => {
-      const provider = bindingContext.state.workspaceProvider;
-      if (!provider) return [];
-      return [
-        directorySyncWorkspace.bind(bindingContext, {
-          load: () => provider.getSnapshot(),
-          actions: [
-            syncNowAction.bind(bindingContext, ({ caller }) =>
-              provider.syncNow(caller),
-            ),
-          ],
+      tools: ({ state }) =>
+        createDirectorySyncTools({
+          directorySync: state.directorySyncFacade,
+          host: state.host,
+          gitSync: state.gitSync ? state.gitSyncFacade : undefined,
+          operationStatus: state.operationStatus,
         }),
-      ];
-    },
 
-    // Only the scheduler moves the mirror: seed validation, the exporter, the
-    // watcher and the periodic pull start here, once the brain is up.
-    ready: async ({ config, state }) => {
-      if (!state.isScheduler) return;
-      if (config.seedContent && config.strictSeedEntityTypes) {
-        await validateSeedContentEntityTypes(
-          config.syncPath ?? state.host.dataDir,
-          state.host.mirror,
-        );
-      }
-      await state.requireEntityExportDispatcher().start();
-      await state.startBackgroundWork();
-      state.readyState = true;
+      // The sync workspace, declared for Studio to host: the provider owns
+      // the data and the action, Studio owns the rendering.
+      studioWorkspaces: (bindingContext) => {
+        const provider = bindingContext.state.workspaceProvider;
+        if (!provider) return [];
+        return [
+          directorySyncWorkspace.bind(bindingContext, {
+            load: () => provider.getSnapshot(),
+            actions: [
+              syncNowAction.bind(bindingContext, ({ caller }) =>
+                provider.syncNow(caller),
+              ),
+            ],
+          }),
+        ];
+      },
+
+      // Only the scheduler moves the mirror: seed validation, the exporter, the
+      // watcher and the periodic pull start here, once the brain is up.
+      ready: async ({ config, state }) => {
+        if (!state.isScheduler) return;
+        if (config.seedContent && config.strictSeedEntityTypes) {
+          await validateSeedContentEntityTypes(
+            config.syncPath ?? state.host.dataDir,
+            state.host.mirror,
+          );
+        }
+        await state.requireEntityExportDispatcher().start();
+        await state.startBackgroundWork();
+        state.readyState = true;
+      },
     },
-  });
+  );
 }

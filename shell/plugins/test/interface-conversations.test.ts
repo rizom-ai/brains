@@ -33,52 +33,56 @@ function instantiate(
   return plugin;
 }
 
-const conversationConsole = defineMessageInterface({
-  id: "conversation-console",
-  config: z.object({}),
-  channel: {
-    type: "conversation-console",
-    displayName: "Console",
-    subjectLabel: "Browser session",
-    recipient: z.string().min(1),
+const conversationConsole = defineMessageInterface(
+  {
+    id: "conversation-console",
+    config: z.object({}),
+    setup: ({ conversations, entities }) => ({ conversations, entities }),
+    channel: {
+      type: "conversation-console",
+      displayName: "Console",
+      subjectLabel: "Browser session",
+      recipient: z.string().min(1),
+    },
   },
-  setup: ({ conversations, entities }) => ({ conversations, entities }),
-  routes: ({ state }) => [
-    defineRoute({
-      method: "POST",
-      path: "/console/sessions",
-      security: { kind: "public" },
-      body: z.object({ id: z.string() }),
-      response: z.object({ conversationId: z.string() }),
-      handle: async ({ body }) => ({
-        conversationId: await state.conversations.start({
-          sessionId: body.id,
-          interfaceType: "conversation-console",
-          channelId: body.id,
-          metadata: {
-            channelName: "Console",
+  {
+    routes: ({ state }) => [
+      defineRoute({
+        method: "POST",
+        path: "/console/sessions",
+        security: { kind: "public" },
+        body: z.object({ id: z.string() }),
+        response: z.object({ conversationId: z.string() }),
+        handle: async ({ body }) => ({
+          conversationId: await state.conversations.start({
+            sessionId: body.id,
             interfaceType: "conversation-console",
             channelId: body.id,
-          },
+            metadata: {
+              channelName: "Console",
+              interfaceType: "conversation-console",
+              channelId: body.id,
+            },
+          }),
         }),
       }),
-    }),
-    defineRoute({
-      method: "GET",
-      path: "/console/attachment",
-      security: { kind: "public" },
-      response: z.object({ found: z.boolean() }),
-      handle: async () => ({
-        found:
-          (await state.entities.getEntity({
-            entityType: "note",
-            id: "missing",
-          })) !== null,
+      defineRoute({
+        method: "GET",
+        path: "/console/attachment",
+        security: { kind: "public" },
+        response: z.object({ found: z.boolean() }),
+        handle: async () => ({
+          found:
+            (await state.entities.getEntity({
+              entityType: "note",
+              id: "missing",
+            })) !== null,
+        }),
       }),
-    }),
-  ],
-  send: () => undefined,
-});
+    ],
+    send: () => undefined,
+  },
+);
 
 describe("an interface that hosts a conversation", () => {
   it("reaches the conversation surface and a read of its own", async () => {

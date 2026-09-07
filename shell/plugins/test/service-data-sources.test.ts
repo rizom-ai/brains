@@ -18,21 +18,25 @@ import {
 
 describe("data sources a service declares", () => {
   it("registers them under the package, and hands them entity reads", async () => {
-    const definition = defineServicePlugin({
-      id: "cartographer",
-      config: z.object({}),
-      setup: () => ({}),
-      dataSources: () => [
-        defineDataSource({
-          id: "map",
-          name: "Corpus Map",
-          description: "The whole corpus in semantic space.",
-          fetch: async (_query, entities) => ({
-            types: entities.getEntityTypes().length,
+    const definition = defineServicePlugin(
+      {
+        id: "cartographer",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        dataSources: () => [
+          defineDataSource({
+            id: "map",
+            name: "Corpus Map",
+            description: "The whole corpus in semantic space.",
+            fetch: async (_query, entities) => ({
+              types: entities.getEntityTypes().length,
+            }),
           }),
-        }),
-      ],
-    });
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,

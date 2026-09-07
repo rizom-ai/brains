@@ -59,171 +59,177 @@ interface A2AState {
 export function a2aInterface(
   deps: A2AInterfaceDeps = {},
 ): ReturnType<typeof defineInterface> {
-  return defineInterface({
-    id: "a2a",
-    config: a2aConfigSchema,
+  return defineInterface(
+    {
+      id: "a2a",
+      config: a2aConfigSchema,
 
-    setup: ({
-      config,
-      endpoints,
-      interactions,
-      auth,
-      permissions,
-      agent,
-      entities,
-      identity,
-      profileKinds,
-      tools,
-      publicSkills,
-      domain,
-      logger,
-    }): A2AState => {
-      if (config.inbound) {
-        endpoints.register({ label: "A2A", url: "/a2a", priority: 25 });
-        interactions.register({
-          id: "a2a",
-          label: "A2A",
-          description: "Let other agents discover and talk to this brain.",
-          href: "/a2a",
-          kind: "agent",
-          priority: 25,
-        });
-      }
-      logger.info(
-        config.inbound
-          ? "A2A interface registered"
-          : "A2A interface registered in tool-only mode",
-        { domain },
-      );
-
-      // Inbound signature verification fetches the peer's JWKS through the
-      // same fetch the outbound client uses, so one injected fake covers both.
-      const jwksResolver = new JwksResolver(
-        deps.fetch ? { fetch: deps.fetch } : {},
-      );
-
-      // Built on first request and kept: the card describes the brain after
-      // every plugin has registered and the profile has loaded, which no
-      // moment during registration can promise.
-      let card: Promise<AgentCard> | undefined;
-      const agentCard = (): Promise<AgentCard> => {
-        card ??= describeBrain(
-          { identity, profileKinds, tools, publicSkills, domain },
-          { organization: config.organization },
-        ).catch((error: unknown) => {
-          card = undefined;
-          throw error;
-        });
-        return card;
-      };
-
-      // Remote peers cannot resolve loopback JWKS, and signature key ids
-      // require HTTPS; anything else goes out unsigned.
-      const requestSigner = (): A2ARequestSigner | undefined => {
-        const federation = auth.getFederation();
-        if (!federation) return undefined;
-        const issuer = federation.getIssuer();
-        if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
-          return undefined;
-        }
-        return async (request): Promise<void> => {
-          const signingKey = await federation.getA2ASigningKey();
-          await signRequest(request, signingKey.privateJwk, signingKey.keyId);
-        };
-      };
-      const signer = requestSigner();
-      const clientDeps: A2AClientDeps = {
-        ...(signer ? { requestSigner: signer } : {}),
-        ...(deps.fetch ? { fetch: deps.fetch } : {}),
-        requestTimeoutMs: config.requestTimeoutMs,
-        streamIdleTimeoutMs: config.streamIdleTimeoutMs,
-        maxNetworkAttempts: config.maxNetworkAttempts,
+      setup: ({
+        config,
+        endpoints,
+        interactions,
+        auth,
+        permissions,
+        agent,
         entities,
-      };
-
-      const turnSupervisor = new A2ATurnSupervisor();
-      return {
-        app: createA2AServer({
-          agentCard,
-          entities,
-          agent,
-          auth,
-          permissions,
-          jwksResolver,
-          taskManager: new TaskManager(),
-          turnSupervisor,
-        }),
-        clientDeps,
-        turnSupervisor,
+        identity,
+        profileKinds,
+        tools,
+        publicSkills,
+        domain,
         logger,
-      };
+      }): A2AState => {
+        if (config.inbound) {
+          endpoints.register({ label: "A2A", url: "/a2a", priority: 25 });
+          interactions.register({
+            id: "a2a",
+            label: "A2A",
+            description: "Let other agents discover and talk to this brain.",
+            href: "/a2a",
+            kind: "agent",
+            priority: 25,
+          });
+        }
+        logger.info(
+          config.inbound
+            ? "A2A interface registered"
+            : "A2A interface registered in tool-only mode",
+          { domain },
+        );
+
+        // Inbound signature verification fetches the peer's JWKS through the
+        // same fetch the outbound client uses, so one injected fake covers both.
+        const jwksResolver = new JwksResolver(
+          deps.fetch ? { fetch: deps.fetch } : {},
+        );
+
+        // Built on first request and kept: the card describes the brain after
+        // every plugin has registered and the profile has loaded, which no
+        // moment during registration can promise.
+        let card: Promise<AgentCard> | undefined;
+        const agentCard = (): Promise<AgentCard> => {
+          card ??= describeBrain(
+            { identity, profileKinds, tools, publicSkills, domain },
+            { organization: config.organization },
+          ).catch((error: unknown) => {
+            card = undefined;
+            throw error;
+          });
+          return card;
+        };
+
+        // Remote peers cannot resolve loopback JWKS, and signature key ids
+        // require HTTPS; anything else goes out unsigned.
+        const requestSigner = (): A2ARequestSigner | undefined => {
+          const federation = auth.getFederation();
+          if (!federation) return undefined;
+          const issuer = federation.getIssuer();
+          if (
+            isLoopbackIssuer(issuer) ||
+            new URL(issuer).protocol !== "https:"
+          ) {
+            return undefined;
+          }
+          return async (request): Promise<void> => {
+            const signingKey = await federation.getA2ASigningKey();
+            await signRequest(request, signingKey.privateJwk, signingKey.keyId);
+          };
+        };
+        const signer = requestSigner();
+        const clientDeps: A2AClientDeps = {
+          ...(signer ? { requestSigner: signer } : {}),
+          ...(deps.fetch ? { fetch: deps.fetch } : {}),
+          requestTimeoutMs: config.requestTimeoutMs,
+          streamIdleTimeoutMs: config.streamIdleTimeoutMs,
+          maxNetworkAttempts: config.maxNetworkAttempts,
+          entities,
+        };
+
+        const turnSupervisor = new A2ATurnSupervisor();
+        return {
+          app: createA2AServer({
+            agentCard,
+            entities,
+            agent,
+            auth,
+            permissions,
+            jwksResolver,
+            taskManager: new TaskManager(),
+            turnSupervisor,
+          }),
+          clientDeps,
+          turnSupervisor,
+          logger,
+        };
+      },
     },
+    {
+      tools: ({ state }) => [agentCallTool(state.clientDeps)],
 
-    tools: ({ state }) => [agentCallTool(state.clientDeps)],
+      subscriptions: ({ state }) => a2aSubscriptions(state.clientDeps),
 
-    subscriptions: ({ state }) => a2aSubscriptions(state.clientDeps),
+      instructions: () => A2A_INSTRUCTIONS,
 
-    instructions: () => A2A_INSTRUCTIONS,
+      // The protocol answers for itself: CORS headers, the status codes it
+      // specifies, an event stream. None of it survives a JSON envelope.
+      routes: ({ config, state }): AnyInterfaceRouteDefinition[] =>
+        config.inbound
+          ? [
+              ...(
+                [
+                  "/.well-known/agent-card.json",
+                  "/.well-known/agent-directory.json",
+                ] as const
+              ).map((path) =>
+                defineRoute({
+                  method: "GET",
+                  path,
+                  security: { kind: "public" },
+                  response: verbatim,
+                  handle: ({ request }) => state.app.fetch(request),
+                }),
+              ),
+              ...(["GET", "POST", "OPTIONS"] as const).map((method) =>
+                defineRoute({
+                  method,
+                  path: "/a2a",
+                  security: { kind: "public" },
+                  response: verbatim,
+                  handle: ({ request }) => state.app.fetch(request),
+                }),
+              ),
+            ]
+          : [],
 
-    // The protocol answers for itself: CORS headers, the status codes it
-    // specifies, an event stream. None of it survives a JSON envelope.
-    routes: ({ config, state }): AnyInterfaceRouteDefinition[] =>
-      config.inbound
-        ? [
-            ...(
-              [
-                "/.well-known/agent-card.json",
-                "/.well-known/agent-directory.json",
-              ] as const
-            ).map((path) =>
-              defineRoute({
-                method: "GET",
-                path,
-                security: { kind: "public" },
-                response: verbatim,
-                handle: ({ request }) => state.app.fetch(request),
-              }),
-            ),
-            ...(["GET", "POST", "OPTIONS"] as const).map((method) =>
-              defineRoute({
-                method,
-                path: "/a2a",
-                security: { kind: "public" },
-                response: verbatim,
-                handle: ({ request }) => state.app.fetch(request),
-              }),
-            ),
-          ]
-        : [],
-
-    daemons: ({ config, state }) => [
-      defineDaemon({
-        id: "server",
-        required: false,
-        check: () => ({
-          status: "healthy",
-          message: config.inbound
-            ? "A2A mounted on runtime HTTP host"
-            : "A2A running in outbound-only mode",
-        }),
-        async run({ signal, health }) {
-          state.logger.info(
-            config.inbound
+      daemons: ({ config, state }) => [
+        defineDaemon({
+          id: "server",
+          required: false,
+          check: () => ({
+            status: "healthy",
+            message: config.inbound
               ? "A2A mounted on runtime HTTP host"
               : "A2A running in outbound-only mode",
-          );
-          health.ready();
-          await new Promise<void>((resolve) => {
-            signal.addEventListener("abort", () => resolve(), { once: true });
-          });
-          // Stopping ends every turn in flight: a peer waiting on a stream
-          // learns the brain is gone rather than hanging.
-          await state.turnSupervisor.close();
-          state.logger.info("A2A server stopped");
-        },
-      }),
-    ],
-  });
+          }),
+          async run({ signal, health }) {
+            state.logger.info(
+              config.inbound
+                ? "A2A mounted on runtime HTTP host"
+                : "A2A running in outbound-only mode",
+            );
+            health.ready();
+            await new Promise<void>((resolve) => {
+              signal.addEventListener("abort", () => resolve(), { once: true });
+            });
+            // Stopping ends every turn in flight: a peer waiting on a stream
+            // learns the brain is gone rather than hanging.
+            await state.turnSupervisor.close();
+            state.logger.info("A2A server stopped");
+          },
+        }),
+      ],
+    },
+  );
 }
 
 const a2aPackage: ReturnType<typeof defineInterface> = a2aInterface();

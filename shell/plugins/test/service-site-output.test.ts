@@ -29,15 +29,19 @@ describe("declared static site output", () => {
 
   it("tells the host where a build writes, from config alone", async () => {
     const [plugin] = instantiatePluginPackageDefinition(
-      defineServicePlugin({
-        id: "site-builder",
-        config: configSchema,
-        staticSite: ({ config }) => ({
-          productionOutputDir: `${config.outputDir}/production`,
-          previewOutputDir: `${config.outputDir}/preview`,
-          sharedImagesDir: `${config.outputDir}/images`,
-        }),
-      }),
+      defineServicePlugin(
+        {
+          id: "site-builder",
+          config: configSchema,
+        },
+        {
+          staticSite: ({ config }) => ({
+            productionOutputDir: `${config.outputDir}/production`,
+            previewOutputDir: `${config.outputDir}/preview`,
+            sharedImagesDir: `${config.outputDir}/images`,
+          }),
+        },
+      ),
       { outputDir: "/srv/brain" },
       { name: "@fixture/site-builder", version: "0.1.0" },
     );

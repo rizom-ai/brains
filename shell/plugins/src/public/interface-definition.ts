@@ -9,10 +9,14 @@ import type {
   AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
   InterfaceDaemonDefinition,
+  InterfaceDefinitionBehavior,
+  InterfaceDefinitionHeader,
   InterfaceDefinitionInput,
   InterfaceRouteDefinition,
   InterfaceRouteInput,
   InterfaceSchema,
+  MessageInterfaceDefinitionBehavior,
+  MessageInterfaceDefinitionHeader,
   MessageInterfaceDefinitionInput,
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
@@ -176,13 +180,25 @@ export function defineInterface<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
   TState extends object = Record<never, never>,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings, TState>,
+  header: InterfaceDefinitionHeader<TConfigSchema, TAccountSettings, TState>,
+  behavior?: InterfaceDefinitionBehavior<
+    TConfigSchema,
+    TAccountSettings,
+    TState
+  >,
 ): {
   readonly kind: "rizom-plugin-package";
   readonly family: "interface";
   readonly id: string;
   readonly config: TConfigSchema;
 } {
+  // One declaration from here on: the split exists so the state type is known
+  // before the behavior is checked, not because the runtime wants two objects.
+  const definition: InterfaceDefinitionInput<
+    TConfigSchema,
+    TAccountSettings,
+    TState
+  > = { ...header, ...behavior };
   return createPluginPackageDefinition({
     family: "interface",
     id: definition.id,
@@ -203,7 +219,13 @@ export function defineMessageInterface<
   TRecipientSchema extends MessageRecipientSchema = MessageRecipientSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
 >(
-  definition: MessageInterfaceDefinitionInput<
+  header: MessageInterfaceDefinitionHeader<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  >,
+  behavior?: MessageInterfaceDefinitionBehavior<
     TConfigSchema,
     TState,
     TRecipientSchema,
@@ -215,6 +237,12 @@ export function defineMessageInterface<
   readonly id: string;
   readonly config: TConfigSchema;
 } {
+  const definition: MessageInterfaceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  > = { ...header, ...behavior };
   assertIdentifier(definition.channel.type, "Channel type");
   if (definition.listen && !definition.send) {
     throw new Error(
