@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- [#230](https://github.com/rizom-ai/brains/pull/230) [`08746a1`](https://github.com/rizom-ai/brains/commit/08746a13a5544edb308013aaa52e1a5cb25c7c64) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version so the immutable, runtime-version-keyed fleet image can include the updated Rizom site background fix. No runtime implementation changes are included.
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

@@ -388,6 +388,7 @@
     "core--retire-discord-interface",
     "core--retire-rizom-ecosystem",
     "core--retired-projection-job-recovery",
+    "core--rizom-background-image",
     "core--rizom-btn-shared-defaults",
     "core--rizom-ui-public-boundary",
     "core--runtime-bun14-image-rebuild",
