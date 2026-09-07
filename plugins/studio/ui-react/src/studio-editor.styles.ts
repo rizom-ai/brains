@@ -1,6 +1,9 @@
 import * as stylex from "@stylexjs/stylex";
 
 type EditorStyle =
+  | "status"
+  | "listingRow"
+  | "publication"
   | "head"
   | "title"
   | "kicker"
@@ -13,6 +16,31 @@ type EditorStyle =
   | "pipeline";
 export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
   stylex.create({
+    status: {
+      display: "inline-flex",
+      alignItems: "baseline",
+      flexWrap: "wrap",
+      gap: "6px",
+      fontFamily: "var(--console-ui)",
+      fontSize: "12px",
+      color: "var(--console-text-muted)",
+    },
+    listingRow: {
+      gridTemplateColumns: "36px minmax(0, 1fr) auto",
+      "@media (max-width: 640px)": {
+        gridTemplateColumns: "24px minmax(0, 1fr) auto",
+      },
+    },
+    publication: {
+      display: "block",
+      marginTop: "4px",
+      fontFamily: "var(--console-ui)",
+      fontSize: "11px",
+      fontWeight: 400,
+      color: "var(--console-text-muted)",
+      textTransform: "capitalize",
+      letterSpacing: 0,
+    },
     head: {
       display: "grid",
       gridTemplateColumns: "minmax(0, 1fr) auto",
@@ -31,6 +59,7 @@ export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
       fontFamily: "var(--console-display)",
       color: "var(--console-text)",
       fontSize: "38px",
+      fontVariationSettings: '"SOFT" 70, "opsz" 60',
       fontWeight: 500,
       lineHeight: 1,
       letterSpacing: "-0.025em",

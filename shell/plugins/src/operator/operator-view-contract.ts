@@ -45,6 +45,8 @@ export interface OperatorNoticeBlock {
   readonly id?: string | undefined;
   readonly title?: string | undefined;
   readonly text: string;
+  /** Complete supporting records, disclosed without repeating the notice heading. */
+  readonly details?: readonly string[] | undefined;
   readonly tone?: OperatorTone | undefined;
 }
 
@@ -308,6 +310,8 @@ interface OperatorActionControlBase<
   TDefinition extends AnyWorkspaceActionDefinition,
 > {
   readonly action: TDefinition;
+  /** Provider-owned display copy; does not alter the action's identity or input. */
+  readonly label?: string | undefined;
   readonly capability?: OperatorCapabilityDefinition | undefined;
   readonly disabled?: boolean | undefined;
   readonly result?:
@@ -386,6 +390,9 @@ export interface OperatorListBlock<
   readonly type: "list";
   readonly id: string;
   readonly empty: string;
+  /** Reading hierarchy, independent of the workspace or transport rendering it. */
+  readonly presentation?:
+    "standard" | "editorial" | "attention" | "activity" | undefined;
   readonly filter?: OperatorListFilter | undefined;
   readonly items: readonly OperatorListItem<TAction>[];
 }
@@ -629,6 +636,9 @@ export interface OperatorCardBlock<
   readonly type: "card";
   readonly id: string;
   readonly label: string;
+  readonly metadata?: readonly string[] | undefined;
+  /** Supporting information may start closed without removing its content. */
+  readonly presentation?: "section" | "disclosure" | "feature" | undefined;
   readonly tone?: OperatorTone | undefined;
   readonly blocks: readonly OperatorPanelBlock<TAction>[];
 }

@@ -1,8 +1,15 @@
 import { describe, expect, it } from "bun:test";
+import { operatorViewStylexCSS } from "@brains/operator-view-react";
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
 import { DASHBOARD_STYLES } from "../src/render/styles";
 
 describe("DASHBOARD_STYLES", () => {
+  it("delivers compiled shared facts without a legacy selector fallback", () => {
+    expect(operatorViewStylexCSS.length).toBeGreaterThan(50);
+    expect(DASHBOARD_STYLES).toContain(operatorViewStylexCSS);
+    expect(DASHBOARD_STYLES).not.toContain(".declarative-key-values");
+    expect(DASHBOARD_STYLES).not.toContain(".declarative-notice");
+  });
   it("embeds the shared console token sheet", () => {
     expect(DASHBOARD_STYLES).toContain(CONSOLE_THEME_CSS);
   });

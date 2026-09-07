@@ -151,7 +151,7 @@ describe("content-pipeline Studio workspace registration", () => {
     expect(await registration.accessHandler(adminActor)).toBe(true);
     const workspace = await registration.dataProvider(adminActor);
     expect(workspace).toMatchObject({
-      view: { title: "Publishing desk" },
+      view: { title: "Publishing" },
     });
     expect(JSON.stringify(workspace)).toContain('"title":"Queued post"');
     expect(JSON.stringify(workspace)).toContain('"entityType":"social-post"');
@@ -404,7 +404,7 @@ describe("content-pipeline Studio workspace registration", () => {
     ).toBe(true);
     const trustedWorkspace = await registration.dataProvider(trustedActor);
     expect(trustedWorkspace).toMatchObject({
-      view: { title: "Publishing desk" },
+      view: { title: "Publishing" },
     });
     const trustedSerialized = JSON.stringify(trustedWorkspace);
     expect(trustedSerialized).toContain("shared-queued");

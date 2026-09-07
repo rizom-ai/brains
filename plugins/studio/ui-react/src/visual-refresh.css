@@ -3,7 +3,6 @@
    composition remains in responsive.css and inherits this same material system. */
 
 .studio {
-  --console-mono: "IBM Plex Mono", ui-monospace, monospace;
   background: var(--console-frame);
 }
 
@@ -14,7 +13,6 @@
   padding: 26px 30px 34px;
 }
 .row {
-  grid-template-columns: 44px minmax(0, 1fr) 130px 150px 120px;
   min-height: 0;
   padding: 15px 4px 14px;
   border-bottom-color: var(--console-rule-strong);

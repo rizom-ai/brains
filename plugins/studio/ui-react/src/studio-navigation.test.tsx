@@ -4,7 +4,8 @@ import { Window } from "happy-dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { TypeSwitcher } from "./entity-fields";
+import { studioArea, TypeSwitcher } from "./entity-fields";
+import { StudioChrome } from "./studio-chrome";
 
 let browser: Window;
 let root: Root;
@@ -72,6 +73,24 @@ const workspaces: StudioWorkspaceInfo[] = [
     entityTypes: [],
   },
   {
+    id: "admin:administration",
+    pluginId: "admin",
+    label: "Administration",
+    rendererName: "DeclarativeOperatorWorkspace",
+    priority: 100,
+    permission: "admin",
+    entityTypes: [],
+  },
+  {
+    id: "studio:account",
+    pluginId: "studio",
+    label: "Account",
+    rendererName: "StudioAccountWorkspace",
+    priority: 110,
+    permission: "trusted",
+    entityTypes: [],
+  },
+  {
     id: "inbox:inbox",
     pluginId: "inbox",
     label: "Inbox",
@@ -101,11 +120,13 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => root.unmount());
+  await browser.happyDOM.abort();
   browser.close();
 });
 async function render(
   active: string | null = "note",
   activeWorkspace: string | null = null,
+  availableWorkspaces = workspaces,
 ): Promise<void> {
   await act(async () =>
     root.render(
@@ -113,7 +134,13 @@ async function render(
         renderMode="desktop"
         types={types}
         active={active}
-        workspaces={workspaces}
+        workspaces={availableWorkspaces}
+        workspaceBadges={Object.fromEntries(
+          availableWorkspaces.map((workspace) => [
+            workspace.id,
+            workspace.badge ?? 0,
+          ]),
+        )}
         activeWorkspace={activeWorkspace}
         onSelect={(id) => selected.push(id)}
         onSelectWorkspace={(id) => selected.push(id)}
@@ -132,6 +159,38 @@ const leafText = (): string | null | undefined =>
   document.querySelector(".studio-leaf-rail")?.textContent;
 const currentArea = (): string | null | undefined =>
   document.querySelector('.studio-area-link[aria-pressed="true"]')?.textContent;
+
+async function renderChrome(id: string, label: string): Promise<void> {
+  await act(async () =>
+    root.render(
+      <StudioChrome
+        contextLabel={label}
+        navigation={{
+          types,
+          workspaces,
+          activeEntityType: null,
+          activeWorkspaceId: id,
+          workspaceBadges: {},
+          selectEntityType: (value) => selected.push(value),
+          selectWorkspace: (value) => selected.push(value),
+        }}
+      />,
+    ),
+  );
+}
+
+describe("profile navigation", () => {
+  it.each([
+    ["web-chat:chat", "Chat"],
+    ["admin:administration", "Administration"],
+    ["studio:account", "Account"],
+  ])("does not invent a parent breadcrumb for %s", async (id, label) => {
+    await renderChrome(id, label);
+    expect(document.querySelector(".studio-chrome-location")?.textContent).toBe(
+      label,
+    );
+  });
+});
 
 describe("area and leaf navigation", () => {
   it("collapses only on request and preserves that choice through destinations and remounts", async () => {
@@ -194,7 +253,12 @@ describe("area and leaf navigation", () => {
       [...document.querySelectorAll(".studio-area-link b")].map(
         (node) => node.textContent,
       ),
-    ).toEqual(["00", "01", "02", "03"]);
+    ).toEqual(["00", "01", "02", "03", "04", "05"]);
+    expect(
+      [...document.querySelectorAll(".studio-area-link span")].map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(["Overview", "Chat", "Library", "Work", "Admin", "System"]);
     expect(document.querySelector(".studio-area-rail em")).toBeNull();
     expect(
       document.querySelector(".studio-area-rail .command-chip")?.textContent,
@@ -202,7 +266,7 @@ describe("area and leaf navigation", () => {
     expect(
       document.querySelector('.studio-leaf-link[aria-current="page"]')
         ?.textContent,
-    ).toBe("Style Guidesolo");
+    ).toBe("Style Guide");
     expect(leafText()?.indexOf("Identity")).toBeLessThan(
       leafText()?.indexOf("Intelligence") ?? 0,
     );
@@ -215,7 +279,9 @@ describe("area and leaf navigation", () => {
     await click(".studio-area-link", "Work");
     expect(selected).toEqual([]);
     expect(currentArea()).toContain("Work");
-    expect(leafText()).toContain("Chat");
+    expect(leafText()).not.toContain("Chat");
+    expect(leafText()).not.toContain("Administration");
+    expect(leafText()).not.toContain("Account");
     expect(leafText()).toContain("Inbox");
     await render(); // A badge/data refresh must not undo intentional browsing.
     expect(currentArea()).toContain("Work");
@@ -223,18 +289,96 @@ describe("area and leaf navigation", () => {
     expect(selected).toEqual(["inbox:inbox"]);
   });
 
-  it("keeps the leaf beside Chat so Work destinations remain reachable", async () => {
-    await render(null, "web-chat:chat");
-    expect(currentArea()).toContain("Work");
-    expect(leafText()).toContain("Inbox");
+  it.each([
+    ["web-chat:chat", "Chat"],
+    ["admin:administration", "Admin"],
+  ])(
+    "opens %s directly without a redundant leaf or losing collapse",
+    async (id, label) => {
+      await render();
+      await click(".studio-navigation-collapse", "⇤");
+      await click(".studio-area-link", label);
+      expect(selected).toEqual([id]);
+      await render(null, id);
+      expect(currentArea()).toContain(label);
+      expect(document.querySelector(".studio-leaf-rail")).toBeNull();
+      expect(
+        document
+          .querySelector(".studio-navigation")
+          ?.getAttribute("data-leaf-open"),
+      ).toBe("false");
+      expect(window.localStorage.getItem("studio.navigation.collapsed")).toBe(
+        "true",
+      );
+      await click(".studio-area-link", "Work");
+      expect(leafText()).toContain("Inbox");
+      expect(window.localStorage.getItem("studio.navigation.collapsed")).toBe(
+        "false",
+      );
+      await click(".studio-area-link", label);
+      expect(document.querySelector(".studio-leaf-rail")).toBeNull();
+      expect(selected).toEqual([id]); // Same-page clicks do not reset session/tab queries.
+    },
+  );
+
+  it("leaves Account outside all rail areas, but still lets it browse destinations", async () => {
+    await render(null, "studio:account");
+    expect(studioArea(null, "studio:account")).toBeNull();
+    expect(currentArea()).toBeUndefined();
+    expect(document.querySelector(".studio-leaf-rail")).toBeNull();
     expect(
-      document.querySelector('.studio-leaf-link[aria-current="page"]')
-        ?.textContent,
-    ).toBe("Chat");
+      document.querySelector(".studio-navigation")?.textContent,
+    ).not.toContain("Account");
     await click(".studio-area-link", "System");
-    expect(selected).toEqual([]);
-    await click(".studio-leaf-link", "Style Guide");
-    expect(selected).toEqual(["style-guide"]);
+    expect(leafText()).toContain("Identity");
+    expect(leafText()).not.toContain("Account");
+    expect(leafText()).not.toContain("Administration");
+  });
+
+  it("does not expose Chat or Admin unless the admitted workspace list contains them", async () => {
+    await render(
+      "note",
+      null,
+      workspaces.filter(
+        (workspace) =>
+          !["web-chat:chat", "admin:administration"].includes(workspace.id),
+      ),
+    );
+    expect(
+      document.querySelector(".studio-area-rail")?.textContent,
+    ).not.toContain("Chat");
+    expect(
+      document.querySelector(".studio-area-rail")?.textContent,
+    ).not.toContain("Admin");
+  });
+
+  it("preserves admitted attention counts on primary destinations, including the collapsed rail", async () => {
+    await render(
+      "note",
+      null,
+      workspaces.map((workspace) =>
+        workspace.id === "admin:administration"
+          ? { ...workspace, badge: 2 }
+          : workspace,
+      ),
+    );
+    const admin = document.querySelector(
+      '.studio-area-link[aria-label="Administration"]',
+    );
+    expect(admin?.querySelector("small")?.textContent).toBe("2");
+    expect(admin?.getAttribute("aria-description")).toBe("2 need attention");
+    await click(".studio-navigation-collapse", "⇤");
+    expect(admin?.getAttribute("aria-description")).toBe("2 need attention");
+  });
+
+  it("does not change browsing when a guarded direct destination is rejected", async () => {
+    await render();
+    await click(".studio-area-link", "System");
+    await click(".studio-area-link", "Admin");
+    await render();
+    expect(selected).toEqual(["admin:administration"]);
+    expect(currentArea()).toContain("System");
+    expect(leafText()).toContain("Identity");
   });
 
   it("restores the owning area when the route changes, including a return to a previous route", async () => {

@@ -7,7 +7,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
       "attributes": [
         [
           "class",
-          "declarative-workspace operator-view",
+          "declarative-workspace operator-view x2lwn1j x186ixgm xdbnglg x1odjw0f x1cb063g",
         ],
         [
           "data-control-engine",
@@ -74,7 +74,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "attributes": [
             [
               "class",
-              "declarative-blocks",
+              "declarative-blocks xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw",
             ],
           ],
           "children": [
@@ -82,7 +82,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
               "attributes": [
                 [
                   "class",
-                  "operator-block operator-block--table",
+                  "operator-block operator-block--table xeuugli x1osaytk",
                 ],
                 [
                   "data-block",
@@ -178,7 +178,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                                       "attributes": [
                                         [
                                           "class",
-                                          "declarative-inline-link operator-inline-link",
+                                          "declarative-inline-link operator-inline-link x1717udv xc342km xjbqb8w x1myn341 xjb2p0i x1qlqyl8 x1pd3egz x4gjf66 x16tdsg8 xkrqix3 x1sur9pj xda060z x1ypdohk xj0a0fe x2wh2y9 x1t137rt x9v5kkp x1de99jn x1itw484",
                                         ],
                                         [
                                           "href",

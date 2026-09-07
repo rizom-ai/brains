@@ -20,6 +20,11 @@ import {
 } from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { styles } from "./app-styles";
+import { workspaceClassName } from "./studio-workspace.styles";
+import {
+  accountClass,
+  accountStyles as accountLayout,
+} from "./studio-account.styles";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import {
   editorClassName as editorClass,
@@ -65,7 +70,6 @@ import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
-import chromeStyles from "./studio-chrome.css" with { type: "text" };
 import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
 import {
   declarativeStudioPageHead,
@@ -162,7 +166,7 @@ export function StudioAppStatus(props: {
 }): ReactElement {
   return (
     <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <StudioChrome contextLabel="Studio" />
       <p
         className={
@@ -186,7 +190,7 @@ export function StudioAccountWorkspaceView(props: {
   const navigationCollapsed = useStudioNavigationCollapsed();
   return (
     <div className="studio" data-view="account">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <StudioChrome
         contextLabel="Account"
         navigation={{
@@ -218,7 +222,11 @@ export function StudioAccountWorkspaceView(props: {
             onSelectWorkspace={props.selectWorkspace}
           />
         </aside>
-        <main className="account-studio-pane">{props.children}</main>
+        <main
+          className={accountClass("account-studio-pane", accountLayout.pane)}
+        >
+          {props.children}
+        </main>
       </div>
     </div>
   );
@@ -315,7 +323,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     title: activeType?.label ?? entityType ?? "Library",
     metadata: [
       `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
-      "Sorted by updated",
+      ...(syncPending ? ["Sync pending"] : []),
     ],
     totals: [],
   };
@@ -351,14 +359,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${chromeStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <StudioChrome
         contextLabel={collectionLabel}
         onContextClick={
           editing && !entitySchema.isSingleton ? backToList : undefined
-        }
-        contextBadge={
-          activeWorkspaceId ? workspaceBadges[activeWorkspaceId] : undefined
         }
         navigation={{
           types,
@@ -395,7 +400,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               <p className="status status-error">{workspaceError}</p>
             </main>
           ) : declarativeWorkspaceData && declarativeHead ? (
-            <div className="studio-workspace-frame">
+            <div className={workspaceClassName("studio-workspace-frame")}>
               <StudioPageHead
                 model={declarativeHead}
                 {...(declarativeHead.primaryAction
@@ -445,30 +450,26 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               <button
                 type="button"
                 key={entity.id}
-                className="row"
+                className={editorClass("row", editorStyles.listingRow)}
                 onClick={() => openEntity(entity.id)}
               >
                 <span className="idx">
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="title">
+                <span className="title" title={entity.id}>
                   {entityTitle(entity)}
-                  <small>
-                    {singularLabel(entity.entityType)}/{entity.id}
-                  </small>
+                  {typeHasPublicationField(entitySchema.fields) && (
+                    <span
+                      className={editorClass(
+                        "studio-publication-state",
+                        editorStyles.publication,
+                      )}
+                    >
+                      {entityPublicationState(entity)}
+                    </span>
+                  )}
                 </span>
-                {typeHasPublicationField(entitySchema.fields) && (
-                  <span className={`chip ${entityPublicationState(entity)}`}>
-                    {entityPublicationState(entity)}
-                  </span>
-                )}
                 <span className="updated">{formatUpdated(entity.updated)}</span>
-                <span className="sync">
-                  <span
-                    className={syncPending ? "sync-dot pending" : "sync-dot"}
-                  />
-                  {syncPending ? "exporting" : "committed"}
-                </span>
               </button>
             ))}
             {entities?.length === 0 && (
@@ -540,9 +541,6 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className={editorClass("", editorStyles.paneContext)}>
-                {entryLabel}
-              </span>
             </div>
             <aside className="colophon">
               <div
@@ -555,14 +553,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   <span className="studio-form-desktop-label">Properties</span>
                   <span className="studio-form-mobile-label">Properties</span>
                 </h2>
-                <span className={editorClass("", editorStyles.propertiesLabel)}>
-                  {entryLabel}
-                  {mode.kind === "create"
-                    ? " · new"
-                    : publicationState
-                      ? ` · ${publicationState}`
-                      : ""}
-                </span>
+                {mode.kind === "create" || publicationState ? (
+                  <span
+                    className={editorClass("", editorStyles.propertiesLabel)}
+                  >
+                    {mode.kind === "create" ? "New" : publicationState}
+                  </span>
+                ) : null}
               </div>
               <fieldset className="capability-fields" disabled={!canEdit}>
                 {entitySchema.fields

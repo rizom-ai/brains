@@ -12,7 +12,7 @@ export const styles = `
   /* ── listing ── */
   .listing { padding: 26px 30px 34px; }
   .listing-empty { padding: 22px 4px; }
-  .row { display: grid; grid-template-columns: 44px 1fr 150px; gap: 18px; align-items: baseline; width: 100%; padding: 15px 4px 14px; border: 0; border-bottom: 1px solid var(--console-rule-strong); background: none; text-align: left; cursor: pointer; transition: background .12s ease; font-family: var(--console-ui); }
+  .row { display: grid; gap: 18px; align-items: baseline; width: 100%; padding: 15px 4px 14px; border: 0; border-bottom: 1px solid var(--console-rule-strong); background: none; text-align: left; cursor: pointer; transition: background .12s ease; font-family: var(--console-ui); }
   .row:hover { background: var(--console-rule); }
   .row .idx { font-family: var(--console-mono); font-size: 11px; color: var(--console-text-muted); }
   .row .title { font-family: var(--console-display); font-variation-settings: "SOFT" 50, "opsz" 30; font-weight: 520; font-size: 17.5px; letter-spacing: -0.005em; color: var(--console-text); }

@@ -2,6 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { PNG } from "pngjs";
+import { createAdministrationFixture } from "./fixtures/studio-administration";
+import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/studio";
@@ -98,935 +100,19 @@ types.push(
     { entityType: "agent", label: "Agents", isSingleton: false, count: 15 },
   ].map((info) => ({ ...info, hasBody: true, capabilities: editCapabilities })),
 );
-const overviewWorkspaceData = {
-  refreshAfterMs: 15_000,
-  view: {
-    kicker: "Operator home",
-    title: "Overview",
-    description:
-      "What needs you, and what the brain did on its own. Glance here, act in the workspace that owns it.",
-    status: {
-      label: "3 need you",
-      detail: "live operational snapshot",
-      tone: "warn",
-    },
-    blocks: [
-      {
-        type: "columns",
-        id: "overview-columns",
-        primary: [
-          {
-            type: "card",
-            id: "overview-attention",
-            label: "Needs attention",
-            tone: "warn",
-            blocks: [
-              {
-                type: "list",
-                id: "overview-attention-list",
-                empty: "Nothing needs your attention.",
-                items: [
-                  {
-                    id: "dispatch-failed",
-                    title: "Newsletter dispatch failed",
-                    description:
-                      "Urban sensor platforms — transport rejected the payload.",
-                    metadata: ["Publishing", "2 retries left", "18:20"],
-                    tone: "error",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "publishing" },
-                    },
-                  },
-                  {
-                    id: "site-preview-failed",
-                    title: "Site preview needs review",
-                    description:
-                      "One route failed during the latest preview build.",
-                    metadata: ["Site", "preview environment"],
-                    tone: "warn",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "site" },
-                    },
-                  },
-                  {
-                    id: "invitation-expiring",
-                    title: "Grace Hopper's setup link expires soon",
-                    description:
-                      "The single-use invitation link expires tomorrow.",
-                    metadata: ["Access", "Invitations"],
-                    tone: "warn",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "invitations" },
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "overview-activity",
-            label: "While you were away",
-            blocks: [
-              {
-                type: "list",
-                id: "overview-activity-list",
-                empty: "No recent autonomous activity.",
-                items: [
-                  // A row at the protocol's edges. Sources may legally send a
-                  // 500-character title, 20 metadata entries, and 160-character
-                  // tags and badges; the renderer decides width from the
-                  // block's meaning, so none of that may reach the page edge.
-                  {
-                    id: "unbroken-tokens",
-                    title:
-                      "Rebuilt https://preview.example.com/notes/quiet-infrastructure?build=20260711163352a7f3&environment=preview",
-                    description:
-                      "Reconciled against operator+publishing.pipeline.20260711163352@notifications.example.com after the render retry.",
-                    metadata: [
-                      "Site",
-                      "build-20260711163352a7f3-preview-reconciliation",
-                    ],
-                    tags: ["reconciliation/publishing-pipeline-preview-build"],
-                    badges: [
-                      {
-                        label: "awaiting-operator-acknowledgement",
-                        tone: "warn",
-                      },
-                    ],
-                    tone: "warn",
-                  },
-                  {
-                    id: "mail-triage",
-                    title: "9 mail items triaged",
-                    description: "2 flagged high priority, 1 needs a reply.",
-                    metadata: ["Inbox", "overnight"],
-                    tone: "good",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "inbox" },
-                    },
-                  },
-                  {
-                    id: "preview-built",
-                    title: "Site preview built",
-                    description: "31 routes completed without warnings.",
-                    metadata: ["Site", "16:04"],
-                    tone: "good",
-                  },
-                  {
-                    id: "notes-captured",
-                    title: "3 notes captured",
-                    description:
-                      "From inbox follow-ups on the workshop thread.",
-                    metadata: ["Notes", "14:31"],
-                    tone: "neutral",
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        aside: [
-          {
-            type: "card",
-            id: "overview-system",
-            label: "System",
-            tone: "neutral",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "Runtime", value: "operational" },
-                  { label: "Jobs", value: "idle" },
-                  { label: "Queue", value: "0 waiting" },
-                  { label: "Version", value: "0.2.0-alpha.306" },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "overview-network",
-            label: "Network",
-            tone: "neutral",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "Interactions", value: 4 },
-                  { label: "Channels", value: 3 },
-                  { label: "Inbox sources", value: 2 },
-                  { label: "Operational sources", value: 3 },
-                ],
-              },
-            ],
-          },
-          // The site-builder Site health widget, shaped exactly as
-          // plugins/site-builder emits it through sourcePanelBlocks: a stats
-          // pair, key-values carrying free-form build detail, a joined
-          // multi-failure notice, and its links. Sidebar cards elsewhere in
-          // this fixture only ever hold one-word values, which is why nothing
-          // here caught long detail strings escaping the aside column.
-          {
-            type: "card",
-            id: "source-site-builder-site-health",
-            label: "Site health",
-            tone: "warn",
-            blocks: [
-              {
-                type: "stats",
-                items: [
-                  { label: "Preview", value: "published", tone: "good" },
-                  { label: "Live", value: "failed", tone: "warn" },
-                ],
-              },
-              {
-                type: "key-values",
-                items: [
-                  {
-                    label: "Preview detail",
-                    value:
-                      "14 published routes · build-20260711-163352-a7f3 · 2026-07-11T16:33:52.458Z",
-                  },
-                  {
-                    label: "Live detail",
-                    value:
-                      "Route /notes/quiet-infrastructure failed to render: missing template binding for hero.image.",
-                  },
-                ],
-              },
-              {
-                type: "notice",
-                id: "build-failures",
-                title: "Previous build failures",
-                tone: "error",
-                text: "production · job-7f21c · 2026-07-11T16:31:02.220Z: Route /notes/quiet-infrastructure failed to render.\npreview · job-7f20a · 2026-07-11T16:22:10.004Z: Timed out after 120s.",
-              },
-              {
-                type: "links",
-                items: [
-                  {
-                    label: "Open preview",
-                    target: { external: "https://preview.example.com" },
-                  },
-                  {
-                    label: "Open in Studio",
-                    target: { launch: { target: "site" } },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "overview-sources",
-            label: "All sources connected",
-            tone: "good",
-            blocks: [
-              {
-                type: "notice",
-                tone: "good",
-                text: "Email, directory sync, and the site pipeline are reporting normally.",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const administrationWorkspaceData = {
-  view: {
-    kicker: "Access administration",
-    title: "Administration",
-    description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
-    blocks: [
-      {
-        type: "stats",
-        id: "people-summary",
-        items: [
-          { label: "Active members", value: 2 },
-          { label: "Active Admins", value: 1 },
-          { label: "Suspended", value: 1, tone: "warn" },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "administration-tabs",
-        label: "Administration sections",
-        defaultTab: "people",
-        queryKey: "tab",
-        tabs: [
-          {
-            id: "people",
-            label: "People",
-            blocks: [
-              {
-                type: "detail",
-                id: "people",
-                queryKey: "selected",
-                empty: "Select a person to inspect their access.",
-                master: {
-                  type: "table",
-                  id: "people-roster",
-                  empty: "No people are available.",
-                  columns: [
-                    { key: "person", label: "Person" },
-                    { key: "role", label: "Role" },
-                    { key: "status", label: "Status" },
-                    { key: "brain", label: "Arrived via" },
-                  ],
-                  rows: [
-                    {
-                      id: "mira",
-                      cells: {
-                        person: "Mira Reyes",
-                        role: "Admin",
-                        status: "Active",
-                        brain: "This brain",
-                      },
-                      compact: {
-                        title: "Mira Reyes",
-                        metadata: [
-                          "Admin",
-                          "This brain",
-                          "2 passkeys · 1 channel",
-                        ],
-                        badges: [{ label: "Active", tone: "good" }],
-                      },
-                      link: { kind: "detail", itemId: "mira" },
-                    },
-                    {
-                      id: "grace",
-                      cells: {
-                        person: "Grace Hopper",
-                        role: "Trusted",
-                        status: "Active",
-                        brain: "grace.example",
-                      },
-                      compact: {
-                        title: "Grace Hopper",
-                        metadata: [
-                          "Trusted",
-                          "grace.example",
-                          "1 passkey · 2 channels",
-                        ],
-                        badges: [{ label: "Active", tone: "good" }],
-                      },
-                      link: { kind: "detail", itemId: "grace" },
-                    },
-                    {
-                      id: "sam",
-                      cells: {
-                        person: "Sam Lee",
-                        role: "Public",
-                        status: "Suspended",
-                        brain: "This brain",
-                      },
-                      compact: {
-                        title: "Sam Lee",
-                        metadata: [
-                          "Public",
-                          "This brain",
-                          "0 passkeys · 1 channel",
-                        ],
-                        badges: [{ label: "Suspended", tone: "warn" }],
-                        tone: "warn",
-                      },
-                      link: { kind: "detail", itemId: "sam" },
-                    },
-                  ],
-                  open: undefined,
-                },
-              },
-              {
-                type: "columns",
-                id: "people-standing",
-                primary: [
-                  {
-                    type: "card",
-                    id: "people-peers",
-                    label: "External brains",
-                    blocks: [
-                      {
-                        type: "table",
-                        id: "peers",
-                        empty: "No external brains are linked.",
-                        columns: [
-                          { key: "peer", label: "Brain" },
-                          { key: "person", label: "Person" },
-                          { key: "verification", label: "Verification" },
-                          { key: "linked", label: "Linked" },
-                        ],
-                        rows: [
-                          {
-                            id: "grace.example",
-                            cells: {
-                              peer: "grace.example",
-                              person: "Grace Hopper",
-                              verification: "Verified",
-                              linked: "Aug 12, 2026",
-                            },
-                            compact: {
-                              title: "grace.example",
-                              metadata: [
-                                "Grace Hopper",
-                                "Trusted",
-                                "Aug 12, 2026",
-                              ],
-                              badges: [{ label: "Verified", tone: "good" }],
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-                aside: [
-                  {
-                    type: "card",
-                    id: "brain-anchor",
-                    label: "Brain Anchor",
-                    blocks: [
-                      {
-                        type: "key-values",
-                        items: [
-                          { label: "Name", value: "Mira Reyes" },
-                          { label: "Kind", value: "Person" },
-                          { label: "Ownership", value: "Personal" },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: "notice",
-                    id: "people-peer-note",
-                    tone: "neutral",
-                    title: "External brain relationships",
-                    text: "A peer link records how a locally administered person relates to another brain. It does not grant or change local access.",
-                  },
-                  {
-                    type: "card",
-                    id: "link-peer",
-                    label: "Link an existing person",
-                    blocks: [
-                      {
-                        type: "text",
-                        text: "Associate an external peer identity with a locally administered person.",
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            id: "invitations",
-            label: "Invitations",
-            count: 1,
-            blocks: [
-              {
-                type: "text",
-                text: "Invitations load when this tab is opened.",
-              },
-            ],
-          },
-          {
-            id: "audit",
-            label: "Audit",
-            blocks: [
-              { type: "text", text: "Audit loads when this tab is opened." },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const administrationInvitationsWorkspaceData = {
-  view: {
-    kicker: "Access administration",
-    title: "Administration",
-    description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
-    primaryAction: {
-      actionId: "create-invitation",
-      label: "Add a person",
-      input: { idempotencyKey: "visual-request" },
-      form: {
-        presentation: "disclosure",
-        submitLabel: "Create invitation",
-        fields: [
-          {
-            name: "displayName",
-            label: "Display name",
-            control: "text",
-            required: true,
-          },
-          {
-            name: "deliveryType",
-            label: "Delivery channel",
-            control: "select",
-            required: true,
-            options: [{ value: "email", label: "Private email" }],
-          },
-          {
-            name: "deliverySubject",
-            label: "Email address",
-            control: "text",
-            required: true,
-          },
-        ],
-      },
-      result: {
-        title: "Invitation setup",
-        fields: [
-          { name: "status", label: "Status" },
-          {
-            name: "setupUrl",
-            label: "Single-use setup URL",
-            copyable: true,
-            sensitive: true,
-          },
-          { name: "expiresAt", label: "Expires" },
-        ],
-      },
-    },
-    blocks: [
-      {
-        type: "stats",
-        id: "invitation-totals",
-        items: [
-          { label: "Pending", value: 1 },
-          { label: "History", value: 4 },
-          { label: "Delivery failures", value: 0, tone: "neutral" },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "administration-tabs",
-        label: "Administration sections",
-        defaultTab: "invitations",
-        queryKey: "tab",
-        tabs: [
-          {
-            id: "people",
-            label: "People",
-            blocks: [{ type: "text", text: "People load on selection." }],
-          },
-          {
-            id: "invitations",
-            label: "Invitations",
-            count: 1,
-            blocks: [
-              {
-                type: "columns",
-                id: "invitation-layout",
-                primary: [
-                  {
-                    type: "table",
-                    id: "invitations",
-                    empty: "No pending invitations.",
-                    query: {
-                      controls: [
-                        {
-                          key: "state",
-                          label: "View",
-                          value: "pending",
-                          options: [
-                            { value: "pending", label: "Pending", count: 1 },
-                            { value: "history", label: "History", count: 4 },
-                          ],
-                        },
-                      ],
-                      pagination: { offset: 0, limit: 25, total: 1 },
-                    },
-                    columns: [
-                      { key: "person", label: "Person" },
-                      { key: "role", label: "Role" },
-                      { key: "state", label: "State" },
-                      { key: "destination", label: "Destination" },
-                      { key: "updated", label: "Updated" },
-                    ],
-                    rows: [
-                      {
-                        id: "jordan",
-                        cells: {
-                          person: "Jordan Rivera",
-                          role: "Trusted",
-                          state: "Pending",
-                          destination: "jordan@example.com",
-                          updated: "Aug 26, 2026",
-                        },
-                        compact: {
-                          title: "Jordan Rivera",
-                          metadata: [
-                            "Trusted",
-                            "jordan@example.com",
-                            "Aug 26, 2026",
-                          ],
-                          badges: [{ label: "Pending", tone: "neutral" }],
-                        },
-                        actions: [
-                          {
-                            actionId: "resend-invitation",
-                            label: "Resend",
-                            input: { invitationId: "jordan" },
-                          },
-                          {
-                            actionId: "cancel-invitation",
-                            label: "Cancel",
-                            input: { invitationId: "jordan" },
-                            confirmation: { kind: "prepared" },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-                aside: [
-                  {
-                    type: "card",
-                    id: "invite-peer",
-                    label: "Peer-first invitation",
-                    blocks: [
-                      {
-                        type: "text",
-                        text: "Create local access for a person known first through another brain.",
-                      },
-                      {
-                        type: "action",
-                        actionId: "invite-external-peer-person",
-                        label: "Invite peer person",
-                        input: {},
-                        form: {
-                          presentation: "disclosure",
-                          submitLabel: "Invite peer person",
-                          fields: [
-                            {
-                              name: "peerId",
-                              label: "External peer ID",
-                              control: "text",
-                              required: true,
-                            },
-                            {
-                              name: "displayName",
-                              label: "Display name",
-                              control: "text",
-                              required: true,
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            id: "audit",
-            label: "Audit",
-            blocks: [{ type: "text", text: "Audit loads on selection." }],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const administrationAuditWorkspaceData = {
-  view: {
-    kicker: "Security history",
-    title: "Administration",
-    description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
-    blocks: [
-      {
-        type: "stats",
-        id: "audit-totals",
-        items: [
-          { label: "Matching", value: 212 },
-          { label: "Actors", value: 4 },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "administration-tabs",
-        label: "Administration sections",
-        defaultTab: "audit",
-        queryKey: "tab",
-        tabs: [
-          {
-            id: "people",
-            label: "People",
-            blocks: [{ type: "text", text: "People load on selection." }],
-          },
-          {
-            id: "invitations",
-            label: "Invitations",
-            count: 1,
-            blocks: [{ type: "text", text: "Invitations load on selection." }],
-          },
-          {
-            id: "audit",
-            label: "Audit",
-            blocks: [
-              {
-                type: "detail",
-                id: "audit-detail",
-                queryKey: "selected",
-                empty: "Select an event to inspect its audit record.",
-                master: {
-                  type: "table",
-                  id: "audit-events",
-                  empty: "No audit events match these filters.",
-                  query: {
-                    controls: [
-                      {
-                        key: "actorUserId",
-                        label: "Actor",
-                        allLabel: "All actors",
-                        options: [
-                          { value: "mira", label: "Mira Reyes" },
-                          { value: "system", label: "System" },
-                        ],
-                      },
-                      {
-                        key: "action",
-                        label: "Action",
-                        allLabel: "All actions",
-                        options: [
-                          { value: "role", label: "Changed an account role" },
-                          { value: "setup", label: "Created a setup link" },
-                        ],
-                      },
-                    ],
-                    pagination: {
-                      offset: 0,
-                      limit: 25,
-                      total: 212,
-                    },
-                  },
-                  columns: [
-                    { key: "when", label: "When" },
-                    { key: "actor", label: "Actor" },
-                    { key: "action", label: "Action" },
-                    { key: "target", label: "Target" },
-                  ],
-                  rows: [
-                    {
-                      id: "audit-1",
-                      cells: {
-                        when: "Aug 30, 2026",
-                        actor: "Mira Reyes",
-                        action: "Changed an account role",
-                        target: "Grace Hopper",
-                      },
-                      compact: {
-                        title: "Changed an account role",
-                        metadata: ["Mira Reyes", "Grace Hopper"],
-                        badges: [{ label: "Aug 30, 2026" }],
-                      },
-                      link: { kind: "detail", itemId: "audit-1" },
-                    },
-                    {
-                      id: "audit-2",
-                      cells: {
-                        when: "Aug 29, 2026",
-                        actor: "System",
-                        action: "Created a setup link",
-                        target: "Jordan Rivera",
-                      },
-                      compact: {
-                        title: "Created a setup link",
-                        metadata: ["System", "Jordan Rivera"],
-                        badges: [{ label: "Aug 29, 2026" }],
-                      },
-                      link: { kind: "detail", itemId: "audit-2" },
-                    },
-                    {
-                      id: "audit-3",
-                      cells: {
-                        when: "Aug 28, 2026",
-                        actor: "Mira Reyes",
-                        action: "Revoked account grants",
-                        target: "Sam Lee",
-                      },
-                      compact: {
-                        title: "Revoked account grants",
-                        metadata: ["Mira Reyes", "Sam Lee"],
-                        badges: [{ label: "Aug 28, 2026" }],
-                      },
-                      link: { kind: "detail", itemId: "audit-3" },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-// The unified-inbox workspace, shaped as plugins/unified-inbox emits it: a
-// three-stat summary, query controls with a pager, and a master/detail split
-// whose rows carry an urgency badge, source metadata, and the verbs that clear
-// them. It is the widest block set any workspace uses and the only surface
-// where `detail` opens a reading pane, which is why it needs its own capture
-// rather than being assumed to behave like Administration.
-const inboxWorkspaceData = {
-  refreshAfterMs: 20_000,
-  view: {
-    kicker: "Live source-owned attention",
-    title: "Inbox",
-    description:
-      "Triage incoming work without creating a second copy of source state.",
-    status: {
-      label: "2 of 3 sources online",
-      detail: "some sources unavailable",
-      tone: "warn",
-    },
-    blocks: [
-      {
-        type: "stats",
-        id: "inbox-summary",
-        items: [
-          { label: "Open", value: 3, caption: "across sources" },
-          {
-            label: "High priority",
-            value: 1,
-            caption: "needs attention",
-            tone: "warn",
-          },
-          { label: "Matching", value: 3, caption: "current filter" },
-        ],
-      },
-      {
-        type: "notice",
-        id: "inbox-source-errors",
-        title: "Ledger archive",
-        tone: "error",
-        text: "Source unavailable: the archive host refused the connection at 09:02.",
-      },
-      {
-        type: "query",
-        id: "inbox-query",
-        controls: [
-          {
-            kind: "select",
-            key: "source",
-            label: "Source",
-            value: "all",
-            options: [
-              { value: "all", label: "All sources" },
-              { value: "smoke-mailbox", label: "Smoke mailbox" },
-              { value: "agent-sightings", label: "Agent sightings" },
-            ],
-          },
-          {
-            kind: "select",
-            key: "urgency",
-            label: "Urgency",
-            value: "all",
-            options: [
-              { value: "all", label: "Any urgency" },
-              { value: "high", label: "High only" },
-            ],
-          },
-        ],
-        pagination: { offset: 0, limit: 10, total: 3 },
-      },
-      {
-        type: "detail",
-        id: "inbox-detail",
-        queryKey: "selected",
-        empty: "Select an item to read its source content.",
-        master: {
-          type: "list",
-          id: "inbox-items",
-          empty: "Nothing needs attention for these filters.",
-          items: [
-            {
-              id: "smoke-mailbox::msg-4180",
-              title: "Verdigris pigment supplier cannot meet the July run",
-              description:
-                "They can cover half the order and asked whether a substitute binder is acceptable.",
-              metadata: [
-                "Smoke mailbox",
-                "2026-07-11 09:14 UTC",
-                "Message 3 in thread",
-              ],
-              badges: [{ label: "high priority", tone: "warn" }],
-              link: { detail: { itemId: "smoke-mailbox::msg-4180" } },
-            },
-            {
-              id: "agent-sightings::natalie-0912",
-              title: "Natalie reported a stale profile on natalie.rizom.ai",
-              description: "The published bio predates the June role change.",
-              metadata: ["Agent sightings", "2026-07-11 08:02 UTC"],
-              badges: [{ label: "normal priority" }],
-              link: { detail: { itemId: "agent-sightings::natalie-0912" } },
-            },
-            {
-              id: "smoke-mailbox::msg-4166",
-              title: "Invoice 2026-118 acknowledged",
-              description: "No reply needed; filed against the trust series.",
-              metadata: ["Smoke mailbox", "2026-07-10 16:40 UTC"],
-              badges: [{ label: "normal priority" }],
-              link: { detail: { itemId: "smoke-mailbox::msg-4166" } },
-            },
-          ],
-        },
-      },
-    ],
-  },
-};
-
 const contentSyncWorkspaceData = {
   view: {
-    kicker: "Content operations",
     title: "Content sync",
-    description:
-      "Keep durable entities, the content directory, and its Git remote converged.",
-    status: { label: "Watching", detail: "main · clean", tone: "good" },
-    primaryAction: {
-      actionId: "sync-now",
-      label: "Sync now",
-      input: {},
-    },
+    primaryAction: { actionId: "sync-now", label: "Sync now", input: {} },
     blocks: [
       {
-        type: "stats",
-        id: "sync-summary",
-        items: [
-          { label: "Files", value: 84, caption: "markdown + images" },
-          { label: "Entity types", value: 12, caption: "within scope" },
-          { label: "Issues", value: 0, caption: "all clear", tone: "good" },
-        ],
-      },
-      {
-        type: "flow",
-        id: "sync-flow",
-        label: "Convergence path",
-        steps: [
-          { id: "database", label: "Entity database", status: "complete" },
-          { id: "directory", label: "Content directory", status: "complete" },
-          {
-            id: "git",
-            label: "origin/main",
-            status: "complete",
-            detail: "0 ahead · 0 behind",
-          },
+        type: "notice",
+        id: "sync-issues-git",
+        title: "Repository sync needs attention",
+        text: "1 recorded issue · brain-data",
+        tone: "warn",
+        details: [
+          "Occurred: 2026-09-05T09:15:00.000Z\nPath: brain-data\nThe remote rejected the push because it contains newer commits. The local export is retained. Review the repository before retrying the sync.",
         ],
       },
       {
@@ -1035,15 +121,58 @@ const contentSyncWorkspaceData = {
         primary: [
           {
             type: "card",
-            id: "sync-source-card",
-            label: "Source directory",
+            id: "recent-runs-section",
+            label: "Recent runs",
+            metadata: ["2 retained"],
             blocks: [
               {
-                type: "key-values",
+                type: "list",
+                id: "recent-runs",
+                presentation: "editorial",
+                empty: "No directory sync runs have completed yet.",
                 items: [
-                  { label: "Path", value: "brain-data" },
-                  { label: "Last import", value: "11 Jul 2026, 16:32" },
-                  { label: "Watch", value: "enabled" },
+                  {
+                    id: "run-1",
+                    title: "Manual sync · failed",
+                    description: "The remote rejected the push.",
+                    tone: "error",
+                    metadata: [
+                      "Imported: 12",
+                      "Exported: 4",
+                      "Completed: 2026-09-05T09:15:00.000Z",
+                    ],
+                  },
+                  {
+                    id: "run-2",
+                    title: "Watch sync · succeeded",
+                    description: "The content directory is up to date.",
+                    metadata: [
+                      "Imported: 2",
+                      "Exported: 0",
+                      "Completed: 2026-09-05T09:14:00.000Z",
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "changed-files-section",
+            label: "Changed files",
+            metadata: ["1 in working tree"],
+            blocks: [
+              {
+                type: "list",
+                id: "changed-files",
+                presentation: "editorial",
+                empty: "No changed files.",
+                items: [
+                  {
+                    id: "changed-1",
+                    title: "notes/shared-tools.md",
+                    badges: [{ label: "modified" }],
+                  },
                 ],
               },
             ],
@@ -1052,13 +181,43 @@ const contentSyncWorkspaceData = {
         aside: [
           {
             type: "card",
-            id: "sync-automation-card",
-            label: "Automation",
+            id: "sync-source-card",
+            label: "Connection",
             blocks: [
               {
-                type: "notice",
-                tone: "good",
-                text: "Exports are current and the remote has no pending changes.",
+                type: "key-values",
+                id: "sync-source",
+                items: [
+                  { label: "Folder", value: "brain-data" },
+                  { label: "Available", value: true },
+                  { label: "Watcher", value: "Watching" },
+                  { label: "Last settled", value: "2026-09-05T09:15:00.000Z" },
+                ],
+              },
+            ],
+          },
+          {
+            type: "card",
+            id: "sync-repository-card",
+            label: "Repository details",
+            presentation: "disclosure",
+            blocks: [
+              {
+                type: "key-values",
+                id: "sync-git-source",
+                items: [
+                  { label: "Branch", value: "main" },
+                  { label: "Remote", value: "origin" },
+                ],
+              },
+              {
+                type: "stats",
+                id: "sync-summary",
+                items: [
+                  { label: "Files", value: 84 },
+                  { label: "Entity types", value: 12 },
+                  { label: "Issues", value: 1, tone: "warn" },
+                ],
               },
             ],
           },
@@ -1070,108 +229,189 @@ const contentSyncWorkspaceData = {
 
 const siteWorkspaceData = {
   view: {
-    kicker: "Website operations",
-    title: "Site control",
-    description:
-      "Build a proof with public drafts, then update the live site from published content.",
-    status: {
-      label: "Rizom field notes",
-      detail: "2 environments",
-      tone: "good",
-    },
+    title: "Site",
     blocks: [
       {
-        type: "stats",
-        id: "site-summary",
-        items: [
-          { label: "Routes", value: 31, caption: "configured" },
-          { label: "Active builds", value: 0, caption: "none running" },
-          {
-            label: "Warnings",
-            value: 1,
-            caption: "latest builds",
-            tone: "warn",
-          },
-        ],
-      },
-      {
-        type: "columns",
-        id: "site-body",
-        primary: [
-          {
-            type: "card",
-            id: "preview-card",
-            label: "Preview",
-            tone: "good",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "State", value: "published" },
-                  { label: "Built", value: "11 Jul 2026, 16:33" },
-                  { label: "Routes", value: 31 },
-                ],
-              },
-              {
-                type: "actions",
-                items: [
-                  {
-                    actionId: "build-preview",
-                    label: "Build preview",
-                    input: {},
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "production-card",
-            label: "Production",
-            tone: "warn",
-            blocks: [
-              {
-                type: "notice",
-                tone: "warn",
-                title: "One warning",
-                text: "The notes index contains one draft-only link.",
-              },
-              {
-                type: "actions",
-                items: [
-                  {
-                    actionId: "build-production",
-                    label: "Build production",
-                    input: {},
-                    confirmation: {
-                      kind: "static",
-                      message:
-                        "Replace the live site with the latest published build?",
+        type: "tabs",
+        id: "site-environments",
+        label: "Environment",
+        defaultTab: "preview",
+        tabs: (["preview", "production"] as const).map((environment) => ({
+          id: environment,
+          label: environment === "preview" ? "Preview" : "Production",
+          blocks: [
+            {
+              type: "columns",
+              id: `site-${environment}`,
+              primary: [
+                {
+                  type: "card",
+                  id: `${environment}-card`,
+                  label: "Published",
+                  presentation: "feature",
+                  metadata: [
+                    environment === "preview" ? "Preview" : "Production",
+                  ],
+                  blocks: [
+                    {
+                      type: "key-values",
+                      items: [
+                        {
+                          label: "Published generation",
+                          value: `build-20260711163352-${environment}`,
+                        },
+                        {
+                          label: "Published at",
+                          value: "2026-07-11T16:33:52.000Z",
+                        },
+                        { label: "Published result", value: "31 routes" },
+                        {
+                          label: "Last successful render",
+                          value: "2026-07-11T16:33:52.000Z",
+                        },
+                        {
+                          label: "Rendered result",
+                          value: `31 routes · build-20260711163352-${environment}`,
+                        },
+                      ],
                     },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        aside: [
-          {
-            type: "card",
-            id: "site-routes",
-            label: "Route sample",
-            blocks: [
-              {
-                type: "list",
-                empty: "No routes.",
-                items: [
-                  { id: "home", title: "/", description: "Home" },
-                  { id: "notes", title: "/notes/", description: "Notes" },
-                  { id: "about", title: "/about/", description: "About" },
-                ],
-              },
-            ],
-          },
-        ],
+                    {
+                      type: "actions",
+                      items: [
+                        {
+                          actionId: `build-${environment}`,
+                          label: `Build ${environment}`,
+                          input: {},
+                          ...(environment === "production"
+                            ? {
+                                confirmation: {
+                                  kind: "static",
+                                  message:
+                                    "Build and publish the production site now?",
+                                },
+                              }
+                            : {}),
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "card",
+                  id: "site-recent-builds",
+                  label: "Recent builds",
+                  blocks: [
+                    {
+                      type: "list",
+                      id: "recent-builds",
+                      presentation: "activity",
+                      empty: "No site builds have completed yet.",
+                      items: [
+                        {
+                          id: `build-${environment}`,
+                          title: `${environment} · succeeded`,
+                          metadata: [
+                            "Completed: 2026-07-11T16:33:52.000Z",
+                            "Routes: 31",
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+              aside: [
+                {
+                  type: "card",
+                  id: "site-routes",
+                  label: "Configured routes",
+                  metadata: ["31 configured"],
+                  blocks: [
+                    {
+                      type: "table",
+                      id: "routes",
+                      empty: "No site routes are configured.",
+                      columns: [
+                        { key: "title", label: "Route" },
+                        { key: "path", label: "Path" },
+                      ],
+                      rows: [
+                        { title: "Home", path: "/" },
+                        { title: "Notes", path: "/notes/" },
+                        { title: "About", path: "/about/" },
+                        { title: "Newsletter", path: "/newsletter/" },
+                        { title: "Essays", path: "/essays/" },
+                        { title: "Topics", path: "/topics/" },
+                        { title: "Now", path: "/now/" },
+                        { title: "Archive", path: "/archive/" },
+                      ].map((route, index) => ({
+                        id: `route-${index}`,
+                        cells: route,
+                        compact: { title: route.title, metadata: [route.path] },
+                      })),
+                    },
+                    {
+                      type: "notice",
+                      id: "routes-remainder",
+                      text: "23 further routes are configured.",
+                    },
+                  ],
+                },
+                {
+                  type: "card",
+                  id: "site-automation-card",
+                  label: "Automation",
+                  blocks: [
+                    {
+                      type: "key-values",
+                      id: "automation",
+                      items: [
+                        { label: "Automatic rebuild", value: true },
+                        { label: "Debounce", value: "2000 ms" },
+                        { label: "Default environment", value: "preview" },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "card",
+                  id: "site-automation-links",
+                  label: "Site links",
+                  blocks: [
+                    {
+                      type: "links",
+                      id: "site-links",
+                      items: [
+                        {
+                          label: "Open preview",
+                          target: {
+                            kind: "external",
+                            href: "https://preview.example.com",
+                          },
+                        },
+                        {
+                          label: "Open live site",
+                          target: {
+                            kind: "external",
+                            href: "https://example.com",
+                          },
+                        },
+                        {
+                          label: "Edit site settings",
+                          target: {
+                            kind: "entity",
+                            entityType: "site-info",
+                            id: "site-info",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        })),
       },
     ],
   },
@@ -1179,83 +419,74 @@ const siteWorkspaceData = {
 
 const publishingWorkspaceData = {
   view: {
-    kicker: "External delivery",
     title: "Publishing",
-    description:
-      "Review the queue, recover failures, and send saved entities to registered providers.",
-    status: {
-      label: "1 needs attention",
-      detail: "no active run",
-      tone: "warn",
-    },
     blocks: [
       {
-        type: "stats",
+        type: "card",
+        id: "publishing-attention",
+        label: "One delivery needs attention",
+        blocks: [
+          {
+            type: "list",
+            id: "publication-failures",
+            items: [
+              {
+                id: "post:field-notes",
+                title: "Notes from the rhizome",
+                description: "Provider rejected the last delivery attempt.",
+                metadata: ["Newsletter", "2 retries left"],
+                actions: [
+                  {
+                    actionId: "retry",
+                    label: "Retry",
+                    input: { entityType: "posts", entityId: "field-notes" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: "tabs",
+        id: "publishing-queue",
+        label: "Publishing queue",
+        defaultTab: "queued",
+        tabs: [
+          {
+            id: "queued",
+            label: "Queued",
+            count: 1,
+            blocks: [
+              {
+                type: "list",
+                id: "dispatch-queue",
+                empty: "The publishing queue is empty.",
+                items: [
+                  {
+                    id: "post:quiet-infrastructure",
+                    title: "Quiet infrastructure",
+                    description: "Queued for the newsletter provider.",
+                    metadata: ["Post", "Newsletter", "position 1"],
+                    badges: [{ label: "queued" }],
+                    actions: [
+                      {
+                        actionId: "remove",
+                        label: "Remove",
+                        input: { id: "quiet-infrastructure" },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: "key-values",
         id: "publishing-summary",
-        items: [
-          { label: "Queued", value: 3, caption: "awaiting dispatch" },
-          { label: "Generating", value: 0, caption: "in progress" },
-          {
-            label: "Needs attention",
-            value: 1,
-            caption: "failed",
-            tone: "warn",
-          },
-          { label: "Published", value: 18, caption: "all time" },
-        ],
-      },
-      {
-        type: "query",
-        id: "publishing-query",
-        controls: [
-          {
-            kind: "select",
-            key: "state",
-            label: "Queue state",
-            value: "all",
-            options: [
-              { value: "all", label: "All" },
-              { value: "queued", label: "Queued", count: 3 },
-              { value: "failed", label: "Failed", count: 1 },
-            ],
-          },
-        ],
-        pagination: { offset: 0, limit: 10, total: 4 },
-      },
-      {
-        type: "list",
-        id: "publishing-items",
-        empty: "The publishing queue is empty.",
-        items: [
-          {
-            id: "post:quiet-infrastructure",
-            title: "Quiet infrastructure",
-            description: "Queued for the newsletter provider.",
-            metadata: ["Post", "Newsletter", "position 1"],
-            badges: [{ label: "queued" }],
-            actions: [
-              {
-                actionId: "remove",
-                label: "Remove",
-                input: { id: "quiet-infrastructure" },
-              },
-            ],
-          },
-          {
-            id: "post:field-notes",
-            title: "Notes from the rhizome",
-            description: "Provider rejected the last delivery attempt.",
-            metadata: ["Post", "Newsletter", "2 retries left"],
-            badges: [{ label: "failed", tone: "warn" }],
-            actions: [
-              {
-                actionId: "retry",
-                label: "Retry",
-                input: { id: "field-notes" },
-              },
-            ],
-          },
-        ],
+        items: [{ label: "Published", value: 18 }],
       },
     ],
   },
@@ -1981,6 +1212,135 @@ async function waitForSelector(
   );
 }
 
+async function verifyAdministrationRecords(
+  page: Bun.WebView,
+  surface: string,
+): Promise<void> {
+  const label =
+    surface === "studio-administration"
+      ? "View protection"
+      : surface === "studio-administration-invitations"
+        ? "Review"
+        : "Details";
+  await waitForSelector(
+    page,
+    '.declarative-detail-master [data-record-trailing="true"]',
+  );
+  await clickText(
+    page,
+    '.declarative-detail-master [data-record-trailing="true"] button',
+    label,
+  );
+  await waitForSelector(page, ".declarative-detail-pane h2");
+  const inspection = await evaluatePage(page, () => {
+    const pane = document.querySelector(".declarative-detail-pane");
+    return {
+      selected: new URL(location.href).searchParams.has("selected"),
+      text: pane?.textContent ?? "",
+      unsafeAnchorControl: Array.from(
+        pane?.querySelectorAll("button") ?? [],
+      ).some(
+        (button) =>
+          /^(Change role|Suspend person)$/.test(button.textContent.trim()) &&
+          !button.disabled,
+      ),
+    };
+  });
+  if (!inspection.selected)
+    throw new Error(
+      "Administration selection did not enter canonical query state",
+    );
+  if (
+    surface === "studio-administration" &&
+    (!inspection.text.includes("must remain an active Admin") ||
+      !inspection.text.includes("cannot be suspended") ||
+      inspection.unsafeAnchorControl)
+  )
+    throw new Error("Anchor inspection lost its protection");
+  if (
+    surface === "studio-administration-invitations" &&
+    !inspection.text.includes("Confirm delivered")
+  )
+    throw new Error("Invitation review lost its manual delivery control");
+  if ((await elementDisplay(page, ".declarative-detail-back")) !== "none") {
+    await clickText(page, ".declarative-detail-back", "Back");
+  } else {
+    // Query edits replace the current URL; desktop inspection returns through
+    // the local tabs rather than pretending browser Back closes the pane.
+    const next = surface === "studio-administration" ? "Invitations" : "People";
+    await activateWorkspaceTab(page, next);
+    await waitForPage("Administration local tab transition", () =>
+      evaluatePageWith(
+        page,
+        (label) =>
+          document
+            .querySelector('[role="tab"][aria-selected="true"]')
+            ?.textContent.trim() === label &&
+          !document.querySelector(".declarative-detail-pane"),
+        next,
+      ),
+    );
+    await activateWorkspaceTab(
+      page,
+      surface === "studio-administration"
+        ? "People"
+        : surface === "studio-administration-invitations"
+          ? "Invitations"
+          : "Audit",
+    );
+  }
+  await waitForPage("Administration collection after closing inspection", () =>
+    evaluatePage(
+      page,
+      () =>
+        !!document.querySelector(".declarative-detail-master") &&
+        !document.querySelector(".declarative-detail-pane"),
+    ),
+  );
+}
+
+async function verifyRecordTypography(page: Bun.WebView): Promise<void> {
+  const failures = await evaluatePage(page, () => {
+    const errors: string[] = [];
+    const root = getComputedStyle(document.documentElement);
+    const normalize = (value: string): string => value.replace(/["'\s]/g, "");
+    for (const list of document.querySelectorAll<HTMLElement>(
+      ".operator-list[data-presentation]",
+    )) {
+      const role = list.dataset["presentation"];
+      const size =
+        role === "editorial"
+          ? 20
+          : role === "attention"
+            ? 18
+            : role === "activity"
+              ? 14
+              : 16;
+      const family = normalize(
+        root.getPropertyValue(
+          role === "editorial" ? "--console-display" : "--console-ui",
+        ),
+      );
+      for (const title of list.querySelectorAll<HTMLElement>(
+        ":scope > li > div:first-child > strong",
+      )) {
+        const style = getComputedStyle(title);
+        if (
+          style.fontSize !== `${size}px` ||
+          normalize(style.fontFamily) !== family
+        )
+          errors.push(`${role}: ${style.fontSize} ${style.fontFamily}`);
+        const link = title.querySelector("a,button");
+        if (link && getComputedStyle(link).fontSize !== style.fontSize)
+          errors.push(`${role}: linked title lost its typography`);
+      }
+    }
+    return errors;
+  });
+  if (failures.length)
+    throw new Error(`Record hierarchy mismatch: ${failures.join("; ")}`);
+}
+
 async function waitForText(page: Bun.WebView, text: string): Promise<void> {
   await waitForPage(`text ${JSON.stringify(text)}`, () =>
     page.evaluate<boolean>(
@@ -2051,6 +1411,37 @@ async function clickText(
     throw new Error(`Could not find ${selector} containing ${text}`);
 }
 
+async function activateWorkspaceTab(
+  page: Bun.WebView,
+  label: string,
+): Promise<void> {
+  const position = await evaluatePageWith(
+    page,
+    (text) => {
+      const tab = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="tab"]'),
+      ).find((node) => node.textContent.trim() === text);
+      if (!tab) return null;
+      const rect = tab.getBoundingClientRect();
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    },
+    label,
+  );
+  if (!position) throw new Error(`Missing workspace tab: ${label}`);
+  await page.cdp("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    ...position,
+    button: "left",
+    clickCount: 1,
+  });
+  await page.cdp("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    ...position,
+    button: "left",
+    clickCount: 1,
+  });
+}
+
 async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   const originalPath = await page.evaluate<string>("location.pathname");
   await clickSelector(page, ".studio-mobile-switcher");
@@ -2062,24 +1453,27 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   const browseLayout = await evaluatePage(page, () => {
     const sheet = document.querySelector(".studio-mobile-navigation-sheet");
     const header = document.querySelector(".studio-chrome");
-    const dock = document.querySelector(".studio-mobile-navigation-dock");
-    if (
-      !(sheet instanceof HTMLElement) ||
-      !(header instanceof HTMLElement) ||
-      !(dock instanceof HTMLElement)
-    )
+    if (!(sheet instanceof HTMLElement) || !(header instanceof HTMLElement))
       return false;
     const bounds = sheet.getBoundingClientRect();
     return (
       Math.abs(bounds.top - header.getBoundingClientRect().bottom) <= 1 &&
       Math.abs(bounds.bottom - window.innerHeight) <= 1 &&
-      dock.getBoundingClientRect().bottom <= window.innerHeight + 1 &&
-      sheet.querySelectorAll("details").length === 3
+      sheet.querySelectorAll("details").length === 3 &&
+      !sheet.querySelector(".studio-mobile-navigation-dock") &&
+      ["Overview", "Chat", "Administration"].every((label) =>
+        Array.from(sheet.querySelectorAll("section button")).some(
+          (button) => button.getAttribute("aria-label") === label,
+        ),
+      ) &&
+      !Array.from(sheet.querySelectorAll("button")).some(
+        (button) => button.textContent.trim() === "Account",
+      )
     );
   });
   if (!browseLayout)
     throw new Error(
-      "Browse no longer matches B's below-header surface and fixed dock",
+      "Browse no longer matches the approved direct destinations and independently collapsible groups",
     );
   await page.cdp("Input.dispatchKeyEvent", {
     type: "keyDown",
@@ -2100,13 +1494,17 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   );
   await clickSelector(page, ".studio-mobile-switcher");
   await waitForSelector(page, ".studio-mobile-navigation-sheet");
-  await clickText(page, ".studio-mobile-area-link", "Library");
-  await waitForPage("Library dock expands group", () =>
+  const libraryOpen = await page.evaluate<boolean>(
+    'Array.from(document.querySelectorAll(".studio-mobile-navigation-group")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
+  );
+  if (!libraryOpen)
+    await clickText(page, ".studio-mobile-navigation-group summary", "Library");
+  await waitForPage("Library group expands", () =>
     page.evaluate<boolean>(
       'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
     ),
   );
-  await clickText(page, ".studio-mobile-navigation-group summary", "Workflows");
+  await clickText(page, ".studio-mobile-navigation-group summary", "Work");
   await waitForPage("independent Browse groups", () =>
     page.evaluate<boolean>(
       'document.querySelectorAll("details[open]").length >= 2',
@@ -2118,9 +1516,9 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
       'Array.from(document.querySelectorAll("details")).some(group => !group.open && group.querySelector("summary")?.textContent.includes("Library"))',
     ),
   );
-  await clickText(page, ".studio-mobile-area-link", "Library");
+  await clickText(page, ".studio-mobile-navigation-group summary", "Library");
   if ((await page.evaluate<string>("location.pathname")) !== originalPath)
-    throw new Error("Browse dock changed the working destination");
+    throw new Error("Browse groups changed the working destination");
   await clickText(page, ".studio-mobile-navigation-link", "Field notes");
   await waitForPage("Studio phone context navigation", () =>
     page.evaluate<boolean>('location.pathname === "/studio/entities/posts"'),
@@ -2131,6 +1529,152 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
       `location.pathname === ${JSON.stringify(originalPath)}`,
     ),
   );
+}
+
+async function verifyDirectStudioNavigation(
+  page: Bun.WebView,
+  surface: string,
+  width: number,
+): Promise<void> {
+  const expected =
+    surface === "studio-chat"
+      ? "Chat"
+      : surface === "studio-administration"
+        ? "Administration"
+        : "Account";
+  const state = await evaluatePage(page, () => ({
+    labels: Array.from(
+      document.querySelectorAll(".studio-area-link [data-area-label]"),
+    ).map((node) => node.getAttribute("data-area-label")),
+    current:
+      document
+        .querySelector('.studio-area-link[aria-pressed="true"]')
+        ?.getAttribute("aria-label") ?? null,
+    location: document
+      .querySelector(".studio-chrome-location")
+      ?.textContent.trim(),
+    leaf: document.querySelector(".studio-leaf-rail") !== null,
+    mainWidth: Math.round(
+      document
+        .querySelector(".studio-body > :not(aside), .studio-chat-workspace")
+        ?.getBoundingClientRect().width ?? 0,
+    ),
+    viewportWidth: document.documentElement.clientWidth,
+    width: Math.round(
+      document.querySelector(".rail")?.getBoundingClientRect().width ?? 0,
+    ),
+  }));
+  if (
+    state.labels.join("/") !== "Overview/Chat/Library/Work/Admin/System" ||
+    state.current !== (expected === "Account" ? null : expected) ||
+    state.location !== expected ||
+    state.leaf ||
+    (width > 900 && state.width !== 124) ||
+    (width <= 900 && Math.abs(state.mainWidth - state.viewportWidth) > 1)
+  )
+    throw new Error(`Direct destination layout: ${JSON.stringify(state)}`);
+  if (width > 900) {
+    await clickSelector(page, ".studio-navigation-collapse");
+    await waitForPage("direct collapsed width", () =>
+      page.evaluate<boolean>(
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 68',
+      ),
+    );
+    await clickSelector(page, ".studio-navigation-collapse");
+    await waitForPage("direct expanded width", () =>
+      page.evaluate<boolean>(
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 124',
+      ),
+    );
+  }
+}
+
+async function verifyStudioProfileNavigation(
+  page: Bun.WebView,
+  surface: string,
+): Promise<void> {
+  const originalUrl = await page.evaluate<string>("location.href");
+  await evaluatePage(page, () => {
+    document.body.dataset["navigationProbe"] = "same-document";
+  });
+  if (surface === "studio-account") {
+    await fillLabel(page, "Display name", "Unsaved profile name");
+    await pointerDownSelector(page, ".studio-chrome-identity");
+    await waitForSelector(page, '[role="menuitem"]');
+    await clickText(page, '[role="menuitem"]', "Account");
+    const preserved = await evaluatePage(
+      page,
+      () =>
+        document.body.dataset["navigationProbe"] === "same-document" &&
+        Array.from(document.querySelectorAll("input")).some(
+          (input) => input.value === "Unsaved profile name",
+        ),
+    );
+    if (
+      !preserved ||
+      (await page.evaluate<string>("location.href")) !== originalUrl
+    )
+      throw new Error("Same-page Account navigation reset profile edits");
+    return;
+  }
+  await evaluatePage(page, () => {
+    const input = document.querySelector('textarea[aria-label="Message"]');
+    if (!(input instanceof HTMLTextAreaElement))
+      throw new Error("Missing composer");
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(input, "Keep this navigation draft");
+    input.dispatchEvent(new InputEvent("input", { bubbles: true }));
+  });
+  await pointerDownSelector(page, ".studio-chrome-identity");
+  await waitForSelector(page, '[role="menuitem"]');
+  await clickText(page, '[role="menuitem"]', "Account");
+  await waitForText(page, "Leave this conversation?");
+  await clickText(
+    page,
+    '[role="dialog"] button, [role="alertdialog"] button',
+    "Stay",
+  );
+  if ((await page.evaluate<string>("location.href")) !== originalUrl)
+    throw new Error("Profile navigation ignored the Chat guard");
+  await pointerDownSelector(page, ".studio-chrome-identity");
+  await waitForSelector(page, '[role="menuitem"]');
+  await clickText(page, '[role="menuitem"]', "Account");
+  await waitForText(page, "Leave this conversation?");
+  await clickText(
+    page,
+    '[role="dialog"] button, [role="alertdialog"] button',
+    "Leave",
+  );
+  await waitForText(page, "Signed-in sessions");
+  if (
+    !(await page.evaluate<boolean>(
+      'document.body.dataset.navigationProbe === "same-document"',
+    ))
+  )
+    throw new Error(
+      "Profile navigation reloaded the document instead of using the guarded router",
+    );
+  await evaluatePage(page, () => history.back());
+  await waitForSelector(page, 'textarea[aria-label="Message"]');
+  if (
+    !(await page.evaluate<boolean>(
+      'document.querySelector("textarea").value === "Keep this navigation draft"',
+    )) ||
+    (await page.evaluate<string>("location.href")) !== originalUrl
+  )
+    throw new Error("Profile navigation lost the session route or Chat draft");
+  await evaluatePage(page, () => {
+    const input = document.querySelector('textarea[aria-label="Message"]');
+    if (!(input instanceof HTMLTextAreaElement))
+      throw new Error("Missing composer");
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(input, "");
+    input.dispatchEvent(new InputEvent("input", { bubbles: true }));
+  });
 }
 
 async function fillLabel(
@@ -2372,6 +1916,26 @@ async function checkLayout(
     if (!chrome || chrome.height > 64) {
       throw new Error(`Studio header exceeded the phone chrome budget`);
     }
+    const smallActions = await evaluatePage(page, () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-record-trailing="true"] button[data-variant="link"]',
+        ),
+      )
+        .filter((button) => {
+          const bounds = button.getBoundingClientRect();
+          const minimum =
+            parseFloat(
+              getComputedStyle(button).getPropertyValue("--console-touch"),
+            ) || 40;
+          return bounds.height > 0 && bounds.height < minimum;
+        })
+        .map((button) => button.textContent.trim()),
+    );
+    if (smallActions.length)
+      throw new Error(
+        `Text actions lost their phone touch targets: ${smallActions.join(", ")}`,
+      );
   }
   if (
     surface.startsWith("studio-") &&
@@ -2459,19 +2023,15 @@ async function checkLayout(
       surface.startsWith("studio-administration-invitations");
     if (expectsPrimaryAction) {
       const action = await elementBounds(page, ".studio-page-head-action");
-      const bottomInset = action
-        ? dimensions.clientHeight - (action.y + action.height)
-        : -1;
       if (
         !action ||
-        action.y < -1 ||
+        action.y < head.y - 1 ||
+        action.y + action.height > head.y + head.height + 1 ||
         action.x < 11 ||
-        action.x + action.width > dimensions.clientWidth - 11 ||
-        bottomInset < 11 ||
-        bottomInset > 14
+        action.x + action.width > dimensions.clientWidth - 11
       ) {
         throw new Error(
-          `Studio primary action did not float inside the phone viewport: ${JSON.stringify(action)}`,
+          `Studio primary action escaped the phone page head: ${JSON.stringify(action)}`,
         );
       }
     }
@@ -2518,27 +2078,23 @@ async function checkLayout(
       throw new Error(`Studio phone context picker was not keyboard reachable`);
     }
     if (surface.startsWith("studio-administration")) {
-      const compactDisplay = await elementDisplay(
+      const records = await elementBounds(
         page,
-        ".declarative-compact-rows",
+        ".declarative-detail-master .operator-record-list",
       );
-      const annotatedTableDisplay = await elementDisplay(
-        page,
-        '.declarative-table-scroll[data-has-unannotated="false"]',
-      );
-      if (compactDisplay === "none" || annotatedTableDisplay !== "none") {
+      if (!records || records.width > width)
         throw new Error(
-          `Studio administration did not reflow its annotated phone rows`,
+          "Administration must use bounded record lists, not reflowed tables",
         );
-      }
     }
   }
   if (surface.startsWith("studio-chat")) {
     const destinations = await elementDisplay(
       page,
-      ".studio-chat-mobile-destinations",
+      ".studio-chat-mobile-sessions",
     );
-    if (width <= 700 !== (destinations !== "none")) {
+    const sessions = await elementDisplay(page, ".studio-chat-sessions");
+    if (destinations === "none" || width <= 860 !== (sessions === "none")) {
       throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
     }
     const workspace = await elementBounds(page, ".studio-chat-room");
@@ -2548,22 +2104,13 @@ async function checkLayout(
     }
     if (composer.y + composer.height > viewportHeight + 1) {
       throw new Error(
-        `Studio Chat composer escaped the viewport at ${width}px`,
+        `Studio Chat composer escaped the viewport at ${width}px: ${JSON.stringify({ composer, workspace, viewportHeight, root: await elementBounds(page, ".studio"), frame: await elementBounds(page, ".studio-chat-workspace") })}`,
       );
     }
-    if (width <= 700) {
-      const destinationBar = await elementBounds(
-        page,
-        ".studio-chat-mobile-destinations",
+    if (composer.y + composer.height > workspace.y + workspace.height + 1) {
+      throw new Error(
+        `Studio Chat composer escaped its working room at ${width}px`,
       );
-      if (
-        !destinationBar ||
-        composer.y + composer.height > destinationBar.y + 1
-      ) {
-        throw new Error(
-          `Studio Chat composer overlapped mobile destinations at ${width}px: ${JSON.stringify({ composer, destinationBar })}`,
-        );
-      }
     }
   }
   if (isStudioAppShellSurface(surface)) {
@@ -2637,6 +2184,8 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
 const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 
 const pendingUploadResponses = new Set<() => void>();
+const administrationFixture = await createAdministrationFixture(FIXED_NOW);
+const workViewFixtures = await createWorkViewFixtures();
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -2745,7 +2294,7 @@ const server = Bun.serve({
             priority: -100,
             permission: "trusted",
             entityTypes: [],
-            badge: 3,
+            badge: await workViewFixtures.overviewBadge(),
           },
           {
             id: "web-chat:chat",
@@ -2805,7 +2354,7 @@ const server = Bun.serve({
             permission: "admin",
             urlQuery: true,
             entityTypes: [],
-            badge: 2,
+            badge: await administrationFixture.badge(),
           },
           {
             id: "studio:account",
@@ -2826,7 +2375,7 @@ const server = Bun.serve({
         workspace: {
           id: "studio:overview",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: overviewWorkspaceData,
+          data: await workViewFixtures.overview(),
         },
       });
     if (
@@ -2837,7 +2386,13 @@ const server = Bun.serve({
         workspace: {
           id: "unified-inbox:inbox",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: inboxWorkspaceData,
+          data: await workViewFixtures.inbox(
+            Object.fromEntries(
+              [...url.searchParams].filter(
+                ([key]) => key !== "id" && key !== "climate",
+              ),
+            ),
+          ),
         },
       });
     if (
@@ -2881,12 +2436,13 @@ const server = Bun.serve({
         workspace: {
           id: "admin:administration",
           rendererName: "DeclarativeOperatorWorkspace",
-          data:
-            url.searchParams.get("tab") === "invitations"
-              ? administrationInvitationsWorkspaceData
-              : url.searchParams.get("tab") === "audit"
-                ? administrationAuditWorkspaceData
-                : administrationWorkspaceData,
+          data: await administrationFixture.read(
+            Object.fromEntries(
+              [...url.searchParams].filter(
+                ([key]) => key !== "id" && key !== "climate",
+              ),
+            ),
+          ),
         },
       });
     if (url.pathname === "/auth/account")
@@ -3064,6 +2620,7 @@ const server = Bun.serve({
 const executablePath = process.env["CONSOLE_CHROMIUM_PATH"];
 if (!executablePath) {
   await server.stop(true);
+  await administrationFixture.dispose();
   throw new Error("Set CONSOLE_CHROMIUM_PATH to a Chromium executable.");
 }
 const browserArgs =
@@ -3152,6 +2709,12 @@ try {
           backend: browserBackend,
         });
         await page.navigate("about:blank");
+        // Each capture starts from a fresh fixture preference. The browser backend
+        // can reuse storage across WebViews; collapsed captures must not seed the next case.
+        await page.cdp("Storage.clearDataForOrigin", {
+          origin: `http://127.0.0.1:${server.port}`,
+          storageTypes: "local_storage",
+        });
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
         await page.cdp("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
         await addVisualInitScript(page, conversationId);
@@ -3226,10 +2789,6 @@ try {
             const currentPath =
               await page.evaluate<string>("location.pathname");
             await clickText(page, ".studio-area-link", "Work");
-            await waitForText(
-              page,
-              "Conversations, publishing and operations.",
-            );
             if (
               (await page.evaluate<string>("location.pathname")) !== currentPath
             ) {
@@ -3269,15 +2828,44 @@ try {
         if (surface.startsWith("studio-chat")) {
           await waitForText(page, "And the Studio?");
           await waitForSelector(page, ".studio-chat-upload");
+          if (surface === "studio-chat" && viewport.width <= 700) {
+            await clickSelector(page, ".studio-chat-mobile-sessions button");
+            await waitForSelector(
+              page,
+              '[role="dialog"] .studio-chat-session-picker',
+            );
+            await clickText(
+              page,
+              ".studio-chat-session-picker .studio-chat-session",
+              "Responsive console audit",
+            );
+            let restored = false;
+            for (let attempt = 0; attempt < 30; attempt++) {
+              restored = await evaluatePage(
+                page,
+                () =>
+                  !document.querySelector('[role="dialog"]') &&
+                  document.activeElement?.matches(
+                    ".studio-chat-mobile-sessions button",
+                  ) === true,
+              );
+              if (restored) break;
+              await Bun.sleep(25);
+            }
+            if (!restored)
+              throw new Error(
+                "Session selection did not close the dialog and restore focus",
+              );
+          }
           if (surface === "studio-chat-sessions") {
             await clickText(
               page,
-              ".studio-chat-mobile-destination",
-              "sessions",
+              ".studio-chat-mobile-sessions button",
+              "Sessions",
             );
           }
           if (surface === "studio-chat-context") {
-            await clickText(page, ".studio-chat-mobile-destination", "context");
+            await clickSelector(page, ".studio-chat-working-set summary");
           }
         }
         if (
@@ -3386,17 +2974,37 @@ try {
           }
         }
         if (surface === "studio-overview") {
-          await waitForText(page, "While you were away");
+          await waitForText(page, "Recent activity");
         }
         if (surface === "studio-content-sync") {
-          await waitForText(page, "Convergence path");
+          await waitForText(page, "Recent runs");
+          await waitForText(page, "Connection");
+          await waitForText(page, "Repository sync needs attention");
         }
         if (surface === "studio-site") {
+          await waitForText(page, "Build preview");
+          await activateWorkspaceTab(page, "Production");
           await waitForText(page, "Build production");
+          await clickText(page, "button", "Build production");
+          await waitForText(page, "Build and publish the production site now?");
+          await clickText(
+            page,
+            '[role="dialog"] button, [role="alertdialog"] button',
+            "Cancel",
+          );
+          await waitForText(page, "Published generation");
+          await activateWorkspaceTab(page, "Preview");
+          await waitForText(page, "Build preview");
         }
         if (surface === "studio-publishing") {
           await waitForText(page, "Notes from the rhizome");
         }
+        if (
+          surface === "studio-content-sync" ||
+          surface === "studio-inbox" ||
+          surface === "studio-overview"
+        )
+          await verifyRecordTypography(page);
         if (surface === "studio-account") {
           await waitForText(page, "Signed-in sessions");
         }
@@ -3474,6 +3082,20 @@ try {
             text?.scrollIntoView({ block: "nearest" });
           });
         }
+        if (
+          ["studio-chat", "studio-administration", "studio-account"].includes(
+            surface,
+          )
+        )
+          await verifyDirectStudioNavigation(page, surface, viewport.width);
+        if (
+          [
+            "studio-administration",
+            "studio-administration-invitations",
+            "studio-administration-audit",
+          ].includes(surface)
+        )
+          await verifyAdministrationRecords(page, surface);
         await evaluatePage(page, () => document.fonts.ready);
         await waitForVisualStability(page);
         await checkLayout(page, surface, viewport.width, viewport.height);
@@ -3511,6 +3133,8 @@ try {
             failures.push(`${name}: ${getErrorMessage(error)}`);
           }
         }
+        if (surface === "studio-chat" || surface === "studio-account")
+          await verifyStudioProfileNavigation(page, surface);
         page.close();
       }
     }
@@ -3519,6 +3143,7 @@ try {
   Bun.WebView.closeAll();
   for (const release of pendingUploadResponses) release();
   await server.stop(true);
+  await administrationFixture.dispose();
 }
 
 if (failures.length > 0) {

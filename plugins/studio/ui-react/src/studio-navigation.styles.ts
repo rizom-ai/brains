@@ -5,6 +5,7 @@ import * as stylex from "@stylexjs/stylex";
 type NavigationStyle =
   | "shellCollapsed"
   | "navigationCollapsed"
+  | "navigationDirect"
   | "collapsedLabel"
   | "collapsedLink"
   | "collapsedTitle"
@@ -18,6 +19,7 @@ type NavigationStyle =
   | "areaRail"
   | "areaTitle"
   | "areaLink"
+  | "areaLabel"
   | "areaActive"
   | "ordinal"
   | "ordinalActive"
@@ -36,12 +38,6 @@ type NavigationStyle =
   | "singleton"
   | "mobileHost"
   | "browse"
-  | "chromeHeader"
-  | "chromeBrand"
-  | "chromeLocation"
-  | "locationText"
-  | "locationLabel"
-  | "chromeUtility"
   | "areaFoot"
   | "sheet"
   | "sheetList"
@@ -49,24 +45,27 @@ type NavigationStyle =
   | "sheetHead"
   | "sheetTitle"
   | "sheetClose"
-  | "mobileDock"
-  | "dockLink"
-  | "dockActive"
   | "mobileGroup"
-  | "mobileLabel"
   | "mobileLink"
   | "mobileActive";
 
 export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
   stylex.create({
     shell: {
-      gridTemplateColumns: "344px minmax(0, 1fr)",
+      gridTemplateColumns: {
+        default: "344px minmax(0, 1fr)",
+        ':has(> aside > [data-leaf-open="false"])': {
+          default: "124px minmax(0, 1fr)",
+          "@media (max-width: 900px)": "minmax(0, 1fr)",
+        },
+      },
       "@media (max-width: 900px)": { gridTemplateColumns: "minmax(0, 1fr)" },
     },
     shellCollapsed: {
       gridTemplateColumns: "68px minmax(0, 1fr)",
       "@media (max-width: 900px)": { gridTemplateColumns: "minmax(0, 1fr)" },
     },
+    navigationDirect: { gridTemplateColumns: "124px" },
     navigationCollapsed: { gridTemplateColumns: "68px" },
     collapsedLabel: { display: "none" },
     collapsedLink: {
@@ -317,39 +316,11 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       "@media (max-width: 900px)": { display: "block" },
     },
     areaFoot: { marginTop: "auto" },
-    chromeHeader: {
-      display: "grid",
-      "@media (max-width: 900px)": {
-        gridTemplateColumns: "auto minmax(0, 1fr) auto",
-        gap: "8px",
-        minHeight: "calc(56px + env(safe-area-inset-top))",
-        padding: "env(safe-area-inset-top) 16px 0",
-      },
-    },
-    chromeBrand: {
+    areaLabel: {
       display: "flex",
-      "@media (max-width: 900px)": { display: "none" },
-    },
-    chromeLocation: {
-      display: "flex",
-      "@media (max-width: 900px)": {
-        display: "flex",
-        justifyContent: "center",
-        padding: 0,
-        borderWidth: 0,
-      },
-    },
-    locationLabel: {
-      display: "inline",
-      "@media (max-width: 900px)": { display: "none" },
-    },
-    locationText: {
-      fontWeight: 500,
-      "@media (max-width: 900px)": { fontSize: "14px" },
-    },
-    chromeUtility: {
-      visibility: "visible",
-      "@media (max-width: 900px)": { display: "none" },
+      minWidth: 0,
+      alignItems: "center",
+      gap: "6px",
     },
     browse: {
       display: "none",
@@ -388,7 +359,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       bottom: 0,
       left: 0,
       display: "grid",
-      gridTemplateRows: "minmax(0, 1fr) auto",
+      gridTemplateRows: "minmax(0, 1fr)",
       padding: 0,
       borderWidth: 0,
       outline: "none",
@@ -401,7 +372,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       minHeight: 0,
       overflowY: "auto",
       overscrollBehavior: "contain",
-      padding: "20px 16px",
+      padding: "20px 16px max(20px, env(safe-area-inset-bottom))",
     },
     sheetHead: {
       display: "flex",
@@ -427,47 +398,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       padding: "0 6px",
       ":focus-visible": { outline: "2px solid var(--console-accent)" },
     },
-    mobileDock: {
-      display: "grid",
-      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-      padding: "8px 8px max(8px, env(safe-area-inset-bottom))",
-      borderTopWidth: "1px",
-      borderTopStyle: "solid",
-      borderTopColor: "var(--console-rule-strong)",
-      backgroundColor: "var(--console-frame)",
-    },
-    dockLink: {
-      minHeight: "44px",
-      padding: "0 4px",
-      borderWidth: 0,
-      borderRadius: "7px",
-      backgroundColor: "transparent",
-      color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      fontWeight: 650,
-      textTransform: "uppercase",
-      cursor: "pointer",
-      ":disabled": { opacity: 0.38, cursor: "default" },
-      ":focus-visible": {
-        outline: "2px solid var(--console-accent)",
-        outlineOffset: "-2px",
-      },
-    },
-    dockActive: {
-      backgroundColor: "var(--console-card)",
-      color: "var(--console-accent)",
-    },
     mobileGroup: { marginBottom: "20px", scrollMarginTop: "12px" },
-    mobileLabel: {
-      margin: "0 0 7px",
-      padding: 0,
-      color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      letterSpacing: "0.16em",
-      textTransform: "uppercase",
-    },
     mobileLink: {
       display: "flex",
       alignItems: "center",

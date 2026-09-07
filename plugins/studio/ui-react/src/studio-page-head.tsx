@@ -1,4 +1,6 @@
 /** @jsxImportSource react */
+import * as stylex from "@stylexjs/stylex";
+import { headStyles as s } from "./studio-page-head.styles";
 import type {
   RuntimeOperatorActionControl,
   RuntimeStudioOperatorView,
@@ -65,9 +67,6 @@ export function StudioPageHead(props: {
         data-has-totals="false"
       >
         <div>
-          <small className={editorClass("", editorStyles.kicker)}>
-            {props.model.kicker}
-          </small>
           <h2 className={editorClass("", editorStyles.title)}>
             {props.model.title}
           </h2>
@@ -87,67 +86,85 @@ export function StudioPageHead(props: {
   }
   return (
     <header
-      className="studio-page-head"
+      className={editorClass("studio-page-head", s.root)}
+      aria-description={props.model.description}
       data-studio-page-head="true"
       data-has-status={props.model.status ? "true" : "false"}
       data-has-totals={totals.length > 0 ? "true" : "false"}
     >
-      <div className="studio-page-head-kicker">
-        {props.model.kicker && <span>{props.model.kicker}</span>}
-        <span
-          className="studio-head-chip studio-head-access"
-          data-access={props.model.access.kind}
-        >
-          {props.model.access.label}
-        </span>
-      </div>
-      <div className="studio-page-head-title-row">
-        <h2>{props.model.title}</h2>
+      <div className={editorClass("studio-page-head-title-row", s.row)}>
+        <h1 {...stylex.props(s.title)}>{props.model.title}</h1>
         {metadata.length > 0 && (
-          <div className="studio-page-head-metadata">
+          <div className={editorClass("studio-page-head-metadata", s.metadata)}>
             {metadata.map((item, index) => (
-              <span key={`${item}:${index}`}>{item}</span>
+              <span
+                key={`${item}:${index}`}
+                {...stylex.props(index > 0 && s.phoneHidden)}
+              >
+                {index > 0 && <span aria-hidden="true">· </span>}
+                {item}
+              </span>
             ))}
           </div>
         )}
         {props.model.status && (
           <span
-            className="studio-head-chip studio-head-status"
+            className={editorClass(
+              "studio-head-status",
+              editorStyles.status,
+              props.model.status.tone === "good" && s.good,
+              props.model.status.tone === "warn" && s.warn,
+              props.model.status.tone === "error" && s.error,
+              totals.length > 0 && s.phoneHidden,
+            )}
             data-tone={props.model.status.tone ?? "neutral"}
           >
             {props.model.status.label}
             {props.model.status.detail && (
-              <small>{props.model.status.detail}</small>
+              <small {...stylex.props(s.statusDetail)}>
+                {props.model.status.detail}
+              </small>
             )}
           </span>
         )}
         {totals.length > 0 && (
-          <dl className="studio-page-head-totals">
+          <dl className={editorClass("studio-page-head-totals", s.totals)}>
             {totals.map((item, index) => (
               <div
                 key={`${item.label}:${index}`}
                 data-tone={item.tone ?? "neutral"}
+                {...stylex.props(
+                  s.total,
+                  index > 0 &&
+                    item.tone !== "warn" &&
+                    item.tone !== "error" &&
+                    s.phoneHidden,
+                )}
               >
-                <dt>{item.label}</dt>
-                <dd>{item.value}</dd>
+                <dt {...stylex.props(s.totalLabel)}>{item.label}</dt>
+                <dd
+                  {...stylex.props(
+                    s.totalValue,
+                    item.tone === "good" && s.good,
+                    item.tone === "warn" && s.warn,
+                    item.tone === "error" && s.error,
+                  )}
+                >
+                  {item.value}
+                </dd>
               </div>
             ))}
           </dl>
         )}
         {props.action && (
           <div
-            className="studio-page-head-action"
+            className={editorClass("studio-page-head-action", s.action)}
             data-studio-primary-action="true"
           >
             {props.action}
           </div>
         )}
       </div>
-      {props.model.description && (
-        <p className="studio-page-head-description">
-          {props.model.description}
-        </p>
-      )}
     </header>
   );
 }
@@ -157,16 +174,14 @@ export function declarativeStudioPageHead(
   workspace: StudioWorkspaceInfo,
   view: RuntimeStudioOperatorView,
 ): StudioPageHeadModel {
-  const leadingBlock = view.blocks[0];
-  const totals = leadingBlock?.type === "stats" ? leadingBlock.items : [];
-
   return {
     ...(view.kicker ? { kicker: view.kicker } : {}),
     access: studioAccessRequirement(workspace.permission),
     title: view.title ?? workspace.label,
     ...(view.description ? { description: view.description } : {}),
     ...(view.status ? { status: view.status } : {}),
-    totals,
+    // Stats already appear in the workspace body; do not repeat them above it.
+    totals: [],
     ...(view.primaryAction ? { primaryAction: view.primaryAction } : {}),
   };
 }

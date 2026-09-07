@@ -4,21 +4,28 @@
   "version": "0.2.0-alpha.354",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
   },
   "scripts": {
+    "build": "bun scripts/build.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test",
+    "test": "bun run build && bun test --preload @brains/build-tools/stylex-test-preload",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
+    "@stylexjs/stylex": "^0.19.0",
     "react": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

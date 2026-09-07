@@ -6,7 +6,10 @@
  * masthead and component layout, all styled from --console-*.
  */
 import { CONSOLE_THEME_CSS } from "@brains/console-theme";
-import { operatorViewRendererStyles } from "@brains/operator-view-react";
+import {
+  operatorViewRendererStyles,
+  operatorViewStylexCSS,
+} from "@brains/operator-view-react";
 import compatibilityStyles from "./styles/compatibility.css" with { type: "text" };
 import foundationStyles from "./styles/foundation.css" with { type: "text" };
 import mapsStyles from "./styles/maps.css" with { type: "text" };
@@ -28,6 +31,7 @@ ${systemStyles}
 ${operatorViewStyles}
 
 ${operatorViewRendererStyles}
+${operatorViewStylexCSS}
 
 ${widgetPrimitiveStyles}
 

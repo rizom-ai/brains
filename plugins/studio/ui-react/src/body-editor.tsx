@@ -413,7 +413,7 @@ export function BodyEditor(props: {
         </Tabs>
         <span className="doc-meta">
           {value.trim() ? value.trim().split(/\s+/).length.toLocaleString() : 0}{" "}
-          words · markdown · perfect round-trip
+          words
         </span>
       </header>
       {assist && showSource && (

@@ -308,11 +308,37 @@ describe("SiteBuilderPlugin", () => {
       await registration.dataProvider(adminWorkspaceActor);
     expect(initialWorkspace).toMatchObject({
       view: {
-        title: "Site control",
-        kicker: "Website operations",
-        status: { label: "Test Site" },
+        title: "Site",
+        blocks: [
+          {
+            type: "tabs",
+            tabs: ["preview", "production"].map((id) => ({
+              id,
+              blocks: [
+                {
+                  type: "columns",
+                  primary: [
+                    { id: `site-${id}-card`, presentation: "feature" },
+                    { id: "site-recent-builds", label: "Recent builds" },
+                  ],
+                  aside: [
+                    { id: "site-routes", label: "Configured routes" },
+                    { id: "site-automation-card" },
+                    { id: "site-automation-links" },
+                  ],
+                },
+              ],
+            })),
+          },
+        ],
       },
     });
+    expect(JSON.stringify(initialWorkspace)).toContain(
+      '"type":"tabs","id":"site-environments"',
+    );
+    expect(JSON.stringify(initialWorkspace)).toContain(
+      '"defaultTab":"preview"',
+    );
     expect(initialWorkspace).not.toHaveProperty("view.primaryAction");
     expect(findTableById(initialWorkspace, "routes")).toMatchObject({
       rows: [
@@ -334,6 +360,7 @@ describe("SiteBuilderPlugin", () => {
       await registration.dataProvider(adminWorkspaceActor);
     expect(JSON.stringify(previewWorkspace)).toContain('"id":"preview-build"');
     expect(JSON.stringify(previewWorkspace)).toContain('"state":"queued"');
+    expect(JSON.stringify(previewWorkspace)).toContain('"disabled":true');
     expect(
       actionHandler(
         { actionId: "missing-action", input: {} },
@@ -458,7 +485,7 @@ describe("SiteBuilderPlugin", () => {
       trustedWorkspaceActor,
     );
     expect(trustedWorkspace).toMatchObject({
-      view: { title: "Site control", status: { label: "Test Site" } },
+      view: { title: "Site" },
     });
     expect(JSON.stringify(trustedWorkspace)).toContain(
       '"actionId":"build-preview"',

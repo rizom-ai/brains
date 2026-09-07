@@ -260,6 +260,7 @@ describe("declarative Studio workspace runtime", () => {
                   type: "card",
                   id: "forged-card",
                   label: "Forged card",
+                  presentation: "disclosure",
                   blocks: [
                     {
                       type: "links",
@@ -691,6 +692,170 @@ describe("declarative Studio workspace runtime", () => {
 });
 
 describe("Studio interface semantics", () => {
+  it("normalizes section metadata and display labels without changing action identity or admission", () => {
+    const view = {
+      blocks: [
+        {
+          type: "card",
+          id: "work",
+          label: "Work",
+          presentation: "feature",
+          metadata: ["2 items"],
+          blocks: [
+            {
+              type: "actions",
+              items: [
+                {
+                  action: refresh,
+                  label: "Refresh selected item",
+                  input: { id: "selected" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(
+      safeParseRuntimeStudioOperatorView(view, {
+        actions: [refresh],
+        permission: "trusted",
+      }),
+    ).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            metadata: ["2 items"],
+            presentation: "feature",
+            blocks: [
+              {
+                items: [
+                  {
+                    actionId: "refresh",
+                    label: "Refresh selected item",
+                    input: { id: "selected" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(view, {
+        actions: [refresh],
+        permission: "public",
+      }),
+    ).toMatchObject({
+      success: true,
+      data: { blocks: [{ blocks: [{ items: [] }] }] },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(view, {
+        actions: [],
+        permission: "admin",
+      }),
+    ).toMatchObject({ success: false });
+  });
+  it("validates supporting notice records individually without truncating their combined text", () => {
+    const details = ["a".repeat(4000), "b".repeat(4000)];
+    const notice = {
+      type: "notice",
+      title: "Needs attention",
+      text: "Two recorded issues",
+      details,
+    };
+    const parsed = safeParseRuntimeStudioOperatorView(
+      { blocks: [notice] },
+      { actions: [], permission: "trusted" },
+    );
+    expect(parsed).toMatchObject({
+      success: true,
+      data: { blocks: [{ details }] },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        { blocks: [{ ...notice, details: ["x".repeat(4001)] }] },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+  });
+  it("normalizes record roles without workspace-specific rendering instructions", () => {
+    for (const presentation of [
+      "standard",
+      "editorial",
+      "attention",
+      "activity",
+    ]) {
+      const result = safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "list",
+              id: "records",
+              empty: "Empty",
+              presentation,
+              items: [],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      );
+      expect(result).toMatchObject({
+        success: true,
+        data: { blocks: [{ presentation }] },
+      });
+    }
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "list",
+              id: "records",
+              empty: "Empty",
+              presentation: "directory-sync",
+              items: [],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+  });
+  it("preserves provider-owned disclosures through validation and normalization", () => {
+    const card = {
+      type: "card",
+      id: "details",
+      label: "Repository details",
+      presentation: "disclosure",
+      blocks: [{ type: "notice", text: "Full diagnostics" }],
+    };
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        { blocks: [card] },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            presentation: "disclosure",
+            blocks: [{ text: "Full diagnostics" }],
+          },
+        ],
+      },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        { blocks: [{ ...card, presentation: "plugin-specific" }] },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+  });
   it("normalizes one primary action and collection-owned compact table data", () => {
     const result = safeParseRuntimeStudioOperatorView(
       {

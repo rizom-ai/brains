@@ -46,13 +46,32 @@ describe("Studio split UI assets", () => {
       join(uiDirectory, manifest.assets["app.css"] ?? ""),
       "utf8",
     );
+    const operatorCSS = readFileSync(
+      join(
+        import.meta.dir,
+        "../../../shared/operator-view-react/dist/stylex.css",
+      ),
+      "utf8",
+    ).trim();
+    expect(operatorCSS.length).toBeGreaterThan(50);
+    expect(stylesheet).toContain(operatorCSS);
     expect(stylesheet).toContain("var(--console-accent)");
     expect(stylesheet).not.toContain("insertRule");
     // The area/leaf composition and Browse breakpoint must ship as CSS,
     // including styles used by lazy native Chat and Account.
     expect(stylesheet).toContain("grid-template-columns:124px minmax(0,220px)");
     expect(stylesheet).toContain("grid-template-columns:344px minmax(0,1fr)");
+    expect(stylesheet).toContain(
+      "grid-template-columns:36px minmax(0,1fr) auto",
+    );
+    expect(stylesheet).toContain(
+      "grid-template-columns:24px minmax(0,1fr) auto",
+    );
     expect(stylesheet).toMatch(/@media\s*\(max-width:\s*900px\)/);
+    expect(stylesheet).toContain("grid-template-columns:180px minmax(0,1fr)");
+    expect(stylesheet).not.toContain("--studio-chat-columns");
+    expect(stylesheet).toContain("--operator-section-family:var(--console-ui)");
+    expect(stylesheet).not.toContain("--operator-row-title-family:");
     for (const [, filePath] of entries.filter(([, file]) =>
       file.endsWith(".js"),
     )) {
@@ -85,7 +104,8 @@ describe("Studio split UI assets", () => {
     expect(entrySource).toContain(chatEntry[0]);
     expect(entrySource).not.toContain("/api/chat");
     expect(chatSource).toContain("/api/chat");
-    expect(chatSource).toContain("Working room");
+    expect(chatSource).toContain("What would you like to work on?");
+    expect(chatSource).not.toContain("Working room");
     expect(chatSource).not.toContain("data-web-chat-root");
     expect(chatSource).not.toContain("<iframe");
   });

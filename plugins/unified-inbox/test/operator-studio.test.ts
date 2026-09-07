@@ -179,9 +179,44 @@ describe("unified inbox Studio registration", () => {
       offset: "0",
       limit: "1",
     });
-    expect(workspace).toMatchObject({ view: { title: "Inbox" } });
+    expect(workspace).toMatchObject({
+      view: {
+        title: "Inbox",
+        blocks: [
+          {
+            type: "stats",
+            items: [
+              { label: "Open", value: 1 },
+              { label: "High priority", value: 1 },
+              { label: "Matching", value: 1 },
+              { label: "Sources online", value: "1 of 1" },
+            ],
+          },
+          { type: "query", id: "inbox-query" },
+          {
+            type: "detail",
+            master: {
+              type: "list",
+              items: [
+                {
+                  metadata: ["Email Triage", item.receivedAt, "high priority"],
+                },
+              ],
+            },
+          },
+          {
+            type: "query",
+            id: "inbox-pagination",
+            controls: [],
+            pagination: { offset: 0, limit: 1, total: 1 },
+          },
+        ],
+      },
+    });
+    expect(workspace).not.toHaveProperty("view.status");
     const serialized = JSON.stringify(workspace);
     expect(serialized).toContain('"type":"query"');
+    expect(serialized).toContain('"presentation":"editorial"');
     expect(serialized).toContain('"title":"Time-sensitive request"');
     expect(serialized).toContain('"entityType":"person"');
     expect(serialized).toContain('"capabilityId":"archive"');

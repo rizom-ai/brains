@@ -109,6 +109,7 @@ export interface RuntimeOperatorNoticeBlock {
   readonly id?: string | undefined;
   readonly title?: string | undefined;
   readonly text: string;
+  readonly details?: readonly string[] | undefined;
   readonly tone?: RuntimeOperatorTone | undefined;
 }
 
@@ -255,6 +256,8 @@ export interface RuntimeOperatorListBlock {
   readonly type: "list";
   readonly id: string;
   readonly empty: string;
+  readonly presentation?:
+    "standard" | "editorial" | "attention" | "activity" | undefined;
   readonly filter?: RuntimeOperatorListFilter | undefined;
   readonly items: readonly RuntimeOperatorListItem[];
 }
@@ -594,6 +597,8 @@ export interface RuntimeStudioOperatorCardBlock {
   readonly type: "card";
   readonly id: string;
   readonly label: string;
+  readonly presentation?: "section" | "disclosure" | "feature" | undefined;
+  readonly metadata?: readonly string[] | undefined;
   readonly tone?: "good" | "warn" | "neutral" | "error" | undefined;
   readonly blocks: readonly RuntimeStudioOperatorPanelBlock[];
 }
@@ -894,6 +899,7 @@ const noticeBlockSchema = z
     id: identifierSchema.optional(),
     title: labelSchema.optional(),
     text: textSchema,
+    details: z.array(textSchema).max(50).optional(),
     tone: toneSchema.optional(),
   })
   .strict();
@@ -1141,11 +1147,18 @@ const listItemSchema = z
   })
   .strict();
 
+const listPresentationSchema = z.enum([
+  "standard",
+  "editorial",
+  "attention",
+  "activity",
+]);
 const listBlockSchema = z
   .object({
     type: z.literal("list"),
     id: identifierSchema,
     empty: shortTextSchema,
+    presentation: listPresentationSchema.optional(),
     filter: listFilterSchema.optional(),
     items: z.array(listItemSchema).max(MAX_LIST_ITEMS),
   })
@@ -1619,6 +1632,7 @@ type SourceActionFormField = WorkspaceActionFormFieldDefinition;
 
 interface SourceActionControl {
   readonly action: AnyWorkspaceActionDefinition;
+  readonly label?: string | undefined;
   readonly input?: unknown;
   readonly form?:
     | {
@@ -1706,6 +1720,7 @@ const sourceActionControlSchema = z
     form: actionFormSchema.optional(),
     result: actionResultSchema.optional(),
     capability: capabilityDefinitionSchema.optional(),
+    label: labelSchema.optional(),
     disabled: z.boolean().optional(),
   })
   .strict();
@@ -1718,6 +1733,7 @@ const studioListBlockSchema = z
     type: z.literal("list"),
     id: identifierSchema,
     empty: shortTextSchema,
+    presentation: listPresentationSchema.optional(),
     filter: listFilterSchema.optional(),
     items: z.array(studioListItemSchema).max(MAX_LIST_ITEMS),
   })
@@ -1953,6 +1969,8 @@ const studioCardBlockSchema = z
     type: z.literal("card"),
     id: identifierSchema,
     label: labelSchema,
+    presentation: z.enum(["section", "disclosure", "feature"]).optional(),
+    metadata: z.array(shortTextSchema).max(20).optional(),
     tone: toneSchema.optional(),
     blocks: z.array(studioPanelBlockSchema).max(12),
   })
@@ -2445,7 +2463,8 @@ function normalizeActionControls(
       Object.freeze({
         actionId: control.action.name,
         ...(control.capability ? { capabilityId: control.capability.id } : {}),
-        label: control.capability?.label ?? control.action.label,
+        label:
+          control.label ?? control.capability?.label ?? control.action.label,
         input: actionInput,
         ...(normalizedForm.form ? { form: normalizedForm.form } : {}),
         ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
@@ -2509,6 +2528,7 @@ function normalizeStudioBlock(
           type: "list",
           id: block.id,
           empty: block.empty,
+          ...(block.presentation ? { presentation: block.presentation } : {}),
           ...(block.filter ? { filter: block.filter } : {}),
           items,
         },
@@ -2658,6 +2678,8 @@ function normalizeStudioBlock(
           type: "card",
           id: block.id,
           label: block.label,
+          ...(block.presentation ? { presentation: block.presentation } : {}),
+          ...(block.metadata ? { metadata: block.metadata } : {}),
           ...(block.tone ? { tone: block.tone } : {}),
           blocks: panels,
         },

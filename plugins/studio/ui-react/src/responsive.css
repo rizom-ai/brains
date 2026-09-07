@@ -151,7 +151,6 @@
     padding: 12px 16px calc(28px + env(safe-area-inset-bottom));
   }
   .row {
-    grid-template-columns: 24px minmax(0, 1fr) auto;
     gap: 4px 10px;
     min-height: 64px;
     padding: 14px 2px;
@@ -435,7 +434,7 @@
   body[data-console-host="studio"] .declarative-text h3,
   body[data-console-host="studio"] .declarative-matrix h3 {
     color: var(--console-text-dim);
-    font-size: 10px;
+    font-size: var(--operator-section-size, 10px);
   }
   body[data-console-host="studio"] .declarative-tabs > [role="tablist"] {
     display: flex;
@@ -453,65 +452,5 @@
   body[data-console-host="studio"] .declarative-tabs [role="tab"] {
     flex: 1 0 auto;
     min-height: 40px;
-  }
-  body[data-console-host="studio"] .declarative-query {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-  }
-  body[data-console-host="studio"] .declarative-query > div,
-  body[data-console-host="studio"] .declarative-query label,
-  body[data-console-host="studio"] .declarative-query select {
-    width: 100%;
-  }
-  body[data-console-host="studio"] .declarative-query select {
-    min-height: var(--console-touch);
-    font-size: 16px;
-  }
-  body[data-console-host="studio"] .declarative-query footer {
-    width: 100%;
-    justify-content: space-between;
-    margin-left: 0;
-  }
-  body[data-console-host="studio"] .declarative-pager {
-    margin-left: auto;
-  }
-  body[data-console-host="studio"] .declarative-pager [data-slot="button"] {
-    min-height: var(--console-touch);
-  }
-  body[data-console-host="studio"]
-    .declarative-compact-rows
-    .declarative-list
-    > li {
-    min-height: 58px;
-    padding: 14px 4px;
-  }
-  body[data-console-host="studio"]
-    .declarative-compact-rows
-    .declarative-list
-    strong {
-    font-size: 15.5px;
-  }
-  body[data-console-host="studio"]
-    .declarative-compact-rows
-    .declarative-list
-    p {
-    color: var(--console-text-dim);
-    font-size: 12.5px;
-  }
-  body[data-console-host="studio"]
-    .declarative-compact-rows
-    .declarative-list
-    small {
-    color: var(--console-text-dim);
-    font-size: 10.5px;
-    line-height: 1.45;
-  }
-  body[data-console-host="studio"] .declarative-card {
-    padding: 16px 0;
-    border: 0;
-    border-top: 1px solid var(--console-rule-strong);
-    border-radius: 0;
-    background: transparent;
   }
 }

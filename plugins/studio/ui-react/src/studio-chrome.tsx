@@ -13,6 +13,7 @@ import { studioWorkspacePath } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import { studioArea, TypeSwitcher } from "./entity-fields";
 import { getStudioRouterBasePath } from "./studio-router";
+import { chromeStyles as chrome } from "./studio-chrome.styles";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
@@ -50,7 +51,6 @@ export interface StudioChromeNavigation {
 
 export function StudioChrome(props: {
   contextLabel: string;
-  contextBadge?: number | undefined;
   onContextClick?: (() => void) | undefined;
   navigation?: StudioChromeNavigation | undefined;
 }): ReactElement {
@@ -80,28 +80,36 @@ export function StudioChrome(props: {
         props.navigation.activeWorkspaceId,
       )
     : null;
+  const accountCurrent =
+    props.navigation?.activeWorkspaceId === STUDIO_ACCOUNT_WORKSPACE_ID;
   const location =
-    area && area !== "overview"
+    area && ["library", "work", "system"].includes(area)
       ? `${area.charAt(0).toUpperCase()}${area.slice(1)} · ${props.contextLabel}`
       : props.contextLabel;
 
   return (
     <header
-      className={navClass("studio-chrome", nav.chromeHeader)}
+      className={navClass("studio-chrome", chrome.header)}
       aria-label="Studio"
     >
       <a
-        className={navClass("studio-chrome-brand", nav.chromeBrand)}
+        className={navClass("studio-chrome-brand", chrome.brand)}
         href={studioPath}
       >
-        <span className="studio-chrome-mark" aria-hidden="true">
+        <span
+          className={navClass("studio-chrome-mark", chrome.mark)}
+          aria-hidden="true"
+        >
           {brandName.slice(0, 1).toUpperCase()}
         </span>
         <span className="studio-chrome-brain">{brandName}</span>
-        <span className="studio-chrome-slash" aria-hidden="true">
+        <span
+          className={navClass("studio-chrome-slash", chrome.slash)}
+          aria-hidden="true"
+        >
           /
         </span>
-        <strong>Studio</strong>
+        <strong className={navClass("", chrome.studio)}>Studio</strong>
       </a>
 
       {props.navigation ? (
@@ -124,11 +132,10 @@ export function StudioChrome(props: {
         </div>
       ) : null}
 
-      <div className={navClass("studio-chrome-location", nav.chromeLocation)}>
-        <span className={navClass("", nav.locationLabel)}>Workspace</span>
+      <div className={navClass("studio-chrome-location", chrome.location)}>
         {props.onContextClick ? (
           <button
-            className={navClass("", nav.locationText)}
+            className={navClass("", chrome.locationText)}
             type="button"
             onClick={props.onContextClick}
             aria-label={`Back to ${props.contextLabel}`}
@@ -136,30 +143,29 @@ export function StudioChrome(props: {
             {location}
           </button>
         ) : (
-          <strong className={navClass("", nav.locationText)}>{location}</strong>
+          <strong className={navClass("", chrome.locationText)}>
+            {location}
+          </strong>
         )}
       </div>
 
-      <div className="studio-chrome-tools">
+      <div className={navClass("studio-chrome-tools", chrome.tools)}>
         <button
           className={navClass(
             "command-chip studio-chrome-command",
-            nav.chromeUtility,
+            chrome.command,
           )}
           type="button"
           aria-label="Search or run a command"
         >
           <span className="command-chip-hint">Search or run a command…</span>
-          <kbd>⌘K</kbd>
-          <span className="command-chip-icon" aria-hidden="true">
-            ⌕
-          </span>
+          <kbd className={navClass("", chrome.key)}>⌘K</kbd>
         </button>
         <button
           id="climateToggle"
           className={navClass(
             "climate-chip studio-chrome-climate",
-            nav.chromeUtility,
+            chrome.climate,
           )}
           type="button"
           aria-label="Toggle climate"
@@ -169,30 +175,54 @@ export function StudioChrome(props: {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="studio-chrome-identity"
+              className={navClass("studio-chrome-identity", chrome.identity)}
               type="button"
               aria-label={`${displayName} account menu`}
+              aria-current={accountCurrent ? "page" : undefined}
             >
-              {initials(displayName)}
+              <span
+                className={navClass(
+                  "",
+                  chrome.identityBadge,
+                  accountCurrent && chrome.identityCurrent,
+                )}
+              >
+                {initials(displayName)}
+              </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="studio-chrome-identity-menu"
+            className={navClass("studio-chrome-identity-menu", chrome.menu)}
             align="end"
             sideOffset={8}
           >
             <DropdownMenuLabel className="studio-chrome-identity-label">
-              <strong>{displayName}</strong>
-              <span>{role}</span>
+              <strong className={navClass("", chrome.name)}>
+                {displayName}
+              </strong>
+              <span className={navClass("", chrome.role)}>{role}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => navigate(accountHref)}>
+            <DropdownMenuItem
+              onSelect={() => {
+                if (props.navigation) {
+                  if (!accountCurrent)
+                    props.navigation.selectWorkspace(
+                      STUDIO_ACCOUNT_WORKSPACE_ID,
+                    );
+                } else navigate(accountHref);
+              }}
+            >
               Account
-              <span aria-hidden="true">→</span>
+              <span className={navClass("", chrome.arrow)} aria-hidden="true">
+                →
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => navigate(dashboardHref)}>
               View public dashboard
-              <span aria-hidden="true">↗</span>
+              <span className={navClass("", chrome.arrow)} aria-hidden="true">
+                ↗
+              </span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -200,7 +230,9 @@ export function StudioChrome(props: {
               onSelect={() => navigate(sessionHref)}
             >
               Sign out
-              <span aria-hidden="true">⇥</span>
+              <span className={navClass("", chrome.arrow)} aria-hidden="true">
+                ⇥
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -34,7 +34,7 @@ function findById(value: unknown, id: string): unknown {
   if (value === null || typeof value !== "object") return undefined;
   if (
     Reflect.get(value, "id") === id &&
-    Reflect.get(value, "type") === "table"
+    typeof Reflect.get(value, "type") === "string"
   ) {
     return value;
   }
@@ -43,27 +43,6 @@ function findById(value: unknown, id: string): unknown {
     if (result !== undefined) return result;
   }
   return undefined;
-}
-
-function findAnyById(value: unknown, id: string): unknown {
-  if (value === null || typeof value !== "object") return undefined;
-  if (Reflect.get(value, "id") === id) return value;
-  for (const child of Object.values(value)) {
-    const result = findAnyById(child, id);
-    if (result !== undefined) return result;
-  }
-  return undefined;
-}
-
-function regionIds(value: unknown, region: "primary" | "aside"): string[] {
-  if (value === null || typeof value !== "object") return [];
-  const blocks = Reflect.get(value, region);
-  if (!Array.isArray(blocks)) return [];
-  return blocks.flatMap((block) => {
-    if (block === null || typeof block !== "object") return [];
-    const id = Reflect.get(block, "id");
-    return typeof id === "string" ? [id] : [];
-  });
 }
 
 function formFields(value: unknown): unknown[] {
@@ -93,11 +72,9 @@ function formField(value: unknown, name: string): unknown {
 
 function findRowForPerson(value: unknown, displayName: string): unknown {
   if (value === null || typeof value !== "object") return undefined;
-  const cells = Reflect.get(value, "cells");
   if (
-    cells !== null &&
-    typeof cells === "object" &&
-    Reflect.get(cells, "person") === displayName
+    Reflect.get(value, "title") === displayName &&
+    typeof Reflect.get(value, "id") === "string"
   ) {
     return value;
   }
@@ -168,20 +145,36 @@ describe("Administration Invitations tab", () => {
           label: "Add a person",
           form: { presentation: "disclosure" },
         },
-        blocks: [
-          { type: "stats", id: "invitation-totals" },
-          { type: "tabs", defaultTab: "invitations" },
-        ],
+        blocks: [{ type: "tabs", defaultTab: "invitations" }],
       },
     });
     expect(initial).not.toHaveProperty("view.status");
-    const layout = findAnyById(initial, "invitation-layout");
-    expect(regionIds(layout, "primary")).toEqual(["invitations"]);
     expect(findById(initial, "invitations")).toMatchObject({
-      type: "table",
-      query: { pagination: { total: 0 } },
+      type: "detail",
+      master: { type: "list", items: [] },
     });
-    expect(regionIds(layout, "aside")).toEqual(["invite-peer"]);
+    expect(findById(initial, "invitation-filters")).toMatchObject({
+      type: "query",
+      controls: [{ key: "state" }],
+    });
+    expect(findById(initial, "invitation-filters")).not.toHaveProperty(
+      "pagination",
+    );
+    expect(findById(initial, "invitation-delivery")).toMatchObject({
+      presentation: "disclosure",
+      label: "Delivery capabilities",
+    });
+    expect(findAction(initial, "Invite peer person")).toBeDefined();
+    const reviewPerson = async (
+      displayName: string,
+      state = "pending",
+    ): Promise<unknown> => {
+      const id = (await service.listAdminUsers()).find(
+        (user) => user.displayName === displayName,
+      )?.invitation?.id;
+      if (!id) throw new Error(`Missing invitation for ${displayName}`);
+      return workspace.dataProvider(actor, { state, selected: id });
+    };
     const create = findAction(initial, "Add a person");
     expect(create).toMatchObject({
       actionId: "create-invitation",
@@ -245,20 +238,22 @@ describe("Administration Invitations tab", () => {
       actor,
     );
     expect(resultField(failed, "status")).toContain("delivery failed");
-    const failedView = await workspace.dataProvider(actor);
+    const failedView = await reviewPerson("Failed Delivery");
     const retry = findAction(failedView, "Retry");
     expect(retry).toBeDefined();
     await workspace.actionHandler?.(actionRequest(retry), actor);
 
-    const pending = await workspace.dataProvider(actor);
+    const pending = await reviewPerson("Grace Hopper");
     expect(JSON.stringify(pending)).not.toContain(setupUrl);
-    expect(findById(pending, "invitations")).toMatchObject({ type: "table" });
+    expect(findById(pending, "invitations")).toMatchObject({
+      type: "detail",
+      open: { title: "Grace Hopper" },
+    });
     expect(findRowForPerson(pending, "Grace Hopper")).toMatchObject({
-      compact: {
-        title: "Grace Hopper",
-        metadata: ["Trusted", "Grace", expect.any(String)],
-        badges: [{ label: expect.any(String) }],
-      },
+      title: "Grace Hopper",
+      description: "Trusted · Manual delivery pending",
+      metadata: ["Grace", expect.any(String)],
+      links: [{ label: "Review", target: { kind: "detail" } }],
     });
     const confirm = findAction(pending, "Confirm delivered");
     expect(confirm).toBeDefined();
@@ -269,7 +264,7 @@ describe("Administration Invitations tab", () => {
       )?.invitation?.state,
     ).toBe("sent");
 
-    const sent = await workspace.dataProvider(actor);
+    const sent = await reviewPerson("Grace Hopper");
     const resend = findAction(sent, "Resend");
     expect(resend).toBeDefined();
     const resent = await workspace.actionHandler?.(
@@ -278,11 +273,8 @@ describe("Administration Invitations tab", () => {
     );
     expect(typeof resultField(resent, "setupUrl")).toBe("string");
 
-    const resentView = await workspace.dataProvider(actor);
-    const cancel = findAction(
-      findRowForPerson(resentView, "Grace Hopper"),
-      "Cancel",
-    );
+    const resentView = await reviewPerson("Grace Hopper");
+    const cancel = findAction(resentView, "Cancel");
     const prepared = await workspace.actionHandler?.(
       actionRequest(cancel, undefined, { mode: "prepare" }),
       actor,
@@ -295,16 +287,38 @@ describe("Administration Invitations tab", () => {
       actor,
     );
 
-    const history = await workspace.dataProvider(actor, { state: "history" });
+    const history = await reviewPerson("Grace Hopper", "history");
     expect(findById(history, "invitations")).toMatchObject({
-      type: "table",
-      rows: [
-        {
-          cells: { person: "Grace Hopper", state: "cancelled" },
-        },
-      ],
+      type: "detail",
+      master: {
+        type: "list",
+        items: [{ title: "Grace Hopper", description: "Trusted · Cancelled" }],
+      },
+      open: { title: "Grace Hopper" },
     });
     expect(findAction(history, "Cancel")).toBeUndefined();
+    expect(findAction(history, "Resend")).toBeUndefined();
+    const gone = await workspace.dataProvider(actor, {
+      selected: "missing-invitation",
+    });
+    expect(findById(gone, "invitations")).toMatchObject({
+      open: { forId: "missing-invitation", title: "Invitation unavailable" },
+    });
+    const historyRow = findRowForPerson(history, "Grace Hopper");
+    if (!historyRow || typeof historyRow !== "object")
+      throw new Error("Missing history row");
+    const deepLink = await workspace.dataProvider(actor, {
+      state: "history",
+      selected: Reflect.get(historyRow, "id"),
+      offset: 100,
+    });
+    expect(findById(deepLink, "invitations")).toMatchObject({
+      master: { items: [] },
+      open: { title: "Grace Hopper" },
+    });
+    expect(findById(deepLink, "invitation-filters")).toMatchObject({
+      pagination: { offset: 100, total: 1 },
+    });
 
     const audit = await service.listAuditEvents();
     for (const action of [

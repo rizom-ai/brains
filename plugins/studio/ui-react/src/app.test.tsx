@@ -4,8 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import responsiveStyles from "./responsive.css" with { type: "text" };
-import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
-import chromeStyles from "./studio-chrome.css" with { type: "text" };
+const compiledStyles = await Bun.file(
+  new URL("../../dist/ui/studio-app.css", import.meta.url),
+).text();
 import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 import { styles } from "./app-styles";
 import { StudioAppView, type StudioAppViewProps } from "./app-view";
@@ -87,9 +88,7 @@ const selectField: FieldDescriptor = {
 
 describe("Studio shell chrome", () => {
   it("renders one contextual header without cross-product navigation", () => {
-    const html = renderToStaticMarkup(
-      <StudioChrome contextLabel="Overview" contextBadge={3} />,
-    );
+    const html = renderToStaticMarkup(<StudioChrome contextLabel="Overview" />);
 
     expect(html).toMatch(/class="studio-chrome x[^"]+"/);
     expect(html).toContain("Overview");
@@ -104,7 +103,7 @@ describe("editor surface styles", () => {
   it("defines the editorial library and manuscript treatment", () => {
     expect(visualRefreshStyles).not.toContain(".studio-area-link");
     expect(visualRefreshStyles).toContain(".body-preview h1");
-    expect(visualRefreshStyles).toContain('"IBM Plex Mono"');
+    expect(visualRefreshStyles).not.toContain("--console-mono:");
     expect(visualRefreshStyles).toContain(".chip.published");
   });
 
@@ -117,31 +116,17 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
   });
 
-  it("defines the native Chat working room and sequential mobile destinations", () => {
-    // Navigation columns are shared StyleX declarations, not a Chat override.
-    expect(chatStyles).not.toContain("344px");
-    expect(chatStyles).toContain(
-      "grid-template-columns: 230px minmax(0, 1fr) 298px",
+  it("keeps the native Chat working room bounded without a second mobile dock", () => {
+    // Chat owns compiled layout rules, not a legacy-selector override sheet.
+    expect(compiledStyles).toContain(
+      "grid-template-columns:180px minmax(0,1fr)",
     );
-    expect(chatStyles).toContain(".studio-chat-thread-scroll");
-    expect(chatStyles).toContain("overflow: auto");
-    expect(chatStyles).toContain("env(safe-area-inset-bottom)");
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="sessions"]',
-    );
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="thread"]',
-    );
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="context"]',
-    );
-    expect(chatStyles).toContain("min-height: var(--console-touch, 44px)");
-    expect(chatStyles).toContain(
-      '.studio[data-view="chat"] {\n  display: grid;',
-    );
-    expect(chatStyles).toContain("grid-template-rows: auto minmax(0, 1fr);");
-    expect(chatStyles).not.toContain("iframe");
-    expect(chatStyles).not.toContain("data-web-chat-root");
+    expect(compiledStyles).toContain("overflow-y:auto");
+    expect(compiledStyles).toContain("height:100dvh");
+    expect(compiledStyles).toContain("env(safe-area-inset-bottom)");
+    expect(compiledStyles).not.toContain("--studio-chat-columns");
+    expect(compiledStyles).not.toContain(".studio-chat-room[");
+    expect(compiledStyles).not.toContain(".studio-chat-mobile-destinations");
   });
 
   it("removes the retired mail desk styles", () => {
@@ -165,8 +150,11 @@ describe("editor surface styles", () => {
     expect(styles).not.toContain("crumbbar");
     expect(visualRefreshStyles).not.toContain("crumbbar");
     expect(responsiveStyles).not.toContain("console-strip");
-    expect(chromeStyles).toContain(".studio-chrome");
-    expect(chromeStyles).toContain(".studio-chrome-location");
+    expect(compiledStyles).toContain(
+      "grid-template-columns:auto minmax(140px,1fr) auto",
+    );
+    expect(compiledStyles).not.toContain(".studio-chrome{");
+    expect(compiledStyles).not.toContain(".studio-chrome-identity{");
   });
 
   it("keeps the Studio rail present while editing on desktop", () => {
@@ -197,15 +185,14 @@ describe("editor surface styles", () => {
   it("keeps phone Studio to one compact chrome bar with one context picker", () => {
     expect(responsiveStyles).toContain('body[data-console-host="studio"]');
     expect(responsiveStyles).not.toContain("console-strip");
-    expect(chromeStyles).not.toMatch(
-      /\.studio-chrome-location \{[^}]*display: none/,
-    );
-    // Browse and its sheet are compiled StyleX, with no competing raw rules.
-    expect(chromeStyles).not.toContain(".studio-mobile-switcher");
+    // Header, Browse and its sheet are compiled StyleX, with no competing raw rules.
+    expect(compiledStyles).not.toContain(".studio-mobile-switcher{");
     expect(responsiveStyles).not.toContain(".studio-mobile-switcher");
     expect(responsiveStyles).not.toContain(".studio-mobile-navigation");
     expect(responsiveStyles).not.toContain("mask-image: linear-gradient");
-    expect(chromeStyles).not.toContain("@media (max-width: 900px)");
+    expect(compiledStyles).toContain(
+      "min-height:calc(56px + env(safe-area-inset-top))",
+    );
   });
 
   it("locks the phone document only for the editor's app shell", () => {
@@ -237,14 +224,13 @@ describe("editor surface styles", () => {
     expect(responsiveStyles).toMatch(/\.listing \{[^}]*overflow: visible/);
     // The consolidated header keeps the context picker reachable while the
     // document scrolls; the duplicate phone rail is removed.
-    expect(chromeStyles).toMatch(/\.studio-chrome \{[^}]*position: sticky/);
+    expect(compiledStyles).toContain("position:sticky");
     expect(responsiveStyles).not.toContain(".rail {");
   });
 
   it("keeps phone library rows readable without adding another scroll region", () => {
-    expect(responsiveStyles).toMatch(
-      /\.row \{[^}]*grid-template-columns: 24px minmax\(0, 1fr\) auto/,
-    );
+    // Row columns are compiled from StyleX, not overridden by raw CSS.
+    expect(responsiveStyles).not.toMatch(/\.row \{[^}]*grid-template-columns/);
     expect(responsiveStyles).toMatch(
       /\.row \.title small \{[^}]*white-space: normal/,
     );
@@ -558,7 +544,7 @@ describe("TypeSwitcher", () => {
     expect(html).not.toContain('<select aria-hidden="true"');
   });
 
-  it("renders Account as an active Studio workspace", () => {
+  it("keeps Account out of the rail even while its workspace is active", () => {
     const accountWorkspace: StudioWorkspaceInfo = {
       id: "studio:account",
       pluginId: "studio",
@@ -579,10 +565,11 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain("System");
-    expect(html).toContain("Access");
-    expect(html).toContain("Account");
-    expect(html.match(/class="[^"]*active/g)).toHaveLength(2);
+    expect(html).not.toContain("Account");
+    expect(html).not.toContain("Access");
+    expect(html).toContain('data-leaf-open="false"');
+    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).not.toContain("studio-leaf-rail");
   });
 
   it("keeps Overview in the stable area map", () => {
@@ -615,13 +602,15 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain("00 / operator home");
-    expect(html).toContain("Attention, activity and operational health.");
+    expect(html).toContain('aria-label="Overview destinations"');
+    expect(html).not.toContain("00 / operator home");
+    expect(html).not.toContain("Attention, activity and operational health.");
     expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Work"));
-    expect(html).not.toContain("Administration");
+    expect(html).toContain('aria-label="Administration"');
+    expect(html).not.toContain('aria-label="Administration destinations"');
   });
 
-  it("shows registered workspaces beside Account operations", () => {
+  it("shows registered workflow destinations and their attention badges", () => {
     const workspace: StudioWorkspaceInfo = {
       id: "publishing",
       pluginId: "content-pipeline",
@@ -703,19 +692,13 @@ describe("TypeSwitcher", () => {
     );
 
     expect(html).toContain("System");
-    expect(html).toContain("03 / machinery");
-    expect(html.lastIndexOf("Site Info")).toBeGreaterThan(
-      html.indexOf("03 / machinery"),
-    );
-    expect(html.lastIndexOf("Prompts")).toBeGreaterThan(
-      html.indexOf("03 / machinery"),
-    );
-    expect(html.lastIndexOf("Agents")).toBeGreaterThan(
-      html.indexOf("03 / machinery"),
-    );
-    expect(html.lastIndexOf("Style Guide")).toBeGreaterThan(
-      html.indexOf("03 / machinery"),
-    );
+    expect(html).toContain('aria-label="System destinations"');
+    expect(html).not.toContain("03 / machinery");
+    for (const label of ["Site Info", "Prompts", "Agents", "Style Guide"]) {
+      expect(html.lastIndexOf(label)).toBeGreaterThan(
+        html.indexOf('aria-label="System destinations"'),
+      );
+    }
   });
 });
 

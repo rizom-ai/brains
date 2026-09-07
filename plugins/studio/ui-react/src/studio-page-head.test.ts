@@ -3,7 +3,8 @@ import type { RuntimeStudioOperatorView } from "@brains/plugins";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { StudioWorkspaceInfo } from "./api";
-import studioPageHeadStyles from "./studio-page-head.css" with { type: "text" };
+import { createStylexBunTransform } from "@brains/build-tools";
+import { Window } from "happy-dom";
 import {
   declarativeStudioPageHead,
   StudioPageHead,
@@ -70,10 +71,7 @@ describe("Studio page-head normalization", () => {
       title: "Administration",
       description: "Manage people and security history.",
       status: { label: "Healthy", detail: "No open incidents", tone: "good" },
-      totals: [
-        { label: "People", value: 3 },
-        { label: "Attention", value: 1, tone: "warn" },
-      ],
+      totals: [],
       primaryAction: {
         actionId: "add-person",
         label: "Add person",
@@ -101,8 +99,9 @@ describe("Studio page-head normalization", () => {
 
     expect(html).toContain('data-studio-page-head="true"');
     expect(html).toContain('data-has-totals="true"');
-    expect(html).toContain("Access administration");
-    expect(html).toContain("Admin only");
+    expect(html).not.toContain("Access administration");
+    expect(html).not.toContain("Admin only");
+    expect(html).not.toContain("studio-head-chip");
     expect(html).toContain("Administration");
     expect(html).toContain("3 people");
     expect(html).toContain("Healthy");
@@ -111,34 +110,69 @@ describe("Studio page-head normalization", () => {
     expect(html.match(/Add person/g)).toHaveLength(1);
   });
 
-  it("gives the phone head two readable lines and a floating action dock", () => {
-    expect(studioPageHeadStyles).toContain(
-      "grid-template-columns: minmax(0, 1fr) auto",
+  it("keeps actionable warning details without turning them into pills", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudioPageHead, {
+        model: {
+          title: "Publishing",
+          access: studioAccessRequirement("trusted"),
+          totals: [],
+          status: {
+            label: "Blocked",
+            detail: "Connect a publishing destination",
+            tone: "warn",
+          },
+        },
+      }),
     );
-    expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head-kicker \{[^}]*display: none/,
-    );
-    expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head-description \{[^}]*display: none/,
-    );
-    expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head h2 \{[^}]*white-space: normal/,
-    );
-    expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head h2 \{[^}]*-webkit-line-clamp: 2/,
-    );
-    expect(studioPageHeadStyles).toContain(
-      '.studio-page-head[data-has-totals="true"] .studio-head-status',
-    );
-    expect(studioPageHeadStyles).toMatch(
-      /\.studio-page-head-action \{[^}]*position: fixed[^}]*left: 12px[^}]*border-radius: 12px[^}]*env\(safe-area-inset-bottom\)/,
-    );
-    expect(studioPageHeadStyles).toContain(
-      ".studio-workspace-frame:has(.studio-page-head-action)",
-    );
-    expect(studioPageHeadStyles).toContain(
-      ".studio-page-head-action .declarative-action-form label",
-    );
+    expect(html).toContain("Blocked");
+    expect(html).toContain("Connect a publishing destination");
+    expect(html).toContain('data-tone="warn"');
+    expect(html).not.toContain("studio-head-chip");
+  });
+
+  it("compiles the approved heading hierarchy and keeps primary actions in the head at both widths", async () => {
+    const transform = createStylexBunTransform();
+    const build = await Bun.build({
+      entrypoints: [
+        new URL("./studio-page-head.styles.ts", import.meta.url).pathname,
+      ],
+      plugins: [transform.plugin],
+      external: ["@stylexjs/stylex"],
+      target: "browser",
+    });
+    expect(build.success).toBe(true);
+    expect(transform.css()).toContain("-webkit-line-clamp:2");
+    for (const [width, size] of [
+      [1440, "36px"],
+      [390, "29px"],
+    ] as const) {
+      const window = new Window({ width });
+      try {
+        window.document.head.innerHTML = `<style>:root{--console-display:Georgia;--console-text:#222}${transform.css()}</style>`;
+        window.document.body.innerHTML = renderToStaticMarkup(
+          createElement(StudioPageHead, {
+            model: {
+              title: "Content sync",
+              access: studioAccessRequirement("admin"),
+              totals: [],
+            },
+            action: createElement("button", { type: "button" }, "Sync now"),
+          }),
+        );
+        const title = window.document.querySelector("h1");
+        const action = window.document.querySelector(
+          ".studio-page-head-action",
+        );
+        if (!title || !action)
+          throw new Error("Missing page heading or primary action");
+        expect(window.getComputedStyle(title).fontSize).toBe(size);
+        expect(window.getComputedStyle(title).fontWeight).toBe("600");
+        expect(window.getComputedStyle(action).position).toBe("relative");
+      } finally {
+        await window.happyDOM.abort();
+      }
+    }
   });
 
   it("prefers a source title and otherwise falls back to the admitted workspace", () => {

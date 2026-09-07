@@ -4,6 +4,7 @@ import type {
   RuntimeOperatorActionControl,
 } from "@brains/plugins";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { operatorViewStylexCSS } from "@brains/operator-view-react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -12,6 +13,7 @@ import operatorViewRendererStyles from "./operator-view-renderer.css" with { typ
 import {
   OperatorViewRenderer,
   actionFailureMessage,
+  type OperatorViewComponents,
 } from "./operator-view-renderer";
 
 const data: RuntimeStudioWorkspaceData = {
@@ -129,6 +131,108 @@ describe("actionFailureMessage", () => {
 });
 
 describe("OperatorViewRenderer", () => {
+  it("renders one notice heading and preserves every supporting diagnostic", () => {
+    const html = renderToStaticMarkup(
+      <OperatorViewRenderer
+        data={{
+          view: {
+            blocks: [
+              {
+                type: "notice",
+                title: "Repository sync needs attention",
+                text: "2 recorded issues",
+                tone: "warn",
+                details: [
+                  "First failure\nPath: notes/one.md",
+                  "Second failure\nOccurred: 2026-09-05T09:15:00.000Z",
+                ],
+              },
+            ],
+          },
+        }}
+        onAction={async () => ({})}
+        onOpenEntity={() => {}}
+      />,
+    );
+    expect(html.match(/Repository sync needs attention/g)).toHaveLength(1);
+    expect(html).toContain("View diagnostics");
+    expect(html).toContain("First failure\nPath: notes/one.md");
+    expect(html).toContain(
+      "Second failure\nOccurred: 2026-09-05T09:15:00.000Z",
+    );
+    expect(html).toContain("operator-source");
+    expect(html).not.toContain('open=""');
+  });
+  it("keeps readable warning excerpts and full diagnostics on demand in both hosts", () => {
+    const description = "Detailed operation diagnostics. ".repeat(12);
+    const issueData: RuntimeStudioWorkspaceData = {
+      view: {
+        blocks: [
+          {
+            type: "list",
+            id: "issues",
+            empty: "No issues",
+            items: [
+              {
+                id: "failed",
+                title: "Repository sync needs attention",
+                description,
+                tone: "warn",
+              },
+              {
+                id: "short",
+                title: "Import needs attention",
+                description: "A required title is missing.",
+                tone: "warn",
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const components: OperatorViewComponents = {
+      engine: "app",
+      density: "comfortable",
+      Button: (props) =>
+        createElement("button", { onClick: props.onClick }, props.children),
+      Input: (props) => createElement("input", props),
+      Select: (props) => createElement("select", props),
+      ConfirmDialog: () => createElement("div"),
+      Tabs: (props) =>
+        createElement(
+          "div",
+          null,
+          props.tabs.find((tab) => tab.value === props.value)?.content,
+        ),
+      Disclosure: (props) =>
+        createElement(
+          "details",
+          { className: props.className },
+          createElement("summary", null, props.triggerLabel),
+          props.children,
+        ),
+    };
+    const render = (host?: OperatorViewComponents): string =>
+      renderToStaticMarkup(
+        createElement(OperatorViewRenderer, {
+          data: issueData,
+          components: host,
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+        }),
+      );
+    const app = render(components);
+    expect(app).toContain('class="operator-issue-details"');
+    expect(app).toContain(description);
+    expect(app).toContain("operator-source");
+    expect(app).toContain("<pre");
+    expect(app).toMatch(/<p\b[^>]*>A required title is missing\.<\/p>/);
+    const css = render();
+    expect(css).toContain("operator-issue-details");
+    expect(css).toContain("<summary>Details</summary>");
+    expect(css).toContain(description);
+    expect(css).toContain("<pre");
+  });
   it("renders normalized base blocks and typed action controls", () => {
     const html = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
@@ -157,8 +261,8 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain("Mail (1)");
     expect(html).toContain("1–1 of 2");
     expect(html).toContain("Next");
-    expect(html).toContain(
-      '<button type="button" class="declarative-inline-link">Open publishing</button>',
+    expect(html).toMatch(
+      /<button\b(?=[^>]*type="button")[^>]*>Open publishing<\/button>/,
     );
     expect(html).not.toContain("<script>");
   });
@@ -177,12 +281,12 @@ describe("OperatorViewRenderer", () => {
       html.indexOf('class="declarative-blocks"'),
     );
     expect(head).toContain("Reading library");
-    expect(head).toContain("declarative-totals");
+    expect(head).toContain('data-stats-placement="head"');
     expect(head).toContain("Saved");
     // The hoisted stats must not also render as a body block.
-    expect(
-      html.slice(html.indexOf('class="declarative-blocks"')),
-    ).not.toContain("declarative-totals");
+    expect(html.slice(html.indexOf("</header>") + 9)).not.toContain(
+      'data-stats-placement="head"',
+    );
   });
 
   it("keeps server-backed query controls with their table collection", () => {
@@ -283,7 +387,7 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain('data-has-unannotated="true"');
     expect(html).toContain("Owns this brain");
     expect(html).toContain("Admin · This brain");
-    expect(html).toContain('class="declarative-badge" data-tone="good"');
+    expect(html).toContain('data-tone="good" data-record-badge="true"');
     expect(html).toContain("Legacy row");
     expect(html.match(/Review/g)).toHaveLength(2);
     expect(operatorViewRendererStyles).toMatch(
@@ -292,12 +396,10 @@ describe("OperatorViewRenderer", () => {
     expect(operatorViewRendererStyles).toContain(
       '.declarative-table-scroll[data-has-unannotated="false"]',
     );
-    expect(operatorViewRendererStyles).toContain(
-      ".declarative-list-trailing:has(.declarative-actions)",
-    );
+    expect(html).toContain('data-record-trailing="true"');
   });
 
-  it("can delegate the head without returning its totals to the body", () => {
+  it("delegates the heading while retaining totals in the provider's body", () => {
     const delegated = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
         data: {
@@ -338,7 +440,8 @@ describe("OperatorViewRenderer", () => {
     );
 
     expect(delegated).not.toContain("declarative-head");
-    expect(delegated).not.toContain("Saved");
+    expect(delegated).toContain("Saved");
+    expect(delegated).toContain(">1</");
     expect(delegated).toContain("Ready.");
     expect(selfRendered).toContain("Refresh library");
   });
@@ -359,7 +462,7 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain('data-block="notice" data-span="wide"');
   });
 
-  it("ranks action buttons by consequence rather than styling them all alike", () => {
+  it("ranks action buttons by consequence rather than styling them all alike", async () => {
     const html = renderToStaticMarkup(
       createElement(OperatorViewRenderer, {
         data: {
@@ -401,12 +504,25 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    // A standalone action is the workspace's primary call to action.
-    expect(html).toMatch(/class="btn"[^>]*>Run sync now/);
+    // Routine work stays quiet; confirmation-gated consequences remain marked.
+    expect(html).toMatch(/class="btn ghost"[^>]*>Run sync now/);
     // Needing confirmation is the signal that an action is consequential.
     expect(html).toMatch(/class="btn danger"[^>]*>Purge exports/);
-    // Row-level actions stay subordinate to the row they belong to.
-    expect(html).toMatch(/class="btn ghost"[^>]*>Open/);
+    // A routine row verb uses the compiled text-action vocabulary, not a box.
+    const window = new Window();
+    try {
+      window.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+      window.document.body.innerHTML = html;
+      const open = Array.from(window.document.querySelectorAll("button")).find(
+        (button) => button.textContent === "Open",
+      );
+      if (!open) throw new Error("Missing row action");
+      expect(open.classList.contains("btn")).toBe(false);
+      expect(window.getComputedStyle(open).fontSize).toBe("12px");
+      expect(window.getComputedStyle(open).borderWidth).toBe("0px");
+    } finally {
+      await window.happyDOM.abort();
+    }
   });
 });
 
@@ -526,7 +642,7 @@ describe("OperatorViewRenderer conformance", () => {
     );
 
     for (const marker of [
-      "declarative-key-values",
+      "operator-key-values",
       "declarative-matrix",
       "data-ui-spatial",
       "declarative-tabs",
@@ -976,6 +1092,7 @@ describe("OperatorViewRenderer master/detail", () => {
 
   afterEach(async () => {
     await act(async () => root.unmount());
+    await windowInstance.happyDOM.abort();
     windowInstance.close();
   });
 
@@ -1024,6 +1141,67 @@ describe("OperatorViewRenderer master/detail", () => {
     expect(queries).toEqual([
       { urgency: "high", offset: 20, selected: "mail-1" },
     ]);
+  });
+
+  it("opens a record from its trailing link without stretching the title or navigating away", async () => {
+    const queries: unknown[] = [];
+    const launches: unknown[] = [];
+    const block = detailData().view.blocks[0];
+    if (block?.type !== "detail" || block.master.type !== "list")
+      throw new Error("Expected list-backed detail fixture");
+    const master = block.master;
+    const item = master.items[0];
+    if (!item) throw new Error("Expected fixture record");
+    windowInstance.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+    await act(async () =>
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: {
+            view: {
+              blocks: [
+                {
+                  ...block,
+                  master: {
+                    ...master,
+                    items: [
+                      {
+                        ...item,
+                        link: undefined,
+                        links: [
+                          {
+                            label: "Review",
+                            target: { kind: "detail", itemId: item.id },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+          onLaunch: (launch) => launches.push(launch),
+          query: { tab: "invitations", state: "pending", offset: 20 },
+          onQueryChange: (query) => queries.push(query),
+        }),
+      ),
+    );
+    const row = container.querySelector("li");
+    const review = container.querySelector<HTMLButtonElement>(
+      '[data-record-trailing="true"] button',
+    );
+    if (!row || !review) throw new Error("Missing trailing record link");
+    expect(review.textContent).toBe("Review");
+    expect(row.querySelector("strong button")).toBeNull();
+    // The default compact host keeps its own density alignment.
+    expect(window.getComputedStyle(row).alignItems).toBe("start");
+    await act(async () => review.click());
+    expect(queries).toEqual([
+      { tab: "invitations", state: "pending", offset: 20, selected: item.id },
+    ]);
+    expect(launches).toEqual([]);
   });
 
   it("writes query-backed tab selection through host state", async () => {
@@ -1173,7 +1351,7 @@ describe("OperatorViewRenderer head", () => {
 });
 
 describe("OperatorViewRenderer pagination", () => {
-  const paged = (offset: number): RuntimeStudioWorkspaceData => ({
+  const paged = (offset: number, total = 24): RuntimeStudioWorkspaceData => ({
     view: {
       title: "Inbox",
       blocks: [
@@ -1181,7 +1359,7 @@ describe("OperatorViewRenderer pagination", () => {
           type: "query",
           id: "q",
           controls: [],
-          pagination: { offset, limit: 10, total: 24 },
+          pagination: { offset, limit: 10, total },
         },
       ],
     },
@@ -1203,6 +1381,26 @@ describe("OperatorViewRenderer pagination", () => {
     expect(html).toContain("11–20 of 24");
     expect(html).toContain("Previous");
     expect(html).toContain("Next");
+  });
+
+  it("keeps a single page quiet and leaves an escape from an emptied later page", () => {
+    const render = (offset: number): string =>
+      renderToStaticMarkup(
+        createElement(OperatorViewRenderer, {
+          data: paged(offset, 3),
+          onAction: async () => ({}),
+          onOpenEntity: () => {},
+        }),
+      );
+    const single = render(0);
+    expect(single).toContain("Showing 1–3 of 3");
+    expect(single).not.toContain("Previous");
+    expect(single).not.toContain("Next");
+    const stale = render(20);
+    expect(stale).toContain("No items on this page · 3 total");
+    expect(stale).toContain("Previous");
+    expect(stale).not.toContain("21–3");
+    expect(operatorViewRendererStyles).not.toContain(".declarative-query");
   });
 
   it("disables the direction it cannot go", () => {
@@ -1227,35 +1425,24 @@ describe("sidebar card readouts", () => {
   // site-builder's Site health emits free-form build detail, not the one-word
   // states the rest of the fixture uses.
 
-  it("lets a long key-value wrap instead of holding it on one line", () => {
+  it("lets a long grouped readout wrap instead of holding it on one line", () => {
     // white-space: nowrap here pushed a 90-character build detail straight out
     // of the card and off the document.
-    expect(operatorViewRendererStyles).not.toMatch(
-      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*white-space: nowrap/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-key-values dd,[\s\S]*?\.declarative-group dd \{[^}]*overflow-wrap: anywhere/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-key-values > div \{[^}]*flex-wrap: wrap/,
-    );
+    // The shared fact component tests apply these compiled styles to both densities.
+    expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
+    expect(operatorViewStylexCSS).toContain("flex-wrap:wrap");
+    expect(operatorViewRendererStyles).not.toContain(".declarative-group");
   });
 
   it("sizes stats to the card rather than breaking a state mid-word", () => {
     // The body grid's 128px minimum track needs 257px for two stats, which a
     // 220px card cannot give without opening up.
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-card \.declarative-stats \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(0, 1fr\)\)/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-card \.declarative-stats dd \{[^}]*font-size: 17px/,
-    );
+    expect(operatorViewStylexCSS).toContain("minmax(min(128px,100%),1fr)");
+    expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
   });
 
   it("keeps the line breaks a notice authored", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-notice p \{[^}]*white-space: pre-line/,
-    );
+    expect(operatorViewStylexCSS).toContain("white-space:pre-line");
   });
 
   it("renders one failure per line in a joined notice", () => {
@@ -1292,29 +1479,10 @@ describe("author-supplied text cannot break the page", () => {
   // the block's meaning, so none of those may reach past their column.
 
   it("breaks unbroken tokens in list text", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-list strong,[\s\S]*?\.declarative-list small \{[^}]*overflow-wrap: anywhere/,
-    );
+    expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
   });
 
-  it("lets a long pill wrap inside its own measure", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*max-width: 100%/,
-    );
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*overflow-wrap: anywhere/,
-    );
-    // nowrap here turned a 160-character badge into a page-width overrun.
-    expect(operatorViewRendererStyles).not.toMatch(
-      /\.declarative-tags > span,[\s\S]*?\.declarative-badge \{[^}]*white-space: nowrap/,
-    );
-  });
-
-  it("keeps trailing row metadata inside the row", () => {
-    expect(operatorViewRendererStyles).toMatch(
-      /\.declarative-list-trailing > span:not\(\.declarative-badge\) \{[^}]*overflow-wrap: anywhere/,
-    );
-  });
+  // Badge measure and wrapping are covered against compiled CSS in operator-list.test.tsx.
 });
 
 describe("every author-text surface has a break guard", () => {

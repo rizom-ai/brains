@@ -1,4 +1,27 @@
 /** @jsxImportSource react */
+import { OperatorFacts } from "./operator-facts";
+import { OperatorCard } from "./operator-card";
+import { OperatorColumns } from "./operator-columns";
+import {
+  OperatorRecordCopy,
+  OperatorRecordDescription,
+  OperatorTextLink,
+} from "./operator-record";
+import {
+  OperatorList,
+  OperatorRecordRow,
+  OperatorBadge,
+} from "./operator-list";
+import { listStyles as list } from "./operator-list.styles";
+import { actionLayoutStyles as actionLayout } from "./operator-action-layout.styles";
+import { OperatorNotice } from "./operator-notice";
+import { OperatorSource } from "./operator-source";
+import { OperatorStats } from "./operator-stats";
+import { detailStyles as detail } from "./operator-detail.styles";
+import * as stylex from "@stylexjs/stylex";
+import { queryStyles as q } from "./operator-query.styles";
+import { OperatorMetadata } from "./operator-metadata";
+import { workspaceStyles as workspace } from "./operator-workspace.styles";
 import type {
   RuntimeStudioOperatorBlock,
   RuntimeStudioOperatorPanelBlock,
@@ -37,7 +60,7 @@ export type OperatorViewQuery = Readonly<
 type RuntimeBlock = RuntimeStudioOperatorView["blocks"][number];
 
 export type OperatorControlVariant =
-  "primary" | "secondary" | "danger" | "ghost";
+  "primary" | "secondary" | "danger" | "ghost" | "link";
 
 export interface OperatorControlButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: OperatorControlVariant | undefined;
@@ -64,6 +87,8 @@ export interface OperatorDisclosureProps {
 
 export interface OperatorViewComponents {
   readonly engine: "css" | "app";
+  /** Readout spacing is independent of the host's control implementation. */
+  readonly density: "compact" | "comfortable";
   readonly Button: ComponentType<OperatorControlButtonProps>;
   readonly Input: ComponentType<InputHTMLAttributes<HTMLInputElement>>;
   readonly Select: ComponentType<SelectHTMLAttributes<HTMLSelectElement>>;
@@ -83,7 +108,10 @@ function CssButton({
   className,
   ...props
 }: OperatorControlButtonProps): ReactElement {
-  const controlClass = cssButtonClassName(variant);
+  const controlClass =
+    variant === "link"
+      ? (stylex.props(actionLayout.link).className ?? "")
+      : cssButtonClassName(variant);
   return (
     <button
       className={className ? `${controlClass} ${className}` : controlClass}
@@ -186,6 +214,7 @@ function StaticAllTabs(props: {
 
 const CSS_COMPONENTS: OperatorViewComponents = {
   engine: "css",
+  density: "compact",
   Button: CssButton,
   Input: CssInput,
   Select: CssSelect,
@@ -248,65 +277,47 @@ const OpenDetailContext = createContext<((itemId: string) => void) | null>(
 function OperatorLink(props: {
   target: RuntimeOperatorLinkTarget;
   children: ReactNode;
+  emphasis?: "normal" | "title" | "quiet" | undefined;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
 }): ReactElement {
   const openDetail = useContext(OpenDetailContext);
   const host = useContext(OperatorRendererHostContext);
-  const resolvedHref = host.resolveLink?.(props.target);
-  if (resolvedHref) {
-    const external = props.target.kind === "external";
+  const target = props.target;
+  const resolvedHref = host.resolveLink?.(target);
+  if (resolvedHref || target.kind === "external")
     return (
-      <a
-        className="declarative-inline-link operator-inline-link"
-        href={resolvedHref}
-        {...(external && { target: "_blank", rel: "noreferrer" })}
+      <OperatorTextLink
+        href={resolvedHref ?? (target.kind === "external" ? target.href : "")}
+        external={target.kind === "external"}
+        emphasis={props.emphasis}
       >
         {props.children}
-      </a>
+      </OperatorTextLink>
     );
-  }
-  if (props.target.kind === "external") {
-    return (
-      <a href={props.target.href} target="_blank" rel="noreferrer">
-        {props.children}
-      </a>
-    );
-  }
-  if (props.target.kind === "detail") {
-    const { itemId } = props.target;
-    if (!openDetail) return <>{props.children}</>;
-    return (
-      <button
-        type="button"
-        className="declarative-inline-link"
-        onClick={() => openDetail(itemId)}
+  if (target.kind === "detail")
+    return openDetail ? (
+      <OperatorTextLink
+        onClick={() => openDetail(target.itemId)}
+        emphasis={props.emphasis}
+        stretch={props.emphasis === "title"}
       >
         {props.children}
-      </button>
+      </OperatorTextLink>
+    ) : (
+      <>{props.children}</>
     );
-  }
-  if (props.target.kind === "launch") {
-    const launch = props.target.launch;
-    return (
-      <button
-        type="button"
-        className="declarative-inline-link"
-        onClick={() => props.onLaunch(launch)}
-      >
-        {props.children}
-      </button>
-    );
-  }
-  const { entityType, id } = props.target;
   return (
-    <button
-      type="button"
-      className="declarative-inline-link"
-      onClick={() => props.onOpenEntity(entityType, id)}
+    <OperatorTextLink
+      onClick={() =>
+        target.kind === "launch"
+          ? props.onLaunch(target.launch)
+          : props.onOpenEntity(target.entityType, target.id)
+      }
+      emphasis={props.emphasis}
     >
       {props.children}
-    </button>
+    </OperatorTextLink>
   );
 }
 
@@ -564,14 +575,14 @@ function ActionFormFields(props: {
 /**
  * Consequence, not position, decides an action's weight: anything that asks for
  * confirmation is marked, anything attached to a row stays subordinate to it,
- * and a standalone action is the surface's primary call to action.
+ * and other actions stay quiet rather than competing with the content.
  */
 function actionVariant(
   action: RuntimeOperatorActionControl,
   subordinate: boolean,
 ): OperatorControlVariant {
   if (action.confirmation) return "danger";
-  return subordinate ? "ghost" : "primary";
+  return subordinate ? "link" : "secondary";
 }
 
 export function OperatorActionButton(props: {
@@ -744,41 +755,54 @@ function Actions(props: {
   actions: readonly RuntimeOperatorActionControl[];
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   subordinate?: boolean;
+  label?: string;
 }): ReactElement | null {
+  const { Disclosure } = useContext(OperatorRendererHostContext).components;
   if (props.actions.length === 0) return null;
-  return (
-    <div className="declarative-actions">
+  const grouped = props.subordinate === true && props.actions.length > 1;
+  const layout = stylex.props(grouped ? actionLayout.menu : actionLayout.group);
+  const content = (
+    <div
+      {...layout}
+      className={`declarative-actions ${layout.className ?? ""}`}
+    >
       {props.actions.map((action, index) => (
         <OperatorActionButton
           key={`${action.actionId}:${action.capabilityId ?? "static"}:${index}`}
           action={action}
           onAction={props.onAction}
-          subordinate={props.subordinate === true}
+          subordinate={props.subordinate === true && !grouped}
         />
       ))}
     </div>
+  );
+  return grouped ? (
+    <Disclosure
+      title={props.label ?? "Available actions"}
+      triggerLabel="Options"
+      className="operator-actions-options"
+    >
+      {content}
+    </Disclosure>
+  ) : (
+    content
   );
 }
 
 function StatsBlock({
   block,
-  className = "declarative-stats operator-stats",
+  placement = "body",
 }: {
   block: Extract<RuntimeBlock, { type: "stats" }>;
-  className?: string;
+  placement?: "body" | "head";
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
   return (
-    <dl className={className}>
-      {block.items.map((item, index) => (
-        <div key={`${item.label}:${index}`} data-tone={item.tone ?? "neutral"}>
-          <dt>{item.label}</dt>
-          <dd>{item.value}</dd>
-          {item.caption && (
-            <span className="declarative-stat-caption">{item.caption}</span>
-          )}
-        </div>
-      ))}
-    </dl>
+    <OperatorStats
+      items={block.items}
+      density={components.density}
+      placement={placement}
+    />
   );
 }
 
@@ -787,15 +811,15 @@ function KeyValuesBlock({
 }: {
   block: Extract<RuntimeBlock, { type: "key-values" }>;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
   return (
-    <dl className="declarative-key-values operator-key-values">
-      {block.items.map((item, index) => (
-        <div key={`${item.label}:${index}`}>
-          <dt>{item.label}</dt>
-          <dd>{displayScalar(item.value)}</dd>
-        </div>
-      ))}
-    </dl>
+    <OperatorFacts
+      density={components.density}
+      items={block.items.map((item) => ({
+        label: item.label,
+        value: displayScalar(item.value),
+      }))}
+    />
   );
 }
 
@@ -804,14 +828,29 @@ function NoticeBlock({
 }: {
   block: Extract<RuntimeBlock, { type: "notice" }>;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
+  const { Disclosure } = components;
   return (
-    <aside
-      className="declarative-notice operator-notice"
-      data-tone={block.tone ?? "neutral"}
+    <OperatorNotice
+      title={block.title}
+      text={block.text}
+      tone={block.tone ?? "neutral"}
+      density={components.density}
     >
-      {block.title && <strong>{block.title}</strong>}
-      <p>{block.text}</p>
-    </aside>
+      {block.details && block.details.length > 0 && (
+        <Disclosure
+          title={block.title ?? "Diagnostics"}
+          triggerLabel="View diagnostics"
+          className="operator-notice-details"
+        >
+          <OperatorSource
+            text={block.details.join("\n\n")}
+            density={components.density}
+            framed={false}
+          />
+        </Disclosure>
+      )}
+    </OperatorNotice>
   );
 }
 
@@ -820,14 +859,14 @@ function TextBlock({
 }: {
   block: Extract<RuntimeBlock, { type: "text" }>;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
   return (
-    <article className="declarative-text">
-      {block.label && <h3>{block.label}</h3>}
-      <pre>{block.text}</pre>
-      {block.truncated === true && (
-        <small>Source content was truncated by its provider.</small>
-      )}
-    </article>
+    <OperatorSource
+      label={block.label}
+      text={block.text}
+      truncated={block.truncated}
+      density={components.density}
+    />
   );
 }
 
@@ -845,6 +884,7 @@ function LinksBlock(props: {
         <OperatorLink
           key={`${item.label}:${index}`}
           target={item.target}
+          emphasis="quiet"
           onOpenEntity={props.onOpenEntity}
           onLaunch={props.onLaunch}
         >
@@ -862,29 +902,104 @@ type RuntimeListItem = Extract<
 
 function ListItems(props: {
   items: readonly RuntimeListItem[];
+  presentation?: Extract<
+    RuntimeStudioOperatorPanelBlock,
+    { type: "list" }
+  >["presentation"];
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
   openId?: string | undefined;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
+  const { Disclosure } = components;
+  const master = useContext(OpenDetailContext) !== null;
   return (
-    <ol className="declarative-list operator-list">
-      {props.items.map((item) => {
+    <OperatorList
+      density={components.density}
+      presentation={props.presentation}
+    >
+      {props.items.map((item, index) => {
         const metadata = [
           ...(item.meta ? [item.meta] : []),
           ...(item.metadata ?? []),
         ];
         return (
-          <li
+          <OperatorRecordRow
             key={item.id}
-            data-tone={item.tone ?? "neutral"}
-            {...(props.openId === item.id ? { "aria-current": "true" } : {})}
+            density={components.density}
+            tone={item.tone}
+            selected={props.openId === item.id}
+            master={master && props.openId !== undefined}
+            stacked={
+              props.presentation === "activity" ||
+              props.presentation === "attention"
+            }
+            interactive={Boolean(item.link ?? item.links?.length)}
+            trailing={
+              item.count !== undefined ||
+              Boolean(item.badges?.length) ||
+              Boolean(item.actions?.length) ||
+              Boolean(item.links?.length) ||
+              (props.presentation === "attention" && metadata.length > 0) ? (
+                <>
+                  {props.presentation === "attention" &&
+                    metadata.length > 0 && (
+                      <small {...stylex.props(list.footerMetadata)}>
+                        <OperatorMetadata values={metadata} />
+                      </small>
+                    )}
+                  {item.links && item.links.length > 0 && (
+                    <nav
+                      {...stylex.props(list.links)}
+                      aria-label={`${item.title} links`}
+                    >
+                      {item.links.map((link, index) => (
+                        <OperatorLink
+                          key={`${link.label}:${index}`}
+                          target={link.target}
+                          emphasis="normal"
+                          onOpenEntity={props.onOpenEntity}
+                          onLaunch={props.onLaunch}
+                        >
+                          {link.label}
+                        </OperatorLink>
+                      ))}
+                    </nav>
+                  )}
+                  {item.count !== undefined && (
+                    <span {...stylex.props(list.count)}>{item.count}</span>
+                  )}
+                  {item.badges?.map((badge, index) => (
+                    <OperatorBadge
+                      key={`${badge.label}:${index}`}
+                      density={components.density}
+                      tone={badge.tone}
+                    >
+                      {badge.label}
+                    </OperatorBadge>
+                  ))}
+                  <Actions
+                    actions={item.actions ?? []}
+                    onAction={props.onAction}
+                    subordinate
+                    label={item.title}
+                  />
+                </>
+              ) : undefined
+            }
           >
-            <div>
-              <strong>
-                {item.link ? (
+            <OperatorRecordCopy
+              density={components.density}
+              metadata={props.presentation === "attention" ? [] : metadata}
+              presentation={props.presentation}
+              primary={index === 0}
+              clamp={master}
+              title={
+                item.link ? (
                   <OperatorLink
                     target={item.link}
+                    emphasis="title"
                     onOpenEntity={props.onOpenEntity}
                     onLaunch={props.onLaunch}
                   >
@@ -892,56 +1007,49 @@ function ListItems(props: {
                   </OperatorLink>
                 ) : (
                   item.title
-                )}
-              </strong>
-              {item.description && <p>{item.description}</p>}
-              {metadata.length > 0 && <small>{metadata.join(" · ")}</small>}
-              {item.links && item.links.length > 0 && (
-                <nav
-                  className="declarative-links"
-                  aria-label={`${item.title} links`}
-                >
-                  {item.links.map((link, index) => (
-                    <OperatorLink
-                      key={`${link.label}:${index}`}
-                      target={link.target}
-                      onOpenEntity={props.onOpenEntity}
-                      onLaunch={props.onLaunch}
+                )
+              }
+              description={
+                item.description &&
+                (item.tone === "warn" || item.tone === "error") &&
+                item.description.length > 160 ? (
+                  <div {...stylex.props(list.controls)}>
+                    <OperatorRecordDescription
+                      text={item.description}
+                      density={components.density}
+                      clamp
+                    />
+                    <Disclosure
+                      title={item.title}
+                      triggerLabel="Details"
+                      className="operator-issue-details"
                     >
-                      {link.label}
-                    </OperatorLink>
-                  ))}
-                </nav>
-              )}
+                      <OperatorSource
+                        text={item.description}
+                        density={components.density}
+                        framed={false}
+                      />
+                    </Disclosure>
+                  </div>
+                ) : (
+                  item.description
+                )
+              }
+            >
               {item.tags && item.tags.length > 0 && (
-                <span className="declarative-tags">
+                <span {...stylex.props(list.tags)}>
                   {item.tags.map((tag) => (
-                    <span key={tag}>{tag}</span>
+                    <OperatorBadge key={tag} density={components.density}>
+                      {tag}
+                    </OperatorBadge>
                   ))}
                 </span>
               )}
-            </div>
-            <div className="declarative-list-trailing">
-              {item.count !== undefined && <span>{item.count}</span>}
-              {item.badges?.map((badge, index) => (
-                <span
-                  key={`${badge.label}:${index}`}
-                  className="declarative-badge"
-                  data-tone={badge.tone ?? "neutral"}
-                >
-                  {badge.label}
-                </span>
-              ))}
-              <Actions
-                actions={item.actions ?? []}
-                onAction={props.onAction}
-                subordinate
-              />
-            </div>
-          </li>
+            </OperatorRecordCopy>
+          </OperatorRecordRow>
         );
       })}
-    </ol>
+    </OperatorList>
   );
 }
 
@@ -993,6 +1101,7 @@ function ListBlock(props: {
       ) : (
         <ListItems
           items={items}
+          presentation={props.block.presentation}
           onAction={props.onAction}
           onOpenEntity={props.onOpenEntity}
           onLaunch={props.onLaunch}
@@ -1132,22 +1241,24 @@ function TableBlock(props: {
 function GroupBlock(props: {
   block: Extract<RuntimeStudioOperatorPanelBlock, { type: "group" }>;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
   return (
-    <section
-      className="declarative-group operator-group"
-      aria-labelledby={`${props.block.id}-title`}
+    <OperatorCard
+      label={props.block.label}
+      density={components.density}
+      framed={false}
     >
-      <h3 id={`${props.block.id}-title`}>{props.block.label}</h3>
-      <dl>
-        {props.block.items.map((item) => (
-          <div key={item.id} data-tone={item.tone ?? "neutral"}>
-            <dt>{item.label}</dt>
-            {item.value !== undefined && <dd>{displayScalar(item.value)}</dd>}
-            {item.description && <small>{item.description}</small>}
-          </div>
-        ))}
-      </dl>
-    </section>
+      <OperatorFacts
+        density={components.density}
+        items={props.block.items.map((item) => ({
+          label: item.label,
+          value:
+            item.value === undefined ? undefined : displayScalar(item.value),
+          caption: item.description,
+          tone: item.tone,
+        }))}
+      />
+    </OperatorCard>
   );
 }
 
@@ -1235,7 +1346,9 @@ function QueryBlock(props: {
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
-  const { Button, Select } = useContext(OperatorRendererHostContext).components;
+  const { Button, Select, density, engine } = useContext(
+    OperatorRendererHostContext,
+  ).components;
   const change = (key: string, value: string): void => {
     const next: Record<string, string | number | undefined> = {
       ...props.query,
@@ -1250,28 +1363,47 @@ function QueryBlock(props: {
     ? Math.min(pagination.offset + pagination.limit, pagination.total)
     : 0;
   return (
-    <section className="declarative-query" aria-label="Workspace filters">
-      <div>
-        {props.block.controls.map((control) => (
-          <label key={control.key}>
-            <span>{control.label}</span>
-            <Select
-              value={control.value ?? ""}
-              onChange={(event) => change(control.key, event.target.value)}
+    <section
+      {...stylex.props(q.root)}
+      aria-label={
+        props.block.controls.length ? "Workspace filters" : "Collection pages"
+      }
+    >
+      {props.block.controls.length > 0 && (
+        <div {...stylex.props(q.controls)}>
+          {props.block.controls.map((control) => (
+            <label
+              {...stylex.props(
+                q.label,
+                density === "compact" && q.compactLabel,
+              )}
+              key={control.key}
             >
-              <option value="">{control.allLabel ?? "All"}</option>
-              {control.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                  {option.count === undefined ? "" : ` (${option.count})`}
-                </option>
-              ))}
-            </Select>
-          </label>
-        ))}
-      </div>
+              <span>{control.label}</span>
+              <Select
+                {...stylex.props(engine === "css" && q.cssSelect, q.control)}
+                value={control.value ?? ""}
+                onChange={(event) => change(control.key, event.target.value)}
+              >
+                <option value="">{control.allLabel ?? "All"}</option>
+                {control.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                    {option.count === undefined ? "" : ` (${option.count})`}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          ))}
+        </div>
+      )}
       {pagination && (
-        <footer>
+        <footer
+          {...stylex.props(
+            q.footer,
+            props.block.controls.length === 0 && q.standaloneFooter,
+          )}
+        >
           {/* The window is replaced, not appended: a triage list is worked from
               the top and its rows leave as they are handled, so an accumulating
               list would shift under the operator. That makes saying which slice
@@ -1279,38 +1411,42 @@ function QueryBlock(props: {
           <span>
             {pagination.total === 0
               ? "Nothing to show"
-              : `${pagination.offset + 1}–${shown} of ${pagination.total}`}
+              : pagination.offset >= pagination.total
+                ? `No items on this page · ${pagination.total} total`
+                : `Showing ${pagination.offset + 1}–${shown} of ${pagination.total}`}
           </span>
-          <span className="declarative-pager">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={pagination.offset === 0}
-              onClick={() =>
-                props.onQueryChange({
-                  ...props.query,
-                  offset: Math.max(0, pagination.offset - pagination.limit),
-                  limit: pagination.limit,
-                })
-              }
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={shown >= pagination.total}
-              onClick={() =>
-                props.onQueryChange({
-                  ...props.query,
-                  offset: pagination.offset + pagination.limit,
-                  limit: pagination.limit,
-                })
-              }
-            >
-              {pagination.label ?? "Next"}
-            </Button>
-          </span>
+          {(pagination.offset > 0 || shown < pagination.total) && (
+            <span {...stylex.props(q.pager)}>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={pagination.offset === 0}
+                onClick={() =>
+                  props.onQueryChange({
+                    ...props.query,
+                    offset: Math.max(0, pagination.offset - pagination.limit),
+                    limit: pagination.limit,
+                  })
+                }
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={shown >= pagination.total}
+                onClick={() =>
+                  props.onQueryChange({
+                    ...props.query,
+                    offset: pagination.offset + pagination.limit,
+                    limit: pagination.limit,
+                  })
+                }
+              >
+                {pagination.label ?? "Next"}
+              </Button>
+            </span>
+          )}
         </footer>
       )}
     </section>
@@ -1660,10 +1796,13 @@ function DetailBlock(props: {
 
   return (
     <div
-      className="declarative-detail"
+      className={`declarative-detail ${stylex.props(detail.root, requested !== undefined && detail.split).className ?? ""}`}
       data-open={requested === undefined ? "false" : "true"}
     >
-      <section className="declarative-detail-master" aria-label="Items">
+      <section
+        className={`declarative-detail-master ${stylex.props(detail.master, requested !== undefined && detail.hiddenMaster).className ?? ""}`}
+        aria-label="Items"
+      >
         <OpenDetailContext.Provider value={openItem}>
           {master}
         </OpenDetailContext.Provider>
@@ -1672,53 +1811,60 @@ function DetailBlock(props: {
           collection at rest keeps the full measure. */}
       {requested !== undefined && (
         <section
-          className="declarative-detail-pane"
+          className={`declarative-detail-pane ${stylex.props(detail.pane).className ?? ""}`}
           aria-label={open ? open.title : "Detail"}
         >
           {open ? (
             <>
               <button
                 type="button"
-                className="declarative-detail-back"
+                className={`declarative-detail-back ${stylex.props(detail.back).className ?? ""}`}
                 onClick={closeItem}
               >
                 ← Back
               </button>
-              <h3 ref={headingRef} tabIndex={-1}>
+              <h2
+                {...stylex.props(detail.heading)}
+                ref={headingRef}
+                tabIndex={-1}
+              >
                 {open.title}
-              </h3>
-              {open.blocks.map((panel, index) => (
-                <section
-                  key={panel.id ?? `${panel.type}:${index}`}
-                  data-block={panel.type}
-                >
-                  {panel.type === "card" ? (
-                    <CardBlock
-                      block={panel}
-                      onAction={props.onAction}
-                      onOpenEntity={props.onOpenEntity}
-                      onLaunch={props.onLaunch}
-                      query={query}
-                      onQueryChange={onQueryChange}
-                    />
-                  ) : (
-                    <PanelBlock
-                      block={panel}
-                      onAction={props.onAction}
-                      onOpenEntity={props.onOpenEntity}
-                      onLaunch={props.onLaunch}
-                      query={query}
-                      onQueryChange={onQueryChange}
-                    />
-                  )}
-                </section>
-              ))}
+              </h2>
+              <div {...stylex.props(detail.body)}>
+                {open.blocks.map((panel, index) => (
+                  <section
+                    key={panel.id ?? `${panel.type}:${index}`}
+                    data-block={panel.type}
+                  >
+                    {panel.type === "card" ? (
+                      <CardBlock
+                        framed={false}
+                        block={panel}
+                        onAction={props.onAction}
+                        onOpenEntity={props.onOpenEntity}
+                        onLaunch={props.onLaunch}
+                        query={query}
+                        onQueryChange={onQueryChange}
+                      />
+                    ) : (
+                      <PanelBlock
+                        block={panel}
+                        onAction={props.onAction}
+                        onOpenEntity={props.onOpenEntity}
+                        onLaunch={props.onLaunch}
+                        query={query}
+                        onQueryChange={onQueryChange}
+                      />
+                    )}
+                  </section>
+                ))}
+              </div>
             </>
           ) : (
             <>
               <button
                 type="button"
-                className="declarative-detail-back"
+                className={`declarative-detail-back ${stylex.props(detail.back).className ?? ""}`}
                 onClick={closeItem}
               >
                 ← Back
@@ -1735,6 +1881,7 @@ function DetailBlock(props: {
 }
 
 function CardBlock(props: {
+  framed?: boolean;
   block: Extract<RuntimeStudioOperatorBlock, { type: "card" }>;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   onOpenEntity: (entityType: string, id: string) => void;
@@ -1742,12 +1889,16 @@ function CardBlock(props: {
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
   return (
-    <section
-      className="declarative-card"
-      data-tone={props.block.tone ?? "neutral"}
+    <OperatorCard
+      label={props.block.label}
+      metadata={props.block.metadata}
+      framed={props.framed}
+      tone={props.block.tone}
+      presentation={props.block.presentation}
+      density={components.density}
     >
-      <header>{props.block.label}</header>
       {props.block.blocks.map((panel, index) => (
         <div key={panel.id ?? `${panel.type}:${index}`} data-block={panel.type}>
           <PanelBlock
@@ -1760,7 +1911,7 @@ function CardBlock(props: {
           />
         </div>
       ))}
-    </section>
+    </OperatorCard>
   );
 }
 
@@ -1776,14 +1927,20 @@ function ColumnsBlock(props: {
   query: OperatorViewQuery;
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
+  const { components } = useContext(OperatorRendererHostContext);
   const region = (
     entries: readonly RuntimeStudioOperatorRegionBlock[],
-    className: string,
   ): ReactElement => (
-    <div className={className}>
+    <>
       {entries.map((entry, index) => (
         <section
           key={entry.id ?? `${entry.type}:${index}`}
+          {...stylex.props(
+            components.density === "comfortable" &&
+              index > 0 &&
+              !(entry.type === "card" && entry.presentation === "disclosure") &&
+              workspace.sectionAfter,
+          )}
           data-block={entry.type}
         >
           {entry.type === "card" ? (
@@ -1807,14 +1964,16 @@ function ColumnsBlock(props: {
           )}
         </section>
       ))}
-    </div>
+    </>
   );
 
   return (
-    <div className="declarative-columns">
-      {region(props.block.primary, "declarative-column")}
-      {region(props.block.aside, "declarative-column declarative-aside")}
-    </div>
+    <OperatorColumns
+      density={components.density}
+      joined={components.density === "comfortable"}
+      primary={region(props.block.primary)}
+      aside={region(props.block.aside)}
+    />
   );
 }
 
@@ -1975,8 +2134,21 @@ export function OperatorViewRenderer(
   // rather than in the body as one more card.
   const [lead] = blocks;
   const totals =
-    props.renderAllTabs !== true && lead?.type === "stats" ? lead : null;
+    props.renderHead !== false &&
+    props.renderAllTabs !== true &&
+    lead?.type === "stats"
+      ? lead
+      : null;
   const bodyBlocks = totals ? blocks.slice(1) : blocks;
+  const components = props.components ?? CSS_COMPONENTS;
+  const frame = stylex.props(
+    workspace.frame,
+    props.renderHead === false && workspace.embedded,
+  );
+  const sections = stylex.props(
+    workspace.sections,
+    components.density === "comfortable" && workspace.comfortableSections,
+  );
   const { kicker, description, status, primaryAction } = props.data.view;
   const hasHead =
     Boolean(title) ||
@@ -1991,12 +2163,13 @@ export function OperatorViewRenderer(
       value={{
         resolveLink: props.resolveLink,
         renderAllTabs: props.renderAllTabs === true,
-        components: props.components ?? CSS_COMPONENTS,
+        components,
       }}
     >
       <main
-        className="declarative-workspace operator-view"
-        data-control-engine={(props.components ?? CSS_COMPONENTS).engine}
+        {...frame}
+        className={`declarative-workspace operator-view ${frame.className ?? ""}`}
+        data-control-engine={components.engine}
       >
         {props.renderHead !== false && hasHead && (
           <header className="declarative-head">
@@ -2015,9 +2188,7 @@ export function OperatorViewRenderer(
                   {status.detail && <small>{status.detail}</small>}
                 </strong>
               )}
-              {totals && (
-                <StatsBlock block={totals} className="declarative-totals" />
-              )}
+              {totals && <StatsBlock block={totals} placement="head" />}
               {primaryAction && (
                 <OperatorActionButton
                   action={primaryAction}
@@ -2027,10 +2198,13 @@ export function OperatorViewRenderer(
             </div>
           </header>
         )}
-        <div className="declarative-blocks">
+        <div
+          {...sections}
+          className={`declarative-blocks ${sections.className ?? ""}`}
+        >
           {bodyBlocks.map((block, index) => (
             <section
-              className={`operator-block operator-block--${block.type}`}
+              className={`operator-block operator-block--${block.type} ${stylex.props(workspace.section, blockSpan(block.type) === "wide" && workspace.wide, block.type === "query" && workspace.query).className ?? ""}`}
               key={block.id ?? `${block.type}:${index}`}
               data-block={block.type}
               data-span={blockSpan(block.type)}

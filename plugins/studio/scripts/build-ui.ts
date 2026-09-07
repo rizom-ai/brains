@@ -5,6 +5,14 @@ import { dirname, join, relative } from "node:path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
+const operatorRoot = join(packageRoot, "../../shared/operator-view-react");
+const operatorBuild = Bun.spawnSync(["bun", "run", "build"], {
+  cwd: operatorRoot,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (operatorBuild.exitCode !== 0)
+  throw new Error("Shared operator component build failed");
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
 const outdir = join(packageRoot, "dist", "ui");
 const reactRoot = dirname(require.resolve("react/package.json"));
@@ -61,7 +69,10 @@ if (!result.success) {
 }
 
 const stylexFile = "studio-app.css";
-await writeFile(join(outdir, stylexFile), `${stylex.css()}\n`);
+const operatorCSS = await Bun.file(
+  join(operatorRoot, "dist/stylex.css"),
+).text();
+await writeFile(join(outdir, stylexFile), `${stylex.css()}\n${operatorCSS}\n`);
 const outputFiles = [
   ...result.outputs.map((output) =>
     relative(outdir, output.path).replaceAll("\\", "/"),

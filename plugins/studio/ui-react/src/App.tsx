@@ -1,4 +1,10 @@
 /** @jsxImportSource react */
+import { ConfirmDialog } from "@brains/app-ui-react";
+import {
+  StudioChatDraftStore,
+  shouldBlockChatNavigation,
+  type StudioChatNavigationState,
+} from "./studio-chat-drafts";
 import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
@@ -16,6 +22,7 @@ import {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactElement,
 } from "react";
 import {
@@ -210,9 +217,24 @@ export function App(): ReactElement {
   );
   const { mode, draft, body, save: saveState } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
+  const [chatDraftStore] = useState(() => new StudioChatDraftStore());
+  const hasChatDrafts = useSyncExternalStore(
+    chatDraftStore.subscribe,
+    chatDraftStore.hasDrafts,
+    chatDraftStore.hasDrafts,
+  );
+  const [chatNavigation, setChatNavigation] =
+    useState<StudioChatNavigationState>({ hasDraft: false, busy: false });
   const navigationBlocker = useBlocker({
-    shouldBlockFn: () => hasUnsavedChanges,
-    enableBeforeUnload: hasUnsavedChanges,
+    shouldBlockFn: ({ next }) =>
+      hasUnsavedChanges ||
+      (routePathname === STUDIO_CHAT_ROUTE_PATH &&
+        shouldBlockChatNavigation(
+          { ...chatNavigation, hasDraft: hasChatDrafts },
+          next.pathname,
+        )),
+    enableBeforeUnload:
+      hasUnsavedChanges || hasChatDrafts || chatNavigation.busy,
     withResolver: true,
   });
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
@@ -1156,19 +1178,44 @@ export function App(): ReactElement {
   }
   if (activeChat) {
     return (
-      <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
-        <LazyStudioChatWorkspace
-          apiPath={activeWorkspace.chatApiPath}
-          studioBasePath={studioBasePath}
-          sessionId={studioChatSessionId(routeSearch)}
-          types={types}
-          workspaces={workspaces}
-          handoff={readStudioChatHandoffState(routeState)}
-          navigate={(href) => router.history.push(href)}
-          selectEntityType={selectEntityType}
-          selectWorkspace={selectWorkspace}
-        />
-      </Suspense>
+      <>
+        <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
+          <LazyStudioChatWorkspace
+            apiPath={activeWorkspace.chatApiPath}
+            draftStore={chatDraftStore}
+            onNavigationStateChange={setChatNavigation}
+            studioBasePath={studioBasePath}
+            sessionId={studioChatSessionId(routeSearch)}
+            types={types}
+            workspaces={workspaces}
+            handoff={readStudioChatHandoffState(routeState)}
+            navigate={(href, options) => {
+              // Acknowledged internal transitions keep drafts intact; work is not abandoned.
+              router.history.push(href, undefined, {
+                ignoreBlocker: options?.preserveWork === true,
+              });
+            }}
+            selectEntityType={selectEntityType}
+            selectWorkspace={selectWorkspace}
+          />
+        </Suspense>
+        {navigationBlocker.status === "blocked" && (
+          <ConfirmDialog
+            mark="↩"
+            title="Leave this conversation?"
+            titleId="chat-navigation-title"
+            cancelLabel="Stay"
+            confirmLabel="Leave"
+            onCancel={() => navigationBlocker.reset()}
+            onConfirm={() => navigationBlocker.proceed()}
+          >
+            <p>
+              Your draft stays in this tab. Leaving stops receiving the
+              response, but does not undo completed actions or background jobs.
+            </p>
+          </ConfirmDialog>
+        )}
+      </>
     );
   }
   if (

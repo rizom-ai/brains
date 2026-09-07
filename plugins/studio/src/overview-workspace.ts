@@ -209,12 +209,10 @@ function titleCase(value: string): string {
 
 function directLaunchTarget(
   view: RuntimeDashboardOperatorView,
-): RuntimeOperatorLinkTarget | undefined {
+): { label: string; target: RuntimeOperatorLinkTarget } | undefined {
   for (const block of view.blocks) {
     if (block.type !== "links") continue;
-    const target = block.items.find(
-      (item) => item.target.kind === "launch",
-    )?.target;
+    const target = block.items.find((item) => item.target.kind === "launch");
     if (target) return target;
   }
   return undefined;
@@ -265,15 +263,15 @@ function attentionItem(
       warning ||
       (loaded.failed
         ? "This source is temporarily unavailable."
-        : `${loaded.attention} items need attention.`),
+        : `${loaded.attention} ${loaded.attention === 1 ? "item needs" : "items need"} attention.`),
     metadata: [
       titleCase(loaded.contribution.group),
       loaded.failed
         ? "source unavailable"
-        : `${loaded.attention} need attention`,
+        : `${loaded.attention} ${loaded.attention === 1 ? "item" : "items"}`,
     ],
     tone: loaded.failed ? "error" : "warn",
-    ...(link ? { link } : {}),
+    ...(link ? { links: [link] } : {}),
   };
 }
 
@@ -306,7 +304,8 @@ function sourceCard(
       `${loaded.contribution.pluginId}-${loaded.contribution.id}`,
     ),
     label: loaded.contribution.title,
-    tone: loaded.failed ? "error" : loaded.attention > 0 ? "warn" : "neutral",
+    presentation: "disclosure",
+    tone: loaded.failed ? "error" : "neutral",
     blocks: sourcePanelBlocks(loaded.data),
   };
 }
@@ -318,16 +317,20 @@ function activityCard(
   return {
     type: "card",
     id: "overview-activity",
-    label: "While you were away",
+    label: "Recent activity",
     blocks: [
       {
         type: "list",
         id: "overview-activity-list",
+        presentation: "activity",
         empty: "No recent autonomous activity.",
         items: activity.map((item) => ({
           id: item.id,
           title: item.title,
-          ...(item.description ? { description: item.description } : {}),
+          // Failed-job diagnostics already appear in Needs you above.
+          ...(item.description && item.tone !== "error"
+            ? { description: item.description }
+            : {}),
           metadata: item.metadata,
           tone: item.tone,
           ...(item.link ? { link: item.link } : {}),
@@ -465,7 +468,7 @@ export class StudioOverviewRegistry {
   ): void {
     const parsed = entityActivityPayloadSchema.safeParse(payload);
     if (!parsed.success) return;
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date(Date.now()).toISOString();
     const next: OverviewActivity = {
       id: boundedId(
         "entity",
@@ -491,7 +494,7 @@ export class StudioOverviewRegistry {
   recordJob(payload: unknown): void {
     const parsed = jobProgressPayloadSchema.safeParse(payload);
     if (!parsed.success) return;
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date(Date.now()).toISOString();
     const jobType = parsed.data.jobDetails?.jobType ?? parsed.data.type;
     const progress = parsed.data.progress
       ? `${parsed.data.progress.current}/${parsed.data.progress.total}`
@@ -600,12 +603,13 @@ function overviewView(
   const attentionCard: RuntimeStudioOperatorCardBlock = {
     type: "card",
     id: "overview-attention",
-    label: "Needs attention",
-    tone: attention > 0 ? "warn" : "good",
+    label: "Needs you",
+    metadata: attention > 0 ? [`${attention} need attention`] : [],
     blocks: [
       {
         type: "list",
         id: "overview-attention-list",
+        presentation: "attention",
         empty: "Nothing needs your attention.",
         items: attentionItems,
       },
@@ -621,22 +625,19 @@ function overviewView(
   const view: RuntimeStudioOperatorView = {
     kicker: "Operator home",
     title: "Overview",
-    description:
-      "What needs you, and what the brain did on its own. Glance here, act in the workspace that owns it.",
-    status: {
-      label: attention === 1 ? "1 needs you" : `${attention} need you`,
-      tone: attention > 0 ? "warn" : "good",
-    },
     blocks: [
       {
         type: "columns",
         id: "overview-columns",
-        primary: [
-          attentionCard,
+        primary: [attentionCard, ...primarySources],
+        aside: [
           ...(recentActivity ? [recentActivity] : []),
-          ...primarySources,
+          ...runtime.map((card) => ({
+            ...card,
+            presentation: "disclosure" as const,
+          })),
+          ...sidebarSources,
         ],
-        aside: [...runtime, ...sidebarSources],
       },
     ],
   };

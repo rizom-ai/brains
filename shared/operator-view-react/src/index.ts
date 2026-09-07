@@ -1,5 +1,8 @@
 import styles from "./operator-view-renderer.css" with { type: "text" };
 
+export { OperatorFacts } from "./operator-facts";
+export { OperatorRecordCopy } from "./operator-record";
+export { OperatorCard } from "./operator-card";
 export { ConfirmDialog, type ConfirmDialogProps } from "./confirm-dialog";
 export {
   OperatorActionButton,
@@ -14,3 +17,7 @@ export {
 } from "./operator-view-renderer";
 
 export const operatorViewRendererStyles: string = styles;
+
+/** Supplied by the package build, not a browser or server runtime compiler. */
+declare const __OPERATOR_STYLEX_CSS__: string;
+export const operatorViewStylexCSS: string = __OPERATOR_STYLEX_CSS__;

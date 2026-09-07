@@ -73,6 +73,11 @@ describe("directory-sync Studio workspace", () => {
       path: "note/broken.md",
       message: "Frontmatter is invalid",
     });
+    await operationStatus.recordIssue({
+      kind: "import",
+      path: "note/another.md",
+      message: "Required title is missing",
+    });
     const directorySync = createMockDirectorySync({
       getStatus: mock(async () => ({
         syncPath: "/private/runtime/brain-data",
@@ -155,13 +160,30 @@ describe("directory-sync Studio workspace", () => {
     });
     expect(JSON.stringify(rendered)).not.toContain('"id":"sync-now"');
     expect(JSON.stringify(rendered)).toContain('"type":"columns"');
-    expect(JSON.stringify(rendered)).toContain('"type":"flow"');
-    expect(JSON.stringify(rendered)).toContain('"direction":"bidirectional"');
+    expect(JSON.stringify(rendered)).not.toContain('"type":"flow"');
+    expect(JSON.stringify(rendered)).toContain('"label":"Connection"');
+    expect(JSON.stringify(rendered)).toContain('"label":"Recent runs"');
+    expect(JSON.stringify(rendered)).toContain('"presentation":"disclosure"');
+    expect(JSON.stringify(rendered)).toContain('"presentation":"editorial"');
+    expect(JSON.stringify(rendered)).toContain('"details":[');
+    expect(JSON.stringify(rendered)).toContain('"id":"sync-summary"');
+    expect(JSON.stringify(rendered)).toContain(
+      '"label":"Branch","value":"main"',
+    );
+    expect(
+      JSON.stringify(rendered).indexOf('"id":"sync-issues-import"'),
+    ).toBeLessThan(JSON.stringify(rendered).indexOf('"id":"recent-runs"'));
     expect(JSON.stringify(rendered)).toContain('"type":"meters"');
     const issue = snapshot.issues[0];
     if (!issue) throw new Error("Expected a rendered sync issue");
     expect(JSON.stringify(rendered)).toContain(`Path: ${issue.path}`);
     expect(JSON.stringify(rendered)).toContain(`Occurred: ${issue.occurredAt}`);
+    expect(
+      JSON.stringify(rendered).match(/Content import needs attention/g),
+    ).toHaveLength(1);
+    expect(JSON.stringify(rendered)).toContain("2 recorded issues");
+    expect(JSON.stringify(rendered)).toContain("Frontmatter is invalid");
+    expect(JSON.stringify(rendered)).toContain("Required title is missing");
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
   });
