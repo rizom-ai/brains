@@ -362,6 +362,8 @@ export {
   type EntityMarkdownDocument,
   type EntityOf,
   type EntityPackageDefinition,
+  type EntitySeedDefinition,
+  type EntitySeedTrigger,
   type EntityVisibility,
   type EntityWriteInput,
   type ProjectionDefinition,
