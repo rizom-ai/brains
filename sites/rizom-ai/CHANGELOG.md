@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.246
+
+### Patch Changes
+
+- [#232](https://github.com/rizom-ai/brains/pull/232) [`89ae051`](https://github.com/rizom-ai/brains/commit/89ae05168ccc679a179051f177f29dd24d6b5bcd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Match the living-memory topbar to the shared theme background and grain, while retaining an opaque surface for readable sticky navigation.
+
 ## 0.2.0-alpha.245
 
 ### Patch Changes

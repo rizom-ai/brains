@@ -623,6 +623,7 @@
     "site--json-native-section-content",
     "site--living-memory-background",
     "site--living-memory-page",
+    "site--living-memory-topbar-background",
     "site--production-react-bundle-contract",
     "site--react-authoring-runtime",
     "site--relicense-agpl-apache-split",
