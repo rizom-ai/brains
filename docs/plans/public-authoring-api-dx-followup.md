@@ -57,9 +57,14 @@ Primary implementation locations on the branch:
 
 - `packages/brain-sdk/src/{entities,services,interfaces}.ts`
 - `shell/plugins/src/public/{entity,service,interface}-definition.ts`
-- `shell/plugins/src/service/service-definition-contract.ts`
+- `shell/plugins/src/service/service-definition-contract.ts` (route slot,
+  `state` store factory versus `state` setup result)
 - `shell/plugins/src/interface/interface-definition-contract.ts`
-- `packages/brain-cli/test/fixtures/public-authoring/`
+  (`runtimeState`)
+- `shell/plugins/src/interface/route-contract.ts` (`RouteOutput`)
+- `shell/plugins/src/internal/state-namespace.ts` (persisted namespace keys)
+- `shell/core/src/http-route-registry.ts` (production route collection)
+- `packages/brain-cli/test/fixtures/public-authoring/export-ledger.json`
 
 ## Design constraints
 
@@ -93,13 +98,17 @@ Primary implementation locations on the branch:
 3. Add a generated external compile consumer importing every promised type
    and value from the packed entry points, not private workspace sources.
    Exercise runtime imports for value exports as well.
-4. Resolve the 13 missing names against the intended final surface: export the
-   names we intend to keep and remove unwanted names from the candidate ledger.
-   Do not restore an unwanted API solely to preserve an alpha promise. Reconcile
-   the ledger, consumer fixtures, and release documentation in the same change.
+4. Quarantine the 13 missing names in an explicit `undecided` ledger category
+   so the reverse check passes without lying about the surface. Do not decide
+   keep/remove here: Phase 3 curation and the whole-surface removals below
+   define the final surface, and resolving the names against a surface that
+   later steps redefine reconciles the ledger twice. Do not restore an unwanted
+   API solely to preserve an alpha promise. The `undecided` category must be
+   empty before Phase 3 exits; the ledger test enforces this.
 
-**Exit:** the ledger describes what an external consumer can actually import,
-not merely the source files the workspace can resolve.
+**Exit:** the ledger check machinery describes what an external consumer can
+actually import, not merely the source files the workspace can resolve. The
+final dispositions for quarantined names land with Phase 3.
 
 ## Phase 2 — Explore missing abstractions before widening the API
 
@@ -114,11 +123,11 @@ external fixture and confirm it reduces author bookkeeping.
 route discovery is config-only. Generic and message interfaces expose state in
 route callbacks already.
 
-Investigate whether config-only discovery is a real production requirement before
-introducing descriptor/handler separation. Prefer one existing route lifecycle
-across families, with per-instance state and the runtime-authenticated caller.
-Never make a manifest test start real clients, builds, or filesystem sync just
-to preserve coverage.
+Config-only discovery is not a production requirement; the investigation below
+closes that question. Prefer one existing route lifecycle across families, with
+per-instance state and the runtime-authenticated caller, rather than a
+descriptor/handler separation. Never make a manifest test start real clients,
+builds, or filesystem sync just to preserve coverage.
 
 **Proof:** one ordinary webhook service and one console use the same mechanism;
 two independent runtimes instantiated from the same exported definition never
@@ -194,6 +203,21 @@ role switches into another universally available context property.
 for in-memory state, durable bookkeeping, and cleanup. Failure during setup and
 shutdown release resources; workers do not acquire scheduler-only resources.
 
+### F. Programmatically distinguishable SDK failures
+
+**Evidence:** added from collaborator feedback after A–E were scoped. Studio's
+A2A assist path decides availability by string-matching an error message that
+the messaging service composes. There is no public coded error a consumer can
+check instead.
+
+This is the one candidate whose disposition adds public surface rather than
+removing or combining it. Audit existing coded errors first; reuse or
+consolidate before adding a name. The minimization rule still applies: one
+contract, chosen in the surface inventory, not a parallel error family.
+
+**Proof:** Studio/A2A and one other supported boundary check a stable `code`,
+and changing the human-readable message does not change caller behavior.
+
 **Phase exit:** a disposition for every candidate, with consumers and the code
 or author bookkeeping it eliminates. Reject abstractions that only rename the
 same plumbing or broaden authority. Obtain API-shape agreement before large
@@ -232,8 +256,8 @@ implementation was changed.
 
 ### A. Routes — reuse one lifecycle, do not add another helper
 
-**Disposition: combine existing family behavior. Priority: first implementation
-slice.**
+**Disposition: combine existing family behavior. Priority: first consumer
+migration after setup inference is decided (slice 3).**
 
 `createRuntimeRoute` already owns authentication and request/response validation
 for all families. Interface routes are built after setup and retained on the
@@ -248,24 +272,37 @@ The problem is instance lifetime, not merely an awkward type annotation. The
 current test helper creates a fresh definition per installation, so that path
 avoids exercising reuse of the exported definition.
 
-Production HTTP route collection occurs after plugin registration finalization
-in `shell/core/src/initialization/shellBootloader.ts`. The concrete early-reader
-found was `packages/brain-cli/test/http-route-manifests.test.ts`, which already
-registers interfaces but not services.
+Config-only discovery has no production consumer. Production HTTP route
+collection is `collectHttpRouteContributors` in
+`shell/core/src/http-route-registry.ts`, which iterates
+`pluginManager.getAllPlugins()` — registered, instantiated plugins — and runs
+from `finalizeHttpRoutes()` after registration in
+`shell/core/src/initialization/shellBootloader.ts`. Every other `getWebRoutes`
+caller in the repository is a test or a test install helper; the concrete
+early-reader is `packages/brain-cli/test/http-route-manifests.test.ts`, which
+already registers interfaces but not services. The only assertion of the
+requirement is the comment on the service `routes` slot in
+`service-definition-contract.ts`, which justifies config-only routes by
+"composition tooling [that] enumerates routes from an uninstantiated
+definition". No such tooling exists in this repository.
 
-**Recommendation:** use `routes({ config, state, jobs })` after setup for services
-as for interfaces, with state closures created per runtime instance. Keep
-`defineRoute` and `createRuntimeRoute`; do not add `defineRouteDescriptor`, a
-second registration callback, or a descriptor registry to ordinary authoring.
-Update manifest evidence to controlled registration with external effects
-stubbed, and cover finalized runtime inventory. Verify any external early-route
-inspection promise before changing that behavior.
+**Recommendation (decided):** use `routes({ config, state, jobs })` after setup
+for services as for interfaces, with state closures created per runtime
+instance. Keep `defineRoute` and `createRuntimeRoute`; do not add
+`defineRouteDescriptor`, a second registration callback, or a descriptor
+registry to ordinary authoring. Delete the config-only rationale comment on the
+service `routes` slot in the same change so the requirement is not re-litigated
+from a stale comment. Update manifest evidence to controlled registration with
+external effects stubbed, and cover finalized runtime inventory.
 
 Also repair the existing `RouteOutput` type: it currently yields `unknown` for
 schema responses, so `{ count: "wrong" }` compiles against
 `response: z.object({ count: z.number() })`. Runtime validation exists already;
 its input type should be reflected statically, with schema transforms handled
-correctly. This requires no new public symbol.
+correctly. This requires no new public symbol, touches only
+`shell/plugins/src/interface/route-contract.ts` plus a negative compile fixture,
+and does not depend on the route-lifecycle change. Land it as its own first
+commit.
 
 Sources: `shell/plugins/src/interface/route-{contract,runtime}.ts`,
 `service/declarative-service-plugin.ts`,
@@ -353,11 +390,21 @@ Sources: `plugins/email-workflows/src/source-read.ts`,
 `shell/plugins/src/{contracts/subscription,service/reaction-context}.ts`, and
 `shell/messaging-service/src/message-dispatcher.ts`.
 
-### Shared errors — one small public contract
+### F. Shared errors — one small public contract
+
+**Disposition: accept as the single net-new public contract of this cleanup.**
+It adds public surface where every other disposition removes or combines. That
+is deliberate: consumers cannot distinguish failures programmatically today, and
+no existing exported construct can be extended to carry a stable code. The
+accepted addition is bounded to one schema-backed contract and, at most, one
+error class implementing it; both names are chosen in the Phase 1 inventory
+and enter the ledger in the same slice as their consumers.
 
 Collaborator feedback requests a coded error instead of matching generic error
-messages. This is a demonstrated need: Studio's A2A assist path checks whether
-an error starts with `"No handler found"`.
+messages. This is a demonstrated need: Studio's A2A assist path
+(`plugins/studio/src/editor-assist.ts`) checks whether an error starts with
+`"No handler found"`, a string composed in
+`shell/messaging-service/src/message-factory.ts`.
 
 **Recommendation:** establish one schema-backed public error contract for SDK
 failures that callers need to distinguish programmatically. Audit existing coded
@@ -426,7 +473,7 @@ Sources: `shell/plugins/src/service/service-definition-contract.ts`,
 
 ## Whole-surface simplification recommendations
 
-This includes pre-existing APIs, not only the five candidates. The existing
+This includes pre-existing APIs, not only the six candidates. The existing
 `main` service/template entry points were also checked so inherited surface is
 not mistaken for a new branch regression.
 
@@ -468,26 +515,52 @@ schemas, account settings, templates, async setup, and extracted handlers still
 need proof. This is an explicit API-shape decision, not a hidden compatibility
 shim or a promised one-line type fix.
 
+It is also the only decision in this plan that can change the shape of every
+family's definition object. If the two-stage pattern wins, the contracts
+migrated by later slices — routes, templates/views, data sources, readers, state
+vocabulary — are all expressed in that new shape. Deciding it after those
+migrations means migrating every consumer twice. Settle it first: it is a
+type-level decision, the prototype already exists, and the compile fixtures it
+needs are small.
+
 ### Recommended implementation order
 
-1. Repair promised exports and add reverse built-declaration checks.
-2. Unify service routes with the existing instance-bound lifecycle; add the
-   Newsletter two-instance regression and typed route-response checks.
-3. Combine service templates/views and the two data-source helper names, one
+1. Land the ledger check machinery: reverse built-declaration checks, the
+   packed-consumer fixture, and the `undecided` quarantine for the 13 names.
+   Fix `RouteOutput` as a standalone commit in this slice.
+2. Decide setup inference once across families, with compile fixtures covering
+   both property orders for services, generic interfaces, and message
+   interfaces. Every later slice expresses its contracts in the winning shape.
+   Do not begin step 3 until this is decided.
+3. Unify service routes with the existing instance-bound lifecycle; add the
+   Newsletter two-instance regression. Delete the config-only rationale comment.
+4. Combine service templates/views and the two data-source helper names, one
    contract change at a time. Migrate consumers and remove superseded alpha forms;
    do not retain compatibility aliases or parallel APIs.
-4. Consolidate entity readers, request responses, and resource/state vocabulary
+5. Consolidate entity readers, request responses, and resource/state vocabulary
    through their existing machinery. Establish the shared coded-error contract
    alongside request-failure semantics. No new top-level helper by default.
-5. Remove host/infrastructure and unrelated utility exposure from normal
-   authoring; keep advanced integration only where external support is intended.
-6. Resolve setup inference once across families and reconcile the external
-   guide/golden examples with the resulting API.
+6. Curate the boundary (Phase 3): remove host/infrastructure and unrelated
+   utility exposure from normal authoring, keep advanced integration only where
+   external support is intended, and empty the `undecided` ledger category.
+7. Reconcile the external guide, golden examples, and presentation rule with
+   the resulting API.
 
 No abstractions from this investigation require a new general public framework.
-Unresolved design decisions are third-party host support and the final setup
-typing shape; neither blocks the two concrete runtime/type regressions from
-receiving focused tests. Preserving legacy alpha APIs is not a requirement.
+The one unresolved design decision is third-party host support; it does not
+block any slice above because B's disposition is internal-only until that is
+approved. Preserving legacy alpha APIs is not a requirement.
+
+### Landing strategy
+
+Each numbered slice above is an independently reviewable and revertable change
+against the integration branch, gated on its own targeted checks plus
+`bun run typecheck` and `bun run surface:check`. The slices are ordered by
+dependency, not preference: 1 has no dependencies, 2 gates everything after it,
+and 3–5 may land in any order once 2 has landed. Do not accumulate slices into
+one long-lived branch; a slice that is not landable on its own is too large and
+should be split at a contract boundary. The whole-surface table entries that are
+not covered by a numbered slice are folded into slice 6.
 
 ## Phase 3 — Curate the public boundary
 
@@ -516,12 +589,14 @@ The built-ins still work, and no class-first authoring path is reintroduced.
 ## Phase 4 — Make the normal path predictable
 
 - Remove the requirement that authors order `setup` before state consumers.
-  Start with minimal compile fixtures covering both property orders for
-  services, generic interfaces, and message interfaces. Preserve config defaults,
-  transforms, async setup where supported, and extracted handler inference.
-  Do not fix the examples with casts, empty-state widening, or explicit framework
-  generics. If inference requires an API-shape change, review the two smallest
-  viable designs before implementation.
+  This is slice 2 of the implementation order and is decided before any
+  consumer migration, not here. Start with minimal compile fixtures covering
+  both property orders for services, generic interfaces, and message
+  interfaces. Preserve config defaults, transforms, async setup where supported,
+  and extracted handler inference. Do not fix the examples with casts,
+  empty-state widening, or explicit framework generics. If inference requires
+  an API-shape change, review the two smallest viable designs before
+  implementation.
 - Implement the accepted route-binding design from Phase 2. Convert Newsletter
   and Dashboard first; extend to other service routes only after the pattern is
   proven. Keep authentication, body/response validation, and rollback semantics.
@@ -586,10 +661,16 @@ Rendered-site evidence must start a canonical test app through its existing
 posture script and rebuild preview through the running app before inspecting
 `dist/site-preview`; a static build alone is not sufficient.
 
-**Final acceptance:**
+**Investigation exit (complete):**
 
-- [ ] Promised exports and packed declarations agree in both directions.
 - [x] Every abstraction candidate has an evidence-backed disposition.
+- [x] Config-only route discovery is confirmed to have no production consumer.
+- [x] The setup-inference order sensitivity is reproduced in all three families.
+
+**Implementation acceptance:**
+
+- [ ] Promised exports and packed declarations agree in both directions, and the
+      `undecided` ledger category is empty.
 - [ ] Normal authoring avoids host registries, broker details, and process roles.
 - [ ] Setup inference and route instance state are predictable and tested.
 - [ ] Presentation ownership has one documented rule used by real consumers.
