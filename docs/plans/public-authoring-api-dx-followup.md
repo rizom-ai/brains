@@ -65,6 +65,10 @@ Primary implementation locations on the branch:
 - `shell/plugins/src/internal/state-namespace.ts` (persisted namespace keys)
 - `shell/core/src/http-route-registry.ts` (production route collection)
 - `packages/brain-cli/test/fixtures/public-authoring/export-ledger.json`
+- `shell/plugins/test.ts` (the harness a public testing entry re-exports)
+- `shell/plugins/src/package-definition.ts` (derived plugin ids)
+- `shell/plugins/src/operator/{studio-workspace,dashboard-widget}-runtime.ts`
+  (contributor binding)
 
 ## Design constraints
 
@@ -487,6 +491,90 @@ Sources: `shell/plugins/src/service/service-definition-contract.ts`,
 `manager/plugin-lifecycle.ts`, `internal/state-namespace.ts`, and
 `plugins/directory-sync/src/service.ts`.
 
+### G. Testing from outside the repository — publish the existing harness
+
+**Disposition: expose existing internal helpers; no new harness.**
+
+The fixtures under `packages/brain-cli/test/fixtures/public-authoring` contain
+no test files, and the SDK has no testing entry, so an author can exercise a
+plugin only by booting a packed brain. Phase 5 tests the API from the
+repository side and gives authors nothing to run themselves. The built-ins
+already test through `@brains/plugins/test`: `createMockShell`,
+`createPluginHarness` with `expectSuccess`, `expectError`, and
+`expectConfirmation`, `createMockServicePluginContext`,
+`createTestJobContext` and `runServiceJob`, and the temp data-dir helpers.
+Every converted package's suite proves them.
+
+**Decided:** add `@rizom/brain/testing`, re-exporting that set unchanged, as a
+stable ledger source with the same reverse and packed-consumer checks as the
+families. No second harness and no fixture DSL. A helper joins the entry only
+with a consumer among the sign-off tests or the built-ins, and a helper whose
+signature reaches private shell, Effect, or database types stays internal
+until it has a public shape. The three sign-off extensions carry unit tests
+written against this entry and run from the packed package, and the fixture
+README documents the pattern.
+
+Sources: `shell/plugins/test.ts`, `shell/plugins/src/test/{harness,mock-shell}.ts`,
+and `packages/brain-cli/test/fixtures/public-authoring/README.md`.
+
+### H. Identifiers an author sees — one name per declaration
+
+**Disposition: simplify the derived ids; no data migration.**
+
+`shell/plugins/src/package-definition.ts` composes a plugin id as
+`${packageName}:${declarationId}`, so directory-sync reads
+`@brains/directory-sync:directory-sync` in logs,
+`@brains/directory-sync:directory-sync:import` as a job type, and
+`@brains/directory-sync:directory-sync:sync` as a workspace id, while its tool
+is `directory-sync_sync`. Authors never type these, but they read them in
+logs, MCP tool listings, and job status, and the prefix is redundant whenever
+package and declaration coincide, which is every single-definition package.
+
+**Decided:** the plugin id is the declaration id. The package name stays on the
+definition as metadata for diagnostics. Registration refuses two definitions
+with the same declaration id and names both packages in the diagnostic. Tool
+names stay `${declarationId}_${tool}`; jobs, health checks, templates, and
+workspaces become `${declarationId}:${name}`. Persisted impact: job rows carry
+`pluginId` only in the local, unreplicated job queue and are transient; runtime
+state is keyed by the package name through `stateNamespaceFor` and does not
+change; no entity row stores a plugin id. Account settings keep their own
+`${packageName}:${definitionId}` key in the auth database: that key is
+persisted user data, not a plugin id, and is out of scope. The changeset lists
+the renamed job types and workspace ids; eval cases, brain-cli tests, and
+brains-ops job names migrate in the same slice.
+
+Sources: `shell/plugins/src/package-definition.ts`,
+`shell/plugins/src/internal/state-namespace.ts`,
+`shell/job-queue/src/schema/types.ts`, and
+`shell/plugins/src/operator/account-settings-registry.ts`.
+
+### I. Contributor binding — declare the loader where state exists
+
+**Disposition: remove the bind step with the two-stage migration.**
+
+A Studio workspace or Dashboard widget is declared once with
+`defineStudioWorkspace` or `defineDashboardWidget` and then, in the
+`studioWorkspaces` or `dashboardWidgets` slot, bound again with
+`.bind(bindingContext, { load, actions })` so its loader and action handlers
+can reach setup state. That second step exists only because the object form
+cannot see `state` at declaration time. The two-stage pattern gives the
+behavior stage the state, so the loader and handlers can be written in the
+declaration itself.
+
+**Decided:** `studioWorkspaces` and `dashboardWidgets` in the behavior stage
+return definitions that carry `load` and action handlers directly, closing
+over state; the runtime keeps binding config, caller, visibility-scoped
+entities, and cancellation as it does now. `bind`, `OperatorBindingContext`,
+`BoundStudioWorkspace`, and `BoundWorkspaceAction` leave the public surface.
+An action definition a package exports for reuse keeps its schemas; its
+handler lives with the workspace that declares it. Lands with slice 2, since
+the same consumers migrate.
+
+Sources: `shell/plugins/src/service/service-definition-contract.ts`
+(`studioWorkspaces`, `dashboardWidgets`),
+`shell/plugins/src/operator/{studio-workspace,dashboard-widget}-runtime.ts`,
+and `plugins/directory-sync/src/{service,lib/studio-workspace}.ts`.
+
 ## Whole-surface simplification recommendations
 
 This includes pre-existing APIs, not only the six candidates. The existing
@@ -507,6 +595,9 @@ not mistaken for a new branch regression.
 | `@rizom/brain/templates` builder/registry exports and host namespace types             | **Internal or explicitly advanced after consumer audit**                                                 | Rendering a template does not require a `SiteBuilder` or a `ViewTemplateRegistry`. Removing an export alone is insufficient if it remains reachable through a callback.                                                                                                                      |
 | Generic utilities on entity entry points (`pLimit`, `getErrorMessage`, string helpers) | **Remove from normal authoring unless needed for a domain contract**                                     | Their usefulness does not make them Brain authoring concepts. Use an already supported public shared library where available, ordinary dependencies, or local functions; do not create a new catch-all SDK utility subpath.                                                                  |
 | Inferred public DTO/type exports                                                       | **Keep useful domain types; trim runtime-shaped aliases**                                                | Extracted handlers need names. Deleting type names while leaving the same structures implicit makes DX worse without reducing the real contract.                                                                                                                                             |
+| Plugin tests: `@brains/plugins/test` only                                              | **Publish the existing harness as `@rizom/brain/testing`** (G below)                                     | An author can only exercise a plugin today by booting a packed brain. The built-ins already prove the mock shell and plugin harness; export them, do not write a second harness.                                                                                                             |
+| Derived ids `${packageName}:${declarationId}` in logs, job types, tool listings        | **The plugin id is the declaration id** (H below)                                                        | Authors read these ids in logs, MCP tool listings, and job status. The package prefix is redundant for every single-definition package. No persisted user data embeds the plugin id.                                                                                                         |
+| `defineStudioWorkspace` / `defineDashboardWidget` plus a setup-time `bind` step        | **Declare the loader and handlers where state exists** (I below)                                         | The bind step exists only because the object form cannot see setup state at declaration time. The two-stage pattern removes that reason.                                                                                                                                                     |
 
 The template and data-source combinations are concrete existing-surface reduction
 candidates, not instructions to widen `createTemplate` to every capability.
@@ -551,7 +642,8 @@ needs are small.
 2. Implement the two-stage setup pattern across families, with compile
    fixtures covering both property orders for services, generic interfaces,
    and message interfaces. Every later slice expresses its contracts in that
-   shape. Do not begin step 3 until this has landed.
+   shape. Do not begin step 3 until this has landed. The same consumer
+   migration removes the contributor `bind` step (I).
 3. Unify service routes with the existing instance-bound lifecycle; add the
    Newsletter two-instance regression. Delete the config-only rationale comment.
 4. Combine service templates/views and the two data-source helper names, one
@@ -565,6 +657,11 @@ needs are small.
    external support is intended.
 7. Reconcile the external guide, golden examples, and presentation rule with
    the resulting API.
+8. Publish `@rizom/brain/testing` (G) with its ledger source and packed-consumer
+   check, and give the three sign-off extensions their unit tests.
+9. Make the plugin id the declaration id (H), with the duplicate-id diagnostic,
+   the renamed job types and workspace ids, and the migrated eval cases, tests,
+   and ops job names.
 
 No abstractions from this investigation require a new general public framework.
 No design decision remains open: third-party host support is not a product
@@ -583,7 +680,8 @@ repository gate, not a subset of it: forced typecheck, forced lint through
 `docs:check`, `surface:check`, `changeset:check`), and the full suite that
 the pre-commit hook runs. The slices are ordered by
 dependency, not preference: 1 has no dependencies, 2 gates everything after it,
-and 3–5 may land in any order once 2 has landed. Do not accumulate slices into
+and 3–5 may land in any order once 2 has landed. Slice 8 depends only on 1;
+slice 9 has no dependencies. Do not accumulate slices into
 one long-lived branch; a slice that is not landable on its own is too large and
 should be split at a contract boundary. The whole-surface table entries that are
 not covered by a numbered slice are folded into slice 6.
@@ -673,7 +771,9 @@ creating a parallel test system. Add focused cases for:
 - a message interface sharing one setup resource across listen/send;
 - entity presentation following the agreed rule;
 - a widget/workspace contributor without host-registration imports;
-- each newly approved advanced abstraction, with its named external use case.
+- each newly approved advanced abstraction, with its named external use case;
+- each extension's own unit tests, written against `@rizom/brain/testing` and
+  run from the packed package.
 
 Include negative compile tests for wrong inputs, output types where promised,
 invalid config, and unavailable capabilities. Include runtime tests for parsed
@@ -708,6 +808,13 @@ posture script and rebuild preview through the running app before inspecting
 - [ ] Superseded alpha APIs are removed, consumers are migrated, and no legacy
       aliases, compatibility shims, or dual authoring paths remain from this cleanup.
 - [ ] Any advanced-contract additions are explicit.
+- [ ] `@rizom/brain/testing` is in the ledger and the packed-consumer check, and
+      the three sign-off extensions run their own unit tests through it.
+- [ ] Plugin ids, job types, and workspace ids carry no package prefix, and a
+      duplicate declaration id is refused at registration with both packages
+      named.
+- [ ] Workspace and widget loaders and handlers are declared with their
+      definitions; no `bind` step or binding-context type is public.
 - [ ] Public documentation allows breaking cleanup before stable `0.2.0` and
       states that the `0.2.x` patch promise and later-minor breaking-change policy
       apply only after the stable freeze.
@@ -723,7 +830,8 @@ to build three small external extensions through the existing fixture system:
 2. A configured service with a durable job and an authenticated, stateful route.
 3. A conversational interface sharing a setup resource across its callbacks.
 
-All three must compile and exercise their live paths without casts, duplicated
+All three must compile, run their own unit tests through the public testing
+entry, and exercise their live paths without casts, duplicated
 schemas, private imports, explicit framework generics, property-order rules, or
 mutable outer state used to bridge lifecycle gaps. Setup inference has one
 solution across families, the two-stage pattern; the sign-off examples prove
