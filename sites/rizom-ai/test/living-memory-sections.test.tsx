@@ -108,6 +108,15 @@ describe("approved living-memory composition", () => {
     expect(pageRule).not.toMatch(/background(?:-color|-image)?\s*:/);
   });
 
+  test("sticky navigation uses the shared theme surface without washing out its texture", () => {
+    const css = site.staticAssets?.["/styles/living-memory.css"];
+    const headerRule = css?.match(/\.site-header\s*\{([^}]+)\}/)?.[1];
+    expect(headerRule).toContain("background-color: var(--color-bg)");
+    expect(headerRule).toContain("background-image: var(--bg-noise)");
+    expect(headerRule).toContain("backdrop-filter: none");
+    expect(headerRule).toContain("position: sticky");
+  });
+
   test("heading emphasis follows the brand: italic, accent yellow, and inline", () => {
     const css = site.staticAssets?.["/styles/living-memory.css"];
     for (const pattern of [

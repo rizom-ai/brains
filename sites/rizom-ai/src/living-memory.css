@@ -158,8 +158,10 @@
     position: sticky;
     top: 0;
     z-index: 20;
-    background: color-mix(in srgb, var(--color-bg) 95%, transparent);
-    backdrop-filter: blur(14px);
+    /* Match the shared page surface while covering content under sticky navigation. */
+    background-color: var(--color-bg);
+    background-image: var(--bg-noise);
+    backdrop-filter: none;
     border-bottom: 1px solid var(--color-border-light);
   }
   .faces-bar {
