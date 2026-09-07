@@ -57,120 +57,123 @@ const generateOutputSchema = z.object({
 export function siteContentService(): ServicePackageDefinition<
   typeof siteContentPluginConfigSchema
 > {
-  return defineServicePlugin({
-    // Named for what it does rather than for the type it owns: a service and
-    // an entity type may not share a name, and the records are the content.
-    id: "sections",
-    config: siteContentPluginConfigSchema,
-    entities: [siteContentEntity],
+  return defineServicePlugin(
+    {
+      // Named for what it does rather than for the type it owns: a service and
+      // an entity type may not share a name, and the records are the content.
+      id: "sections",
+      config: siteContentPluginConfigSchema,
+      entities: [siteContentEntity],
+    },
+    {
+      // The sections a brain configured, named from the namespace its author
+      // chose because that is how a route names them.
+      templates: ({ config }) => sectionTemplates(config.definitions),
+      views: ({ config }) => sectionViews(config.definitions),
 
-    // The sections a brain configured, named from the namespace its author
-    // chose because that is how a route names them.
-    templates: ({ config }) => sectionTemplates(config.definitions),
-    views: ({ config }) => sectionViews(config.definitions),
+      jobs: () => [handleFillSection()],
 
-    jobs: () => [handleFillSection()],
+      tools: ({ jobs, templates }) => [
+        defineTool({
+          name: "generate",
+          description:
+            "Generate content for all routes, a specific route, or a specific section",
+          input: GenerateOptionsSchema,
+          output: generateOutputSchema,
+          permission: "admin",
+          sideEffects: "writes",
+          execute: async ({ input, entities, messaging, logger }) => {
+            if (input.sectionId && !input.routeId) {
+              throw new Error("sectionId requires routeId to be specified");
+            }
 
-    tools: ({ jobs, templates }) => [
-      defineTool({
-        name: "generate",
-        description:
-          "Generate content for all routes, a specific route, or a specific section",
-        input: GenerateOptionsSchema,
-        output: generateOutputSchema,
-        permission: "admin",
-        sideEffects: "writes",
-        execute: async ({ input, entities, messaging, logger }) => {
-          if (input.sectionId && !input.routeId) {
-            throw new Error("sectionId requires routeId to be specified");
-          }
-
-          const answer = routesAnswerSchema.safeParse(
-            await messaging.request({
-              type: SITE_BUILDER_CHANNELS.routesList,
-              payload: {},
-            }),
-          );
-          if (!answer.success) {
-            throw new Error(
-              "The site builder did not answer with its routes; is it running?",
+            const answer = routesAnswerSchema.safeParse(
+              await messaging.request({
+                type: SITE_BUILDER_CHANNELS.routesList,
+                payload: {},
+              }),
             );
-          }
+            if (!answer.success) {
+              throw new Error(
+                "The site builder did not answer with its routes; is it running?",
+              );
+            }
 
-          const routes = input.routeId
-            ? answer.data.data.filter((route) => route.id === input.routeId)
-            : answer.data.data;
-          if (input.routeId && routes.length === 0) {
-            throw new Error(`Route not found: ${input.routeId}`);
-          }
+            const routes = input.routeId
+              ? answer.data.data.filter((route) => route.id === input.routeId)
+              : answer.data.data;
+            if (input.routeId && routes.length === 0) {
+              throw new Error(`Route not found: ${input.routeId}`);
+            }
 
-          const fillable: Array<{
-            route: SiteRoute;
-            sectionId: string;
-            template: string;
-          }> = [];
-          for (const route of routes) {
-            for (const section of route.sections) {
-              if (input.sectionId && section.id !== input.sectionId) continue;
-              if (section.content) continue;
-              if (!section.template) continue;
-              if (!templates.capabilities(section.template)?.canGenerate) {
-                logger.debug("Section cannot be generated, skipping", {
-                  routeId: route.id,
+            const fillable: Array<{
+              route: SiteRoute;
+              sectionId: string;
+              template: string;
+            }> = [];
+            for (const route of routes) {
+              for (const section of route.sections) {
+                if (input.sectionId && section.id !== input.sectionId) continue;
+                if (section.content) continue;
+                if (!section.template) continue;
+                if (!templates.capabilities(section.template)?.canGenerate) {
+                  logger.debug("Section cannot be generated, skipping", {
+                    routeId: route.id,
+                    sectionId: section.id,
+                    template: section.template,
+                  });
+                  continue;
+                }
+                if (!input.force && !input.dryRun) {
+                  const existing = await entities.getEntity({
+                    entityType: "site-content",
+                    id: sectionEntityId(route.id, section.id),
+                  });
+                  if (existing) continue;
+                }
+                fillable.push({
+                  route,
                   sectionId: section.id,
                   template: section.template,
                 });
-                continue;
               }
-              if (!input.force && !input.dryRun) {
-                const existing = await entities.getEntity({
-                  entityType: "site-content",
-                  id: sectionEntityId(route.id, section.id),
-                });
-                if (existing) continue;
-              }
-              fillable.push({
-                route,
-                sectionId: section.id,
-                template: section.template,
-              });
             }
-          }
 
-          if (input.dryRun) {
+            if (input.dryRun) {
+              return {
+                queued: [],
+                totalSections: fillable.length,
+                queuedSections: fillable.length,
+                dryRun: true,
+              };
+            }
+
+            const queued = await Promise.all(
+              fillable.map(async ({ route, sectionId, template }) => {
+                const job = await jobs.enqueue(fillSectionJob, {
+                  routeId: route.id,
+                  sectionId,
+                  templateName: template,
+                  ...(route.title !== undefined
+                    ? { routeTitle: route.title }
+                    : {}),
+                  ...(route.description !== undefined
+                    ? { routeDescription: route.description }
+                    : {}),
+                });
+                return { jobId: job.id, routeId: route.id, sectionId };
+              }),
+            );
+
             return {
-              queued: [],
+              queued,
               totalSections: fillable.length,
-              queuedSections: fillable.length,
-              dryRun: true,
+              queuedSections: queued.length,
+              dryRun: false,
             };
-          }
-
-          const queued = await Promise.all(
-            fillable.map(async ({ route, sectionId, template }) => {
-              const job = await jobs.enqueue(fillSectionJob, {
-                routeId: route.id,
-                sectionId,
-                templateName: template,
-                ...(route.title !== undefined
-                  ? { routeTitle: route.title }
-                  : {}),
-                ...(route.description !== undefined
-                  ? { routeDescription: route.description }
-                  : {}),
-              });
-              return { jobId: job.id, routeId: route.id, sectionId };
-            }),
-          );
-
-          return {
-            queued,
-            totalSections: fillable.length,
-            queuedSections: queued.length,
-            dryRun: false,
-          };
-        },
-      }),
-    ],
-  });
+          },
+        }),
+      ],
+    },
+  );
 }

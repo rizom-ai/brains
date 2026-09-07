@@ -50,37 +50,40 @@ interface StockPhotoState {
 export function stockPhotoService(
   dependencies: StockPhotoDependencies = {},
 ): ServicePackageDefinition<typeof stockPhotoConfigSchema> {
-  return defineServicePlugin({
-    id: "stock-photo",
-    config: stockPhotoConfigSchema,
+  return defineServicePlugin(
+    {
+      id: "stock-photo",
+      config: stockPhotoConfigSchema,
 
-    // No key, no provider — and no tools or job either, rather than tools
-    // that could only answer "not configured".
-    setup: ({ config }): StockPhotoState => ({
-      provider:
-        dependencies.provider ??
-        (config.apiKey
-          ? new UnsplashClient(
-              config.apiKey,
-              dependencies.fetch ?? globalThis.fetch,
-            )
-          : undefined),
-      fetchImage: dependencies.fetchImage ?? fetchImageAsBase64,
-    }),
+      // No key, no provider — and no tools or job either, rather than tools
+      // that could only answer "not configured".
+      setup: ({ config }): StockPhotoState => ({
+        provider:
+          dependencies.provider ??
+          (config.apiKey
+            ? new UnsplashClient(
+                config.apiKey,
+                dependencies.fetch ?? globalThis.fetch,
+              )
+            : undefined),
+        fetchImage: dependencies.fetchImage ?? fetchImageAsBase64,
+      }),
+    },
+    {
+      tools: ({ state, jobs }) =>
+        state.provider ? [searchTool(state.provider), selectTool(jobs)] : [],
 
-    tools: ({ state, jobs }) =>
-      state.provider ? [searchTool(state.provider), selectTool(jobs)] : [],
-
-    jobs: ({ state }) =>
-      state.provider
-        ? [
-            handleSelectPhoto({
-              provider: state.provider,
-              fetchImage: state.fetchImage,
-            }),
-          ]
-        : [],
-  });
+      jobs: ({ state }) =>
+        state.provider
+          ? [
+              handleSelectPhoto({
+                provider: state.provider,
+                fetchImage: state.fetchImage,
+              }),
+            ]
+          : [],
+    },
+  );
 }
 
 /** The package as a deployment installs it: no injected dependencies. */

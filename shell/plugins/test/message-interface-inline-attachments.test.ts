@@ -42,24 +42,28 @@ describe("an inbound attachment the interface already has", () => {
     receivers.length = 0;
     let seen: ChatAttachment[] | undefined;
 
-    const definition = defineMessageInterface({
-      id: "byte-holder",
-      config: z.object({}),
-      channel: {
-        type: "byte-holder",
-        displayName: "Byte Holder",
-        subjectLabel: "Room",
-        recipient: z.string(),
+    const definition = defineMessageInterface(
+      {
+        id: "byte-holder",
+        config: z.object({}),
+        channel: {
+          type: "byte-holder",
+          displayName: "Byte Holder",
+          subjectLabel: "Room",
+          recipient: z.string(),
+        },
       },
-      listen: async ({ messages, signal, health }) => {
-        receivers.push(messages);
-        health.ready();
-        await new Promise<void>((resolve) => {
-          signal.addEventListener("abort", () => resolve(), { once: true });
-        });
+      {
+        listen: async ({ messages, signal, health }) => {
+          receivers.push(messages);
+          health.ready();
+          await new Promise<void>((resolve) => {
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          });
+        },
+        send: async () => "message-1",
       },
-      send: async () => "message-1",
-    });
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},

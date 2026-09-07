@@ -161,27 +161,30 @@ export function obsidianVault(
 ): ServicePackageDefinition<typeof obsidianVaultConfigSchema> {
   const deps: ObsidianVaultDeps = { ...defaultDeps, ...dependencies };
 
-  return defineServicePlugin({
-    id: "obsidian-vault",
-    config: obsidianVaultConfigSchema,
-
-    // Every type must exist before its shape can be rendered, which is what
-    // `ready` is for — registration order does not matter beyond that.
-    ready: ({ config, entities, dataDir, entityShapes, logger }) => {
-      logger.info("Auto-syncing Obsidian templates, fileClasses, and bases");
-      const report = syncObsidianArtifacts({
-        entityTypes: entities.getEntityTypes(),
-        shapes: entityShapes,
-        dataDir,
-        config,
-        deps,
-        log: (message) => logger.debug(message),
-      });
-      logger.info(
-        `Synced ${report.generated.length} templates, ${report.fileClasses.length} fileClasses, ${report.bases.length} bases (${report.skipped.length} skipped)`,
-      );
+  return defineServicePlugin(
+    {
+      id: "obsidian-vault",
+      config: obsidianVaultConfigSchema,
     },
-  });
+    {
+      // Every type must exist before its shape can be rendered, which is what
+      // `ready` is for — registration order does not matter beyond that.
+      ready: ({ config, entities, dataDir, entityShapes, logger }) => {
+        logger.info("Auto-syncing Obsidian templates, fileClasses, and bases");
+        const report = syncObsidianArtifacts({
+          entityTypes: entities.getEntityTypes(),
+          shapes: entityShapes,
+          dataDir,
+          config,
+          deps,
+          log: (message) => logger.debug(message),
+        });
+        logger.info(
+          `Synced ${report.generated.length} templates, ${report.fileClasses.length} fileClasses, ${report.bases.length} bases (${report.skipped.length} skipped)`,
+        );
+      },
+    },
+  );
 }
 
 const obsidianVaultPackage: ServicePackageDefinition<

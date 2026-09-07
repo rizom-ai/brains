@@ -9,6 +9,8 @@ import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
   NormalizedServiceDefinitionInput,
+  ServiceDefinitionBehavior,
+  ServiceDefinitionHeaderInput,
   ServiceDefinitionInput,
   ServiceSchemaMap,
   ServiceViewSchemaMap,
@@ -233,7 +235,8 @@ export function defineServicePlugin<
     AnyAccountSettingsDefinition,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
-  definition: ServiceDefinitionInput<
+  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
     TPromptSchemas,
@@ -252,7 +255,8 @@ export function defineServicePlugin<
   TAccountSettings extends undefined = undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
-  definition: ServiceDefinitionInput<
+  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
     TPromptSchemas,
@@ -268,28 +272,32 @@ export function defineServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
-  definition:
-    | ServiceDefinitionInput<
-        TConfigSchema,
-        TState,
-        TPromptSchemas,
-        TTemplateSchemas,
-        TViewSchemas,
-        AnyAccountSettingsDefinition,
-        TTemplateDefinitions
-      >
-    | ServiceDefinitionInput<
-        TConfigSchema,
-        TState,
-        TPromptSchemas,
-        TTemplateSchemas,
-        TViewSchemas,
-        undefined,
-        TTemplateDefinitions
-      >,
+  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  behavior?: ServiceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    TAccountSettings,
+    TTemplateDefinitions
+  >,
 ): ServicePackageDefinition<TConfigSchema> {
+  // What the package is, and what it does with it, are one declaration from
+  // here on: the split exists so the state type is known before the behavior
+  // is checked, not because the runtime wants two objects.
+  const definition: ServiceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    TAccountSettings,
+    TTemplateDefinitions
+  > = { ...header, ...behavior };
   // Both plugins scope to `${packageName}:${id}`, so a service sharing an
   // id with a type it declares collides — and the collision surfaces at
   // boot, inside the plugin manager, far from the declaration that caused
@@ -301,26 +309,21 @@ export function defineServicePlugin<
       );
     }
   }
-  if (definition.accountSettings !== undefined) {
-    const normalized: NormalizedServiceDefinitionInput<
-      TConfigSchema,
-      TState,
-      TPromptSchemas,
-      TTemplateSchemas,
-      TViewSchemas,
-      AnyAccountSettingsDefinition,
-      TTemplateDefinitions
-    > = { ...definition, accountSettings: definition.accountSettings };
-    return createServicePackage(normalized);
-  }
+  // The header's account settings, present or absent, are the definition's:
+  // the two branches this used to take differed only in which literal type
+  // they named, and the header now carries that type for both.
   const normalized: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    undefined,
+    TAccountSettings,
     TTemplateDefinitions
-  > = { ...definition, accountSettings: undefined };
+  > = {
+    ...definition,
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the header type is a conditional on TAccountSettings: the declaration in one arm, undefined in the other, which is what TAccountSettings is in each. The compiler cannot resolve a conditional over a parameter it has not fixed, and an implementation signature that names the property outright is rejected as incompatible with the overloads.
+    accountSettings: header.accountSettings as TAccountSettings,
+  };
   return createServicePackage(normalized);
 }

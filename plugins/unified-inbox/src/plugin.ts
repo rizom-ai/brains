@@ -32,66 +32,71 @@ const unifiedInboxConfigSchema: z.ZodType<
  */
 const unifiedInboxPackage: ServicePackageDefinition<
   typeof unifiedInboxConfigSchema
-> = defineServicePlugin({
-  id: "unified-inbox",
-  config: unifiedInboxConfigSchema,
+> = defineServicePlugin(
+  {
+    id: "unified-inbox",
+    config: unifiedInboxConfigSchema,
 
-  setup: ({ inbox, inboxFollowUps }) => {
-    const dataSource = new InboxDataSource(inbox);
-    return {
-      dataSource,
-      operator: new InboxOperatorService(inbox, dataSource, inboxFollowUps),
-    };
+    setup: ({ inbox, inboxFollowUps }) => {
+      const dataSource = new InboxDataSource(inbox);
+      return {
+        dataSource,
+        operator: new InboxOperatorService(inbox, dataSource, inboxFollowUps),
+      };
+    },
   },
-
-  // The projection, for anything that renders it rather than reads it: the
-  // fan-out across sources is the same one the workspace and widget use.
-  dataSources: ({ state }) => [
-    defineDataSource({
-      id: "inbox",
-      name: "Unified Inbox DataSource",
-      description: "Aggregates live source-owned operator attention",
-      fetch: async () => state.dataSource.getInboxData(),
-    }),
-  ],
-
-  tools: ({ state }) => [inboxListTool(state.operator)],
-
-  checks: ({ state }) => [unifiedInboxDigestCheck(state.dataSource)],
-
-  // Only when Studio mounted the workspace: a way in that leads nowhere is
-  // worse than no way in.
-  interactions: ({ workspaceUrl }) => {
-    const href = workspaceUrl("inbox");
-    return href
-      ? [
-          {
-            id: "unified-inbox",
-            label: "Inbox",
-            description:
-              "Review source-owned items that need operator attention.",
-            href,
-            kind: "admin" as const,
-            priority: 20,
-            visibility: "admin" as const,
-          },
-        ]
-      : [];
-  },
-
-  dashboardWidgets: (context) => [
-    inboxWidget.bind(context, loadInboxWidget(context.state.operator)),
-  ],
-
-  studioWorkspaces: (context) => {
-    const handlers = inboxWorkspaceHandlers(context.state.operator);
-    return [
-      inboxWorkspace.bind(context, {
-        load: handlers.load,
-        actions: [runInboxAction.bind(context, handlers.act, handlers.prepare)],
+  {
+    // The projection, for anything that renders it rather than reads it: the
+    // fan-out across sources is the same one the workspace and widget use.
+    dataSources: ({ state }) => [
+      defineDataSource({
+        id: "inbox",
+        name: "Unified Inbox DataSource",
+        description: "Aggregates live source-owned operator attention",
+        fetch: async () => state.dataSource.getInboxData(),
       }),
-    ];
+    ],
+
+    tools: ({ state }) => [inboxListTool(state.operator)],
+
+    checks: ({ state }) => [unifiedInboxDigestCheck(state.dataSource)],
+
+    // Only when Studio mounted the workspace: a way in that leads nowhere is
+    // worse than no way in.
+    interactions: ({ workspaceUrl }) => {
+      const href = workspaceUrl("inbox");
+      return href
+        ? [
+            {
+              id: "unified-inbox",
+              label: "Inbox",
+              description:
+                "Review source-owned items that need operator attention.",
+              href,
+              kind: "admin" as const,
+              priority: 20,
+              visibility: "admin" as const,
+            },
+          ]
+        : [];
+    },
+
+    dashboardWidgets: (context) => [
+      inboxWidget.bind(context, loadInboxWidget(context.state.operator)),
+    ],
+
+    studioWorkspaces: (context) => {
+      const handlers = inboxWorkspaceHandlers(context.state.operator);
+      return [
+        inboxWorkspace.bind(context, {
+          load: handlers.load,
+          actions: [
+            runInboxAction.bind(context, handlers.act, handlers.prepare),
+          ],
+        }),
+      ];
+    },
   },
-});
+);
 
 export default unifiedInboxPackage;

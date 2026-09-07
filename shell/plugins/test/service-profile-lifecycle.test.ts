@@ -57,19 +57,23 @@ function captureJobHandlers(
 
 describe("declared profile kinds", () => {
   it("registers each declared kind, and the selection resolves after finalize", async () => {
-    const definition = defineServicePlugin({
-      id: "identity-shapes",
-      config: z.object({}),
-      setup: () => ({}),
-      profileKinds: () => [
-        {
-          kind: "professional",
-          category: "person",
-          fields: z.object({ headline: z.string().optional() }),
-          labels: { singular: "Professional", plural: "Professionals" },
-        },
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "identity-shapes",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        profileKinds: () => [
+          {
+            kind: "professional",
+            category: "person",
+            fields: z.object({ headline: z.string().optional() }),
+            labels: { singular: "Professional", plural: "Professionals" },
+          },
+        ],
+      },
+    );
     const harness = createPluginHarness({ profileKind: "professional" });
     await harness.installPlugin(instantiate(definition, "@fixture/shapes"));
 
@@ -114,30 +118,34 @@ describe("declared entity extensions", () => {
     const extended: string[] = [];
     const validators: string[] = [];
     let selectionSeen: string | undefined;
-    const definition = defineServicePlugin({
-      id: "identity-shape",
-      config: z.object({}),
-      setup: () => ({}),
-      stewards: [SYSTEM_TYPE],
-      profileKinds: () => [
-        {
-          kind: "professional",
-          category: "person",
-          fields: z.object({ headline: z.string().optional() }),
-          labels: { singular: "Professional", plural: "Professionals" },
-        },
-      ],
-      entityExtensions: ({ profileKinds }) => {
-        selectionSeen = profileKinds.getResolved()?.kind;
-        return [
-          {
-            entityType: SYSTEM_TYPE,
-            frontmatter: z.object({ name: z.string().optional() }),
-            validate: async (): Promise<void> => undefined,
-          },
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "identity-shape",
+        config: z.object({}),
+        setup: () => ({}),
+        stewards: [SYSTEM_TYPE],
       },
-    });
+      {
+        profileKinds: () => [
+          {
+            kind: "professional",
+            category: "person",
+            fields: z.object({ headline: z.string().optional() }),
+            labels: { singular: "Professional", plural: "Professionals" },
+          },
+        ],
+        entityExtensions: ({ profileKinds }) => {
+          selectionSeen = profileKinds.getResolved()?.kind;
+          return [
+            {
+              entityType: SYSTEM_TYPE,
+              frontmatter: z.object({ name: z.string().optional() }),
+              validate: async (): Promise<void> => undefined,
+            },
+          ];
+        },
+      },
+    );
     const harness = harnessWithSystemType({ profileKind: "professional" });
     const registry = harness.getEntityRegistry();
     const extend = registry.extendFrontmatterSchema.bind(registry);
@@ -161,17 +169,21 @@ describe("declared entity extensions", () => {
   });
 
   it("refuses an extension on a type the package neither declares nor stewards", async () => {
-    const definition = defineServicePlugin({
-      id: "identity-shape",
-      config: z.object({}),
-      setup: () => ({}),
-      entityExtensions: () => [
-        {
-          entityType: SYSTEM_TYPE,
-          frontmatter: z.object({ name: z.string().optional() }),
-        },
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "identity-shape",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        entityExtensions: () => [
+          {
+            entityType: SYSTEM_TYPE,
+            frontmatter: z.object({ name: z.string().optional() }),
+          },
+        ],
+      },
+    );
     const harness = harnessWithSystemType();
     await harness.installPlugin(instantiate(definition, "@fixture/shape"));
     expect(harness.finalizeRegistration()).rejects.toThrow(/steward/);
@@ -186,16 +198,20 @@ describe("a boot-gated seeding job", () => {
       output: seedOutput,
     });
     let enqueuedId: string | null = null;
-    const definition = defineServicePlugin({
-      id: "identity-seeder",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [seedJob.handle(async () => ({ seeded: true }))],
-      ready: async ({ jobs }) => {
-        const reference = await jobs.enqueue(seedJob, {});
-        enqueuedId = reference.id;
+    const definition = defineServicePlugin(
+      {
+        id: "identity-seeder",
+        config: z.object({}),
+        setup: () => ({}),
       },
-    });
+      {
+        jobs: () => [seedJob.handle(async () => ({ seeded: true }))],
+        ready: async ({ jobs }) => {
+          const reference = await jobs.enqueue(seedJob, {});
+          enqueuedId = reference.id;
+        },
+      },
+    );
     const harness = createPluginHarness();
     const plugin = instantiate(definition, "@fixture/seeder");
     await harness.installPlugin(plugin);
@@ -210,24 +226,28 @@ describe("a boot-gated seeding job", () => {
       output: seedOutput,
     });
     let enqueuedId: string | null = null;
-    const definition = defineServicePlugin({
-      id: "identity-seeder",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [seedJob.handle(async () => ({ seeded: true }))],
-      subscriptions: ({ jobs }) => [
-        defineSubscription({
-          topic: "system:initial-sync:completed",
-          payload: z.object({ success: z.boolean().optional() }),
-          handle: async ({ payload }) => {
-            if (payload.success !== true) return { success: true };
-            const reference = await jobs.enqueue(seedJob, {});
-            enqueuedId = reference.id;
-            return { success: true };
-          },
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "identity-seeder",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [seedJob.handle(async () => ({ seeded: true }))],
+        subscriptions: ({ jobs }) => [
+          defineSubscription({
+            topic: "system:initial-sync:completed",
+            payload: z.object({ success: z.boolean().optional() }),
+            handle: async ({ payload }) => {
+              if (payload.success !== true) return { success: true };
+              const reference = await jobs.enqueue(seedJob, {});
+              enqueuedId = reference.id;
+              return { success: true };
+            },
+          }),
+        ],
+      },
+    );
     const harness = createPluginHarness();
     await harness.installPlugin(instantiate(definition, "@fixture/seeder"));
     await harness.sendMessage("system:initial-sync:completed", {
@@ -243,26 +263,30 @@ describe("a boot-gated seeding job", () => {
       output: seedOutput,
     });
     const seen: { domain?: string | undefined; kind?: string | undefined } = {};
-    const definition = defineServicePlugin({
-      id: "identity-seeder",
-      config: z.object({}),
-      setup: () => ({}),
-      profileKinds: () => [
-        {
-          kind: "professional",
-          category: "person",
-          fields: z.object({}),
-          labels: { singular: "Professional", plural: "Professionals" },
-        },
-      ],
-      jobs: () => [
-        seedJob.handle(async ({ domain, profileKinds }) => {
-          seen.domain = domain;
-          seen.kind = profileKinds.getResolved()?.kind;
-          return { seeded: true };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "identity-seeder",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        profileKinds: () => [
+          {
+            kind: "professional",
+            category: "person",
+            fields: z.object({}),
+            labels: { singular: "Professional", plural: "Professionals" },
+          },
+        ],
+        jobs: () => [
+          seedJob.handle(async ({ domain, profileKinds }) => {
+            seen.domain = domain;
+            seen.kind = profileKinds.getResolved()?.kind;
+            return { seeded: true };
+          }),
+        ],
+      },
+    );
     const harness = createPluginHarness({
       domain: "smoke.rizom.ai",
       profileKind: "professional",

@@ -85,54 +85,58 @@ const pickJob = defineJob({
 
 /** A service owning no types, which needs a poster made. */
 function printShop(): ReturnType<typeof defineServicePlugin> {
-  return defineServicePlugin({
-    id: "print-shop",
-    config: z.object({}),
-    tools: ({ jobs }) => [
-      defineTool({
-        name: "order",
-        description: "Order a poster from bytes.",
-        input: requestInput,
-        output: z.object({
-          status: z.string(),
-          entityId: z.string().optional(),
-        }),
-        sideEffects: "writes",
-        execute: async ({ input, createRouted }) => {
-          const result = await createRouted({
-            entityType: input.entityType,
-            content: input.content,
-            title: "Ordered",
-            ...(input.target
-              ? { targetEntityType: "notice", targetEntityId: input.target }
-              : {}),
-          });
-          return outcome(result);
-        },
-      }),
-      defineTool({
-        name: "queue",
-        description: "Order a poster later.",
-        input: requestInput,
-        output: z.object({ jobId: z.string() }),
-        sideEffects: "writes",
-        execute: async ({ input }) => ({
-          jobId: (await jobs.enqueue(pickJob, input)).id,
-        }),
-      }),
-    ],
-    jobs: () => [
-      pickJob.handle(async ({ input, createRouted }) =>
-        outcome(
-          await createRouted({
-            entityType: input.entityType,
-            content: input.content,
-            title: "Queued",
+  return defineServicePlugin(
+    {
+      id: "print-shop",
+      config: z.object({}),
+    },
+    {
+      tools: ({ jobs }) => [
+        defineTool({
+          name: "order",
+          description: "Order a poster from bytes.",
+          input: requestInput,
+          output: z.object({
+            status: z.string(),
+            entityId: z.string().optional(),
           }),
+          sideEffects: "writes",
+          execute: async ({ input, createRouted }) => {
+            const result = await createRouted({
+              entityType: input.entityType,
+              content: input.content,
+              title: "Ordered",
+              ...(input.target
+                ? { targetEntityType: "notice", targetEntityId: input.target }
+                : {}),
+            });
+            return outcome(result);
+          },
+        }),
+        defineTool({
+          name: "queue",
+          description: "Order a poster later.",
+          input: requestInput,
+          output: z.object({ jobId: z.string() }),
+          sideEffects: "writes",
+          execute: async ({ input }) => ({
+            jobId: (await jobs.enqueue(pickJob, input)).id,
+          }),
+        }),
+      ],
+      jobs: () => [
+        pickJob.handle(async ({ input, createRouted }) =>
+          outcome(
+            await createRouted({
+              entityType: input.entityType,
+              content: input.content,
+              title: "Queued",
+            }),
+          ),
         ),
-      ),
-    ],
-  });
+      ],
+    },
+  );
 }
 
 function outcome(result: CreateResult): {

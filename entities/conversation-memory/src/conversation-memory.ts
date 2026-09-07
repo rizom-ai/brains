@@ -26,17 +26,21 @@ import {
  */
 export const conversationMemory: ServicePackageDefinition<
   typeof summaryConfigSchema
-> = defineServicePlugin({
-  id: "conversation-memory",
-  config: summaryConfigSchema,
-  entities: [summary, decision, actionItem],
-  projectionRules: ({ config, template }) => [
-    createSummaryProjectionRule(config, template("ai-response")),
-    createDecisionProjectionRule(config),
-    createActionItemProjectionRule(config),
-  ],
-  evals: ({ config, template }) =>
-    summaryEvalHandlers(config, template("ai-response")),
-});
+> = defineServicePlugin(
+  {
+    id: "conversation-memory",
+    config: summaryConfigSchema,
+    entities: [summary, decision, actionItem],
+  },
+  {
+    projectionRules: ({ config, template }) => [
+      createSummaryProjectionRule(config, template("ai-response")),
+      createDecisionProjectionRule(config),
+      createActionItemProjectionRule(config),
+    ],
+    evals: ({ config, template }) =>
+      summaryEvalHandlers(config, template("ai-response")),
+  },
+);
 
 export default conversationMemory;

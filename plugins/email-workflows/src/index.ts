@@ -36,56 +36,59 @@ interface EmailWorkflowsState {
 
 const emailWorkflowsPackage: ServicePackageDefinition<
   typeof emailWorkflowsConfigSchema
-> = defineServicePlugin({
-  id: "email-workflows",
-  config: emailWorkflowsConfigSchema,
-  entities: [mailItem],
+> = defineServicePlugin(
+  {
+    id: "email-workflows",
+    config: emailWorkflowsConfigSchema,
+    entities: [mailItem],
 
-  setup: ({ state, logger }): EmailWorkflowsState => ({
-    logger,
-    attempts: state({
-      namespace: "classification-attempts",
-      schema: z.number().int().min(1).max(3),
-    }),
-    threadOrdinals: new MailThreadOrdinalCoordinator({
-      state: state({
-        namespace: "thread-ordinals",
-        schema: threadOrdinalStateSchema,
+    setup: ({ state, logger }): EmailWorkflowsState => ({
+      logger,
+      attempts: state({
+        namespace: "classification-attempts",
+        schema: z.number().int().min(1).max(3),
+      }),
+      threadOrdinals: new MailThreadOrdinalCoordinator({
+        state: state({
+          namespace: "thread-ordinals",
+          schema: threadOrdinalStateSchema,
+        }),
       }),
     }),
-  }),
+  },
+  {
+    entityExtensions: () => [mailItemExtension],
 
-  entityExtensions: () => [mailItemExtension],
+    jobs: ({ state }) => [
+      handleTriage({
+        attempts: state.attempts,
+        threadOrdinals: state.threadOrdinals,
+      }),
+    ],
 
-  jobs: ({ state }) => [
-    handleTriage({
-      attempts: state.attempts,
-      threadOrdinals: state.threadOrdinals,
-    }),
-  ],
+    // Acknowledged once queued: the queue is durable and retries, so the
+    // interface may advance its cursor.
+    subscriptions: ({ jobs }) => [
+      defineSubscription({
+        topic: EMAIL_INBOUND,
+        payload: inboundEmailSchema,
+        handle: async ({ payload }) => {
+          const job = await jobs.enqueue(triageJob, payload);
+          return { queued: job.id };
+        },
+      }),
+    ],
 
-  // Acknowledged once queued: the queue is durable and retries, so the
-  // interface may advance its cursor.
-  subscriptions: ({ jobs }) => [
-    defineSubscription({
-      topic: EMAIL_INBOUND,
-      payload: inboundEmailSchema,
-      handle: async ({ payload }) => {
-        const job = await jobs.enqueue(triageJob, payload);
-        return { queued: job.id };
-      },
-    }),
-  ],
+    inbox: ({ state }) =>
+      mailTriageInbox({ threadOrdinals: state.threadOrdinals }),
 
-  inbox: ({ state }) =>
-    mailTriageInbox({ threadOrdinals: state.threadOrdinals }),
+    tools: () => [emailTriageListTool()],
 
-  tools: () => [emailTriageListTool()],
-
-  // Thread positions are indexed on the web process only; ready never runs
-  // in a worker, which is what the class used to check by hand.
-  ready: ({ state, entities }) => state.threadOrdinals.initialize(entities),
-});
+    // Thread positions are indexed on the web process only; ready never runs
+    // in a worker, which is what the class used to check by hand.
+    ready: ({ state, entities }) => state.threadOrdinals.initialize(entities),
+  },
+);
 
 export default emailWorkflowsPackage;
 

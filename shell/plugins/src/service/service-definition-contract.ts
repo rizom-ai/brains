@@ -869,14 +869,17 @@ export interface ServicePublishDeclaration extends EntityPublishDeclaration {
   readonly entityType: string;
 }
 
-interface ServiceDefinitionCore<
+/**
+ * What the package is: its identity, what it is configured with, the types
+ * it owns, and what it sets up before anything runs.
+ *
+ * The first of two arguments. `setup` sits here alone so the state it
+ * returns is known before the behavior below is checked, which is what lets
+ * those slots read `state` in whatever order they are written.
+ */
+interface ServiceDefinitionHeader<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
-  TPromptSchemas extends ServiceSchemaMap,
-  TTemplateSchemas extends ServiceSchemaMap,
-  TViewSchemas extends ServiceViewSchemaMap,
-  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-  TTemplateDefinitions extends ServiceTemplateShapeMap,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
@@ -912,35 +915,11 @@ interface ServiceDefinitionCore<
   readonly dependsOn?: readonly string[] | undefined;
   readonly projections?: readonly ProjectionDefinition[] | undefined;
   /**
-   * Projection rules that read configuration.
-   *
-   * A function of config, unlike the entity-side slot, for the same reason
-   * `jobs` is: whether a rule exists at all, and what thresholds it derives
-   * with, can be configured. Each rule joins the entity plugin whose type it
-   * targets, so the runtime sees it as that entity's rule.
-   */
-  readonly projectionRules?:
-    | ((context: {
-        readonly config: z.output<TConfigSchema>;
-        /**
-         * The scoped name of a template this package declares.
-         *
-         * A rule that generates has to name a template, and the runtime
-         * owns template scoping. Left to write the prefix itself, a package
-         * hardcodes a name that stops resolving the moment its scope
-         * changes — and the failure lands at derive time, long after
-         * registration would have caught it.
-         */
-        readonly template: (localName: string) => string;
-      }) => readonly ProjectionRule[])
-    | undefined;
-  /**
    * What the service holds while it runs, built once at registration.
    *
-   * **Write this before any slot that destructures `state`.** The state type
-   * is inferred from what `setup` returns, and a destructured parameter above
-   * it resolves its context while that type is still unknown — which silently
-   * fixes `state` to an empty object rather than failing.
+   * What this returns is the `state` every behavior slot reads. It sits in
+   * the header, a separate argument, so the type is fixed before any of them
+   * is checked — the order they are written in does not matter.
    */
   readonly setup?:
     | ((context: {
@@ -1155,6 +1134,46 @@ interface ServiceDefinitionCore<
         readonly publishing: ServicePublishingAccess;
         readonly logger: LoggerContract;
       }) => TState | Promise<TState>)
+    | undefined;
+}
+
+/**
+ * What the package does with what it set up.
+ *
+ * The second argument. Every slot here is checked against a state type the
+ * header already fixed, so no slot has to be written after another one.
+ */
+interface ServiceDefinitionBehavior<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
+> {
+  /**
+   * Projection rules that read configuration.
+   *
+   * A function of config, unlike the entity-side slot, for the same reason
+   * `jobs` is: whether a rule exists at all, and what thresholds it derives
+   * with, can be configured. Each rule joins the entity plugin whose type it
+   * targets, so the runtime sees it as that entity's rule.
+   */
+  readonly projectionRules?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        /**
+         * The scoped name of a template this package declares.
+         *
+         * A rule that generates has to name a template, and the runtime
+         * owns template scoping. Left to write the prefix itself, a package
+         * hardcodes a name that stops resolving the moment its scope
+         * changes — and the failure lands at derive time, long after
+         * registration would have caught it.
+         */
+        readonly template: (localName: string) => string;
+      }) => readonly ProjectionRule[])
     | undefined;
   /**
    * Requests this service answers on the message bus.
@@ -1521,6 +1540,29 @@ interface ServiceDefinitionCore<
     | undefined;
 }
 
+/**
+ * Everything one package declares, as the runtime reads it: the header and
+ * the behavior joined back together once the state type is known.
+ */
+type ServiceDefinitionCore<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TPromptSchemas extends ServiceSchemaMap,
+  TTemplateSchemas extends ServiceSchemaMap,
+  TViewSchemas extends ServiceViewSchemaMap,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
+> = ServiceDefinitionHeader<TConfigSchema, TState> &
+  ServiceDefinitionBehavior<
+    TConfigSchema,
+    TState,
+    TPromptSchemas,
+    TTemplateSchemas,
+    TViewSchemas,
+    TAccountSettings,
+    TTemplateDefinitions
+  >;
+
 export type NormalizedServiceDefinitionInput<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
@@ -1559,3 +1601,21 @@ export type ServiceDefinitionInput<
   (TAccountSettings extends AnyAccountSettingsDefinition
     ? { readonly accountSettings: TAccountSettings }
     : { readonly accountSettings?: undefined });
+
+/**
+ * The header as an author writes it, with account settings attached.
+ *
+ * Account settings belong with identity rather than behavior: what a package
+ * asks each person to configure is part of what it is, and the daemons and
+ * workspaces that read those settings are checked against it.
+ */
+export type ServiceDefinitionHeaderInput<
+  TConfigSchema extends z.ZodType<object, object>,
+  TState extends object,
+  TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> = ServiceDefinitionHeader<TConfigSchema, TState> &
+  (TAccountSettings extends AnyAccountSettingsDefinition
+    ? { readonly accountSettings: TAccountSettings }
+    : { readonly accountSettings?: undefined });
+
+export type { ServiceDefinitionHeader, ServiceDefinitionBehavior };

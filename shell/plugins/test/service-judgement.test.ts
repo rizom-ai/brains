@@ -27,28 +27,32 @@ import {
 describe("a service that decides whether something holds", () => {
   it("searches the corpus for evidence and asks for a verdict on it", async () => {
     let verdict: { met: boolean } | undefined;
-    const definition = defineServicePlugin({
-      id: "goal-desk",
-      config: z.object({}),
-      setup: ({ corpus, judge }) => ({
-        check: async (goal: string): Promise<{ met: boolean }> => {
-          const evidence = await corpus.search({
-            query: goal,
-            limit: 8,
-            excludeTypes: ["playbook"],
-          });
-          const answer = await judge({
-            instruction: "Does the goal hold?",
-            material: evidence.map((hit) => hit.excerpt).join("\n"),
-            schema: z.object({ met: z.boolean() }),
-          });
-          return answer.verdict;
-        },
-      }),
-      ready: async ({ state }) => {
-        verdict = await state.check("ship the thing");
+    const definition = defineServicePlugin(
+      {
+        id: "goal-desk",
+        config: z.object({}),
+        setup: ({ corpus, judge }) => ({
+          check: async (goal: string): Promise<{ met: boolean }> => {
+            const evidence = await corpus.search({
+              query: goal,
+              limit: 8,
+              excludeTypes: ["playbook"],
+            });
+            const answer = await judge({
+              instruction: "Does the goal hold?",
+              material: evidence.map((hit) => hit.excerpt).join("\n"),
+              schema: z.object({ met: z.boolean() }),
+            });
+            return answer.verdict;
+          },
+        }),
       },
-    });
+      {
+        ready: async ({ state }) => {
+          verdict = await state.check("ship the thing");
+        },
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -125,28 +129,34 @@ describe("a service that decides whether something holds", () => {
 describe("a service whose engine reads its own types", () => {
   it("holds entity access from setup rather than per call", async () => {
     let listed: string[] | undefined;
-    const definition = defineServicePlugin({
-      id: "run-desk",
-      config: z.object({}),
-      entities: [
-        defineEntity({
-          type: "playbook",
-          purpose: "A sequence someone can be walked through",
-          metadata: z.object({}),
+    const definition = defineServicePlugin(
+      {
+        id: "run-desk",
+        config: z.object({}),
+        entities: [
+          defineEntity({
+            type: "playbook",
+            purpose: "A sequence someone can be walked through",
+            metadata: z.object({}),
+          }),
+        ],
+        setup: ({ entities }) => ({
+          // The engine reads definitions when an agent asks, not when a caller
+          // does, so the handle is held rather than handed in per call.
+          listPlaybooks: async (): Promise<string[]> => {
+            const found = await entities.listEntities({
+              entityType: "playbook",
+            });
+            return found.map((entity) => entity.id);
+          },
         }),
-      ],
-      setup: ({ entities }) => ({
-        // The engine reads definitions when an agent asks, not when a caller
-        // does, so the handle is held rather than handed in per call.
-        listPlaybooks: async (): Promise<string[]> => {
-          const found = await entities.listEntities({ entityType: "playbook" });
-          return found.map((entity) => entity.id);
-        },
-      }),
-      ready: async ({ state }) => {
-        listed = await state.listPlaybooks();
       },
-    });
+      {
+        ready: async ({ state }) => {
+          listed = await state.listPlaybooks();
+        },
+      },
+    );
     const plugins = instantiatePluginPackageDefinition(
       definition,
       {},

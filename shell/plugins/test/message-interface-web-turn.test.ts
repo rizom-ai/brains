@@ -46,27 +46,31 @@ async function webTurnHarness(options: {
   }[] = [];
   const receivers: MessageReceiver[] = [];
 
-  const definition = defineMessageInterface({
-    id: "browser",
-    config: z.object({}),
-    channel: {
-      type: "browser",
-      displayName: "Browser",
-      subjectLabel: "Conversation",
-      recipient: z.string(),
-      // This interface hands the client the id and gets it back next turn.
-      conversationKey: "channel",
+  const definition = defineMessageInterface(
+    {
+      id: "browser",
+      config: z.object({}),
+      channel: {
+        type: "browser",
+        displayName: "Browser",
+        subjectLabel: "Conversation",
+        recipient: z.string(),
+        // This interface hands the client the id and gets it back next turn.
+        conversationKey: "channel",
+      },
     },
-    routes: ({ messages }) => {
-      receivers.push(messages);
-      return [];
+    {
+      routes: ({ messages }) => {
+        receivers.push(messages);
+        return [];
+      },
+      present: ({ directives }) => {
+        presented.push([...directives]);
+        return undefined;
+      },
+      send: async () => "message-1",
     },
-    present: ({ directives }) => {
-      presented.push([...directives]);
-      return undefined;
-    },
-    send: async () => "message-1",
-  });
+  );
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},

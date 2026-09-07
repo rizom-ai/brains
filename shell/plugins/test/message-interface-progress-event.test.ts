@@ -37,27 +37,31 @@ async function drawer(): Promise<{
   const sent: Sent[] = [];
   const edits: { messageId: string; eventStatus: string | undefined }[] = [];
   const receivers: MessageReceiver[] = [];
-  const definition = defineMessageInterface({
-    id: "drawer",
-    config: z.object({}),
-    channel: {
-      type: "drawer",
-      displayName: "Drawer",
-      subjectLabel: "Room",
-      recipient: z.string(),
+  const definition = defineMessageInterface(
+    {
+      id: "drawer",
+      config: z.object({}),
+      channel: {
+        type: "drawer",
+        displayName: "Drawer",
+        subjectLabel: "Room",
+        recipient: z.string(),
+      },
     },
-    routes: ({ messages }) => {
-      receivers.push(messages);
-      return [];
+    {
+      routes: ({ messages }) => {
+        receivers.push(messages);
+        return [];
+      },
+      send: ({ origin, event }) => {
+        sent.push({ origin, eventId: event?.id, status: event?.status });
+        return `sent-${sent.length}`;
+      },
+      edit: ({ messageId, event }) => {
+        edits.push({ messageId, eventStatus: event?.status });
+      },
     },
-    send: ({ origin, event }) => {
-      sent.push({ origin, eventId: event?.id, status: event?.status });
-      return `sent-${sent.length}`;
-    },
-    edit: ({ messageId, event }) => {
-      edits.push({ messageId, eventStatus: event?.status });
-    },
-  });
+  );
   const [plugin] = instantiatePluginPackageDefinition(
     definition,
     {},

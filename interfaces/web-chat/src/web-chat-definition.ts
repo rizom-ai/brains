@@ -154,149 +154,159 @@ function openStream(
  * finishes rather than reprinted underneath itself.
  */
 const webChatInterface: ReturnType<typeof defineMessageInterface> =
-  defineMessageInterface({
-    id: webChatInterfaceType,
-    config: webChatConfigSchema,
+  defineMessageInterface(
+    {
+      id: webChatInterfaceType,
+      config: webChatConfigSchema,
 
-    channel: {
-      type: webChatInterfaceType,
-      displayName: "Web Chat",
-      subjectLabel: "Conversation",
-      recipient: z.string(),
-      // The browser holds the id: web-chat mints a session key, gates the
-      // caller against the conversation stored under it, and gets it back on
-      // the next turn.
-      conversationKey: "channel",
-    },
+      setup: (context): WebChatState => {
+        const config: WebChatConfig = context.config;
 
-    setup: (context): WebChatState => {
-      const config: WebChatConfig = context.config;
+        context.endpoints.register({
+          label: "Chat",
+          url: config.routePath,
+          priority: 15,
+          visibility: "trusted",
+          requiresActiveSession: true,
+        });
+        context.interactions.register({
+          id: webChatInterfaceType,
+          label: "Chat",
+          description: "Chat with this brain in the browser.",
+          href: config.routePath,
+          kind: "human",
+          priority: 15,
+          visibility: "trusted",
+          requiresActiveSession: true,
+        });
+        context.inboxFollowUps.registerKind({
+          kind: "discuss-in-chat",
+          label: "Discuss in chat",
+          priority: 10,
+          mode: "universal",
+          permissionLevel: "trusted",
+          applies: () => true,
+          resolve: ({ sourceId, item }) => {
+            if (!context.inbox.getSource(sourceId)?.resolveDetail) {
+              return undefined;
+            }
+            return {
+              href: config.routePath,
+              state: createWebChatInboxPrefillState(
+                "Help me understand this Inbox item and decide what to do next.",
+                {
+                  sourceId,
+                  itemId: item.id,
+                  label: safeInboxContextLabel(item.title),
+                },
+              ),
+            };
+          },
+        });
 
-      context.endpoints.register({
-        label: "Chat",
-        url: config.routePath,
-        priority: 15,
-        visibility: "trusted",
-        requiresActiveSession: true,
-      });
-      context.interactions.register({
-        id: webChatInterfaceType,
-        label: "Chat",
-        description: "Chat with this brain in the browser.",
-        href: config.routePath,
-        kind: "human",
-        priority: 15,
-        visibility: "trusted",
-        requiresActiveSession: true,
-      });
-      context.inboxFollowUps.registerKind({
-        kind: "discuss-in-chat",
-        label: "Discuss in chat",
-        priority: 10,
-        mode: "universal",
-        permissionLevel: "trusted",
-        applies: () => true,
-        resolve: ({ sourceId, item }) => {
-          if (!context.inbox.getSource(sourceId)?.resolveDetail) {
-            return undefined;
-          }
-          return {
-            href: config.routePath,
-            state: createWebChatInboxPrefillState(
-              "Help me understand this Inbox item and decide what to do next.",
-              {
-                sourceId,
-                itemId: item.id,
-                label: safeInboxContextLabel(item.title),
-              },
-            ),
-          };
-        },
-      });
-
-      return {
-        access: createBrowserAccess({
-          resolveAuthPrincipal: (request) =>
-            context.auth.getCaller()?.resolveSession(request) ??
-            Promise.resolve(undefined),
-          createAuthLoginResponse: (request) =>
-            context.auth.getCaller()?.createAuthLoginResponse(request) ??
-            new Response("Authentication required", {
-              status: 401,
-              headers: { "Content-Type": "text/plain; charset=utf-8" },
-            }),
+        return {
+          access: createBrowserAccess({
+            resolveAuthPrincipal: (request) =>
+              context.auth.getCaller()?.resolveSession(request) ??
+              Promise.resolve(undefined),
+            createAuthLoginResponse: (request) =>
+              context.auth.getCaller()?.createAuthLoginResponse(request) ??
+              new Response("Authentication required", {
+                status: 401,
+                headers: { "Content-Type": "text/plain; charset=utf-8" },
+              }),
+            conversations: context.conversations,
+          }),
+          activeStreams: new Map<string, ActiveStream>(),
+          agent: context.agent,
+          messaging: context.messaging,
           conversations: context.conversations,
-        }),
-        activeStreams: new Map<string, ActiveStream>(),
-        agent: context.agent,
-        messaging: context.messaging,
-        conversations: context.conversations,
-        entities: context.entities,
-        inbox: context.inbox,
-        // Scoped by the configured API path, because a stored upload's URL
-        // has to point back at the endpoint that serves it.
-        uploads: context.uploads(createWebChatUploadStoreScope(config.apiPath)),
-        surfaces: context.surfaces,
-        themeCSS: context.themeCSS,
-        createId: (prefix) => `${prefix}-${crypto.randomUUID()}`,
-      };
+          entities: context.entities,
+          inbox: context.inbox,
+          // Scoped by the configured API path, because a stored upload's URL
+          // has to point back at the endpoint that serves it.
+          uploads: context.uploads(
+            createWebChatUploadStoreScope(config.apiPath),
+          ),
+          surfaces: context.surfaces,
+          themeCSS: context.themeCSS,
+          createId: (prefix) => `${prefix}-${crypto.randomUUID()}`,
+        };
+      },
+      channel: {
+        type: webChatInterfaceType,
+        displayName: "Web Chat",
+        subjectLabel: "Conversation",
+        recipient: z.string(),
+        // The browser holds the id: web-chat mints a session key, gates the
+        // caller against the conversation stored under it, and gets it back on
+        // the next turn.
+        conversationKey: "channel",
+      },
     },
+    {
+      routes: ({ config, state, jobs, messages }) =>
+        webChatRoutes(config, state, jobs, messages),
 
-    routes: ({ config, state, jobs, messages }) =>
-      webChatRoutes(config, state, jobs, messages),
+      // An answer arrives on the connection the person is already holding, one
+      // frame per piece. Nothing is returned: `send` would post a second,
+      // plain-text copy of what these frames already carry.
+      present: ({ state, channel, directives }) => {
+        const stream = openStream(state, channel.id);
+        if (!stream) return undefined;
+        writeAnswer(stream.writer, directives, state.createId);
+        return undefined;
+      },
 
-    // An answer arrives on the connection the person is already holding, one
-    // frame per piece. Nothing is returned: `send` would post a second,
-    // plain-text copy of what these frames already carry.
-    present: ({ state, channel, directives }) => {
-      const stream = openStream(state, channel.id);
-      if (!stream) return undefined;
-      writeAnswer(stream.writer, directives, state.createId);
-      return undefined;
+      // Job progress as the event, not a sentence about it: the client draws a
+      // bar from the id, status and percentage, and would otherwise have to
+      // parse one back out of prose.
+      progress: ({ state, channel, event }) => {
+        const stream = openStream(state, channel.id);
+        stream?.writer.write({
+          type: "data-progress",
+          id: `progress:${event.id}`,
+          data: toProgressData(event),
+          transient:
+            event.status === "processing" || event.status === "pending",
+        });
+      },
+
+      // The same, for the other half: a tool's name and state, so the client
+      // draws its own row and replaces it when the tool finishes.
+      toolStatus: ({ state, channel, update }) => {
+        const stream = openStream(state, channel.id);
+        stream?.writer.write({
+          type: "data-status",
+          id: state.createId("tool-status"),
+          data: toToolStatusData(update),
+          transient: true,
+        });
+      },
+
+      // What is left for prose: a notice the runtime sends outside an answer.
+      send: ({ state, channel, message }) => {
+        const stream = openStream(state, channel.id);
+        if (!stream) return undefined;
+        return writeText(
+          stream.writer,
+          message.text,
+          "progress",
+          state.createId,
+        );
+      },
+
+      edit: ({ state, channel, messageId, message }) => {
+        const stream = openStream(state, channel.id);
+        stream?.writer.write({
+          type: "data-progress",
+          id: messageId,
+          data: { message: message.text },
+          transient: true,
+        });
+      },
     },
-
-    // Job progress as the event, not a sentence about it: the client draws a
-    // bar from the id, status and percentage, and would otherwise have to
-    // parse one back out of prose.
-    progress: ({ state, channel, event }) => {
-      const stream = openStream(state, channel.id);
-      stream?.writer.write({
-        type: "data-progress",
-        id: `progress:${event.id}`,
-        data: toProgressData(event),
-        transient: event.status === "processing" || event.status === "pending",
-      });
-    },
-
-    // The same, for the other half: a tool's name and state, so the client
-    // draws its own row and replaces it when the tool finishes.
-    toolStatus: ({ state, channel, update }) => {
-      const stream = openStream(state, channel.id);
-      stream?.writer.write({
-        type: "data-status",
-        id: state.createId("tool-status"),
-        data: toToolStatusData(update),
-        transient: true,
-      });
-    },
-
-    // What is left for prose: a notice the runtime sends outside an answer.
-    send: ({ state, channel, message }) => {
-      const stream = openStream(state, channel.id);
-      if (!stream) return undefined;
-      return writeText(stream.writer, message.text, "progress", state.createId);
-    },
-
-    edit: ({ state, channel, messageId, message }) => {
-      const stream = openStream(state, channel.id);
-      stream?.writer.write({
-        type: "data-progress",
-        id: messageId,
-        data: { message: message.text },
-        transient: true,
-      });
-    },
-  });
+  );
 
 function webChatRoutes(
   config: WebChatConfig,
