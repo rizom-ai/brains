@@ -274,7 +274,11 @@
         "InboxAction",
         "InboxFacetDefinition",
         "canWriteVisibility",
-        "permissionToVisibilityScope"
+        "permissionToVisibilityScope",
+        "DurableBulkMutationChildRef",
+        "durableBulkMutationChildRefSchema",
+        "internalFullScope",
+        "isEntityValidationError"
       ],
       "advanced-with-consumer": [
         "ActorRef",
@@ -586,7 +590,11 @@
         "EntityMirrorClient",
         "ServiceJobHooks",
         "ServiceJobSettledContext",
-        "ServiceJobSettledHandler"
+        "ServiceJobSettledHandler",
+        "IRuntimeStateNamespace",
+        "RuntimeHealthCheck",
+        "OperationalHealthProvider",
+        "ServiceLifecycle"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

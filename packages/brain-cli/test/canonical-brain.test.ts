@@ -119,11 +119,13 @@ describe("canonical brain core", () => {
 
   test("resolves a self-contained headless core without hidden site policy", () => {
     expect(pluginConfig("dashboard")).toBeUndefined();
-    expect(pluginConfig("directory-sync")).toMatchObject({
-      seedContent: true,
-      seedContentPath: "./seed-content",
-      initialSync: true,
-    });
+    expect(pluginConfig("@brains/directory-sync:directory-sync")).toMatchObject(
+      {
+        seedContent: true,
+        seedContentPath: "./seed-content",
+        initialSync: true,
+      },
+    );
     expect(pluginConfig("@brains/mcp:mcp")).toMatchObject({
       transport: "stdio",
     });
@@ -146,7 +148,7 @@ describe("canonical brain core", () => {
       "@brains/link:link",
       "@brains/topics:topics",
       "@brains/topics:topic",
-      "directory-sync",
+      "@brains/directory-sync:directory-sync",
       "@brains/agent-discovery:agents",
       "@brains/agent-discovery:agent",
       "@brains/agent-discovery:skill",

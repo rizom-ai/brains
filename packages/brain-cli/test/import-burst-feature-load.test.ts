@@ -1,10 +1,12 @@
+import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { availableParallelism, tmpdir } from "node:os";
 import { Shell, type ProjectionRuleDiagnostic } from "@brains/core";
 import { MigrationManager, resolve } from "@brains/app";
-import { DirectorySyncPlugin } from "@brains/directory-sync";
+import { importResultSchema } from "@brains/directory-sync";
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { OperationContext } from "@brains/operation-context";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -431,14 +433,29 @@ describe("directory import burst with locally mocked AI features", () => {
         },
       );
 
-      const directoryPlugin = runningShell
-        .getPluginManager()
-        .getPlugin("directory-sync");
-      if (!(directoryPlugin instanceof DirectorySyncPlugin)) {
-        throw new Error("Directory sync plugin was not registered");
-      }
-      const directorySync = directoryPlugin.getDirectorySync();
-      if (!directorySync) throw new Error("Directory sync was not initialized");
+      // An import as another package asks for one: over the bus, answered
+
+      // with the import result.
+
+      const importAll = async (): Promise<{
+        import: z.output<typeof importResultSchema>;
+      }> => {
+        const reply = z
+
+          .object({ success: z.literal(true), data: z.unknown() })
+
+          .parse(
+            await runningShell.getMessageBus().send({
+              type: DIRECTORY_SYNC_CHANNELS.entityImportRequest,
+
+              payload: {},
+
+              sender: "test",
+            }),
+          );
+
+        return { import: importResultSchema.parse(reply.data) };
+      };
 
       const runPhase = async (
         phase: "add" | "update",
@@ -490,7 +507,7 @@ describe("directory import burst with locally mocked AI features", () => {
         let embeddingCompletedAt: QueueSample | undefined;
         const completedBefore = completedEmbeddings(before);
         try {
-          const importResult = await directorySync.sync();
+          const importResult = await importAll();
           expect(importResult.import.failed).toBe(0);
           // At least the notes this phase wrote. Auto-extraction is on, so
           // by the update phase the topics the add phase derived are on disk

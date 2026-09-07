@@ -149,6 +149,10 @@ Definitions and schema vocabulary:
 - `inboxItemIdSchema`
 - `canWriteVisibility`
 - `permissionToVisibilityScope`
+- `DurableBulkMutationChildRef`
+- `durableBulkMutationChildRefSchema`
+- `internalFullScope`
+- `isEntityValidationError`
 
 Types:
 
@@ -278,6 +282,10 @@ Definitions and schema vocabulary:
 - `ServiceJobHooks`
 - `ServiceJobSettledContext`
 - `ServiceJobSettledHandler`
+- `IRuntimeStateNamespace`
+- `RuntimeHealthCheck`
+- `OperationalHealthProvider`
+- `ServiceLifecycle`
 
 Types:
 

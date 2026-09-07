@@ -316,6 +316,9 @@ export type { ActorRef } from "@brains/contracts";
 // reads at the scope its caller's level allows and offers only the
 // visibilities that level may write. Named consumer: @brains/studio.
 export {
+  durableBulkMutationChildRefSchema,
+  internalFullScope,
+  isEntityValidationError,
   canWriteVisibility,
   permissionToVisibilityScope,
 } from "@brains/plugins";
@@ -326,6 +329,7 @@ export type { ContentVisibility } from "@brains/plugins";
 export { parseMarkdown } from "@brains/utils/markdown";
 
 export type {
+  DurableBulkMutationChildRef,
   BaseEntity,
   EntityInput,
   EntityMutationResult,

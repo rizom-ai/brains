@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
 import type { CleanupPipelineDeps } from "./cleanup-pipeline";
 import type { ExportPipelineDeps } from "./export-pipeline";
@@ -12,7 +12,7 @@ import type { JobRequest } from "../types";
 import type { PendingDeleteRegistry } from "./pending-delete-registry";
 
 export interface DirectoryOperationDepsOptions {
-  entityService: EntityServiceClient;
+  entityService: EntityMirrorClient;
   logger: Logger;
   syncPath: string;
   fileOperations: FileOperations;

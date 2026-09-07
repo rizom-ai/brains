@@ -1,5 +1,7 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
-import { describe, expect, it, mock } from "bun:test";
+import { createMockShell } from "@brains/plugins/test";
+import type { DirectorySyncHost } from "../../src/host";
+import { hostFor } from "../helpers/install";
+import { describe, expect, it, mock, beforeEach } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -70,6 +72,12 @@ function createReconciliation(): Parameters<typeof setupPeriodicGitSync>[6] {
 }
 
 describe("setupPeriodicGitSync", () => {
+  let host: DirectorySyncHost;
+
+  beforeEach(async () => {
+    host = await hostFor(createMockShell());
+  });
+
   it("waits one complete interval and runs at fixed cadence", async () => {
     await Effect.runPromise(
       Effect.gen(function* () {
@@ -80,7 +88,7 @@ describe("setupPeriodicGitSync", () => {
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
           createMockDirectorySync(),
-          createMockServicePluginContext(),
+          host,
           0.001,
           createSilentLogger(),
           runtime,
@@ -118,7 +126,7 @@ describe("setupPeriodicGitSync", () => {
           deletedFiles: ["deleted.md"],
         }));
 
-        const context = createMockServicePluginContext();
+        const context = host;
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
           createMockDirectorySync({
@@ -174,7 +182,7 @@ describe("setupPeriodicGitSync", () => {
             queueSyncBatch: mock(async () => null),
             suppressWatchPaths: suppressWatchPathsMock,
           }),
-          createMockServicePluginContext(),
+          host,
           0.001,
           createSilentLogger(),
           runtime,
@@ -209,7 +217,7 @@ describe("setupPeriodicGitSync", () => {
             sync: syncMock,
             queueSyncBatch: queueSyncBatchMock,
           }),
-          createMockServicePluginContext(),
+          host,
           0.001,
           createSilentLogger(),
           runtime,
@@ -235,7 +243,7 @@ describe("setupPeriodicGitSync", () => {
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
           createMockDirectorySync(),
-          createMockServicePluginContext(),
+          host,
           0,
           createSilentLogger(),
           runtime,
@@ -280,7 +288,7 @@ describe("setupPeriodicGitSync", () => {
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
           createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-          createMockServicePluginContext(),
+          host,
           0.001,
           createSilentLogger(),
           runtime,
@@ -324,7 +332,7 @@ describe("setupPeriodicGitSync", () => {
         setupPeriodicGitSync(
           createMockGitSync({ pull: pullMock }),
           createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-          createMockServicePluginContext(),
+          host,
           0.001,
           createSilentLogger(),
           runtime,

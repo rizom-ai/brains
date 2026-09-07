@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { DirectorySyncPlugin } from "../src/plugin";
+import { instantiate } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { join } from "path";
@@ -42,7 +42,7 @@ describe("Seed Content Git Detection", () => {
    * sends the internal all-plugins-registered signal, and cleans up afterward.
    */
   async function installAndTriggerReady(entityType: string): Promise<void> {
-    const harness = createPluginHarness<DirectorySyncPlugin>({
+    const harness = createPluginHarness({
       dataDir: brainDataPath,
     });
 
@@ -55,7 +55,7 @@ describe("Seed Content Git Detection", () => {
 
     process.chdir(testDir);
 
-    const plugin = new DirectorySyncPlugin({
+    const { plugin } = instantiate({
       syncPath: brainDataPath,
       autoSync: false,
       initialSync: true,

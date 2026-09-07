@@ -1,7 +1,8 @@
 import { createMockEntityService } from "@brains/entity-service/test";
-import { createMockServicePluginContext } from "@brains/plugins/test";
-import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
+import { createEntityBulkCoordination } from "@brains/entity-service";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
+import { describe, it, expect, mock } from "bun:test";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import {
   createSilentLogger,
@@ -11,79 +12,6 @@ import {
 import { createMockDirectorySync } from "../fixtures";
 
 describe("DirectoryImportJobHandler", () => {
-  let handler: DirectoryImportJobHandler;
-
-  beforeEach(() => {
-    const mockContext = createMockServicePluginContext({
-      returns: {
-        entityService: {
-          getEntity: null,
-          createEntity: {
-            entityId: "test",
-            jobId: "mock-job-id",
-            skipped: false,
-          },
-          updateEntity: {
-            entityId: "test",
-            jobId: "mock-job-id",
-            skipped: false,
-          },
-        },
-      },
-    });
-
-    handler = new DirectoryImportJobHandler(
-      createSilentLogger("test"),
-      mockContext,
-      createMockDirectorySync(),
-    );
-  });
-
-  describe("validateAndParse", () => {
-    it("should validate empty object (all fields optional)", () => {
-      const result = expectDefined(
-        handler.validateAndParse({}),
-        "validateAndParse result",
-      );
-      // batchSize is optional, defaults applied in process()
-      expect(result.batchSize).toBeUndefined();
-    });
-
-    it("should validate with paths array", () => {
-      const data = { paths: ["/path/to/file1.md", "/path/to/file2.md"] };
-      const result = handler.validateAndParse(data);
-
-      expect(result).not.toBeNull();
-      expect(result?.paths).toEqual(["/path/to/file1.md", "/path/to/file2.md"]);
-    });
-
-    it("should validate with custom batchSize", () => {
-      const data = { batchSize: 50 };
-      const result = handler.validateAndParse(data);
-
-      expect(result).not.toBeNull();
-      expect(result?.batchSize).toBe(50);
-    });
-
-    it("should validate with batchIndex", () => {
-      const data = { batchIndex: 2 };
-      const result = handler.validateAndParse(data);
-
-      expect(result).not.toBeNull();
-      expect(result?.batchIndex).toBe(2);
-    });
-
-    it("should return null for invalid batchSize", () => {
-      const result = handler.validateAndParse({ batchSize: 0 });
-      expect(result).toBeNull();
-    });
-
-    it("should return null for invalid paths type", () => {
-      const result = handler.validateAndParse({ paths: "not-an-array" });
-      expect(result).toBeNull();
-    });
-  });
-
   describe("process", () => {
     it("should delegate to DirectorySync import pipeline with progress", async () => {
       const importWithProgress = mock(() =>
@@ -100,7 +28,7 @@ describe("DirectoryImportJobHandler", () => {
       const mockDirSync = createMockDirectorySync({
         importEntitiesWithProgress: importWithProgress,
       });
-      const mockContext = createMockServicePluginContext();
+      const mockContext = await hostFor(createMockShell());
       const testHandler = new DirectoryImportJobHandler(
         createSilentLogger("test"),
         mockContext,
@@ -136,10 +64,18 @@ describe("DirectoryImportJobHandler", () => {
       entityService.runDurableBulkMutationChild =
         genericSpy<typeof entityService.runDurableBulkMutationChild>(runChild);
       entityService.settleDurableBulkMutationChild = settleChild;
-      const context = createMockServicePluginContext({
-        entityService,
-        pluginId: "directory-sync",
-      });
+      const host = await hostFor(createMockShell());
+      // The batch child runs under the coordination the test observes.
+      const context = {
+        ...host,
+        mirror: {
+          ...host.mirror,
+          coordination: createEntityBulkCoordination(
+            entityService,
+            "directory-sync",
+          ),
+        },
+      };
       const testHandler = new DirectoryImportJobHandler(
         createSilentLogger("test"),
         context,

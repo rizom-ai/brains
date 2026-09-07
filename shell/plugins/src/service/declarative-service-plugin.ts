@@ -278,6 +278,7 @@ class DeclarativeServicePlugin<
   private readonly publicId: string;
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
   private readonly cleanups: Array<() => void | Promise<void>> = [];
+  private readonly registeredHooks: Array<() => void | Promise<void>> = [];
   private readonly registeredJobs = new Set<AnyServiceJobDefinition>();
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -523,6 +524,9 @@ class DeclarativeServicePlugin<
             onCleanup: (cleanup): void => {
               this.cleanups.push(cleanup);
             },
+            onRegistered: (hook): void => {
+              this.registeredHooks.push(hook);
+            },
           },
           // Reading only: a service finds the transport for a channel type,
           // it does not register descriptors or providers.
@@ -585,6 +589,7 @@ class DeclarativeServicePlugin<
           entityShapes: entityShapesOf(context),
           themeCSS: context.themeCSS,
           role: context.executionOnly ? "worker" : "scheduler",
+          dataDir: context.dataDir,
           gitBroker: {
             socket: context.gitBrokerSocket,
             checkout: context.gitBrokerCheckout,
@@ -647,6 +652,8 @@ class DeclarativeServicePlugin<
 
     const subscriptions =
       this.definition.subscriptions?.({
+        workspaceUrl: (workspaceId) =>
+          this.studioWorkspaceUrls.get(workspaceId),
         config: this.config,
         state: this.state,
         jobs: this.jobs(),
@@ -948,6 +955,12 @@ class DeclarativeServicePlugin<
         );
       }
     }
+    // The package's jobs are bound by now; what setup deferred runs here, in
+    // both roles, before the brain announces registration complete.
+    for (const hook of this.registeredHooks.splice(0)) {
+      await hook();
+    }
+
     if (context.executionOnly) return;
     this.bindOperatorDefinitions(context);
 

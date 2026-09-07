@@ -1,11 +1,11 @@
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import type { ExportResult, ImportResult } from "../types";
 import type { ProgressOperations } from "./progress-operations";
 
 export async function importDirectoryEntitiesWithProgress(
   progressOperations: ProgressOperations,
   paths: string[] | undefined,
-  reporter: ProgressReporter,
+  reporter: ProgressContract,
   batchSize: number,
   importEntities: (paths: string[]) => Promise<ImportResult>,
 ): Promise<ImportResult> {
@@ -21,7 +21,7 @@ export async function exportDirectoryEntitiesWithProgress(
   progressOperations: ProgressOperations,
   configuredEntityTypes: string[] | undefined,
   requestedEntityTypes: string[] | undefined,
-  reporter: ProgressReporter,
+  reporter: ProgressContract,
   batchSize: number,
   exportEntities: (entityTypes: string[] | undefined) => Promise<ExportResult>,
 ): Promise<ExportResult> {

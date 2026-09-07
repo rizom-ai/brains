@@ -1,5 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { registerMessageHandlers } from "../src/lib/message-handlers";
+import { directorySyncSubscriptions } from "../src/lib/message-handlers";
+import { createSilentLogger } from "@brains/test-utils";
+import { installSubscriptions } from "./helpers/install";
 import type {
   GitStatusSource,
   SyncHandlerSource,
@@ -57,22 +59,20 @@ function fakeDirectorySync(
   };
 }
 
-function setup(options: {
+async function setup(options: {
   directorySync: SyncHandlerSource;
   gitSync?: GitStatusSource;
-}): ReturnType<typeof createPluginHarness> {
+}): Promise<ReturnType<typeof createPluginHarness>> {
   const harness = createPluginHarness({ dataDir: "/tmp/test-sync-status" });
-  const context = harness.getServiceContext("directory-sync");
-
-  registerMessageHandlers(
-    context,
-    () => options.directorySync,
-    async () => {},
-    context.logger,
-    undefined,
-    () => options.gitSync,
+  await installSubscriptions(
+    harness.getMockShell(),
+    directorySyncSubscriptions({
+      getDirectorySync: () => options.directorySync,
+      configure: async () => {},
+      logger: createSilentLogger("sync-status"),
+      getGitSync: () => options.gitSync,
+    }),
   );
-
   return harness;
 }
 
@@ -88,7 +88,7 @@ describe("sync:status:request message handler", () => {
       remote: "origin/main",
       files: [{ path: "post/hello.md", status: "M" }],
     };
-    const harness = setup({
+    const harness = await setup({
       directorySync: fakeDirectorySync({
         lastSync: new Date("2026-07-09T10:00:00.000Z"),
         watching: true,
@@ -119,7 +119,7 @@ describe("sync:status:request message handler", () => {
   });
 
   it("reports git: null when git sync is not enabled", async () => {
-    const harness = setup({ directorySync: fakeDirectorySync() });
+    const harness = await setup({ directorySync: fakeDirectorySync() });
 
     const result = await harness.sendMessage<
       Record<string, never>,
@@ -134,7 +134,7 @@ describe("sync:status:request message handler", () => {
   });
 
   it("degrades git to null when the git status query fails", async () => {
-    const harness = setup({
+    const harness = await setup({
       directorySync: fakeDirectorySync(),
       gitSync: {
         getStatus: async () => {
@@ -163,7 +163,7 @@ describe("sync:status:request message handler", () => {
       branch: "main",
       files: [],
     };
-    const harness = setup({
+    const harness = await setup({
       directorySync: fakeDirectorySync(),
       gitSync: { getStatus: async () => gitStatus },
     });

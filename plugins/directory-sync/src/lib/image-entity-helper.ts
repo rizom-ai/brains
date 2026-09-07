@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
 import {
   parseDataUrl,
@@ -22,7 +22,7 @@ interface ImageEntityParams {
  */
 export async function getOrCreateImageEntity(
   params: ImageEntityParams,
-  entityService: EntityServiceClient,
+  entityService: EntityMirrorClient,
   fetcher: ImageFetcher,
   logger: Logger,
 ): Promise<string> {

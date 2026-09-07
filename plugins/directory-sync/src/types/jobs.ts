@@ -1,6 +1,8 @@
 import { z } from "@brains/utils/zod";
-import { durableBulkMutationChildRefSchema } from "@brains/plugins";
-import type { DurableBulkMutationChildRef } from "@brains/plugins";
+import {
+  durableBulkMutationChildRefSchema,
+  type DurableBulkMutationChildRef,
+} from "@brains/sdk/entities";
 
 /**
  * Schema for directory sync job data
@@ -153,6 +155,9 @@ export const inlineImageConversionJobSchema: z.ZodType<
 /**
  * Job request types for file watcher - discriminated union for type safety
  */
+/** Every job type name a batch may carry. */
+export type DirectorySyncJobType = JobRequest["type"] | "directory-cleanup";
+
 export type JobRequest =
   | { type: "directory-sync"; data: DirectorySyncJobData }
   | { type: "sync-request"; data: DirectorySyncRequestJobData }

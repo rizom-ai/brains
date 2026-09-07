@@ -1,5 +1,8 @@
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { internalFullScope } from "@brains/plugins";
+import {
+  internalFullScope,
+  type BaseEntity,
+  type ContentVisibility,
+} from "@brains/sdk/entities";
 import type { CleanupResult } from "../types";
 import {
   createCleanupResult,

@@ -14,6 +14,7 @@ import { createMockShell } from "../src/test/mock-shell";
 interface Seen {
   role: ServiceRole;
   gitBroker: ServiceGitBroker;
+  dataDir: string;
 }
 
 /** A service that reports the process it was set up in. */
@@ -23,8 +24,8 @@ function instantiate(): { plugin: Plugin; seen: () => Seen } {
     defineServicePlugin({
       id: "directory-sync",
       config: z.object({}),
-      setup: ({ role, gitBroker }) => {
-        seen = { role, gitBroker };
+      setup: ({ role, gitBroker, dataDir }) => {
+        seen = { role, gitBroker, dataDir };
         return {};
       },
     }),
@@ -55,13 +56,14 @@ describe("the process a declared service runs in", () => {
     logger: createSilentLogger("role-test"),
     gitBrokerSocket: "/run/brain/git-broker.sock",
     gitBrokerCheckout: "/srv/brain/checkout",
+    dataDir: "/srv/brain/data",
   });
 
   afterEach(async () => {
     await harness.reset();
   });
 
-  it("reads the scheduling role and the broker's whereabouts", async () => {
+  it("reads the scheduling role, the broker's whereabouts and the data dir", async () => {
     const { plugin, seen } = instantiate();
 
     await harness.installPlugin(plugin);
@@ -72,6 +74,7 @@ describe("the process a declared service runs in", () => {
         socket: "/run/brain/git-broker.sock",
         checkout: "/srv/brain/checkout",
       },
+      dataDir: "/srv/brain/data",
     });
   });
 
@@ -81,7 +84,7 @@ describe("the process a declared service runs in", () => {
 
     await plugin.register(shell, { executionOnly: true });
 
-    expect(seen()).toEqual({
+    expect(seen()).toMatchObject({
       role: "worker",
       gitBroker: { socket: undefined, checkout: undefined },
     });

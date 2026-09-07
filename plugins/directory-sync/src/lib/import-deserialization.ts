@@ -1,4 +1,5 @@
-import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ImportResult, RawEntity } from "../types";
@@ -7,7 +8,7 @@ import type { Quarantine } from "./quarantine";
 import { resolveInSyncPath } from "./path-utils";
 
 export interface ImportDeserializationDeps {
-  entityService: EntityServiceClient;
+  entityService: EntityMirrorClient;
   logger: Logger;
   quarantine: Quarantine;
   imageJobQueue: ImageJobQueueDeps;

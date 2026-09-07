@@ -1,11 +1,11 @@
+import type { DirectorySyncHost } from "../host";
 import {
-  createId,
   SerializedStatusStore,
   type IRuntimeStateNamespace,
   type IRuntimeStateStore,
   type RuntimeHealthCheck,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { isAbsolute, relative } from "path";
@@ -197,8 +197,8 @@ export class DirectorySyncOperationStatusService {
     z.infer<typeof progressSchema>
   >;
   private readonly jobs: Pick<
-    ServicePluginContext["jobs"],
-    "getStatus" | "getBatchStatus"
+    DirectorySyncHost["jobs"],
+    "find" | "batchStatus"
   >;
   private readonly logger: Logger;
   private readonly now: () => number;
@@ -210,7 +210,7 @@ export class DirectorySyncOperationStatusService {
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
-    jobs: ServicePluginContext["jobs"],
+    jobs: DirectorySyncHost["jobs"],
     logger: Logger,
     syncPath: string,
     options: DirectorySyncOperationStatusOptions = {},
@@ -504,7 +504,7 @@ export class DirectorySyncOperationStatusService {
 
     try {
       if (active.jobId) {
-        const job = await this.jobs.getStatus(active.jobId);
+        const job = await this.jobs.find(active.jobId);
         if (!job) {
           await this.failRun(
             active.id,
@@ -517,10 +517,7 @@ export class DirectorySyncOperationStatusService {
           return;
         }
         if (job.status === "failed") {
-          await this.failRun(
-            active.id,
-            job.lastError ?? "Git-backed sync failed",
-          );
+          await this.failRun(active.id, job.error ?? "Git-backed sync failed");
           return;
         }
 
@@ -544,7 +541,7 @@ export class DirectorySyncOperationStatusService {
       }
 
       if (active.batchId) {
-        const batch = await this.jobs.getBatchStatus(active.batchId);
+        const batch = await this.jobs.batchStatus(active.batchId);
         if (!batch) {
           await this.failRun(
             active.id,
@@ -566,7 +563,7 @@ export class DirectorySyncOperationStatusService {
         }
         await this.completeRun(
           active.id,
-          `${batch.completedOperations} sync operations completed`,
+          `${batch.completed} sync operations completed`,
         );
       }
     } catch (error) {
@@ -593,7 +590,7 @@ export class DirectorySyncOperationStatusService {
 
     const active = await this.withEffectiveProgress(status.activeRun);
     if (active.jobId) {
-      const job = await this.jobs.getStatus(active.jobId);
+      const job = await this.jobs.find(active.jobId);
       if (job?.status !== "processing") return healthyGitProgress();
     }
     const inactivityMs = Math.max(

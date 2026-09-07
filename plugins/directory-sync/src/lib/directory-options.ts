@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
@@ -27,7 +27,7 @@ export type DirectorySyncOptionsInput = z.output<
 >;
 
 export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
-  entityService: EntityServiceClient;
+  entityService: EntityMirrorClient;
   logger: Logger;
 }
 

@@ -187,6 +187,7 @@ export type {
   ServiceActiveJob,
   ServiceRecentJob,
   ServiceJobs,
+  ServiceLifecycle,
   ServiceJobHooks,
   ServiceJobSettledContext,
   ServiceJobSettledHandler,
@@ -198,6 +199,9 @@ export type {
   ServiceRole,
   EntityMirror,
   EntityMirrorClient,
+  IRuntimeStateNamespace,
+  RuntimeHealthCheck,
+  OperationalHealthProvider,
   ServicePublisher,
   ServicePublishingAccess,
 } from "@brains/plugins";

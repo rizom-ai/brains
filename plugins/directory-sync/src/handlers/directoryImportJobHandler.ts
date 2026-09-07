@@ -1,9 +1,7 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import {
-  directoryImportJobSchema,
   type ImportResult,
   type DirectoryImportJobData,
   type IDirectorySync,
@@ -15,26 +13,20 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-export class DirectoryImportJobHandler extends BaseJobHandler<
-  "directory-import",
-  DirectoryImportJobData,
-  ImportResult
-> {
+export class DirectoryImportJobHandler {
+  protected readonly logger: Logger;
   private directorySync: IDirectorySync;
-  private readonly context: ServicePluginContext;
+  private readonly context: DirectorySyncHost;
   private readonly operationStatus:
     DirectorySyncOperationStatusService | undefined;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncHost,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
   ) {
-    super(logger, {
-      schema: directoryImportJobSchema,
-      jobTypeName: "directory-import",
-    });
+    this.logger = logger;
     this.context = context;
     this.directorySync = directorySync;
     this.operationStatus = operationStatus;
@@ -43,7 +35,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   public async process(
     data: DirectoryImportJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<ImportResult> {
     this.logger.debug("Processing directory import job", { jobId, data });
 
@@ -107,14 +99,5 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
       jobId,
       "failed",
     );
-  }
-
-  protected override summarizeDataForLog(
-    data: DirectoryImportJobData,
-  ): Record<string, unknown> {
-    return {
-      pathCount: data.paths?.length ?? "all",
-      batchSize: data.batchSize,
-    };
   }
 }

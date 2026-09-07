@@ -26,7 +26,7 @@ import contentPipelinePackage from "@brains/content-pipeline";
 import conversationMemoryPackage from "@brains/conversation-memory";
 import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
-import { directorySync } from "@brains/directory-sync";
+import directorySyncPackage from "@brains/directory-sync";
 import docPackage from "@brains/doc";
 import documentPackage from "@brains/document-plugin";
 import emailPackage from "@brains/email";
@@ -159,7 +159,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("decks", "@brains/decks", decksPackage),
     [
       "directory-sync",
-      directorySync,
+      packageFactory("@brains/directory-sync", directorySyncPackage),
       {
         seedContent: true,
         seedContentPath: "./seed-content",

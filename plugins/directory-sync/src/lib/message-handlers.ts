@@ -1,6 +1,10 @@
 import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  defineSubscription,
+  type AnySubscriptionDefinition,
+} from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
 import type {
   CleanupResult,
   DirectorySyncStatus,
@@ -8,19 +12,11 @@ import type {
   GitSyncStatus,
   ImportResult,
 } from "../types";
-import { getErrorMessage } from "@brains/utils/error";
 
 interface ConfigureOptions {
   syncPath: string;
 }
 
-/**
- * Register message-bus handlers for cross-plugin communication:
- *   - entity:export:request
- *   - entity:import:request
- *   - sync:status:request
- *   - sync:configure:request
- */
 interface GitConfig {
   repo?: string | undefined;
   branch?: string | undefined;
@@ -39,116 +35,95 @@ export interface GitStatusSource {
   getStatus(): Promise<GitSyncStatus>;
 }
 
-export function registerMessageHandlers(
-  context: ServicePluginContext,
-  getDirectorySync: () => SyncHandlerSource,
-  configure: (options: ConfigureOptions) => Promise<void>,
-  logger: Logger,
-  gitConfig?: GitConfig,
-  getGitSync?: () => GitStatusSource | undefined,
-  getManagementUrl?: () => string | undefined,
-): void {
-  const { subscribe } = context.messaging;
+export interface DirectorySyncSubscriptionOptions {
+  readonly getDirectorySync: () => SyncHandlerSource;
+  readonly configure: (options: ConfigureOptions) => Promise<void>;
+  readonly logger: Logger;
+  readonly gitConfig?: GitConfig | undefined;
+  readonly getGitSync?: (() => GitStatusSource | undefined) | undefined;
+  readonly getManagementUrl?: (() => string | undefined) | undefined;
+}
 
-  subscribe<{ entityTypes?: string[] }>(
-    DIRECTORY_SYNC_CHANNELS.entityExportRequest,
-    async (message) => {
-      try {
+const entityExportRequestSchema = z.object({
+  entityTypes: z.array(z.string()).optional(),
+});
+const entityImportRequestSchema = z.object({
+  paths: z.array(z.string()).optional(),
+});
+const configureRequestSchema = z.object({ syncPath: z.string().min(1) });
+
+/**
+ * What other packages ask directory-sync over the bus, declared:
+ *   - entity:export:request
+ *   - entity:import:request
+ *   - sync:status:request
+ *   - sync:configure:request
+ *   - the repository it mirrors
+ *
+ * A handler answers with what it has to say and throws a refusal; the
+ * runtime wraps either for the sender.
+ */
+export function directorySyncSubscriptions(
+  options: DirectorySyncSubscriptionOptions,
+): readonly AnySubscriptionDefinition[] {
+  const { getDirectorySync, configure, logger, gitConfig } = options;
+  return [
+    defineSubscription({
+      topic: DIRECTORY_SYNC_CHANNELS.entityExportRequest,
+      payload: entityExportRequestSchema,
+      handle: ({ payload }) =>
+        getDirectorySync().exportEntities(payload.entityTypes),
+    }),
+    defineSubscription({
+      topic: DIRECTORY_SYNC_CHANNELS.entityImportRequest,
+      payload: entityImportRequestSchema,
+      handle: async ({ payload }) => {
         const ds = getDirectorySync();
-        const result = await ds.exportEntities(message.payload.entityTypes);
-        return { success: true, data: result };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error, "Export failed"),
-        };
-      }
-    },
-  );
-
-  subscribe<{ paths?: string[] }>(
-    DIRECTORY_SYNC_CHANNELS.entityImportRequest,
-    async (message) => {
-      try {
-        const ds = getDirectorySync();
-        const paths = message.payload.paths;
-        const result = await ds.importEntities(paths);
-
-        // When specific paths are provided (e.g., from git-sync after a pull),
-        // some of those paths may be deletions. Run orphan cleanup to remove
-        // DB entities whose files no longer exist on disk.
-        if (paths && paths.length > 0) {
+        const result = await ds.importEntities(payload.paths);
+        // When specific paths are provided (e.g., from git-sync after a
+        // pull), some of those paths may be deletions. Run orphan cleanup
+        // to remove DB entities whose files no longer exist on disk.
+        if (payload.paths && payload.paths.length > 0) {
           await ds.removeOrphanedEntities();
         }
-
-        return { success: true, data: result };
-      } catch (error) {
+        return result;
+      },
+    }),
+    defineSubscription({
+      topic: DIRECTORY_SYNC_CHANNELS.statusRequest,
+      payload: z.unknown(),
+      handle: async () => {
+        const status = await getDirectorySync().getStatus();
+        const managementUrl = options.getManagementUrl?.();
         return {
-          success: false,
-          error: getErrorMessage(error, "Import failed"),
-        };
-      }
-    },
-  );
-
-  subscribe(DIRECTORY_SYNC_CHANNELS.statusRequest, async () => {
-    try {
-      const ds = getDirectorySync();
-      const status = await ds.getStatus();
-      const managementUrl = getManagementUrl?.();
-      return {
-        success: true,
-        data: {
           syncPath: status.syncPath,
           isInitialized: status.exists,
           watchEnabled: status.watching,
           lastSync: status.lastSync?.toISOString() ?? null,
           totalFiles: status.stats.totalFiles,
           byEntityType: status.stats.byEntityType,
-          git: await queryGitStatus(getGitSync?.(), logger),
+          git: await queryGitStatus(options.getGitSync?.(), logger),
           ...(managementUrl ? { managementUrl } : {}),
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: getErrorMessage(error, "Status check failed"),
-      };
-    }
-  });
-
-  subscribe<{ syncPath: string }>(
-    DIRECTORY_SYNC_CHANNELS.configureRequest,
-    async (message) => {
-      try {
-        await configure({ syncPath: message.payload.syncPath });
-        return {
-          success: true,
-          data: {
-            syncPath: message.payload.syncPath,
-            configured: true,
-          },
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error, "Configuration failed"),
-        };
-      }
-    },
-  );
-
-  subscribe(DIRECTORY_SYNC_CHANNELS.getRepoInfo, async () => {
-    if (!gitConfig?.repo) {
-      return { success: false, error: "Git not configured" };
-    }
-    return {
-      success: true,
-      data: { repo: gitConfig.repo, branch: gitConfig.branch ?? "main" },
-    };
-  });
-
-  logger.debug("Registered message handlers");
+      },
+    }),
+    defineSubscription({
+      topic: DIRECTORY_SYNC_CHANNELS.configureRequest,
+      payload: configureRequestSchema,
+      handle: async ({ payload }) => {
+        await configure({ syncPath: payload.syncPath });
+        return { syncPath: payload.syncPath, configured: true };
+      },
+    }),
+    defineSubscription({
+      topic: DIRECTORY_SYNC_CHANNELS.getRepoInfo,
+      payload: z.unknown(),
+      handle: () => {
+        if (!gitConfig?.repo) throw new Error("Git not configured");
+        return { repo: gitConfig.repo, branch: gitConfig.branch ?? "main" };
+      },
+    }),
+  ];
 }
 
 /**

@@ -1,4 +1,7 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import type { ServiceBatchReference } from "@brains/plugins";
+import { createEntityBulkCoordination } from "@brains/entity-service";
+import { hostFor } from "./helpers/install";
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import { BatchOperationsManager } from "../src/lib/batch-operations";
@@ -15,6 +18,12 @@ import { createSilentLogger } from "@brains/test-utils";
  * Exports are already handled by auto-sync's entity:created/entity:updated
  * subscribers — the batch export is redundant and destructive.
  */
+/** What the declared queue answers for a batch it accepted. */
+const batchRef = (id: string): ServiceBatchReference => ({
+  id,
+  status: async () => null,
+});
+
 describe("batch operations should not include exports (regression)", () => {
   const makeManager = (deleteOnFileRemoval = true): BatchOperationsManager =>
     new BatchOperationsManager({
@@ -76,17 +85,17 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("queueSyncBatch should enqueue cleanup-only batches when no files", async () => {
-    const context = createMockServicePluginContext();
-    const enqueueBatch = mock(async () => "batch-cleanup");
-    context.jobs.enqueueBatch = enqueueBatch;
+    const host = await hostFor(createMockShell());
+    const enqueueBatch = mock(async () => batchRef("batch-cleanup"));
+    const context = { ...host, jobs: { ...host.jobs, enqueueBatch } };
 
     const result = await makeManager().queueSyncBatch(context, "test", []);
 
     expect(enqueueBatch).toHaveBeenCalledWith(
       [
         {
-          type: "directory-cleanup",
-          data: expect.objectContaining({
+          definition: expect.objectContaining({ name: "directory-cleanup" }),
+          input: expect.objectContaining({
             projectionBatch: expect.objectContaining({
               rootJobId: expect.any(String),
               childKey: "0:directory-cleanup",
@@ -107,12 +116,26 @@ describe("batch operations should not include exports (regression)", () => {
 
   it("preserves the enqueue error when recording batch failure also fails", async () => {
     const entityService = createMockEntityService();
-    const context = createMockServicePluginContext({ entityService });
+    const host = await hostFor(createMockShell());
     const enqueueError = new Error("enqueue failed");
     const markerError = new Error("failure marker failed");
-    context.jobs.enqueueBatch = mock(async () => {
-      throw enqueueError;
-    });
+    // Coordination over the test's own entity service, whose marker fails.
+    const context = {
+      ...host,
+      mirror: {
+        ...host.mirror,
+        coordination: createEntityBulkCoordination(
+          entityService,
+          "directory-sync",
+        ),
+      },
+      jobs: {
+        ...host.jobs,
+        enqueueBatch: mock(async () => {
+          throw enqueueError;
+        }),
+      },
+    };
     entityService.failDurableBulkMutationEnqueue = mock(async () => {
       throw markerError;
     });
@@ -137,9 +160,9 @@ describe("batch operations should not include exports (regression)", () => {
   });
 
   it("queueSyncBatch should skip empty batches entirely when deleteOnFileRemoval is false", async () => {
-    const context = createMockServicePluginContext();
-    const enqueueBatch = mock(async () => "batch-noop");
-    context.jobs.enqueueBatch = enqueueBatch;
+    const host = await hostFor(createMockShell());
+    const enqueueBatch = mock(async () => batchRef("batch-noop"));
+    const context = { ...host, jobs: { ...host.jobs, enqueueBatch } };
 
     const result = await makeManager(false).queueSyncBatch(context, "test", []);
 

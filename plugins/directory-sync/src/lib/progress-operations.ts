@@ -1,6 +1,6 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import type { ExportResult, ImportResult } from "../types";
 import type { FileOperations } from "./file-operations";
 
@@ -9,12 +9,12 @@ import type { FileOperations } from "./file-operations";
  */
 export class ProgressOperations {
   private readonly logger: Logger;
-  private readonly entityService: EntityServiceClient;
+  private readonly entityService: EntityMirrorClient;
   private readonly fileOperations: FileOperations;
 
   constructor(
     logger: Logger,
-    entityService: EntityServiceClient,
+    entityService: EntityMirrorClient,
     fileOperations: FileOperations,
   ) {
     this.logger = logger;
@@ -27,7 +27,7 @@ export class ProgressOperations {
    */
   async importEntitiesWithProgress(
     paths: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
     batchSize: number,
     importFn: (paths: string[]) => Promise<ImportResult>,
   ): Promise<ImportResult> {
@@ -89,7 +89,7 @@ export class ProgressOperations {
    */
   async exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
     _batchSize: number,
     exportFn: (entityTypes: string[] | undefined) => Promise<ExportResult>,
   ): Promise<ExportResult> {

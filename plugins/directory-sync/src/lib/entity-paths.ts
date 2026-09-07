@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
 import { extname, join } from "path";
 import { readString } from "@brains/utils/record-fields";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";

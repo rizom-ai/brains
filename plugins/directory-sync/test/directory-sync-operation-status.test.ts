@@ -1,25 +1,34 @@
-import {
-  createMockServicePluginContext,
-  createMockShell,
-} from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import type {
-  BatchJobStatus,
-  JobInfo,
-  ServicePluginContext,
+  IRuntimeStateNamespace,
+  ServiceBatchStatus,
+  ServiceJobs,
+  ServiceRecentJob,
 } from "@brains/plugins";
+import type { Logger } from "@brains/utils/logger";
+import { hostFor } from "./helpers/install";
 import { z } from "@brains/utils/zod";
 import { DirectorySyncOperationStatusService } from "../src/lib/directory-sync-operation-status";
 
-function createContext(): ServicePluginContext {
+/** What the status service reads of the host, as setup hands it over. */
+interface StatusContext {
+  runtimeState: IRuntimeStateNamespace;
+  jobs: ServiceJobs;
+  logger: Logger;
+}
+
+async function createContext(): Promise<StatusContext> {
+  const host = await hostFor(createMockShell());
   return {
-    ...createMockServicePluginContext(),
-    runtimeState: createMockShell().getRuntimeState(),
+    runtimeState: { scoped: host.state },
+    jobs: host.jobs,
+    logger: host.logger,
   };
 }
 
 function createService(
-  context: ServicePluginContext,
+  context: StatusContext,
   options?: {
     now?: () => number;
     inactivityTimeoutMs?: number;
@@ -38,7 +47,7 @@ function createService(
 
 describe("DirectorySyncOperationStatusService", () => {
   it("records bounded, relative quarantine attention and run metrics", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = createService(context);
     await service.initialize();
     const runId = await service.startRun("manual", "importing");
@@ -72,7 +81,7 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("records skipped import issues without counting them as failures", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = createService(context);
     await service.initialize();
 
@@ -101,51 +110,34 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("reconciles a completed Git request through its terminal import batch", async () => {
-    const base = createContext();
-    const getStatus = mock(async (): Promise<JobInfo> => ({
+    const base = await createContext();
+    const find = mock(async (): Promise<ServiceRecentJob> => ({
       id: "job-1",
       type: "sync-request",
-      data: "{}",
-      status: "completed" as const,
-      source: null,
-      priority: 3,
-      retryCount: 0,
-      maxRetries: 0,
-      lastError: null,
+      data: {},
+      status: "completed",
       createdAt: Date.now(),
-      scheduledFor: Date.now(),
       startedAt: Date.now(),
       completedAt: Date.now(),
-      attemptId: "attempt-1",
-      workerSlotId: "worker-a",
-      workerSessionId: "session-a",
-      leaseExpiresAt: Date.now(),
-      attemptHeartbeatAt: Date.now(),
-      runtimeUpdatedAt: Date.now(),
-      progress: null,
-      metadata: {
-        rootJobId: "job-1",
-        operationType: "file_operations",
-      },
-      result: JSON.stringify({
+      result: {
         gitPulled: true,
         batchQueued: true,
         batchId: "batch-1",
         importOperations: 2,
         totalFiles: 5,
-      }),
+      },
     }));
-    const getBatchStatus = mock(async (): Promise<BatchJobStatus> => ({
-      batchId: "batch-1",
-      totalOperations: 2,
-      completedOperations: 2,
-      failedOperations: 0,
+    const batchStatus = mock(async (): Promise<ServiceBatchStatus> => ({
+      id: "batch-1",
+      status: "completed",
+      total: 2,
+      completed: 2,
+      failed: 0,
       errors: [],
-      status: "completed" as const,
     }));
     const context = {
       ...base,
-      jobs: { ...base.jobs, getStatus, getBatchStatus },
+      jobs: { ...base.jobs, find, batchStatus },
     };
     const service = createService(context);
     await service.initialize();
@@ -154,8 +146,8 @@ describe("DirectorySyncOperationStatusService", () => {
     await service.attachJob(runId, "job-1");
 
     const snapshot = await service.getSnapshot();
-    expect(getStatus).toHaveBeenCalledWith("job-1");
-    expect(getBatchStatus).toHaveBeenCalledWith("batch-1");
+    expect(find).toHaveBeenCalledWith("job-1");
+    expect(batchStatus).toHaveBeenCalledWith("batch-1");
     expect(snapshot.activeRun).toBeUndefined();
     expect(snapshot.recentRuns[0]).toMatchObject({
       id: runId,
@@ -165,8 +157,9 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("migrates an active run from before durable progress tracking", async () => {
-    const context = createContext();
+    const context = await createContext();
     const legacyStore = context.runtimeState.scoped<unknown>({
+      // Through the declared state, which scopes the namespace itself.
       namespace: "directory-sync.operation-status",
       schema: z.unknown(),
     });
@@ -194,7 +187,7 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("persists progress at phase boundaries and throttles output progress", async () => {
-    const context = createContext();
+    const context = await createContext();
     let now = 1_000;
     const service = createService(context, {
       now: () => now,
@@ -229,7 +222,7 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("classifies stale pulls from progress age without mutating run state", async () => {
-    const context = createContext();
+    const context = await createContext();
     let now = 10_000;
     const service = createService(context, {
       now: () => now,
@@ -267,40 +260,20 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("only applies stale-pull health to a processing Git job", async () => {
-    const base = createContext();
-    let jobStatus: JobInfo["status"] = "pending";
-    const job: JobInfo = {
+    const base = await createContext();
+    let jobStatus: ServiceRecentJob["status"] = "pending";
+    const job: ServiceRecentJob = {
       id: "job-health",
       type: "sync-request",
-      data: "{}",
+      data: {},
       status: "pending",
-      source: null,
-      priority: 3,
-      retryCount: 0,
-      maxRetries: 0,
-      lastError: null,
       createdAt: 1,
-      scheduledFor: 1,
-      startedAt: null,
-      completedAt: null,
-      attemptId: null,
-      workerSlotId: null,
-      workerSessionId: null,
-      leaseExpiresAt: null,
-      attemptHeartbeatAt: null,
-      runtimeUpdatedAt: 1,
-      progress: null,
-      metadata: {
-        rootJobId: "job-health",
-        operationType: "file_operations",
-      },
-      result: null,
     };
     const context = {
       ...base,
       jobs: {
         ...base.jobs,
-        getStatus: async (): Promise<JobInfo> => ({
+        find: async (): Promise<ServiceRecentJob> => ({
           ...job,
           status: jobStatus,
         }),
@@ -333,7 +306,7 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("preserves and records recovery of an unlinked pulling run after restart", async () => {
-    const context = createContext();
+    const context = await createContext();
     let now = 20_000;
     const first = createService(context, { now: () => now });
     await first.initialize();
@@ -369,7 +342,7 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("does not let watcher activity replace an active manual run", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = createService(context);
     await service.initialize();
     const manualRunId = await service.startRun("manual", "pulling");
@@ -383,7 +356,7 @@ describe("DirectorySyncOperationStatusService", () => {
   });
 
   it("redacts credential-bearing errors and caps terminal history", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = createService(context);
     await service.initialize();
 

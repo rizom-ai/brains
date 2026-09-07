@@ -1,5 +1,8 @@
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { internalFullScope } from "@brains/plugins";
+import {
+  internalFullScope,
+  type BaseEntity,
+  type ContentVisibility,
+} from "@brains/sdk/entities";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";

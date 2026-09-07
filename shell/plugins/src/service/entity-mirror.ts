@@ -1,7 +1,11 @@
 import {
   createEntityBulkCoordination,
+  type BaseEntity,
   type EntityBulkCoordination,
+  type EntitySchema,
   type EntityServiceClient,
+  type GetEntityRequest,
+  type ListEntitiesRequest,
 } from "@brains/entity-service";
 import type { IShell } from "../interfaces";
 
@@ -49,22 +53,60 @@ export function createEntityMirror(
     readonly pluginId: string;
   },
 ): EntityMirror {
-  const entities = shell.getEntityService();
+  // Every call reaches the shell's entity service at the moment it is made,
+  // the way the class context did: what the service answers is what the
+  // mirror answers, including anything installed on it after setup.
+  const entities = (): EntityServiceClient => shell.getEntityService();
+
+  function getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  function getEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  function getEntity<T extends BaseEntity>(
+    request: GetEntityRequest,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    return schema
+      ? entities().getEntity(request, schema)
+      : entities().getEntity(request);
+  }
+
+  function listEntities(request: ListEntitiesRequest): Promise<BaseEntity[]>;
+  function listEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  function listEntities<T extends BaseEntity>(
+    request: ListEntitiesRequest,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    return schema
+      ? entities().listEntities(request, schema)
+      : entities().listEntities(request);
+  }
+
   return {
-    listEntities: entities.listEntities.bind(entities),
-    getEntity: entities.getEntity.bind(entities),
-    getEntityTypes: entities.getEntityTypes.bind(entities),
-    hasEntityType: entities.hasEntityType.bind(entities),
-    createEntity: entities.createEntity.bind(entities),
-    upsertEntity: entities.upsertEntity.bind(entities),
-    deleteEntity: entities.deleteEntity.bind(entities),
-    runBulkMutation: entities.runBulkMutation.bind(entities),
-    serializeEntity: entities.serializeEntity.bind(entities),
-    deserializeEntity: entities.deserializeEntity.bind(entities),
-    listPendingEntityExports: entities.listPendingEntityExports.bind(entities),
-    hasPendingEntityExports: entities.hasPendingEntityExports.bind(entities),
-    acknowledgeEntityExports: entities.acknowledgeEntityExports.bind(entities),
-    getAsyncJobStatus: entities.getAsyncJobStatus.bind(entities),
-    coordination: createEntityBulkCoordination(entities, options.pluginId),
+    getEntity,
+    listEntities,
+    getEntityTypes: () => entities().getEntityTypes(),
+    hasEntityType: (type) => entities().hasEntityType(type),
+    createEntity: (request) => entities().createEntity(request),
+    upsertEntity: (request) => entities().upsertEntity(request),
+    deleteEntity: (request) => entities().deleteEntity(request),
+    runBulkMutation: (input, mutation) =>
+      entities().runBulkMutation(input, mutation),
+    serializeEntity: (entity) => entities().serializeEntity(entity),
+    deserializeEntity: (markdown, entityType) =>
+      entities().deserializeEntity(markdown, entityType),
+    listPendingEntityExports: () => entities().listPendingEntityExports(),
+    hasPendingEntityExports: () => entities().hasPendingEntityExports(),
+    acknowledgeEntityExports: (request) =>
+      entities().acknowledgeEntityExports(request),
+    getAsyncJobStatus: (jobId) => entities().getAsyncJobStatus(jobId),
+    coordination: createEntityBulkCoordination(
+      shell.getEntityService(),
+      options.pluginId,
+    ),
   };
 }

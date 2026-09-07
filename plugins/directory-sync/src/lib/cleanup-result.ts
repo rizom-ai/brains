@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
 import { getErrorMessage } from "@brains/utils/error";
 import type { CleanupResult } from "../types";
 

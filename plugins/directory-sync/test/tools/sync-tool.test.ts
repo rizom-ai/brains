@@ -1,12 +1,21 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import type { ToolContext } from "@brains/plugins";
-import { createDirectorySyncTools } from "../../src/tools";
+import { createMockShell } from "@brains/plugins/test";
+import { syncRequestJob } from "../../src/jobs";
+import { requestDirectorySync } from "../../src/lib/request-directory-sync";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
+import { hostFor } from "../helpers/install";
 
-describe("directory_sync tool", () => {
-  it("queues git-backed sync requests instead of pulling inline", async () => {
-    const enqueue = mock(async () => "job-sync-request");
+/**
+ * A sync request with git configured queues the pull-and-scan as one job
+ * rather than pulling inline; the job carries where the request came from,
+ * and the runtime records who made it.
+ */
+describe("a git-backed sync request", () => {
+  it("files the sync-request job instead of pulling inline", async () => {
+    const enqueue = mock(async () => ({
+      id: "job-sync-request",
+      status: async (): Promise<null> => null,
+    }));
     const queueSyncBatch = mock(async () => ({
       batchId: "batch-1",
       operationCount: 1,
@@ -15,43 +24,58 @@ describe("directory_sync tool", () => {
       totalFiles: 1,
     }));
     const gitSync = createMockGitSync();
-    const context = createMockServicePluginContext();
-    const tools = createDirectorySyncTools(
-      createMockDirectorySync({ queueSyncBatch }),
-      { ...context, jobs: { ...context.jobs, enqueue } },
-      "directory-sync",
-      gitSync,
-    );
-    const syncTool = tools.find((tool) => tool.name === "directory_sync");
-    if (!syncTool) throw new Error("Expected sync tool");
+    const base = await hostFor(createMockShell());
+    const host = { ...base, jobs: { ...base.jobs, enqueue } };
 
-    const toolContext = {
+    const result = await requestDirectorySync({
+      host,
+      directorySync: createMockDirectorySync({ queueSyncBatch }),
+      source: "web-chat:channel-1",
       interfaceType: "web-chat",
       channelId: "channel-1",
-      actor: { kind: "user", userId: "user-1" },
-    } satisfies ToolContext;
-    const result = await syncTool.handler({ action: "sync" }, toolContext);
+      gitSync,
+    });
 
     expect(result).toEqual({
-      success: true,
-      data: { jobId: "job-sync-request", status: "queued", gitPulled: true },
-      message:
-        "Sync queued: git pull and filesystem scan will run in the background",
+      gitPulled: true,
+      jobId: "job-sync-request",
+      status: "queued",
     });
-    expect(enqueue).toHaveBeenCalledWith({
-      type: "sync-request",
-      data: {
-        source: "web-chat:channel-1",
-        interfaceType: "web-chat",
-        channelId: "channel-1",
-      },
-      toolContext: {
-        interfaceType: "web-chat",
-        channelId: "channel-1",
-        actor: { kind: "user", userId: "user-1" },
-      },
+    expect(enqueue).toHaveBeenCalledWith(syncRequestJob, {
+      source: "web-chat:channel-1",
+      runId: undefined,
+      interfaceType: "web-chat",
+      channelId: "channel-1",
     });
     expect(gitSync.pull).not.toHaveBeenCalled();
     expect(queueSyncBatch).not.toHaveBeenCalled();
+  });
+
+  it("scans the filesystem directly when there is no git", async () => {
+    const queueSyncBatch = mock(async () => ({
+      batchId: "batch-1",
+      operationCount: 2,
+      exportOperationsCount: 0,
+      importOperationsCount: 2,
+      totalFiles: 2,
+    }));
+    const host = await hostFor(createMockShell());
+
+    const result = await requestDirectorySync({
+      host,
+      directorySync: createMockDirectorySync({ queueSyncBatch }),
+      source: "plugin:directory-sync",
+    });
+
+    expect(result).toMatchObject({
+      gitPulled: false,
+      status: "queued",
+      batchId: "batch-1",
+      importOperationsCount: 2,
+    });
+    expect(queueSyncBatch).toHaveBeenCalledWith(host, "plugin:directory-sync", {
+      interfaceType: undefined,
+      channelId: undefined,
+    });
   });
 });

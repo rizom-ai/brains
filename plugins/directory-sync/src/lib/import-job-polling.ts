@@ -1,16 +1,16 @@
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import { Cause, Clock, Effect, Exit, Schedule } from "@brains/utils/effect";
 import type { Clock as ClockType } from "@brains/utils/effect";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 
 const DEFAULT_MAX_WAIT_MS = 300_000;
 const DEFAULT_POLL_INTERVAL_MS = 500;
 
 interface ImportJobPollingOptions {
   jobIds: string[];
-  entityService: ServicePluginContext["entityService"];
-  reporter: ProgressReporter;
+  entityService: Pick<EntityMirrorClient, "getAsyncJobStatus">;
+  reporter: ProgressContract;
   logger: Logger;
   clock?: ClockType.Clock | undefined;
   maxWaitMs?: number | undefined;

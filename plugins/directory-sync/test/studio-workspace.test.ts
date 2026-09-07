@@ -1,74 +1,61 @@
-import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import {
-  createServicePluginContext,
-  type StudioWorkspaceActor,
-  type StudioWorkspaceRegistration,
-  type ServicePluginContext,
-} from "@brains/plugins";
-
+import { createMockShell } from "@brains/plugins/test";
 import {
   directorySyncConfigSchema,
   type IDirectorySync,
   type IGitSync,
 } from "../src/types";
 import { DirectorySyncOperationStatusService } from "../src/lib/directory-sync-operation-status";
-import { DirectorySyncWorkspaceProvider } from "../src/lib/studio-workspace";
+import {
+  DirectorySyncWorkspaceProvider,
+  directorySyncWorkspace,
+  syncNowAction,
+} from "../src/lib/studio-workspace";
+import type { DirectorySyncHost } from "../src/host";
 import { createMockDirectorySync, createMockGitSync } from "./fixtures";
+import { hostFor } from "./helpers/install";
 
-const publicActor: StudioWorkspaceActor = {
-  interfaceType: "studio",
-  userId: "visitor",
-  actor: { kind: "user", userId: "visitor" },
-  userPermissionLevel: "public",
-  visibilityScope: "public",
-  isAnchor: false,
-};
-
-const adminActor: StudioWorkspaceActor = {
-  interfaceType: "studio",
-  userId: "operator-1",
-  actor: { kind: "user", userId: "operator-1" },
-  userPermissionLevel: "admin",
-  visibilityScope: "restricted",
-  isAnchor: true,
-};
-
-function createProviderContext(): {
-  context: ServicePluginContext;
-  getRegistration: () => StudioWorkspaceRegistration | undefined;
-  enqueue: ReturnType<typeof mock>;
-} {
-  let registration: StudioWorkspaceRegistration | undefined;
-  const enqueue = mock(async () => "sync-job-1");
-  const context = createServicePluginContext(
-    createMockShell(),
-    "directory-sync",
+async function statusFor(
+  host: DirectorySyncHost,
+  syncPath: string,
+): Promise<DirectorySyncOperationStatusService> {
+  const status = new DirectorySyncOperationStatusService(
+    { scoped: host.state },
+    host.jobs,
+    host.logger,
+    syncPath,
   );
-  context.jobs.enqueue = enqueue;
-  context.messaging.subscribe<
-    StudioWorkspaceRegistration,
-    { workspaceUrl: string }
-  >("studio:register-workspace", async (message) => {
-    registration = message.payload;
-    return {
-      success: true,
-      data: { workspaceUrl: "/studio/workspaces/sync" },
-    };
-  });
-  return { context, getRegistration: () => registration, enqueue };
+  await status.initialize();
+  return status;
 }
 
+/**
+ * The sync workspace: directory-sync owns the data and the one action, and
+ * declares both for Studio to host. The runtime registers the declaration
+ * and gates it on the admin permission it names.
+ */
 describe("directory-sync Studio workspace", () => {
-  it("registers a safe provider snapshot and resolved management URL", async () => {
-    const { context, getRegistration } = createProviderContext();
-    const operationStatus = new DirectorySyncOperationStatusService(
-      context.runtimeState,
-      context.jobs,
-      context.logger,
+  it("is declared for admins, with one action", () => {
+    expect(directorySyncWorkspace).toMatchObject({
+      id: "sync",
+      label: "Content sync",
+      permission: "admin",
+    });
+    expect(directorySyncWorkspace.actions.map((action) => action.name)).toEqual(
+      ["sync-now"],
+    );
+    expect(syncNowAction).toMatchObject({
+      name: "sync-now",
+      permission: "admin",
+    });
+  });
+
+  it("builds a safe snapshot: no secrets, no private paths", async () => {
+    const host = await hostFor(createMockShell());
+    const operationStatus = await statusFor(
+      host,
       "/private/runtime/brain-data",
     );
-    await operationStatus.initialize();
     await operationStatus.recordIssue({
       kind: "import",
       path: "note/broken.md",
@@ -96,88 +83,44 @@ describe("directory-sync Studio workspace", () => {
         files: [{ path: "note/one.md", status: " M" }],
       })),
     });
-    const config = directorySyncConfigSchema.parse({
-      autoSync: true,
-      initialSync: false,
-      git: {
-        gitUrl: "https://operator:secret@example.com/org/repo.git",
-      },
-    });
     const provider = new DirectorySyncWorkspaceProvider({
-      context,
-      config,
+      host,
+      config: directorySyncConfigSchema.parse({
+        autoSync: true,
+        initialSync: false,
+        git: { gitUrl: "https://operator:secret@example.com/org/repo.git" },
+      }),
       getDirectorySync: (): IDirectorySync => directorySync,
       getGitSync: (): IGitSync => gitSync,
       operationStatus,
     });
 
-    expect(await provider.registerStudioWorkspace()).toBe(
-      "/studio/workspaces/sync",
-    );
-    const registration = getRegistration();
-    expect(registration).toMatchObject({
-      id: "directory-sync:sync",
-      label: "Content sync",
-      rendererName: "DeclarativeOperatorWorkspace",
-      priority: 50,
-    });
-    if (!registration) throw new Error("Workspace was not registered");
-
-    expect(await Promise.resolve(registration.accessHandler(publicActor))).toBe(
-      false,
-    );
-    expect(await Promise.resolve(registration.accessHandler(adminActor))).toBe(
-      true,
-    );
-    expect(registration.dataProvider(publicActor)).rejects.toThrow(
-      "admission policy",
-    );
     const snapshot = await provider.getSnapshot();
+
     expect(snapshot).toMatchObject({
       health: "attention",
-      directory: {
-        displayPath: "brain-data",
-        watching: true,
-        totalFiles: 3,
-      },
+      directory: { displayPath: "brain-data", watching: true, totalFiles: 3 },
       git: {
         branch: "main",
         remoteLabel: "example.com/org/repo",
         changedFiles: [{ path: "note/one.md", status: "M" }],
       },
     });
-    const rendered = await registration.dataProvider(adminActor);
-    expect(rendered).toMatchObject({
-      view: {
-        title: "Content sync",
-        kicker: "Durability operations",
-        primaryAction: { actionId: "sync-now", label: "Sync now", input: {} },
-      },
-    });
-    expect(JSON.stringify(rendered)).not.toContain('"id":"sync-now"');
-    expect(JSON.stringify(rendered)).toContain('"type":"columns"');
-    expect(JSON.stringify(rendered)).toContain('"type":"flow"');
-    expect(JSON.stringify(rendered)).toContain('"direction":"bidirectional"');
-    expect(JSON.stringify(rendered)).toContain('"type":"meters"');
-    const issue = snapshot.issues[0];
-    if (!issue) throw new Error("Expected a rendered sync issue");
-    expect(JSON.stringify(rendered)).toContain(`Path: ${issue.path}`);
-    expect(JSON.stringify(rendered)).toContain(`Occurred: ${issue.occurredAt}`);
+    expect(snapshot.issues).toHaveLength(1);
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
   });
 
-  it("routes Sync now through the shared queued request and enforces admin permission", async () => {
-    const { context, getRegistration, enqueue } = createProviderContext();
-    const operationStatus = new DirectorySyncOperationStatusService(
-      context.runtimeState,
-      context.jobs,
-      context.logger,
-      "/tmp/brain-data",
-    );
-    await operationStatus.initialize();
+  it("files Sync now as the person who asked, through the shared request", async () => {
+    const enqueue = mock(async () => ({
+      id: "sync-job-1",
+      status: async (): Promise<null> => null,
+    }));
+    const base = await hostFor(createMockShell());
+    const host = { ...base, jobs: { ...base.jobs, enqueue } };
+    const operationStatus = await statusFor(host, "/tmp/brain-data");
     const provider = new DirectorySyncWorkspaceProvider({
-      context,
+      host,
       config: directorySyncConfigSchema.parse({
         autoSync: false,
         initialSync: false,
@@ -187,41 +130,38 @@ describe("directory-sync Studio workspace", () => {
       getGitSync: (): IGitSync => createMockGitSync(),
       operationStatus,
     });
-    await provider.registerStudioWorkspace();
-    const registration = getRegistration();
-    if (!registration?.actionHandler) {
-      throw new Error("Workspace action handler was not registered");
-    }
 
-    expect(
-      registration.actionHandler(
-        { actionId: "sync-now", input: {} },
-        publicActor,
-      ),
-    ).rejects.toThrow("admission policy");
+    const result = await provider.syncNow({ actor: { id: "operator-1" } });
 
-    const result = await registration.actionHandler(
-      { actionId: "sync-now", input: {} },
-      adminActor,
-    );
     expect(result).toMatchObject({
       accepted: true,
       status: "queued",
       jobId: "sync-job-1",
     });
-    expect(enqueue).toHaveBeenCalledWith({
-      type: "sync-request",
-      data: {
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "sync-request" }),
+      expect.objectContaining({
         source: "studio:operator-1",
-        runId: expect.any(String),
         interfaceType: "studio",
-        channelId: undefined,
-      },
-      toolContext: {
-        interfaceType: "studio",
-        actor: { kind: "user", userId: "operator-1" },
-        userPermissionLevel: "admin",
-      },
+      }),
+    );
+  });
+
+  it("refuses a sync nobody is signed in for", async () => {
+    const host = await hostFor(createMockShell());
+    const provider = new DirectorySyncWorkspaceProvider({
+      host,
+      config: directorySyncConfigSchema.parse({
+        autoSync: false,
+        initialSync: false,
+      }),
+      getDirectorySync: (): IDirectorySync => createMockDirectorySync(),
+      getGitSync: (): IGitSync | undefined => undefined,
+      operationStatus: await statusFor(host, "/tmp/brain-data"),
     });
+
+    expect(provider.syncNow(null)).rejects.toThrow(
+      "Directory sync requires an authenticated caller",
+    );
   });
 });

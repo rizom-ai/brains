@@ -8,6 +8,7 @@ export type {
   BatchMetadata,
   BatchOperationResult,
   BatchResult,
+  DirectoryBatchOperation,
 } from "./types/batch";
 
 export type {
@@ -30,7 +31,7 @@ export type {
 export {
   durableBulkMutationChildRefSchema,
   type DurableBulkMutationChildRef,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 
 export {
   coverImageConversionJobSchema,
@@ -47,6 +48,7 @@ export {
   type DirectoryImportJobData,
   type DirectorySyncJobData,
   type DirectorySyncRequestJobData,
+  type DirectorySyncJobType,
   type InlineImageConversionJobData,
   type JobRequest,
 } from "./types/jobs";

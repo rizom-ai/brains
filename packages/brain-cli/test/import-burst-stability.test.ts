@@ -831,7 +831,7 @@ class DurableImportJobBarrier {
         DROP TRIGGER IF EXISTS ${IMPORT_BARRIER_TRIGGER};
         CREATE TRIGGER ${IMPORT_BARRIER_TRIGGER}
         AFTER INSERT ON job_queue
-        WHEN NEW.type = 'directory-sync:directory-import'
+        WHEN NEW.type = '@brains/directory-sync:directory-sync:directory-import'
         BEGIN
           UPDATE job_queue
           SET scheduledFor = ${IMPORT_BARRIER_SCHEDULED_FOR}
@@ -852,7 +852,7 @@ class DurableImportJobBarrier {
           `SELECT id,
                   coalesce(json_array_length(data, '$.paths'), 0) AS itemCount
            FROM job_queue
-           WHERE type = 'directory-sync:directory-import'
+           WHERE type = '@brains/directory-sync:directory-sync:directory-import'
              AND status = 'pending'
              AND scheduledFor = ?
            ORDER BY createdAt, id`,
@@ -878,7 +878,7 @@ class DurableImportJobBarrier {
         .query<void, [number, number]>(
           `UPDATE job_queue
            SET scheduledFor = ?
-           WHERE type = 'directory-sync:directory-import' AND scheduledFor = ?`,
+           WHERE type = '@brains/directory-sync:directory-sync:directory-import' AND scheduledFor = ?`,
         )
         .run(Date.now(), IMPORT_BARRIER_SCHEDULED_FOR);
       database.exec("COMMIT");
@@ -978,7 +978,7 @@ function readQueuedDeletes(
                   ELSE 1
                 END AS itemCount
          FROM job_queue
-         WHERE type = 'directory-sync:directory-delete' AND createdAt >= ?
+         WHERE type = '@brains/directory-sync:directory-sync:directory-delete' AND createdAt >= ?
          ORDER BY createdAt, id`,
       )
       .all(createdAfter);
@@ -1514,12 +1514,18 @@ it("holds queued imports durably without blocking later job types", async () => 
     barrier.arm();
     insert.run(
       "import-1",
-      "directory-sync:directory-import",
+      "@brains/directory-sync:directory-sync:directory-import",
       JSON.stringify({ paths: ["one.md", "two.md"] }),
       1,
       1,
     );
-    insert.run("sync-1", "directory-sync:sync-request", "{}", 2, 2);
+    insert.run(
+      "sync-1",
+      "@brains/directory-sync:directory-sync:sync-request",
+      "{}",
+      2,
+      2,
+    );
 
     expect(barrier.readHeldImports()).toEqual({
       jobIds: ["import-1"],
@@ -1534,7 +1540,7 @@ it("holds queued imports durably without blocking later job types", async () => 
 
     insert.run(
       "import-2",
-      "directory-sync:directory-import",
+      "@brains/directory-sync:directory-sync:directory-import",
       JSON.stringify({ paths: ["three.md"] }),
       3,
       3,

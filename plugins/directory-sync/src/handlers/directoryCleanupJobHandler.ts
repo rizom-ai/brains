@@ -1,47 +1,24 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
-import {
-  durableBulkMutationChildRefSchema,
-  type CleanupResult,
-  type DurableBulkMutationChildRef,
-  type IDirectorySync,
-} from "../types";
-import { z } from "@brains/utils/zod";
+import type { ProgressContract } from "@brains/utils/progress";
+import type { CleanupResult, IDirectorySync } from "../types";
+import type { DirectoryCleanupJobData } from "../jobs";
 import {
   runDirectoryProjectionBatchChild,
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-interface DirectoryCleanupJobData {
-  projectionBatch?: DurableBulkMutationChildRef | undefined;
-}
-
-const directoryCleanupJobSchema: z.ZodType<
-  DirectoryCleanupJobData,
-  DirectoryCleanupJobData
-> = z.object({
-  projectionBatch: durableBulkMutationChildRefSchema.optional(),
-});
-
-export class DirectoryCleanupJobHandler extends BaseJobHandler<
-  "directory-cleanup",
-  DirectoryCleanupJobData,
-  CleanupResult
-> {
-  private readonly context: ServicePluginContext;
+export class DirectoryCleanupJobHandler {
+  protected readonly logger: Logger;
+  private readonly context: DirectorySyncHost;
   private directorySync: IDirectorySync;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncHost,
     directorySync: IDirectorySync,
   ) {
-    super(logger, {
-      schema: directoryCleanupJobSchema,
-      jobTypeName: "directory-cleanup",
-    });
+    this.logger = logger;
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -49,7 +26,7 @@ export class DirectoryCleanupJobHandler extends BaseJobHandler<
   async process(
     data: DirectoryCleanupJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<CleanupResult> {
     return runDirectoryProjectionBatchChild(
       this.context,

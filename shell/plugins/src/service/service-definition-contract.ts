@@ -686,6 +686,15 @@ export interface ServiceCheckDeclaration {
 
 export interface ServiceLifecycle {
   onCleanup(cleanup: () => void | Promise<void>): void;
+  /**
+   * Work to do once this package's declarations are bound — its jobs among
+   * them — and before the brain announces that every plugin has registered.
+   * Setup runs before the runtime has read the `jobs` slot, so a setup that
+   * enqueues finds its own job unregistered; this runs after.
+   * Named consumer: @brains/directory-sync, which reconciles inherited git
+   * work by queueing a batch as it comes up.
+   */
+  onRegistered(hook: () => void | Promise<void>): void;
 }
 
 /**
@@ -914,6 +923,12 @@ interface ServiceDefinitionCore<
          * the broker reads them here. Named consumer: @brains/directory-sync.
          */
         readonly gitBroker: ServiceGitBroker;
+        /**
+         * Where this brain keeps its data on disk. A package that mirrors
+         * the records to files defaults to a directory under it.
+         * Named consumer: @brains/directory-sync.
+         */
+        readonly dataDir: string;
         /**
          * The brain's records as a mirror keeps them: every type, read and
          * written as the file says, with the export ledger and the bulk
@@ -1228,6 +1243,13 @@ interface ServiceDefinitionCore<
          * which seeds once the initial sync reports success.
          */
         readonly jobs: ServiceJobs;
+        /**
+         * Where Studio put one of this package's workspaces, by the id the
+         * package wrote, once the host has answered. A status another
+         * package asks for over the bus says where to manage what it
+         * reports. Named consumer: @brains/directory-sync.
+         */
+        readonly workspaceUrl: (workspaceId: string) => string | undefined;
       }) => readonly AnySubscriptionDefinition[])
     | undefined;
   /**

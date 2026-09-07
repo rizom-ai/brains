@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { EntityMirrorClient } from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
 import type { JobRequest } from "../types";
 import { DirectoryBatchQueue } from "./directory-batch-queue";
@@ -21,7 +21,7 @@ export interface DirectorySyncDependencies {
 
 export function createDirectorySyncDependencies(
   logger: Logger,
-  entityService: EntityServiceClient,
+  entityService: EntityMirrorClient,
   syncPath: string,
   deleteOnFileRemoval: boolean,
 ): DirectorySyncDependencies {
@@ -48,7 +48,7 @@ export function createDirectorySyncDependencies(
 
 export function createDirectoryOperationDeps(
   logger: Logger,
-  entityService: EntityServiceClient,
+  entityService: EntityMirrorClient,
   syncPath: string,
   dependencies: DirectorySyncDependencies,
   maxImportFileBytes: number,

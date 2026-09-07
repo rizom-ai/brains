@@ -1,6 +1,12 @@
 import { getErrorMessage } from "@brains/utils/error";
-import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
+import {
+  defineSubscription,
+  SYSTEM_CHANNELS,
+  type AnySubscriptionDefinition,
+} from "@brains/sdk/services";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
+import type { DirectorySyncHost } from "../host";
 import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
 import type { GitReconciliationService } from "./git-reconciliation";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
@@ -8,12 +14,12 @@ import { copySeedContentIfNeeded } from "./seed-content";
 import { validateSeedContentEntityTypes } from "./file-discovery";
 
 /**
- * Wire up initial-sync orchestration: subscribe to startup messages,
- * optionally copy seed content, import files synchronously, then broadcast
+ * Initial-sync orchestration, declared: once every plugin has registered,
+ * optionally copy seed content, import files synchronously, then announce
  * SYSTEM_CHANNELS.initialSyncCompleted.
  */
-export function setupInitialSync(
-  context: ServicePluginContext,
+export function initialSyncSubscription(
+  host: Pick<DirectorySyncHost, "dataDir" | "mirror" | "messaging">,
   getDirectorySync: () => IDirectorySync,
   config: DirectorySyncConfig,
   logger: Logger,
@@ -31,7 +37,7 @@ export function setupInitialSync(
     DirectorySyncOperationStatusService,
     "addImportResult"
   >,
-): void {
+): AnySubscriptionDefinition {
   let initialSyncStarted = false;
 
   const runInitialSync = async (): Promise<void> => {
@@ -41,7 +47,7 @@ export function setupInitialSync(
     const directorySync = getDirectorySync();
 
     if (config.seedContent) {
-      const syncPath = config.syncPath ?? context.dataDir;
+      const syncPath = config.syncPath ?? host.dataDir;
       await copySeedContentIfNeeded(
         syncPath,
         logger,
@@ -49,7 +55,7 @@ export function setupInitialSync(
         gitSync,
       );
       if (config.strictSeedEntityTypes) {
-        await validateSeedContentEntityTypes(syncPath, context.entityService);
+        await validateSeedContentEntityTypes(syncPath, host.mirror);
       }
     }
 
@@ -95,28 +101,27 @@ export function setupInitialSync(
       }
       await recovery?.onGitRecoverySucceeded();
 
-      await context.messaging.send({
-        type: SYSTEM_CHANNELS.initialSyncCompleted,
-        payload: { success: true },
-        ...{ broadcast: true },
+      await host.messaging.publish({
+        topic: SYSTEM_CHANNELS.initialSyncCompleted,
+        data: { success: true },
       });
     } catch (error) {
       logger.error("Initial sync failed", error);
       await recovery?.onGitRecoveryFailed(error);
-      await context.messaging.send({
-        type: SYSTEM_CHANNELS.initialSyncCompleted,
-        payload: {
-          success: false,
-          error: getErrorMessage(error),
-        },
-        ...{ broadcast: true },
+      await host.messaging.publish({
+        topic: SYSTEM_CHANNELS.initialSyncCompleted,
+        data: { success: false, error: getErrorMessage(error) },
       });
     }
   };
 
-  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
-    logger.debug("Plugins registered, starting initial sync");
-    await runInitialSync();
-    return { success: true };
+  return defineSubscription({
+    topic: SYSTEM_CHANNELS.pluginsRegistered,
+    payload: z.unknown(),
+    handle: async () => {
+      logger.debug("Plugins registered, starting initial sync");
+      await runInitialSync();
+      return {};
+    },
   });
 }

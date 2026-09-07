@@ -1,5 +1,6 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { DirectorySyncHost } from "../host";
+import type { BaseEntity } from "@brains/sdk/entities";
+import type { ProgressContract } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
 import type {
   CleanupResult,
@@ -46,12 +47,12 @@ export interface IDirectorySync {
   exportEntities(entityTypes?: string[]): Promise<ExportResult>;
   importEntitiesWithProgress(
     paths: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
     batchSize: number,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
     batchSize: number,
   ): Promise<ExportResult>;
   importEntities(paths?: string[]): Promise<ImportResult>;
@@ -62,7 +63,7 @@ export interface IDirectorySync {
   ensureDirectoryStructure(): Promise<void>;
   getStatus(): Promise<DirectorySyncStatus>;
   queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: Pick<DirectorySyncHost, "jobs" | "mirror">,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],

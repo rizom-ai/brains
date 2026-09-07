@@ -2,7 +2,7 @@ import {
   internalFullScope,
   type BaseEntity,
   type ContentVisibility,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 
 export interface DurableEntityExportIntent {
   entityType: string;

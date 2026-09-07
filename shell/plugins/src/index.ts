@@ -417,6 +417,7 @@ export {
   type ServiceJobHandlerContext,
   type ServiceJobReference,
   type ServiceJobs,
+  type ServiceLifecycle,
   type ServiceJobHooks,
   type ServiceJobSettledContext,
   type ServiceJobSettledHandler,

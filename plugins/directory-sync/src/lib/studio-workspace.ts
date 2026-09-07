@@ -1,12 +1,12 @@
+import type { DirectorySyncHost } from "../host";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ServicePluginContext,
-  type ToolContext,
-} from "@brains/plugins";
+  type StudioWorkspaceDefinition,
+  type WorkspaceActionDefinition,
+} from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { basename } from "path";
@@ -107,7 +107,20 @@ export type DirectorySyncWorkspaceSnapshot = z.output<
   typeof directorySyncWorkspaceSnapshotSchema
 >;
 
-const syncNowAction = defineWorkspaceAction({
+/** What a requested sync answers: whether work was queued, and its handle. */
+export interface SyncNowOutcome {
+  accepted: boolean;
+  status: string;
+  runId?: string | undefined;
+  jobId?: string | undefined;
+  batchId?: string | undefined;
+}
+
+export const syncNowAction: WorkspaceActionDefinition<
+  "sync-now",
+  z.ZodType<Record<string, never>>,
+  z.ZodType<SyncNowOutcome>
+> = defineWorkspaceAction({
   name: "sync-now",
   label: "Sync now",
   permission: "admin",
@@ -137,7 +150,11 @@ function activeProgress(
   };
 }
 
-const directorySyncWorkspace = defineStudioWorkspace({
+export const directorySyncWorkspace: StudioWorkspaceDefinition<
+  "sync",
+  z.ZodType<DirectorySyncWorkspaceSnapshot>,
+  readonly [typeof syncNowAction]
+> = defineStudioWorkspace({
   id: "sync",
   label: "Content sync",
   permission: "admin",
@@ -427,17 +444,16 @@ const directorySyncWorkspace = defineStudioWorkspace({
 });
 
 export interface DirectorySyncWorkspaceProviderOptions {
-  context: ServicePluginContext;
+  host: Pick<DirectorySyncHost, "jobs" | "mirror">;
   config: DirectorySyncConfig;
   getDirectorySync: () => IDirectorySync;
   getGitSync: () => IGitSync | undefined;
   operationStatus: DirectorySyncOperationStatusService;
 }
 
-/** Optional Studio provider. directory-sync owns data and actions; Studio owns rendering. */
+/** The sync workspace: directory-sync owns data and actions; Studio owns rendering. */
 export class DirectorySyncWorkspaceProvider {
   private readonly options: DirectorySyncWorkspaceProviderOptions;
-  private registered = false;
 
   constructor(options: DirectorySyncWorkspaceProviderOptions) {
     this.options = options;
@@ -509,57 +525,30 @@ export class DirectorySyncWorkspaceProvider {
     });
   }
 
-  async registerStudioWorkspace(): Promise<string | undefined> {
-    const result = await registerBuiltInStudioWorkspace({
-      context: this.options.context,
-      definition: directorySyncWorkspace,
-      bind: (context) =>
-        directorySyncWorkspace.bind(context, {
-          load: () => this.getSnapshot(),
-          actions: [
-            syncNowAction.bind(context, async ({ caller }) => {
-              if (!caller) {
-                throw new Error(
-                  "Directory sync requires an authenticated caller",
-                );
-              }
-              const toolContext: ToolContext = {
-                interfaceType: "studio",
-                actor: { kind: "user", userId: caller.actor.id },
-                userPermissionLevel: caller.permission,
-              };
-              const result = await requestDirectorySync({
-                context: this.options.context,
-                directorySync: this.options.getDirectorySync(),
-                source: `studio:${caller.actor.id}`,
-                interfaceType: "studio",
-                toolContext,
-                gitSync: this.options.getGitSync(),
-                operationStatus: this.options.operationStatus,
-              });
-              return {
-                accepted: result.status === "queued",
-                status: result.status,
-                ...(result.runId ? { runId: result.runId } : {}),
-                ...(result.gitPulled ? { jobId: result.jobId } : {}),
-                ...(!result.gitPulled && result.status === "queued"
-                  ? { batchId: result.batchId }
-                  : {}),
-              };
-            }),
-          ],
-        }),
+  /** A sync the person asked for, filed as that person. */
+  async syncNow(
+    caller: { readonly actor: { readonly id: string } } | null | undefined,
+  ): Promise<SyncNowOutcome> {
+    if (!caller) {
+      throw new Error("Directory sync requires an authenticated caller");
+    }
+    const result = await requestDirectorySync({
+      host: this.options.host,
+      directorySync: this.options.getDirectorySync(),
+      source: `studio:${caller.actor.id}`,
+      interfaceType: "studio",
+      gitSync: this.options.getGitSync(),
+      operationStatus: this.options.operationStatus,
     });
-    this.registered = result !== false;
-    return result === false ? undefined : result.workspaceUrl;
-  }
-
-  async unregisterStudioWorkspace(): Promise<void> {
-    if (!this.registered) return;
-    await this.options.context.studio.unregisterWorkspace(
-      `${this.options.context.pluginId}:sync`,
-    );
-    this.registered = false;
+    return {
+      accepted: result.status === "queued",
+      status: result.status,
+      ...(result.runId ? { runId: result.runId } : {}),
+      ...(result.gitPulled ? { jobId: result.jobId } : {}),
+      ...(!result.gitPulled && result.status === "queued"
+        ? { batchId: result.batchId }
+        : {}),
+    };
   }
 
   private toSafeGitStatus(

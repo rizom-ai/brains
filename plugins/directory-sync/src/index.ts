@@ -1,10 +1,16 @@
-/**
- * Directory sync plugin for Brains
- * Provides file-based entity synchronization
- */
+import { directorySyncService } from "./service";
 
-export { directorySync, directorySyncPlugin } from "./plugin";
-export { DirectorySyncPlugin } from "./plugin";
+/**
+ * Directory sync: the brain's records on disk and, when configured, in a
+ * git checkout the broker owns.
+ */
+export {
+  directorySyncService,
+  DirectorySyncState,
+  resolveRuntimeSyncPath,
+  type DirectorySyncDeps,
+} from "./service";
+export type { DirectorySyncHost } from "./host";
 export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
@@ -54,3 +60,8 @@ export {
   importResultSchema,
   syncResultSchema,
 } from "./schemas";
+
+/** Directory sync as a brain composes it. */
+const directorySyncPackage: ReturnType<typeof directorySyncService> =
+  directorySyncService();
+export default directorySyncPackage;

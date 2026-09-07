@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import { instantiate, SYNC_TOOL } from "./helpers/install";
 import { initializeDirectorySync } from "../src/lib/directory-lifecycle";
 
 interface Deferred<T> {
@@ -25,7 +26,7 @@ function deferred<T>(): Deferred<T> {
 
 describe("directory-sync lifecycle characterization", () => {
   const paths: string[] = [];
-  const plugins: DirectorySyncPlugin[] = [];
+  const plugins: Plugin[] = [];
 
   afterEach(async () => {
     for (const plugin of plugins.splice(0).reverse()) {
@@ -75,10 +76,10 @@ describe("directory-sync lifecycle characterization", () => {
 
   it("starts autoSync watching during ready and closes it during shutdown", async () => {
     const syncPath = createPath("ready");
-    const harness = createPluginHarness<DirectorySyncPlugin>({
+    const harness = createPluginHarness({
       dataDir: syncPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const { plugin, state } = instantiate({
       syncPath,
       autoSync: true,
       initialSync: false,
@@ -86,11 +87,11 @@ describe("directory-sync lifecycle characterization", () => {
     plugins.push(plugin);
 
     await harness.installPlugin(plugin);
-    const directorySync = plugin.getDirectorySync();
+    const directorySync = state().directorySync;
     if (!directorySync) throw new Error("DirectorySync not initialized");
 
     expect((await directorySync.getStatus()).watching).toBe(false);
-    await plugin.ready();
+    await plugin.ready?.();
     expect((await directorySync.getStatus()).watching).toBe(true);
 
     await plugin.shutdown?.();
@@ -100,10 +101,10 @@ describe("directory-sync lifecycle characterization", () => {
   it("keeps installed tools bound to the active path after reconfiguration", async () => {
     const originalPath = createPath("original");
     const replacementPath = createPath("replacement");
-    const harness = createPluginHarness<DirectorySyncPlugin>({
+    const harness = createPluginHarness({
       dataDir: originalPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const { plugin, state } = instantiate({
       syncPath: originalPath,
       autoSync: false,
       initialSync: false,
@@ -111,11 +112,11 @@ describe("directory-sync lifecycle characterization", () => {
     plugins.push(plugin);
 
     await harness.installPlugin(plugin);
-    const originalService = plugin.getDirectorySync();
-    await plugin.configure({ syncPath: replacementPath });
+    const originalService = state().directorySync;
+    await state().configure({ syncPath: replacementPath });
 
-    expect(plugin.getDirectorySync()).not.toBe(originalService);
-    const result = await harness.executeTool("directory_sync", {
+    expect(state().directorySync).not.toBe(originalService);
+    const result = await harness.executeTool(SYNC_TOOL, {
       action: "status",
     });
     expectSuccess(result);
@@ -126,10 +127,10 @@ describe("directory-sync lifecycle characterization", () => {
     const originalPath = createPath("rollback-original");
     const invalidPath = createPath("rollback-invalid");
     writeFileSync(invalidPath, "not a directory");
-    const harness = createPluginHarness<DirectorySyncPlugin>({
+    const harness = createPluginHarness({
       dataDir: originalPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const { plugin, state } = instantiate({
       syncPath: originalPath,
       autoSync: true,
       initialSync: false,
@@ -137,19 +138,19 @@ describe("directory-sync lifecycle characterization", () => {
     plugins.push(plugin);
 
     await harness.installPlugin(plugin);
-    await plugin.ready();
-    const originalService = plugin.getDirectorySync();
+    await plugin.ready?.();
+    const originalService = state().directorySync;
     if (!originalService) throw new Error("DirectorySync not initialized");
     try {
-      await plugin.configure({ syncPath: invalidPath });
+      await state().configure({ syncPath: invalidPath });
       throw new Error("Expected candidate initialization failure");
     } catch {
       // The candidate must fail without replacing the active generation.
     }
 
-    expect(plugin.getDirectorySync()).toBe(originalService);
+    expect(state().directorySync).toBe(originalService);
     expect((await originalService.getStatus()).watching).toBe(true);
-    const result = await harness.executeTool("directory_sync", {
+    const result = await harness.executeTool(SYNC_TOOL, {
       action: "status",
     });
     expectSuccess(result);
@@ -159,10 +160,10 @@ describe("directory-sync lifecycle characterization", () => {
   it("closes the old watcher before publishing the replacement", async () => {
     const originalPath = createPath("watcher-original");
     const replacementPath = createPath("watcher-replacement");
-    const harness = createPluginHarness<DirectorySyncPlugin>({
+    const harness = createPluginHarness({
       dataDir: originalPath,
     });
-    const plugin = new DirectorySyncPlugin({
+    const { plugin, state } = instantiate({
       syncPath: originalPath,
       autoSync: true,
       initialSync: false,
@@ -170,13 +171,13 @@ describe("directory-sync lifecycle characterization", () => {
     plugins.push(plugin);
 
     await harness.installPlugin(plugin);
-    await plugin.ready();
-    const originalService = plugin.getDirectorySync();
+    await plugin.ready?.();
+    const originalService = state().directorySync;
     if (!originalService) throw new Error("DirectorySync not initialized");
     expect((await originalService.getStatus()).watching).toBe(true);
 
-    await plugin.configure({ syncPath: replacementPath });
-    const replacementService = plugin.getDirectorySync();
+    await state().configure({ syncPath: replacementPath });
+    const replacementService = state().directorySync;
     if (!replacementService) throw new Error("Replacement not initialized");
 
     expect((await originalService.getStatus()).watching).toBe(false);

@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -9,7 +10,8 @@ import {
   type ProjectionRuleDiagnostic,
   type ProjectionRuntimeControls,
 } from "@brains/core";
-import { DirectorySyncPlugin } from "@brains/directory-sync";
+import { importResultSchema } from "@brains/directory-sync";
+import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
 import { OperationContext } from "@brains/operation-context";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -248,14 +250,29 @@ describe("projection burst causal evidence", () => {
       const diagnosticStart = diagnostics.length;
       await writeNotes(dataDir);
 
-      const directoryPlugin = runningShell
-        .getPluginManager()
-        .getPlugin("directory-sync");
-      if (!(directoryPlugin instanceof DirectorySyncPlugin)) {
-        throw new Error("Directory sync plugin was not registered");
-      }
-      const directorySync = directoryPlugin.getDirectorySync();
-      if (!directorySync) throw new Error("Directory sync was not initialized");
+      // An import as another package asks for one: over the bus, answered
+
+      // with the import result.
+
+      const importAll = async (): Promise<{
+        import: z.output<typeof importResultSchema>;
+      }> => {
+        const reply = z
+
+          .object({ success: z.literal(true), data: z.unknown() })
+
+          .parse(
+            await runningShell.getMessageBus().send({
+              type: DIRECTORY_SYNC_CHANNELS.entityImportRequest,
+
+              payload: {},
+
+              sender: "test",
+            }),
+          );
+
+        return { import: importResultSchema.parse(reply.data) };
+      };
 
       const entityService = runningShell.getEntityService();
       const originalUpsert = entityService.upsertEntity.bind(entityService);
@@ -274,7 +291,7 @@ describe("projection burst causal evidence", () => {
       });
 
       try {
-        const result = await directorySync.sync();
+        const result = await importAll();
         expect(result.import.failed).toBe(0);
         // At least the notes this run wrote. Auto-extraction is on, so the
         // topics it derives land on disk and import alongside them — that is

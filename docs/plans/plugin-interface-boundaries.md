@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1 through 5 done, phase 6 underway; **26 of 27 packages converted**
+Phases 1 through 6 done; **27 of 27 packages converted**
 (`@brains/email`, `@brains/notifications`, `@brains/onboarding`,
 `@brains/atproto-registry`, `@brains/obsidian-vault`, `@brains/analytics`,
 `@brains/profile`, `@brains/site-info`, `@brains/knowledge-map`,
@@ -14,10 +14,9 @@ Phases 1 through 5 done, phase 6 underway; **26 of 27 packages converted**
 `@brains/dashboard`,
 `@brains/site-builder`,
 `@brains/site-content`,
-`@brains/studio`).
+`@brains/studio`, `@brains/directory-sync`).
 
-The one that remains still extends a base class: `directory-sync`.
-Three that are converted —
+No package extends a base class any more. Three that are converted —
 `admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
 for a symbol or two, which is a loose end rather than a class.
 
@@ -1202,6 +1201,25 @@ Order: the four reads first (role, broker, health, batches), each with its
 test; then `entityMirror` and the settle hook, each with its test; then the
 conversion, with the package's tests moved onto an install helper last. The
 reads, the mirror and the hook are done.
+
+Shipped. The conversion found three more things on the way, each closed on
+the runtime. Setup runs before the runtime has read the `jobs` slot, so
+reconciling inherited git work — which queues a batch — found its own job
+unregistered; `lifecycle.onRegistered` runs once the declarations are
+bound and before the brain announces registration, which is still ahead of
+the startup signal that runs the initial sync. `dataDir` was on the ready
+context and not on setup. And a status answered over the bus says where to
+manage what it reports, so the subscriptions context reads `workspaceUrl`
+like the interactions context does. The mirror reaches the shell's entity
+service at the moment each call is made, as the class context did, which is
+what the tests that install a failure on it after setup rely on.
+
+Three names moved with the runtime's scoping: the tool is
+`directory-sync_sync`, job types are
+`@brains/directory-sync:directory-sync:<job>`, and the package's runtime
+state is filed under its package name, so a brain's stored operation status
+and git checkpoint are not found after the upgrade — the first sync runs a
+full reconciliation, and the operation history starts empty.
 
 ## Validation
 

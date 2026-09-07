@@ -1,6 +1,7 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import { instantiate } from "./helpers/install";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import type {
   BaseEntity,
@@ -20,9 +21,7 @@ import { existsSync, rmSync, readFileSync, mkdtempSync } from "fs";
  */
 
 type HarnessEntityService = ReturnType<
-  ReturnType<
-    typeof createPluginHarness<DirectorySyncPlugin>
-  >["getEntityService"]
+  ReturnType<typeof createPluginHarness<Plugin>>["getEntityService"]
 >;
 
 /**
@@ -53,25 +52,25 @@ function failClosedOnVisibility(entityService: HarnessEntityService): void {
 }
 
 describe("auto-export visibility scope", () => {
-  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
   let syncPath: string;
 
   beforeEach(async () => {
     syncPath = mkdtempSync(join(tmpdir(), "test-auto-export-visibility-"));
 
-    harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
+    harness = createPluginHarness({ dataDir: syncPath });
     harness
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
     failClosedOnVisibility(harness.getEntityService());
 
     await harness.installPlugin(
-      new DirectorySyncPlugin({
+      instantiate({
         syncPath,
         autoSync: true,
         initialSync: false,
         commitDebounce: 100,
-      }),
+      }).plugin,
     );
   });
 

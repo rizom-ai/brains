@@ -1,7 +1,9 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, mock } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { setupInitialSync } from "../../src/lib/initial-sync";
+import { initialSyncSubscription } from "../../src/lib/initial-sync";
+import type { DirectorySyncHost } from "../../src/host";
+import { hostFor, installSubscriptions } from "../helpers/install";
 import { createSilentLogger } from "@brains/test-utils";
 import type { DirectorySyncConfig } from "../../src/types";
 import {
@@ -11,12 +13,22 @@ import {
   emptyImportResult,
 } from "../fixtures";
 
-function createMockContext(): {
-  context: ReturnType<typeof createMockServicePluginContext>;
-} {
-  // The factory's messaging is real, so setupInitialSync subscribes to the
-  // actual bus and the test publishes to drive it — no captured handlers.
-  return { context: createMockServicePluginContext({ dataDir: "/tmp/test" }) };
+async function createMockContext(): Promise<{
+  shell: MockShell;
+  host: DirectorySyncHost;
+  completed: unknown[];
+}> {
+  // The shell's bus is real: the declared subscription is bound to it, the
+  // test publishes the startup signal, and reads what initial sync announced.
+  const shell = createMockShell({ dataDir: "/tmp/test" });
+  const completed: unknown[] = [];
+  shell
+    .getMessageBus()
+    .subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async (message) => {
+      completed.push(message.payload);
+      return { success: true };
+    });
+  return { shell, host: await hostFor(shell), completed };
 }
 
 const baseConfig: DirectorySyncConfig = {
@@ -36,7 +48,7 @@ const baseConfig: DirectorySyncConfig = {
 
 describe("setupInitialSync with git", () => {
   it("should call gitSync.pull() before sync()", async () => {
-    const { context } = createMockContext();
+    const { shell, host } = await createMockContext();
     const callOrder: string[] = [];
 
     const ds = createMockDirectorySync({
@@ -66,25 +78,28 @@ describe("setupInitialSync with git", () => {
       saveCheckpoint: mock(async () => {}),
     };
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      gs,
-      reconciliation,
-    );
+    await installSubscriptions(shell, [
+      initialSyncSubscription(
+        host,
+        () => ds,
+        baseConfig,
+        createSilentLogger(),
+        gs,
+        reconciliation,
+      ),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
     expect(callOrder).toEqual(["pull", "record-deletes", "sync", "checkpoint"]);
   });
 
   it("settles startup import status and confirms generated Git changes", async () => {
-    const { context } = createMockContext();
+    const { shell, host } = await createMockContext();
     const callOrder: string[] = [];
     const importResult = emptyImportResult({ imported: 1 });
     const checkpoint = {
@@ -127,20 +142,23 @@ describe("setupInitialSync with git", () => {
       }),
     };
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      gs,
-      reconciliation,
-      undefined,
-      operationStatus,
-    );
+    await installSubscriptions(shell, [
+      initialSyncSubscription(
+        host,
+        () => ds,
+        baseConfig,
+        createSilentLogger(),
+        gs,
+        reconciliation,
+        undefined,
+        operationStatus,
+      ),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
     expect(operationStatus.addImportResult).toHaveBeenCalledWith(importResult);
@@ -156,7 +174,7 @@ describe("setupInitialSync with git", () => {
   });
 
   it("fails startup when generated Git changes have no confirmed checkpoint", async () => {
-    const { context } = createMockContext();
+    const { shell, host, completed } = await createMockContext();
     const gs = createMockGitSync({
       commitAndPush: mock(async () => ({ pushed: true, checkpoint: null })),
     });
@@ -165,33 +183,32 @@ describe("setupInitialSync with git", () => {
       saveCheckpoint: mock(async () => {}),
     };
 
-    setupInitialSync(
-      context,
-      () => createMockDirectorySync(),
-      baseConfig,
-      createSilentLogger(),
-      gs,
-      reconciliation,
-    );
+    await installSubscriptions(shell, [
+      initialSyncSubscription(
+        host,
+        () => createMockDirectorySync(),
+        baseConfig,
+        createSilentLogger(),
+        gs,
+        reconciliation,
+      ),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
-    expect(context.messaging.send).toHaveBeenCalledWith({
-      type: SYSTEM_CHANNELS.initialSyncCompleted,
-      payload: {
-        success: false,
-        error:
-          "Initial directory sync push did not return a confirmed checkpoint",
-      },
-      broadcast: true,
+    expect(completed).toContainEqual({
+      success: false,
+      error:
+        "Initial directory sync push did not return a confirmed checkpoint",
     });
   });
 
   it("tracks Git output and records interrupted-pull recovery", async () => {
-    const { context } = createMockContext();
+    const { shell, host } = await createMockContext();
     const onGitProgress = mock(() => {});
     const onGitRecoverySucceeded = mock(async () => {});
     const onGitRecoveryFailed = mock(async () => {});
@@ -202,23 +219,26 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
-      context,
-      () => createMockDirectorySync(),
-      baseConfig,
-      createSilentLogger(),
-      gs,
-      undefined,
-      {
-        onGitProgress,
-        onGitRecoverySucceeded,
-        onGitRecoveryFailed,
-      },
-    );
+    await installSubscriptions(shell, [
+      initialSyncSubscription(
+        host,
+        () => createMockDirectorySync(),
+        baseConfig,
+        createSilentLogger(),
+        gs,
+        undefined,
+        {
+          onGitProgress,
+          onGitRecoverySucceeded,
+          onGitRecoveryFailed,
+        },
+      ),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
     expect(onGitProgress).toHaveBeenCalledTimes(2);
@@ -227,7 +247,7 @@ describe("setupInitialSync with git", () => {
   });
 
   it("should call sync when gitSync is not provided", async () => {
-    const { context } = createMockContext();
+    const { shell, host } = await createMockContext();
     const syncMock = mock(async () => ({
       export: emptyExportResult(),
       import: emptyImportResult(),
@@ -235,37 +255,45 @@ describe("setupInitialSync with git", () => {
     }));
     const ds = createMockDirectorySync({ sync: syncMock });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
+    await installSubscriptions(shell, [
+      initialSyncSubscription(host, () => ds, baseConfig, createSilentLogger()),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
     expect(syncMock).toHaveBeenCalledTimes(1);
   });
 
   it("should emit sync:initial:completed after sync", async () => {
-    const { context } = createMockContext();
+    const { shell, host, completed } = await createMockContext();
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    await installSubscriptions(shell, [
+      initialSyncSubscription(
+        host,
+        () => ds,
+        baseConfig,
+        createSilentLogger(),
+        gs,
+      ),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
-    expect(context.messaging.send).toHaveBeenCalledWith({
-      type: SYSTEM_CHANNELS.initialSyncCompleted,
-      payload: { success: true },
-      broadcast: true,
-    });
+    expect(completed).toContainEqual({ success: true });
   });
 
   it("should emit sync:initial:completed with success:false when pull fails", async () => {
-    const { context } = createMockContext();
+    const { shell, host, completed } = await createMockContext();
     const ds = createMockDirectorySync();
     const gs = createMockGitSync({
       pull: mock(async () => {
@@ -273,43 +301,51 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    await installSubscriptions(shell, [
+      initialSyncSubscription(
+        host,
+        () => ds,
+        baseConfig,
+        createSilentLogger(),
+        gs,
+      ),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
     expect(ds.sync).not.toHaveBeenCalled();
-    expect(context.messaging.send).toHaveBeenCalledWith({
-      type: SYSTEM_CHANNELS.initialSyncCompleted,
-      payload: expect.objectContaining({
+    expect(completed).toContainEqual(
+      expect.objectContaining({
         success: false,
         error: "Network timeout",
       }),
-      broadcast: true,
-    });
+    );
   });
 
   it("should emit sync:initial:completed with success:false when sync fails", async () => {
-    const { context } = createMockContext();
+    const { shell, host, completed } = await createMockContext();
     const ds = createMockDirectorySync({
       sync: mock(async () => {
         throw new Error("DB locked");
       }),
     });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
+    await installSubscriptions(shell, [
+      initialSyncSubscription(host, () => ds, baseConfig, createSilentLogger()),
+    ]);
 
-    await context.messaging.send({
+    await shell.getMessageBus().send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
+      sender: "test",
     });
 
-    expect(context.messaging.send).toHaveBeenCalledWith({
-      type: SYSTEM_CHANNELS.initialSyncCompleted,
-      payload: expect.objectContaining({ success: false, error: "DB locked" }),
-      broadcast: true,
-    });
+    expect(completed).toContainEqual(
+      expect.objectContaining({ success: false, error: "DB locked" }),
+    );
   });
 });

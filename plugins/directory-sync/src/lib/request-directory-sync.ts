@@ -1,4 +1,5 @@
-import type { ServicePluginContext, ToolContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
+import { syncRequestJob } from "../jobs";
 import type { BatchResult, IDirectorySync, IGitSync } from "../types";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 import { getErrorMessage } from "@brains/utils/error";
@@ -22,17 +23,20 @@ export type DirectorySyncRequestResult =
     };
 
 export interface RequestDirectorySyncOptions {
-  context: ServicePluginContext;
+  host: Pick<DirectorySyncHost, "jobs" | "mirror">;
   directorySync: IDirectorySync;
   source: string;
   interfaceType?: string | undefined;
   channelId?: string | undefined;
-  toolContext?: ToolContext | undefined;
   gitSync?: IGitSync | undefined;
   operationStatus?: DirectorySyncOperationStatusService | undefined;
 }
 
-/** Shared manual sync request path used by tools and the Studio workspace. */
+/**
+ * Shared manual sync request path used by the tool and the Studio workspace.
+ * Who asked is on the job: the runtime records the caller of the tool or
+ * action that enqueued it.
+ */
 export async function requestDirectorySync(
   options: RequestDirectorySyncOptions,
 ): Promise<DirectorySyncRequestResult> {
@@ -43,27 +47,23 @@ export async function requestDirectorySync(
 
   try {
     if (options.gitSync) {
-      const jobId = await options.context.jobs.enqueue({
-        type: "sync-request",
-        data: {
-          source: options.source,
-          runId,
-          interfaceType: options.interfaceType,
-          channelId: options.channelId,
-        },
-        ...(options.toolContext ? { toolContext: options.toolContext } : {}),
+      const job = await options.host.jobs.enqueue(syncRequestJob, {
+        source: options.source,
+        runId,
+        interfaceType: options.interfaceType,
+        channelId: options.channelId,
       });
-      if (runId) await options.operationStatus?.attachJob(runId, jobId);
+      if (runId) await options.operationStatus?.attachJob(runId, job.id);
       return {
         ...(runId ? { runId } : {}),
         gitPulled: true,
-        jobId,
+        jobId: job.id,
         status: "queued",
       };
     }
 
     const result = await options.directorySync.queueSyncBatch(
-      options.context,
+      options.host,
       options.source,
       {
         interfaceType: options.interfaceType,
