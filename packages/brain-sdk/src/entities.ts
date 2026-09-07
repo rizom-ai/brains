@@ -20,12 +20,17 @@ export {
 export type {
   EncodedEntityMarkdown,
   EntityDefinition,
+  // What `defineEntity` takes, and what a seed declares: an author who lifts
+  // either out of the call into a named value needs the name for it.
+  EntityDefinitionConfig,
   EntityMarkdownCodec,
   EntityMarkdownDocument,
   EntityOf,
   EntityReads,
   EntitySchema,
   EntityPackageDefinition,
+  EntitySeedDefinition,
+  EntitySeedTrigger,
   ProjectionAbstention,
   ProjectionDefinition,
 } from "@brains/plugins";
