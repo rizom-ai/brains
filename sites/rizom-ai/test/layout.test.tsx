@@ -65,6 +65,26 @@ describe("AiLayout chrome", () => {
     expect(strip).not.toContain('href="/network"');
   });
 
+  test("living memory keeps both umbrella navigation levels", () => {
+    const html = renderChrome("/living-memory");
+    expect(html).toContain('href="/styles/living-memory.css"');
+    expect(renderChrome("/")).not.toContain('href="/styles/living-memory.css"');
+    expect(renderChrome("/brain")).not.toContain(
+      'href="/styles/living-memory.css"',
+    );
+    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
+    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
+    for (const href of ["/brain", "/work", "/foundation"]) {
+      expect(strip).toContain(`href="${href}"`);
+    }
+    expect(strip).toContain('id="themeToggle"');
+    expect(strip).not.toContain('aria-current="page"');
+    expect(nav).toContain('href="/writing"');
+    expect(nav).toContain('href="/network"');
+    expect(nav).toContain("Get Started");
+    expect(html).not.toContain(">brain</span>");
+  });
+
   test("org-index pages still claim no face in the strip", () => {
     const html = renderChrome("/writing");
     const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
