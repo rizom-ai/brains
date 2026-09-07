@@ -522,6 +522,8 @@
         "IRuntimeStateStore",
         "jsonError",
         "jsonResponse",
+        "MessageErrorCode",
+        "messageErrorCodeSchema",
         "OperationalHealthProvider",
         "OperatorBindingContext",
         "OperatorCaller",

@@ -230,6 +230,8 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 
 Definitions and schema vocabulary:
 
+- `messageErrorCodeSchema`
+- `MessageErrorCode`
 - `defineAccountSettings`
 - `defineStudioWorkspace`
 - `defineDashboardWidget`

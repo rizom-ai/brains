@@ -1,4 +1,9 @@
 import { join } from "node:path";
+import { A2A_CHANNELS } from "@brains/contracts";
+import type {
+  MessageBusSendRequest,
+  MessageResponse,
+} from "@brains/messaging-service";
 import {
   createMockShell,
   createTempDataDir,
@@ -902,6 +907,58 @@ describe("studio editor api", () => {
         },
       }),
     );
+    expect(ask.status).toBe(503);
+    expect(await ask.json()).toEqual({ error: "Agent asking is unavailable" });
+  });
+
+  /**
+   * Whether asking is available is a fact about the brain, not a sentence.
+   *
+   * Studio used to decide it by matching the opening words of an error the
+   * messaging service composes. Reword that sentence and Studio would answer
+   * 400 to a request it should answer 503 to, and nothing would say so. The
+   * bus carries a code for the failure now, and this asks the same question
+   * with the words changed.
+   */
+  it("reports asking unavailable by the failure's code, not its wording", async () => {
+    const shell = createEditorTestShell();
+    await seedPost(shell, { id: "hello-world", body: "Text" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    // Only the agent call answers this way; everything else the route does
+    // still goes to the real bus.
+    const bus = shell.getMessageBus();
+    const send = bus.send.bind(bus);
+    bus.send = async <T = unknown, R = unknown>(
+      message: MessageBusSendRequest<T>,
+    ): Promise<MessageResponse<R>> =>
+      message.type === A2A_CHANNELS.callAgents
+        ? {
+            success: false,
+            code: "no_handler",
+            error: "nothing is listening on that channel today",
+          }
+        : send<T, R>(message);
+
+    const ask = await findRoute(
+      plugin,
+      "/studio/api/ask-agent",
+      "POST",
+    ).handler(
+      apiRequest("/studio/api/ask-agent", {
+        cookie,
+        method: "POST",
+        body: {
+          entityType: "post",
+          id: "hello-world",
+          agent: "docs.example",
+          instruction: "Review",
+          selection: "Text",
+        },
+      }),
+    );
+
     expect(ask.status).toBe(503);
     expect(await ask.json()).toEqual({ error: "Agent asking is unavailable" });
   });
