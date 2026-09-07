@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- [#232](https://github.com/rizom-ai/brains/pull/232) [`89ae051`](https://github.com/rizom-ai/brains/commit/89ae05168ccc679a179051f177f29dd24d6b5bcd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable fleet image containing the Rizom topbar background correction. No runtime implementation changes are included.
+
 ## 0.2.0-alpha.357
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @brains/studio
 
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.358
+  - @brains/console-theme@0.2.0-alpha.358
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/operator-view-react@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/auth-service@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+
 ## 0.2.0-alpha.357
 
 ### Patch Changes
