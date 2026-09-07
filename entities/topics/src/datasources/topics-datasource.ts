@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   type BaseEntity,
   type EntityDataSourceDefinition,
 } from "@brains/sdk/entities";
@@ -23,7 +23,7 @@ export const topicsDataSource: EntityDataSourceDefinition<
   BaseEntity,
   TopicDetailData,
   TopicListData
-> = defineEntityDataSource({
+> = defineDataSource({
   id: "entities",
   name: "Topics Entity DataSource",
   description: "Fetches and transforms topic entities for rendering",

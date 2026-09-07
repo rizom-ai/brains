@@ -1,5 +1,5 @@
 import {
-  defineEntityDataSource,
+  defineDataSource,
   parseMarkdownWithFrontmatter,
 } from "@brains/sdk/entities";
 import type {
@@ -44,41 +44,40 @@ export function parseDocData(entity: Doc): DocWithData {
  * view derives prev/next from the display order rather than the storage
  * sort.
  */
-export const docDataSource: AnyEntityDataSourceDefinition =
-  defineEntityDataSource({
-    id: "entities",
-    name: "Docs Entity DataSource",
-    description: "Fetches and transforms doc entities for rendering",
-    entityType: "doc",
-    entitySchema: docSchema,
-    defaultSort: [
-      { field: "order", direction: "asc" },
-      { field: "section", direction: "asc" },
-      { field: "title", direction: "asc" },
-    ],
-    defaultLimit: 1000,
-    enableNavigation: true,
-    transform: (entity: Doc): DocWithData => parseDocData(entity),
-    list: (
-      items: DocWithData[],
-      _pagination: PaginationInfo | null,
-      query: BaseQuery,
-    ) => ({
-      docs: sortDocsForDisplay(items),
-      pagination: null,
-      baseUrl: query.baseUrl ?? null,
-    }),
-    detail: ({ item, siblings }) => {
-      const docs = sortDocsForDisplay([...siblings]);
-      const index = docs.findIndex((entry) => entry.id === item.id);
-      return {
-        doc: item,
-        docs,
-        prevDoc: index > 0 ? (docs[index - 1] ?? null) : null,
-        nextDoc:
-          index >= 0 && index < docs.length - 1
-            ? (docs[index + 1] ?? null)
-            : null,
-      };
-    },
-  });
+export const docDataSource: AnyEntityDataSourceDefinition = defineDataSource({
+  id: "entities",
+  name: "Docs Entity DataSource",
+  description: "Fetches and transforms doc entities for rendering",
+  entityType: "doc",
+  entitySchema: docSchema,
+  defaultSort: [
+    { field: "order", direction: "asc" },
+    { field: "section", direction: "asc" },
+    { field: "title", direction: "asc" },
+  ],
+  defaultLimit: 1000,
+  enableNavigation: true,
+  transform: (entity: Doc): DocWithData => parseDocData(entity),
+  list: (
+    items: DocWithData[],
+    _pagination: PaginationInfo | null,
+    query: BaseQuery,
+  ) => ({
+    docs: sortDocsForDisplay(items),
+    pagination: null,
+    baseUrl: query.baseUrl ?? null,
+  }),
+  detail: ({ item, siblings }) => {
+    const docs = sortDocsForDisplay([...siblings]);
+    const index = docs.findIndex((entry) => entry.id === item.id);
+    return {
+      doc: item,
+      docs,
+      prevDoc: index > 0 ? (docs[index - 1] ?? null) : null,
+      nextDoc:
+        index >= 0 && index < docs.length - 1
+          ? (docs[index + 1] ?? null)
+          : null,
+    };
+  },
+});

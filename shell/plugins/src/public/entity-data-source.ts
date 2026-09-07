@@ -74,11 +74,12 @@ export interface EntityDetailContext<TTransformed> {
   readonly entities: EntityQueryReader;
 }
 
-export function defineEntityDataSource<
+/** What a source reading one of the brain's own types declares. */
+export interface EntityDataSourceInput<
   TEntity extends BaseEntity = BaseEntity,
   TTransformed = TEntity,
   TListResult extends object = JsonObject,
->(definition: {
+> {
   readonly id: string;
   readonly name: string;
   readonly description: string;
@@ -107,7 +108,23 @@ export function defineEntityDataSource<
   detail?(
     context: EntityDetailContext<TTransformed>,
   ): unknown | Promise<unknown>;
-}): EntityDataSourceDefinition<TEntity, TTransformed, TListResult> {
+}
+
+/** What a source reaching outside the brain declares. */
+export interface FetchDataSourceInput {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
+}
+
+function buildEntityDataSource<
+  TEntity extends BaseEntity,
+  TTransformed,
+  TListResult extends object,
+>(
+  definition: EntityDataSourceInput<TEntity, TTransformed, TListResult>,
+): EntityDataSourceDefinition<TEntity, TTransformed, TListResult> {
   return Object.freeze({
     kind: "rizom-entity-data-source" as const,
     id: definition.id,
@@ -189,7 +206,7 @@ export interface EntityQueryReader extends EntityReads {
 /**
  * A data source in its general form: one `fetch` over a narrow entity
  * reader. Use this when a source spans entity types or answers queries
- * that are not list-and-detail; `defineEntityDataSource` is the sugar for
+ * that are not list-and-detail; `defineDataSource` is the sugar for
  * the common single-type case.
  *
  * The author returns plain data and the runtime validates it against the
@@ -203,16 +220,54 @@ export interface DataSourceDefinition {
   fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
 }
 
-export function defineDataSource(definition: {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  fetch(query: unknown, entities: EntityQueryReader): Promise<unknown>;
-}): DataSourceDefinition {
+/**
+ * A source of data a template or a console reads from.
+ *
+ * Two forms, and a declaration is one or the other. A source that **fetches**
+ * reaches somewhere the brain does not store and answers with what it found.
+ * A source that names an **entity type** reads the brain's own records, and
+ * the runtime does the paging, the sorting and the neighbour lookups rather
+ * than the author writing them again over `fetch`.
+ */
+export function defineDataSource(
+  definition: FetchDataSourceInput,
+): DataSourceDefinition;
+export function defineDataSource<
+  TEntity extends BaseEntity = BaseEntity,
+  TTransformed = TEntity,
+  TListResult extends object = JsonObject,
+>(
+  definition: EntityDataSourceInput<TEntity, TTransformed, TListResult>,
+): EntityDataSourceDefinition<TEntity, TTransformed, TListResult>;
+export function defineDataSource(
+  definition: FetchDataSourceInput | EntityDataSourceInput,
+): DataSourceDefinition | EntityDataSourceDefinition {
+  // The two forms are exclusive in the type, so a typed caller cannot get
+  // here with both or neither. A caller without types can, and a source that
+  // silently took one branch would fetch nothing or read nothing.
+  if (
+    Object.hasOwn(definition, "entityType") ===
+    Object.hasOwn(definition, "fetch")
+  ) {
+    throw new Error(
+      `Data source "${definition.id}" either fetches or reads an entity type — this one declares both or neither`,
+    );
+  }
+  if (readsEntities(definition)) return buildEntityDataSource(definition);
+  const { id, name, description, fetch } = definition;
   return Object.freeze({
     kind: "rizom-data-source" as const,
-    ...definition,
+    id,
+    name,
+    description,
+    fetch,
   });
+}
+
+function readsEntities(
+  definition: FetchDataSourceInput | EntityDataSourceInput,
+): definition is EntityDataSourceInput {
+  return Object.hasOwn(definition, "entityType");
 }
 
 /**
